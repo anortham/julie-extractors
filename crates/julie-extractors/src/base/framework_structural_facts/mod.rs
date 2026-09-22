@@ -18,6 +18,7 @@ mod python_web;
 mod rails;
 mod razor;
 mod scan;
+mod sinatra;
 mod spring;
 mod static_arg;
 mod symfony;
@@ -45,6 +46,7 @@ use self::phoenix::collect_phoenix_routes;
 use self::python_web::collect_python_web_facts;
 use self::rails::collect_rails_routes;
 use self::razor::collect_razor_structural_facts;
+use self::sinatra::collect_sinatra_routes;
 use self::spring::collect_spring_request_mappings;
 use self::symfony::collect_symfony_routes;
 use super::attach_containing_symbols;
@@ -77,6 +79,8 @@ pub(super) const ECHO_ROUTE_PATTERN_ID: &str = "echo.route.v1";
 pub(super) const RAILS_ROUTE_PATTERN_ID: &str = "rails.route.v1";
 pub(super) const RAILS_RESOURCE_ROUTE_PATTERN_ID: &str = "rails.resource_route.v1";
 pub(super) const RAILS_MOUNT_PATTERN_ID: &str = "rails.mount.v1";
+pub(super) const SINATRA_ROUTE_PATTERN_ID: &str = "sinatra.route.v1";
+pub(super) const SINATRA_FILTER_PATTERN_ID: &str = "sinatra.filter.v1";
 pub(super) const LARAVEL_ROUTE_PATTERN_ID: &str = "laravel.route.v1";
 pub(super) const LARAVEL_RESOURCE_ROUTE_PATTERN_ID: &str = "laravel.resource_route.v1";
 pub(super) const LARAVEL_ROUTE_PREFIX_PATTERN_ID: &str = "laravel.route_prefix.v1";
@@ -148,6 +152,8 @@ const RAILS_PATTERN_IDS: &[&str] = &[
     RAILS_ROUTE_PATTERN_ID,
     RAILS_RESOURCE_ROUTE_PATTERN_ID,
     RAILS_MOUNT_PATTERN_ID,
+    SINATRA_ROUTE_PATTERN_ID,
+    SINATRA_FILTER_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -290,6 +296,7 @@ pub fn collect_framework_structural_facts(
         }
         "ruby" => {
             let mut ruby_facts = collect_rails_routes(language, tree, file_path, content);
+            ruby_facts.extend(collect_sinatra_routes(language, tree, file_path, content));
             ruby_facts.extend(collect_backend_http_client_requests(
                 language, tree, file_path, content,
             ));

@@ -65,13 +65,15 @@ fn cross_file_fixture_preserves_unresolved_module_call_pending() {
             .structured_pending_relationships
             .iter()
             .all(|pending| pending.target.terminal_name != "local_helper"),
-        "bare local_helper references must not leak into pending relationships"
+        "bare local_helper calls resolve in the file and must not stay pending"
     );
-    assert!(
-        results
-            .relationships
-            .iter()
-            .all(|relationship| relationship.kind != RelationshipKind::Calls),
-        "cross-file fixture has no resolved call edges"
+    let local_helper_calls = results
+        .relationships
+        .iter()
+        .filter(|relationship| relationship.kind == RelationshipKind::Calls)
+        .count();
+    assert_eq!(
+        local_helper_calls, 2,
+        "both bare local_helper calls resolve to the same-class method"
     );
 }

@@ -141,7 +141,6 @@
       "visibility": "Public",
       "parent_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
       "metadata": {
-        "type": "variable_assignment",
         "value": "0"
       },
       "annotations": [],
@@ -204,7 +203,6 @@
       "visibility": "Public",
       "parent_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
       "metadata": {
-        "type": "variable_assignment",
         "value": "0"
       },
       "annotations": [],
@@ -238,7 +236,6 @@
       "visibility": "Public",
       "parent_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
       "metadata": {
-        "type": "variable_assignment",
         "value": "new Other()"
       },
       "annotations": [],
@@ -441,47 +438,11 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/php/cross_file/source.php:App\\Other:10:0",
-      "resolved_type": "use",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/cross_file/source.php:Fixture:8:0",
-      "resolved_type": "namespace",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/cross_file/source.php:Worker:12:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/cross_file/source.php:i:16:17",
-      "resolved_type": "variable_assignment",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -490,16 +451,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/cross_file/source.php:total:14:8",
-      "resolved_type": "variable_assignment",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },

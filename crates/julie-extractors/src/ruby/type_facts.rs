@@ -1,4 +1,3 @@
-use super::helpers::extract_name_from_node;
 use crate::base::BaseExtractor;
 use crate::base::types::TypeNameRules;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -60,7 +59,7 @@ fn collect_class_names(base: &BaseExtractor, node: Node, depth: u32, names: &mut
         return;
     }
     if node.kind() == "class"
-        && let Some(name) = extract_name_from_node(node, |n| base.get_node_text(n), "name")
+        && let Some(name) = super::helpers::declared_name(base, node)
     {
         names.insert(name);
     }
@@ -77,7 +76,7 @@ fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
     let mut current = node.parent();
     while let Some(candidate) = current {
         if matches!(candidate.kind(), "class" | "module") {
-            return extract_name_from_node(candidate, |n| base.get_node_text(n), "name");
+            return super::helpers::declared_name(base, candidate);
         }
         current = candidate.parent();
     }

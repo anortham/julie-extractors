@@ -14,6 +14,22 @@ pub(super) fn extract_name_from_node(
         .map(|name_node| base_get_text(&name_node))
 }
 
+/// The name a `class` or `module` node declares. A compact declaration
+/// `class Api::V1::Base` declares `Base` inside `Api::V1`.
+pub(crate) fn declared_name(base: &crate::base::BaseExtractor, node: Node) -> Option<String> {
+    let name_node = node.child_by_field_name("name").or_else(|| {
+        let mut cursor = node.walk();
+        node.children(&mut cursor)
+            .find(|child| child.kind() == "constant")
+    })?;
+    let terminal = if name_node.kind() == "scope_resolution" {
+        name_node.child_by_field_name("name")?
+    } else {
+        name_node
+    };
+    Some(base.get_node_text(&terminal))
+}
+
 /// Build a namespace-aware qualified name by walking up parent modules/classes
 pub(super) fn build_qualified_name(
     node: Node,

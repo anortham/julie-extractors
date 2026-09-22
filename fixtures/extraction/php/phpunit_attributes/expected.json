@@ -1,0 +1,1125 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:PHPUnit\\Framework\\Attributes\\DataProvider:5:0",
+      "name": "PHPUnit\\Framework\\Attributes\\DataProvider",
+      "kind": "import",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 46,
+      "start_byte": 30,
+      "end_byte": 76,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "use PHPUnit\\Framework\\Attributes\\DataProvider",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "use"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:PHPUnit\\Framework\\Attributes\\Group:6:0",
+      "name": "PHPUnit\\Framework\\Attributes\\Group",
+      "kind": "import",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 39,
+      "start_byte": 77,
+      "end_byte": 116,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "use PHPUnit\\Framework\\Attributes\\Group",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "use"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:PHPUnit\\Framework\\Attributes\\Test:7:0",
+      "name": "PHPUnit\\Framework\\Attributes\\Test",
+      "kind": "import",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 38,
+      "start_byte": 117,
+      "end_byte": 155,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "use PHPUnit\\Framework\\Attributes\\Test",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "use"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:PHPUnit\\Framework\\TestCase:8:0",
+      "name": "PHPUnit\\Framework\\TestCase",
+      "kind": "import",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 8,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 31,
+      "start_byte": 156,
+      "end_byte": 187,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "use PHPUnit\\Framework\\TestCase",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "use"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:PriceTest:10:0",
+      "name": "PriceTest",
+      "kind": "class",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 10,
+      "start_column": 0,
+      "end_line": 38,
+      "end_column": 1,
+      "start_byte": 189,
+      "end_byte": 712,
+      "body_span": {
+        "start_line": 11,
+        "start_column": 0,
+        "end_line": 38,
+        "end_column": 1,
+        "start_byte": 228,
+        "end_byte": 712
+      },
+      "body_hash": "213d18ea17ff93741ad4e7bc7bbdf303",
+      "signature": "final class PriceTest extends TestCase",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "base_types": [
+          "TestCase"
+        ],
+        "extends": "extends TestCase",
+        "modifiers": [
+          "final"
+        ],
+        "test_container": true,
+        "test_role": "test_container",
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:Tests\\Unit:3:0",
+      "name": "Tests\\Unit",
+      "kind": "namespace",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 21,
+      "start_byte": 7,
+      "end_byte": 28,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "namespace Tests\\Unit",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "namespace"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:a:21:33",
+      "name": "a",
+      "kind": "variable",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 21,
+      "start_column": 33,
+      "end_line": 21,
+      "end_column": 39,
+      "start_byte": 418,
+      "end_byte": 424,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "int $a",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computesRows:19:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:a:29:35",
+      "name": "a",
+      "kind": "variable",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 29,
+      "start_column": 35,
+      "end_line": 29,
+      "end_column": 41,
+      "start_byte": 564,
+      "end_byte": 570,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "int $a",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:testLegacyRows:29:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:b:21:41",
+      "name": "b",
+      "kind": "variable",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 21,
+      "start_column": 41,
+      "end_line": 21,
+      "end_column": 47,
+      "start_byte": 426,
+      "end_byte": 432,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "int $b",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computesRows:19:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:b:29:43",
+      "name": "b",
+      "kind": "variable",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 29,
+      "start_column": 43,
+      "end_line": 29,
+      "end_column": 49,
+      "start_byte": 572,
+      "end_byte": 578,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "int $b",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:testLegacyRows:29:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computes:12:4",
+      "name": "computes",
+      "kind": "method",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 12,
+      "start_column": 4,
+      "end_line": 17,
+      "end_column": 5,
+      "start_byte": 234,
+      "end_byte": 343,
+      "body_span": {
+        "start_line": 15,
+        "start_column": 4,
+        "end_line": 17,
+        "end_column": 5,
+        "start_byte": 304,
+        "end_byte": 343
+      },
+      "body_hash": "bb9f6bcc942c68ee48b147aff4df2a0f",
+      "signature": "#[Group('slow')]\n    #[Test]\npublic function computes(): void",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:PriceTest:10:0",
+      "metadata": {
+        "is_test": true,
+        "modifiers": "public",
+        "parameters": "()",
+        "returnType": "void",
+        "test_role": "test_case",
+        "type": "function"
+      },
+      "annotations": [
+        {
+          "annotation": "Group",
+          "annotation_key": "group",
+          "raw_text": "Group('slow')"
+        },
+        {
+          "annotation": "Test",
+          "annotation_key": "test",
+          "raw_text": "Test"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computesRows:19:4",
+      "name": "computesRows",
+      "kind": "method",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 19,
+      "start_column": 4,
+      "end_line": 24,
+      "end_column": 5,
+      "start_byte": 349,
+      "end_byte": 485,
+      "body_span": {
+        "start_line": 22,
+        "start_column": 4,
+        "end_line": 24,
+        "end_column": 5,
+        "start_byte": 444,
+        "end_byte": 485
+      },
+      "body_hash": "d49ca9a21ecf07e2e9f0796ecfad10e7",
+      "signature": "#[Test]\n    #[DataProvider('rows')]\npublic function computesRows(int $a, int $b): void",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:PriceTest:10:0",
+      "metadata": {
+        "is_test": true,
+        "modifiers": "public",
+        "parameters": "(int $a, int $b)",
+        "returnType": "void",
+        "test_role": "parameterized_test",
+        "type": "function"
+      },
+      "annotations": [
+        {
+          "annotation": "Test",
+          "annotation_key": "test",
+          "raw_text": "Test"
+        },
+        {
+          "annotation": "DataProvider",
+          "annotation_key": "dataprovider",
+          "raw_text": "DataProvider('rows')"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:rows:34:4",
+      "name": "rows",
+      "kind": "method",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 34,
+      "start_column": 4,
+      "end_line": 37,
+      "end_column": 5,
+      "start_byte": 637,
+      "end_byte": 710,
+      "body_span": {
+        "start_line": 35,
+        "start_column": 4,
+        "end_line": 37,
+        "end_column": 5,
+        "start_byte": 681,
+        "end_byte": 710
+      },
+      "body_hash": "8c80504e12764c0921d128e21d89198e",
+      "signature": "public static function rows(): iterable",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:PriceTest:10:0",
+      "metadata": {
+        "modifiers": "public,static",
+        "parameters": "()",
+        "returnType": "iterable",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:testLegacyRows:29:4",
+      "name": "testLegacyRows",
+      "kind": "method",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 29,
+      "start_column": 4,
+      "end_line": 32,
+      "end_column": 5,
+      "start_byte": 533,
+      "end_byte": 631,
+      "body_span": {
+        "start_line": 30,
+        "start_column": 4,
+        "end_line": 32,
+        "end_column": 5,
+        "start_byte": 590,
+        "end_byte": 631
+      },
+      "body_hash": "d49ca9a21ecf07e2e9f0796ecfad10e7",
+      "signature": "public function testLegacyRows(int $a, int $b): void",
+      "doc_comment": "/**\n     * @dataProvider rows\n     */",
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:PriceTest:10:0",
+      "metadata": {
+        "is_test": true,
+        "modifiers": "public",
+        "parameters": "(int $a, int $b)",
+        "returnType": "void",
+        "test_role": "parameterized_test",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:PriceTest:10:0",
+      "callee_name": "TestCase",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "line_number": 10,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computes:12:4",
+      "callee_name": "self.assertTrue",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "line_number": 16,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computesRows:19:4",
+      "callee_name": "self.assertSame",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "line_number": 23,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:testLegacyRows:29:4",
+      "callee_name": "self.assertSame",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "line_number": 31,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:PriceTest:10:0",
+        "callee_name": "TestCase",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+        "line_number": 10,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "TestCase",
+        "terminal_name": "TestCase",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:PriceTest:10:0",
+      "span": {
+        "start_line": 10,
+        "start_column": 0,
+        "end_line": 38,
+        "end_column": 1,
+        "start_byte": 189,
+        "end_byte": 712
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computes:12:4",
+        "callee_name": "self.assertTrue",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+        "line_number": 16,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "self.assertTrue",
+        "terminal_name": "assertTrue",
+        "receiver": "self",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computes:12:4",
+      "span": {
+        "start_line": 16,
+        "start_column": 8,
+        "end_line": 16,
+        "end_column": 30,
+        "start_byte": 314,
+        "end_byte": 336
+      },
+      "receiver_type": "PriceTest"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computesRows:19:4",
+        "callee_name": "self.assertSame",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+        "line_number": 23,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "self.assertSame",
+        "terminal_name": "assertSame",
+        "receiver": "self",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computesRows:19:4",
+      "span": {
+        "start_line": 23,
+        "start_column": 8,
+        "end_line": 23,
+        "end_column": 32,
+        "start_byte": 454,
+        "end_byte": 478
+      },
+      "receiver_type": "PriceTest"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:testLegacyRows:29:4",
+        "callee_name": "self.assertSame",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+        "line_number": 31,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "self.assertSame",
+        "terminal_name": "assertSame",
+        "receiver": "self",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:testLegacyRows:29:4",
+      "span": {
+        "start_line": 31,
+        "start_column": 8,
+        "end_line": 31,
+        "end_column": 32,
+        "start_byte": 600,
+        "end_byte": 624
+      },
+      "receiver_type": "PriceTest"
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:a:variable_ref:23:25",
+      "name": "a",
+      "kind": "variable_ref",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 23,
+      "start_column": 25,
+      "end_line": 23,
+      "end_column": 27,
+      "start_byte": 471,
+      "end_byte": 473,
+      "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computesRows:19:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:a:variable_ref:31:25",
+      "name": "a",
+      "kind": "variable_ref",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 31,
+      "start_column": 25,
+      "end_line": 31,
+      "end_column": 27,
+      "start_byte": 617,
+      "end_byte": 619,
+      "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:testLegacyRows:29:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:assertSame:call:23:14",
+      "name": "assertSame",
+      "kind": "call",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 23,
+      "start_column": 14,
+      "end_line": 23,
+      "end_column": 24,
+      "start_byte": 460,
+      "end_byte": 470,
+      "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computesRows:19:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "PriceTest"
+    },
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:assertSame:call:31:14",
+      "name": "assertSame",
+      "kind": "call",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 31,
+      "start_column": 14,
+      "end_line": 31,
+      "end_column": 24,
+      "start_byte": 606,
+      "end_byte": 616,
+      "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:testLegacyRows:29:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "PriceTest"
+    },
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:assertTrue:call:16:14",
+      "name": "assertTrue",
+      "kind": "call",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 16,
+      "start_column": 14,
+      "end_line": 16,
+      "end_column": 24,
+      "start_byte": 320,
+      "end_byte": 330,
+      "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computes:12:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "PriceTest"
+    },
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:b:variable_ref:23:29",
+      "name": "b",
+      "kind": "variable_ref",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 23,
+      "start_column": 29,
+      "end_line": 23,
+      "end_column": 31,
+      "start_byte": 475,
+      "end_byte": 477,
+      "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computesRows:19:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:b:variable_ref:31:29",
+      "name": "b",
+      "kind": "variable_ref",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "start_line": 31,
+      "start_column": 29,
+      "end_line": 31,
+      "end_column": 31,
+      "start_byte": 621,
+      "end_byte": 623,
+      "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:testLegacyRows:29:4",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:a:21:33",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:a:29:35",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:b:21:41",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:b:29:43",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computes:12:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computesRows:19:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:rows:34:4",
+      "resolved_type": "iterable",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:testLegacyRows:29:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "php",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "php.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computes:12:4",
+      "start_line": 12,
+      "start_column": 6,
+      "end_line": 12,
+      "end_column": 19,
+      "start_byte": 236,
+      "end_byte": 249,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "Group",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "php.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computes:12:4",
+      "start_line": 13,
+      "start_column": 6,
+      "end_line": 13,
+      "end_column": 10,
+      "start_byte": 257,
+      "end_byte": 261,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "Test",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "php.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computesRows:19:4",
+      "start_line": 19,
+      "start_column": 6,
+      "end_line": 19,
+      "end_column": 10,
+      "start_byte": 351,
+      "end_byte": 355,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "Test",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "php.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computesRows:19:4",
+      "start_line": 20,
+      "start_column": 6,
+      "end_line": 20,
+      "end_column": 26,
+      "start_byte": 363,
+      "end_byte": 383,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "DataProvider",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "php.namespace_definition.v1",
+      "capture_name": "namespace_definition",
+      "node_kind": "namespace_definition",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:Tests\\Unit:3:0",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 21,
+      "start_byte": 7,
+      "end_byte": 28,
+      "confidence": "1.000",
+      "metadata": {
+        "namespace_name": "Tests\\Unit",
+        "pattern_version": 1,
+        "query_family": "module"
+      }
+    },
+    {
+      "pattern_id": "php.namespace_use_declaration.v1",
+      "capture_name": "namespace_use_declaration",
+      "node_kind": "namespace_use_declaration",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "containing_key": null,
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 46,
+      "start_byte": 30,
+      "end_byte": 76,
+      "confidence": "1.000",
+      "metadata": {
+        "import_target": "PHPUnit\\Framework\\Attributes\\DataProvider",
+        "pattern_version": 1,
+        "query_family": "imports"
+      }
+    },
+    {
+      "pattern_id": "php.namespace_use_declaration.v1",
+      "capture_name": "namespace_use_declaration",
+      "node_kind": "namespace_use_declaration",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "containing_key": null,
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 39,
+      "start_byte": 77,
+      "end_byte": 116,
+      "confidence": "1.000",
+      "metadata": {
+        "import_target": "PHPUnit\\Framework\\Attributes\\Group",
+        "pattern_version": 1,
+        "query_family": "imports"
+      }
+    },
+    {
+      "pattern_id": "php.namespace_use_declaration.v1",
+      "capture_name": "namespace_use_declaration",
+      "node_kind": "namespace_use_declaration",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "containing_key": null,
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 38,
+      "start_byte": 117,
+      "end_byte": 155,
+      "confidence": "1.000",
+      "metadata": {
+        "import_target": "PHPUnit\\Framework\\Attributes\\Test",
+        "pattern_version": 1,
+        "query_family": "imports"
+      }
+    },
+    {
+      "pattern_id": "php.namespace_use_declaration.v1",
+      "capture_name": "namespace_use_declaration",
+      "node_kind": "namespace_use_declaration",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "containing_key": null,
+      "start_line": 8,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 31,
+      "start_byte": 156,
+      "end_byte": 187,
+      "confidence": "1.000",
+      "metadata": {
+        "import_target": "PHPUnit\\Framework\\TestCase",
+        "pattern_version": 1,
+        "query_family": "imports"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "covered_lines": 39,
+      "covered_bytes": 713,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 39,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 713,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computes:12:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "covered_lines": 3,
+      "covered_bytes": 39,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 15,
+      "start_column": 4,
+      "end_line": 17,
+      "end_column": 5,
+      "start_byte": 304,
+      "end_byte": 343,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computesRows:19:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "covered_lines": 3,
+      "covered_bytes": 41,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 2,
+      "start_line": 22,
+      "start_column": 4,
+      "end_line": 24,
+      "end_column": 5,
+      "start_byte": 444,
+      "end_byte": 485,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:rows:34:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "covered_lines": 3,
+      "covered_bytes": 29,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 35,
+      "start_column": 4,
+      "end_line": 37,
+      "end_column": 5,
+      "start_byte": 681,
+      "end_byte": 710,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:testLegacyRows:29:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "covered_lines": 3,
+      "covered_bytes": 41,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 2,
+      "start_line": 30,
+      "start_column": 4,
+      "end_line": 32,
+      "end_column": 5,
+      "start_byte": 590,
+      "end_byte": 631,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "doc_comment",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:testLegacyRows:29:4",
+      "start_line": 26,
+      "start_column": 4,
+      "end_line": 28,
+      "end_column": 7,
+      "start_byte": 491,
+      "end_byte": 528,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computes:12:4",
+      "start_line": 12,
+      "start_column": 12,
+      "end_line": 12,
+      "end_column": 18,
+      "start_byte": 242,
+      "end_byte": 248,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+      "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computesRows:19:4",
+      "start_line": 20,
+      "start_column": 19,
+      "end_line": 20,
+      "end_column": 25,
+      "start_byte": 376,
+      "end_byte": 382,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

@@ -121,8 +121,7 @@ pub(super) fn extract_class(extractor: &mut PythonExtractor, node: Node) -> Opti
     // Extract docstring
     let doc_comment = extract_docstring(extractor, &node);
 
-    // Check for parent class (nested class support)
-    let parent_id = helpers::find_parent_class_id(extractor, &node);
+    let parent_id = helpers::find_enclosing_callable_id(extractor, &node);
 
     let mut metadata = HashMap::new();
     metadata.insert("decorators".to_string(), serde_json::json!(decorators_list));

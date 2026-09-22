@@ -87,7 +87,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
         pattern_id: "flask.route.v1",
         languages: &["python"],
         query_family: "framework",
-        description: "A static Flask route decorator on a traced Flask/Blueprint receiver.",
+        description: "A static Flask route: a route decorator or an add_url_rule call on a Flask app or Blueprint receiver that is constructed in the file or imported into a file that imports flask.",
         metadata_keys: &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
@@ -96,13 +96,13 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "api_style",
                 STR,
                 ALWAYS,
-                "Routing style (\"decorator_routing\").",
+                "Routing style (\"decorator_routing\" or \"call_routing\" for add_url_rule).",
             ),
             key(
                 "route_template",
                 STR,
                 ALWAYS,
-                "Raw static route path from the decorator.",
+                "Raw static route path from the decorator or add_url_rule call.",
             ),
             key(
                 "normalized_route_template",
@@ -130,6 +130,12 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "Blueprint name literal for blueprint-owned routes.",
             ),
             key("url_prefix", STR, OPT, "Same-file Blueprint url_prefix."),
+            key(
+                "view_target",
+                STR,
+                OPT,
+                "Source text of the add_url_rule view function.",
+            ),
             key(
                 "effective_route_template",
                 STR,

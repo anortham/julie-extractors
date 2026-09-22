@@ -38,7 +38,14 @@ frameworks and guards each rule three ways.
 | `setup do`, `teardown do` | `fixture_setup`, `fixture_teardown` | Rails block-form callbacks |
 | `def setup`, `def teardown` | `fixture_setup`, `fixture_teardown` | Minitest and Test::Unit hooks |
 | `def test_x` | `test_case` | Minitest and Test::Unit collection prefix |
-| class with a `Minitest::Test`, `Test::Unit::TestCase`, `ActiveSupport::TestCase`, or `ActionDispatch::IntegrationTest` base | `test_container` | the four collected base classes |
+| class with a `Minitest::Test`, `Test::Unit::TestCase`, `ActiveSupport::TestCase`, `ActionDispatch::IntegrationTest`, or Rails component test case base | `test_container` | the collected base classes |
+| class in a test path whose base is named `*TestCase` or `*Test` | `test_container` | application bases such as `ApplicationSystemTestCase` |
+
+The Rails component test cases are `ActionDispatch::SystemTestCase`,
+`ActionController::TestCase`, `ActionMailer::TestCase`,
+`ActionMailbox::TestCase`, `ActionView::TestCase`, `ActiveJob::TestCase`,
+`ActionCable::TestCase`, `ActionCable::Connection::TestCase`,
+`ActionCable::Channel::TestCase`, and `Rails::Generators::TestCase`.
 
 ### The three guards
 
@@ -86,6 +93,52 @@ Ruby's `Kernel#URI("...")`, now emits a call relationship. And
 `include`/`extend`/`prepend`/`using` now require a bare or `self` receiver
 before they count as a mixin on the enclosing class, which keeps
 `other.include Formatting` out of that class's mixin list.
+
+## Symbols and calls
+
+- A constant defines a symbol only as an assignment target (`FOO = 1`) or a
+  class or module name. A constant read in `when`, `rescue`, or a value
+  position is a `type_usage` identifier. A global variable defines a symbol
+  only as `$g = ...`.
+- `obj.attr = x` and `h[k] = x` call writer methods. They define no symbol;
+  `self.mode = x` gives a pending call to `mode=`.
+- A compact declaration `class Api::V1::Base` is named `Base`. Its signature
+  keeps the written name, and `metadata.qualifiedName` holds
+  `Api::V1::Base`. A same-file superclass resolves by name or qualified name.
+- Call targets come from the `call` node fields. The terminal is the method
+  name. The receiver is the receiver text, or the method name of a call
+  receiver, so `Mailer.with(to: x).receipt` has receiver `with`. Argument and
+  block text never reach a target.
+- A bare identifier with no earlier binding in its scope is a receiverless
+  method call, which is Ruby's own parse rule. It gives a `call` identifier
+  and a `calls` relationship to a same-class method, or a pending call. A
+  local, parameter, block parameter, or rescue variable stays a
+  `variable_ref`. `def`, `class`, `module`, and the program start a scope; a
+  block sees the enclosing scope.
+- `send(:m)`, `public_send(:m)`, `__send__(:m)`, `method(:m)`, and `&:m` call
+  `m`. `super` gives a pending call to the enclosing method's name with
+  receiver `super` and the declared superclass as `receiver_type`.
+- A DSL call that declares its own symbol, such as `test "x" do` or
+  `setup do`, is that declaration and gives no call row.
+
+## Doc comments
+
+A doc comment is the `#` block directly above a declaration, with no blank
+line between. A comment before the first member of a class or module body
+documents that member. A shebang, a magic comment (`frozen_string_literal:`,
+`encoding:`, `coding:`, `warn_indent:`, `shareable_constant_value:`,
+`typed:`), and a `rubocop:` directive are never docs and end the block. They
+are plain `comment` source regions.
+
+## Sinatra routes
+
+`sinatra.route.v1` records a `get`, `post`, `put`, `patch`, `delete`, `head`,
+`options`, `link`, or `unlink` block with a static string path.
+`sinatra.filter.v1` records a `before` or `after` block with a static path.
+Both count inside a `Sinatra::Base` or `Sinatra::Application` subclass, or at
+the top level of a file that requires `sinatra`. An interpolated path emits
+nothing. Handler blocks get no symbol, so calls in a handler belong to the
+app class.
 
 ## Recorded gaps
 

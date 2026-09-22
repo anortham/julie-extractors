@@ -58,6 +58,14 @@ pub fn find_enclosing_callable_id(extractor: &PythonExtractor, node: &Node) -> O
     None
 }
 
+/// Drop the text-heuristic body span of a declaration that has no body:
+/// imports, variables, constants, attributes, and parameters.
+pub fn without_body(mut symbol: crate::base::Symbol) -> crate::base::Symbol {
+    symbol.body_span = None;
+    symbol.body_hash = None;
+    symbol
+}
+
 pub fn enclosing_class_name(base: &crate::base::BaseExtractor, node: &Node) -> Option<String> {
     let mut current = *node;
     while let Some(parent) = current.parent() {

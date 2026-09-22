@@ -128,8 +128,8 @@ end
     assert_eq!(question.display_name, "Outer.Inner.ready?");
 
     let expression_call = target("dispatch");
-    assert_eq!(expression_call.receiver, None);
+    assert_eq!(expression_call.receiver.as_deref(), Some("build"));
     assert!(expression_call.namespace_path.is_empty());
-    assert_eq!(expression_call.display_name, "dispatch");
+    assert_eq!(expression_call.display_name, "build.dispatch");
     assert_eq!(result.relationships.len(), 1);
 }

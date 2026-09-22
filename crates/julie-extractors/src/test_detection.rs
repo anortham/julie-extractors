@@ -131,7 +131,7 @@ pub(crate) fn is_test_path(file_path: &str) -> bool {
         .rsplit(PATH_SEPARATORS)
         .next()
         .unwrap_or(file_path);
-    if file_name == "conftest.py" {
+    if file_name == "conftest.py" || file_name == "tests.py" {
         return true;
     }
     if TEST_FILE_NAME_SUFFIXES
@@ -303,19 +303,26 @@ fn python_test_lifecycle_direction(
 ) -> TestLifecycleDirection {
     if annotation_keys
         .iter()
-        .any(|annotation| annotation == "pytest.fixture")
+        .any(|annotation| is_python_fixture_annotation(annotation))
     {
         return TestLifecycleDirection::Setup;
     }
     match name {
-        "setUp" | "setUpClass" | "setUpModule" | "asyncSetUp" | "setup_method" | "setup_class"
-        | "setup_function" | "setup_module" => TestLifecycleDirection::Setup,
+        "setUp" | "setUpClass" | "setUpTestData" | "setUpModule" | "asyncSetUp"
+        | "setup_method" | "setup_class" | "setup_function" | "setup_module" => {
+            TestLifecycleDirection::Setup
+        }
         "tearDown" | "tearDownClass" | "tearDownModule" | "asyncTearDown" | "teardown_method"
         | "teardown_class" | "teardown_function" | "teardown_module" => {
             TestLifecycleDirection::Teardown
         }
         _ => TestLifecycleDirection::None,
     }
+}
+
+/// `@pytest.fixture` and the pytest-asyncio `@pytest_asyncio.fixture`.
+fn is_python_fixture_annotation(annotation: &str) -> bool {
+    matches!(annotation, "pytest.fixture" | "pytest_asyncio.fixture")
 }
 
 /// `@pytest.mark.parametrize` runs one case per argument set.
@@ -348,7 +355,7 @@ fn detect_python(name: &str, file_path: &str, annotation_keys: &[String]) -> boo
     }
     if annotation_keys
         .iter()
-        .any(|annotation| annotation == "pytest.fixture")
+        .any(|annotation| is_python_fixture_annotation(annotation))
     {
         return true;
     }
@@ -1087,13 +1094,77 @@ pub(crate) fn mark_python_test_containers(symbols: &mut [Symbol]) {
         .filter_map(|symbol| symbol.parent_id.clone())
         .collect();
 
+    let mut testcase_ids = HashSet::new();
     for symbol in symbols
         .iter_mut()
         .filter(|symbol| symbol.kind == SymbolKind::Class)
     {
-        let extends_testcase = metadata_string_list_contains(symbol, "superclasses", "TestCase");
+        let extends_testcase = extends_python_testcase(symbol);
+        if extends_testcase {
+            testcase_ids.insert(symbol.id.clone());
+        }
         if extends_testcase || containers_with_test_members.contains(&symbol.id) {
             mark_class_test_container(symbol);
+        }
+    }
+
+    apply_python_testcase_member_roles(symbols, &testcase_ids);
+}
+
+/// unittest loads every `TestCase` subclass wherever it lives. These are the
+/// standard library, Django, and DRF `TestCase` subclasses.
+const PYTHON_TESTCASE_BASES: &[&str] = &[
+    "TestCase",
+    "IsolatedAsyncioTestCase",
+    "SimpleTestCase",
+    "TransactionTestCase",
+    "LiveServerTestCase",
+    "StaticLiveServerTestCase",
+    "APITestCase",
+    "APISimpleTestCase",
+    "APITransactionTestCase",
+    "APILiveServerTestCase",
+];
+
+fn extends_python_testcase(symbol: &Symbol) -> bool {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get("superclasses"))
+        .and_then(|value| value.as_array())
+        .is_some_and(|bases| {
+            bases.iter().filter_map(|base| base.as_str()).any(|base| {
+                base.rsplit('.')
+                    .next()
+                    .is_some_and(|name| PYTHON_TESTCASE_BASES.contains(&name))
+            })
+        })
+}
+
+/// A `test*` method or a unittest lifecycle hook inside a `TestCase` subclass
+/// is collected whatever the file path, so it gets its role here even when the
+/// path guard in `detect_python` withheld it.
+fn apply_python_testcase_member_roles(symbols: &mut [Symbol], testcase_ids: &HashSet<String>) {
+    for symbol in symbols.iter_mut().filter(|symbol| {
+        matches!(
+            symbol.kind,
+            SymbolKind::Method | SymbolKind::Constructor | SymbolKind::Function
+        ) && symbol
+            .parent_id
+            .as_ref()
+            .is_some_and(|parent| testcase_ids.contains(parent))
+            && !metadata_flag(symbol, "is_test")
+    }) {
+        let role = python_test_lifecycle_direction(&symbol.name, &[])
+            .fixture_role()
+            .or_else(|| {
+                symbol
+                    .name
+                    .starts_with("test")
+                    .then_some(TestRole::TestCase)
+            });
+        if let Some(role) = role {
+            apply_test_role(symbol.metadata.get_or_insert_with(Default::default), role);
         }
     }
 }
@@ -1254,6 +1325,23 @@ fn php_member_test_role(name: &str, annotation_keys: &[String]) -> Option<TestRo
         .then(|| php_test_case_role(annotation_keys).unwrap_or(TestRole::TestCase))
 }
 
+/// Whether a PHPDoc block carries `@tag` as a whole tag: `@test` matches
+/// `@test` but not `@tested-by`, `@testdox`, or `qa@testing.example.com`.
+pub(crate) fn has_phpdoc_tag(doc_comment: &str, tag: &str) -> bool {
+    doc_comment.match_indices('@').any(|(at, _)| {
+        let starts_tag = doc_comment[..at]
+            .chars()
+            .next_back()
+            .is_none_or(|before| before.is_whitespace() || before == '*');
+        starts_tag
+            && doc_comment[at + 1..].strip_prefix(tag).is_some_and(|rest| {
+                rest.chars()
+                    .next()
+                    .is_none_or(|ch| !ch.is_alphanumeric() && ch != '-' && ch != '_')
+            })
+    })
+}
+
 /// An attribute or a `@test` docblock names a case wherever the file sits,
 /// because neither spelling occurs in ordinary PHP. The `test` name prefix is
 /// ordinary PHP — `testConnection()` on a service class — so it stays gated on
@@ -1272,9 +1360,7 @@ fn detect_php(
     {
         return true;
     }
-    if let Some(doc) = doc_comment
-        && doc.contains("@test")
-    {
+    if doc_comment.is_some_and(|doc| has_phpdoc_tag(doc, "test")) {
         return true;
     }
     is_test_path(file_path)
@@ -1456,14 +1542,44 @@ fn detect_ruby(name: &str, file_path: &str) -> bool {
 /// Base classes whose subclasses a Ruby test runner collects on sight.
 ///
 /// Minitest and Test::Unit collect `test_`-prefixed methods from a subclass;
-/// Rails layers `ActiveSupport::TestCase` and `ActionDispatch::IntegrationTest`
-/// on top of Minitest and adds the `test "name" do` macro.
-const RUBY_TEST_BASE_TYPES: [&str; 4] = [
+/// Rails layers `ActiveSupport::TestCase`, `ActionDispatch::IntegrationTest`,
+/// and the per-component test cases on top of Minitest and adds the
+/// `test "name" do` macro.
+const RUBY_TEST_BASE_TYPES: &[&str] = &[
     "Minitest::Test",
     "Test::Unit::TestCase",
     "ActiveSupport::TestCase",
     "ActionDispatch::IntegrationTest",
+    "ActionDispatch::SystemTestCase",
+    "ActionController::TestCase",
+    "ActionMailer::TestCase",
+    "ActionMailbox::TestCase",
+    "ActionView::TestCase",
+    "ActiveJob::TestCase",
+    "ActionCable::TestCase",
+    "ActionCable::Connection::TestCase",
+    "ActionCable::Channel::TestCase",
+    "Rails::Generators::TestCase",
 ];
+
+/// An application test base such as `ApplicationSystemTestCase` lives in the
+/// test tree and subclasses a Rails test case in another file, so a base named
+/// `*TestCase` or `*Test` counts inside a test path.
+fn has_ruby_application_test_base(symbol: &Symbol) -> bool {
+    symbol.kind == SymbolKind::Class
+        && is_test_path(&symbol.file_path)
+        && symbol
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("base_types"))
+            .and_then(|value| value.as_array())
+            .is_some_and(|bases| {
+                bases.iter().filter_map(|base| base.as_str()).any(|base| {
+                    let name = base.rsplit("::").next().unwrap_or(base);
+                    name.ends_with("TestCase") || name.ends_with("Test")
+                })
+            })
+}
 
 /// Mark Ruby test containers, then strip every role that sits outside one.
 ///
@@ -1478,6 +1594,12 @@ const RUBY_TEST_BASE_TYPES: [&str; 4] = [
 pub(crate) fn mark_ruby_test_containers(symbols: &mut [Symbol]) {
     for base_type in RUBY_TEST_BASE_TYPES {
         mark_base_type_test_containers(symbols, base_type);
+    }
+    for symbol in symbols
+        .iter_mut()
+        .filter(|symbol| has_ruby_application_test_base(symbol))
+    {
+        mark_class_test_container(symbol);
     }
 
     let test_container_ids: HashSet<String> = symbols

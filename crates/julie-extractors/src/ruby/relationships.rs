@@ -1,6 +1,6 @@
-use super::helpers::{
-    extract_method_name_from_call, extract_name_from_node, is_self_directed_call,
-};
+use super::helpers::{declared_name, extract_method_name_from_call, is_self_directed_call};
+use super::identifiers;
+use super::locals::LocalBindings;
 /// Relationship extraction for Ruby symbols
 /// Handles inheritance, module inclusion, and other symbol relationships
 use crate::base::{
@@ -19,17 +19,27 @@ pub(super) fn extract_relationships(
     let mut relationships = Vec::new();
     let symbol_index = ScopedSymbolIndex::new(symbols);
     let containing_symbols = extractor.base().containing_symbol_index(symbols);
+    let mut context = CallContext {
+        symbol_index: &symbol_index,
+        containing_symbols: &containing_symbols,
+        locals: LocalBindings::default(),
+    };
 
     extract_relationships_from_node(
         extractor,
         tree.root_node(),
         symbols,
-        &symbol_index,
-        &containing_symbols,
+        &mut context,
         &mut relationships,
         0,
     );
     relationships
+}
+
+struct CallContext<'a, 'b> {
+    symbol_index: &'b ScopedSymbolIndex<'a>,
+    containing_symbols: &'b ContainingSymbolIndex<'a>,
+    locals: LocalBindings,
 }
 
 /// Recursively extract relationships from a node
@@ -37,8 +47,7 @@ fn extract_relationships_from_node(
     extractor: &mut super::RubyExtractor,
     node: Node,
     symbols: &[Symbol],
-    symbol_index: &ScopedSymbolIndex<'_>,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    context: &mut CallContext<'_, '_>,
     relationships: &mut Vec<Relationship>,
     depth: u32,
 ) {
@@ -55,13 +64,30 @@ fn extract_relationships_from_node(
             extract_module_inclusion_relationships(extractor, node, symbols, relationships);
         }
         "call" => {
-            extract_call_relationships(
-                extractor,
-                node,
-                containing_symbols,
-                symbol_index,
-                relationships,
-            );
+            if let Some(target) = call_target(extractor.base(), node) {
+                record_call(extractor, node, target, context, relationships);
+            }
+            if let Some(target) = symbol_argument_call_target(extractor.base(), node) {
+                record_call(extractor, node, target, context, relationships);
+            }
+        }
+        "super" if !is_call_method(node) => {
+            if let Some(target) = super_call_target(extractor.base(), node) {
+                record_call(extractor, node, target, context, relationships);
+            }
+        }
+        "identifier" => {
+            let content = extractor.base().content.clone();
+            if identifiers::is_ruby_value_read_identifier(node)
+                && context.locals.is_method_call(&content, node)
+            {
+                let target = CallTarget {
+                    target: UnresolvedTarget::simple(extractor.base().get_node_text(&node)),
+                    resolve_locally: true,
+                    receiver_type: None,
+                };
+                record_call(extractor, node, target, context, relationships);
+            }
         }
         _ => {}
     }
@@ -76,8 +102,7 @@ fn extract_relationships_from_node(
             extractor,
             child,
             symbols,
-            symbol_index,
-            containing_symbols,
+            context,
             relationships,
             child_depth,
         );
@@ -93,19 +118,7 @@ fn extract_inheritance_relationship(
 ) {
     let base = extractor.base();
     if let Some(superclass_node) = node.child_by_field_name("superclass") {
-        let Some(class_name) = extract_name_from_node(node, |n| base.get_node_text(n), "name")
-            .or_else(|| extract_name_from_node(node, |n| base.get_node_text(n), "constant"))
-            .or_else(|| {
-                // Fallback: find first constant child
-                let mut cursor = node.walk();
-                for child in node.children(&mut cursor) {
-                    if child.kind() == "constant" {
-                        return Some(base.get_node_text(&child));
-                    }
-                }
-                None
-            })
-        else {
+        let Some(class_name) = declared_name(base, node) else {
             return;
         };
 
@@ -115,11 +128,14 @@ fn extract_inheritance_relationship(
             .trim()
             .to_string();
 
-        let Some(from_symbol) = symbols.iter().find(|s| s.name == class_name) else {
+        let Some(from_symbol) = find_type_symbol(symbols, &class_name, node) else {
             return;
         };
 
-        if let Some(to_symbol) = symbols.iter().find(|s| s.name == superclass_name) {
+        if let Some(to_symbol) = symbols.iter().find(|s| {
+            is_type_symbol(s)
+                && (s.name == superclass_name || qualified_name(s) == Some(&superclass_name))
+        }) {
             relationships.push(Relationship {
                 id: format!(
                     "{}_{}_{:?}_{}",
@@ -160,20 +176,7 @@ fn extract_module_inclusion_relationships(
     relationships: &mut Vec<Relationship>,
 ) {
     let base = extractor.base();
-    let Some(class_or_module_name) =
-        extract_name_from_node(node, |n| base.get_node_text(n), "name")
-            .or_else(|| extract_name_from_node(node, |n| base.get_node_text(n), "constant"))
-            .or_else(|| {
-                // Fallback: find first constant child
-                let mut cursor = node.walk();
-                for child in node.children(&mut cursor) {
-                    if child.kind() == "constant" {
-                        return Some(base.get_node_text(&child));
-                    }
-                }
-                None
-            })
-    else {
+    let Some(class_or_module_name) = declared_name(base, node) else {
         return;
     };
 
@@ -226,8 +229,18 @@ fn process_include_extend_call(
     {
         let module_name = base.get_node_text(&module_node);
 
-        let from_symbol = symbols.iter().find(|s| s.name == class_or_module_name);
-        let to_symbol = symbols.iter().find(|s| s.name == module_name);
+        let owner = child.parent().and_then(|parent| {
+            if parent.kind() == "body_statement" {
+                parent.parent()
+            } else {
+                Some(parent)
+            }
+        });
+        let from_symbol =
+            owner.and_then(|owner| find_type_symbol(symbols, class_or_module_name, owner));
+        let to_symbol = symbols
+            .iter()
+            .find(|s| s.name == module_name && is_type_symbol(s));
 
         if let (Some(from_symbol), Some(to_symbol)) = (from_symbol, to_symbol) {
             relationships.push(Relationship {
@@ -262,79 +275,265 @@ fn process_include_extend_call(
     }
 }
 
-/// Extract call relationships from a function/method call
-fn extract_call_relationships(
+/// One call site's target, built from the AST.
+struct CallTarget {
+    target: UnresolvedTarget,
+    /// A receiverless or `self` call may resolve to a same-file method.
+    resolve_locally: bool,
+    receiver_type: Option<String>,
+}
+
+fn record_call(
     extractor: &mut super::RubyExtractor,
     node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
-    symbol_index: &ScopedSymbolIndex<'_>,
+    call: CallTarget,
+    context: &CallContext<'_, '_>,
     relationships: &mut Vec<Relationship>,
 ) {
-    let base = extractor.base();
-
-    // For a call node, extract the method being called
-    if let Some(method_name_opt) = extract_method_name_from_call(node, |n| base.get_node_text(n))
-        && !method_name_opt.is_empty()
-    {
-        let target = extract_pending_target(base, node, &method_name_opt);
-        // Find the enclosing function/method that contains this call
-        if let Some(caller_symbol) = containing_symbols.find(node) {
-            let line_number = (node.start_position().row + 1) as u32;
-            let file_path = base.file_path.clone();
-
-            let resolution = if target.namespace_path.is_empty() {
-                resolve_ruby_call_target(
-                    symbol_index,
-                    &method_name_opt,
-                    caller_symbol,
-                    target.receiver.as_deref(),
-                )
-            } else {
-                LocalTargetResolution::Missing
-            };
-            match resolution {
-                LocalTargetResolution::Resolved(called_symbol) => {
-                    let relationship = Relationship {
-                        id: format!(
-                            "{}_{}_{:?}_{}",
-                            caller_symbol.id,
-                            called_symbol.id,
-                            RelationshipKind::Calls,
-                            node.start_position().row
-                        ),
-                        from_symbol_id: caller_symbol.id.clone(),
-                        to_symbol_id: called_symbol.id.clone(),
-                        kind: RelationshipKind::Calls,
-                        file_path,
-                        line_number,
-                        span: Some(crate::base::NormalizedSpan::from_node(&node)),
-                        reference_site_is_exact: false,
-                        confidence: 0.9,
-                        metadata: None,
-                    };
-
-                    relationships.push(relationship);
-                }
-                LocalTargetResolution::Import(_)
-                | LocalTargetResolution::Ambiguous
-                | LocalTargetResolution::ReceiverQualified
-                | LocalTargetResolution::Missing => {
-                    let receiver_type = super::type_facts::self_receiver_type(base, node);
-                    let pending = base
-                        .create_pending_relationship(
-                            caller_symbol.id.clone(),
-                            target,
-                            RelationshipKind::Calls,
-                            &node,
-                            Some(caller_symbol.id.clone()),
-                            Some(0.7),
-                        )
-                        .with_receiver_type(receiver_type);
-                    extractor.add_structured_pending_relationship(pending);
-                }
-            }
-        }
+    if call.target.terminal_name.is_empty() {
+        return;
     }
+    let Some(caller_symbol) = context.containing_symbols.find(node) else {
+        return;
+    };
+    // A DSL call such as `test "x" do` or `setup do` declares the symbol that
+    // contains it; the call is that declaration, not a call from it.
+    if caller_symbol.start_byte == node.start_byte() as u32
+        && caller_symbol.end_byte == node.end_byte() as u32
+    {
+        return;
+    }
+    let base = extractor.base();
+    let resolution = if call.resolve_locally && call.target.namespace_path.is_empty() {
+        resolve_ruby_call_target(
+            context.symbol_index,
+            &call.target.terminal_name,
+            caller_symbol,
+            call.target.receiver.as_deref(),
+        )
+    } else {
+        LocalTargetResolution::Missing
+    };
+    if let LocalTargetResolution::Resolved(called_symbol) = resolution {
+        relationships.push(Relationship {
+            id: format!(
+                "{}_{}_{:?}_{}",
+                caller_symbol.id,
+                called_symbol.id,
+                RelationshipKind::Calls,
+                node.start_position().row
+            ),
+            from_symbol_id: caller_symbol.id.clone(),
+            to_symbol_id: called_symbol.id.clone(),
+            kind: RelationshipKind::Calls,
+            file_path: base.file_path.clone(),
+            line_number: (node.start_position().row + 1) as u32,
+            span: Some(crate::base::NormalizedSpan::from_node(&node)),
+            reference_site_is_exact: false,
+            confidence: 0.9,
+            metadata: None,
+        });
+        return;
+    }
+    let receiver_type = call
+        .receiver_type
+        .or_else(|| super::type_facts::self_receiver_type(base, node));
+    let pending = base
+        .create_pending_relationship(
+            caller_symbol.id.clone(),
+            call.target,
+            RelationshipKind::Calls,
+            &node,
+            Some(caller_symbol.id.clone()),
+            Some(0.7),
+        )
+        .with_receiver_type(receiver_type);
+    extractor.add_structured_pending_relationship(pending);
+}
+
+/// The target of a `call` node, read from its `receiver` and `method` fields.
+/// A call receiver contributes its method chain without arguments or blocks
+/// (`Mailer.with.receipt` for `Mailer.with(to: x).receipt`); a `::` scope
+/// receiver contributes its path.
+/// A writer target (`self.mode = x`) calls `mode=`.
+fn call_target(base: &crate::base::BaseExtractor, node: Node) -> Option<CallTarget> {
+    let method = node.child_by_field_name("method")?;
+    if method.kind() == "super" {
+        return super_call_target(base, node);
+    }
+    let mut method_name = base.get_node_text(&method);
+    if method_name.is_empty() {
+        return None;
+    }
+    let is_writer = node.parent().is_some_and(|parent| {
+        matches!(parent.kind(), "assignment" | "operator_assignment")
+            && parent
+                .child_by_field_name("left")
+                .is_some_and(|left| left.id() == node.id())
+    });
+    if is_writer {
+        method_name.push('=');
+    }
+    let Some(receiver) = node.child_by_field_name("receiver") else {
+        return Some(CallTarget {
+            target: UnresolvedTarget::simple(method_name),
+            resolve_locally: true,
+            receiver_type: None,
+        });
+    };
+    let mut parts = receiver_parts(base, receiver);
+    let resolve_locally = receiver.kind() == "self";
+    if parts.is_empty() {
+        return Some(CallTarget {
+            target: UnresolvedTarget::simple(method_name),
+            resolve_locally: false,
+            receiver_type: None,
+        });
+    }
+    parts.push(method_name);
+    Some(CallTarget {
+        target: UnresolvedTarget::from_chain(parts),
+        resolve_locally,
+        receiver_type: None,
+    })
+}
+
+fn receiver_parts(base: &crate::base::BaseExtractor, receiver: Node) -> Vec<String> {
+    match receiver.kind() {
+        "scope_resolution" => {
+            let mut parts = receiver
+                .child_by_field_name("scope")
+                .map(|scope| receiver_parts(base, scope))
+                .unwrap_or_default();
+            if let Some(name) = receiver.child_by_field_name("name") {
+                parts.push(base.get_node_text(&name));
+            }
+            parts
+        }
+        "call" => {
+            let mut parts = receiver
+                .child_by_field_name("receiver")
+                .map(|inner| receiver_parts(base, inner))
+                .unwrap_or_default();
+            if let Some(method) = receiver.child_by_field_name("method") {
+                parts.push(base.get_node_text(&method));
+            }
+            parts
+        }
+        "identifier" | "constant" | "self" | "instance_variable" | "class_variable"
+        | "global_variable" => vec![base.get_node_text(&receiver)],
+        _ => Vec::new(),
+    }
+}
+
+/// `send(:audit)`, `public_send(:audit)`, `__send__(:audit)`, `method(:audit)`,
+/// and a `&:price` block argument name a method by symbol.
+fn symbol_argument_call_target(
+    base: &crate::base::BaseExtractor,
+    node: Node,
+) -> Option<CallTarget> {
+    let method = base.get_node_text(&node.child_by_field_name("method")?);
+    let arguments = node.child_by_field_name("arguments")?;
+    let first = arguments.named_child(0)?;
+    let symbol = match first.kind() {
+        "simple_symbol"
+            if matches!(
+                method.as_str(),
+                "send" | "public_send" | "__send__" | "method"
+            ) =>
+        {
+            first
+        }
+        "block_argument" => first
+            .named_child(0)
+            .filter(|child| child.kind() == "simple_symbol")?,
+        _ => return None,
+    };
+    let name = base
+        .get_node_text(&symbol)
+        .trim_start_matches(':')
+        .to_string();
+    let resolve_locally = first.kind() != "block_argument" && is_self_directed_call(node);
+    Some(CallTarget {
+        target: UnresolvedTarget::simple(name),
+        resolve_locally,
+        receiver_type: None,
+    })
+}
+
+/// `super` calls the enclosing method's name on the declared superclass.
+fn super_call_target(base: &crate::base::BaseExtractor, node: Node) -> Option<CallTarget> {
+    let mut current = node.parent();
+    let mut method_name = None;
+    while let Some(candidate) = current {
+        match candidate.kind() {
+            "method" | "singleton_method" if method_name.is_none() => {
+                method_name = candidate
+                    .child_by_field_name("name")
+                    .map(|name| base.get_node_text(&name));
+            }
+            "class" => {
+                let superclass = candidate
+                    .child_by_field_name("superclass")
+                    .and_then(|superclass| superclass.named_child(0))
+                    .map(|superclass| base.get_node_text(&superclass));
+                let method_name = method_name?;
+                return Some(CallTarget {
+                    target: UnresolvedTarget {
+                        display_name: format!("super.{method_name}"),
+                        terminal_name: method_name,
+                        receiver: Some("super".to_string()),
+                        namespace_path: Vec::new(),
+                        import_context: None,
+                    },
+                    resolve_locally: false,
+                    receiver_type: superclass,
+                });
+            }
+            "module" => break,
+            _ => {}
+        }
+        current = candidate.parent();
+    }
+    let method_name = method_name?;
+    Some(CallTarget {
+        target: UnresolvedTarget {
+            display_name: format!("super.{method_name}"),
+            terminal_name: method_name,
+            receiver: Some("super".to_string()),
+            namespace_path: Vec::new(),
+            import_context: None,
+        },
+        resolve_locally: false,
+        receiver_type: None,
+    })
+}
+
+fn is_call_method(node: Node) -> bool {
+    node.parent().is_some_and(|parent| {
+        parent.kind() == "call"
+            && parent
+                .child_by_field_name("method")
+                .is_some_and(|method| method.id() == node.id())
+    })
+}
+
+/// The `qualifiedName` a compact declaration such as `class Api::V1::Base` records.
+fn qualified_name(symbol: &Symbol) -> Option<&str> {
+    symbol.metadata.as_ref()?.get("qualifiedName")?.as_str()
+}
+
+fn is_type_symbol(symbol: &Symbol) -> bool {
+    matches!(symbol.kind, SymbolKind::Class | SymbolKind::Module)
+}
+
+/// The class or module symbol a `class`/`module` node declared.
+fn find_type_symbol<'a>(symbols: &'a [Symbol], name: &str, node: Node) -> Option<&'a Symbol> {
+    let start_byte = node.start_byte() as u32;
+    symbols
+        .iter()
+        .find(|s| s.name == name && is_type_symbol(s) && s.start_byte == start_byte)
+        .or_else(|| symbols.iter().find(|s| s.name == name && is_type_symbol(s)))
 }
 
 fn resolve_ruby_call_target<'a>(
@@ -388,52 +587,4 @@ fn unresolved_ruby_constant(name: String) -> UnresolvedTarget {
         namespace_path,
         import_context: None,
     }
-}
-
-fn extract_pending_target(
-    base: &crate::base::BaseExtractor,
-    node: Node,
-    method_name: &str,
-) -> UnresolvedTarget {
-    let call_text = base.get_node_text(&node);
-    let call_head = call_text.split('(').next().unwrap_or(call_text.as_str());
-
-    if let Some(target) = UnresolvedTarget::from_qualified_text(call_head, &["::", "."])
-        && target.receiver.is_some()
-    {
-        return target;
-    }
-
-    if let Some((receiver, _)) = call_head
-        .rsplit_once('.')
-        .or_else(|| call_head.rsplit_once("::"))
-        && !receiver.is_empty()
-        && let Some(prefix) = UnresolvedTarget::from_qualified_text(receiver, &["::", "."])
-    {
-        let mut namespace_path = prefix.namespace_path;
-        if let Some(prefix_receiver) = prefix.receiver {
-            namespace_path.push(prefix_receiver);
-        }
-        return UnresolvedTarget {
-            display_name: format!("{}.{}", prefix.display_name, method_name),
-            terminal_name: method_name.to_string(),
-            receiver: Some(prefix.terminal_name),
-            namespace_path,
-            import_context: None,
-        };
-    }
-
-    if let Some((receiver, terminal_name)) = call_head.rsplit_once('.')
-        && !receiver.is_empty()
-    {
-        return UnresolvedTarget {
-            display_name: call_head.to_string(),
-            terminal_name: terminal_name.to_string(),
-            receiver: Some(receiver.to_string()),
-            namespace_path: Vec::new(),
-            import_context: None,
-        };
-    }
-
-    UnresolvedTarget::simple(method_name.to_string())
 }

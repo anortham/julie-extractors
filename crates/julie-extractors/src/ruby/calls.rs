@@ -85,7 +85,7 @@ pub(super) fn try_extract_struct_new(
     };
 
     // Extract doc comment from the assignment node
-    let doc_comment = base.find_doc_comment(&assignment_node);
+    let doc_comment = super::doc_comments::find_ruby_doc_comment(base, assignment_node);
 
     let class_symbol = base.create_symbol(
         &assignment_node,
@@ -354,6 +354,7 @@ fn extract_attr_accessor(
         .filter(|c| matches!(c.kind(), "simple_symbol" | "symbol"))
         .collect();
 
+    let doc_comment = super::doc_comments::find_ruby_doc_comment(base, node);
     symbol_nodes
         .into_iter()
         .map(|symbol_node| {
@@ -368,7 +369,7 @@ fn extract_attr_accessor(
                     visibility: Some(Visibility::Public),
                     parent_id: parent_id.clone(),
                     metadata: None,
-                    doc_comment: None,
+                    doc_comment: doc_comment.clone(),
                     annotations: Vec::new(),
                 },
             )

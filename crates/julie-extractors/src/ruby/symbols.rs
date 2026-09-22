@@ -1,4 +1,7 @@
-use super::helpers::{extract_alias_name, extract_name_from_node, extract_singleton_method_name};
+use super::doc_comments::find_ruby_doc_comment;
+use super::helpers::{
+    declared_name, extract_alias_name, extract_name_from_node, extract_singleton_method_name,
+};
 use super::signatures;
 /// Symbol extraction for individual Ruby constructs
 /// Handles extraction of modules, classes, methods, variables, constants, and aliases
@@ -14,24 +17,21 @@ pub(super) fn extract_module(
     parent_id: Option<String>,
     _current_visibility: Visibility,
 ) -> Option<Symbol> {
-    // Try different field names that Ruby tree-sitter uses
-    let name = extract_name_from_node(node, |n| base.get_node_text(n), "name")
-        .or_else(|| extract_name_from_node(node, |n| base.get_node_text(n), "constant"))
-        .or_else(|| {
-            // Fallback: find first constant child
-            let mut cursor = node.walk();
-            for child in node.children(&mut cursor) {
-                if child.kind() == "constant" {
-                    return Some(base.get_node_text(&child));
-                }
-            }
-            None
-        })?;
+    let name = declared_name(base, node)?;
+    let written_name = extract_name_from_node(node, |n| base.get_node_text(n), "name")
+        .unwrap_or_else(|| name.clone());
+    let qualified_name =
+        super::helpers::build_qualified_name(node, &written_name, |n| base.get_node_text(n));
 
-    let signature = signatures::build_module_signature(&node, &name, |n| base.get_node_text(n));
-
-    // Extract RDoc/YARD comment
-    let doc_comment = base.find_doc_comment(&node);
+    let signature =
+        signatures::build_module_signature(&node, &written_name, |n| base.get_node_text(n));
+    let doc_comment = find_ruby_doc_comment(base, node);
+    let metadata = (qualified_name != name).then(|| {
+        HashMap::from([(
+            "qualifiedName".to_string(),
+            serde_json::Value::String(qualified_name),
+        )])
+    });
 
     Some(base.create_symbol(
         &node,
@@ -41,7 +41,7 @@ pub(super) fn extract_module(
             signature: Some(signature),
             visibility: Some(Visibility::Public),
             parent_id,
-            metadata: None,
+            metadata,
             doc_comment,
             annotations: Vec::new(),
         },
@@ -55,26 +55,23 @@ pub(super) fn extract_class(
     parent_id: Option<String>,
     _current_visibility: Visibility,
 ) -> Option<Symbol> {
-    // Try different field names that Ruby tree-sitter uses
-    let name = extract_name_from_node(node, |n| base.get_node_text(n), "name")
-        .or_else(|| extract_name_from_node(node, |n| base.get_node_text(n), "constant"))
-        .or_else(|| {
-            // Fallback: find first constant child
-            let mut cursor = node.walk();
-            for child in node.children(&mut cursor) {
-                if child.kind() == "constant" {
-                    return Some(base.get_node_text(&child));
-                }
-            }
-            None
-        })?;
+    let name = declared_name(base, node)?;
+    let written_name = extract_name_from_node(node, |n| base.get_node_text(n), "name")
+        .unwrap_or_else(|| name.clone());
+    let qualified_name =
+        super::helpers::build_qualified_name(node, &written_name, |n| base.get_node_text(n));
 
-    let signature = signatures::build_class_signature(&node, &name, |n| base.get_node_text(n));
-
-    // Extract RDoc/YARD comment
-    let doc_comment = base.find_doc_comment(&node);
+    let signature =
+        signatures::build_class_signature(&node, &written_name, |n| base.get_node_text(n));
+    let doc_comment = find_ruby_doc_comment(base, node);
 
     let mut metadata = HashMap::new();
+    if qualified_name != name {
+        metadata.insert(
+            "qualifiedName".to_string(),
+            serde_json::Value::String(qualified_name),
+        );
+    }
     if let Some(base_type) = extract_superclass_name(base, node) {
         metadata.insert(
             "base_types".to_string(),
@@ -125,8 +122,7 @@ pub(super) fn extract_singleton_class(
         .unwrap_or_else(|| "self".to_string());
     let signature = format!("class << {}", target);
 
-    // Extract RDoc/YARD comment
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = find_ruby_doc_comment(base, node);
 
     base.create_symbol(
         &node,
@@ -174,8 +170,7 @@ pub(super) fn extract_method(
         SymbolKind::Method
     };
 
-    // Extract RDoc/YARD comment
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = find_ruby_doc_comment(base, node);
 
     let mut metadata = HashMap::new();
     apply_callable_test_metadata(
@@ -218,8 +213,7 @@ pub(super) fn extract_singleton_method(
     let signature =
         signatures::build_singleton_method_signature(&node, &name, |n| base.get_node_text(n));
 
-    // Extract RDoc/YARD comment
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = find_ruby_doc_comment(base, node);
 
     Some(base.create_symbol(
         &node,
@@ -241,8 +235,7 @@ pub(super) fn extract_variable(base: &mut BaseExtractor, node: Node) -> Symbol {
     let name = base.get_node_text(&node);
     let signature = name.clone();
 
-    // Extract RDoc/YARD comment
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = find_ruby_doc_comment(base, node);
 
     base.create_symbol(
         &node,
@@ -268,8 +261,7 @@ pub(super) fn extract_constant(
     let name = base.get_node_text(&node);
     let signature = name.clone();
 
-    // Extract RDoc/YARD comment
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = find_ruby_doc_comment(base, node);
 
     base.create_symbol(
         &node,
@@ -291,8 +283,7 @@ pub(super) fn extract_alias(base: &mut BaseExtractor, node: Node) -> Option<Symb
     let signature = base.get_node_text(&node);
     let alias_name = extract_alias_name(node, |n| base.get_node_text(n))?;
 
-    // Extract RDoc/YARD comment
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = find_ruby_doc_comment(base, node);
 
     Some(base.create_symbol(
         &node,

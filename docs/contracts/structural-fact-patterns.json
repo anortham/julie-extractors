@@ -2231,7 +2231,7 @@
     "query_family": "framework"
   },
   {
-    "description": "A static Flask route decorator on a traced Flask/Blueprint receiver.",
+    "description": "A static Flask route: a route decorator or an add_url_rule call on a Flask app or Blueprint receiver that is constructed in the file or imported into a file that imports flask.",
     "languages": [
       "python"
     ],
@@ -2255,13 +2255,13 @@
         "value_type": "string"
       },
       {
-        "description": "Routing style (\"decorator_routing\").",
+        "description": "Routing style (\"decorator_routing\" or \"call_routing\" for add_url_rule).",
         "key": "api_style",
         "presence": "always",
         "value_type": "string"
       },
       {
-        "description": "Raw static route path from the decorator.",
+        "description": "Raw static route path from the decorator or add_url_rule call.",
         "key": "route_template",
         "presence": "always",
         "value_type": "string"
@@ -2299,6 +2299,12 @@
       {
         "description": "Same-file Blueprint url_prefix.",
         "key": "url_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Source text of the add_url_rule view function.",
+        "key": "view_target",
         "presence": "optional",
         "value_type": "string"
       },
@@ -7422,6 +7428,128 @@
     ],
     "pattern_id": "scala.given_definition.v1",
     "query_family": "typeclass"
+  },
+  {
+    "description": "A Sinatra before or after filter block with a static path.",
+    "languages": [
+      "ruby"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"dsl_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static path the filter applies to.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "\"before\" or \"after\".",
+        "key": "filter_kind",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "sinatra.filter.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Sinatra route block with a static path, in a Sinatra::Base or Sinatra::Application subclass or a classic app that requires sinatra.",
+    "languages": [
+      "ruby"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"dsl_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path from the DSL call.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Uppercase HTTP method of the DSL call.",
+        "key": "verb",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "sinatra.route.v1",
+    "query_family": "framework"
   },
   {
     "description": "A Spring MVC request-mapping annotation on a class or method.",

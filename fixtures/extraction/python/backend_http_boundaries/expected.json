@@ -18,7 +18,12 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "importedName": "APIRouter",
+        "isWildcard": false,
+        "source": "fastapi",
+        "specifier": "APIRouter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -42,7 +47,12 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "importedName": "Blueprint",
+        "isWildcard": false,
+        "source": "flask",
+        "specifier": "Blueprint"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -66,7 +76,12 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "importedName": "FastAPI",
+        "isWildcard": false,
+        "source": "fastapi",
+        "specifier": "FastAPI"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -90,7 +105,12 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "importedName": "Flask",
+        "isWildcard": false,
+        "source": "flask",
+        "specifier": "Flask"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -108,15 +128,8 @@
       "end_column": 83,
       "start_byte": 901,
       "end_byte": 984,
-      "body_span": {
-        "start_line": 40,
-        "start_column": 43,
-        "end_line": 40,
-        "end_column": 62,
-        "start_byte": 944,
-        "end_byte": 963
-      },
-      "body_hash": "de96f04e11dde52acd6256a0ac8c4e37",
+      "body_span": null,
+      "body_hash": null,
       "signature": "NOTES = '''Bob's notebook: @flask_app.route(\"/fake-in-string\") must stay silent.'''",
       "doc_comment": null,
       "visibility": "Public",
@@ -141,15 +154,8 @@
       "end_column": 15,
       "start_byte": 151,
       "end_byte": 166,
-      "body_span": {
-        "start_line": 7,
-        "start_column": 13,
-        "end_line": 7,
-        "end_column": 15,
-        "start_byte": 164,
-        "end_byte": 166
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "app = FastAPI()",
       "doc_comment": null,
       "visibility": "Public",
@@ -174,15 +180,8 @@
       "end_column": 52,
       "start_byte": 346,
       "end_byte": 398,
-      "body_span": {
-        "start_line": 17,
-        "start_column": 14,
-        "end_line": 17,
-        "end_column": 52,
-        "start_byte": 360,
-        "end_byte": 398
-      },
-      "body_hash": "2b47c245f1d80c01054c15637603d63d",
+      "body_span": null,
+      "body_hash": null,
       "signature": "bp = Blueprint(\"users\", __name__, url_prefix=\"/api\")",
       "doc_comment": null,
       "visibility": "Public",
@@ -285,15 +284,8 @@
       "end_column": 27,
       "start_byte": 318,
       "end_byte": 345,
-      "body_span": {
-        "start_line": 16,
-        "start_column": 17,
-        "end_line": 16,
-        "end_column": 27,
-        "start_byte": 335,
-        "end_byte": 345
-      },
-      "body_hash": "e330b401dda2f7e41c819a540311fff1",
+      "body_span": null,
+      "body_hash": null,
       "signature": "flask_app = Flask(__name__)",
       "doc_comment": null,
       "visibility": "Public",
@@ -410,7 +402,12 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "importedName": "httpx",
+        "isWildcard": false,
+        "source": "httpx",
+        "specifier": "httpx"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -434,7 +431,12 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "importedName": "include",
+        "isWildcard": false,
+        "source": "django.urls",
+        "specifier": "include"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -458,7 +460,12 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "importedName": "path",
+        "isWildcard": false,
+        "source": "django.urls",
+        "specifier": "path"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -482,7 +489,12 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "importedName": "re_path",
+        "isWildcard": false,
+        "source": "django.urls",
+        "specifier": "re_path"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -506,7 +518,12 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "importedName": "requests",
+        "isWildcard": false,
+        "source": "requests",
+        "specifier": "requests"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -524,15 +541,8 @@
       "end_column": 33,
       "start_byte": 167,
       "end_byte": 200,
-      "body_span": {
-        "start_line": 8,
-        "start_column": 18,
-        "end_line": 8,
-        "end_column": 33,
-        "start_byte": 185,
-        "end_byte": 200
-      },
-      "body_hash": "40c6661b9eee20a3a5bdba259bab4e95",
+      "body_span": null,
+      "body_hash": null,
       "signature": "router = APIRouter(prefix=\"/api\")",
       "doc_comment": null,
       "visibility": "Public",
@@ -557,15 +567,8 @@
       "end_column": 1,
       "start_byte": 572,
       "end_byte": 803,
-      "body_span": {
-        "start_line": 30,
-        "start_column": 8,
-        "end_line": 33,
-        "end_column": 54,
-        "start_byte": 596,
-        "end_byte": 800
-      },
-      "body_hash": "86386e73b6524a352707b6e97982a8df",
+      "body_span": null,
+      "body_hash": null,
       "signature": "urlpatterns = [\n    path(\"healthz\"),\n    path(\"users/<int:pk>/\", views.detail, name=\"user-detail\"),\n    re_path(r\"^legacy/(?P<slug>[-\\\\w]+)/$\", views.legacy, name=\"legacy\"),\n    path(\"api/\", include(\"app.urls\"), namespace=\"api\"),\n]",
       "doc_comment": null,
       "visibility": "Public",
@@ -737,7 +740,7 @@
         "terminal_name": "FastAPI",
         "receiver": null,
         "namespace_path": [],
-        "import_context": null
+        "import_context": "FastAPI"
       },
       "caller_scope_key": "fixtures/extraction/python/backend_http_boundaries/source.py:app:7:0",
       "span": {
@@ -763,7 +766,7 @@
         "terminal_name": "Blueprint",
         "receiver": null,
         "namespace_path": [],
-        "import_context": null
+        "import_context": "Blueprint"
       },
       "caller_scope_key": "fixtures/extraction/python/backend_http_boundaries/source.py:bp:17:0",
       "span": {
@@ -789,7 +792,7 @@
         "terminal_name": "post",
         "receiver": "httpx",
         "namespace_path": [],
-        "import_context": null
+        "import_context": "httpx"
       },
       "caller_scope_key": "fixtures/extraction/python/backend_http_boundaries/source.py:call_clients:36:0",
       "span": {
@@ -815,7 +818,7 @@
         "terminal_name": "get",
         "receiver": "requests",
         "namespace_path": [],
-        "import_context": null
+        "import_context": "requests"
       },
       "caller_scope_key": "fixtures/extraction/python/backend_http_boundaries/source.py:call_clients:36:0",
       "span": {
@@ -841,7 +844,7 @@
         "terminal_name": "Flask",
         "receiver": null,
         "namespace_path": [],
-        "import_context": null
+        "import_context": "Flask"
       },
       "caller_scope_key": "fixtures/extraction/python/backend_http_boundaries/source.py:flask_app:16:0",
       "span": {
@@ -867,7 +870,7 @@
         "terminal_name": "APIRouter",
         "receiver": null,
         "namespace_path": [],
-        "import_context": null
+        "import_context": "APIRouter"
       },
       "caller_scope_key": "fixtures/extraction/python/backend_http_boundaries/source.py:router:8:0",
       "span": {
@@ -893,7 +896,7 @@
         "terminal_name": "include",
         "receiver": null,
         "namespace_path": [],
-        "import_context": null
+        "import_context": "include"
       },
       "caller_scope_key": "fixtures/extraction/python/backend_http_boundaries/source.py:urlpatterns:29:0",
       "span": {
@@ -919,7 +922,7 @@
         "terminal_name": "path",
         "receiver": null,
         "namespace_path": [],
-        "import_context": null
+        "import_context": "path"
       },
       "caller_scope_key": "fixtures/extraction/python/backend_http_boundaries/source.py:urlpatterns:29:0",
       "span": {
@@ -945,7 +948,7 @@
         "terminal_name": "path",
         "receiver": null,
         "namespace_path": [],
-        "import_context": null
+        "import_context": "path"
       },
       "caller_scope_key": "fixtures/extraction/python/backend_http_boundaries/source.py:urlpatterns:29:0",
       "span": {
@@ -971,7 +974,7 @@
         "terminal_name": "path",
         "receiver": null,
         "namespace_path": [],
-        "import_context": null
+        "import_context": "path"
       },
       "caller_scope_key": "fixtures/extraction/python/backend_http_boundaries/source.py:urlpatterns:29:0",
       "span": {
@@ -997,7 +1000,7 @@
         "terminal_name": "re_path",
         "receiver": null,
         "namespace_path": [],
-        "import_context": null
+        "import_context": "re_path"
       },
       "caller_scope_key": "fixtures/extraction/python/backend_http_boundaries/source.py:urlpatterns:29:0",
       "span": {
@@ -1477,15 +1480,6 @@
     }
   ],
   "types": [
-    {
-      "symbol_key": "fixtures/extraction/python/backend_http_boundaries/source.py:fastapi_user:11:0",
-      "resolved_type": "str)",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "python",
-      "metadata": null
-    },
     {
       "symbol_key": "fixtures/extraction/python/backend_http_boundaries/source.py:user_id:11:17",
       "resolved_type": "str",

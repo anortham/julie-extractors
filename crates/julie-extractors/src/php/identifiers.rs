@@ -29,8 +29,8 @@ pub(super) fn extract_identifier_from_node(
             record_php_call_arg_literals(extractor, node, containing_symbols);
         }
 
-        // Method calls: $this->add(), $obj->method()
-        "member_call_expression" => {
+        // Method calls: $this->add(), $obj->method(), $obj?->method()
+        "member_call_expression" | "nullsafe_member_call_expression" => {
             // Extract the method name from the name field
             if let Some(name_node) = node.child_by_field_name("name") {
                 let name = extractor.get_base().get_node_text(&name_node);
@@ -73,12 +73,16 @@ pub(super) fn extract_identifier_from_node(
             record_php_call_arg_literals(extractor, node, containing_symbols);
         }
 
-        // Member access: $obj->property
-        "member_access_expression" => {
+        // Member access: $obj->property, $obj?->property
+        "member_access_expression" | "nullsafe_member_access_expression" => {
             // Skip if parent is a call expression (handled above)
             if let Some(parent) = node.parent()
-                && (parent.kind() == "function_call_expression"
-                    || parent.kind() == "member_call_expression")
+                && matches!(
+                    parent.kind(),
+                    "function_call_expression"
+                        | "member_call_expression"
+                        | "nullsafe_member_call_expression"
+                )
             {
                 return; // Skip - handled by call expressions
             }
@@ -124,6 +128,62 @@ pub(super) fn extract_identifier_from_node(
                 IdentifierKind::TypeUsage,
                 containing_symbol_id,
             );
+        }
+
+        // `Foo::class` names the type Foo. `Status::Active`, `self::ROLE`, and
+        // `static::$registry` access a member of the scope class.
+        "class_constant_access_expression" if !is_in_trait_use_list(node) => {
+            let mut cursor = node.walk();
+            let mut parts = node.named_children(&mut cursor);
+            let (Some(scope), Some(member)) = (parts.next(), parts.next()) else {
+                return;
+            };
+            let member_name = extractor.get_base().get_node_text(&member);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            if member_name == "class" {
+                if matches!(scope.kind(), "name" | "qualified_name") {
+                    let type_name = extractor.get_base().get_node_text(&scope);
+                    extractor.get_base_mut().create_identifier(
+                        &scope,
+                        type_name,
+                        IdentifierKind::TypeUsage,
+                        containing_symbol_id,
+                    );
+                }
+                return;
+            }
+            let receiver_type = static_scope_receiver_type(extractor.get_base(), scope, node);
+            extractor
+                .get_base_mut()
+                .create_identifier_with_receiver_type(
+                    &member,
+                    member_name,
+                    IdentifierKind::MemberAccess,
+                    containing_symbol_id,
+                    receiver_type,
+                );
+        }
+        "scoped_property_access_expression" => {
+            let (Some(scope), Some(member)) = (
+                node.child_by_field_name("scope"),
+                node.child_by_field_name("name"),
+            ) else {
+                return;
+            };
+            let Some(member_name) = php_variable_bare_name(extractor.get_base(), member) else {
+                return;
+            };
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            let receiver_type = static_scope_receiver_type(extractor.get_base(), scope, node);
+            extractor
+                .get_base_mut()
+                .create_identifier_with_receiver_type(
+                    &member,
+                    member_name,
+                    IdentifierKind::MemberAccess,
+                    containing_symbol_id,
+                    receiver_type,
+                );
         }
 
         // instanceof expressions: $obj instanceof Router
@@ -184,7 +244,10 @@ pub(super) fn extract_identifier_from_node(
         // position (`echo VISIBILITY_UNKNOWN`) and class receivers of static
         // access (`GraphTraversal` in `GraphTraversal::reach()`) — names the
         // Call/MemberAccess/TypeUsage arms above do not own.
-        "name" if is_php_value_read_name(node) => {
+        "name"
+            if is_php_value_read_name(node)
+                && !is_class_literal_scope(extractor.get_base(), node) =>
+        {
             let name = extractor.get_base().get_node_text(&node);
             let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
             extractor.get_base_mut().create_identifier(
@@ -305,11 +368,14 @@ fn is_php_value_read_name(node: Node) -> bool {
             parent.child_by_field_name("scope").map(|s| s.id()) == Some(node.id())
         }
         // `Foo::BAR`: the first named child is the class receiver (a read); the
-        // accessed constant is member-shaped (rule 2, unowned today).
+        // accessed constant is owned by the MemberAccess arm.
         "class_constant_access_expression" => {
             let mut cursor = parent.walk();
-            parent.named_children(&mut cursor).next().map(|c| c.id()) == Some(node.id())
+            !is_in_trait_use_list(parent)
+                && parent.named_children(&mut cursor).next().map(|c| c.id()) == Some(node.id())
         }
+        // Rule 3: trait conflict resolution names methods and aliases.
+        "use_list" | "use_as_clause" | "use_instead_of_clause" => false,
         // Rule 2: type positions (owned by the TypeUsage arm or type-shaped).
         "named_type"
         | "object_creation_expression"
@@ -377,7 +443,7 @@ fn find_containing_symbol_id(
 
 pub(super) fn php_call_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
     match node.kind() {
-        "member_call_expression" => {
+        "member_call_expression" | "nullsafe_member_call_expression" => {
             let object = node.child_by_field_name("object")?;
             if base.get_node_text(&object) == "$this" {
                 enclosing_type_name(base, node)
@@ -395,6 +461,30 @@ pub(super) fn php_call_receiver_type(base: &BaseExtractor, node: Node) -> Option
                 _ => None,
             }
         }
+        _ => None,
+    }
+}
+
+/// Whether `node` sits in a trait `use` conflict list
+/// (`use A { A::m as protected alias; }`), which names methods, not values.
+fn is_in_trait_use_list(node: Node) -> bool {
+    node.parent()
+        .is_some_and(|parent| matches!(parent.kind(), "use_as_clause" | "use_instead_of_clause"))
+}
+
+/// Whether `node` is the scope of `Foo::class`, which the TypeUsage arm owns.
+fn is_class_literal_scope(base: &BaseExtractor, node: Node) -> bool {
+    node.parent()
+        .filter(|parent| parent.kind() == "class_constant_access_expression")
+        .and_then(|parent| parent.named_child(1))
+        .is_some_and(|member| base.get_node_text(&member) == "class")
+}
+
+/// The type a `self::`, `static::`, or `parent::` scope names.
+fn static_scope_receiver_type(base: &BaseExtractor, scope: Node, node: Node) -> Option<String> {
+    match base.get_node_text(&scope).as_str() {
+        "self" | "static" => enclosing_type_name(base, node),
+        "parent" => declared_parent_class_name(base, node),
         _ => None,
     }
 }
@@ -509,7 +599,7 @@ fn php_carrier(base: &BaseExtractor, call_node: Node) -> Option<String> {
         "function_call_expression" => call_node
             .child_by_field_name("function")
             .map(|n| base.get_node_text(&n)),
-        "member_call_expression" => {
+        "member_call_expression" | "nullsafe_member_call_expression" => {
             let object = call_node
                 .child_by_field_name("object")
                 .map(|n| base.get_node_text(&n));

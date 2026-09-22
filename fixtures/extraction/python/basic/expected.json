@@ -18,7 +18,12 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "importedName": "Dict",
+        "isWildcard": false,
+        "source": "typing",
+        "specifier": "Dict"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -42,7 +47,12 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "importedName": "List",
+        "isWildcard": false,
+        "source": "typing",
+        "specifier": "List"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -730,15 +740,8 @@
       "end_column": 39,
       "start_byte": 31,
       "end_byte": 70,
-      "body_span": {
-        "start_line": 3,
-        "start_column": 37,
-        "end_line": 3,
-        "end_column": 39,
-        "start_byte": 68,
-        "end_byte": 70
-      },
-      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "body_span": null,
+      "body_hash": null,
       "signature": "worker_index: Dict[str, List[int]] = {}",
       "doc_comment": null,
       "visibility": "Public",
@@ -1172,6 +1175,15 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/python/basic/source.py:__init__:7:4",
+      "resolved_type": "None",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "python",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/python/basic/source.py:count:43:13",
       "resolved_type": "int",
       "generic_params": null,
@@ -1185,7 +1197,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "python",
       "metadata": null
     },
@@ -1203,7 +1215,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "python",
       "metadata": null
     },
@@ -1221,7 +1233,7 @@
       "resolved_type": "None",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "python",
       "metadata": null
     },
@@ -1230,7 +1242,7 @@
       "resolved_type": "None",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "python",
       "metadata": null
     },
@@ -1239,7 +1251,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "python",
       "metadata": null
     },
@@ -1275,7 +1287,7 @@
       "resolved_type": "None",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "python",
       "metadata": null
     },
@@ -1284,7 +1296,7 @@
       "resolved_type": "None",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "python",
       "metadata": null
     },
@@ -1293,7 +1305,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "python",
       "metadata": null
     },

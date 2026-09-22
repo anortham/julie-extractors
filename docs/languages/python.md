@@ -36,7 +36,17 @@ two collectors that actually run the code.
 | `tearDown`, `tearDownClass`, `tearDownModule`, `asyncTearDown` in a test path | `fixture_teardown` | unittest fixtures |
 | `setup_method`, `setup_class`, `setup_function`, `setup_module` in a test path | `fixture_setup` | pytest xunit-style setup |
 | `teardown_method`, `teardown_class`, `teardown_function`, `teardown_module` in a test path | `fixture_teardown` | pytest xunit-style teardown |
+| `setUpTestData` in a test path | `fixture_setup` | Django class-level fixture |
+| `@pytest_asyncio.fixture` | `fixture_setup` | pytest-asyncio fixture factory |
 | class with a `TestCase` base, or with a collected member | `test_container` | unittest suite and pytest class collection |
+| `test*` method or unittest hook in a `TestCase` subclass, in any path | `test_case` or fixture role | unittest loads every `TestCase` subclass |
+
+`TestCase` bases are matched by their last dotted segment against the
+standard-library, Django, and DRF classes: `TestCase`,
+`IsolatedAsyncioTestCase`, `SimpleTestCase`, `TransactionTestCase`,
+`LiveServerTestCase`, `StaticLiveServerTestCase`, and the DRF `API*` forms.
+A file named `tests.py` is a test path, because unittest discovery and
+Django's `startapp` layout both use it.
 
 Two rules carry a deliberate cost.
 
@@ -54,45 +64,49 @@ setup is the honest single direction. This reverses an earlier decision that
 excluded fixtures from roles entirely; see
 `docs/decisions/2026-08-20-test-role-contract-closure.md`.
 
-## Known limitation: nested callables
+## Nesting
 
-Test detection reads a symbol's name, path, kind, and annotation keys. It does
-not know whether a callable is defined at module or class level, or nested
-inside another function. One consequence remains:
+A `def` or `class` is parented to its nearest enclosing definition. A `def`
+in a class body is a method of that class. A `def` or `class` in a function
+body is a nested definition of that function: `wrapper` inside `decorate` is a
+function with parent `decorate`, not a top-level function or a method of the
+outer class. A lambda is one `function` symbol parented to its enclosing
+definition.
 
-- A nested `def test(...)` inside a real test function is flagged as a case.
-  pytest does not collect nested functions.
+Test detection skips nested callables, because pytest and unittest collect
+only module-level and class-level callables. A nested `def test(...)` inside a
+real test function has no role.
 
-That needs nesting depth at the extraction site, which is a Python extractor
-change rather than a detection-rule change. The measured cost is in the
-real-world evidence below.
+Decorators reach only the definition they are written on:
+`find_decorated_node` in `crates/julie-extractors/src/python/decorators.rs`
+stops at the first enclosing `function_definition` or `class_definition`.
 
-The second consequence is fixed. A nested callable used to inherit the
-enclosing decorated definition's decorators, because `find_decorated_node` in
-`crates/julie-extractors/src/python/decorators.rs` walked up to the nearest
-`decorated_definition` ancestor without stopping at an enclosing definition. A
-helper nested inside a `@pytest.mark.parametrize` test reported
-`parameterized_test`, a closure inside a `@pytest.fixture` helper reported
-`fixture_setup`, and every method of a decorated class carried the class
-decorator. The walk now stops at the first enclosing `function_definition` or
-`class_definition`, so decorators reach only the definition they are written
-on.
+## Inheritance
 
-## Known gap: cross-file inheritance
+A base class defined in the same file gives a resolved `extends` (or
+`implements` for a `Protocol`) relationship. Any other base, such as
+`unittest.TestCase`, `models.Model`, or an imported project class, gives a
+structured pending `extends` relationship. Its target keeps the dotted chain,
+and `import_context` names the import binding when the leading segment is an
+import in the file. A subscripted base such as `Generic[T]` uses its base
+name.
 
-A class that inherits an imported base emits neither a resolved `extends`
-relationship nor a pending one. `extract_class_relationships` in
-`crates/julie-extractors/src/python/relationships.rs` only emits when the base
-class symbol is found in the same file, unlike cross-module calls, which do
-emit a structured pending relationship. A project base class such as
-`class ApiTestCase(TestCase)` in another module is therefore invisible to
-workspace-level resolution.
+## Imports and type facts
 
-Test containers still work in that case, because
-`mark_python_test_containers` matches the `superclasses` metadata name
-`TestCase` textually. The gap is recorded as
-`python.relationships.open_gaps[extends]` in
-`fixtures/extraction/capabilities.json`.
+Each import binding carries `source`, `importedName`, `specifier`,
+`isWildcard`, and, for a relative import, `relativeLevel`. `import os.path`
+binds `os`, so the symbol is named `os` with source `os.path`. A pending call
+whose target or receiver starts with an import binding sets `import_context`
+to that binding.
+
+Type facts come only from annotation nodes: parameters, assignments, and
+return types. `Optional[X]`, `X | None`, `Union[X, None]`, `Annotated[X, ...]`,
+`ClassVar[X]`, `Final[X]`, `Mapped[X]`, and the forward reference `"X"` record
+`X`; the full annotation stays in `metadata.declared`. A union of two real
+types records nothing. Unannotated returns and values record nothing, except
+the same-file constructor fact `x = Foo()`.
+
+Imports, variables, constants, attributes, and parameters have no body span.
 
 ## Grammar freshness
 
@@ -169,8 +183,9 @@ local function: nested `def test(...)` Flask routes and Click commands written
 inside test bodies, in `tests/test_basic.py`, `tests/test_cli.py`, and
 `tests/test_regression.py`.
 
-That is 98.2 percent precision on the corpus. The remaining failure mode is
-recorded under "Known limitation: nested callables" above.
+That was 98.2 percent precision on the corpus. Those 8 nested functions now
+carry no role, because test detection skips nested callables (see "Nesting"
+above).
 
 The second failure mode is closed. Six symbols used to inherit the enclosing
 decorator — `check`, `run_simple_mock` twice, `reset_path`, `create_app`, and

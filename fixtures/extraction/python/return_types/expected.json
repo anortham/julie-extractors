@@ -150,7 +150,7 @@
       "resolved_type": "Result",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "python",
       "metadata": null
     }

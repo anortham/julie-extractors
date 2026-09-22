@@ -212,28 +212,43 @@ def run():
     assert_eq!(items.resolved_type, "list");
     assert_eq!(declared(items), Some("list[Task]"));
     let maybe = fact(&extractor, &symbols, "maybe", SymbolKind::Variable);
-    assert_eq!(maybe.resolved_type, "Optional");
+    assert_eq!(maybe.resolved_type, "Task");
     assert_eq!(declared(maybe), Some("Optional[Task]"));
 }
 
 #[test]
-fn union_annotation_records_no_fact() {
+fn union_with_none_records_the_other_member() {
     let source = r#"
 def run():
     value: int | None = None
+"#;
+    let (symbols, extractor) = extract(source);
+    let value = fact(&extractor, &symbols, "value", SymbolKind::Variable);
+    assert_eq!(value.resolved_type, "int");
+    assert_eq!(declared(value), Some("int | None"));
+}
+
+#[test]
+fn union_of_two_types_records_no_fact() {
+    let source = r#"
+def run():
+    value: int | str = 0
 "#;
     let (symbols, extractor) = extract(source);
     no_fact(&extractor, &symbols, "value", SymbolKind::Variable);
 }
 
 #[test]
-fn string_annotation_records_no_fact() {
+fn string_forward_reference_records_the_named_type() {
     let source = r#"
 def run():
     ref: "Repo" = None
+    other: "list[Repo]" = None
 "#;
     let (symbols, extractor) = extract(source);
-    no_fact(&extractor, &symbols, "ref", SymbolKind::Variable);
+    let fact = fact(&extractor, &symbols, "ref", SymbolKind::Variable);
+    assert_eq!(fact.resolved_type, "Repo");
+    no_fact(&extractor, &symbols, "other", SymbolKind::Variable);
 }
 
 #[test]

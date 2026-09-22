@@ -136,9 +136,9 @@
   "structured_pending_relationships": [],
   "identifiers": [
     {
-      "key": "fixtures/extraction/php/laravel_routes/source.php:AdminController:variable_ref:23:30",
+      "key": "fixtures/extraction/php/laravel_routes/source.php:AdminController:type_usage:23:30",
       "name": "AdminController",
-      "kind": "variable_ref",
+      "kind": "type_usage",
       "language": "php",
       "file_path": "fixtures/extraction/php/laravel_routes/source.php",
       "start_line": 23,
@@ -152,9 +152,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/php/laravel_routes/source.php:AdminController:variable_ref:24:31",
+      "key": "fixtures/extraction/php/laravel_routes/source.php:AdminController:type_usage:24:31",
       "name": "AdminController",
-      "kind": "variable_ref",
+      "kind": "type_usage",
       "language": "php",
       "file_path": "fixtures/extraction/php/laravel_routes/source.php",
       "start_line": 24,
@@ -168,9 +168,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/php/laravel_routes/source.php:BookController:variable_ref:19:28",
+      "key": "fixtures/extraction/php/laravel_routes/source.php:BookController:type_usage:19:28",
       "name": "BookController",
-      "kind": "variable_ref",
+      "kind": "type_usage",
       "language": "php",
       "file_path": "fixtures/extraction/php/laravel_routes/source.php",
       "start_line": 19,
@@ -184,9 +184,25 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/php/laravel_routes/source.php:PhotoController:variable_ref:18:26",
+      "key": "fixtures/extraction/php/laravel_routes/source.php:LEGACY_PATH:member_access:36:17",
+      "name": "LEGACY_PATH",
+      "kind": "member_access",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/laravel_routes/source.php",
+      "start_line": 36,
+      "start_column": 17,
+      "end_line": 36,
+      "end_column": 28,
+      "start_byte": 1455,
+      "end_byte": 1466,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/laravel_routes/source.php:PhotoController:type_usage:18:26",
       "name": "PhotoController",
-      "kind": "variable_ref",
+      "kind": "type_usage",
       "language": "php",
       "file_path": "fixtures/extraction/php/laravel_routes/source.php",
       "start_line": 18,
@@ -424,9 +440,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/php/laravel_routes/source.php:UserController:variable_ref:10:27",
+      "key": "fixtures/extraction/php/laravel_routes/source.php:UserController:type_usage:10:27",
       "name": "UserController",
-      "kind": "variable_ref",
+      "kind": "type_usage",
       "language": "php",
       "file_path": "fixtures/extraction/php/laravel_routes/source.php",
       "start_line": 10,
@@ -440,9 +456,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/php/laravel_routes/source.php:UserController:variable_ref:11:23",
+      "key": "fixtures/extraction/php/laravel_routes/source.php:UserController:type_usage:11:23",
       "name": "UserController",
-      "kind": "variable_ref",
+      "kind": "type_usage",
       "language": "php",
       "file_path": "fixtures/extraction/php/laravel_routes/source.php",
       "start_line": 11,
@@ -456,9 +472,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/php/laravel_routes/source.php:UserController:variable_ref:12:30",
+      "key": "fixtures/extraction/php/laravel_routes/source.php:UserController:type_usage:12:30",
       "name": "UserController",
-      "kind": "variable_ref",
+      "kind": "type_usage",
       "language": "php",
       "file_path": "fixtures/extraction/php/laravel_routes/source.php",
       "start_line": 12,
@@ -472,9 +488,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/php/laravel_routes/source.php:UserController:variable_ref:15:24",
+      "key": "fixtures/extraction/php/laravel_routes/source.php:UserController:type_usage:15:24",
       "name": "UserController",
-      "kind": "variable_ref",
+      "kind": "type_usage",
       "language": "php",
       "file_path": "fixtures/extraction/php/laravel_routes/source.php",
       "start_line": 15,
@@ -488,9 +504,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/php/laravel_routes/source.php:UserController:variable_ref:29:27",
+      "key": "fixtures/extraction/php/laravel_routes/source.php:UserController:type_usage:29:27",
       "name": "UserController",
-      "kind": "variable_ref",
+      "kind": "type_usage",
       "language": "php",
       "file_path": "fixtures/extraction/php/laravel_routes/source.php",
       "start_line": 29,
@@ -504,9 +520,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/php/laravel_routes/source.php:UserController:variable_ref:34:26",
+      "key": "fixtures/extraction/php/laravel_routes/source.php:UserController:type_usage:34:26",
       "name": "UserController",
-      "kind": "variable_ref",
+      "kind": "type_usage",
       "language": "php",
       "file_path": "fixtures/extraction/php/laravel_routes/source.php",
       "start_line": 34,
@@ -520,9 +536,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/php/laravel_routes/source.php:UserController:variable_ref:35:33",
+      "key": "fixtures/extraction/php/laravel_routes/source.php:UserController:type_usage:35:33",
       "name": "UserController",
-      "kind": "variable_ref",
+      "kind": "type_usage",
       "language": "php",
       "file_path": "fixtures/extraction/php/laravel_routes/source.php",
       "start_line": 35,
@@ -536,9 +552,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/php/laravel_routes/source.php:UserController:variable_ref:36:31",
+      "key": "fixtures/extraction/php/laravel_routes/source.php:UserController:type_usage:36:31",
       "name": "UserController",
-      "kind": "variable_ref",
+      "kind": "type_usage",
       "language": "php",
       "file_path": "fixtures/extraction/php/laravel_routes/source.php",
       "start_line": 36,
@@ -824,53 +840,7 @@
       "confidence": "1.000"
     }
   ],
-  "types": [
-    {
-      "symbol_key": "fixtures/extraction/php/laravel_routes/source.php:App\\Http\\Controllers\\AdminController:7:0",
-      "resolved_type": "use",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/laravel_routes/source.php:App\\Http\\Controllers\\BookController:6:0",
-      "resolved_type": "use",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/laravel_routes/source.php:App\\Http\\Controllers\\PhotoController:5:0",
-      "resolved_type": "use",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/laravel_routes/source.php:App\\Http\\Controllers\\UserController:4:0",
-      "resolved_type": "use",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/laravel_routes/source.php:Illuminate\\Support\\Facades\\Route:3:0",
-      "resolved_type": "use",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    }
-  ],
+  "types": [],
   "parse_diagnostics": [],
   "structural_facts": [
     {

@@ -143,7 +143,7 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
         "tree-sitter-ruby",
         FULL_CAPABILITIES,
         parser_ruby,
-        HASH_DOCS,
+        RUBY_DOCS,
     ),
     spec(
         "swift",

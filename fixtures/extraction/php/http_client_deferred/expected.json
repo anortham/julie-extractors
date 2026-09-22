@@ -104,7 +104,6 @@
       "visibility": "Public",
       "parent_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "metadata": {
-        "type": "variable_assignment",
         "value": "curl_init()"
       },
       "annotations": [],
@@ -173,7 +172,6 @@
       "visibility": "Public",
       "parent_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "metadata": {
-        "type": "variable_assignment",
         "value": "curl_init('https://api.example.com/health')"
       },
       "annotations": [],
@@ -233,7 +231,6 @@
       "visibility": "Public",
       "parent_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "metadata": {
-        "type": "variable_assignment",
         "value": "curl_init()"
       },
       "annotations": [],
@@ -1183,65 +1180,11 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/php/http_client_deferred/source.php:GuzzleHttp\\Client:7:0",
-      "resolved_type": "use",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/http_client_deferred/source.php:Symfony\\Component\\HttpClient\\HttpClient:6:0",
-      "resolved_type": "use",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/http_client_deferred/source.php:Symfony\\Contracts\\HttpClient\\HttpClientInterface:5:0",
-      "resolved_type": "use",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/http_client_deferred/source.php:ch:18:4",
-      "resolved_type": "variable_assignment",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/http_client_deferred/source.php:direct:17:4",
-      "resolved_type": "variable_assignment",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/php/http_client_deferred/source.php:guzzle:9:55",
       "resolved_type": "Client",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/http_client_deferred/source.php:noUrl:25:4",
-      "resolved_type": "variable_assignment",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
       "language": "php",
       "metadata": null
     },

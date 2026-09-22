@@ -1,0 +1,1470 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "name": "UsersApp",
+      "kind": "class",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 27,
+      "end_column": 3,
+      "start_byte": 24,
+      "end_byte": 384,
+      "body_span": {
+        "start_line": 4,
+        "start_column": 2,
+        "end_line": 26,
+        "end_column": 5,
+        "start_byte": 57,
+        "end_byte": 380
+      },
+      "body_hash": "8582ec018fdb86276c0fd0e5f0c47dbd",
+      "signature": "class UsersApp < Sinatra::Base",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "base_types": [
+          "Sinatra::Base"
+        ]
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:base:1:0",
+      "name": "base",
+      "kind": "import",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 22,
+      "start_byte": 0,
+      "end_byte": 22,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "require \"sinatra/base\"",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "callee_name": "Sinatra::Base",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "line_number": 3,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "callee_name": "User.destroy",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "line_number": 17,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "callee_name": "User.find",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "line_number": 9,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "callee_name": "User.find.to_json",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "line_number": 9,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "callee_name": "after",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "line_number": 24,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "callee_name": "authorized?",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "line_number": 5,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "callee_name": "before",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "line_number": 4,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "callee_name": "delete",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "line_number": 16,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "callee_name": "get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "line_number": 20,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "callee_name": "get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "line_number": 8,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "callee_name": "halt",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "line_number": 21,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "callee_name": "halt",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "line_number": 5,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "callee_name": "log_request",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "line_number": 25,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "callee_name": "params",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "line_number": 9,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "callee_name": "post",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "line_number": 12,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "callee_name": "status",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "line_number": 13,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+        "callee_name": "Sinatra::Base",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+        "line_number": 3,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "Sinatra::Base",
+        "terminal_name": "Base",
+        "receiver": null,
+        "namespace_path": [
+          "Sinatra"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "span": {
+        "start_line": 3,
+        "start_column": 0,
+        "end_line": 27,
+        "end_column": 3,
+        "start_byte": 24,
+        "end_byte": 384
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+        "callee_name": "User.destroy",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+        "line_number": 17,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "User.destroy",
+        "terminal_name": "destroy",
+        "receiver": "User",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "span": {
+        "start_line": 17,
+        "start_column": 4,
+        "end_line": 17,
+        "end_column": 20,
+        "start_byte": 256,
+        "end_byte": 272
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+        "callee_name": "User.find",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+        "line_number": 9,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "User.find",
+        "terminal_name": "find",
+        "receiver": "User",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "span": {
+        "start_line": 9,
+        "start_column": 4,
+        "end_line": 9,
+        "end_column": 26,
+        "start_byte": 143,
+        "end_byte": 165
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+        "callee_name": "User.find.to_json",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+        "line_number": 9,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "User.find.to_json",
+        "terminal_name": "to_json",
+        "receiver": "find",
+        "namespace_path": [
+          "User"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "span": {
+        "start_line": 9,
+        "start_column": 4,
+        "end_line": 9,
+        "end_column": 34,
+        "start_byte": 143,
+        "end_byte": 173
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+        "callee_name": "after",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+        "line_number": 24,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "after",
+        "terminal_name": "after",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "span": {
+        "start_line": 24,
+        "start_column": 2,
+        "end_line": 26,
+        "end_column": 5,
+        "start_byte": 339,
+        "end_byte": 380
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+        "callee_name": "authorized?",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+        "line_number": 5,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "authorized?",
+        "terminal_name": "authorized?",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "span": {
+        "start_line": 5,
+        "start_column": 20,
+        "end_line": 5,
+        "end_column": 31,
+        "start_byte": 98,
+        "end_byte": 109
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+        "callee_name": "before",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+        "line_number": 4,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "before",
+        "terminal_name": "before",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "span": {
+        "start_line": 4,
+        "start_column": 2,
+        "end_line": 6,
+        "end_column": 5,
+        "start_byte": 57,
+        "end_byte": 115
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+        "callee_name": "delete",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+        "line_number": 16,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "delete",
+        "terminal_name": "delete",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "span": {
+        "start_line": 16,
+        "start_column": 2,
+        "end_line": 18,
+        "end_column": 5,
+        "start_byte": 224,
+        "end_byte": 278
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+        "callee_name": "get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+        "line_number": 20,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "get",
+        "terminal_name": "get",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "span": {
+        "start_line": 20,
+        "start_column": 2,
+        "end_line": 22,
+        "end_column": 5,
+        "start_byte": 282,
+        "end_byte": 335
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+        "callee_name": "get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+        "line_number": 8,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "get",
+        "terminal_name": "get",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "span": {
+        "start_line": 8,
+        "start_column": 2,
+        "end_line": 10,
+        "end_column": 5,
+        "start_byte": 119,
+        "end_byte": 179
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+        "callee_name": "halt",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+        "line_number": 21,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "halt",
+        "terminal_name": "halt",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "span": {
+        "start_line": 21,
+        "start_column": 4,
+        "end_line": 21,
+        "end_column": 12,
+        "start_byte": 321,
+        "end_byte": 329
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+        "callee_name": "halt",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+        "line_number": 5,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "halt",
+        "terminal_name": "halt",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "span": {
+        "start_line": 5,
+        "start_column": 4,
+        "end_line": 5,
+        "end_column": 12,
+        "start_byte": 82,
+        "end_byte": 90
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+        "callee_name": "log_request",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+        "line_number": 25,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "log_request",
+        "terminal_name": "log_request",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "span": {
+        "start_line": 25,
+        "start_column": 4,
+        "end_line": 25,
+        "end_column": 15,
+        "start_byte": 363,
+        "end_byte": 374
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+        "callee_name": "params",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+        "line_number": 9,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "params",
+        "terminal_name": "params",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "span": {
+        "start_line": 9,
+        "start_column": 14,
+        "end_line": 9,
+        "end_column": 20,
+        "start_byte": 153,
+        "end_byte": 159
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+        "callee_name": "post",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+        "line_number": 12,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "post",
+        "terminal_name": "post",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "span": {
+        "start_line": 12,
+        "start_column": 2,
+        "end_line": 14,
+        "end_column": 5,
+        "start_byte": 183,
+        "end_byte": 220
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+        "callee_name": "status",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+        "line_number": 13,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "status",
+        "terminal_name": "status",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "span": {
+        "start_line": 13,
+        "start_column": 4,
+        "end_line": 13,
+        "end_column": 14,
+        "start_byte": 204,
+        "end_byte": 214
+      }
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:Base:type_usage:3:26",
+      "name": "Base",
+      "kind": "type_usage",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 3,
+      "start_column": 26,
+      "end_line": 3,
+      "end_column": 30,
+      "start_byte": 50,
+      "end_byte": 54,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:Sinatra:type_usage:3:17",
+      "name": "Sinatra",
+      "kind": "type_usage",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 3,
+      "start_column": 17,
+      "end_line": 3,
+      "end_column": 24,
+      "start_byte": 41,
+      "end_byte": 48,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:User:type_usage:17:4",
+      "name": "User",
+      "kind": "type_usage",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 17,
+      "start_column": 4,
+      "end_line": 17,
+      "end_column": 8,
+      "start_byte": 256,
+      "end_byte": 260,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:User:type_usage:9:4",
+      "name": "User",
+      "kind": "type_usage",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 9,
+      "start_column": 4,
+      "end_line": 9,
+      "end_column": 8,
+      "start_byte": 143,
+      "end_byte": 147,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:VERSION:type_usage:20:16",
+      "name": "VERSION",
+      "kind": "type_usage",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 20,
+      "start_column": 16,
+      "end_line": 20,
+      "end_column": 23,
+      "start_byte": 296,
+      "end_byte": 303,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:after:call:24:2",
+      "name": "after",
+      "kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 24,
+      "start_column": 2,
+      "end_line": 24,
+      "end_column": 7,
+      "start_byte": 339,
+      "end_byte": 344,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:authorized?:call:5:20",
+      "name": "authorized?",
+      "kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 5,
+      "start_column": 20,
+      "end_line": 5,
+      "end_column": 31,
+      "start_byte": 98,
+      "end_byte": 109,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:before:call:4:2",
+      "name": "before",
+      "kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 4,
+      "start_column": 2,
+      "end_line": 4,
+      "end_column": 8,
+      "start_byte": 57,
+      "end_byte": 63,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:delete:call:16:2",
+      "name": "delete",
+      "kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 16,
+      "start_column": 2,
+      "end_line": 16,
+      "end_column": 8,
+      "start_byte": 224,
+      "end_byte": 230,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:destroy:member_access:17:9",
+      "name": "destroy",
+      "kind": "member_access",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 17,
+      "start_column": 9,
+      "end_line": 17,
+      "end_column": 16,
+      "start_byte": 261,
+      "end_byte": 268,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:find:member_access:9:9",
+      "name": "find",
+      "kind": "member_access",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 9,
+      "start_column": 9,
+      "end_line": 9,
+      "end_column": 13,
+      "start_byte": 148,
+      "end_byte": 152,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:get:call:20:2",
+      "name": "get",
+      "kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 20,
+      "start_column": 2,
+      "end_line": 20,
+      "end_column": 5,
+      "start_byte": 282,
+      "end_byte": 285,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:get:call:8:2",
+      "name": "get",
+      "kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 8,
+      "start_column": 2,
+      "end_line": 8,
+      "end_column": 5,
+      "start_byte": 119,
+      "end_byte": 122,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:halt:call:21:4",
+      "name": "halt",
+      "kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 21,
+      "start_column": 4,
+      "end_line": 21,
+      "end_column": 8,
+      "start_byte": 321,
+      "end_byte": 325,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:halt:call:5:4",
+      "name": "halt",
+      "kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 5,
+      "start_column": 4,
+      "end_line": 5,
+      "end_column": 8,
+      "start_byte": 82,
+      "end_byte": 86,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:id:variable_ref:17:17",
+      "name": "id",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 17,
+      "start_column": 17,
+      "end_line": 17,
+      "end_column": 19,
+      "start_byte": 269,
+      "end_byte": 271,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:log_request:call:25:4",
+      "name": "log_request",
+      "kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 25,
+      "start_column": 4,
+      "end_line": 25,
+      "end_column": 15,
+      "start_byte": 363,
+      "end_byte": 374,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:params:call:9:14",
+      "name": "params",
+      "kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 9,
+      "start_column": 14,
+      "end_line": 9,
+      "end_column": 20,
+      "start_byte": 153,
+      "end_byte": 159,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:post:call:12:2",
+      "name": "post",
+      "kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 12,
+      "start_column": 2,
+      "end_line": 12,
+      "end_column": 6,
+      "start_byte": 183,
+      "end_byte": 187,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:require:call:1:0",
+      "name": "require",
+      "kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 7,
+      "start_byte": 0,
+      "end_byte": 7,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:base:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:status:call:13:4",
+      "name": "status",
+      "kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 13,
+      "start_column": 4,
+      "end_line": 13,
+      "end_column": 10,
+      "start_byte": 204,
+      "end_byte": 210,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/sinatra/source.rb:to_json:member_access:9:27",
+      "name": "to_json",
+      "kind": "member_access",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 9,
+      "start_column": 27,
+      "end_line": 9,
+      "end_column": 34,
+      "start_byte": 166,
+      "end_byte": 173,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "ruby.block.v1",
+      "capture_name": "block",
+      "node_kind": "do_block",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "start_line": 12,
+      "start_column": 16,
+      "end_line": 14,
+      "end_column": 5,
+      "start_byte": 197,
+      "end_byte": 220,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "blocks"
+      }
+    },
+    {
+      "pattern_id": "ruby.block.v1",
+      "capture_name": "block",
+      "node_kind": "do_block",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "start_line": 16,
+      "start_column": 22,
+      "end_line": 18,
+      "end_column": 5,
+      "start_byte": 244,
+      "end_byte": 278,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "blocks"
+      }
+    },
+    {
+      "pattern_id": "ruby.block.v1",
+      "capture_name": "block",
+      "node_kind": "do_block",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "start_line": 20,
+      "start_column": 34,
+      "end_line": 22,
+      "end_column": 5,
+      "start_byte": 314,
+      "end_byte": 335,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "blocks"
+      }
+    },
+    {
+      "pattern_id": "ruby.block.v1",
+      "capture_name": "block",
+      "node_kind": "do_block",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "start_line": 24,
+      "start_column": 19,
+      "end_line": 26,
+      "end_column": 5,
+      "start_byte": 356,
+      "end_byte": 380,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "blocks"
+      }
+    },
+    {
+      "pattern_id": "ruby.block.v1",
+      "capture_name": "block",
+      "node_kind": "do_block",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "start_line": 4,
+      "start_column": 20,
+      "end_line": 6,
+      "end_column": 5,
+      "start_byte": 75,
+      "end_byte": 115,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "blocks"
+      }
+    },
+    {
+      "pattern_id": "ruby.block.v1",
+      "capture_name": "block",
+      "node_kind": "do_block",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "start_line": 8,
+      "start_column": 19,
+      "end_line": 10,
+      "end_column": 5,
+      "start_byte": 136,
+      "end_byte": 179,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "blocks"
+      }
+    },
+    {
+      "pattern_id": "ruby.require_call.v1",
+      "capture_name": "require_call",
+      "node_kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 22,
+      "start_byte": 0,
+      "end_byte": 22,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "imports",
+        "require_kind": "require",
+        "required_path": "sinatra/base"
+      }
+    },
+    {
+      "pattern_id": "sinatra.filter.v1",
+      "capture_name": "filter",
+      "node_kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "start_line": 24,
+      "start_column": 2,
+      "end_line": 26,
+      "end_column": 5,
+      "start_byte": 339,
+      "end_byte": 380,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "dsl_routing",
+        "filter_kind": "after",
+        "framework": "sinatra",
+        "normalized_route_template": "/users/*",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/users/*"
+      }
+    },
+    {
+      "pattern_id": "sinatra.filter.v1",
+      "capture_name": "filter",
+      "node_kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "start_line": 4,
+      "start_column": 2,
+      "end_line": 6,
+      "end_column": 5,
+      "start_byte": 57,
+      "end_byte": 115,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "dsl_routing",
+        "filter_kind": "before",
+        "framework": "sinatra",
+        "normalized_route_template": "/admin/*",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/admin/*"
+      }
+    },
+    {
+      "pattern_id": "sinatra.route.v1",
+      "capture_name": "route",
+      "node_kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "start_line": 12,
+      "start_column": 2,
+      "end_line": 14,
+      "end_column": 5,
+      "start_byte": 183,
+      "end_byte": 220,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "dsl_routing",
+        "framework": "sinatra",
+        "normalized_route_template": "/users",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/users",
+        "verb": "POST",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "sinatra.route.v1",
+      "capture_name": "route",
+      "node_kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "start_line": 16,
+      "start_column": 2,
+      "end_line": 18,
+      "end_column": 5,
+      "start_byte": 224,
+      "end_byte": 278,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "dsl_routing",
+        "dynamic_segments": [
+          "id"
+        ],
+        "framework": "sinatra",
+        "normalized_route_template": "/users/:id",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/users/:id",
+        "verb": "DELETE",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "sinatra.route.v1",
+      "capture_name": "route",
+      "node_kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "start_line": 8,
+      "start_column": 2,
+      "end_line": 10,
+      "end_column": 5,
+      "start_byte": 119,
+      "end_byte": 179,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "dsl_routing",
+        "dynamic_segments": [
+          "id"
+        ],
+        "framework": "sinatra",
+        "normalized_route_template": "/users/:id",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/users/:id",
+        "verb": "GET",
+        "verb_source": "attested"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "covered_lines": 28,
+      "covered_bytes": 385,
+      "decision_count": 1,
+      "loop_count": 0,
+      "max_nesting_depth": 1,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 28,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 385,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "/admin/*",
+      "kind": "other",
+      "carrier": "before",
+      "arg_position": 0,
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 4,
+      "start_column": 9,
+      "end_line": 4,
+      "end_column": 19,
+      "start_byte": 64,
+      "end_byte": 74,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/users",
+      "kind": "other",
+      "carrier": "post",
+      "arg_position": 0,
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 12,
+      "start_column": 7,
+      "end_line": 12,
+      "end_column": 15,
+      "start_byte": 188,
+      "end_byte": 196,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/users/*",
+      "kind": "other",
+      "carrier": "after",
+      "arg_position": 0,
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 24,
+      "start_column": 8,
+      "end_line": 24,
+      "end_column": 18,
+      "start_byte": 345,
+      "end_byte": 355,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/users/:id",
+      "kind": "other",
+      "carrier": "delete",
+      "arg_position": 0,
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 16,
+      "start_column": 9,
+      "end_line": 16,
+      "end_column": 21,
+      "start_byte": 231,
+      "end_byte": 243,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/users/:id",
+      "kind": "other",
+      "carrier": "get",
+      "arg_position": 0,
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 8,
+      "start_column": 6,
+      "end_line": 8,
+      "end_column": 18,
+      "start_byte": 123,
+      "end_byte": 135,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/users/{}/dynamic",
+      "kind": "other",
+      "carrier": "get",
+      "arg_position": 0,
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 20,
+      "start_column": 6,
+      "end_line": 20,
+      "end_column": 33,
+      "start_byte": 286,
+      "end_byte": 313,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "sinatra/base",
+      "kind": "other",
+      "carrier": "require",
+      "arg_position": 0,
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "start_line": 1,
+      "start_column": 8,
+      "end_line": 1,
+      "end_column": 22,
+      "start_byte": 8,
+      "end_byte": 22,
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:base:1:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "start_line": 12,
+      "start_column": 7,
+      "end_line": 12,
+      "end_column": 15,
+      "start_byte": 188,
+      "end_byte": 196,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "start_line": 16,
+      "start_column": 9,
+      "end_line": 16,
+      "end_column": 21,
+      "start_byte": 231,
+      "end_byte": 243,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "start_line": 20,
+      "start_column": 6,
+      "end_line": 20,
+      "end_column": 33,
+      "start_byte": 286,
+      "end_byte": 313,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "start_line": 24,
+      "start_column": 8,
+      "end_line": 24,
+      "end_column": 18,
+      "start_byte": 345,
+      "end_byte": 355,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "start_line": 4,
+      "start_column": 9,
+      "end_line": 4,
+      "end_column": 19,
+      "start_byte": 64,
+      "end_byte": 74,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:UsersApp:3:0",
+      "start_line": 8,
+      "start_column": 6,
+      "end_line": 8,
+      "end_column": 18,
+      "start_byte": 123,
+      "end_byte": 135,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/sinatra/source.rb",
+      "containing_key": "fixtures/extraction/ruby/sinatra/source.rb:base:1:0",
+      "start_line": 1,
+      "start_column": 8,
+      "end_line": 1,
+      "end_column": 22,
+      "start_byte": 8,
+      "end_byte": 22,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

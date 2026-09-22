@@ -24,7 +24,8 @@ class UserService {
     }
 
     public function getUserById(int $id): ?User {
-        return $this->repository->find($id);
+        $fallback = new User();
+        return $this->repository->find($id) ?? $fallback;
     }
 }
 "#;
