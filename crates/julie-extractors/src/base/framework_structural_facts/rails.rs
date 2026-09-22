@@ -158,7 +158,7 @@ impl<'a> RouteCollector<'a> {
         let Some(method) = self.method_name(call) else {
             return;
         };
-        let args = RouteArguments::new(self, call);
+        let args = RouteArguments::from_call(self, call);
         match method {
             "namespace" => {
                 let path = args
@@ -469,7 +469,7 @@ struct RouteArguments<'a> {
 }
 
 impl<'a> RouteArguments<'a> {
-    fn new(collector: &RouteCollector<'a>, call: Node<'a>) -> Self {
+    fn from_call(collector: &RouteCollector<'a>, call: Node<'a>) -> Self {
         let mut arguments = Self {
             content: collector.content,
             positionals: Vec::new(),

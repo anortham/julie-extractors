@@ -1896,9 +1896,14 @@ fn http_boundary_families_emit_documented_metadata_keys() {
         .find(|fact| metadata_str(fact, "route_template") == Some("/"))
         .expect("rails root route fact");
     assert_eq!(
+        metadata_str(rails_root_route, "controller_action"),
+        Some("home#index")
+    );
+    assert_eq!(
         metadata_keys(rails_root_route),
         [
             "api_style",
+            "controller_action",
             "framework",
             "normalized_route_template",
             "pattern_version",
