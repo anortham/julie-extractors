@@ -1,0 +1,8 @@
+test_name: Get users
+stages:
+  - name: list users
+    request:
+      url: http://localhost:8080/users
+      method: GET
+    response:
+      status_code: 200

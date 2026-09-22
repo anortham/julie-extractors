@@ -89,7 +89,28 @@ fn collect_node(
     }
 
     let node_kind = node.kind();
-    if config.embedded_node_kinds.contains(&node_kind) {
+    let yaml_script = (language == "yaml")
+        .then(|| crate::yaml::ci::embedded_script_language(file_path, content, node))
+        .flatten();
+    if let Some(embedded_language) = yaml_script {
+        let metadata = HashMap::from([
+            (
+                "host_node_kind".to_string(),
+                serde_json::Value::String(node_kind.to_string()),
+            ),
+            (
+                "embedded_language".to_string(),
+                serde_json::Value::String(embedded_language.to_string()),
+            ),
+        ]);
+        regions.push(region_for_node(
+            file_path,
+            language,
+            node,
+            SourceRegionKind::Embedded,
+            Some(metadata),
+        ));
+    } else if config.embedded_node_kinds.contains(&node_kind) {
         regions.push(region_for_node(
             file_path,
             language,

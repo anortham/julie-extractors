@@ -169,7 +169,7 @@
       "end_byte": 268,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "name: Test",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/ci/.github/workflows/ci.yml:[2]:14:6",
@@ -193,7 +193,7 @@
       "end_byte": 139,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "needs: build",
       "doc_comment": "# Runs after the build job",
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/ci/.github/workflows/ci.yml:test:7:2",
@@ -248,7 +248,7 @@
       "end_byte": 11,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "push:",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/ci/.github/workflows/ci.yml:on:1:0",
@@ -272,7 +272,7 @@
       "end_byte": 292,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "run: cargo test",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/ci/.github/workflows/ci.yml:[2]:14:6",
@@ -296,7 +296,7 @@
       "end_byte": 166,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "runs-on: ubuntu-latest",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/ci/.github/workflows/ci.yml:test:7:2",
@@ -382,7 +382,7 @@
       "end_byte": 211,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "uses: actions/checkout@v4",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/ci/.github/workflows/ci.yml:[0]:12:6",
@@ -406,7 +406,7 @@
       "end_byte": 249,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "uses: ./.github/actions/setup",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/ci/.github/workflows/ci.yml:[1]:13:6",
@@ -430,7 +430,7 @@
       "end_byte": 83,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "uses: ./.github/workflows/build.yml",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/ci/.github/workflows/ci.yml:build:5:2",
@@ -454,7 +454,7 @@
       "end_byte": 28,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "workflow_call:",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/ci/.github/workflows/ci.yml:on:1:0",
@@ -737,6 +737,7 @@
       "end_byte": 293,
       "confidence": "1.000",
       "metadata": {
+        "document_index": 0,
         "has_directives": false,
         "pattern_version": 1,
         "query_family": "config_structure"
@@ -758,9 +759,10 @@
       "confidence": "1.000",
       "metadata": {
         "key": "uses",
-        "key_path": "$.jobs.test.steps.uses",
+        "key_path": "$.jobs.test.steps[0].uses",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -780,9 +782,10 @@
       "confidence": "1.000",
       "metadata": {
         "key": "uses",
-        "key_path": "$.jobs.test.steps.uses",
+        "key_path": "$.jobs.test.steps[1].uses",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -802,9 +805,10 @@
       "confidence": "1.000",
       "metadata": {
         "key": "name",
-        "key_path": "$.jobs.test.steps.name",
+        "key_path": "$.jobs.test.steps[2].name",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -824,9 +828,10 @@
       "confidence": "1.000",
       "metadata": {
         "key": "run",
-        "key_path": "$.jobs.test.steps.run",
+        "key_path": "$.jobs.test.steps[2].run",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -871,6 +876,7 @@
         "key_path": "$.jobs.build.uses",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -959,6 +965,7 @@
         "key_path": "$.jobs.test.runs-on",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -1003,6 +1010,7 @@
         "key_path": "$.jobs.test.needs",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -1021,7 +1029,7 @@
       "end_byte": 211,
       "confidence": "1.000",
       "metadata": {
-        "key_path": "$.jobs.test.steps",
+        "key_path": "$.jobs.test.steps[0]",
         "pair_count": 1,
         "pattern_version": 1,
         "query_family": "config_structure"
@@ -1042,7 +1050,7 @@
       "end_byte": 249,
       "confidence": "1.000",
       "metadata": {
-        "key_path": "$.jobs.test.steps",
+        "key_path": "$.jobs.test.steps[1]",
         "pair_count": 1,
         "pattern_version": 1,
         "query_family": "config_structure"
@@ -1063,7 +1071,7 @@
       "end_byte": 293,
       "confidence": "1.000",
       "metadata": {
-        "key_path": "$.jobs.test.steps",
+        "key_path": "$.jobs.test.steps[2]",
         "pair_count": 2,
         "pattern_version": 1,
         "query_family": "config_structure"
@@ -1324,6 +1332,22 @@
       "start_byte": 96,
       "end_byte": 122,
       "metadata": null
+    },
+    {
+      "kind": "embedded",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/ci/.github/workflows/ci.yml",
+      "containing_key": null,
+      "start_line": 15,
+      "start_column": 13,
+      "end_line": 15,
+      "end_column": 23,
+      "start_byte": 282,
+      "end_byte": 292,
+      "metadata": {
+        "embedded_language": "bash",
+        "host_node_kind": "plain_scalar"
+      }
     }
   ],
   "type_argument_usages": []

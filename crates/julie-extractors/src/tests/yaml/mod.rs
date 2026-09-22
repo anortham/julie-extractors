@@ -9,6 +9,9 @@ pub mod structural_facts;
 pub mod test_detection;
 
 #[cfg(test)]
+mod wave2;
+
+#[cfg(test)]
 mod ci;
 #[cfg(test)]
 mod references;
@@ -484,17 +487,13 @@ normal_key: value3
     }
 
     #[test]
-    fn test_no_anchor_no_signature() {
-        // When a block_mapping_pair has no anchor, signature should be None
-        let yaml = "name: julie\n";
+    fn test_container_without_anchor_has_no_signature() {
+        let yaml = "name:\n  first: julie\n";
         let symbols = extract_symbols(yaml);
 
         let name = symbols.iter().find(|s| s.name == "name");
         assert!(name.is_some(), "Should extract 'name' key");
-        assert!(
-            name.unwrap().signature.is_none(),
-            "Key without anchor should have no signature"
-        );
+        assert!(name.unwrap().signature.is_none());
     }
 
     #[test]

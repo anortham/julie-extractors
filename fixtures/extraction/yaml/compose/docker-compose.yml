@@ -1,0 +1,18 @@
+services:
+  api:
+    build: {context: ./api}
+    ports: ["8080:8080"]
+    volumes:
+      - data:/var/lib/app
+    depends_on:
+      db: {condition: service_healthy}
+    extends:
+      file: common-services.yml
+      service: logging
+  worker:
+    image: acme/worker
+    depends_on: [db]
+  db:
+    image: postgres:16
+volumes:
+  data: {}

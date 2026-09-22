@@ -25,6 +25,9 @@ pub(super) fn extract_relationships(
     );
     super::cloudformation::extract_relationships(base, tree, symbols, &mut relationships);
     super::ci::extract_relationships(base, tree, symbols, &mut relationships);
+    super::compose::extract_relationships(base, tree, symbols, &mut relationships);
+    super::kubernetes::extract_relationships(base, tree, symbols, &mut relationships);
+    super::ansible::extract_relationships(base, tree, symbols, &mut relationships);
     relationships
 }
 
@@ -100,10 +103,10 @@ fn extract_alias_relationship(
     let Some(alias_name) = alias_name(base, node) else {
         return;
     };
-    let Some(target) = resolve_alias_anchor_target(symbols, &alias_name) else {
+    let Some(target) = resolve_alias_anchor_target(symbols, node, &alias_name) else {
         return;
     };
-    let Some(source) = base.find_containing_symbol(&node, symbols) else {
+    let Some(source) = super::innermost_symbol(symbols, node) else {
         return;
     };
 
@@ -275,4 +278,91 @@ pub(super) fn push_reference(
         Some(1.0),
         Some(metadata),
     ));
+}
+
+/// The pairs of the mapping held by a value node (block or flow).
+pub(super) fn mapping_pairs(value: Node) -> Vec<Node> {
+    let mapping = if matches!(value.kind(), "block_mapping" | "flow_mapping") {
+        Some(value)
+    } else {
+        let mut cursor = value.walk();
+        value
+            .named_children(&mut cursor)
+            .find(|child| matches!(child.kind(), "block_mapping" | "flow_mapping"))
+    };
+    let Some(mapping) = mapping else {
+        return Vec::new();
+    };
+    let mut cursor = mapping.walk();
+    mapping
+        .named_children(&mut cursor)
+        .filter(|child| matches!(child.kind(), "block_mapping_pair" | "flow_pair"))
+        .collect()
+}
+
+/// The item value nodes of the sequence held by a value node.
+pub(super) fn sequence_items(value: Node) -> Vec<Node> {
+    let mut cursor = value.walk();
+    let Some(sequence) = value
+        .named_children(&mut cursor)
+        .find(|child| matches!(child.kind(), "block_sequence" | "flow_sequence"))
+    else {
+        return Vec::new();
+    };
+    let mut cursor = sequence.walk();
+    sequence
+        .named_children(&mut cursor)
+        .filter_map(|item| match item.kind() {
+            "block_sequence_item" => item.named_child(0),
+            "flow_node" => Some(item),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The value node of the pair keyed `key` in a mapping value.
+pub(super) fn field<'tree>(content: &str, value: Node<'tree>, key: &str) -> Option<Node<'tree>> {
+    mapping_pairs(value)
+        .into_iter()
+        .find(|pair| pair_key(content, *pair).as_deref() == Some(key))
+        .and_then(|pair| pair.child_by_field_name("value"))
+}
+
+/// The root value node of each document in the stream.
+pub(super) fn document_roots(tree: &Tree) -> Vec<Node<'_>> {
+    let root = tree.root_node();
+    let mut cursor = root.walk();
+    root.named_children(&mut cursor)
+        .filter(|child| child.kind() == "document")
+        .filter_map(|document| {
+            let mut cursor = document.walk();
+            document
+                .named_children(&mut cursor)
+                .find(|child| matches!(child.kind(), "block_node" | "flow_node"))
+        })
+        .collect()
+}
+
+/// Structured pending `References` row with an explicit target.
+pub(super) fn push_pending(
+    base: &mut BaseExtractor,
+    from_symbol: &Symbol,
+    target: UnresolvedTarget,
+    node: Node,
+) {
+    let pending = StructuredPendingRelationship::new(
+        from_symbol.id.clone(),
+        target,
+        Some(from_symbol.id.clone()),
+        RelationshipKind::References,
+        base.file_path.clone(),
+        node.start_position().row as u32 + 1,
+        1.0,
+    );
+    base.add_structured_pending_relationship(pending);
+}
+
+/// The file name of a path, for gating domain collectors.
+pub(super) fn file_name(file_path: &str) -> &str {
+    file_path.rsplit(['/', '\\']).next().unwrap_or(file_path)
 }

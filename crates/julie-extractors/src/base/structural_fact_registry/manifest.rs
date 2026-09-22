@@ -6,7 +6,7 @@
 //! registry access remains through [`super::structural_fact_pattern_specs`].
 
 use super::{
-    ALWAYS, ARR, BOOL, K_FRAMEWORK, K_PATTERN_VERSION, K_QUERY_FAMILY, OPT, STR,
+    ALWAYS, ARR, BOOL, K_FRAMEWORK, K_PATTERN_VERSION, K_QUERY_FAMILY, NUM, OPT, STR,
     StructuralFactPatternSpec, key,
 };
 
@@ -136,6 +136,69 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 STR,
                 ALWAYS,
                 "Command as written; a Composer command list is joined with ` && `.",
+            ),
+        ],
+    },
+    // Deployment and automation documents (YAML)
+    StructuralFactPatternSpec {
+        pattern_id: "yaml.compose_service.v1",
+        languages: &["yaml"],
+        query_family: "service_structure",
+        description: "A service under `services` in a Docker Compose file (`compose.yaml`, `docker-compose*.yml`).",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key("name", STR, ALWAYS, "Service name."),
+            key("image", STR, OPT, "The `image` value."),
+            key(
+                "build_context",
+                STR,
+                OPT,
+                "The `build` path, or `build.context`.",
+            ),
+            key("ports", ARR, OPT, "The `ports` entries as written."),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "yaml.k8s_resource.v1",
+        languages: &["yaml"],
+        query_family: "service_structure",
+        description: "A Kubernetes resource: a YAML document whose root holds `apiVersion` and `kind`.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key("api_version", STR, ALWAYS, "The `apiVersion` value."),
+            key("kind", STR, ALWAYS, "The `kind` value."),
+            key("name", STR, OPT, "The `metadata.name` value."),
+            key("namespace", STR, OPT, "The `metadata.namespace` value."),
+            key(
+                "document_index",
+                NUM,
+                OPT,
+                "0-based index of the document; present only in a stream of more than one document.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "yaml.ansible_task.v1",
+        languages: &["yaml"],
+        query_family: "pipeline",
+        description: "A task or handler in an Ansible playbook or task file.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "module",
+                STR,
+                ALWAYS,
+                "Module key as written (`ansible.builtin.apt`): the first key that is not a task keyword.",
+            ),
+            key("name", STR, OPT, "The task `name`."),
+            key(
+                "handler",
+                BOOL,
+                ALWAYS,
+                "True for a task under `handlers` or in a handlers file.",
             ),
         ],
     },

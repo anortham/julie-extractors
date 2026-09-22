@@ -9907,6 +9907,46 @@
     "query_family": "config_structure"
   },
   {
+    "description": "A task or handler in an Ansible playbook or task file.",
+    "languages": [
+      "yaml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Module key as written (`ansible.builtin.apt`): the first key that is not a task keyword.",
+        "key": "module",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The task `name`.",
+        "key": "name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "True for a task under `handlers` or in a handlers file.",
+        "key": "handler",
+        "presence": "always",
+        "value_type": "bool"
+      }
+    ],
+    "pattern_id": "yaml.ansible_task.v1",
+    "query_family": "pipeline"
+  },
+  {
     "description": "A GitHub Actions or GitLab CI job.",
     "languages": [
       "yaml"
@@ -10045,6 +10085,52 @@
     "query_family": "pipeline"
   },
   {
+    "description": "A service under `services` in a Docker Compose file (`compose.yaml`, `docker-compose*.yml`).",
+    "languages": [
+      "yaml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Service name.",
+        "key": "name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `image` value.",
+        "key": "image",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The `build` path, or `build.context`.",
+        "key": "build_context",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The `ports` entries as written.",
+        "key": "ports",
+        "presence": "optional",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "yaml.compose_service.v1",
+    "query_family": "service_structure"
+  },
+  {
     "description": "A YAML document node.",
     "languages": [
       "yaml"
@@ -10067,10 +10153,68 @@
         "key": "has_directives",
         "presence": "always",
         "value_type": "bool"
+      },
+      {
+        "description": "0-based index of the document in the stream.",
+        "key": "document_index",
+        "presence": "always",
+        "value_type": "number"
       }
     ],
     "pattern_id": "yaml.document.v1",
     "query_family": "config_structure"
+  },
+  {
+    "description": "A Kubernetes resource: a YAML document whose root holds `apiVersion` and `kind`.",
+    "languages": [
+      "yaml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `apiVersion` value.",
+        "key": "api_version",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `kind` value.",
+        "key": "kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `metadata.name` value.",
+        "key": "name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The `metadata.namespace` value.",
+        "key": "namespace",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "0-based index of the document; present only in a stream of more than one document.",
+        "key": "document_index",
+        "presence": "optional",
+        "value_type": "number"
+      }
+    ],
+    "pattern_id": "yaml.k8s_resource.v1",
+    "query_family": "service_structure"
   },
   {
     "description": "A YAML mapping key/value pair.",
@@ -10097,16 +10241,46 @@
         "value_type": "string"
       },
       {
-        "description": "Dotted key path including ancestor keys.",
+        "description": "JSONPath of the key including ancestor keys and sequence item indexes.",
         "key": "key_path",
         "presence": "always",
         "value_type": "string"
       },
       {
-        "description": "Normalized kind of the mapped value.",
+        "description": "Kind of the mapped value after any anchor or tag: \"scalar\", \"block_scalar\", \"mapping\", \"sequence\", \"alias\", or \"other\".",
         "key": "value_kind",
         "presence": "always",
         "value_type": "string"
+      },
+      {
+        "description": "Anchor name declared on the value (`&name`).",
+        "key": "anchor",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Explicit tag on the value (`!Ref`, `!!str`).",
+        "key": "tag",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Scalar style: \"plain\", \"single_quoted\", \"double_quoted\", \"literal\" (`|`), or \"folded\" (`>`).",
+        "key": "scalar_style",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Block scalar chomping: \"clip\", \"strip\" (`-`), or \"keep\" (`+`).",
+        "key": "chomping",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "0-based index of the document; present only in a stream of more than one document.",
+        "key": "document_index",
+        "presence": "optional",
+        "value_type": "number"
       }
     ],
     "pattern_id": "yaml.key_value.v1",
@@ -10131,7 +10305,7 @@
         "value_type": "string"
       },
       {
-        "description": "Dotted key path to this mapping from the document root.",
+        "description": "JSONPath to this mapping from the document root; sequence items are indexed (`$.steps[0]`) and keys that are not plain names are bracket-quoted (`$.data['nginx.conf']`).",
         "key": "key_path",
         "presence": "always",
         "value_type": "string"
@@ -10140,6 +10314,12 @@
         "description": "Number of direct key/value pairs in the mapping.",
         "key": "pair_count",
         "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "0-based index of the document; present only in a stream of more than one document.",
+        "key": "document_index",
+        "presence": "optional",
         "value_type": "number"
       }
     ],
@@ -10171,10 +10351,16 @@
         "value_type": "string"
       },
       {
-        "description": "Dotted YAML key path to the mapping that holds the `$ref`.",
+        "description": "JSONPath to the mapping that holds the `$ref`.",
         "key": "key_path",
         "presence": "always",
         "value_type": "string"
+      },
+      {
+        "description": "0-based index of the document; present only in a stream of more than one document.",
+        "key": "document_index",
+        "presence": "optional",
+        "value_type": "number"
       }
     ],
     "pattern_id": "yaml.ref.v1",
@@ -10199,7 +10385,7 @@
         "value_type": "string"
       },
       {
-        "description": "Dotted key path to this sequence from the document root.",
+        "description": "JSONPath to this sequence from the document root.",
         "key": "key_path",
         "presence": "always",
         "value_type": "string"
@@ -10208,6 +10394,12 @@
         "description": "Number of items in the sequence.",
         "key": "sequence_length",
         "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "0-based index of the document; present only in a stream of more than one document.",
+        "key": "document_index",
+        "presence": "optional",
         "value_type": "number"
       }
     ],

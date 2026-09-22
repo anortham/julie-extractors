@@ -173,7 +173,11 @@ fn gitlab_needs_jobs<'tree>(content: &str, value: Node<'tree>) -> Vec<(Node<'tre
     found
 }
 
-fn visit_pairs<'tree>(node: Node<'tree>, depth: u32, visit: &mut impl FnMut(Node<'tree>)) {
+pub(super) fn visit_pairs<'tree>(
+    node: Node<'tree>,
+    depth: u32,
+    visit: &mut impl FnMut(Node<'tree>),
+) {
     if !should_visit_tree_depth(depth) {
         return;
     }
@@ -409,4 +413,61 @@ pub(crate) fn ci_facts(
         });
     }
     facts
+}
+
+/// The shell language of a CI script scalar: GitHub Actions `run` (the step's
+/// `shell`, else bash), GitLab `script`/`before_script`/`after_script`, and
+/// Azure Pipelines `script`/`bash`/`powershell`/`pwsh`. `None` for any other
+/// scalar, and for every scalar outside a CI file.
+pub(crate) fn embedded_script_language(
+    file_path: &str,
+    content: &str,
+    scalar: Node,
+) -> Option<&'static str> {
+    if !matches!(
+        scalar.kind(),
+        "plain_scalar" | "double_quote_scalar" | "single_quote_scalar" | "block_scalar"
+    ) {
+        return None;
+    }
+    let platform = Platform::for_path(file_path)?;
+    let node = scalar.parent()?;
+    let holder = node.parent()?;
+    let value = match holder.kind() {
+        "block_mapping_pair" | "flow_pair" => node,
+        "block_sequence_item" => holder.parent()?.parent()?,
+        "flow_sequence" => holder.parent()?,
+        _ => return None,
+    };
+    let pair = value
+        .parent()
+        .filter(|pair| matches!(pair.kind(), "block_mapping_pair" | "flow_pair"))?;
+    if pair.child_by_field_name("value")?.id() != value.id() {
+        return None;
+    }
+    let key = pair_key(content, pair)?;
+    match (platform, key.as_str()) {
+        (Platform::GithubWorkflow | Platform::GithubAction, "run") => {
+            let shell = sibling_value(content, pair, "shell");
+            match shell.as_deref() {
+                None | Some("bash" | "sh") => Some("bash"),
+                Some("pwsh" | "powershell") => Some("powershell"),
+                Some("python") => Some("python"),
+                Some(_) => None,
+            }
+        }
+        (Platform::Gitlab, "script" | "before_script" | "after_script") => Some("bash"),
+        (Platform::Azure, "script" | "bash") => Some("bash"),
+        (Platform::Azure, "powershell" | "pwsh") => Some("powershell"),
+        _ => None,
+    }
+}
+
+fn sibling_value(content: &str, pair: Node, key: &str) -> Option<String> {
+    let mapping = pair.parent()?;
+    let mut cursor = mapping.walk();
+    let sibling = mapping
+        .named_children(&mut cursor)
+        .find(|child| pair_key(content, *child).as_deref() == Some(key))?;
+    scalar_value(content, sibling.child_by_field_name("value")?).map(|(_, text)| text)
 }

@@ -14,9 +14,24 @@
 /// - Docker Compose files
 /// - Ansible playbooks
 /// - Configuration files
+pub(crate) mod ansible;
 pub(crate) mod ci;
 mod cloudformation;
+pub(crate) mod compose;
+pub(crate) mod kubernetes;
 mod relationships;
+
+/// Domain facts for Docker Compose, Kubernetes, and Ansible documents.
+pub(crate) fn domain_facts(
+    tree: &tree_sitter::Tree,
+    file_path: &str,
+    content: &str,
+) -> Vec<crate::base::StructuralFact> {
+    let mut facts = compose::compose_facts(tree, file_path, content);
+    facts.extend(kubernetes::k8s_facts(tree, file_path, content));
+    facts.extend(ansible::ansible_facts(tree, file_path, content));
+    facts
+}
 
 use crate::base::{
     BaseExtractor, Identifier, IdentifierKind, NormalizedSpan, Relationship, Symbol, SymbolKind,
@@ -88,8 +103,10 @@ impl YamlExtractor {
     ) -> Option<Symbol> {
         match node.kind() {
             // Block mapping pairs are the useful symbols (key: value entries)
-            "block_mapping_pair" => self.extract_mapping_pair(node, parent_id, symbols),
-            "block_sequence_item" => self.extract_sequence_item_mapping(node, parent_id),
+            "block_mapping_pair" | "flow_pair" => {
+                self.extract_mapping_pair(node, parent_id, symbols)
+            }
+            "block_sequence_item" => self.extract_sequence_item(node, parent_id),
 
             // "document" and "flow_mapping" are noise — generic names with no
             // search value. Their children are still walked and extracted.
@@ -97,29 +114,47 @@ impl YamlExtractor {
         }
     }
 
-    /// A mapping inside a block sequence has no key, so it gets a container
-    /// symbol named by its item index (`[0]`), like JSON array elements.
-    fn extract_sequence_item_mapping(
+    /// A block sequence item has no key. An item that holds a mapping, or one
+    /// that carries an anchor, gets a symbol named by its index (`[0]`), like
+    /// JSON array elements, so keys and aliases can point at it.
+    fn extract_sequence_item(
         &mut self,
         node: tree_sitter::Node,
         parent_id: Option<&str>,
     ) -> Option<Symbol> {
-        let value = first_child_of_kind(node, "block_node")?;
-        first_child_of_kind(value, "block_mapping")?;
+        let value = node.named_child(0)?;
+        let is_mapping = has_named_child(value, &["block_mapping", "flow_mapping"]);
+        let anchor = value_anchor(&self.base.content, value);
+        if !is_mapping && anchor.is_none() {
+            return None;
+        }
         let sequence = node.parent()?;
         let mut cursor = sequence.walk();
         let index = sequence
             .named_children(&mut cursor)
             .filter(|item| item.kind() == "block_sequence_item")
             .position(|item| item.id() == node.id())?;
+        let is_container =
+            is_mapping || has_named_child(value, &["block_sequence", "flow_sequence"]);
         let options = crate::base::SymbolOptions {
             parent_id: parent_id.map(str::to_string),
+            signature: anchor
+                .as_ref()
+                .and_then(|_| first_line_signature(&self.base.content, value)),
+            metadata: anchor.map(anchor_metadata),
             ..Default::default()
         };
-        let mut symbol =
-            self.base
-                .create_symbol(&node, format!("[{index}]"), SymbolKind::Module, options);
-        let body_span = trimmed_span(&self.base, value);
+        let kind = if is_container {
+            SymbolKind::Module
+        } else {
+            SymbolKind::Variable
+        };
+        let mut symbol = self
+            .base
+            .create_symbol(&node, format!("[{index}]"), kind, options);
+        let body_span = is_container
+            .then(|| trimmed_span(&self.base, value))
+            .flatten();
         self.base.set_body_span(&mut symbol, body_span);
         Some(symbol)
     }
@@ -142,23 +177,19 @@ impl YamlExtractor {
             return None;
         }
 
-        // Check for anchor on the value side
-        let anchor = self.extract_anchor(node);
-        let signature = anchor.as_ref().map(|a| format!("{}: &{}", key_name, a));
-        let mut metadata = anchor.as_ref().map(|anchor_name| {
-            let mut metadata = HashMap::new();
-            metadata.insert(
-                "yaml_anchor".to_string(),
-                Value::String(anchor_name.clone()),
-            );
-            metadata
-        });
+        let anchor = node
+            .child_by_field_name("value")
+            .and_then(|value| value_anchor(&self.base.content, value));
+        let container_value = container_value(node);
+        let is_leaf_value = container_value.is_none();
+        let signature = (is_leaf_value || anchor.is_some())
+            .then(|| first_line_signature(&self.base.content, node))
+            .flatten();
+        let mut metadata = anchor.map(anchor_metadata);
         if let Some(role) = self.test_role_for_mapping_pair(node, &key_name) {
             apply_test_role(metadata.get_or_insert_with(HashMap::new), role);
         }
 
-        let container_value = container_value(node);
-        let is_leaf_value = container_value.is_none();
         let kind = if is_leaf_value {
             SymbolKind::Variable
         } else {
@@ -184,114 +215,74 @@ impl YamlExtractor {
             return Some(symbol);
         }
 
-        let mut cursor = node.walk();
-        let mut saw_key_container = false;
-        for child in node.children(&mut cursor) {
-            if child.kind() != "flow_node" && child.kind() != "block_node" {
-                continue;
-            }
-            if !saw_key_container {
-                saw_key_container = true;
-                continue;
-            }
-            let mut inner_cursor = child.walk();
-            for scalar in child.children(&mut inner_cursor) {
-                if !matches!(
-                    scalar.kind(),
-                    "double_quote_scalar" | "single_quote_scalar" | "plain_scalar"
-                ) {
-                    continue;
-                }
+        let scalar = node.child_by_field_name("value").and_then(|value| {
+            let mut cursor = value.walk();
+            value
+                .named_children(&mut cursor)
+                .find(|child| is_scalar_kind(child.kind()))
+        });
+        if let Some(scalar) = scalar {
+            let text = decode_scalar(scalar.kind(), &self.base.get_node_text(&scalar));
+            if !text.is_empty() {
                 let carrier = crate::base::config_literals::build_config_key_carrier(
                     symbols, parent_id, &key_name,
                 );
-                crate::base::config_literals::record_config_string_literal(
-                    &mut self.base,
-                    &scalar,
-                    &carrier,
-                    Some(symbol.id.clone()),
-                );
-                break;
+                self.base
+                    .record_literal(&scalar, text, Some(carrier), 0, Some(symbol.id.clone()));
             }
-            break;
         }
 
         Some(symbol)
     }
 
-    /// Extract anchor name from a block_mapping_pair's value side.
-    /// In `defaults: &defaults`, the AST has:
-    ///   block_mapping_pair -> block_node -> anchor -> anchor_name
-    fn extract_anchor(&self, node: tree_sitter::Node) -> Option<String> {
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            if child.kind() == "block_node" {
-                let mut block_cursor = child.walk();
-                for block_child in child.children(&mut block_cursor) {
-                    if block_child.kind() == "anchor" {
-                        // Find the anchor_name child
-                        let mut anchor_cursor = block_child.walk();
-                        for anchor_child in block_child.children(&mut anchor_cursor) {
-                            if anchor_child.kind() == "anchor_name" {
-                                return Some(self.base.get_node_text(&anchor_child));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        None
-    }
-
-    /// Extract the key from a block_mapping_pair
+    /// The decoded scalar key of a mapping pair. A complex key (a sequence or
+    /// mapping) or an alias key has no name, so the pair makes no symbol.
     fn extract_mapping_key(&self, node: tree_sitter::Node) -> Option<String> {
-        let mut cursor = node.walk();
-
-        for child in node.children(&mut cursor) {
-            match child.kind() {
-                "flow_node" | "block_node" => {
-                    // Look for the actual key value
-                    let mut key_cursor = child.walk();
-                    for key_child in child.children(&mut key_cursor) {
-                        match key_child.kind() {
-                            "plain_scalar" | "single_quote_scalar" | "double_quote_scalar" => {
-                                let key_text = self.base.get_node_text(&key_child);
-                                // Remove quotes if present
-                                let key_text = key_text.trim_matches('"').trim_matches('\'');
-                                return Some(key_text.to_string());
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
-
-        None
+        mapping_key(&self.base.content, node)
     }
 
+    /// Test roles for container-structure-test v2 documents
+    /// (`schemaVersion: 2.0.0`) and Tavern `*.tavern.yaml` tests. Each CST test
+    /// list is a test container whose named items are test cases;
+    /// `metadataTest` is one test case.
     fn test_role_for_mapping_pair(
         &self,
         node: tree_sitter::Node,
         key_name: &str,
     ) -> Option<TestRole> {
-        if key_name == "commandTests"
-            && self.is_google_command_tests_root(node)
-            && mapping_pair_value_is_sequence(node)
-        {
-            return Some(TestRole::TestContainer);
-        }
-        if !self.is_direct_command_test_pair(node) {
+        if self.is_document_root_pair(node) {
+            if CST_TEST_LISTS.contains(&key_name)
+                && self.is_google_command_tests_root(node)
+                && mapping_pair_value_is_sequence(node)
+            {
+                return Some(TestRole::TestContainer);
+            }
+            if key_name == "metadataTest" && self.is_google_command_tests_root(node) {
+                return Some(TestRole::TestCase);
+            }
+            if key_name == "test_name"
+                && is_tavern_path(&self.base.file_path)
+                && mapping_pair_has_string_value(&self.base, node)
+            {
+                return Some(TestRole::TestCase);
+            }
             return None;
         }
-
+        let list = self.cst_list_of_item_pair(node)?;
         match key_name {
             "name" if mapping_pair_has_string_value(&self.base, node) => Some(TestRole::TestCase),
-            "setup" => Some(TestRole::FixtureSetup),
-            "teardown" => Some(TestRole::FixtureTeardown),
+            "setup" if list == "commandTests" => Some(TestRole::FixtureSetup),
+            "teardown" if list == "commandTests" => Some(TestRole::FixtureTeardown),
             _ => None,
         }
+    }
+
+    fn is_document_root_pair(&self, node: tree_sitter::Node) -> bool {
+        node.parent()
+            .filter(|mapping| mapping.kind() == "block_mapping")
+            .and_then(|mapping| mapping.parent())
+            .and_then(|block| block.parent())
+            .is_some_and(|document| document.kind() == "document")
     }
 
     fn is_google_command_tests_root(&self, node: tree_sitter::Node) -> bool {
@@ -328,43 +319,21 @@ impl YamlExtractor {
         })
     }
 
-    fn is_direct_command_test_pair(&self, node: tree_sitter::Node) -> bool {
-        let Some(mapping) = node.parent() else {
-            return false;
-        };
-        if mapping.kind() != "block_mapping" {
-            return false;
-        }
-        let Some(item_block) = mapping.parent() else {
-            return false;
-        };
-        if item_block.kind() != "block_node" {
-            return false;
-        }
-        let Some(item) = item_block.parent() else {
-            return false;
-        };
-        if item.kind() != "block_sequence_item" {
-            return false;
-        }
-        let Some(sequence) = item.parent() else {
-            return false;
-        };
-        if sequence.kind() != "block_sequence" {
-            return false;
-        }
-        let Some(command_value) = sequence.parent() else {
-            return false;
-        };
-        if command_value.kind() != "block_node" {
-            return false;
-        }
-        let Some(command_pair) = command_value.parent() else {
-            return false;
-        };
-        command_pair.kind() == "block_mapping_pair"
-            && self.extract_mapping_key(command_pair).as_deref() == Some("commandTests")
-            && self.is_google_command_tests_root(command_pair)
+    /// The CST test list (`commandTests`, ...) whose item mapping holds `node`.
+    fn cst_list_of_item_pair(&self, node: tree_sitter::Node) -> Option<String> {
+        let mapping = node.parent().filter(|n| n.kind() == "block_mapping")?;
+        let item_block = mapping.parent().filter(|n| n.kind() == "block_node")?;
+        let item = item_block
+            .parent()
+            .filter(|n| n.kind() == "block_sequence_item")?;
+        let sequence = item.parent().filter(|n| n.kind() == "block_sequence")?;
+        let list_value = sequence.parent().filter(|n| n.kind() == "block_node")?;
+        let list_pair = list_value
+            .parent()
+            .filter(|n| n.kind() == "block_mapping_pair")?;
+        let list = self.extract_mapping_key(list_pair)?;
+        (CST_TEST_LISTS.contains(&list.as_str()) && self.is_google_command_tests_root(list_pair))
+            .then_some(list)
     }
 
     pub fn get_type_argument_usages(&self) -> Vec<crate::base::TypeArgumentUsage> {
@@ -435,15 +404,9 @@ impl YamlExtractor {
             if child.kind() == "alias_name" {
                 let alias_name = self.base.get_node_text(&child);
 
-                // Find the containing symbol (which mapping pair contains this alias)
-                let containing_symbol_id = self
-                    .base
-                    .find_containing_symbol(&node, symbols)
-                    .map(|s| s.id.clone());
-
-                // Resolve: find the symbol whose signature contains &{alias_name}
+                let containing_symbol_id = innermost_symbol(symbols, node).map(|s| s.id.clone());
                 let target_symbol_id =
-                    resolve_alias_anchor_target(symbols, &alias_name).map(|s| s.id.clone());
+                    resolve_alias_anchor_target(symbols, node, &alias_name).map(|s| s.id.clone());
 
                 let mut identifier = self.base.create_identifier(
                     &child,
@@ -467,45 +430,192 @@ impl YamlExtractor {
     }
 }
 
+/// The anchored symbol an alias names: per YAML, the nearest anchor with that
+/// name before the alias in the same document.
 pub(super) fn resolve_alias_anchor_target<'a>(
     symbols: &'a [Symbol],
+    alias: tree_sitter::Node,
     alias_name: &str,
 ) -> Option<&'a Symbol> {
-    symbols.iter().find(|symbol| {
-        symbol_anchor_name(symbol).is_some_and(|anchor_name| anchor_name == alias_name)
-    })
-}
-
-fn symbol_anchor_name(symbol: &Symbol) -> Option<&str> {
-    symbol
-        .metadata
-        .as_ref()
-        .and_then(|metadata| metadata.get("yaml_anchor"))
-        .and_then(Value::as_str)
-        .or_else(|| {
-            symbol
-                .signature
-                .as_deref()
-                .and_then(anchor_name_from_signature)
+    let document = std::iter::successors(alias.parent(), |node| node.parent())
+        .find(|node| node.kind() == "document");
+    let (start, end) = document.map_or((0, alias.start_byte()), |document| {
+        (document.start_byte(), document.end_byte())
+    });
+    symbols
+        .iter()
+        .filter(|symbol| {
+            let at = symbol.start_byte as usize;
+            at >= start && at < end && at < alias.start_byte()
         })
+        .filter(|symbol| {
+            symbol
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("yaml_anchor"))
+                .and_then(Value::as_str)
+                == Some(alias_name)
+        })
+        .max_by_key(|symbol| symbol.start_byte)
 }
 
-fn anchor_name_from_signature(signature: &str) -> Option<&str> {
-    let (_, anchor_tail) = signature.rsplit_once('&')?;
-    let anchor_name = anchor_tail.trim();
-    if anchor_name.is_empty() {
+/// The narrowest symbol whose span holds `node`: the key or item that owns it.
+pub(super) fn innermost_symbol<'a>(
+    symbols: &'a [Symbol],
+    node: tree_sitter::Node,
+) -> Option<&'a Symbol> {
+    let (start, end) = (node.start_byte() as u32, node.end_byte() as u32);
+    symbols
+        .iter()
+        .filter(|symbol| symbol.start_byte <= start && symbol.end_byte >= end)
+        .min_by_key(|symbol| symbol.end_byte - symbol.start_byte)
+}
+
+const CST_TEST_LISTS: &[&str] = &[
+    "commandTests",
+    "fileExistenceTests",
+    "fileContentTests",
+    "licenseTests",
+];
+
+fn is_tavern_path(file_path: &str) -> bool {
+    file_path.ends_with(".tavern.yaml") || file_path.ends_with(".tavern.yml")
+}
+
+fn is_scalar_kind(kind: &str) -> bool {
+    matches!(
+        kind,
+        "plain_scalar" | "double_quote_scalar" | "single_quote_scalar"
+    )
+}
+
+fn has_named_child(node: tree_sitter::Node, kinds: &[&str]) -> bool {
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .any(|child| kinds.contains(&child.kind()))
+}
+
+/// The anchor name on a value node (`&name` before a scalar or collection).
+pub(crate) fn value_anchor(content: &str, value: tree_sitter::Node) -> Option<String> {
+    let mut cursor = value.walk();
+    let anchor = value
+        .named_children(&mut cursor)
+        .find(|child| child.kind() == "anchor")?;
+    let mut anchor_cursor = anchor.walk();
+    let name = anchor
+        .named_children(&mut anchor_cursor)
+        .find(|child| child.kind() == "anchor_name")?;
+    content.get(name.byte_range()).map(str::to_string)
+}
+
+fn anchor_metadata(anchor: String) -> HashMap<String, Value> {
+    HashMap::from([("yaml_anchor".to_string(), Value::String(anchor))])
+}
+
+/// The first source line of a node, as written, truncated like TOML signatures.
+fn first_line_signature(content: &str, node: tree_sitter::Node) -> Option<String> {
+    let text = content.get(node.byte_range())?;
+    let line = text.lines().next()?.trim_end();
+    if line.is_empty() {
         return None;
     }
-
-    if anchor_name.chars().all(is_yaml_anchor_char) {
-        Some(anchor_name)
-    } else {
-        None
+    if line.chars().count() <= 80 {
+        return Some(line.to_string());
     }
+    let kept: String = line.chars().take(77).collect();
+    Some(format!("{kept}..."))
 }
 
-fn is_yaml_anchor_char(ch: char) -> bool {
-    !ch.is_whitespace() && !matches!(ch, '[' | ']' | '{' | '}' | ',')
+/// The decoded key of a mapping pair, or `None` for a complex or alias key.
+pub(crate) fn mapping_key(content: &str, pair: tree_sitter::Node) -> Option<String> {
+    let key = pair.child_by_field_name("key")?;
+    let mut cursor = key.walk();
+    let scalar = key
+        .named_children(&mut cursor)
+        .find(|child| !matches!(child.kind(), "tag" | "anchor"))
+        .filter(|child| is_scalar_kind(child.kind()))?;
+    Some(decode_scalar(
+        scalar.kind(),
+        content.get(scalar.byte_range())?,
+    ))
+}
+
+/// The value of a flow scalar: quotes removed, escapes decoded, and line
+/// breaks folded to spaces.
+pub(crate) fn decode_scalar(kind: &str, raw: &str) -> String {
+    let raw = raw.trim();
+    let text = match kind {
+        "double_quote_scalar" => unescape_double_quoted(strip_quotes(raw, '"')),
+        "single_quote_scalar" => strip_quotes(raw, '\'').replace("''", "'"),
+        _ => raw.to_string(),
+    };
+    if !text.contains('\n') {
+        return text;
+    }
+    text.split('\n')
+        .map(str::trim)
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn strip_quotes(raw: &str, quote: char) -> &str {
+    let inner = raw.strip_prefix(quote).unwrap_or(raw);
+    inner.strip_suffix(quote).unwrap_or(inner)
+}
+
+fn unescape_double_quoted(inner: &str) -> String {
+    let mut out = String::with_capacity(inner.len());
+    let mut chars = inner.chars();
+    while let Some(ch) = chars.next() {
+        if ch != '\\' {
+            out.push(ch);
+            continue;
+        }
+        let Some(escape) = chars.next() else {
+            out.push('\\');
+            break;
+        };
+        let simple = match escape {
+            '0' => Some('\0'),
+            'a' => Some('\u{7}'),
+            'b' => Some('\u{8}'),
+            't' | '\t' => Some('\t'),
+            'n' => Some('\n'),
+            'v' => Some('\u{b}'),
+            'f' => Some('\u{c}'),
+            'r' => Some('\r'),
+            'e' => Some('\u{1b}'),
+            ' ' => Some(' '),
+            '"' => Some('"'),
+            '/' => Some('/'),
+            '\\' => Some('\\'),
+            'N' => Some('\u{85}'),
+            '_' => Some('\u{a0}'),
+            'L' => Some('\u{2028}'),
+            'P' => Some('\u{2029}'),
+            _ => None,
+        };
+        if let Some(decoded) = simple {
+            out.push(decoded);
+            continue;
+        }
+        let width = match escape {
+            'x' => 2,
+            'u' => 4,
+            'U' => 8,
+            _ => 0,
+        };
+        let hex: String = chars.by_ref().take(width).collect();
+        match u32::from_str_radix(&hex, 16).ok().and_then(char::from_u32) {
+            Some(decoded) if width > 0 => out.push(decoded),
+            _ => {
+                out.push('\\');
+                out.push(escape);
+                out.push_str(&hex);
+            }
+        }
+    }
+    out
 }
 
 /// The contiguous `#` comment lines directly above a mapping key, at the key's

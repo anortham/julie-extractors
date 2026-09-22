@@ -14,7 +14,7 @@
       "end_byte": 346,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "$ref: '#/components/schemas/Pet'",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/openapi/source.yaml:schema:17:14",
@@ -38,7 +38,7 @@
       "end_byte": 423,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "$ref: './common.yaml#/components/responses/Error'",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/openapi/source.yaml:default:19:8",
@@ -62,7 +62,7 @@
       "end_byte": 513,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "$ref: '#/components/schemas/Owner'",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/openapi/source.yaml:[0]:25:8",
@@ -489,7 +489,7 @@
       "end_byte": 194,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "in: path",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/openapi/source.yaml:[0]:11:8",
@@ -544,7 +544,7 @@
       "end_byte": 175,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "name: petId",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/openapi/source.yaml:[0]:11:8",
@@ -568,7 +568,7 @@
       "end_byte": 14,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "openapi: 3.0.3",
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
@@ -592,7 +592,7 @@
       "end_byte": 135,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "operationId: showPetById",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/openapi/source.yaml:get:8:4",
@@ -771,7 +771,7 @@
       "end_byte": 34,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "title: Pets",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/openapi/source.yaml:info:2:0",
@@ -795,7 +795,7 @@
       "end_byte": 536,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "type: object",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/openapi/source.yaml:[1]:26:8",
@@ -819,7 +819,7 @@
       "end_byte": 566,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "type: object",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/openapi/source.yaml:Owner:27:4",
@@ -843,7 +843,7 @@
       "end_byte": 51,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "version: 1.0.0",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/openapi/source.yaml:info:2:0",
@@ -978,6 +978,7 @@
       "end_byte": 567,
       "confidence": "1.000",
       "metadata": {
+        "document_index": 0,
         "has_directives": false,
         "pattern_version": 1,
         "query_family": "config_structure"
@@ -1068,6 +1069,7 @@
         "key_path": "$.components.schemas.Owner.type",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -1109,9 +1111,10 @@
       "confidence": "1.000",
       "metadata": {
         "key": "name",
-        "key_path": "$.paths./pets/{petId}.get.parameters.name",
+        "key_path": "$.paths./pets/{petId}.get.parameters[0].name",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -1131,9 +1134,10 @@
       "confidence": "1.000",
       "metadata": {
         "key": "in",
-        "key_path": "$.paths./pets/{petId}.get.parameters.in",
+        "key_path": "$.paths./pets/{petId}.get.parameters[0].in",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -1153,9 +1157,10 @@
       "confidence": "1.000",
       "metadata": {
         "key": "$ref",
-        "key_path": "$.components.schemas.Pet.allOf.$ref",
+        "key_path": "$.components.schemas.Pet.allOf[0].$ref",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "single_quoted",
         "value_kind": "scalar"
       }
     },
@@ -1175,9 +1180,10 @@
       "confidence": "1.000",
       "metadata": {
         "key": "type",
-        "key_path": "$.components.schemas.Pet.allOf.type",
+        "key_path": "$.components.schemas.Pet.allOf[1].type",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -1310,6 +1316,7 @@
         "key_path": "$.paths./pets/{petId}.get.responses.default.$ref",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "single_quoted",
         "value_kind": "scalar"
       }
     },
@@ -1354,6 +1361,7 @@
         "key_path": "$.paths./pets/{petId}.get.operationId",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -1398,6 +1406,7 @@
         "key_path": "$.info.title",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -1420,6 +1429,7 @@
         "key_path": "$.info.version",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -1530,6 +1540,7 @@
         "key_path": "$.paths./pets/{petId}.get.responses.200.content.application/json.schema.$ref",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "single_quoted",
         "value_kind": "scalar"
       }
     },
@@ -1574,6 +1585,7 @@
         "key_path": "$.openapi",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -1634,7 +1646,7 @@
       "end_byte": 194,
       "confidence": "1.000",
       "metadata": {
-        "key_path": "$.paths./pets/{petId}.get.parameters",
+        "key_path": "$.paths./pets/{petId}.get.parameters[0]",
         "pair_count": 2,
         "pattern_version": 1,
         "query_family": "config_structure"
@@ -1655,7 +1667,7 @@
       "end_byte": 513,
       "confidence": "1.000",
       "metadata": {
-        "key_path": "$.components.schemas.Pet.allOf",
+        "key_path": "$.components.schemas.Pet.allOf[0]",
         "pair_count": 1,
         "pattern_version": 1,
         "query_family": "config_structure"
@@ -1676,7 +1688,7 @@
       "end_byte": 536,
       "confidence": "1.000",
       "metadata": {
-        "key_path": "$.components.schemas.Pet.allOf",
+        "key_path": "$.components.schemas.Pet.allOf[1]",
         "pair_count": 1,
         "pattern_version": 1,
         "query_family": "config_structure"
@@ -1970,7 +1982,7 @@
       "end_byte": 513,
       "confidence": "1.000",
       "metadata": {
-        "key_path": "$.components.schemas.Pet.allOf",
+        "key_path": "$.components.schemas.Pet.allOf[0]",
         "pattern_version": 1,
         "query_family": "schema_structure",
         "ref": "#/components/schemas/Owner"

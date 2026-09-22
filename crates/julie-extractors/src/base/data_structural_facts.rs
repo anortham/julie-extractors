@@ -106,6 +106,9 @@ const YAML_DATA_PATTERN_IDS: &[&str] = &[
     crate::yaml::ci::CI_JOB_PATTERN_ID,
     crate::yaml::ci::CI_TRIGGER_PATTERN_ID,
     crate::yaml::ci::CI_USES_PATTERN_ID,
+    crate::yaml::ansible::ANSIBLE_TASK_PATTERN_ID,
+    crate::yaml::compose::COMPOSE_SERVICE_PATTERN_ID,
+    crate::yaml::kubernetes::K8S_RESOURCE_PATTERN_ID,
 ];
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -156,6 +159,7 @@ pub fn collect_data_structural_facts(
     }
     if language == "yaml" {
         facts.extend(crate::yaml::ci::ci_facts(tree, file_path, content, symbols));
+        facts.extend(crate::yaml::domain_facts(tree, file_path, content));
     }
     if language == "json" {
         facts.extend(crate::json::manifest::manifest_facts(
@@ -1316,8 +1320,38 @@ fn collect_yaml_structural_facts(
     content: &str,
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
-    collect_yaml_node(tree.root_node(), file_path, content, &[], &mut facts, 0);
+    let root = tree.root_node();
+    let mut cursor = root.walk();
+    let documents: Vec<Node<'_>> = root
+        .named_children(&mut cursor)
+        .filter(|child| child.kind() == "document")
+        .collect();
+    let multi = documents.len() > 1;
+    for (index, document) in documents.into_iter().enumerate() {
+        let doc = YamlDocument { index, multi };
+        collect_yaml_node(document, file_path, content, &[], doc, &mut facts, 0);
+    }
     facts
+}
+
+/// The position of a document in a YAML stream. Facts in a stream of more
+/// than one document carry `document_index`, so `(document_index, key_path)`
+/// names one location.
+#[derive(Clone, Copy)]
+struct YamlDocument {
+    index: usize,
+    multi: bool,
+}
+
+impl YamlDocument {
+    fn tag(self, metadata: &mut std::collections::HashMap<String, Value>) {
+        if self.multi {
+            metadata.insert(
+                "document_index".to_string(),
+                Value::Number(Number::from(self.index)),
+            );
+        }
+    }
 }
 
 fn collect_yaml_node(
@@ -1325,12 +1359,16 @@ fn collect_yaml_node(
     file_path: &str,
     content: &str,
     path: &[String],
+    doc: YamlDocument,
     facts: &mut Vec<StructuralFact>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
         return;
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
 
     match node.kind() {
         "document" => {
@@ -1338,6 +1376,10 @@ fn collect_yaml_node(
             metadata.insert(
                 "has_directives".to_string(),
                 Value::Bool(has_child_kind(node, "directive")),
+            );
+            metadata.insert(
+                "document_index".to_string(),
+                Value::Number(Number::from(doc.index)),
             );
             facts.push(fact_for_node(
                 file_path,
@@ -1350,11 +1392,12 @@ fn collect_yaml_node(
         }
         "block_mapping" | "flow_mapping" => {
             let mut metadata = base_metadata("config_structure");
-            insert_string(&mut metadata, "key_path", &yaml_key_path(path));
+            insert_string(&mut metadata, "key_path", &json_path(path));
             metadata.insert(
                 "pair_count".to_string(),
                 Value::Number(Number::from(yaml_pair_count(node))),
             );
+            doc.tag(&mut metadata);
             facts.push(fact_for_node(
                 file_path,
                 "yaml",
@@ -1364,31 +1407,21 @@ fn collect_yaml_node(
                 metadata,
             ));
         }
-        "block_mapping_pair" | "flow_pair" | "flow_mapping_pair" => {
-            if let Some((key, value_node)) = yaml_pair_key_and_value(content, node) {
-                let key_path = yaml_property_path(path, &key);
-                let mut metadata = base_metadata("config_structure");
-                insert_string(&mut metadata, "key", &key);
-                insert_string(&mut metadata, "key_path", &key_path);
-                insert_string(
-                    &mut metadata,
-                    "value_kind",
-                    yaml_value_kind(value_node, content),
-                );
-                facts.push(fact_for_node(
-                    file_path,
-                    "yaml",
-                    YAML_KEY_VALUE_PATTERN_ID,
-                    "key_value",
-                    node,
-                    metadata,
+        "block_mapping_pair" | "flow_pair" => {
+            if let (Some(key), Some(value_node)) = (
+                crate::yaml::mapping_key(content, node),
+                node.child_by_field_name("value"),
+            ) {
+                facts.push(yaml_key_value_fact(
+                    file_path, content, node, path, &key, value_node, doc,
                 ));
                 if key == "$ref"
                     && let Some(target) = yaml_node_scalar_text(content, value_node)
                 {
                     let mut metadata = base_metadata("schema_structure");
                     insert_string(&mut metadata, "ref", &target);
-                    insert_string(&mut metadata, "key_path", &yaml_key_path(path));
+                    insert_string(&mut metadata, "key_path", &json_path(path));
+                    doc.tag(&mut metadata);
                     facts.push(fact_for_node(
                         file_path,
                         "yaml",
@@ -1401,26 +1434,26 @@ fn collect_yaml_node(
 
                 let mut child_path = path.to_vec();
                 child_path.push(key);
-                if let Some(child_depth) = child_tree_depth(depth) {
-                    collect_yaml_node(
-                        value_node,
-                        file_path,
-                        content,
-                        &child_path,
-                        facts,
-                        child_depth,
-                    );
-                }
+                collect_yaml_node(
+                    value_node,
+                    file_path,
+                    content,
+                    &child_path,
+                    doc,
+                    facts,
+                    child_depth,
+                );
                 return;
             }
         }
         "block_sequence" | "flow_sequence" => {
             let mut metadata = base_metadata("config_structure");
-            insert_string(&mut metadata, "key_path", &yaml_key_path(path));
+            insert_string(&mut metadata, "key_path", &json_path(path));
             metadata.insert(
                 "sequence_length".to_string(),
                 Value::Number(Number::from(yaml_sequence_length(node))),
             );
+            doc.tag(&mut metadata);
             facts.push(fact_for_node(
                 file_path,
                 "yaml",
@@ -1429,6 +1462,30 @@ fn collect_yaml_node(
                 node,
                 metadata,
             ));
+            let mut cursor = node.walk();
+            let mut index = 0usize;
+            for child in node.children(&mut cursor) {
+                if !matches!(
+                    child.kind(),
+                    "block_sequence_item" | "flow_node" | "flow_pair"
+                ) {
+                    collect_yaml_node(child, file_path, content, path, doc, facts, child_depth);
+                    continue;
+                }
+                let mut item_path = path.to_vec();
+                item_path.push(format!("[{index}]"));
+                collect_yaml_node(
+                    child,
+                    file_path,
+                    content,
+                    &item_path,
+                    doc,
+                    facts,
+                    child_depth,
+                );
+                index += 1;
+            }
+            return;
         }
         "anchor" => {
             if let Some(name) = first_child_text(node, content, "anchor_name") {
@@ -1461,12 +1518,103 @@ fn collect_yaml_node(
         _ => {}
     }
 
-    let Some(child_depth) = child_tree_depth(depth) else {
-        return;
-    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_yaml_node(child, file_path, content, path, facts, child_depth);
+        collect_yaml_node(child, file_path, content, path, doc, facts, child_depth);
+    }
+}
+
+#[inline(never)]
+fn yaml_key_value_fact(
+    file_path: &str,
+    content: &str,
+    pair: Node<'_>,
+    path: &[String],
+    key: &str,
+    value: Node<'_>,
+    doc: YamlDocument,
+) -> StructuralFact {
+    let mut property_path = path.to_vec();
+    property_path.push(key.to_string());
+    let mut metadata = base_metadata("config_structure");
+    insert_string(&mut metadata, "key", key);
+    insert_string(&mut metadata, "key_path", &json_path(&property_path));
+    let mut cursor = value.walk();
+    let children: Vec<Node<'_>> = value.named_children(&mut cursor).collect();
+    let mut value_kind = "other";
+    for child in &children {
+        match child.kind() {
+            "anchor" => {
+                if let Some(name) = first_child_text(*child, content, "anchor_name") {
+                    insert_string(&mut metadata, "anchor", name.trim());
+                }
+            }
+            "tag" => {
+                if let Some(tag) = node_text(content, *child) {
+                    insert_string(&mut metadata, "tag", tag.trim());
+                }
+            }
+            kind => {
+                value_kind = yaml_content_kind(kind);
+                if let Some(style) = yaml_scalar_style(kind, node_text(content, *child)) {
+                    insert_string(&mut metadata, "scalar_style", style.0);
+                    if let Some(chomping) = style.1 {
+                        insert_string(&mut metadata, "chomping", chomping);
+                    }
+                }
+            }
+        }
+    }
+    insert_string(&mut metadata, "value_kind", value_kind);
+    doc.tag(&mut metadata);
+    fact_for_node(
+        file_path,
+        "yaml",
+        YAML_KEY_VALUE_PATTERN_ID,
+        "key_value",
+        pair,
+        metadata,
+    )
+}
+
+fn yaml_content_kind(kind: &str) -> &'static str {
+    match kind {
+        "block_mapping" | "flow_mapping" => "mapping",
+        "block_sequence" | "flow_sequence" => "sequence",
+        "plain_scalar" | "double_quote_scalar" | "single_quote_scalar" => "scalar",
+        "block_scalar" => "block_scalar",
+        "alias" => "alias",
+        _ => "other",
+    }
+}
+
+/// `(scalar_style, chomping)` of a scalar value node. Block scalars read the
+/// indicator after `|` or `>`: `-` strips, `+` keeps, neither clips.
+fn yaml_scalar_style(
+    kind: &str,
+    text: Option<&str>,
+) -> Option<(&'static str, Option<&'static str>)> {
+    match kind {
+        "plain_scalar" => Some(("plain", None)),
+        "single_quote_scalar" => Some(("single_quoted", None)),
+        "double_quote_scalar" => Some(("double_quoted", None)),
+        "block_scalar" => {
+            let header = text?.lines().next()?.trim();
+            let style = if header.starts_with('>') {
+                "folded"
+            } else {
+                "literal"
+            };
+            let chomping = if header.contains('-') {
+                "strip"
+            } else if header.contains('+') {
+                "keep"
+            } else {
+                "clip"
+            };
+            Some((style, Some(chomping)))
+        }
+        _ => None,
     }
 }
 
@@ -2459,40 +2607,6 @@ fn clean_markdown_link_title(raw: &str) -> String {
         .to_string()
 }
 
-fn yaml_key_path(path: &[String]) -> String {
-    if path.is_empty() {
-        "$".to_string()
-    } else {
-        format!("$.{}", path.join("."))
-    }
-}
-
-fn yaml_property_path(path: &[String], key: &str) -> String {
-    if path.is_empty() {
-        format!("$.{key}")
-    } else {
-        format!("$.{}.{}", path.join("."), key)
-    }
-}
-
-fn yaml_pair_key_and_value<'a>(content: &str, node: Node<'a>) -> Option<(String, Node<'a>)> {
-    let mut cursor = node.walk();
-    let mut key = None;
-    for child in node.children(&mut cursor) {
-        match child.kind() {
-            "flow_node" | "block_node" => {
-                if key.is_none() {
-                    key = yaml_node_scalar_text(content, child);
-                } else {
-                    return Some((key?, child));
-                }
-            }
-            _ => {}
-        }
-    }
-    None
-}
-
 fn yaml_pair_count(node: Node<'_>) -> usize {
     count_direct_children(node, "block_mapping_pair")
         + count_direct_children(node, "flow_pair")
@@ -2538,43 +2652,6 @@ fn yaml_node_scalar_text_at_depth(content: &str, node: Node<'_>, depth: u32) -> 
         }
     }
     None
-}
-
-fn yaml_value_kind(value_node: Node<'_>, content: &str) -> &'static str {
-    match value_node.kind() {
-        "block_node" => {
-            let mut cursor = value_node.walk();
-            if let Some(child) = value_node.children(&mut cursor).next() {
-                match child.kind() {
-                    "block_mapping" => "mapping",
-                    "block_sequence" => "sequence",
-                    "alias" => "alias",
-                    "anchor" => "anchor",
-                    _ => "other",
-                }
-            } else {
-                "other"
-            }
-        }
-        "flow_node" => {
-            let mut cursor = value_node.walk();
-            if let Some(child) = value_node.children(&mut cursor).next() {
-                match child.kind() {
-                    "plain_scalar" | "double_quote_scalar" | "single_quote_scalar" => "scalar",
-                    "flow_mapping" => "mapping",
-                    "flow_sequence" => "sequence",
-                    "alias" => "alias",
-                    "anchor" => "anchor",
-                    _ => "other",
-                }
-            } else {
-                yaml_node_scalar_text(content, value_node)
-                    .map(|_| "scalar")
-                    .unwrap_or("other")
-            }
-        }
-        _ => "other",
-    }
 }
 
 fn parse_link_reference_definition(text: &str) -> Option<(String, String)> {

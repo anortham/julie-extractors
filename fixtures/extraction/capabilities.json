@@ -7257,6 +7257,31 @@
           "name": "gitlab_ci",
           "source": "fixtures/extraction/yaml/gitlab/.gitlab-ci.yml",
           "expected": "fixtures/extraction/yaml/gitlab/expected.json"
+        },
+        {
+          "name": "compose",
+          "source": "fixtures/extraction/yaml/compose/docker-compose.yml",
+          "expected": "fixtures/extraction/yaml/compose/expected.json"
+        },
+        {
+          "name": "kubernetes",
+          "source": "fixtures/extraction/yaml/k8s/app.yaml",
+          "expected": "fixtures/extraction/yaml/k8s/expected.json"
+        },
+        {
+          "name": "ansible",
+          "source": "fixtures/extraction/yaml/ansible/site.yml",
+          "expected": "fixtures/extraction/yaml/ansible/expected.json"
+        },
+        {
+          "name": "kustomize",
+          "source": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+          "expected": "fixtures/extraction/yaml/kustomize/expected.json"
+        },
+        {
+          "name": "tavern",
+          "source": "fixtures/extraction/yaml/tavern/test_users.tavern.yaml",
+          "expected": "fixtures/extraction/yaml/tavern/expected.json"
         }
       ],
       "target_capabilities": {
@@ -7316,24 +7341,20 @@
             "openapi.route.v1",
             "yaml.alias.v1",
             "yaml.anchor.v1",
+            "yaml.ansible_task.v1",
             "yaml.ci_job.v1",
             "yaml.ci_trigger.v1",
             "yaml.ci_uses.v1",
+            "yaml.compose_service.v1",
             "yaml.document.v1",
+            "yaml.k8s_resource.v1",
             "yaml.key_value.v1",
             "yaml.mapping.v1",
             "yaml.ref.v1",
             "yaml.sequence.v1"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "yaml.block_scalar_tag_and_multidoc_semantics",
-              "reason": "YAML structural facts now cover block and flow mappings/sequences plus key-value paths, anchors, aliases, and documents, but block scalar style/content, explicit tags, and per-document path uniqueness for multi-document streams are not emitted as dedicated metadata/facts.",
-              "required_closure": "emit fixture-backed metadata or facts for block scalar style/content, explicit tag handles/values, and document-index-qualified paths for multi-document YAML streams",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: YAML scalar/tag/multidoc facts"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [],
@@ -7370,6 +7391,7 @@
           "supported": [
             "comment",
             "doc_comment",
+            "embedded",
             "string_literal"
           ],
           "not_applicable": [],
