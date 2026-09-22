@@ -50,7 +50,9 @@ fn walk_tree_for_relationships(
             let inheritance = extract_inheritance_from_class(extractor, node, scoped_index);
             relationships.extend(inheritance);
         }
-        "call_expression" | "function_call" => {
+        "call_expression" | "function_call"
+            if !super::test_calls::is_catch2_macro_call(extractor.get_base_mut(), &node) =>
+        {
             extract_call_relationships(extractor, node, symbols, scoped_index, relationships);
         }
         "type_identifier" => {
@@ -75,25 +77,25 @@ fn walk_tree_for_relationships(
     }
 }
 
-/// Extract inheritance relationships from a single class node
+/// Extract inheritance from a class head: an `extends` edge to a base defined
+/// in this file, otherwise a pending `extends` that keeps the base's namespace.
 fn extract_inheritance_from_class(
     extractor: &mut super::CppExtractor,
     class_node: Node,
     scoped_index: &ScopedSymbolIndex<'_>,
 ) -> Vec<Relationship> {
     let mut relationships = Vec::new();
-    let base = extractor.get_base_mut();
-
-    // Get the class name
-    let mut cursor = class_node.walk();
-    let name_node = class_node
-        .children(&mut cursor)
-        .find(|c| c.kind() == "type_identifier");
-
-    let Some(name_node) = name_node else {
+    let Some(base_clause) = class_node
+        .children(&mut class_node.walk())
+        .find(|c| c.kind() == "base_class_clause")
+    else {
+        return relationships;
+    };
+    let Some(name_node) = helpers::class_name_node(class_node) else {
         return relationships;
     };
 
+    let base = extractor.get_base_mut();
     let class_name = base.get_node_text(&name_node);
     let Some(derived_symbol) = scoped_index.candidates_by_name(&class_name).find(|symbol| {
         is_inheritance_type(&symbol.kind) && symbol_span_matches_node(symbol, class_node)
@@ -101,40 +103,72 @@ fn extract_inheritance_from_class(
         return relationships;
     };
 
-    // Look for base class clause
-    let base_clause = class_node
-        .children(&mut class_node.walk())
-        .find(|c| c.kind() == "base_class_clause");
-
-    let Some(base_clause) = base_clause else {
-        return relationships;
-    };
-
-    // Extract base classes
-    let base_classes = helpers::extract_base_classes(base, base_clause);
-    for base_class in base_classes {
-        // Clean base class name (remove access specifiers)
-        let clean_base_name = base_class
-            .strip_prefix("public ")
-            .or_else(|| base_class.strip_prefix("private "))
-            .or_else(|| base_class.strip_prefix("protected "))
-            .unwrap_or(&base_class);
-
-        if let Some(base_symbol) =
-            resolve_base_type_symbol(scoped_index, clean_base_name, derived_symbol)
-        {
-            relationships.push(base.create_relationship(
+    let mut pending = Vec::new();
+    for base_type in base_clause.children(&mut base_clause.walk()) {
+        let mut parts = Vec::new();
+        collect_scope_chain(base, base_type, &mut parts);
+        let Some(terminal) = parts.pop() else {
+            continue;
+        };
+        match resolve_base_type_symbol(scoped_index, &terminal, derived_symbol) {
+            Some(base_symbol) => relationships.push(base.create_relationship(
                 derived_symbol.id.clone(),
                 base_symbol.id.clone(),
                 RelationshipKind::Extends,
                 &class_node,
                 Some(1.0),
                 None,
-            ));
+            )),
+            None => {
+                let display_name = parts
+                    .iter()
+                    .chain(std::iter::once(&terminal))
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join("::");
+                let target = UnresolvedTarget {
+                    display_name,
+                    terminal_name: terminal,
+                    receiver: None,
+                    namespace_path: parts,
+                    import_context: None,
+                };
+                pending.push(base.create_pending_relationship(
+                    derived_symbol.id.clone(),
+                    target,
+                    RelationshipKind::Extends,
+                    &base_type,
+                    Some(derived_symbol.id.clone()),
+                    Some(0.7),
+                ));
+            }
         }
+    }
+    for pending in pending {
+        extractor.add_structured_pending_relationship(pending);
     }
 
     relationships
+}
+
+/// Whether a `type_identifier` names a base class in a base clause, directly or
+/// as the head of a qualified or template base.
+fn is_base_class_name(node: Node) -> bool {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        match parent.kind() {
+            "base_class_clause" => return true,
+            "qualified_identifier" | "template_type"
+                if parent
+                    .child_by_field_name("name")
+                    .is_some_and(|name| name.id() == current.id()) =>
+            {
+                current = parent;
+            }
+            _ => return false,
+        }
+    }
+    false
 }
 
 /// Extract function call relationships from C++ code
@@ -300,7 +334,7 @@ fn extract_type_use_relationship(
     scoped_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
-    if helpers::is_type_declaration_name(&node) {
+    if helpers::is_type_declaration_name(&node) || is_base_class_name(node) {
         return;
     }
 

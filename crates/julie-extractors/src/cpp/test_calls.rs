@@ -28,7 +28,8 @@
 
 use crate::base::{BaseExtractor, Symbol};
 use crate::test_calls::{
-    TestCallCategory, TestCallVocab, build_test_call_symbol, classify_call_exact,
+    TestCallCategory, TestCallVocab, build_test_call_symbol, build_test_call_symbol_with_block,
+    classify_call_exact, detached_macro_block,
 };
 use tree_sitter::Node;
 
@@ -78,12 +79,27 @@ pub fn extract_cpp_test_call(
         .find(|c| c.kind() == "string_literal")?;
     let name = base.decode_string_literal(&first_string)?;
 
-    Some(build_test_call_symbol(
-        base,
-        node,
-        &full_callee,
-        name,
-        category,
-        parent_id,
-    ))
+    Some(match detached_macro_block(node) {
+        Some(block) => build_test_call_symbol_with_block(
+            base,
+            node,
+            &block,
+            &full_callee,
+            name,
+            category,
+            parent_id,
+        ),
+        None => build_test_call_symbol(base, node, &full_callee, name, category, parent_id),
+    })
+}
+
+/// Whether a call is a Catch2 test or section macro, which declares a test
+/// rather than calling a function.
+pub(super) fn is_catch2_macro_call(base: &BaseExtractor, node: &Node) -> bool {
+    node.kind() == "call_expression"
+        && node
+            .child_by_field_name("function")
+            .is_some_and(|function| {
+                classify_call_exact(&base.get_node_text(&function), &CATCH2_VOCAB).is_some()
+            })
 }

@@ -5,63 +5,41 @@
 
 use super::helpers;
 use crate::base::BaseExtractor;
-use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
-/// Extract return type from a function
+/// Extract return type from a function definition
 pub(super) fn extract_return_type(base: &BaseExtractor, node: tree_sitter::Node) -> String {
+    let pointer_depth = helpers::function_declarator_target(node).map_or(0, |t| t.pointer_depth);
+    return_type_with_pointer_depth(base, node, pointer_depth)
+}
+
+/// The declaration's base type followed by one `*` per pointer level of the declarator
+pub(super) fn return_type_with_pointer_depth(
+    base: &BaseExtractor,
+    node: tree_sitter::Node,
+    pointer_depth: usize,
+) -> String {
     let mut cursor = node.walk();
-    let mut base_types = Vec::new();
-    let mut has_pointer = false;
-
-    // Look for the specifier that contains the base type
-    for child in node.children(&mut cursor) {
-        match child.kind() {
-            "primitive_type" | "type_identifier" | "sized_type_specifier" | "struct_specifier" => {
-                base_types.push(base.get_node_text(&child));
-            }
-            "pointer_declarator" => {
-                // Check if this is a function pointer return type
-                has_pointer = true;
-                let mut pointer_cursor = child.walk();
-                for pointer_child in child.children(&mut pointer_cursor) {
-                    if pointer_child.kind() == "function_declarator" {
-                        // This indicates we have a pointer return type
-                        continue;
-                    }
-                }
-            }
-            _ => {}
-        }
-    }
-
-    // Special handling for function declarations with pointer return types
-    let mut cursor2 = node.walk();
-    for child in node.children(&mut cursor2) {
-        if child.kind() == "pointer_declarator" {
-            let mut pointer_cursor = child.walk();
-            for pointer_child in child.children(&mut pointer_cursor) {
-                if pointer_child.kind() == "function_declarator" {
-                    // This is a function with a pointer return type
-                    has_pointer = true;
-                    break;
-                }
-            }
-        }
-    }
-
-    if base_types.is_empty() {
-        if has_pointer {
-            return "void*".to_string();
-        }
-        return "void".to_string();
-    }
-
-    let base_type = base_types.join(" ");
-    if has_pointer {
-        format!("{}*", base_type)
+    let base_types: Vec<String> = node
+        .children(&mut cursor)
+        .filter(|child| {
+            matches!(
+                child.kind(),
+                "primitive_type"
+                    | "type_identifier"
+                    | "sized_type_specifier"
+                    | "struct_specifier"
+                    | "union_specifier"
+                    | "enum_specifier"
+            )
+        })
+        .map(|child| base.get_node_text(&child))
+        .collect();
+    let base_type = if base_types.is_empty() {
+        "void".to_string()
     } else {
-        base_type
-    }
+        base_types.join(" ")
+    };
+    format!("{}{}", base_type, "*".repeat(pointer_depth))
 }
 
 /// Extract storage class from a declaration (static, extern, etc.)
@@ -106,69 +84,32 @@ pub(super) fn extract_type_qualifiers(
     }
 }
 
-/// Extract the data type from a declaration
-/// Also searches through all descendants to find pointer declarators
-pub(super) fn extract_variable_type(base: &BaseExtractor, node: tree_sitter::Node) -> String {
+/// Extract the data type of one declarator: the declaration's base type plus its pointer levels
+pub(super) fn extract_variable_type(
+    base: &BaseExtractor,
+    node: tree_sitter::Node,
+    declarator: tree_sitter::Node,
+) -> String {
     let mut cursor = node.walk();
-    let mut base_type = String::new();
-
-    // Extract base type from direct children
-    for child in node.children(&mut cursor) {
-        match child.kind() {
-            "primitive_type"
-            | "type_identifier"
-            | "sized_type_specifier"
-            | "struct_specifier"
-            | "enum_specifier" => {
-                base_type = base.get_node_text(&child);
-            }
-            _ => {}
-        }
-    }
-
-    if base_type.is_empty() {
+    let Some(base_type) = node
+        .children(&mut cursor)
+        .filter(|child| {
+            matches!(
+                child.kind(),
+                "primitive_type"
+                    | "type_identifier"
+                    | "sized_type_specifier"
+                    | "struct_specifier"
+                    | "enum_specifier"
+            )
+        })
+        .last()
+        .map(|child| base.get_node_text(&child))
+    else {
         return String::new();
-    }
-
-    // Search for pointer declarators in the entire subtree
-    let pointer_count = count_all_pointer_levels(&node);
-
-    // Append asterisks for each pointer level
-    if pointer_count > 0 {
-        format!("{}{}", base_type, "*".repeat(pointer_count))
-    } else {
-        base_type
-    }
-}
-
-/// Count all pointer declarators in the tree by traversing all descendants
-fn count_all_pointer_levels(node: &tree_sitter::Node) -> usize {
-    count_all_pointer_levels_at_depth(node, 0)
-}
-
-fn count_all_pointer_levels_at_depth(node: &tree_sitter::Node, depth: u32) -> usize {
-    if !should_visit_tree_depth(depth) {
-        return 0;
-    }
-
-    let mut count = 0;
-    let Some(child_depth) = child_tree_depth(depth) else {
-        return count;
     };
-    let mut cursor = node.walk();
-
-    for child in node.children(&mut cursor) {
-        if child.kind() == "pointer_declarator" {
-            count += 1;
-            // Don't recurse into pointer_declarator to avoid double-counting
-            // Each pointer_declarator represents one level of indirection
-        } else {
-            // Recurse into other node types to find nested pointer_declarators
-            count += count_all_pointer_levels_at_depth(&child, child_depth);
-        }
-    }
-
-    count
+    let pointer_depth = helpers::declarator_target(declarator).map_or(0, |t| t.pointer_depth);
+    format!("{}{}", base_type, "*".repeat(pointer_depth))
 }
 
 /// Extract array specifier information from a declarator
@@ -280,67 +221,4 @@ pub(super) fn extract_alignment_attributes(
     }
 
     attributes
-}
-
-/// Extract the underlying type from a type definition
-pub(super) fn extract_underlying_type_from_type_definition(
-    base: &BaseExtractor,
-    node: tree_sitter::Node,
-) -> String {
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        match child.kind() {
-            "typedef" | ";" | "type_identifier" => continue,
-            _ => return base.get_node_text(&child),
-        }
-    }
-    String::new()
-}
-
-/// Extract the underlying type from a typedef declaration
-pub(super) fn extract_underlying_type_from_declaration(
-    base: &BaseExtractor,
-    node: tree_sitter::Node,
-) -> String {
-    let mut types = Vec::new();
-    let mut cursor = node.walk();
-    let mut found_typedef = false;
-
-    for child in node.children(&mut cursor) {
-        if child.kind() == "storage_class_specifier" && base.get_node_text(&child) == "typedef" {
-            found_typedef = true;
-            continue;
-        }
-
-        if found_typedef {
-            match child.kind() {
-                "primitive_type" | "sized_type_specifier" => {
-                    types.push(base.get_node_text(&child));
-                }
-                "type_identifier" => {
-                    // Skip the last type_identifier as it's the typedef name
-                    let text = base.get_node_text(&child);
-                    types.push(text);
-                }
-                _ => {}
-            }
-        }
-    }
-
-    // Remove the last item if it looks like a typedef name (not a known C type)
-    if types.len() > 1 {
-        let last_type = &types[types.len() - 1];
-        let known_c_types = [
-            "char", "int", "short", "long", "float", "double", "void", "unsigned", "signed",
-        ];
-        if !known_c_types.iter().any(|&t| last_type.contains(t)) {
-            types.pop(); // Remove the typedef name
-        }
-    }
-
-    if types.is_empty() {
-        String::new()
-    } else {
-        types.join(" ")
-    }
 }

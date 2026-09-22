@@ -29,8 +29,11 @@ fn walk_tree_for_identifiers(
         return;
     }
 
-    // Extract identifier from this node if applicable
-    extract_identifier_from_node(extractor, node, containing_symbols);
+    if !super::test_calls::is_criterion_macro_call(&extractor.base, &node)
+        && !is_criterion_name_argument(extractor, node)
+    {
+        extract_identifier_from_node(extractor, node, containing_symbols);
+    }
 
     // Recursively walk children
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -40,6 +43,16 @@ fn walk_tree_for_identifiers(
     for child in node.children(&mut cursor) {
         walk_tree_for_identifiers(extractor, child, containing_symbols, child_depth);
     }
+}
+
+/// The bare suite and test names of `Test(suite, name)` are labels, not values.
+fn is_criterion_name_argument(extractor: &CExtractor, node: tree_sitter::Node) -> bool {
+    node.kind() == "identifier"
+        && node
+            .parent()
+            .filter(|arguments| arguments.kind() == "argument_list")
+            .and_then(|arguments| arguments.parent())
+            .is_some_and(|call| super::test_calls::is_criterion_macro_call(&extractor.base, &call))
 }
 
 /// Extract identifier from a single node based on its kind
@@ -74,39 +87,16 @@ fn extract_identifier_from_node(
         // C's tree-sitter grammar uses `type_identifier` for user-defined types
         // appearing in declarations, parameters, field types, casts, sizeof, etc.
         "type_identifier" => {
-            if let Some(parent) = node.parent() {
-                let is_definition_site = match parent.kind() {
-                    // `struct Foo { ... }` — "Foo" is the tag being defined
-                    // But `struct Foo*` in a parameter is a USAGE (struct_specifier
-                    // without a body/field_declaration_list child).
-                    "struct_specifier" | "union_specifier" => {
-                        // It's a definition if the struct/union has a body
-                        parent.child_by_field_name("body").is_some()
-                    }
-                    // `enum Color { ... }` — "Color" is the tag being defined
-                    "enum_specifier" => parent.child_by_field_name("body").is_some(),
-                    // `typedef int MyInt;` — "MyInt" is the alias being defined.
-                    // In C's tree-sitter grammar, the typedef alias is the
-                    // `declarator` field of `type_definition`.
-                    "type_definition" => {
-                        // The type_identifier is the declarator (the new name)
-                        node.parent()
-                            .and_then(|p| p.child_by_field_name("declarator"))
-                            .is_some_and(|d| d.id() == node.id())
-                    }
-                    _ => false,
-                };
-
-                if !is_definition_site {
-                    let name = extractor.base.get_node_text(&node);
-                    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
-                    extractor.base.create_identifier(
-                        &node,
-                        name,
-                        IdentifierKind::TypeUsage,
-                        containing_symbol_id,
-                    );
-                }
+            let is_definition_site = super::helpers::is_type_declaration_name(node);
+            if !is_definition_site {
+                let name = extractor.base.get_node_text(&node);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                extractor.base.create_identifier(
+                    &node,
+                    name,
+                    IdentifierKind::TypeUsage,
+                    containing_symbol_id,
+                );
             }
         }
 

@@ -280,6 +280,11 @@
           "name": "return_types",
           "source": "fixtures/extraction/c/return_types/source.c",
           "expected": "fixtures/extraction/c/return_types/expected.json"
+        },
+        {
+          "name": "declarators",
+          "source": "fixtures/extraction/c/declarators/source.c",
+          "expected": "fixtures/extraction/c/declarators/expected.json"
         }
       ],
       "target_capabilities": {
@@ -293,10 +298,14 @@
       "kind_coverage": {
         "symbols": {
           "supported": [
+            "constant",
+            "enum",
             "field",
             "function",
             "import",
             "struct",
+            "type",
+            "union",
             "variable"
           ],
           "not_applicable": [],
@@ -323,8 +332,10 @@
         },
         "body_spans": {
           "supported": [
+            "enum",
             "function",
-            "struct"
+            "struct",
+            "union"
           ],
           "not_applicable": [
             "field",
@@ -440,6 +451,11 @@
           "name": "qt_header",
           "source": "fixtures/extraction/cpp/qt_header/source.h",
           "expected": "fixtures/extraction/cpp/qt_header/expected.json"
+        },
+        {
+          "name": "declarations",
+          "source": "fixtures/extraction/cpp/declarations/source.cpp",
+          "expected": "fixtures/extraction/cpp/declarations/expected.json"
         }
       ],
       "target_capabilities": {
@@ -454,12 +470,18 @@
         "symbols": {
           "supported": [
             "class",
+            "constant",
             "constructor",
+            "destructor",
             "event",
             "field",
             "function",
             "method",
+            "namespace",
+            "operator",
             "property",
+            "struct",
+            "type",
             "variable"
           ],
           "not_applicable": [],
@@ -525,7 +547,8 @@
           "supported": [
             "class",
             "function",
-            "method"
+            "method",
+            "type"
           ],
           "not_applicable": [],
           "open_gaps": []

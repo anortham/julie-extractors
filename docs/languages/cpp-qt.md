@@ -203,10 +203,6 @@ never parsed before, and they apply to every C++ file.
   also preserves nested calls while accommodating the macro's optional semicolon.
 - `Q_ENUM(Mode)` is blanked and marks nothing on the enum. The enum and its members
   are extracted as ordinary C++ rows.
-- An out-of-class constructor definition `X::X() {}` in a `.cpp` file is a
-  `function` row named `X::X`, not a `constructor` row. `is_constructor` compares
-  the declarator name with an enclosing class specifier, which a `.cpp` file does
-  not have.
 - `= 0`, `= default`, and `= delete` on a method are not part of its signature. A
   constructor or destructor keeps them.
 - Diagnostics remain on both corpora: 31 on Kirigami and 298 on plasma-workspace.
@@ -217,6 +213,32 @@ never parsed before, and they apply to every C++ file.
   a member initializer, a lambda with an explicit trailing return type,
   `namespace A::B`, `#if __has_include(...)`, a bare `return {`, and `%{APPNAMEUC}`
   placeholders in a project template.
+
+## Declarations and scopes
+
+- A declarator is read the way C++ binds it. The name is the innermost
+  identifier, so `Widget* w`, `Widget& w`, `int w[4]`, and `void (*w)(int)` are
+  variables or fields named `w`. A declaration emits one row per name, including
+  each name of `auto [key, value]`.
+- A prototype takes its name from its declarator, not from a qualified return
+  type: `std::optional<int> find(int id) const;` is the method `find`.
+- In a function body, `Writer writer(out, options_);` is a variable. A declarator
+  whose parameters are all bare type names reads as a direct initialization there.
+- An out-of-line definition keeps its written name, such as `Widget::draw`, and
+  records `scope` metadata. `X::X` is a constructor, `X::~X` a destructor,
+  `X::operator==` an operator, and any other `X::m` a method. When the owner is
+  defined in the file, the row is its child and takes the visibility of the
+  in-class declaration. `int X::count = 0;` and `X::operator bool() {}` emit rows.
+- `namespace a::b::c {}` emits one namespace row named `a::b::c`.
+  `class Outer::Inner {}` emits a class row `Inner` under `Outer`, and a
+  specialization `struct hash<Point> {}` emits a struct row `hash`.
+- `using Handler = ...;` and an alias template emit `type` rows.
+- A base class emits an `extends` edge, or a pending `extends` with the
+  namespace of a qualified base when the base is not in the file.
+- A visibility macro between the class key and the class name, such as
+  `class ENGINE_API Renderer : Base {`, is blanked like an `*_EXPORT` macro.
+- A Catch2 `TEST_CASE` or `SECTION` row spans its block and owns it, so locals,
+  nested sections, and calls in the block belong to the test.
 
 ## Continuous testing
 

@@ -1,7 +1,8 @@
 TestSuite(math, .init = setup_suite, .fini = teardown_suite);
 
 Test(math, addition, .init = setup_test, .fini = teardown_test) {
-    cr_assert_eq(2 + 2, 4);
+    int sum = add(2, 2);
+    cr_assert_eq(sum, 4);
 }
 
 void setup_suite(void) {}

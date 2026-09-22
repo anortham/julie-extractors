@@ -12,12 +12,13 @@ use super::helpers;
 use super::signatures;
 use super::type_facts;
 
-/// Extract a struct definition
+/// Extract a struct definition; a reference without a body declares nothing
 pub(super) fn extract_struct(
     extractor: &mut CExtractor,
     node: tree_sitter::Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
+    node.child_by_field_name("body")?;
     let struct_name = helpers::extract_struct_name(&extractor.base, node)?;
     let signature = signatures::build_struct_signature(&extractor.base, node);
 
@@ -44,6 +45,7 @@ pub(super) fn extract_union(
     node: tree_sitter::Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
+    node.child_by_field_name("body")?;
     let union_name = helpers::extract_union_name(&extractor.base, node)?;
     let signature = signatures::build_union_signature(&extractor.base, node);
 
@@ -70,6 +72,7 @@ pub(super) fn extract_enum(
     node: tree_sitter::Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
+    node.child_by_field_name("body")?;
     let enum_name = helpers::extract_enum_name(&extractor.base, node)?;
     let signature = signatures::build_enum_signature(&extractor.base, node);
 
@@ -170,7 +173,7 @@ pub(super) fn extract_struct_field_symbols(
 pub(super) fn extract_enum_value_symbols(
     extractor: &mut CExtractor,
     node: tree_sitter::Node,
-    parent_enum_id: &str,
+    parent_enum_id: Option<&str>,
 ) -> Vec<Symbol> {
     let mut enum_value_symbols = Vec::new();
 
@@ -201,7 +204,7 @@ pub(super) fn extract_enum_value_symbols(
                         SymbolOptions {
                             signature: Some(signature),
                             visibility: Some(Visibility::Public),
-                            parent_id: Some(parent_enum_id.to_string()),
+                            parent_id: parent_enum_id.map(str::to_string),
                             metadata: if value.is_some() {
                                 Some(HashMap::from([(
                                     "value".to_string(),

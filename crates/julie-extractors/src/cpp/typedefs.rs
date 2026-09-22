@@ -49,6 +49,46 @@ pub(super) fn extract_typedef(
     ))
 }
 
+/// Extract an alias declaration (`using Handler = std::function<void(int)>;`),
+/// with the template head of an alias template in its signature.
+pub(super) fn extract_alias(
+    base: &mut BaseExtractor,
+    node: Node,
+    parent_id: Option<&str>,
+) -> Option<Symbol> {
+    let name = base.get_node_text(&node.child_by_field_name("name")?);
+    let text = base.get_node_text(&node);
+    let mut signature = text
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .trim_end_matches(';')
+        .trim()
+        .to_string();
+    if let Some(template) = super::helpers::extract_template_parameters(base, node.parent()) {
+        signature = format!("{template}\n{signature}");
+    }
+    let documented = node
+        .parent()
+        .filter(|parent| parent.kind() == "template_declaration")
+        .unwrap_or(node);
+    let doc_comment = base.find_doc_comment(&documented);
+
+    Some(base.create_symbol(
+        &node,
+        name,
+        SymbolKind::Type,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(super::visibility::extract_cpp_visibility(base, node)),
+            parent_id: parent_id.map(String::from),
+            metadata: None,
+            doc_comment,
+            annotations: Vec::new(),
+        },
+    ))
+}
+
 /// Find the typedef alias name from a type_definition node.
 /// Searches through various child structures where the name can appear.
 fn find_typedef_name(base: &BaseExtractor, node: Node) -> Option<String> {

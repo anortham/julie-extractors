@@ -188,3 +188,52 @@ void helper(void) {
         .expect("helper function should still be extracted");
     assert!(!is_test(helper), "the helper function must not be is_test");
 }
+
+#[test]
+fn criterion_test_symbol_owns_its_detached_body() {
+    let source = r#"#include <criterion/criterion.h>
+Test(math, addition) {
+    int r = add(2, 2);
+    cr_assert_eq(r, 4);
+}
+"#;
+    let result = crate::extract_canonical(
+        "test/test_math.c",
+        source,
+        std::path::Path::new("/tmp/test"),
+    )
+    .expect("canonical C extraction must succeed");
+    let test = result
+        .symbols
+        .iter()
+        .find(|s| s.name == "math.addition")
+        .expect("Criterion test symbol");
+    assert_eq!((test.start_line, test.end_line), (2, 5));
+    let body = test.body_span.expect("test body span");
+    assert_eq!((body.start_line, body.end_line), (2, 5));
+    assert!(source[body.start_byte as usize..].starts_with('{'));
+
+    let r = result.symbols.iter().find(|s| s.name == "r").expect("r");
+    assert_eq!(r.parent_id.as_deref(), Some(test.id.as_str()));
+
+    let pending_calls: Vec<_> = result
+        .structured_pending_relationships
+        .iter()
+        .map(|p| {
+            (
+                p.pending.from_symbol_id.as_str(),
+                p.target.terminal_name.as_str(),
+            )
+        })
+        .collect();
+    assert!(
+        pending_calls.contains(&(test.id.as_str(), "add")),
+        "{pending_calls:?}"
+    );
+    assert!(
+        pending_calls.contains(&(test.id.as_str(), "cr_assert_eq")),
+        "{pending_calls:?}"
+    );
+    assert!(pending_calls.iter().all(|(_, target)| *target != "Test"));
+    assert!(result.identifiers.iter().all(|i| i.name != "Test"));
+}

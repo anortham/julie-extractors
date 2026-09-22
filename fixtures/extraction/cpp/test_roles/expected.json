@@ -108,7 +108,7 @@
     {
       "key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture::SetUp:67:0",
       "name": "OutOfClassFixture::SetUp",
-      "kind": "function",
+      "kind": "method",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
       "start_line": 67,
@@ -129,9 +129,10 @@
       "signature": "void OutOfClassFixture::SetUp()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture:41:0",
       "metadata": {
         "is_test": true,
+        "scope": "OutOfClassFixture",
         "test_lifecycle": true,
         "test_role": "fixture_setup"
       },
@@ -143,7 +144,7 @@
     {
       "key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture::SetUpTestSuite:69:0",
       "name": "OutOfClassFixture::SetUpTestSuite",
-      "kind": "function",
+      "kind": "method",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
       "start_line": 69,
@@ -164,9 +165,10 @@
       "signature": "void OutOfClassFixture::SetUpTestSuite()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture:41:0",
       "metadata": {
         "is_test": true,
+        "scope": "OutOfClassFixture",
         "test_lifecycle": true,
         "test_role": "fixture_setup"
       },
@@ -178,7 +180,7 @@
     {
       "key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture::TearDown:68:0",
       "name": "OutOfClassFixture::TearDown",
-      "kind": "function",
+      "kind": "method",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
       "start_line": 68,
@@ -199,9 +201,10 @@
       "signature": "void OutOfClassFixture::TearDown()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture:41:0",
       "metadata": {
         "is_test": true,
+        "scope": "OutOfClassFixture",
         "test_lifecycle": true,
         "test_role": "fixture_teardown"
       },
@@ -213,7 +216,7 @@
     {
       "key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture::TearDownTestSuite:70:0",
       "name": "OutOfClassFixture::TearDownTestSuite",
-      "kind": "function",
+      "kind": "method",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
       "start_line": 70,
@@ -234,9 +237,10 @@
       "signature": "void OutOfClassFixture::TearDownTestSuite()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture:41:0",
       "metadata": {
         "is_test": true,
+        "scope": "OutOfClassFixture",
         "test_lifecycle": true,
         "test_role": "fixture_teardown"
       },
@@ -283,7 +287,7 @@
     {
       "key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassIndirectFixture::SetUp:75:0",
       "name": "OutOfClassIndirectFixture::SetUp",
-      "kind": "function",
+      "kind": "method",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
       "start_line": 75,
@@ -304,8 +308,10 @@
       "signature": "void OutOfClassIndirectFixture::SetUp()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
-      "metadata": {},
+      "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassIndirectFixture:57:0",
+      "metadata": {
+        "scope": "OutOfClassIndirectFixture"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -349,7 +355,7 @@
     {
       "key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassParameterizedFixture::SetUp:71:0",
       "name": "OutOfClassParameterizedFixture::SetUp",
-      "kind": "function",
+      "kind": "method",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
       "start_line": 71,
@@ -370,9 +376,10 @@
       "signature": "void OutOfClassParameterizedFixture::SetUp()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassParameterizedFixture:49:0",
       "metadata": {
         "is_test": true,
+        "scope": "OutOfClassParameterizedFixture",
         "test_lifecycle": true,
         "test_role": "fixture_setup"
       },
@@ -384,7 +391,7 @@
     {
       "key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassParameterizedFixture::SetUpTestSuite:73:0",
       "name": "OutOfClassParameterizedFixture::SetUpTestSuite",
-      "kind": "function",
+      "kind": "method",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
       "start_line": 73,
@@ -405,9 +412,10 @@
       "signature": "void OutOfClassParameterizedFixture::SetUpTestSuite()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassParameterizedFixture:49:0",
       "metadata": {
         "is_test": true,
+        "scope": "OutOfClassParameterizedFixture",
         "test_lifecycle": true,
         "test_role": "fixture_setup"
       },
@@ -419,7 +427,7 @@
     {
       "key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassParameterizedFixture::TearDown:72:0",
       "name": "OutOfClassParameterizedFixture::TearDown",
-      "kind": "function",
+      "kind": "method",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
       "start_line": 72,
@@ -440,9 +448,10 @@
       "signature": "void OutOfClassParameterizedFixture::TearDown()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassParameterizedFixture:49:0",
       "metadata": {
         "is_test": true,
+        "scope": "OutOfClassParameterizedFixture",
         "test_lifecycle": true,
         "test_role": "fixture_teardown"
       },
@@ -454,7 +463,7 @@
     {
       "key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassParameterizedFixture::TearDownTestSuite:74:0",
       "name": "OutOfClassParameterizedFixture::TearDownTestSuite",
-      "kind": "function",
+      "kind": "method",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
       "start_line": 74,
@@ -475,9 +484,10 @@
       "signature": "void OutOfClassParameterizedFixture::TearDownTestSuite()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassParameterizedFixture:49:0",
       "metadata": {
         "is_test": true,
+        "scope": "OutOfClassParameterizedFixture",
         "test_lifecycle": true,
         "test_role": "fixture_teardown"
       },
@@ -524,7 +534,7 @@
     {
       "key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassUnrelatedFixture::SetUp:76:0",
       "name": "OutOfClassUnrelatedFixture::SetUp",
-      "kind": "function",
+      "kind": "method",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
       "start_line": 76,
@@ -545,8 +555,10 @@
       "signature": "void OutOfClassUnrelatedFixture::SetUp()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
-      "metadata": {},
+      "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassUnrelatedFixture:62:0",
+      "metadata": {
+        "scope": "OutOfClassUnrelatedFixture"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -1562,23 +1574,23 @@
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
       "start_line": 2,
       "start_column": 4,
-      "end_line": 2,
-      "end_column": 25,
+      "end_line": 4,
+      "end_column": 5,
       "start_byte": 44,
-      "end_byte": 65,
+      "end_byte": 96,
       "body_span": {
         "start_line": 2,
-        "start_column": 11,
-        "end_line": 2,
-        "end_column": 25,
-        "start_byte": 51,
-        "end_byte": 65
+        "start_column": 26,
+        "end_line": 4,
+        "end_column": 5,
+        "start_byte": 66,
+        "end_byte": 96
       },
-      "body_hash": "029310cebd69456534e801108ee78a09",
+      "body_hash": "a2f1b1ea85cf91126937da42159624df",
       "signature": "SECTION(\"push grows\")",
       "doc_comment": null,
       "visibility": null,
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:vector grows:1:0",
       "metadata": {
         "test_container": true,
         "test_role": "test_container"
@@ -1596,19 +1608,19 @@
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
       "start_line": 1,
       "start_column": 0,
-      "end_line": 1,
-      "end_column": 37,
+      "end_line": 5,
+      "end_column": 1,
       "start_byte": 0,
-      "end_byte": 37,
+      "end_byte": 98,
       "body_span": {
         "start_line": 1,
-        "start_column": 9,
-        "end_line": 1,
-        "end_column": 37,
-        "start_byte": 9,
-        "end_byte": 37
+        "start_column": 38,
+        "end_line": 5,
+        "end_column": 1,
+        "start_byte": 38,
+        "end_byte": 98
       },
-      "body_hash": "d2a1b735c0f36a4c66e46f104c74e60a",
+      "body_hash": "78d2205d3ef8c02115421b60b90b37a2",
       "signature": "TEST_CASE(\"vector grows\")",
       "doc_comment": null,
       "visibility": null,
@@ -1643,24 +1655,6 @@
       "metadata": null
     },
     {
-      "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:IndirectFixture:25:0",
-      "to_key": "fixtures/extraction/cpp/test_roles/source.cpp:GoogleFixture:9:0",
-      "kind": "uses",
-      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
-      "line_number": 25,
-      "span": {
-        "start_line": 25,
-        "start_column": 31,
-        "end_line": 25,
-        "end_column": 44,
-        "start_byte": 589,
-        "end_byte": 602
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.800",
-      "metadata": null
-    },
-    {
       "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassIndirectFixture:57:0",
       "to_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture:41:0",
       "kind": "extends",
@@ -1677,47 +1671,29 @@
       "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": null
-    },
-    {
-      "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassIndirectFixture:57:0",
-      "to_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture:41:0",
-      "kind": "uses",
-      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
-      "line_number": 57,
-      "span": {
-        "start_line": 57,
-        "start_column": 41,
-        "end_line": 57,
-        "end_column": 58,
-        "start_byte": 1383,
-        "end_byte": 1400
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.800",
-      "metadata": null
     }
   ],
   "pending_relationships": [
     {
       "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:GoogleFixture:9:0",
-      "callee_name": "Test",
-      "kind": "uses",
+      "callee_name": "testing::Test",
+      "kind": "extends",
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
       "line_number": 9,
       "confidence": "0.700"
     },
     {
       "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture:41:0",
-      "callee_name": "Test",
-      "kind": "uses",
+      "callee_name": "testing::Test",
+      "kind": "extends",
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
       "line_number": 41,
       "confidence": "0.700"
     },
     {
       "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassParameterizedFixture:49:0",
-      "callee_name": "TestWithParam",
-      "kind": "uses",
+      "callee_name": "testing::TestWithParam",
+      "kind": "extends",
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
       "line_number": 49,
       "confidence": "0.700"
@@ -1725,15 +1701,15 @@
     {
       "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassUnrelatedFixture:62:0",
       "callee_name": "OtherBase",
-      "kind": "uses",
+      "kind": "extends",
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
       "line_number": 62,
       "confidence": "0.700"
     },
     {
       "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:ParameterizedFixture:17:0",
-      "callee_name": "TestWithParam",
-      "kind": "uses",
+      "callee_name": "testing::TestWithParam",
+      "kind": "extends",
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
       "line_number": 17,
       "confidence": "0.700"
@@ -1741,25 +1717,17 @@
     {
       "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:UnrelatedFixture:33:0",
       "callee_name": "OtherBase",
-      "kind": "uses",
+      "kind": "extends",
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
       "line_number": 33,
       "confidence": "0.700"
     },
     {
       "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:push grows:2:4",
-      "callee_name": "SECTION",
+      "callee_name": "REQUIRE",
       "kind": "calls",
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
-      "line_number": 2,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:vector grows:1:0",
-      "callee_name": "TEST_CASE",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
-      "line_number": 1,
+      "line_number": 3,
       "confidence": "0.700"
     }
   ],
@@ -1767,86 +1735,92 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:GoogleFixture:9:0",
-        "callee_name": "Test",
-        "kind": "uses",
+        "callee_name": "testing::Test",
+        "kind": "extends",
         "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
         "line_number": 9,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "Test",
+        "display_name": "testing::Test",
         "terminal_name": "Test",
         "receiver": null,
-        "namespace_path": [],
+        "namespace_path": [
+          "testing"
+        ],
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/cpp/test_roles/source.cpp:GoogleFixture:9:0",
       "span": {
         "start_line": 9,
-        "start_column": 40,
+        "start_column": 29,
         "end_line": 9,
         "end_column": 44,
-        "start_byte": 181,
+        "start_byte": 170,
         "end_byte": 185
       }
     },
     {
       "pending": {
         "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture:41:0",
-        "callee_name": "Test",
-        "kind": "uses",
+        "callee_name": "testing::Test",
+        "kind": "extends",
         "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
         "line_number": 41,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "Test",
+        "display_name": "testing::Test",
         "terminal_name": "Test",
         "receiver": null,
-        "namespace_path": [],
+        "namespace_path": [
+          "testing"
+        ],
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture:41:0",
       "span": {
         "start_line": 41,
-        "start_column": 44,
+        "start_column": 33,
         "end_line": 41,
         "end_column": 48,
-        "start_byte": 977,
+        "start_byte": 966,
         "end_byte": 981
       }
     },
     {
       "pending": {
         "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassParameterizedFixture:49:0",
-        "callee_name": "TestWithParam",
-        "kind": "uses",
+        "callee_name": "testing::TestWithParam",
+        "kind": "extends",
         "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
         "line_number": 49,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "TestWithParam",
+        "display_name": "testing::TestWithParam",
         "terminal_name": "TestWithParam",
         "receiver": null,
-        "namespace_path": [],
+        "namespace_path": [
+          "testing"
+        ],
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassParameterizedFixture:49:0",
       "span": {
         "start_line": 49,
-        "start_column": 57,
+        "start_column": 46,
         "end_line": 49,
-        "end_column": 70,
-        "start_byte": 1181,
-        "end_byte": 1194
+        "end_column": 75,
+        "start_byte": 1170,
+        "end_byte": 1199
       }
     },
     {
       "pending": {
         "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassUnrelatedFixture:62:0",
         "callee_name": "OtherBase",
-        "kind": "uses",
+        "kind": "extends",
         "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
         "line_number": 62,
         "confidence": "0.700"
@@ -1871,34 +1845,36 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:ParameterizedFixture:17:0",
-        "callee_name": "TestWithParam",
-        "kind": "uses",
+        "callee_name": "testing::TestWithParam",
+        "kind": "extends",
         "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
         "line_number": 17,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "TestWithParam",
+        "display_name": "testing::TestWithParam",
         "terminal_name": "TestWithParam",
         "receiver": null,
-        "namespace_path": [],
+        "namespace_path": [
+          "testing"
+        ],
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/cpp/test_roles/source.cpp:ParameterizedFixture:17:0",
       "span": {
         "start_line": 17,
-        "start_column": 47,
+        "start_column": 36,
         "end_line": 17,
-        "end_column": 60,
-        "start_byte": 386,
-        "end_byte": 399
+        "end_column": 65,
+        "start_byte": 375,
+        "end_byte": 404
       }
     },
     {
       "pending": {
         "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:UnrelatedFixture:33:0",
         "callee_name": "OtherBase",
-        "kind": "uses",
+        "kind": "extends",
         "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
         "line_number": 33,
         "confidence": "0.700"
@@ -1923,53 +1899,27 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:push grows:2:4",
-        "callee_name": "SECTION",
+        "callee_name": "REQUIRE",
         "kind": "calls",
         "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
-        "line_number": 2,
+        "line_number": 3,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "SECTION",
-        "terminal_name": "SECTION",
+        "display_name": "REQUIRE",
+        "terminal_name": "REQUIRE",
         "receiver": null,
         "namespace_path": [],
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/cpp/test_roles/source.cpp:push grows:2:4",
       "span": {
-        "start_line": 2,
-        "start_column": 4,
-        "end_line": 2,
-        "end_column": 25,
-        "start_byte": 44,
-        "end_byte": 65
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:vector grows:1:0",
-        "callee_name": "TEST_CASE",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
-        "line_number": 1,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "TEST_CASE",
-        "terminal_name": "TEST_CASE",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/cpp/test_roles/source.cpp:vector grows:1:0",
-      "span": {
-        "start_line": 1,
-        "start_column": 0,
-        "end_line": 1,
-        "end_column": 37,
-        "start_byte": 0,
-        "end_byte": 37
+        "start_line": 3,
+        "start_column": 8,
+        "end_line": 3,
+        "end_column": 21,
+        "start_byte": 76,
+        "end_byte": 89
       }
     }
   ],
@@ -2050,39 +2000,7 @@
       "end_column": 15,
       "start_byte": 76,
       "end_byte": 83,
-      "containing_key": null,
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/cpp/test_roles/source.cpp:SECTION:call:2:4",
-      "name": "SECTION",
-      "kind": "call",
-      "language": "cpp",
-      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
-      "start_line": 2,
-      "start_column": 4,
-      "end_line": 2,
-      "end_column": 11,
-      "start_byte": 44,
-      "end_byte": 51,
       "containing_key": "fixtures/extraction/cpp/test_roles/source.cpp:push grows:2:4",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/cpp/test_roles/source.cpp:TEST_CASE:call:1:0",
-      "name": "TEST_CASE",
-      "kind": "call",
-      "language": "cpp",
-      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
-      "start_line": 1,
-      "start_column": 0,
-      "end_line": 1,
-      "end_column": 9,
-      "start_byte": 0,
-      "end_byte": 9,
-      "containing_key": "fixtures/extraction/cpp/test_roles/source.cpp:vector grows:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2152,6 +2070,96 @@
     }
   ],
   "types": [
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture::SetUp:67:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture::SetUpTestSuite:69:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture::TearDown:68:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture::TearDownTestSuite:70:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassIndirectFixture::SetUp:75:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassParameterizedFixture::SetUp:71:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassParameterizedFixture::SetUpTestSuite:73:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassParameterizedFixture::TearDown:72:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassParameterizedFixture::TearDownTestSuite:74:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassUnrelatedFixture::SetUp:76:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
     {
       "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUp:11:4",
       "resolved_type": "void",
@@ -3291,18 +3299,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
-      "covered_lines": 1,
-      "covered_bytes": 14,
+      "covered_lines": 3,
+      "covered_bytes": 30,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 2,
-      "start_column": 11,
-      "end_line": 2,
-      "end_column": 25,
-      "start_byte": 51,
-      "end_byte": 65,
+      "start_column": 26,
+      "end_line": 4,
+      "end_column": 5,
+      "start_byte": 66,
+      "end_byte": 96,
       "metadata": {
         "metric_version": 1
       }
@@ -3313,18 +3321,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
-      "covered_lines": 1,
-      "covered_bytes": 28,
+      "covered_lines": 5,
+      "covered_bytes": 60,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
-      "start_column": 9,
-      "end_line": 1,
-      "end_column": 37,
-      "start_byte": 9,
-      "end_byte": 37,
+      "start_column": 38,
+      "end_line": 5,
+      "end_column": 1,
+      "start_byte": 38,
+      "end_byte": 98,
       "metadata": {
         "metric_version": 1
       }

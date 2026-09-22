@@ -38,6 +38,7 @@ pub mod annotations;
 pub mod basics;
 pub mod cross_file_pending;
 pub mod cross_file_relationships;
+pub mod declarators;
 pub mod doxygen_comments;
 pub mod identifier_extraction;
 pub mod literals;

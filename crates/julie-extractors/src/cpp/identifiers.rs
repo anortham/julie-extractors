@@ -49,6 +49,9 @@ impl CppExtractor {
                 // first so it also covers template calls (`query<T>("SELECT ...")`),
                 // which the identifier logic below returns early for.
                 self.record_call_arg_literals(node, containing_symbols);
+                if super::test_calls::is_catch2_macro_call(&self.base, &node) {
+                    return;
+                }
                 if let Some(func_node) = node.child_by_field_name("function") {
                     // Template function call: make_shared<Foo>(), invoke<T>(), etc.
                     if func_node.kind() == "template_function" {

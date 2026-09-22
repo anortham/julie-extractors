@@ -13,7 +13,6 @@ use std::collections::HashMap;
 use super::helpers;
 use super::signatures;
 use super::type_facts;
-use super::typedefs;
 use super::types;
 
 /// Extract an include directive as a symbol
@@ -95,42 +94,28 @@ fn create_metadata_map(metadata: HashMap<String, String>) -> HashMap<String, Val
         .collect()
 }
 
-/// Extract declarations (variables, functions, typedefs)
+/// Extract one function or variable symbol per declarator of a declaration
 pub(super) fn extract_declaration(
     extractor: &mut CExtractor,
     node: tree_sitter::Node,
     parent_id: Option<&str>,
 ) -> Vec<Symbol> {
-    let mut symbols = Vec::new();
-
-    // Check if this is a typedef declaration
-    if helpers::is_typedef_declaration(&extractor.base, node)
-        && let Some(typedef_symbol) =
-            typedefs::extract_typedef_from_declaration(extractor, node, parent_id)
-    {
-        symbols.push(typedef_symbol);
-        return symbols;
-    }
-
-    // Check if this is a function declaration
-    if let Some(_function_declarator) = helpers::find_function_declarator(node)
-        && let Some(function_symbol) = extract_function_declaration(extractor, node, parent_id)
-    {
-        symbols.push(function_symbol);
-        return symbols;
-    }
-
-    // Extract variable declarations
-    let declarators = helpers::find_variable_declarators(node);
-    for declarator in declarators {
-        if let Some(variable_symbol) =
-            extract_variable_declaration(extractor, node, declarator, parent_id)
-        {
-            symbols.push(variable_symbol);
-        }
-    }
-
-    symbols
+    let mut cursor = node.walk();
+    let declarators: Vec<_> = node
+        .children_by_field_name("declarator", &mut cursor)
+        .collect();
+    declarators
+        .into_iter()
+        .filter_map(|declarator| {
+            let target = helpers::declarator_target(declarator)?;
+            match target.function {
+                Some(function) => {
+                    extract_function_declaration(extractor, node, &target, function, parent_id)
+                }
+                None => extract_variable_declaration(extractor, node, declarator, parent_id),
+            }
+        })
+        .collect()
 }
 
 /// Extract a function definition
@@ -204,69 +189,59 @@ pub(super) fn extract_function_definition(
 }
 
 /// Extract a function declaration
-pub(super) fn extract_function_declaration(
+fn extract_function_declaration(
     extractor: &mut CExtractor,
     node: tree_sitter::Node,
+    target: &helpers::DeclaratorTarget,
+    function: tree_sitter::Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let function_name = helpers::extract_function_name_from_declaration(&extractor.base, node)?;
-    let signature = signatures::build_function_declaration_signature(&extractor.base, node);
-    let visibility = if helpers::is_static_function(&extractor.base, node) {
-        "private"
-    } else {
-        "public"
-    };
+    let function_name = extractor.base.get_node_text(&target.name);
+    let return_type =
+        types::return_type_with_pointer_depth(&extractor.base, node, target.pointer_depth);
+    let parameters = signatures::extract_parameters_from_declarator(&extractor.base, function);
+    let signature = format!(
+        "{} {}({})",
+        return_type,
+        function_name,
+        parameters.join(", ")
+    );
+    let is_static = helpers::is_static_function(&extractor.base, node);
 
     let doc_comment = extractor.base.find_doc_comment(&node);
     let annotations =
         normalize_annotations(&helpers::extract_attributes(&extractor.base, node), "c");
 
-    Some(
-        extractor.base.create_symbol(
-            &node,
-            function_name.clone(),
-            SymbolKind::Function,
-            SymbolOptions {
-                signature: Some(signature),
-                visibility: Some(if visibility == "private" {
-                    Visibility::Private
-                } else {
-                    Visibility::Public
-                }),
-                parent_id: parent_id.map(|s| s.to_string()),
-                metadata: Some(HashMap::from([
-                    ("type".to_string(), Value::String("function".to_string())),
-                    ("name".to_string(), Value::String(function_name)),
-                    (
-                        "returnType".to_string(),
-                        Value::String(types::extract_return_type(&extractor.base, node)),
-                    ),
-                    (
-                        "parameters".to_string(),
-                        Value::String(
-                            signatures::extract_function_parameters_from_declaration(
-                                &extractor.base,
-                                node,
-                            )
-                            .join(", "),
-                        ),
-                    ),
-                    (
-                        "isDefinition".to_string(),
-                        Value::String("false".to_string()),
-                    ),
-                    (
-                        "isStatic".to_string(),
-                        Value::String(
-                            helpers::is_static_function(&extractor.base, node).to_string(),
-                        ),
-                    ),
-                ])),
-                doc_comment,
-                annotations,
-            },
-        ),
-    )
+    Some(extractor.base.create_symbol(
+        &node,
+        function_name.clone(),
+        SymbolKind::Function,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(if is_static {
+                Visibility::Private
+            } else {
+                Visibility::Public
+            }),
+            parent_id: parent_id.map(|s| s.to_string()),
+            metadata: Some(HashMap::from([
+                ("type".to_string(), Value::String("function".to_string())),
+                ("name".to_string(), Value::String(function_name)),
+                ("returnType".to_string(), Value::String(return_type)),
+                (
+                    "parameters".to_string(),
+                    Value::String(parameters.join(", ")),
+                ),
+                (
+                    "isDefinition".to_string(),
+                    Value::String("false".to_string()),
+                ),
+                ("isStatic".to_string(), Value::String(is_static.to_string())),
+            ])),
+            doc_comment,
+            annotations,
+        },
+    ))
 }
 
 /// Extract a variable declaration
@@ -276,7 +251,8 @@ pub(super) fn extract_variable_declaration(
     declarator: tree_sitter::Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let variable_name = helpers::extract_variable_name(&extractor.base, declarator)?;
+    let target = helpers::declarator_target(declarator)?;
+    let variable_name = extractor.base.get_node_text(&target.name);
     let signature = signatures::build_variable_signature(&extractor.base, node, declarator);
     let visibility = if helpers::is_static_function(&extractor.base, node) {
         "private"
@@ -284,7 +260,7 @@ pub(super) fn extract_variable_declaration(
         "public"
     };
 
-    let symbol = extractor.base.create_symbol(
+    let mut symbol = extractor.base.create_symbol(
         &node,
         variable_name.clone(),
         SymbolKind::Variable,
@@ -301,7 +277,11 @@ pub(super) fn extract_variable_declaration(
                 ("name".to_string(), Value::String(variable_name)),
                 (
                     "dataType".to_string(),
-                    Value::String(types::extract_variable_type(&extractor.base, node)),
+                    Value::String(types::extract_variable_type(
+                        &extractor.base,
+                        node,
+                        declarator,
+                    )),
                 ),
                 (
                     "isStatic".to_string(),
@@ -334,6 +314,12 @@ pub(super) fn extract_variable_declaration(
             annotations: Vec::new(),
         },
     );
+    if target.derives_function {
+        symbol.metadata.get_or_insert_default().insert(
+            "isFunctionPointer".to_string(),
+            Value::String("true".to_string()),
+        );
+    }
     type_facts::record_declared_from_declaration(&mut extractor.base, &symbol.id, node, declarator);
     Some(symbol)
 }

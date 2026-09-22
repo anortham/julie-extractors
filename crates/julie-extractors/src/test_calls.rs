@@ -10,7 +10,8 @@
 //! languages. The JS/TS path ([`extract_test_call`] + [`is_test_runner_call`]) is
 //! built on that core; Dart, Lua, R, and C/C++ adapters reuse the same builder.
 
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, TestRole};
+use crate::base::body::body_hash;
+use crate::base::{BaseExtractor, NormalizedSpan, Symbol, SymbolKind, SymbolOptions, TestRole};
 use crate::test_detection::apply_test_role;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -124,6 +125,56 @@ pub fn build_test_call_symbol(
     category: TestCallCategory,
     parent_id: Option<&str>,
 ) -> Symbol {
+    let options = test_call_options(full_callee, &name, category, parent_id);
+    base.create_symbol(node, name, SymbolKind::Function, options)
+}
+
+/// Build a test-DSL call symbol whose block the grammar parsed as a sibling of
+/// the call rather than an argument: C and C++ macros such as
+/// `Test(suite, name) { ... }` and `TEST_CASE("name") { ... }`. The symbol spans
+/// the call through the block, and the block is its body.
+pub fn build_test_call_symbol_with_block(
+    base: &mut BaseExtractor,
+    node: &Node,
+    block: &Node,
+    full_callee: &str,
+    name: String,
+    category: TestCallCategory,
+    parent_id: Option<&str>,
+) -> Symbol {
+    let options = test_call_options(full_callee, &name, category, parent_id);
+    let span = NormalizedSpan::from_content_range_with_line_starts(
+        &base.content,
+        base.line_starts(),
+        node.start_byte(),
+        block.end_byte(),
+    )
+    .unwrap_or_else(|| NormalizedSpan::from_node(node));
+    let mut symbol = base.create_symbol_from_span(node, span, name, SymbolKind::Function, options);
+    let body = NormalizedSpan::from_node(block);
+    symbol.body_span = Some(body);
+    symbol.body_hash = body_hash(&base.content, body, &base.language);
+    symbol
+}
+
+/// The block that follows a call-style test macro as the next statement:
+/// `Test(a, b) { ... }` parses as an `expression_statement` holding the call,
+/// then a separate `compound_statement`.
+pub fn detached_macro_block<'tree>(call: &Node<'tree>) -> Option<Node<'tree>> {
+    let statement = call
+        .parent()
+        .filter(|p| p.kind() == "expression_statement")?;
+    statement
+        .next_named_sibling()
+        .filter(|sibling| sibling.kind() == "compound_statement")
+}
+
+fn test_call_options(
+    full_callee: &str,
+    name: &str,
+    category: TestCallCategory,
+    parent_id: Option<&str>,
+) -> SymbolOptions {
     let signature = match category {
         TestCallCategory::Lifecycle => format!("{}()", full_callee),
         _ => format!("{}(\"{}\")", full_callee, name),
@@ -132,19 +183,14 @@ pub fn build_test_call_symbol(
     let mut metadata = HashMap::new();
     apply_test_role(&mut metadata, test_call_role(full_callee, category));
 
-    base.create_symbol(
-        node,
-        name,
-        SymbolKind::Function,
-        SymbolOptions {
-            signature: Some(signature),
-            visibility: None,
-            parent_id: parent_id.map(|s| s.to_string()),
-            metadata: Some(metadata),
-            doc_comment: None,
-            annotations: Vec::new(),
-        },
-    )
+    SymbolOptions {
+        signature: Some(signature),
+        visibility: None,
+        parent_id: parent_id.map(|s| s.to_string()),
+        metadata: Some(metadata),
+        doc_comment: None,
+        annotations: Vec::new(),
+    }
 }
 
 // ---------------------------------------------------------------------------

@@ -29,24 +29,6 @@ pub(super) fn build_function_signature(base: &BaseExtractor, node: tree_sitter::
     )
 }
 
-/// Build function declaration signature
-pub(super) fn build_function_declaration_signature(
-    base: &BaseExtractor,
-    node: tree_sitter::Node,
-) -> String {
-    let return_type = types::extract_return_type(base, node);
-    let function_name =
-        helpers::extract_function_name_from_declaration(base, node).unwrap_or_default();
-    let parameters = extract_function_parameters_from_declaration(base, node);
-
-    format!(
-        "{} {}({})",
-        return_type,
-        function_name,
-        parameters.join(", ")
-    )
-}
-
 /// Build variable signature: "[storage] [qualifiers] type name[array] [= initializer]"
 pub(super) fn build_variable_signature(
     base: &BaseExtractor,
@@ -55,7 +37,10 @@ pub(super) fn build_variable_signature(
 ) -> String {
     let storage_class = types::extract_storage_class(base, node);
     let type_qualifiers = types::extract_type_qualifiers(base, node);
-    let data_type = types::extract_variable_type(base, node);
+    let data_type = types::extract_variable_type(base, node, declarator);
+    if helpers::declarator_target(declarator).is_some_and(|target| target.derives_function) {
+        return function_pointer_variable_signature(base, node, declarator);
+    }
     let variable_name = helpers::extract_variable_name(base, declarator).unwrap_or_default();
     let array_spec = types::extract_array_specifier(base, declarator);
     let initializer = types::extract_initializer(base, declarator);
@@ -76,6 +61,34 @@ pub(super) fn build_variable_signature(
     }
 
     signature
+}
+
+/// A function-pointer variable reads only as its whole declarator:
+/// `int (*cmp)(const void *, const void *) = compare`.
+fn function_pointer_variable_signature(
+    base: &BaseExtractor,
+    node: tree_sitter::Node,
+    declarator: tree_sitter::Node,
+) -> String {
+    let mut parts = Vec::new();
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if matches!(
+            child.kind(),
+            "storage_class_specifier"
+                | "type_qualifier"
+                | "primitive_type"
+                | "type_identifier"
+                | "sized_type_specifier"
+                | "struct_specifier"
+                | "union_specifier"
+                | "enum_specifier"
+        ) {
+            parts.push(base.get_node_text(&child));
+        }
+    }
+    parts.push(base.get_node_text(&declarator));
+    parts.join(" ")
 }
 
 /// Build struct signature: "struct Name { field_type field_name; ... }"
@@ -250,32 +263,9 @@ pub(super) fn extract_function_parameters(
     base: &BaseExtractor,
     node: tree_sitter::Node,
 ) -> Vec<String> {
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if child.kind() == "function_declarator" {
-            return extract_parameters_from_declarator(base, child);
-        }
-        if child.kind() == "pointer_declarator" {
-            let mut pointer_cursor = child.walk();
-            for pointer_child in child.children(&mut pointer_cursor) {
-                if pointer_child.kind() == "function_declarator" {
-                    return extract_parameters_from_declarator(base, pointer_child);
-                }
-            }
-        }
-    }
-    Vec::new()
-}
-
-/// Extract parameters from a function declaration
-pub(super) fn extract_function_parameters_from_declaration(
-    base: &BaseExtractor,
-    node: tree_sitter::Node,
-) -> Vec<String> {
-    if let Some(function_declarator) = helpers::find_function_declarator(node) {
-        return extract_parameters_from_declarator(base, function_declarator);
-    }
-    Vec::new()
+    helpers::find_function_declarator(node)
+        .map(|declarator| extract_parameters_from_declarator(base, declarator))
+        .unwrap_or_default()
 }
 
 /// Extract struct fields from a struct_specifier or union_specifier node.
