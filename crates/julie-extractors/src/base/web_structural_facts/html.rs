@@ -1,19 +1,16 @@
 use std::collections::HashMap;
 
 use serde_json::{Number, Value};
-use tree_sitter::{Node, Parser, Tree};
+use tree_sitter::{Node, Tree};
 
-use super::css::collect_css_structural_facts_with_host;
 use super::fact_builders::{
-    base_metadata, child_by_kind, fact_for_node, fact_for_node_with_identity, insert_string,
-    node_text,
+    base_metadata, fact_for_node, fact_for_node_with_identity, insert_string, node_text,
 };
 use super::{
     HTML_AREA_LINK_PATTERN_ID, HTML_DATA_ATTRIBUTE_PATTERN_ID, HTML_FORM_CONTROL_PATTERN_ID,
     HTML_FORM_PATTERN_ID, HTML_LANDMARK_PATTERN_ID, HTML_LINK_PATTERN_ID, HTML_MEDIA_PATTERN_ID,
     HTML_SCRIPT_PATTERN_ID,
 };
-use crate::base::embedded_span::EmbeddedSpanOffset;
 use crate::base::types::StructuralFact;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
@@ -93,9 +90,6 @@ fn collect_html_node(
             if let Some(fact) = html_script_fact(file_path, content, node, "script", &attributes) {
                 facts.push(fact);
             }
-        }
-        "style_element" => {
-            facts.extend(html_style_css_facts(file_path, content, node));
         }
         "element" => {
             if let Some(tag_name) = html_tag_name(content, node) {
@@ -318,33 +312,6 @@ fn html_landmark_fact_for_element(
     let is_native_landmark = matches!(tag_name, "header" | "nav" | "main" | "aside" | "footer");
     (is_native_landmark || html_has_landmark_role(attributes))
         .then(|| html_landmark_fact(file_path, content, node, tag_name, attributes))
-}
-
-fn html_style_css_facts(file_path: &str, content: &str, node: Node<'_>) -> Vec<StructuralFact> {
-    let Some(raw_text) = child_by_kind(node, "raw_text") else {
-        return Vec::new();
-    };
-    let start = raw_text.start_byte();
-    let end = raw_text.end_byte();
-    if start >= end || end > content.len() {
-        return Vec::new();
-    }
-    let style_content = &content[start..end];
-
-    let mut parser = Parser::new();
-    if parser
-        .set_language(&tree_sitter_css::LANGUAGE.into())
-        .is_err()
-    {
-        return Vec::new();
-    }
-    let Some(tree) = parser.parse(style_content, None) else {
-        return Vec::new();
-    };
-    let Some(offset) = EmbeddedSpanOffset::from_host_byte(content, start) else {
-        return Vec::new();
-    };
-    collect_css_structural_facts_with_host(&tree, file_path, style_content, "html", Some(offset))
 }
 
 fn html_landmark_fact(

@@ -257,7 +257,7 @@ const count = ref(0)
         .find(|s| s.name == "ref" && s.kind == SymbolKind::Import);
     assert!(ref_import.is_some(), "Should extract 'ref' import");
     let ref_import = ref_import.unwrap();
-    let ref_offset = vue_code.find("ref, computed, watch").unwrap() as u32;
+    let ref_offset = vue_code.find("import { ref, computed, watch }").unwrap() as u32;
     let (ref_line, ref_column) = line_column_for_byte(vue_code, ref_offset as usize);
     assert_eq!(ref_import.start_byte, ref_offset);
     assert_eq!(ref_import.start_line, ref_line);
@@ -286,7 +286,7 @@ const count = ref(0)
         "Should extract 'MyComponent' default import"
     );
     let my_component = my_component.unwrap();
-    let my_component_offset = vue_code.find("MyComponent from").unwrap() as u32;
+    let my_component_offset = vue_code.find("import MyComponent from").unwrap() as u32;
     let (my_component_line, my_component_column) =
         line_column_for_byte(vue_code, my_component_offset as usize);
     assert_eq!(my_component.start_byte, my_component_offset);
@@ -472,8 +472,21 @@ export default {
     assert!(increment.start_byte > vue_code.find("<script>").unwrap() as u32);
     assert_eq!(
         &vue_code[increment.start_byte as usize..increment.end_byte as usize],
-        "increment"
+        "increment() {\n      this.total++\n    }"
     );
+    let body = increment
+        .body_span
+        .expect("Options API methods keep a body span");
+    assert_eq!(
+        &vue_code[body.start_byte as usize..body.end_byte as usize],
+        "{\n      this.total++\n    }"
+    );
+    assert!(increment.body_hash.is_some());
+    let methods = symbols
+        .iter()
+        .find(|symbol| symbol.name == "methods")
+        .expect("methods group");
+    assert_eq!(increment.parent_id.as_deref(), Some(methods.id.as_str()));
 }
 
 #[test]

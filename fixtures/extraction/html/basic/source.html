@@ -9,10 +9,27 @@
       <h1>Worker</h1>
       <a href="/workers">Workers</a>
       <button data-action="run">Run</button>
+      <button onclick="saveWorker(event)" data-action="click->worker#refresh">Save</button>
+      <button @click="toggle()" hx-on::after-request="notifyReset(event)">Toggle</button>
     </section>
+    <style>
+      :root { --brand: #0f766e; }
+      .worker { color: var(--brand); }
+    </style>
     <script>
       function helper(value) {
         return value + 1;
+      }
+      // Saves the worker, then reports failures.
+      function saveWorker(event) {
+        if (!event) {
+          reportError("missing event");
+        }
+        fetch("/api/workers", { method: "POST" });
+      }
+      class WorkerCard extends HTMLElement {
+        connectedCallback() { this.render(); }
+        render() { loadDashboard(helper(1)); }
       }
     </script>
   </body>

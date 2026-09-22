@@ -1,44 +1,92 @@
-/// Component name extraction from Vue SFC
-///
-/// Handles extracting component name from export default { name: ... } or filename
-use super::parsing::VueSection;
-use regex::Regex;
-use std::sync::LazyLock;
+//! Component name of a Vue SFC.
 
-/// Regex for matching component name in Vue export default { name: '...' }
-static COMPONENT_NAME_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"name\s*:\s*['"]([^'"]+)['"]"#).unwrap());
+use super::parsing::ParsedVueSfc;
+use tree_sitter::Node;
 
-/// Extract component name from sections or filename
-/// Priority: export default { name: 'X' } > filename
-pub(super) fn extract_component_name(file_path: &str, sections: &[VueSection]) -> Option<String> {
-    // First try to find name from script section: export default { name: 'ComponentName' }
-    for section in sections {
-        if section.section_type == "script" {
-            // Look for: name: 'ComponentName' or name: "ComponentName"
-            if let Some(name_match) = COMPONENT_NAME_RE.captures(&section.content)
-                && let Some(name) = name_match.get(1)
-            {
-                return Some(name.as_str().to_string());
-            }
-        }
+/// The `name` of the component options object (`export default {...}`,
+/// `export default defineComponent({...})`, or `defineOptions({...})`), else
+/// the file stem in PascalCase.
+pub(super) fn extract_component_name(file_path: &str, sfc: &ParsedVueSfc) -> Option<String> {
+    let declared = sfc.sections.iter().enumerate().find_map(|(idx, section)| {
+        let tree = sfc.script_tree(idx)?;
+        options_objects(tree.root_node(), &section.content)
+            .into_iter()
+            .find_map(|object| name_pair_value(object, &section.content))
+    });
+    if declared.is_some() {
+        return declared;
     }
 
-    // Fallback: use filename (convert kebab-case to PascalCase)
-    let filename = std::path::Path::new(file_path).file_stem()?;
-    let name = filename.to_str()?;
+    let stem = std::path::Path::new(file_path).file_stem()?.to_str()?;
+    Some(
+        stem.split('-')
+            .map(|part| {
+                let mut chars = part.chars();
+                match chars.next() {
+                    None => String::new(),
+                    Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+                }
+            })
+            .collect(),
+    )
+}
 
-    // Convert my-component.vue -> MyComponent
-    let pascal_case = name
-        .split('-')
-        .map(|part| {
-            let mut chars = part.chars();
-            match chars.next() {
-                None => String::new(),
-                Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+/// The component options objects of a script block.
+pub(super) fn options_objects<'t>(root: Node<'t>, source: &str) -> Vec<Node<'t>> {
+    let mut objects = Vec::new();
+    let mut cursor = root.walk();
+    for statement in root.named_children(&mut cursor) {
+        match statement.kind() {
+            "export_statement" => {
+                if let Some(value) = statement.child_by_field_name("value") {
+                    objects.extend(options_object(value, source, "defineComponent"));
+                }
             }
-        })
-        .collect::<String>();
+            "expression_statement" => {
+                if let Some(call) = statement.named_child(0) {
+                    objects.extend(options_object(call, source, "defineOptions"));
+                }
+            }
+            _ => {}
+        }
+    }
+    objects
+}
 
-    Some(pascal_case)
+fn options_object<'t>(value: Node<'t>, source: &str, wrapper: &str) -> Option<Node<'t>> {
+    match value.kind() {
+        "object" => Some(value),
+        "call_expression" => {
+            let callee = value.child_by_field_name("function")?;
+            if source.get(callee.byte_range())? != wrapper {
+                return None;
+            }
+            let arguments = value.child_by_field_name("arguments")?;
+            arguments
+                .named_child(0)
+                .filter(|argument| argument.kind() == "object")
+        }
+        _ => None,
+    }
+}
+
+fn name_pair_value(object: Node<'_>, source: &str) -> Option<String> {
+    let mut cursor = object.walk();
+    object.named_children(&mut cursor).find_map(|pair| {
+        if pair.kind() != "pair" {
+            return None;
+        }
+        let key = pair.child_by_field_name("key")?;
+        let key_text = source.get(key.byte_range())?.trim_matches(['"', '\'']);
+        if key_text != "name" {
+            return None;
+        }
+        let value = pair.child_by_field_name("value")?;
+        if value.kind() != "string" {
+            return None;
+        }
+        let text = source.get(value.byte_range())?;
+        let name = text.trim_matches(['"', '\'']);
+        (!name.is_empty()).then(|| name.to_string())
+    })
 }

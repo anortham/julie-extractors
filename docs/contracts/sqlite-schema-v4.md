@@ -854,6 +854,7 @@ Supported patterns are advertised in
 | `css.layer.v1` | `css`, `vue`, `html` | `layer` | `at_rule` | `stylesheet_structure` | A CSS `@layer` rule. |
 | `css.charset.v1` | `css`, `vue`, `html` | `charset` | `charset_statement` | `stylesheet_structure` | A CSS `@charset` rule. |
 | `css.namespace.v1` | `css`, `vue`, `html` | `namespace` | `namespace_statement` | `stylesheet_structure` | A CSS `@namespace` rule. |
+| `css.import.v1` | `css`, `vue`, `html` | `import` | `import_statement` | `stylesheet_structure` | A CSS `@import` of another stylesheet (`url`, optional `media`). |
 | `html.link.v1` | `html` | `link` | `element` | `document_navigation` | An HTML anchor link with an `href` target. |
 | `html.area_link.v1` | `html` | `area_link` | `element` | `document_navigation` | An HTML image-map area link (`<area href>`). |
 | `html.media.v1` | `html` | `media` | `element` | `document_assets` | An HTML media reference (`img`/`source`/audio/video/track with `src`). |

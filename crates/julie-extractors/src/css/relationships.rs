@@ -1,112 +1,158 @@
-use crate::base::{
-    BaseExtractor, Relationship, RelationshipKind, Symbol, containing_symbol_at_line,
-};
-use regex::Regex;
+use crate::base::{BaseExtractor, NormalizedSpan, Relationship, RelationshipKind, Symbol};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
-use std::sync::LazyLock;
+use tree_sitter::{Node, Tree};
 
-static CUSTOM_PROPERTY_USE_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"var\(\s*(--[A-Za-z0-9_-]+)").unwrap());
-static ANIMATION_NAME_DECL_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\banimation-name\s*:\s*([^;]+)").unwrap());
-static CSS_IDENTIFIER_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^[A-Za-z_][A-Za-z0-9_-]*$").unwrap());
+struct Targets<'a> {
+    custom_properties: HashMap<String, Vec<&'a Symbol>>,
+    keyframes: HashMap<String, Vec<&'a Symbol>>,
+}
 
-pub(super) fn extract_relationships(base: &BaseExtractor, symbols: &[Symbol]) -> Vec<Relationship> {
-    let custom_properties = symbols_by_metadata(symbols, "property");
-    let keyframes = symbols_by_metadata(symbols, "animationName");
+/// One `references` edge per `var(--x)` or animation name node, from the
+/// innermost symbol whose byte range holds the node to every same-name
+/// declaration in the file.
+pub(super) fn extract_relationships(
+    base: &BaseExtractor,
+    tree: &Tree,
+    symbols: &[Symbol],
+) -> Vec<Relationship> {
+    let targets = Targets {
+        custom_properties: symbols_by_metadata(symbols, "property"),
+        keyframes: symbols_by_metadata(symbols, "animationName"),
+    };
     let mut relationships = Vec::new();
     let mut seen = HashSet::new();
-    let mut in_block_comment = false;
-
-    for (line_index, line) in base.content.lines().enumerate() {
-        let line_number = line_index as u32 + 1;
-        let scan_line = strip_css_comments(line, &mut in_block_comment);
-
-        for captures in CUSTOM_PROPERTY_USE_RE.captures_iter(&scan_line) {
-            let Some(name_match) = captures.get(1) else {
-                continue;
-            };
-            let name = name_match.as_str();
-            let Some(target) = custom_properties.get(name) else {
-                continue;
-            };
+    let mut references = Vec::new();
+    collect_references(base, tree.root_node(), &targets, &mut references, 0);
+    for (node, candidates, reference_type) in references {
+        for target in candidates {
             push_relationship(
                 base,
                 symbols,
                 target,
-                line_number,
-                name,
-                Some(name_match.start()),
-                "custom-property",
+                node,
+                reference_type,
                 &mut seen,
                 &mut relationships,
             );
         }
-
-        for captures in ANIMATION_NAME_DECL_RE.captures_iter(&scan_line) {
-            let Some(value_match) = captures.get(1) else {
-                continue;
-            };
-            let value = value_match.as_str();
-            for (name, offset) in parse_animation_names(value) {
-                if let Some(target) = keyframes.get(name) {
-                    push_relationship(
-                        base,
-                        symbols,
-                        target,
-                        line_number,
-                        name,
-                        Some(value_match.start() + offset),
-                        "keyframes",
-                        &mut seen,
-                        &mut relationships,
-                    );
-                }
-            }
-        }
     }
-
     relationships
 }
 
-fn symbols_by_metadata<'a>(symbols: &'a [Symbol], key: &str) -> HashMap<String, &'a Symbol> {
-    symbols
-        .iter()
-        .filter_map(|symbol| {
-            let value = symbol
-                .metadata
-                .as_ref()
-                .and_then(|metadata| metadata.get(key))
-                .and_then(Value::as_str)?;
-            Some((value.to_string(), symbol))
-        })
-        .collect()
+fn collect_references<'t, 's>(
+    base: &BaseExtractor,
+    node: Node<'t>,
+    targets: &'s Targets<'s>,
+    references: &mut Vec<(Node<'t>, &'s [&'s Symbol], &'static str)>,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    match node.kind() {
+        "call_expression" => {
+            if let Some(argument) = var_argument(base, node)
+                && let Some(candidates) = targets
+                    .custom_properties
+                    .get(&base.get_node_text(&argument))
+            {
+                references.push((argument, candidates, "custom-property"));
+            }
+        }
+        "declaration" if is_animation_declaration(base, node) => {
+            let mut cursor = node.walk();
+            for value in node.named_children(&mut cursor) {
+                if value.kind() == "plain_value"
+                    && let Some(candidates) = targets.keyframes.get(&base.get_node_text(&value))
+                {
+                    references.push((value, candidates, "keyframes"));
+                }
+            }
+        }
+        _ => {}
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_references(base, child, targets, references, child_depth);
+    }
 }
 
-#[allow(clippy::too_many_arguments)]
+fn var_argument<'t>(base: &BaseExtractor, call: Node<'t>) -> Option<Node<'t>> {
+    let mut cursor = call.walk();
+    let children: Vec<Node<'t>> = call.named_children(&mut cursor).collect();
+    let function_name = children
+        .iter()
+        .find(|child| child.kind() == "function_name")?;
+    if base.get_node_text(function_name) != "var" {
+        return None;
+    }
+    let arguments = children.iter().find(|child| child.kind() == "arguments")?;
+    let mut cursor = arguments.walk();
+    let first = arguments.named_children(&mut cursor).next()?;
+    (first.kind() == "plain_value" && base.get_node_text(&first).starts_with("--")).then_some(first)
+}
+
+fn is_animation_declaration(base: &BaseExtractor, declaration: Node<'_>) -> bool {
+    let mut cursor = declaration.walk();
+    declaration
+        .named_children(&mut cursor)
+        .find(|child| child.kind() == "property_name")
+        .is_some_and(|name| {
+            let name = base.get_node_text(&name).to_ascii_lowercase();
+            name == "animation" || name == "animation-name"
+        })
+}
+
+fn innermost_symbol_containing<'a>(symbols: &'a [Symbol], node: Node<'_>) -> Option<&'a Symbol> {
+    let (start, end) = (node.start_byte() as u32, node.end_byte() as u32);
+    symbols
+        .iter()
+        .filter(|symbol| symbol.start_byte <= start && end <= symbol.end_byte)
+        .min_by_key(|symbol| symbol.end_byte - symbol.start_byte)
+}
+
+fn symbols_by_metadata<'a>(symbols: &'a [Symbol], key: &str) -> HashMap<String, Vec<&'a Symbol>> {
+    let mut by_name: HashMap<String, Vec<&'a Symbol>> = HashMap::new();
+    for symbol in symbols {
+        if let Some(value) = symbol
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get(key))
+            .and_then(Value::as_str)
+        {
+            by_name.entry(value.to_string()).or_default().push(symbol);
+        }
+    }
+    by_name
+}
+
 fn push_relationship(
     base: &BaseExtractor,
     symbols: &[Symbol],
     target: &Symbol,
-    line_number: u32,
-    reference_name: &str,
-    reference_start_column: Option<usize>,
+    node: Node<'_>,
     reference_type: &str,
     seen: &mut HashSet<(String, String, u32, String)>,
     relationships: &mut Vec<Relationship>,
 ) {
     let Some(source) =
-        containing_symbol_at_line(symbols, line_number).filter(|source| source.id != target.id)
+        innermost_symbol_containing(symbols, node).filter(|source| source.id != target.id)
     else {
         return;
     };
+    let reference_name = base.get_node_text(&node);
+    let span = NormalizedSpan::from_node(&node);
+    let line_number = span.start_line;
     let key = (
         source.id.clone(),
         target.id.clone(),
         line_number,
-        reference_name.to_string(),
+        reference_name.clone(),
     );
     if !seen.insert(key) {
         return;
@@ -115,7 +161,7 @@ fn push_relationship(
     let mut metadata = HashMap::new();
     metadata.insert(
         "referenceName".to_string(),
-        Value::String(reference_name.to_string()),
+        Value::String(reference_name.clone()),
     );
     metadata.insert(
         "referenceType".to_string(),
@@ -136,66 +182,9 @@ fn push_relationship(
         kind: RelationshipKind::References,
         file_path: base.file_path.clone(),
         line_number,
-        span: reference_start_column
-            .and_then(|column| {
-                crate::base::NormalizedSpan::from_line_match(
-                    &base.content,
-                    line_number,
-                    column,
-                    reference_name,
-                )
-            })
-            .or_else(|| {
-                crate::base::NormalizedSpan::from_line_occurrence(
-                    &base.content,
-                    line_number,
-                    reference_name,
-                )
-            }),
-        reference_site_is_exact: false,
+        span: Some(span),
+        reference_site_is_exact: true,
         confidence: 1.0,
         metadata: Some(metadata),
     });
-}
-
-fn parse_animation_names(value: &str) -> impl Iterator<Item = (&str, usize)> {
-    value
-        .split(',')
-        .scan(0usize, |segment_start, segment| {
-            let name = segment.trim();
-            let leading_whitespace = segment.len() - segment.trim_start().len();
-            let offset = *segment_start + leading_whitespace;
-            *segment_start += segment.len() + 1;
-            Some((name, offset))
-        })
-        .filter(|(name, _)| CSS_IDENTIFIER_RE.is_match(name))
-}
-
-fn strip_css_comments(line: &str, in_block_comment: &mut bool) -> String {
-    let mut output = line.as_bytes().to_vec();
-    let mut cursor = 0;
-    while cursor < line.len() {
-        if *in_block_comment {
-            if let Some(end_offset) = line[cursor..].find("*/") {
-                let end = cursor + end_offset + 2;
-                output[cursor..end].fill(b' ');
-                cursor = end;
-                *in_block_comment = false;
-                continue;
-            }
-            output[cursor..].fill(b' ');
-            break;
-        }
-
-        if let Some(start_offset) = line[cursor..].find("/*") {
-            cursor += start_offset;
-            let opener_end = cursor + 2;
-            output[cursor..opener_end].fill(b' ');
-            cursor = opener_end;
-            *in_block_comment = true;
-            continue;
-        }
-        break;
-    }
-    String::from_utf8(output).expect("replacing comment bytes with spaces preserves UTF-8")
 }

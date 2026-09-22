@@ -1920,6 +1920,7 @@
         },
         "relationships": {
           "supported": [
+            "calls",
             "imports",
             "references"
           ],
@@ -1929,11 +1930,10 @@
         "identifiers": {
           "supported": [
             "call",
-            "member_access"
-          ],
-          "not_applicable": [
+            "member_access",
             "variable_ref"
           ],
+          "not_applicable": [],
           "open_gaps": []
         },
         "body_spans": {
@@ -1955,6 +1955,7 @@
             "css.container.v1",
             "css.custom_property.v1",
             "css.font_face.v1",
+            "css.import.v1",
             "css.keyframes.v1",
             "css.layer.v1",
             "css.media_query.v1",
@@ -1969,17 +1970,18 @@
             "html.link.v1",
             "html.media.v1",
             "html.script.v1",
-            "htmx.attribute.v1"
+            "htmx.attribute.v1",
+            "http.client_request.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
         },
         "complexity_metrics": {
-          "supported": [],
-          "not_applicable": [
+          "supported": [
             "file",
             "symbol"
           ],
+          "not_applicable": [],
           "open_gaps": []
         },
         "annotations": {
@@ -2009,6 +2011,7 @@
         },
         "source_regions": {
           "supported": [
+            "comment",
             "doc_comment",
             "embedded",
             "string_literal"
@@ -2037,7 +2040,7 @@
       "capabilities": {
         "symbols": true,
         "relationships": true,
-        "pending_relationships": false,
+        "pending_relationships": true,
         "identifiers": true,
         "types": false
       },
@@ -2061,22 +2064,11 @@
       "target_capabilities": {
         "symbols": true,
         "relationships": true,
-        "pending_relationships": false,
+        "pending_relationships": true,
         "identifiers": true,
         "types": false
       },
       "capability_gaps": [
-        {
-          "capability": "pending_relationships",
-          "status": "exception",
-          "reason": "CSS @import directives resolve at extraction time and current relationship extraction emits direct edges. CSS has no forward-reference construct that would benefit from pending relationships.",
-          "required_closure": "N/A — domain limitation.",
-          "evidence": {
-            "kind": "test",
-            "value": "css_pending_relationships_intra_document_only",
-            "command": "cargo nextest run -p julie-extractors --lib tests::css::cross_file_pending::css_pending_relationships_intra_document_only"
-          }
-        },
         {
           "capability": "types",
           "status": "exception",
@@ -2102,6 +2094,7 @@
         },
         "relationships": {
           "supported": [
+            "imports",
             "references"
           ],
           "not_applicable": [],
@@ -2132,6 +2125,7 @@
             "css.container.v1",
             "css.custom_property.v1",
             "css.font_face.v1",
+            "css.import.v1",
             "css.keyframes.v1",
             "css.layer.v1",
             "css.media_query.v1",
@@ -2262,6 +2256,11 @@
           "name": "return_types",
           "source": "fixtures/extraction/vue/return_types/source.vue",
           "expected": "fixtures/extraction/vue/return_types/expected.json"
+        },
+        {
+          "name": "language_gaps",
+          "source": "fixtures/extraction/vue/language_gaps/source.vue",
+          "expected": "fixtures/extraction/vue/language_gaps/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2276,9 +2275,15 @@
         "symbols": {
           "supported": [
             "class",
+            "enum",
+            "enum_member",
+            "export",
             "function",
             "import",
+            "interface",
+            "method",
             "property",
+            "type",
             "variable"
           ],
           "not_applicable": [],
@@ -2295,6 +2300,8 @@
         "identifiers": {
           "supported": [
             "call",
+            "member_access",
+            "type_usage",
             "variable_ref"
           ],
           "not_applicable": [],
@@ -2303,13 +2310,17 @@
         "body_spans": {
           "supported": [
             "class",
+            "enum",
+            "export",
             "function",
+            "import",
+            "interface",
+            "method",
             "property",
+            "type",
             "variable"
           ],
-          "not_applicable": [
-            "import"
-          ],
+          "not_applicable": [],
           "open_gaps": []
         },
         "structural_facts": {
@@ -2318,6 +2329,7 @@
             "css.container.v1",
             "css.custom_property.v1",
             "css.font_face.v1",
+            "css.import.v1",
             "css.keyframes.v1",
             "css.layer.v1",
             "css.media_query.v1",
@@ -2354,7 +2366,8 @@
         },
         "doc_comments": {
           "supported": [
-            "class"
+            "class",
+            "export"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2368,6 +2381,8 @@
         },
         "source_regions": {
           "supported": [
+            "comment",
+            "doc_comment",
             "embedded",
             "string_literal"
           ],

@@ -23,6 +23,11 @@ impl EmbeddedSpanOffset {
         })
     }
 
+    /// Moves a 1-based embedded line number to the host line.
+    pub fn apply_line(self, line: u32) -> u32 {
+        line + self.line_delta
+    }
+
     pub fn apply(self, span: NormalizedSpan) -> NormalizedSpan {
         NormalizedSpan {
             start_line: span.start_line + self.line_delta,

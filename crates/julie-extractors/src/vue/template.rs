@@ -1,11 +1,11 @@
+use super::manual_symbols::create_symbol_manual;
 use super::parsing::VueSection;
-use super::script::create_symbol_manual;
 use crate::base::{BaseExtractor, Symbol, SymbolKind};
 use serde_json::Value;
 use std::collections::HashMap;
 
 pub(super) fn extract_template_symbols(base: &BaseExtractor, section: &VueSection) -> Vec<Symbol> {
-    let section_offset = section_content_offset(&base.content, section.start_line);
+    let section_offset = section.content_start;
 
     let mut symbols = Vec::new();
     for (line_start, line) in template_lines(&section.content) {
@@ -45,14 +45,6 @@ fn template_lines(content: &str) -> impl Iterator<Item = (usize, &str)> {
         *offset += line.len() + 1;
         Some((current, line))
     })
-}
-
-fn section_content_offset(content: &str, start_line: usize) -> usize {
-    content
-        .split_inclusive('\n')
-        .take(start_line)
-        .map(str::len)
-        .sum()
 }
 
 fn extract_attribute_symbol(

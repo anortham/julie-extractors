@@ -67,12 +67,12 @@
       "start_byte": 361,
       "end_byte": 376,
       "body_span": {
-        "start_line": 7,
+        "start_line": 15,
         "start_column": 20,
-        "end_line": 7,
+        "end_line": 15,
         "end_column": 22,
-        "start_byte": 207,
-        "end_byte": 209
+        "start_byte": 373,
+        "end_byte": 375
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "after()",
@@ -102,12 +102,12 @@
       "start_byte": 332,
       "end_byte": 351,
       "body_span": {
-        "start_line": 6,
+        "start_line": 14,
         "start_column": 24,
-        "end_line": 6,
+        "end_line": 14,
         "end_column": 26,
-        "start_byte": 182,
-        "end_byte": 184
+        "start_byte": 348,
+        "end_byte": 350
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "afterEach()",
@@ -137,12 +137,12 @@
       "start_byte": 246,
       "end_byte": 262,
       "body_span": {
-        "start_line": 3,
+        "start_line": 11,
         "start_column": 21,
-        "end_line": 3,
+        "end_line": 11,
         "end_column": 23,
-        "start_byte": 93,
-        "end_byte": 95
+        "start_byte": 259,
+        "end_byte": 261
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "before()",
@@ -172,12 +172,12 @@
       "start_byte": 272,
       "end_byte": 292,
       "body_span": {
-        "start_line": 4,
+        "start_line": 12,
         "start_column": 25,
-        "end_line": 4,
+        "end_line": 12,
         "end_column": 27,
-        "start_byte": 123,
-        "end_byte": 125
+        "start_byte": 289,
+        "end_byte": 291
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "beforeEach()",
@@ -243,12 +243,12 @@
       "start_byte": 166,
       "end_byte": 473,
       "body_span": {
-        "start_line": 1,
-        "start_column": 32,
-        "end_line": 11,
+        "start_line": 9,
+        "start_column": 36,
+        "end_line": 19,
         "end_column": 5,
-        "start_byte": 32,
-        "end_byte": 306
+        "start_byte": 198,
+        "end_byte": 472
       },
       "body_hash": "d112602c0a416260ff80f8e9b4db439f",
       "signature": "describe(\"browser suite\")",
@@ -277,12 +277,12 @@
       "start_byte": 502,
       "end_byte": 524,
       "body_span": {
-        "start_line": 1,
-        "start_column": 20,
-        "end_line": 1,
-        "end_column": 22,
-        "start_byte": 20,
-        "end_byte": 22
+        "start_line": 22,
+        "start_column": 24,
+        "end_line": 22,
+        "end_column": 26,
+        "start_byte": 522,
+        "end_byte": 524
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "function describe()",
@@ -386,12 +386,12 @@
       "start_byte": 206,
       "end_byte": 465,
       "body_span": {
-        "start_line": 2,
+        "start_line": 10,
         "start_column": 36,
-        "end_line": 10,
+        "end_line": 18,
         "end_column": 7,
-        "start_byte": 70,
-        "end_byte": 298
+        "start_byte": 236,
+        "end_byte": 464
       },
       "body_hash": "bf59cac5e30ecbdc3bfcbab7298f1016",
       "signature": "context(\"nested suite\")",
@@ -420,12 +420,12 @@
       "start_byte": 302,
       "end_byte": 322,
       "body_span": {
-        "start_line": 5,
+        "start_line": 13,
         "start_column": 25,
-        "end_line": 5,
+        "end_line": 13,
         "end_column": 27,
-        "start_byte": 153,
-        "end_byte": 155
+        "start_byte": 319,
+        "end_byte": 321
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "it(\"runs\")",
@@ -533,6 +533,30 @@
   ],
   "pending_relationships": [
     {
+      "from_key": "fixtures/extraction/html/test_roles/source.html:browser suite:9:4",
+      "callee_name": "context",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "line_number": 10,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
+      "callee_name": "it",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "line_number": 13,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
+      "callee_name": "test",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "line_number": 16,
+      "confidence": "0.700"
+    },
+    {
       "from_key": "fixtures/extraction/html/test_roles/source.html:script:4:2",
       "callee_name": "https://unpkg.com/mocha/mocha.js",
       "kind": "imports",
@@ -542,6 +566,84 @@
     }
   ],
   "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/html/test_roles/source.html:browser suite:9:4",
+        "callee_name": "context",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/html/test_roles/source.html",
+        "line_number": 10,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "context",
+        "terminal_name": "context",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/html/test_roles/source.html:browser suite:9:4",
+      "span": {
+        "start_line": 10,
+        "start_column": 6,
+        "end_line": 18,
+        "end_column": 8,
+        "start_byte": 206,
+        "end_byte": 465
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
+        "callee_name": "it",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/html/test_roles/source.html",
+        "line_number": 13,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "it",
+        "terminal_name": "it",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
+      "span": {
+        "start_line": 13,
+        "start_column": 8,
+        "end_line": 13,
+        "end_column": 28,
+        "start_byte": 302,
+        "end_byte": 322
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
+        "callee_name": "test",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/html/test_roles/source.html",
+        "line_number": 16,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "test",
+        "terminal_name": "test",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
+      "span": {
+        "start_line": 16,
+        "start_column": 8,
+        "end_line": 16,
+        "end_column": 37,
+        "start_byte": 386,
+        "end_byte": 415
+      }
+    },
     {
       "pending": {
         "from_key": "fixtures/extraction/html/test_roles/source.html:script:4:2",
@@ -562,7 +664,232 @@
       "span": null
     }
   ],
-  "identifiers": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/html/test_roles/source.html:after:call:15:8",
+      "name": "after",
+      "kind": "call",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "start_line": 15,
+      "start_column": 8,
+      "end_line": 15,
+      "end_column": 13,
+      "start_byte": 361,
+      "end_byte": 366,
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:after:15:8",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/html/test_roles/source.html:afterEach:call:14:8",
+      "name": "afterEach",
+      "kind": "call",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "start_line": 14,
+      "start_column": 8,
+      "end_line": 14,
+      "end_column": 17,
+      "start_byte": 332,
+      "end_byte": 341,
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:afterEach:14:8",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/html/test_roles/source.html:app:variable_ref:23:4",
+      "name": "app",
+      "kind": "variable_ref",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "start_line": 23,
+      "start_column": 4,
+      "end_line": 23,
+      "end_column": 7,
+      "start_byte": 529,
+      "end_byte": 532,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/html/test_roles/source.html:before:call:11:8",
+      "name": "before",
+      "kind": "call",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "start_line": 11,
+      "start_column": 8,
+      "end_line": 11,
+      "end_column": 14,
+      "start_byte": 246,
+      "end_byte": 252,
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:before:11:8",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/html/test_roles/source.html:beforeEach:call:12:8",
+      "name": "beforeEach",
+      "kind": "call",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "start_line": 12,
+      "start_column": 8,
+      "end_line": 12,
+      "end_column": 18,
+      "start_byte": 272,
+      "end_byte": 282,
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:beforeEach:12:8",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/html/test_roles/source.html:context:call:10:6",
+      "name": "context",
+      "kind": "call",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "start_line": 10,
+      "start_column": 6,
+      "end_line": 10,
+      "end_column": 13,
+      "start_byte": 206,
+      "end_byte": 213,
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/html/test_roles/source.html:describe:call:23:8",
+      "name": "describe",
+      "kind": "call",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "start_line": 23,
+      "start_column": 8,
+      "end_line": 23,
+      "end_column": 16,
+      "start_byte": 533,
+      "end_byte": 541,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/html/test_roles/source.html:describe:call:9:4",
+      "name": "describe",
+      "kind": "call",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "start_line": 9,
+      "start_column": 4,
+      "end_line": 9,
+      "end_column": 12,
+      "start_byte": 166,
+      "end_byte": 174,
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:browser suite:9:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/html/test_roles/source.html:it:call:13:8",
+      "name": "it",
+      "kind": "call",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "start_line": 13,
+      "start_column": 8,
+      "end_line": 13,
+      "end_column": 10,
+      "start_byte": 302,
+      "end_byte": 304,
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:runs:13:8",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/html/test_roles/source.html:it:variable_ref:17:8",
+      "name": "it",
+      "kind": "variable_ref",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "start_line": 17,
+      "start_column": 8,
+      "end_line": 17,
+      "end_column": 10,
+      "start_byte": 425,
+      "end_byte": 427,
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/html/test_roles/source.html:mocha:variable_ref:5:10",
+      "name": "mocha",
+      "kind": "variable_ref",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "start_line": 5,
+      "start_column": 10,
+      "end_line": 5,
+      "end_column": 15,
+      "start_byte": 99,
+      "end_byte": 104,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/html/test_roles/source.html:setup:call:5:16",
+      "name": "setup",
+      "kind": "call",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "start_line": 5,
+      "start_column": 16,
+      "end_line": 5,
+      "end_column": 21,
+      "start_byte": 105,
+      "end_byte": 110,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/html/test_roles/source.html:skip:call:17:11",
+      "name": "skip",
+      "kind": "call",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "start_line": 17,
+      "start_column": 11,
+      "end_line": 17,
+      "end_column": 15,
+      "start_byte": 428,
+      "end_byte": 432,
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/html/test_roles/source.html:test:call:16:8",
+      "name": "test",
+      "kind": "call",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "start_line": 16,
+      "start_column": 8,
+      "end_line": 16,
+      "end_column": 12,
+      "start_byte": 386,
+      "end_byte": 390,
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
   "types": [
     {
       "symbol_key": "fixtures/extraction/html/test_roles/source.html:DOCTYPE:1:0",
@@ -707,8 +1034,223 @@
       }
     }
   ],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "covered_lines": 20,
+      "covered_bytes": 471,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 5,
+      "start_column": 10,
+      "end_line": 24,
+      "end_column": 2,
+      "start_byte": 99,
+      "end_byte": 570,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/html/test_roles/source.html:after:15:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 15,
+      "start_column": 20,
+      "end_line": 15,
+      "end_column": 22,
+      "start_byte": 373,
+      "end_byte": 375,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/html/test_roles/source.html:afterEach:14:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 14,
+      "start_column": 24,
+      "end_line": 14,
+      "end_column": 26,
+      "start_byte": 348,
+      "end_byte": 350,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/html/test_roles/source.html:before:11:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 11,
+      "start_column": 21,
+      "end_line": 11,
+      "end_column": 23,
+      "start_byte": 259,
+      "end_byte": 261,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/html/test_roles/source.html:beforeEach:12:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 12,
+      "start_column": 25,
+      "end_line": 12,
+      "end_column": 27,
+      "start_byte": 289,
+      "end_byte": 291,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/html/test_roles/source.html:browser suite:9:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "covered_lines": 11,
+      "covered_bytes": 274,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 9,
+      "start_column": 36,
+      "end_line": 19,
+      "end_column": 5,
+      "start_byte": 198,
+      "end_byte": 472,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/html/test_roles/source.html:describe:22:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 22,
+      "start_column": 24,
+      "end_line": 22,
+      "end_column": 26,
+      "start_byte": 522,
+      "end_byte": 524,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "covered_lines": 9,
+      "covered_bytes": 228,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 10,
+      "start_column": 36,
+      "end_line": 18,
+      "end_column": 7,
+      "start_byte": 236,
+      "end_byte": 464,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/html/test_roles/source.html:runs:13:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 13,
+      "start_column": 25,
+      "end_line": 13,
+      "end_column": 27,
+      "start_byte": 319,
+      "end_byte": 321,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [
+    {
+      "literal_text": "browser suite",
+      "kind": "other",
+      "carrier": "describe",
+      "arg_position": 0,
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "start_line": 9,
+      "start_column": 13,
+      "end_line": 9,
+      "end_column": 28,
+      "start_byte": 175,
+      "end_byte": 190,
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:browser suite:9:4",
+      "confidence": "1.000"
+    },
     {
       "literal_text": "https://unpkg.com/mocha/mocha.js",
       "kind": "other",
@@ -723,6 +1265,86 @@
       "start_byte": 44,
       "end_byte": 78,
       "containing_key": "fixtures/extraction/html/test_roles/source.html:head:3:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "jest-shaped",
+      "kind": "other",
+      "carrier": "test",
+      "arg_position": 0,
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "start_line": 16,
+      "start_column": 13,
+      "end_line": 16,
+      "end_column": 26,
+      "start_byte": 391,
+      "end_byte": 404,
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "member call",
+      "kind": "other",
+      "carrier": "app.describe",
+      "arg_position": 0,
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "start_line": 23,
+      "start_column": 17,
+      "end_line": 23,
+      "end_column": 30,
+      "start_byte": 542,
+      "end_byte": 555,
+      "containing_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "nested suite",
+      "kind": "other",
+      "carrier": "context",
+      "arg_position": 0,
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "start_line": 10,
+      "start_column": 14,
+      "end_line": 10,
+      "end_column": 28,
+      "start_byte": 214,
+      "end_byte": 228,
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "qualified",
+      "kind": "other",
+      "carrier": "it.skip",
+      "arg_position": 0,
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "start_line": 17,
+      "start_column": 16,
+      "end_line": 17,
+      "end_column": 27,
+      "start_byte": 433,
+      "end_byte": 444,
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "runs",
+      "kind": "other",
+      "carrier": "it",
+      "arg_position": 0,
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "start_line": 13,
+      "start_column": 11,
+      "end_line": 13,
+      "end_column": 17,
+      "start_byte": 305,
+      "end_byte": 311,
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:runs:13:8",
       "confidence": "1.000"
     }
   ],
@@ -807,6 +1429,97 @@
       "end_column": 48,
       "start_byte": 44,
       "end_byte": 78,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:browser suite:9:4",
+      "start_line": 9,
+      "start_column": 13,
+      "end_line": 9,
+      "end_column": 28,
+      "start_byte": 175,
+      "end_byte": 190,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
+      "start_line": 10,
+      "start_column": 14,
+      "end_line": 10,
+      "end_column": 28,
+      "start_byte": 214,
+      "end_byte": 228,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
+      "start_line": 16,
+      "start_column": 13,
+      "end_line": 16,
+      "end_column": 26,
+      "start_byte": 391,
+      "end_byte": 404,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
+      "start_line": 17,
+      "start_column": 16,
+      "end_line": 17,
+      "end_column": 27,
+      "start_byte": 433,
+      "end_byte": 444,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:runs:13:8",
+      "start_line": 13,
+      "start_column": 11,
+      "end_line": 13,
+      "end_column": 17,
+      "start_byte": 305,
+      "end_byte": 311,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:ui:5:24",
+      "start_line": 5,
+      "start_column": 28,
+      "end_line": 5,
+      "end_column": 33,
+      "start_byte": 117,
+      "end_byte": 122,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "containing_key": null,
+      "start_line": 23,
+      "start_column": 17,
+      "end_line": 23,
+      "end_column": 30,
+      "start_byte": 542,
+      "end_byte": 555,
       "metadata": null
     }
   ],

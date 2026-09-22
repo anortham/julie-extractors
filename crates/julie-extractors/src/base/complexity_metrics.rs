@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::{Node, Tree};
 
-use super::embedded_span::EmbeddedSpanOffset;
 use super::kinds::SymbolKind;
 use super::span::NormalizedSpan;
 use super::types::{ComplexityMetric, Symbol, stable_location_id};
@@ -57,10 +56,6 @@ pub fn collect_complexity_metrics(
     file_path: &str,
     symbols: &[Symbol],
 ) -> Vec<ComplexityMetric> {
-    if language == "vue" {
-        return collect_vue_complexity_metrics(source, file_path, symbols);
-    }
-
     let Some(config) = config_for_language(language) else {
         return Vec::new();
     };
@@ -116,7 +111,9 @@ pub fn collect_complexity_metrics(
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
 pub(crate) fn complexity_metric_scopes_for_language(language: &str) -> Vec<&'static str> {
-    if config_for_language(language).is_some() || matches!(language, "vue" | "sql" | "regex") {
+    if config_for_language(language).is_some()
+        || matches!(language, "vue" | "html" | "sql" | "regex")
+    {
         vec!["file", "symbol"]
     } else {
         Vec::new()
@@ -1140,151 +1137,6 @@ const QML_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
     ..DEFAULT_CONFIG
 };
 
-fn collect_vue_complexity_metrics(
-    source: &str,
-    file_path: &str,
-    symbols: &[Symbol],
-) -> Vec<ComplexityMetric> {
-    use crate::vue::parsing::ParsedVueSfc;
-
-    let Ok(sfc) = ParsedVueSfc::parse(source) else {
-        return Vec::new();
-    };
-    collect_vue_complexity_metrics_from_sfc(&sfc, source, file_path, symbols)
-}
-
-pub(crate) fn collect_vue_complexity_metrics_from_sfc(
-    sfc: &crate::vue::parsing::ParsedVueSfc,
-    source: &str,
-    file_path: &str,
-    symbols: &[Symbol],
-) -> Vec<ComplexityMetric> {
-    use crate::vue::parsing::VueSection;
-
-    let script_sections: Vec<(usize, &VueSection)> = sfc
-        .sections
-        .iter()
-        .enumerate()
-        .filter(|(_, section)| section.section_type == "script")
-        .collect();
-    if script_sections.is_empty() {
-        return Vec::new();
-    }
-
-    let config = ECMASCRIPT_CONFIG;
-    let mut metrics = Vec::new();
-    let mut file_stats = ComplexityStats::default();
-    let mut file_span: Option<NormalizedSpan> = None;
-
-    // Reuse section trees across file stats and all callable symbols
-    let section_trees: Vec<Option<&Tree>> = script_sections
-        .iter()
-        .map(|(idx, _)| sfc.script_tree(*idx))
-        .collect();
-
-    for (i, (_, section)) in script_sections.iter().enumerate() {
-        let Some(tree) = section_trees[i] else {
-            continue;
-        };
-        let root = tree.root_node();
-        let local_span = NormalizedSpan::from_node(&root);
-        let byte_start = vue_section_byte_offset(source, section.start_line);
-        let Some(offset) = EmbeddedSpanOffset::from_host_byte(source, byte_start as usize) else {
-            continue;
-        };
-        let section_file_span = offset.apply(local_span);
-        let mut section_stats = ComplexityStats::default();
-        collect_stats(
-            "typescript",
-            root,
-            &section.content,
-            local_span,
-            config,
-            NestingDepth(0),
-            0,
-            &mut section_stats,
-        );
-        merge_complexity_stats(&mut file_stats, section_stats);
-        file_span = Some(merge_spans(file_span, section_file_span));
-    }
-
-    if let Some(span) = file_span {
-        metrics.push(build_complexity_metric(
-            file_path,
-            "vue",
-            MetricScopeInput {
-                scope: "file",
-                symbol_id: None,
-                span,
-                parameter_count: None,
-            },
-            file_stats,
-        ));
-    }
-
-    let sections_slice: Vec<&VueSection> = script_sections.iter().map(|(_, s)| *s).collect();
-
-    for symbol in symbols.iter().filter(|symbol| is_callable(&symbol.kind)) {
-        let Some((sec_i, byte_start)) =
-            vue_script_section_index_for_symbol(source, &sections_slice, symbol)
-        else {
-            continue;
-        };
-        let Some(tree) = section_trees[sec_i] else {
-            continue;
-        };
-        let section = script_sections[sec_i].1;
-        let root = tree.root_node();
-        let symbol_file_span = symbol
-            .body_span
-            .map(|body| NormalizedSpan {
-                start_line: body.start_line,
-                start_column: body.start_column,
-                end_line: body.end_line,
-                end_column: body.end_column,
-                start_byte: body.start_byte,
-                end_byte: body.end_byte,
-            })
-            .unwrap_or_else(|| symbol_span(symbol));
-        let local_span = file_span_to_section_local(symbol_file_span, byte_start);
-        let mut stats = ComplexityStats::default();
-        collect_stats(
-            "typescript",
-            root,
-            &section.content,
-            local_span,
-            config,
-            NestingDepth(0),
-            0,
-            &mut stats,
-        );
-        let local_declaration = file_span_to_section_local(symbol_span(symbol), byte_start);
-        let parameter_count = find_first_parameter_container(root, local_declaration, config)
-            .map(|container| count_container_parameters(container, config));
-        metrics.push(build_complexity_metric(
-            file_path,
-            "vue",
-            MetricScopeInput {
-                scope: "symbol",
-                symbol_id: Some(symbol.id.clone()),
-                span: symbol_file_span,
-                parameter_count,
-            },
-            stats,
-        ));
-    }
-
-    metrics.sort_by(|left, right| {
-        left.start_byte
-            .cmp(&right.start_byte)
-            .then(left.end_byte.cmp(&right.end_byte))
-            .then(left.scope.cmp(&right.scope))
-            .then(left.symbol_id.cmp(&right.symbol_id))
-            .then(left.id.cmp(&right.id))
-    });
-    metrics
-}
-
 fn build_complexity_metric(
     file_path: &str,
     language: &str,
@@ -1355,39 +1207,5 @@ fn merge_spans(left: Option<NormalizedSpan>, right: NormalizedSpan) -> Normalize
             end_byte: existing.end_byte.max(right.end_byte),
         },
         None => right,
-    }
-}
-
-fn vue_section_byte_offset(content: &str, start_line: usize) -> u32 {
-    content
-        .split_inclusive('\n')
-        .take(start_line)
-        .map(str::len)
-        .sum::<usize>() as u32
-}
-
-fn vue_script_section_index_for_symbol(
-    content: &str,
-    sections: &[&crate::vue::parsing::VueSection],
-    symbol: &Symbol,
-) -> Option<(usize, u32)> {
-    for (i, section) in sections.iter().enumerate() {
-        let byte_start = vue_section_byte_offset(content, section.start_line);
-        let byte_end = byte_start.saturating_add(section.content.len() as u32);
-        if symbol.start_byte >= byte_start && symbol.end_byte <= byte_end {
-            return Some((i, byte_start));
-        }
-    }
-    None
-}
-
-fn file_span_to_section_local(span: NormalizedSpan, byte_start: u32) -> NormalizedSpan {
-    NormalizedSpan {
-        start_line: span.start_line,
-        start_column: span.start_column,
-        end_line: span.end_line,
-        end_column: span.end_column,
-        start_byte: span.start_byte.saturating_sub(byte_start),
-        end_byte: span.end_byte.saturating_sub(byte_start),
     }
 }

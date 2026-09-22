@@ -88,45 +88,20 @@ impl IdentifierExtractor {
                 }
 
                 if let (Some(name), Some(value)) = (attr_name, attr_value) {
-                    // Event handlers and data-action attributes are "calls"
-                    if name.starts_with("on") || name.starts_with("data-action") {
+                    let names: Vec<String> = match name.as_str() {
+                        "class" => value.split_whitespace().map(str::to_string).collect(),
+                        "id" => vec![value],
+                        _ => Vec::new(),
+                    };
+                    for member_name in names {
                         let containing_symbol_id =
                             Self::find_containing_symbol_id(node, containing_symbols);
-
                         base.create_identifier(
                             &node,
-                            value,
-                            IdentifierKind::Call,
+                            member_name,
+                            IdentifierKind::MemberAccess,
                             containing_symbol_id,
                         );
-                    }
-                    // id and class attributes are "member access"
-                    else if name == "id" || name == "class" {
-                        // For class, split by spaces and extract each class name
-                        if name == "class" {
-                            for class_name in value.split_whitespace() {
-                                let containing_symbol_id =
-                                    Self::find_containing_symbol_id(node, containing_symbols);
-
-                                base.create_identifier(
-                                    &node,
-                                    class_name.to_string(),
-                                    IdentifierKind::MemberAccess,
-                                    containing_symbol_id,
-                                );
-                            }
-                        } else {
-                            // id attribute
-                            let containing_symbol_id =
-                                Self::find_containing_symbol_id(node, containing_symbols);
-
-                            base.create_identifier(
-                                &node,
-                                value,
-                                IdentifierKind::MemberAccess,
-                                containing_symbol_id,
-                            );
-                        }
                     }
                 }
             }

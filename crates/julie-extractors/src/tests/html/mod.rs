@@ -48,6 +48,7 @@ pub mod cross_file_pending;
 pub mod doc_comments;
 pub mod edge_cases;
 pub mod forms;
+mod gap_closure;
 pub mod identifier_extraction;
 #[cfg(test)]
 mod literals;

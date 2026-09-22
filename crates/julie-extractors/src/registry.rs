@@ -237,8 +237,8 @@ macro_rules! define_relationship_data_extractors {
                 Ok(ExtractionResults {
                     symbols,
                     relationships,
-                    pending_relationships: Vec::new(),
-                    structured_pending_relationships: Vec::new(),
+                    pending_relationships: ext.base.take_pending_relationships(),
+                    structured_pending_relationships: ext.base.take_structured_pending_relationships(),
                     identifiers,
                     type_argument_usages: ext.base.take_type_argument_usages(),
                     literals: ext.base.take_literals(),
@@ -450,7 +450,7 @@ fn extract_html(
         .into_iter()
         .map(|pending| pending.into_pending_relationship())
         .collect();
-    Ok(ExtractionResults {
+    let mut results = ExtractionResults {
         symbols,
         relationships,
         pending_relationships,
@@ -463,7 +463,12 @@ fn extract_html(
         complexity_metrics: Vec::new(),
         types: types_with_base_info(types, "html", &ext.base),
         parse_diagnostics: Vec::new(),
-    })
+    };
+    for embedded in ext.take_embedded_results() {
+        crate::embedded::merge_into(&mut results, embedded);
+    }
+    crate::embedded::merge_file_complexity(&mut results.complexity_metrics, file_path, "html");
+    Ok(results)
 }
 
 /// Hand-written SQL extractor entry point. Phase 3.1 graduated SQL out of
@@ -743,6 +748,7 @@ fn extract_vue(
         .map(|pending| pending.into_pending_relationship())
         .collect();
     let complexity_metrics = ext.extract_complexity_metrics(&symbols);
+    let (source_regions, parse_diagnostics) = ext.take_embedded_regions_and_diagnostics();
     Ok(ExtractionResults {
         symbols,
         relationships,
@@ -751,11 +757,11 @@ fn extract_vue(
         identifiers,
         type_argument_usages: ext.base.take_type_argument_usages(),
         literals: ext.base.take_literals(),
-        source_regions: Vec::new(),
+        source_regions,
         structural_facts: Vec::new(),
         complexity_metrics,
         types: types_with_base_info(types, "vue", &ext.base),
-        parse_diagnostics: Vec::new(),
+        parse_diagnostics,
     })
 }
 
@@ -871,6 +877,7 @@ pub fn extract_for_language_at(
     let mut results = (entry.extract)(tree, file_path, content, workspace_root, level)?;
     if level.includes_structural_facts() {
         let extractor_structural_facts = std::mem::take(&mut results.structural_facts);
+        let extractor_source_regions = std::mem::take(&mut results.source_regions);
         results.source_regions =
             collect_source_regions(language, tree, file_path, content, &results.symbols);
         results.structural_facts =
@@ -935,10 +942,16 @@ pub fn extract_for_language_at(
             ));
         results.structural_facts.extend(extractor_structural_facts);
         sort_structural_facts(&mut results.structural_facts);
+        if !extractor_source_regions.is_empty() {
+            results.source_regions.extend(extractor_source_regions);
+            results
+                .source_regions
+                .sort_by_key(|region| (region.start_byte, region.end_byte));
+        }
     }
     if level.includes_complexity_and_annotations() {
         results.complexity_metrics = match language {
-            "vue" => std::mem::take(&mut results.complexity_metrics),
+            "vue" | "html" => std::mem::take(&mut results.complexity_metrics),
             "sql" => crate::sql::complexity_metrics::collect_complexity_metrics(
                 tree,
                 content,
@@ -1011,11 +1024,8 @@ mod registry_tests {
                 .unwrap()
                 .pending_relationships
         );
-        // CSS extracts `@import` directives as `references` relationship edges
-        // (see the blessed css entry in fixtures/extraction/capabilities.json:
-        // kind_coverage.relationships.supported = ["references"]). This assertion
-        // previously hardcoded the opposite and drifted out of sync with the
-        // capability golden.
-        assert!(capabilities_for_language("css").unwrap().relationships);
+        let css = capabilities_for_language("css").unwrap();
+        assert!(css.relationships);
+        assert!(css.pending_relationships);
     }
 }

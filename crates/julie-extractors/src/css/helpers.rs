@@ -161,22 +161,4 @@ impl PropertyHelper {
         }
         None
     }
-
-    /// Find property value
-    pub(super) fn find_property_value<'a>(property_node: &Node<'a>) -> Option<Node<'a>> {
-        if let Some(parent) = property_node.parent()
-            && parent.kind() == "declaration"
-        {
-            let mut cursor = parent.walk();
-            for child in parent.children(&mut cursor) {
-                match child.kind() {
-                    "property_value" | "integer_value" | "plain_value" => {
-                        return Some(child);
-                    }
-                    _ => {}
-                }
-            }
-        }
-        None
-    }
 }

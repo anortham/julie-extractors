@@ -46,6 +46,7 @@
 pub(crate) mod base;
 pub mod capability_snapshot;
 pub(crate) mod ecmascript_imports;
+pub(crate) mod embedded;
 #[cfg(test)]
 mod factory;
 pub(crate) mod language;

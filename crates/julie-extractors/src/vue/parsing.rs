@@ -2,9 +2,6 @@
 //
 // Responsible for parsing .vue file structure and extracting template, script, and style sections
 
-use super::helpers::{
-    LANG_ATTR_RE, SCRIPT_START_RE, SECTION_END_RE, STYLE_START_RE, TEMPLATE_START_RE,
-};
 use std::fmt;
 use std::sync::OnceLock;
 use tree_sitter::Tree;
@@ -24,16 +21,18 @@ pub(crate) fn get_script_parse_count() -> usize {
     SCRIPT_PARSE_COUNT.with(|c| c.get())
 }
 
-/// Represents a section within a Vue SFC file (template, script, or style)
+/// A top-level block of a Vue SFC (template, script, or style).
 #[derive(Debug, Clone)]
 pub(crate) struct VueSection {
-    pub(crate) section_type: String, // "template", "script", "style"
+    pub(crate) section_type: String,
+    /// The exact block text, from the byte after the opening tag's `>`.
     pub(crate) content: String,
+    /// Host byte offset of `content[0]`.
+    pub(crate) content_start: usize,
+    /// 1-based host line of `content_start`.
     pub(crate) start_line: usize,
-    #[allow(dead_code)]
-    pub(crate) end_line: usize,
-    pub(crate) lang: Option<String>, // e.g., 'ts', 'scss'
-    pub(crate) is_setup: bool,       // true for <script setup>
+    pub(crate) lang: Option<String>,
+    pub(crate) is_setup: bool,
 }
 
 impl fmt::Display for VueSection {
@@ -51,42 +50,24 @@ impl fmt::Display for VueSection {
     }
 }
 
-/// Helper struct for building VueSection during parsing
-#[derive(Debug)]
-pub(crate) struct VueSectionBuilder {
-    pub(crate) section_type: String,
-    pub(crate) start_line: usize,
-    pub(crate) lang: Option<String>,
-    pub(crate) is_setup: bool,
-}
-
-impl VueSectionBuilder {
-    pub(crate) fn build(self, content: String, end_line: usize) -> VueSection {
-        VueSection {
-            section_type: self.section_type,
-            content,
-            start_line: self.start_line,
-            end_line,
-            lang: self.lang,
-            is_setup: self.is_setup,
-        }
+/// The pipeline language for a script block's `lang`.
+pub(crate) fn script_language(lang: Option<&str>) -> &'static str {
+    match lang.unwrap_or("js") {
+        "ts" | "typescript" => "typescript",
+        "tsx" => "tsx",
+        "jsx" => "jsx",
+        _ => "javascript",
     }
 }
 
-/// Parse a Vue `<script>` or `<script setup>` section using JavaScript or TypeScript tree-sitter.
+/// Parse a Vue `<script>` or `<script setup>` section with the grammar its `lang` names.
 pub(crate) fn parse_script_section(section: &VueSection) -> Option<Tree> {
     #[cfg(test)]
     SCRIPT_PARSE_COUNT.with(|c| c.set(c.get() + 1));
 
-    let mut parser = tree_sitter::Parser::new();
-    let lang = section.lang.as_deref().unwrap_or("js");
-    let tree_sitter_lang = if lang == "ts" || lang == "typescript" {
-        tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()
-    } else {
-        tree_sitter_javascript::LANGUAGE.into()
-    };
-
-    parser.set_language(&tree_sitter_lang).ok()?;
+    let mut parser =
+        crate::pipeline::configured_parser_for_language(script_language(section.lang.as_deref()))
+            .ok()?;
     parser.parse(&section.content, None)
 }
 
@@ -170,94 +151,36 @@ impl ParsedVueSfc {
 }
 
 /// Parse Vue SFC structure to extract template, script, and style sections
-/// Implementation of parseVueSFC logic
 #[allow(dead_code)]
 pub(crate) fn parse_vue_sfc(content: &str) -> Result<Vec<VueSection>, Box<dyn std::error::Error>> {
     ParsedVueSfc::parse(content).map(|sfc| sfc.sections)
 }
 
 fn parse_vue_sfc_sections(content: &str) -> Result<Vec<VueSection>, Box<dyn std::error::Error>> {
-    let mut sections = Vec::new();
-    let lines: Vec<&str> = content.lines().collect();
-
-    let mut current_section: Option<VueSectionBuilder> = None;
-    let mut section_content = Vec::new();
-
-    for (i, line) in lines.iter().enumerate() {
-        let trimmed = line.trim();
-
-        // Check for section start - following regex patterns
-        let template_match = TEMPLATE_START_RE.captures(trimmed);
-        let script_match = SCRIPT_START_RE.captures(trimmed);
-        let style_match = STYLE_START_RE.captures(trimmed);
-
-        if template_match.is_some() || script_match.is_some() || style_match.is_some() {
-            // End previous section
-            if let Some(section) = current_section.take() {
-                sections.push(section.build(section_content.join("\n"), i));
-            }
-
-            // Start new section
-            let section_type = if template_match.is_some() {
-                "template"
-            } else if script_match.is_some() {
-                "script"
-            } else {
-                "style"
-            };
-
-            let attrs = template_match
-                .or(script_match)
-                .or(style_match)
-                .and_then(|m| m.get(1))
-                .map(|m| m.as_str())
-                .unwrap_or("");
-
-            let lang = LANG_ATTR_RE
-                .captures(attrs)
-                .and_then(|m| m.get(1))
-                .map(|m| m.as_str().to_string())
-                .unwrap_or_else(|| match section_type {
-                    "script" => "js".to_string(),
-                    "style" => "css".to_string(),
-                    _ => "html".to_string(),
+    Ok(
+        crate::base::web_structural_facts::vue_section_ranges(content)
+            .into_iter()
+            .filter_map(|range| {
+                let text = content.get(range.content_start..range.content_end)?;
+                let lang = range.lang.unwrap_or_else(|| {
+                    match range.section_type {
+                        "script" => "js",
+                        "style" => "css",
+                        _ => "html",
+                    }
+                    .to_string()
                 });
-
-            // Detect <script setup> attribute
-            let is_setup =
-                section_type == "script" && attrs.split_whitespace().any(|a| a == "setup");
-
-            current_section = Some(VueSectionBuilder {
-                section_type: section_type.to_string(),
-                start_line: i + 1,
-                lang: Some(lang),
-                is_setup,
-            });
-            section_content.clear();
-            continue;
-        }
-
-        // Check for section end
-        if SECTION_END_RE.is_match(trimmed) {
-            if let Some(section) = current_section.take() {
-                sections.push(section.build(section_content.join("\n"), i));
-                section_content.clear();
-            }
-            continue;
-        }
-
-        // Add content to current section
-        if current_section.is_some() {
-            section_content.push(line.to_string());
-        }
-    }
-
-    // Handle unclosed section - following reference logic
-    if let Some(section) = current_section {
-        sections.push(section.build(section_content.join("\n"), lines.len()));
-    }
-
-    Ok(sections)
+                Some(VueSection {
+                    section_type: range.section_type.to_string(),
+                    content: text.to_string(),
+                    content_start: range.content_start,
+                    start_line: content[..range.content_start].matches('\n').count() + 1,
+                    lang: Some(lang),
+                    is_setup: range.section_type == "script" && range.setup,
+                })
+            })
+            .collect(),
+    )
 }
 
 #[cfg(test)]

@@ -1,7 +1,7 @@
 // CSS Extractor Properties - Extract CSS custom properties and @supports rules
 
-use super::helpers::PropertyHelper;
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::base::body::body_hash;
+use crate::base::{BaseExtractor, NormalizedSpan, Symbol, SymbolKind, SymbolOptions, Visibility};
 use regex::Regex;
 use std::collections::HashMap;
 use std::sync::LazyLock;
@@ -14,23 +14,26 @@ static SUPPORTS_CONDITION_RE: LazyLock<Regex> =
 pub(super) struct PropertyExtractor;
 
 impl PropertyExtractor {
-    /// Extract custom property - Implementation of extractCustomProperty
+    /// A custom property symbol spans its whole declaration, which is also its
+    /// body, and keeps the full value text.
     pub(super) fn extract_custom_property(
         base: &mut BaseExtractor,
         node: Node,
         parent_id: Option<&str>,
     ) -> Option<Symbol> {
         let property_name = base.get_node_text(&node);
-        let value_node = PropertyHelper::find_property_value(&node);
-        let value = if let Some(val_node) = value_node {
-            base.get_node_text(&val_node)
-        } else {
-            String::new()
-        };
+        let declaration = node
+            .parent()
+            .filter(|parent| parent.kind() == "declaration")?;
+        let declaration_text = base.get_node_text(&declaration);
+        let value = declaration_text
+            .split_once(':')
+            .map(|(_, value)| value.trim().trim_end_matches(';').trim_end())
+            .unwrap_or_default()
+            .to_string();
 
         let signature = format!("{}: {}", property_name, value);
 
-        // Create metadata
         let mut metadata = HashMap::new();
         metadata.insert(
             "type".to_string(),
@@ -42,13 +45,12 @@ impl PropertyExtractor {
         );
         metadata.insert("value".to_string(), serde_json::Value::String(value));
 
-        // Extract CSS comment
-        let doc_comment = base.find_doc_comment(&node);
+        let doc_comment = base.find_doc_comment(&declaration);
 
-        Some(base.create_symbol(
-            &node,
+        let mut symbol = base.create_symbol(
+            &declaration,
             property_name,
-            SymbolKind::Property, // Custom properties as properties
+            SymbolKind::Property,
             SymbolOptions {
                 signature: Some(signature),
                 visibility: Some(Visibility::Public),
@@ -57,7 +59,11 @@ impl PropertyExtractor {
                 doc_comment,
                 annotations: Vec::new(),
             },
-        ))
+        );
+        let body = NormalizedSpan::from_node(&declaration);
+        symbol.body_hash = body_hash(&base.content, body, &base.language);
+        symbol.body_span = Some(body);
+        Some(symbol)
     }
 
     /// Extract supports rule - port of extractSupportsRule

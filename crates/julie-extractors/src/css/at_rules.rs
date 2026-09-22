@@ -1,6 +1,9 @@
 // CSS Extractor At-Rules - Extract @media, @import, @keyframes, etc.
 
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::base::{
+    BaseExtractor, RelationshipKind, StructuredPendingRelationship, Symbol, SymbolKind,
+    SymbolOptions, UnresolvedTarget, Visibility,
+};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -13,6 +16,9 @@ impl AtRuleExtractor {
         node: Node,
         parent_id: Option<&str>,
     ) -> Option<Symbol> {
+        if node.kind() == "import_statement" {
+            return Self::extract_import(base, node, parent_id);
+        }
         let rule_name = Self::extract_at_rule_name(base, &node)?;
         let signature = base.get_node_text(&node);
 
@@ -59,6 +65,62 @@ impl AtRuleExtractor {
         ))
     }
 
+    /// An `@import` becomes an import symbol named by its target path, like a C
+    /// `#include`, plus an `imports` pending edge to that raw target.
+    fn extract_import(
+        base: &mut BaseExtractor,
+        node: Node,
+        parent_id: Option<&str>,
+    ) -> Option<Symbol> {
+        let (url, media) = import_target(&base.content, node)?;
+
+        let mut metadata = HashMap::new();
+        for (key, value) in [
+            ("type", "at-rule"),
+            ("ruleName", "@import"),
+            ("atRuleType", "import"),
+            ("url", url.as_str()),
+        ] {
+            metadata.insert(
+                key.to_string(),
+                serde_json::Value::String(value.to_string()),
+            );
+        }
+        if let Some(media) = media {
+            metadata.insert("media".to_string(), serde_json::Value::String(media));
+        }
+
+        let doc_comment = base.find_doc_comment(&node);
+        let mut symbol = base.create_symbol(
+            &node,
+            url.clone(),
+            SymbolKind::Import,
+            SymbolOptions {
+                signature: Some(base.get_node_text(&node)),
+                visibility: Some(Visibility::Public),
+                parent_id: parent_id.map(|id| id.to_string()),
+                metadata: Some(metadata),
+                doc_comment,
+                annotations: Vec::new(),
+            },
+        );
+        symbol.body_span = None;
+        symbol.body_hash = None;
+
+        let mut target = UnresolvedTarget::simple(url);
+        target.import_context = Some("css-import".to_string());
+        base.add_structured_pending_relationship(StructuredPendingRelationship::new(
+            symbol.id.clone(),
+            target,
+            Some(symbol.id.clone()),
+            RelationshipKind::Imports,
+            base.file_path.clone(),
+            symbol.start_line,
+            0.9,
+        ));
+        Some(symbol)
+    }
+
     /// Extract at-rule name - port of extractAtRuleName
     pub(super) fn extract_at_rule_name(base: &BaseExtractor, node: &Node) -> Option<String> {
         let full_text = base.get_node_text(node);
@@ -88,4 +150,37 @@ fn modern_at_rule_name(text: &str) -> Option<String> {
     }
     let name = parts.next()?.trim_end_matches('{');
     Some(format!("{} {}", rule, name))
+}
+
+/// The unquoted `@import` path (a string, or `url(...)` holding a string or a
+/// bare path) and the media/supports/layer text that follows it.
+pub(crate) fn import_target(content: &str, node: Node<'_>) -> Option<(String, Option<String>)> {
+    let mut cursor = node.walk();
+    let target = node
+        .named_children(&mut cursor)
+        .find(|child| matches!(child.kind(), "string_value" | "call_expression"))?;
+    let value_node = if target.kind() == "call_expression" {
+        let arguments = target.child_by_field_name("arguments").or_else(|| {
+            let mut cursor = target.walk();
+            target
+                .named_children(&mut cursor)
+                .find(|child| child.kind() == "arguments")
+        })?;
+        let mut cursor = arguments.walk();
+        arguments.named_children(&mut cursor).next()?
+    } else {
+        target
+    };
+    let url = content
+        .get(value_node.byte_range())?
+        .trim()
+        .trim_matches(|c| c == '"' || c == '\'')
+        .trim()
+        .to_string();
+    let media = content
+        .get(target.end_byte()..node.end_byte())?
+        .trim()
+        .trim_end_matches(';')
+        .trim();
+    (!url.is_empty()).then(|| (url, (!media.is_empty()).then(|| media.to_string())))
 }

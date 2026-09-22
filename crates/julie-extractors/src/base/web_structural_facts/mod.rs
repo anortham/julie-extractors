@@ -26,7 +26,7 @@ use nextjs_nuxt::{
 };
 use react::{collect_react_router_route_definitions, collect_react_router_route_references};
 use vue::{collect_vue_router_route_definitions, collect_vue_structural_facts};
-pub(crate) use vue::{vue_script_section_ranges, vue_template_section_ranges};
+pub(crate) use vue::{vue_script_section_ranges, vue_section_ranges, vue_template_section_ranges};
 
 const CSS_SELECTOR_RULE_PATTERN_ID: &str = "css.selector_rule.v1";
 const CSS_CUSTOM_PROPERTY_PATTERN_ID: &str = "css.custom_property.v1";
@@ -38,6 +38,7 @@ const CSS_FONT_FACE_PATTERN_ID: &str = "css.font_face.v1";
 const CSS_LAYER_PATTERN_ID: &str = "css.layer.v1";
 const CSS_CHARSET_PATTERN_ID: &str = "css.charset.v1";
 const CSS_NAMESPACE_PATTERN_ID: &str = "css.namespace.v1";
+const CSS_IMPORT_PATTERN_ID: &str = "css.import.v1";
 const HTML_LINK_PATTERN_ID: &str = "html.link.v1";
 const HTML_SCRIPT_PATTERN_ID: &str = "html.script.v1";
 const HTML_FORM_PATTERN_ID: &str = "html.form.v1";
@@ -66,6 +67,7 @@ const CSS_WEB_PATTERN_IDS: &[&str] = &[
     CSS_CONTAINER_PATTERN_ID,
     CSS_CUSTOM_PROPERTY_PATTERN_ID,
     CSS_FONT_FACE_PATTERN_ID,
+    CSS_IMPORT_PATTERN_ID,
     CSS_KEYFRAMES_PATTERN_ID,
     CSS_LAYER_PATTERN_ID,
     CSS_MEDIA_QUERY_PATTERN_ID,
@@ -84,6 +86,7 @@ const HTML_WEB_PATTERN_IDS: &[&str] = &[
     HTML_LINK_PATTERN_ID,
     HTML_MEDIA_PATTERN_ID,
     HTML_SCRIPT_PATTERN_ID,
+    HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
 
 #[cfg(all(test, feature = "test-capability-matrix"))]

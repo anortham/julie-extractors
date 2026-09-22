@@ -3,7 +3,7 @@
 // Implementation of HTML extractor to idiomatic Rust
 
 use crate::base::relationship_resolution::StructuredPendingRelationship;
-use crate::base::{BaseExtractor, Identifier, Relationship, Symbol};
+use crate::base::{BaseExtractor, ExtractionResults, Identifier, Relationship, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
@@ -12,6 +12,7 @@ use tree_sitter::{Node, Tree};
 mod attributes;
 mod elements;
 mod fallback;
+mod handlers;
 mod helpers;
 mod identifiers;
 mod relationships;
@@ -21,6 +22,8 @@ mod types;
 pub struct HTMLExtractor {
     pub(crate) base: BaseExtractor,
     mocha_bdd_contract: bool,
+    embedded: Vec<ExtractionResults>,
+    handler_rows: handlers::HandlerRows,
 }
 
 impl HTMLExtractor {
@@ -33,10 +36,19 @@ impl HTMLExtractor {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
             mocha_bdd_contract: false,
+            embedded: Vec::new(),
+            handler_rows: handlers::HandlerRows::default(),
         }
     }
 
+    /// Rows other than symbols from inline `<script>` and `<style>` blocks,
+    /// collected by [`Self::extract_symbols`], in host coordinates.
+    pub(crate) fn take_embedded_results(&mut self) -> Vec<ExtractionResults> {
+        std::mem::take(&mut self.embedded)
+    }
+
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
+        self.embedded.clear();
         let mut symbols = Vec::new();
         self.mocha_bdd_contract = self.document_has_mocha_bdd_contract(tree);
 
@@ -62,6 +74,7 @@ impl HTMLExtractor {
         if has_only_errors || symbols.is_empty() {
             fallback::FallbackExtractor::extract_basic_structure(&mut self.base, tree)
         } else {
+            self.handler_rows = handlers::collect_handler_rows(&self.base, tree, &symbols);
             symbols
         }
     }
@@ -145,11 +158,13 @@ impl HTMLExtractor {
                 node,
                 parent_id,
                 self.mocha_bdd_contract,
+                &mut self.embedded,
             ),
             "style_element" => scripts::ScriptStyleExtractor::extract_style_element(
                 &mut self.base,
                 node,
                 parent_id,
+                &mut self.embedded,
             ),
             "doctype" => vec![elements::ElementExtractor::extract_doctype(
                 &mut self.base,
@@ -165,6 +180,7 @@ impl HTMLExtractor {
         let mut relationships = Vec::new();
 
         self.visit_node_for_relationships(tree.root_node(), symbols, &mut relationships, 0);
+        relationships.append(&mut self.handler_rows.relationships);
 
         relationships
     }
@@ -174,7 +190,7 @@ impl HTMLExtractor {
     /// caller scope is the nearest parent element symbol if any; otherwise
     /// the document/root symbol.
     pub fn extract_structured_pending_relationships(
-        &self,
+        &mut self,
         tree: &Tree,
         symbols: &[Symbol],
     ) -> Vec<StructuredPendingRelationship> {
@@ -185,6 +201,7 @@ impl HTMLExtractor {
             symbols,
             &mut pending,
         );
+        pending.append(&mut self.handler_rows.pending);
         pending
     }
 
@@ -252,8 +269,11 @@ impl HTMLExtractor {
             tree.root_node(),
             &containing_symbols,
         );
+        self.base
+            .identifiers
+            .append(&mut self.handler_rows.identifiers);
+        self.base.literals.append(&mut self.handler_rows.literals);
 
-        // Return the collected identifiers
         self.base.identifiers.clone()
     }
 }

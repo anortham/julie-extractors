@@ -1,9 +1,7 @@
 use crate::base::{
-    BaseExtractor, EmbeddedSpanOffset, NormalizedSpan, Symbol, SymbolKind, SymbolOptions,
+    BaseExtractor, ExtractionLevel, ExtractionResults, Symbol, SymbolKind, SymbolOptions,
     Visibility,
 };
-use crate::css::CSSExtractor;
-use crate::javascript::JavaScriptExtractor;
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -20,6 +18,7 @@ impl ScriptStyleExtractor {
         node: Node,
         parent_id: Option<&str>,
         mocha_bdd_contract: bool,
+        embedded: &mut Vec<ExtractionResults>,
     ) -> Vec<Symbol> {
         let attributes = HTMLHelpers::extract_attributes(base, node);
         let content = HTMLHelpers::extract_text_content(base, node);
@@ -30,13 +29,16 @@ impl ScriptStyleExtractor {
         // attributes like `type` are preserved in the symbol's signature.
         let is_javascript = is_javascript_script_type(&attributes);
 
-        if !attributes.contains_key("src") && is_javascript {
-            let symbols = content
-                .as_deref()
-                .map(|content| {
-                    extract_embedded_javascript_symbols(base, node, content, mocha_bdd_contract)
-                })
-                .unwrap_or_default();
+        if !attributes.contains_key("src")
+            && is_javascript
+            && let Some(mut results) = extract_embedded_block(base, node, "javascript")
+        {
+            crate::embedded::retain_symbols(&mut results, |symbol| {
+                !has_test_role_metadata(symbol)
+                    || (mocha_bdd_contract && is_supported_mocha_role(symbol))
+            });
+            let symbols = std::mem::take(&mut results.symbols);
+            embedded.push(results);
             if !symbols.is_empty() {
                 return symbols;
             }
@@ -110,6 +112,7 @@ impl ScriptStyleExtractor {
         base: &mut BaseExtractor,
         node: Node,
         parent_id: Option<&str>,
+        embedded: &mut Vec<ExtractionResults>,
     ) -> Vec<Symbol> {
         let attributes = HTMLHelpers::extract_attributes(base, node);
         let content = HTMLHelpers::extract_text_content(base, node);
@@ -118,9 +121,12 @@ impl ScriptStyleExtractor {
         // (<!-- … -->) can be attached to it as doc_comment.  Embedded CSS
         // symbols (class selectors, custom properties, etc.) are appended
         // afterwards so callers that look for either find what they expect.
-        let embedded_css_symbols = content
-            .as_deref()
-            .map(|content| extract_embedded_css_symbols(base, node, content))
+        let embedded_css_symbols = extract_embedded_block(base, node, "css")
+            .map(|mut results| {
+                let symbols = std::mem::take(&mut results.symbols);
+                embedded.push(results);
+                symbols
+            })
             .unwrap_or_default();
 
         let signature =
@@ -270,37 +276,34 @@ fn js_string_value(text: &str) -> Option<&str> {
     }
 }
 
-fn extract_embedded_javascript_symbols(
+/// Runs the full `language` pipeline over the element's raw text, in host
+/// coordinates, with structural facts published under the `html` language.
+fn extract_embedded_block(
     base: &BaseExtractor,
     node: Node,
-    content: &str,
-    mocha_bdd_contract: bool,
-) -> Vec<Symbol> {
-    let mut parser = tree_sitter::Parser::new();
-    if parser
-        .set_language(&tree_sitter_javascript::LANGUAGE.into())
-        .is_err()
-    {
-        return Vec::new();
+    language: &str,
+) -> Option<ExtractionResults> {
+    let mut cursor = node.walk();
+    let raw_text = node
+        .children(&mut cursor)
+        .find(|child| matches!(child.kind(), "text" | "raw_text"))?;
+    let source = base.content.get(raw_text.byte_range())?;
+    if source.trim().is_empty() {
+        return None;
     }
-    let Some(tree) = parser.parse(content, None) else {
-        return Vec::new();
-    };
-    let mut extractor = JavaScriptExtractor::new(
-        "javascript".to_string(),
-        base.file_path.clone(),
-        content.to_string(),
+    let mut results = crate::embedded::extract_embedded(
+        language,
+        source,
+        &base.content,
+        raw_text.start_byte(),
+        &base.file_path,
         std::path::Path::new(""),
-    );
-    let mut symbols = extractor.extract_symbols(&tree);
-    symbols.retain(|symbol| {
-        !has_test_role_metadata(symbol) || (mocha_bdd_contract && is_supported_mocha_role(symbol))
-    });
-    let Some(offset) = embedded_content_offset(base, node, content) else {
-        return Vec::new();
-    };
-    apply_embedded_offsets(&mut symbols, base, offset);
-    symbols
+        ExtractionLevel::Full,
+    )?;
+    for fact in &mut results.structural_facts {
+        fact.language = base.language.clone();
+    }
+    Some(results)
 }
 
 fn has_test_role_metadata(symbol: &Symbol) -> bool {
@@ -335,75 +338,4 @@ fn is_supported_mocha_role(symbol: &Symbol) -> bool {
         return matches!(callee, "before" | "after" | "beforeEach" | "afterEach");
     }
     metadata.get("is_test").and_then(|value| value.as_bool()) == Some(true) && callee == "it"
-}
-
-fn extract_embedded_css_symbols(base: &BaseExtractor, node: Node, content: &str) -> Vec<Symbol> {
-    let mut parser = tree_sitter::Parser::new();
-    if parser
-        .set_language(&tree_sitter_css::LANGUAGE.into())
-        .is_err()
-    {
-        return Vec::new();
-    }
-    let Some(tree) = parser.parse(content, None) else {
-        return Vec::new();
-    };
-    let mut extractor = CSSExtractor::new(
-        "css".to_string(),
-        base.file_path.clone(),
-        content.to_string(),
-        std::path::Path::new(""),
-    );
-    let mut symbols = extractor.extract_symbols(&tree);
-    let Some(offset) = embedded_content_offset(base, node, content) else {
-        return Vec::new();
-    };
-    apply_embedded_offsets(&mut symbols, base, offset);
-    symbols
-}
-
-fn embedded_content_offset(base: &BaseExtractor, node: Node, _content: &str) -> Option<u32> {
-    let content_node = node
-        .children(&mut node.walk())
-        .find(|child| matches!(child.kind(), "text" | "raw_text"))?;
-    let raw_content = base.get_node_text(&content_node);
-    let trimmed_start = raw_content.trim_start();
-    if trimmed_start.is_empty() {
-        return None;
-    }
-
-    let leading_trim_bytes = raw_content.len() - trimmed_start.len();
-    Some((content_node.start_byte() + leading_trim_bytes) as u32)
-}
-
-fn apply_embedded_offsets(symbols: &mut [Symbol], base: &BaseExtractor, byte_offset: u32) {
-    let Some(offset) = EmbeddedSpanOffset::from_host_byte(&base.content, byte_offset as usize)
-    else {
-        return;
-    };
-
-    let mut symbol_id_map = HashMap::new();
-    for symbol in symbols.iter_mut() {
-        let old_id = symbol.id.clone();
-        let span = NormalizedSpan {
-            start_line: symbol.start_line,
-            start_column: symbol.start_column,
-            end_line: symbol.end_line,
-            end_column: symbol.end_column,
-            start_byte: symbol.start_byte,
-            end_byte: symbol.end_byte,
-        };
-        symbol.file_path = base.file_path.clone();
-        symbol.apply_normalized_span(offset.apply(span));
-        symbol.refresh_id();
-        symbol_id_map.insert(old_id, symbol.id.clone());
-    }
-
-    for symbol in symbols {
-        if let Some(parent_id) = symbol.parent_id.as_mut()
-            && let Some(new_parent_id) = symbol_id_map.get(parent_id)
-        {
-            *parent_id = new_parent_id.clone();
-        }
-    }
 }

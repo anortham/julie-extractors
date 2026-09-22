@@ -110,41 +110,28 @@ impl IdentifierExtractor {
                 }
             }
 
-            // Class selectors: .button, .nav-item (treated as member access for HTML tracking)
-            "class_selector" => {
-                let text = base.get_node_text(&node);
-                // Remove the leading dot from class name
-                let class_name = text.strip_prefix('.').unwrap_or(&text);
-
-                if !class_name.is_empty() {
-                    let containing_symbol_id =
-                        Self::find_containing_symbol_id(node, containing_symbols);
-
-                    base.create_identifier(
-                        &node,
-                        class_name.to_string(),
-                        IdentifierKind::MemberAccess,
-                        containing_symbol_id,
-                    );
-                }
-            }
-
-            // ID selectors: #header, #main-content (treated as member access for HTML tracking)
-            "id_selector" => {
-                let text = base.get_node_text(&node);
-                // Remove the leading hash from ID name
-                let id_name = text.strip_prefix('#').unwrap_or(&text);
-
-                if !id_name.is_empty() {
-                    let containing_symbol_id =
-                        Self::find_containing_symbol_id(node, containing_symbols);
-
-                    base.create_identifier(
-                        &node,
-                        id_name.to_string(),
-                        IdentifierKind::MemberAccess,
-                        containing_symbol_id,
-                    );
+            "class_selector" | "id_selector" => {
+                let name_kind = if node.kind() == "class_selector" {
+                    "class_name"
+                } else {
+                    "id_name"
+                };
+                let mut cursor = node.walk();
+                let name_node = node
+                    .named_children(&mut cursor)
+                    .find(|child| child.kind() == name_kind);
+                if let Some(name_node) = name_node {
+                    let name = decode_css_escapes(&base.get_node_text(&name_node));
+                    if !name.is_empty() {
+                        let containing_symbol_id =
+                            Self::find_containing_symbol_id(name_node, containing_symbols);
+                        base.create_identifier(
+                            &name_node,
+                            name,
+                            IdentifierKind::MemberAccess,
+                            containing_symbol_id,
+                        );
+                    }
                 }
             }
 
@@ -247,4 +234,31 @@ fn line_column_for_byte(content: &str, target: usize) -> Option<(u32, u32)> {
         }
     }
     (target == content.len()).then_some((line, (target - line_start) as u32))
+}
+
+/// Decodes CSS escapes: `\:` is `:`, and `\31 ` (1 to 6 hex digits plus
+/// one optional space) is the code point.
+fn decode_css_escapes(text: &str) -> String {
+    let mut decoded = String::with_capacity(text.len());
+    let mut chars = text.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch != '\\' {
+            decoded.push(ch);
+            continue;
+        }
+        let mut hex = String::new();
+        while hex.len() < 6 && chars.peek().is_some_and(char::is_ascii_hexdigit) {
+            hex.extend(chars.next());
+        }
+        if hex.is_empty() {
+            decoded.extend(chars.next());
+            continue;
+        }
+        if chars.peek().is_some_and(|next| next.is_ascii_whitespace()) {
+            chars.next();
+        }
+        let code_point = u32::from_str_radix(&hex, 16).unwrap_or(0xFFFD);
+        decoded.push(char::from_u32(code_point).unwrap_or('\u{FFFD}'));
+    }
+    decoded
 }
