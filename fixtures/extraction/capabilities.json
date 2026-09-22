@@ -6954,9 +6954,9 @@
           "open_gaps": [
             {
               "kind": "json5_unquoted_keys",
-              "reason": "JSON Schema `$schema`/`$ref` now emit first-class structural facts, but JSON5 unquoted keys remain outside the grammar-backed JSON collector (tree-sitter-json accepts standard JSON/JSONC only).",
-              "required_closure": "introduce a separate JSON5 grammar/language lane or explicitly mark JSON5 as out of scope before claiming unquoted-key support",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: JSON5 decision"
+              "reason": "tree-sitter-json accepts standard JSON and JSONC only. `.json5` files are unsupported, and JSON5 syntax (unquoted keys, single quotes, trailing commas) in a `.json` file gives error diagnostics and wrong symbols (wave-2 gap json.json5-unsupported).",
+              "required_closure": "add a JSON5 grammar dependency and route `.json5` to it, or record an owner decision that JSON5 is out of scope",
+              "planned_closure_task": "docs/plans/2026-09-22-language-gap-closure.md later waves"
             }
           ]
         },
