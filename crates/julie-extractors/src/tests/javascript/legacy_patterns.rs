@@ -205,10 +205,15 @@ function Counter(initialValue) {
     assert!(multiply_fn.is_some());
     assert_eq!(multiply_fn.unwrap().kind, SymbolKind::Function);
 
-    let divide_fn = symbols
-        .iter()
-        .find(|s| s.name == "divide" && s.signature.as_ref().unwrap().contains("function divide"));
-    assert!(divide_fn.is_some());
+    let divide_fns: Vec<_> = symbols.iter().filter(|s| s.name == "divide").collect();
+    assert_eq!(divide_fns.len(), 1);
+    assert!(
+        divide_fns[0]
+            .signature
+            .as_ref()
+            .unwrap()
+            .contains("var divide = function")
+    );
 
     // Object literal
     let api_client = symbols.iter().find(|s| s.name == "ApiClient");

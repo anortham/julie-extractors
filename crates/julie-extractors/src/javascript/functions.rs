@@ -20,8 +20,10 @@ impl super::JavaScriptExtractor {
         let mut name = name_node.map(|n| self.base.get_node_text(&n));
 
         // Handle arrow functions assigned to variables (reference logic)
-        if (node.kind() == "arrow_function" || node.kind() == "function_expression")
-            && let Some(parent) = node.parent()
+        if matches!(
+            node.kind(),
+            "arrow_function" | "function_expression" | "generator_function"
+        ) && let Some(parent) = node.parent()
         {
             if parent.kind() == "variable_declarator" {
                 if let Some(var_name_node) = parent.child_by_field_name("name") {
@@ -40,7 +42,12 @@ impl super::JavaScriptExtractor {
 
         let name = name?;
 
-        let signature = self.build_function_signature(&node, &name);
+        let signature = match node.parent() {
+            Some(declarator) if declarator.kind() == "variable_declarator" => {
+                self.build_variable_signature(&declarator, &name)
+            }
+            _ => self.build_function_signature(&node, &name),
+        };
         let annotations = self.extract_decorator_annotations(node);
         let annotation_keys: Vec<String> = annotations
             .iter()

@@ -415,6 +415,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/jsx/basic/source.jsx:label:8:24",
+      "name": "label",
+      "kind": "variable",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/basic/source.jsx",
+      "start_line": 8,
+      "start_column": 24,
+      "end_line": 8,
+      "end_column": 29,
+      "start_byte": 125,
+      "end_byte": 130,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "label",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/jsx/basic/source.jsx:Badge:8:7",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/jsx/basic/source.jsx:total:30:8",
       "name": "total",
       "kind": "variable",

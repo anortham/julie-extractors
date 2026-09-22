@@ -36,43 +36,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/javascript/htmx_attributes/source.js:NavButtons:1:13",
-      "name": "NavButtons",
-      "kind": "function",
-      "language": "javascript",
-      "file_path": "fixtures/extraction/javascript/htmx_attributes/source.js",
-      "start_line": 1,
-      "start_column": 13,
-      "end_line": 6,
-      "end_column": 1,
-      "start_byte": 13,
-      "end_byte": 144,
-      "body_span": {
-        "start_line": 1,
-        "start_column": 26,
-        "end_line": 6,
-        "end_column": 1,
-        "start_byte": 26,
-        "end_byte": 144
-      },
-      "body_hash": "652a41bd04ec4f5b36a54b87ef0c6a2a",
-      "signature": "const NavButtons = () =>",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/javascript/htmx_attributes/source.js:NavButtons:1:0",
-      "metadata": {
-        "isArrowFunction": true,
-        "isAsync": false,
-        "isExpression": true,
-        "isGenerator": false,
-        "parameters": []
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/javascript/htmx_attributes/source.js:NavButtons:1:26",
       "name": "NavButtons",
       "kind": "function",
@@ -93,10 +56,10 @@
         "end_byte": 144
       },
       "body_hash": "6a378abc2ffe78fb6106f2f951a7bbd3",
-      "signature": "NavButtons = () => ",
+      "signature": "const NavButtons = () =>",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/javascript/htmx_attributes/source.js:NavButtons:1:13",
+      "parent_key": "fixtures/extraction/javascript/htmx_attributes/source.js:NavButtons:1:0",
       "metadata": {
         "isArrowFunction": true,
         "isAsync": false,
@@ -186,28 +149,6 @@
       "end_column": 0,
       "start_byte": 0,
       "end_byte": 146,
-      "metadata": {
-        "metric_version": 1
-      }
-    },
-    {
-      "scope": "symbol",
-      "symbol_key": "fixtures/extraction/javascript/htmx_attributes/source.js:NavButtons:1:13",
-      "algorithm_id": "julie-ast-complexity-v1",
-      "language": "javascript",
-      "file_path": "fixtures/extraction/javascript/htmx_attributes/source.js",
-      "covered_lines": 6,
-      "covered_bytes": 118,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
-      "parameter_count": 0,
-      "start_line": 1,
-      "start_column": 26,
-      "end_line": 6,
-      "end_column": 1,
-      "start_byte": 26,
-      "end_byte": 144,
       "metadata": {
         "metric_version": 1
       }

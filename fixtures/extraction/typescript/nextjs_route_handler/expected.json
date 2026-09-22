@@ -205,6 +205,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:params:5:6",
+      "name": "params",
+      "kind": "variable",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts",
+      "start_line": 5,
+      "start_column": 6,
+      "end_line": 5,
+      "end_column": 12,
+      "start_byte": 100,
+      "end_byte": 106,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "params",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:GET:3:7",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:request:4:4",
       "name": "request",
       "kind": "variable",

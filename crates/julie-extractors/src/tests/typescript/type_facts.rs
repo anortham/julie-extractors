@@ -226,15 +226,24 @@ class Worker {
     }
 
     #[test]
-    fn destructured_parameters_get_no_symbols() {
-        let (symbols, _extractor) = extract("function draw({x, y}: Point) {}");
+    fn destructured_parameters_get_symbols_without_the_pattern_type() {
+        let (symbols, extractor) = extract("function draw({x, y}: Point) {}");
 
-        assert!(!symbols.iter().any(|s| {
-            s.metadata
-                .as_ref()
-                .and_then(|m| m.get("role"))
-                .map(|role| role == &serde_json::json!("parameter"))
-                .unwrap_or(false)
-        }));
+        let parameters: Vec<&Symbol> = symbols
+            .iter()
+            .filter(|s| {
+                s.metadata
+                    .as_ref()
+                    .and_then(|m| m.get("role"))
+                    .is_some_and(|role| role == &serde_json::json!("parameter"))
+            })
+            .collect();
+        let names: Vec<&str> = parameters.iter().map(|s| s.name.as_str()).collect();
+        assert_eq!(names, vec!["x", "y"]);
+        assert!(
+            parameters
+                .iter()
+                .all(|s| !extractor.base.type_info.contains_key(&s.id))
+        );
     }
 }

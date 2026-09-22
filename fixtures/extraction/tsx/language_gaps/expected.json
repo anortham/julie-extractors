@@ -281,6 +281,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/tsx/language_gaps/source.tsx:label:6:17",
+      "name": "label",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/language_gaps/source.tsx",
+      "start_line": 6,
+      "start_column": 17,
+      "end_line": 6,
+      "end_column": 22,
+      "start_byte": 132,
+      "end_byte": 137,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "label",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/language_gaps/source.tsx:Badge:6:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/tsx/language_gaps/source.tsx:label:6:28",
       "name": "label",
       "kind": "property",

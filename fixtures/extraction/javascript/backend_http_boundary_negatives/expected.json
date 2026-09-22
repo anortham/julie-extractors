@@ -17,7 +17,7 @@
       "signature": "app",
       "doc_comment": null,
       "visibility": null,
-      "parent_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:module.exports:1:17",
+      "parent_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
       "metadata": {
         "role": "parameter"
       },
@@ -60,45 +60,6 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:module.exports:1:17",
-      "name": "module.exports",
-      "kind": "function",
-      "language": "javascript",
-      "file_path": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js",
-      "start_line": 1,
-      "start_column": 17,
-      "end_line": 4,
-      "end_column": 1,
-      "start_byte": 17,
-      "end_byte": 85,
-      "body_span": {
-        "start_line": 1,
-        "start_column": 32,
-        "end_line": 4,
-        "end_column": 1,
-        "start_byte": 32,
-        "end_byte": 85
-      },
-      "body_hash": "44353426813708699d38d35a4e3fc736",
-      "signature": "function module.exports(app)",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
-      "metadata": {
-        "isArrowFunction": false,
-        "isAsync": false,
-        "isExpression": true,
-        "isGenerator": false,
-        "parameters": [
-          "app"
-        ]
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
     }
   ],
   "relationships": [],
@@ -117,7 +78,7 @@
       "end_column": 5,
       "start_byte": 36,
       "end_byte": 39,
-      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:module.exports:1:17",
+      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -133,7 +94,7 @@
       "end_column": 5,
       "start_byte": 67,
       "end_byte": 70,
-      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:module.exports:1:17",
+      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -165,7 +126,7 @@
       "end_column": 9,
       "start_byte": 40,
       "end_byte": 43,
-      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:module.exports:1:17",
+      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -181,7 +142,7 @@
       "end_column": 9,
       "start_byte": 71,
       "end_byte": 74,
-      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:module.exports:1:17",
+      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -197,7 +158,7 @@
       "end_column": 28,
       "start_byte": 55,
       "end_byte": 62,
-      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:module.exports:1:17",
+      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -265,28 +226,6 @@
       "metadata": {
         "metric_version": 1
       }
-    },
-    {
-      "scope": "symbol",
-      "symbol_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:module.exports:1:17",
-      "algorithm_id": "julie-ast-complexity-v1",
-      "language": "javascript",
-      "file_path": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js",
-      "covered_lines": 4,
-      "covered_bytes": 53,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
-      "parameter_count": 1,
-      "start_line": 1,
-      "start_column": 32,
-      "end_line": 4,
-      "end_column": 1,
-      "start_byte": 32,
-      "end_byte": 85,
-      "metadata": {
-        "metric_version": 1
-      }
     }
   ],
   "literals": [
@@ -303,7 +242,7 @@
       "end_column": 19,
       "start_byte": 44,
       "end_byte": 53,
-      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:module.exports:1:17",
+      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
       "confidence": "1.000"
     },
     {
@@ -319,7 +258,7 @@
       "end_column": 16,
       "start_byte": 75,
       "end_byte": 81,
-      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:module.exports:1:17",
+      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
       "confidence": "1.000"
     }
   ],
@@ -328,7 +267,7 @@
       "kind": "string_literal",
       "language": "javascript",
       "file_path": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js",
-      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:module.exports:1:17",
+      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
       "start_line": 2,
       "start_column": 10,
       "end_line": 2,
@@ -341,7 +280,7 @@
       "kind": "string_literal",
       "language": "javascript",
       "file_path": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js",
-      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:module.exports:1:17",
+      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
       "start_line": 3,
       "start_column": 10,
       "end_line": 3,

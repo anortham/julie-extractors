@@ -159,43 +159,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/javascript/agent_usefulness/source.js:View:3:13",
-      "name": "View",
-      "kind": "function",
-      "language": "javascript",
-      "file_path": "fixtures/extraction/javascript/agent_usefulness/source.js",
-      "start_line": 3,
-      "start_column": 13,
-      "end_line": 3,
-      "end_column": 58,
-      "start_byte": 164,
-      "end_byte": 209,
-      "body_span": {
-        "start_line": 3,
-        "start_column": 34,
-        "end_line": 3,
-        "end_column": 44,
-        "start_byte": 185,
-        "end_byte": 195
-      },
-      "body_hash": "76cb04006e60b5a66f6db1bae6e870e9",
-      "signature": "const View = () =>",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/javascript/agent_usefulness/source.js:View:3:0",
-      "metadata": {
-        "isArrowFunction": true,
-        "isAsync": false,
-        "isExpression": true,
-        "isGenerator": false,
-        "parameters": []
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/javascript/agent_usefulness/source.js:View:3:20",
       "name": "View",
       "kind": "function",
@@ -216,10 +179,10 @@
         "end_byte": 209
       },
       "body_hash": "9505440c2598b0a04e46fa62294e582b",
-      "signature": "View = () => ",
+      "signature": "const View = () =>",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/javascript/agent_usefulness/source.js:View:3:13",
+      "parent_key": "fixtures/extraction/javascript/agent_usefulness/source.js:View:3:0",
       "metadata": {
         "isArrowFunction": true,
         "isAsync": false,
@@ -462,28 +425,6 @@
       "end_column": 0,
       "start_byte": 0,
       "end_byte": 211,
-      "metadata": {
-        "metric_version": 1
-      }
-    },
-    {
-      "scope": "symbol",
-      "symbol_key": "fixtures/extraction/javascript/agent_usefulness/source.js:View:3:13",
-      "algorithm_id": "julie-ast-complexity-v1",
-      "language": "javascript",
-      "file_path": "fixtures/extraction/javascript/agent_usefulness/source.js",
-      "covered_lines": 1,
-      "covered_bytes": 10,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
-      "parameter_count": 0,
-      "start_line": 3,
-      "start_column": 34,
-      "end_line": 3,
-      "end_column": 44,
-      "start_byte": 185,
-      "end_byte": 195,
       "metadata": {
         "metric_version": 1
       }

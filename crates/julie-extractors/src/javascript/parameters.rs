@@ -39,8 +39,27 @@ pub(crate) fn extract_parameter_symbols<'tree>(
 
     parameter_nodes
         .into_iter()
-        .filter_map(|param_node| {
-            let name_node = parameter_name_node(param_node)?;
+        .flat_map(|param_node| {
+            let bindings: Vec<(Node, Node)> = match parameter_name_node(param_node) {
+                Some(name_node) => vec![(name_node, param_node)],
+                None => {
+                    let mut bindings = Vec::new();
+                    if let Some(pattern) = parameter_pattern_node(param_node) {
+                        super::variables::collect_pattern_bindings(
+                            pattern,
+                            Some("parameter"),
+                            &mut bindings,
+                        );
+                    }
+                    bindings
+                        .into_iter()
+                        .map(|binding| (binding.name, binding.name))
+                        .collect()
+                }
+            };
+            bindings
+        })
+        .map(|(name_node, param_node)| {
             let name = base.get_node_text(&name_node);
             let signature = base.get_node_text(&param_node);
             let metadata = HashMap::from([(
@@ -58,9 +77,20 @@ pub(crate) fn extract_parameter_symbols<'tree>(
                     ..Default::default()
                 },
             );
-            Some((symbol, param_node))
+            (symbol, param_node)
         })
         .collect()
+}
+
+/// The destructuring pattern of a parameter: `{ a, b }`, `[x]`, `{ a } = {}`,
+/// or a TypeScript `required_parameter` wrapping one.
+fn parameter_pattern_node(param_node: Node<'_>) -> Option<Node<'_>> {
+    let candidate = match param_node.kind() {
+        "assignment_pattern" => param_node.child_by_field_name("left")?,
+        "required_parameter" | "optional_parameter" => param_node.child_by_field_name("pattern")?,
+        _ => param_node,
+    };
+    matches!(candidate.kind(), "object_pattern" | "array_pattern").then_some(candidate)
 }
 
 fn parameter_name_node(param_node: Node<'_>) -> Option<Node<'_>> {

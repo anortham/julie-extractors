@@ -51,6 +51,21 @@ impl super::JavaScriptExtractor {
         containing_symbols: &ContainingSymbolIndex<'_>,
     ) {
         match node.kind() {
+            "jsx_opening_element" | "jsx_self_closing_element" => {
+                if let Some(name) = node.child_by_field_name("name")
+                    && let Some((name_node, name)) = self.terminal_identifier(name)
+                    && name.starts_with(|first: char| first.is_ascii_uppercase())
+                {
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
+                    self.base.create_identifier(
+                        &name_node,
+                        name,
+                        IdentifierKind::Call,
+                        containing_symbol_id,
+                    );
+                }
+            }
             // Function/method calls: foo(), bar.baz()
             "call_expression" => {
                 // The function being called is in the "function" field

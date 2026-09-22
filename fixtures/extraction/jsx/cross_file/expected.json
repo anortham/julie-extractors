@@ -208,6 +208,14 @@
     {
       "from_key": "fixtures/extraction/jsx/cross_file/source.jsx:entry:12:7",
       "callee_name": "Foo",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/jsx/cross_file/source.jsx",
+      "line_number": 14,
+      "confidence": "0.800"
+    },
+    {
+      "from_key": "fixtures/extraction/jsx/cross_file/source.jsx:entry:12:7",
+      "callee_name": "Foo",
       "kind": "instantiates",
       "file_path": "fixtures/extraction/jsx/cross_file/source.jsx",
       "line_number": 13,
@@ -215,6 +223,32 @@
     }
   ],
   "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/jsx/cross_file/source.jsx:entry:12:7",
+        "callee_name": "Foo",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/jsx/cross_file/source.jsx",
+        "line_number": 14,
+        "confidence": "0.800"
+      },
+      "target": {
+        "display_name": "Foo",
+        "terminal_name": "Foo",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "Foo"
+      },
+      "caller_scope_key": "fixtures/extraction/jsx/cross_file/source.jsx:entry:12:7",
+      "span": {
+        "start_line": 14,
+        "start_column": 11,
+        "end_line": 14,
+        "end_column": 16,
+        "start_byte": 393,
+        "end_byte": 398
+      }
+    },
     {
       "pending": {
         "from_key": "fixtures/extraction/jsx/cross_file/source.jsx:entry:12:7",
@@ -255,6 +289,22 @@
       "end_column": 21,
       "start_byte": 375,
       "end_byte": 378,
+      "containing_key": "fixtures/extraction/jsx/cross_file/source.jsx:entry:12:7",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/jsx/cross_file/source.jsx:Foo:call:14:12",
+      "name": "Foo",
+      "kind": "call",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/cross_file/source.jsx",
+      "start_line": 14,
+      "start_column": 12,
+      "end_line": 14,
+      "end_column": 15,
+      "start_byte": 394,
+      "end_byte": 397,
       "containing_key": "fixtures/extraction/jsx/cross_file/source.jsx:entry:12:7",
       "target_key": null,
       "confidence": "1.000"

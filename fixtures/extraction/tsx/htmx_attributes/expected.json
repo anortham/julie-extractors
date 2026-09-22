@@ -121,6 +121,32 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/tsx/htmx_attributes/source.tsx:endpoint:5:29",
+      "name": "endpoint",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/htmx_attributes/source.tsx",
+      "start_line": 5,
+      "start_column": 29,
+      "end_line": 5,
+      "end_column": 37,
+      "start_byte": 70,
+      "end_byte": 78,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "endpoint",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/htmx_attributes/source.tsx:SaveButton:5:7",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [],

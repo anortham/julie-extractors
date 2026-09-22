@@ -1477,6 +1477,11 @@
           "name": "agent_usefulness",
           "source": "fixtures/extraction/javascript/agent_usefulness/source.js",
           "expected": "fixtures/extraction/javascript/agent_usefulness/expected.json"
+        },
+        {
+          "name": "language_gaps",
+          "source": "fixtures/extraction/javascript/language_gaps/source.js",
+          "expected": "fixtures/extraction/javascript/language_gaps/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1496,6 +1501,7 @@
             "function",
             "import",
             "method",
+            "property",
             "variable"
           ],
           "not_applicable": [],
@@ -1524,7 +1530,9 @@
             "export",
             "function",
             "import",
-            "method"
+            "method",
+            "property",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1576,7 +1584,9 @@
         },
         "doc_comments": {
           "supported": [
-            "function"
+            "class",
+            "function",
+            "method"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1682,6 +1692,11 @@
           "name": "agent_usefulness",
           "source": "fixtures/extraction/jsx/agent_usefulness/source.jsx",
           "expected": "fixtures/extraction/jsx/agent_usefulness/expected.json"
+        },
+        {
+          "name": "language_gaps",
+          "source": "fixtures/extraction/jsx/language_gaps/source.jsx",
+          "expected": "fixtures/extraction/jsx/language_gaps/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1694,9 +1709,13 @@
       "kind_coverage": {
         "symbols": {
           "supported": [
+            "class",
+            "constructor",
             "export",
             "function",
             "import",
+            "method",
+            "property",
             "variable"
           ],
           "not_applicable": [],
@@ -1713,6 +1732,7 @@
         "identifiers": {
           "supported": [
             "call",
+            "member_access",
             "variable_ref"
           ],
           "not_applicable": [],
@@ -1720,9 +1740,13 @@
         },
         "body_spans": {
           "supported": [
+            "class",
+            "constructor",
             "export",
             "function",
             "import",
+            "method",
+            "property",
             "variable"
           ],
           "not_applicable": [],

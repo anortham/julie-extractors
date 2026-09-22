@@ -263,6 +263,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:label:7:17",
+      "name": "label",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
+      "start_line": 7,
+      "start_column": 17,
+      "end_line": 7,
+      "end_column": 22,
+      "start_byte": 118,
+      "end_byte": 123,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "label",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:Badge:7:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:label:7:28",
       "name": "label",
       "kind": "property",

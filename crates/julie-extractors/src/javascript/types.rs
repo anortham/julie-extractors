@@ -191,10 +191,7 @@ impl super::JavaScriptExtractor {
         );
         metadata.insert("isNamed".to_string(), json!(self.is_named_export(&node)));
 
-        // Extract JSDoc comment
-        let doc_comment = self.base.find_doc_comment(&node);
-
-        Some(self.base.create_symbol(
+        let mut export_symbol = self.base.create_symbol(
             &node,
             exported_name.clone(),
             SymbolKind::Export,
@@ -203,10 +200,13 @@ impl super::JavaScriptExtractor {
                 visibility: None,
                 parent_id,
                 metadata: Some(metadata),
-                doc_comment,
-                annotations: Vec::new(),
+                ..Default::default()
             },
-        ))
+        );
+        if node.child_by_field_name("declaration").is_some() {
+            export_symbol.doc_comment = None;
+        }
+        Some(export_symbol)
     }
 
     /// Extract exported name - implementation's extractExportedName
