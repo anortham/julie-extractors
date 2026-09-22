@@ -51,3 +51,4 @@ pub mod type_arguments;
 pub mod type_facts;
 pub mod types;
 pub mod ui;
+pub mod wave1_gaps;

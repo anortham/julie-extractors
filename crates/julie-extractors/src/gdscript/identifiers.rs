@@ -1,9 +1,7 @@
 //! Identifier extraction for GDScript (function calls, member access, type annotations, etc.)
 
-use crate::base::{
-    BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol,
-    extract_type_arguments,
-};
+use super::helpers::DeclarationIndex;
+use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol, extract_type_arguments};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
@@ -13,7 +11,7 @@ pub(super) fn extract_identifiers(
     tree: &tree_sitter::Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    let containing_symbols = base.containing_symbol_index(symbols);
+    let containing_symbols = DeclarationIndex::new(base, symbols);
     walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
     base.identifiers.clone()
 }
@@ -22,7 +20,7 @@ pub(super) fn extract_identifiers(
 fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &DeclarationIndex<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -44,19 +42,13 @@ fn walk_tree_for_identifiers(
 fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &DeclarationIndex<'_>,
 ) {
     match node.kind() {
         "call" => {
             let mut cursor = node.walk();
             for child in node.children(&mut cursor) {
                 if child.kind() == "identifier" {
-                    if let Some(parent) = node.parent()
-                        && parent.kind() == "attribute"
-                    {
-                        continue;
-                    }
-
                     let name = base.get_node_text(&child);
                     let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                     base.create_identifier(
@@ -64,29 +56,6 @@ fn extract_identifier_from_node(
                         name,
                         IdentifierKind::Call,
                         containing_symbol_id,
-                    );
-                    break;
-                }
-
-                if child.kind() == "attribute"
-                    && let Some(name_node) = attribute_call_name_node(child)
-                        .or_else(|| rightmost_identifier_descendant(child))
-                {
-                    if let Some(parent) = node.parent()
-                        && parent.kind() == "attribute"
-                    {
-                        continue;
-                    }
-
-                    let name = base.get_node_text(&name_node);
-                    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
-                    let receiver_type = call_receiver_type(base, child);
-                    base.create_identifier_with_receiver_type(
-                        &name_node,
-                        name,
-                        IdentifierKind::Call,
-                        containing_symbol_id,
-                        receiver_type,
                     );
                     break;
                 }
@@ -108,21 +77,7 @@ fn extract_identifier_from_node(
             base.create_identifier(&node, name, IdentifierKind::Call, containing_symbol_id);
         }
 
-        "attribute" => {
-            if let Some(name_node) = attribute_call_name_node(node) {
-                let name = base.get_node_text(&name_node);
-                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
-                let receiver_type = call_receiver_type(base, node);
-                base.create_identifier_with_receiver_type(
-                    &name_node,
-                    name,
-                    IdentifierKind::Call,
-                    containing_symbol_id,
-                    receiver_type,
-                );
-                return;
-            }
-
+        "attribute" if is_gdscript_type_position(node) => {
             if let Some(last_child) = rightmost_identifier_descendant(node) {
                 let name = base.get_node_text(&last_child);
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
@@ -133,6 +88,57 @@ fn extract_identifier_from_node(
                     containing_symbol_id,
                 );
             }
+        }
+
+        // `a.b.c().d()` is one flat `attribute`: the first child is the
+        // receiver, and every later segment is a member access or a call.
+        "attribute" => {
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            let mut cursor = node.walk();
+            let segments: Vec<Node> = node.named_children(&mut cursor).skip(1).collect();
+            for (index, segment) in segments.into_iter().enumerate() {
+                match segment.kind() {
+                    "identifier" => {
+                        let name = base.get_node_text(&segment);
+                        base.create_identifier(
+                            &segment,
+                            name,
+                            IdentifierKind::MemberAccess,
+                            containing_symbol_id.clone(),
+                        );
+                    }
+                    "attribute_call" => {
+                        let mut call_cursor = segment.walk();
+                        let Some(name_node) = segment
+                            .children(&mut call_cursor)
+                            .find(|child| child.kind() == "identifier")
+                        else {
+                            continue;
+                        };
+                        let name = base.get_node_text(&name_node);
+                        let receiver_type = if index == 0 {
+                            attribute_receiver_type(base, node)
+                        } else {
+                            None
+                        };
+                        base.create_identifier_with_receiver_type(
+                            &name_node,
+                            name,
+                            IdentifierKind::Call,
+                            containing_symbol_id.clone(),
+                            receiver_type,
+                        );
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        // `get = get_ratio, set = set_ratio` names the accessor functions.
+        "getter" | "setter" => {
+            let name = base.get_node_text(&node);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            base.create_identifier(&node, name, IdentifierKind::Call, containing_symbol_id);
         }
 
         "subscript" => {
@@ -297,7 +303,7 @@ fn is_gdscript_value_read_identifier(node: Node) -> bool {
 /// Find the ID of the symbol that contains this node
 fn find_containing_symbol_id(
     node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &DeclarationIndex<'_>,
 ) -> Option<String> {
     containing_symbols.find(node).map(|s| s.id.clone())
 }
@@ -312,7 +318,7 @@ fn record_gdscript_subscript_as_type(
     base: &mut BaseExtractor,
     type_node: Node,
     subscript: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &DeclarationIndex<'_>,
 ) {
     // The base type name is the subscript's primary_expression child
     // (an identifier or attribute — not the subscript_arguments field).
@@ -397,20 +403,6 @@ fn rightmost_identifier_descendant_at_depth(node: Node, depth: u32) -> Option<No
     None
 }
 
-fn attribute_call_name_node(node: Node) -> Option<Node> {
-    let mut cursor = node.walk();
-    let children: Vec<Node> = node.children(&mut cursor).collect();
-
-    let attribute_call = children
-        .iter()
-        .find(|child| child.kind() == "attribute_call")?;
-
-    let mut call_cursor = attribute_call.walk();
-    attribute_call
-        .children(&mut call_cursor)
-        .find(|child| child.kind() == "identifier")
-}
-
 pub(super) fn call_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
     let attribute = if node.kind() == "attribute" {
         node
@@ -424,7 +416,7 @@ pub(super) fn call_receiver_type(base: &BaseExtractor, node: Node) -> Option<Str
     attribute_receiver_type(base, attribute)
 }
 
-fn attribute_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
+pub(super) fn attribute_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
     let mut cursor = node.walk();
     let receiver = node
         .children(&mut cursor)
@@ -520,7 +512,7 @@ fn extends_type_name(base: &BaseExtractor, extends_node: Node) -> Option<String>
 fn record_gdscript_call_arg_literals(
     base: &mut BaseExtractor,
     call_node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &DeclarationIndex<'_>,
 ) {
     let Some(args_node) = call_node.child_by_field_name("arguments") else {
         return;
@@ -538,7 +530,7 @@ fn record_gdscript_call_arg_literals(
 fn record_gdscript_attribute_call_arg_literals(
     base: &mut BaseExtractor,
     attr_call_node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &DeclarationIndex<'_>,
 ) {
     let Some(args_node) = attr_call_node.child_by_field_name("arguments") else {
         return;

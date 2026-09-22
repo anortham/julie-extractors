@@ -18,6 +18,7 @@ mod identifiers;
 mod parameters;
 mod relationships;
 mod signals;
+mod test_roles;
 mod type_facts;
 mod types;
 mod variables;
@@ -37,11 +38,15 @@ static FUNC_RETURN_TYPE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"->\s
 static VAR_CONST_TYPE_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?:var|const)\s+\w+\s*:\s*(\w+)").unwrap());
 
+/// The symbol that owns the declarations being visited, and whether that
+/// owner is a class (so a `func` there is a method).
+struct Scope {
+    parent_id: Option<String>,
+    in_class: bool,
+}
+
 pub struct GDScriptExtractor {
     pub(crate) base: BaseExtractor,
-    pending_inheritance: HashMap<String, String>, // className -> baseClassName
-    processed_positions: HashSet<String>,         // Track processed node positions
-    current_class_context: Option<String>,        // Current class ID for scope tracking
     same_file_class_names: HashSet<String>,
 }
 
@@ -54,106 +59,40 @@ impl GDScriptExtractor {
     ) -> Self {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
-            pending_inheritance: HashMap::new(),
-            processed_positions: HashSet::new(),
-            current_class_context: None,
             same_file_class_names: HashSet::new(),
         }
     }
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        self.pending_inheritance.clear();
-        self.processed_positions.clear();
-        self.current_class_context = None;
-
         let root_node = tree.root_node();
         self.same_file_class_names = type_facts::collect_class_names(&self.base, root_node);
-        // First pass: collect inheritance information
-        classes::collect_inheritance_info(&mut self.base, root_node, &mut self.pending_inheritance);
 
-        // Check for top-level extends statement (creates implicit class)
-        let mut implicit_class_id: Option<String> = None;
-        for i in 0..root_node.child_count() {
-            if let Some(child) = root_node.child(i as u32)
-                && child.kind() == "extends_statement"
-                && let Some(base_class_name) = self.extract_extends_base_class_name(child)
-            {
-                // Create implicit class based on file name
-                let file_name = self
-                    .base
-                    .file_path
-                    .split('/')
-                    .next_back()
-                    .unwrap_or("ImplicitClass")
-                    .replace(".gd", "");
+        let script_classes = classes::extract_script_classes(&mut self.base, root_node);
+        let class_starts: Vec<(u32, String)> = script_classes
+            .iter()
+            .map(|class| (class.start_byte, class.id.clone()))
+            .collect();
+        symbols.extend(script_classes);
 
-                let mut metadata = HashMap::new();
-                metadata.insert(
-                    "baseClass".to_string(),
-                    serde_json::Value::String(base_class_name.clone()),
-                );
-                // Also emit the canonical `base_types` array. Artifact v1
-                // preserves this metadata evidence without assigning old
-                // Julie test-container roles. `baseClass` (a string) is kept
-                // for existing consumers.
-                metadata.insert(
-                    "base_types".to_string(),
-                    serde_json::Value::Array(vec![serde_json::Value::String(
-                        base_class_name.clone(),
-                    )]),
-                );
-
-                let implicit_class = self.base.create_symbol(
-                    &child,
-                    file_name,
-                    crate::base::SymbolKind::Class,
-                    crate::base::SymbolOptions {
-                        signature: Some(format!("extends {}", base_class_name)),
-                        visibility: Some(crate::base::Visibility::Public),
-                        parent_id: None,
-                        metadata: Some(metadata),
-                        doc_comment: None,
-                        annotations: Vec::new(),
-                    },
-                );
-
-                implicit_class_id = Some(implicit_class.id.clone());
-                symbols.push(implicit_class);
-                break;
-            }
+        let mut cursor = root_node.walk();
+        let children: Vec<Node> = root_node.children(&mut cursor).collect();
+        for child in children {
+            let owner = class_starts
+                .iter()
+                .rev()
+                .find(|(start, _)| *start <= child.start_byte() as u32)
+                .or(class_starts.first())
+                .map(|(_, id)| id.clone());
+            let scope = Scope {
+                in_class: owner.is_some(),
+                parent_id: owner,
+            };
+            self.traverse_node(child, &scope, &mut symbols, 1);
         }
-
-        // Second pass: extract symbols with implicit class context
-        self.traverse_node(root_node, implicit_class_id.as_ref(), &mut symbols, 0);
-        crate::test_detection::mark_base_type_test_containers(&mut symbols, "GutTest");
+        test_roles::apply_gdscript_test_roles(&mut symbols);
 
         symbols
-    }
-
-    fn extract_extends_base_class_name(&self, extends_node: Node) -> Option<String> {
-        if let Some(type_node) = helpers::find_child_by_type(&extends_node, "type") {
-            return Some(self.base.get_node_text(&type_node));
-        }
-
-        let text = self.base.get_node_text(&extends_node);
-        let target = text.trim().strip_prefix("extends")?.trim();
-        let target = target
-            .strip_prefix('"')
-            .and_then(|value| value.strip_suffix('"'))
-            .or_else(|| {
-                target
-                    .strip_prefix('\'')
-                    .and_then(|value| value.strip_suffix('\''))
-            })
-            .unwrap_or(target)
-            .trim();
-
-        if target.is_empty() {
-            None
-        } else {
-            Some(target.to_string())
-        }
     }
 
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
@@ -215,253 +154,90 @@ impl GDScriptExtractor {
         }
     }
 
-    /// Main tree traversal for symbol extraction
-    fn traverse_node(
+    fn traverse_children(
         &mut self,
         node: Node,
-        parent_id: Option<&String>,
+        scope: &Scope,
         symbols: &mut Vec<Symbol>,
         depth: u32,
     ) {
-        if !should_visit_tree_depth(depth) {
+        let Some(child_depth) = child_tree_depth(depth) else {
             return;
-        }
-
-        // Create position-based key to prevent double processing
-        let position_key = helpers::get_position_key(node);
-
-        if self.processed_positions.contains(&position_key) {
-            return;
-        }
-        self.processed_positions.insert(position_key);
-
-        let mut extracted_symbol: Option<Symbol> = None;
-
-        match node.kind() {
-            "class_name_statement" => {
-                if let Some(symbol) = classes::extract_class_name_statement(
-                    &mut self.base,
-                    &self.pending_inheritance,
-                    node,
-                    parent_id,
-                ) {
-                    // Set current class context for class_name classes
-                    self.current_class_context = Some(symbol.id.clone());
-                    extracted_symbol = Some(symbol);
-                }
-            }
-            "class" => {
-                if let Some(symbol) =
-                    classes::extract_class_definition(&mut self.base, node, parent_id)
-                {
-                    // Set current class context for inner classes
-                    self.current_class_context = Some(symbol.id.clone());
-                    extracted_symbol = Some(symbol);
-                }
-            }
-            "function_definition" => {
-                // Check if we should use the current class context as parent
-                let effective_parent_id =
-                    self.determine_effective_parent_id(node, parent_id, symbols);
-                if let Some(symbol) = functions::extract_function_definition(
-                    &mut self.base,
-                    node,
-                    effective_parent_id.as_ref(),
-                    symbols,
-                ) {
-                    extracted_symbol = Some(symbol);
-                }
-            }
-            "func" => {
-                // Skip if this func node is part of a function_definition
-                if let Some(parent) = node.parent()
-                    && parent.kind() != "function_definition"
-                {
-                    let effective_parent_id =
-                        self.determine_effective_parent_id(node, parent_id, symbols);
-                    if let Some(symbol) = functions::extract_function_definition(
-                        &mut self.base,
-                        node,
-                        effective_parent_id.as_ref(),
-                        symbols,
-                    ) {
-                        extracted_symbol = Some(symbol);
-                    }
-                }
-            }
-            "constructor_definition" => {
-                let effective_parent_id =
-                    self.determine_effective_parent_id(node, parent_id, symbols);
-                if let Some(symbol) = functions::extract_constructor_definition(
-                    &mut self.base,
-                    node,
-                    effective_parent_id.as_ref(),
-                ) {
-                    extracted_symbol = Some(symbol);
-                }
-            }
-            "var" => {
-                // Skip if this var node is part of a variable_statement
-                if let Some(parent) = node.parent()
-                    && parent.kind() != "variable_statement"
-                    && let Some(symbol) = variables::extract_variable_statement(
-                        &mut self.base,
-                        node,
-                        parent_id,
-                        &self.same_file_class_names,
-                    )
-                {
-                    extracted_symbol = Some(symbol);
-                }
-            }
-            "variable_statement" => {
-                if let Some(symbol) = variables::extract_variable_from_statement(
-                    &mut self.base,
-                    node,
-                    parent_id,
-                    symbols,
-                    &self.same_file_class_names,
-                ) {
-                    extracted_symbol = Some(symbol);
-                }
-            }
-            "const" => {
-                if let Some(symbol) = variables::extract_constant_statement(
-                    &mut self.base,
-                    node,
-                    parent_id,
-                    &self.same_file_class_names,
-                ) {
-                    extracted_symbol = Some(symbol);
-                }
-            }
-            "enum_definition" => {
-                if let Some(symbol) =
-                    enums::extract_enum_definition(&mut self.base, node, parent_id)
-                {
-                    extracted_symbol = Some(symbol);
-                }
-            }
-            "identifier" => {
-                // Check if this identifier is an enum member
-                if let Some(symbol) =
-                    enums::extract_enum_member(&mut self.base, node, parent_id, symbols)
-                {
-                    extracted_symbol = Some(symbol);
-                }
-            }
-            "signal_statement" | "signal" => {
-                if let Some(symbol) =
-                    signals::extract_signal_statement(&mut self.base, node, parent_id)
-                {
-                    extracted_symbol = Some(symbol);
-                }
-            }
-            "ERROR" => {
-                // Recover function declarations swallowed into ERROR leaf nodes.
-                //
-                // When a match body contains bare-identifier pattern labels
-                // (e.g. `NOTIFICATION_EXIT_TREE:`), GDScript's tree-sitter parser
-                // sometimes folds the immediately following `func name` declaration
-                // into a childless ERROR leaf.  The normal `function_definition` /
-                // `func` arms never fire in that case, causing the function to be
-                // silently lost.  This arm detects "ERROR text starts with `func `"
-                // and synthesises a minimal symbol so the declaration is preserved.
-                let effective_parent_id =
-                    self.determine_effective_parent_id(node, parent_id, symbols);
-                if let Some(symbol) = functions::try_recover_function_from_error(
-                    &mut self.base,
-                    node,
-                    effective_parent_id.as_ref(),
-                    symbols,
-                ) {
-                    extracted_symbol = Some(symbol);
-                }
-            }
-            _ => {}
-        }
-
-        if let Some(symbol) = extracted_symbol {
-            let symbol_id = symbol.id.clone();
-            let extract_params = matches!(
-                node.kind(),
-                "function_definition" | "constructor_definition"
-            );
-            symbols.push(symbol);
-            if extract_params {
-                symbols.extend(parameters::extract_parameter_symbols(
-                    &mut self.base,
-                    node,
-                    &symbol_id,
-                ));
-            }
-
-            // Traverse children with current symbol as parent
-            let Some(child_depth) = child_tree_depth(depth) else {
-                return;
-            };
-            for i in 0..node.child_count() {
-                if let Some(child) = node.child(i as u32) {
-                    self.traverse_node(child, Some(&symbol_id), symbols, child_depth);
-                }
-            }
-        } else {
-            // Traverse children with current parent
-            let Some(child_depth) = child_tree_depth(depth) else {
-                return;
-            };
-            for i in 0..node.child_count() {
-                if let Some(child) = node.child(i as u32) {
-                    self.traverse_node(child, parent_id, symbols, child_depth);
-                }
-            }
+        };
+        let mut cursor = node.walk();
+        let children: Vec<Node> = node.children(&mut cursor).collect();
+        for child in children {
+            self.traverse_node(child, scope, symbols, child_depth);
         }
     }
 
-    /// Determine if a function should belong to the current class context
-    fn determine_effective_parent_id(
-        &self,
-        node: Node,
-        parent_id: Option<&String>,
-        symbols: &[Symbol],
-    ) -> Option<String> {
-        // If we have a current class context, check if this function should belong to it
-        if let Some(class_id) = &self.current_class_context {
-            // Find the class symbol to get its context
-            if let Some(class_symbol) = symbols.iter().find(|s| &s.id == class_id) {
-                let class_start_col = class_symbol.start_column;
-                let func_start_col = node.start_position().column as u32;
-
-                // For class_name classes, functions at the same level or slightly indented belong to the class
-                let is_class_name_class = class_symbol
-                    .signature
-                    .as_ref()
-                    .map(|s| s.contains("class_name"))
-                    .unwrap_or(false);
-
-                // For inner classes, functions must be indented more than the class
-                let is_inner_class = class_symbol
-                    .signature
-                    .as_ref()
-                    .map(|s| s.contains("class ") && !s.contains("class_name"))
-                    .unwrap_or(false);
-
-                if is_class_name_class {
-                    // For class_name classes, functions at same level or indented belong to the class
-                    if func_start_col >= class_start_col {
-                        return Some(class_id.clone());
-                    }
-                } else if is_inner_class {
-                    // For inner classes, functions must be indented more than the class
-                    if func_start_col > class_start_col {
-                        return Some(class_id.clone());
-                    }
-                }
-            }
+    fn traverse_node(&mut self, node: Node, scope: &Scope, symbols: &mut Vec<Symbol>, depth: u32) {
+        if !should_visit_tree_depth(depth) {
+            return;
         }
+        let parent_id = scope.parent_id.as_ref();
 
-        // Otherwise, use the provided parent_id
-        parent_id.cloned()
+        let symbol = match node.kind() {
+            "class_definition" => classes::extract_inner_class(&mut self.base, node, parent_id),
+            "function_definition" => functions::extract_function_definition(
+                &mut self.base,
+                node,
+                parent_id,
+                scope.in_class,
+            ),
+            "lambda" if node.child_by_field_name("name").is_some() => {
+                functions::extract_function_definition(&mut self.base, node, parent_id, false)
+            }
+            "constructor_definition" => {
+                functions::extract_constructor_definition(&mut self.base, node, parent_id)
+            }
+            "variable_statement"
+            | "export_variable_statement"
+            | "onready_variable_statement"
+            | "const_statement" => variables::extract_variable(
+                &mut self.base,
+                node,
+                parent_id,
+                &self.same_file_class_names,
+            ),
+            "enum_definition" => {
+                symbols.extend(enums::extract_enum(&mut self.base, node, parent_id));
+                return;
+            }
+            "signal_statement" => {
+                signals::extract_signal_statement(&mut self.base, node, parent_id)
+            }
+            "ERROR" => functions::try_recover_function_from_error(
+                &mut self.base,
+                node,
+                parent_id,
+                scope.in_class,
+            ),
+            _ => None,
+        };
+
+        let Some(symbol) = symbol else {
+            self.traverse_children(node, scope, symbols, depth);
+            return;
+        };
+        let symbol_id = symbol.id.clone();
+        let is_class = symbol.kind == SymbolKind::Class;
+        symbols.push(symbol);
+        if matches!(
+            node.kind(),
+            "function_definition" | "constructor_definition" | "lambda"
+        ) {
+            symbols.extend(parameters::extract_parameter_symbols(
+                &mut self.base,
+                node,
+                &symbol_id,
+            ));
+        }
+        let child_scope = Scope {
+            parent_id: Some(symbol_id),
+            in_class: is_class,
+        };
+        self.traverse_children(node, &child_scope, symbols, depth);
     }
 
     // ========================================================================

@@ -5603,6 +5603,16 @@
           "name": "return_types",
           "source": "fixtures/extraction/gdscript/return_types/source.gd",
           "expected": "fixtures/extraction/gdscript/return_types/expected.json"
+        },
+        {
+          "name": "structure",
+          "source": "fixtures/extraction/gdscript/structure/source.gd",
+          "expected": "fixtures/extraction/gdscript/structure/expected.json"
+        },
+        {
+          "name": "gdunit_roles",
+          "source": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+          "expected": "fixtures/extraction/gdscript/gdunit_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5617,7 +5627,10 @@
         "symbols": {
           "supported": [
             "class",
+            "constant",
             "constructor",
+            "enum",
+            "enum_member",
             "event",
             "field",
             "function",
@@ -5629,7 +5642,8 @@
         },
         "relationships": {
           "supported": [
-            "calls"
+            "calls",
+            "extends"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -5637,6 +5651,7 @@
         "identifiers": {
           "supported": [
             "call",
+            "member_access",
             "type_usage",
             "variable_ref"
           ],
@@ -5645,13 +5660,14 @@
         },
         "body_spans": {
           "supported": [
+            "class",
             "constructor",
+            "enum",
             "event",
             "function",
             "method"
           ],
           "not_applicable": [
-            "class",
             "field"
           ],
           "open_gaps": []
@@ -5684,6 +5700,11 @@
         },
         "doc_comments": {
           "supported": [
+            "class",
+            "constant",
+            "enum_member",
+            "event",
+            "field",
             "method"
           ],
           "not_applicable": [],

@@ -3,7 +3,7 @@
     {
       "key": "fixtures/extraction/gdscript/cross_file/source.gd:entry:11:0",
       "name": "entry",
-      "kind": "function",
+      "kind": "method",
       "language": "gdscript",
       "file_path": "fixtures/extraction/gdscript/cross_file/source.gd",
       "start_line": 11,
@@ -34,7 +34,7 @@
     {
       "key": "fixtures/extraction/gdscript/cross_file/source.gd:local_helper:8:0",
       "name": "local_helper",
-      "kind": "function",
+      "kind": "method",
       "language": "gdscript",
       "file_path": "fixtures/extraction/gdscript/cross_file/source.gd",
       "start_line": 8,

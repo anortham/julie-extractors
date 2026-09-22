@@ -3,7 +3,7 @@
     {
       "key": "fixtures/extraction/gdscript/test_roles/test_source.gd:before_each:3:0",
       "name": "before_each",
-      "kind": "function",
+      "kind": "method",
       "language": "gdscript",
       "file_path": "fixtures/extraction/gdscript/test_roles/test_source.gd",
       "start_line": 3,
@@ -38,7 +38,7 @@
     {
       "key": "fixtures/extraction/gdscript/test_roles/test_source.gd:test_addition:6:0",
       "name": "test_addition",
-      "kind": "function",
+      "kind": "method",
       "language": "gdscript",
       "file_path": "fixtures/extraction/gdscript/test_roles/test_source.gd",
       "start_line": 6,
@@ -103,7 +103,7 @@
     {
       "key": "fixtures/extraction/gdscript/test_roles/test_source.gd:verify_addition:9:0",
       "name": "verify_addition",
-      "kind": "function",
+      "kind": "method",
       "language": "gdscript",
       "file_path": "fixtures/extraction/gdscript/test_roles/test_source.gd",
       "start_line": 9,

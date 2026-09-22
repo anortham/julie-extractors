@@ -239,7 +239,7 @@ func outer_function(data: Array):
 
         let overloaded_attack = symbols
             .iter()
-            .filter(|s| s.name == "attack" && s.kind == SymbolKind::Function)
+            .filter(|s| s.name == "attack" && s.kind == SymbolKind::Method)
             .count();
         assert!(overloaded_attack >= 3);
 
