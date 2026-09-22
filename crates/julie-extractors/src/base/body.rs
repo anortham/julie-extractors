@@ -19,11 +19,16 @@ const BODY_NODE_KINDS: &[&str] = &[
     "do_block",
 ];
 
+/// Languages whose grammar marks every body structurally. The textual brace
+/// and parenthesis fallback would invent bodies for their bodiless items.
+const STRUCTURAL_BODY_LANGUAGES: &[&str] = &["rust"];
+
 pub(crate) fn infer_body_span(
     node: &Node,
     content: &str,
     line_starts: &[usize],
     declaration_span: NormalizedSpan,
+    language: &str,
 ) -> Option<BodySpan> {
     for field_name in BODY_FIELD_NAMES {
         if let Some(body) = node.child_by_field_name(field_name) {
@@ -36,6 +41,9 @@ pub(crate) fn infer_body_span(
         .find(|child| BODY_NODE_KINDS.contains(&child.kind()))
         .map(|child| NormalizedSpan::from_node(&child))
         .or_else(|| {
+            if STRUCTURAL_BODY_LANGUAGES.contains(&language) {
+                return None;
+            }
             infer_body_span_from_span_with_line_starts(content, line_starts, declaration_span)
         })
 }

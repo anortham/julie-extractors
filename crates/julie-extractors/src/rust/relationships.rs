@@ -1,4 +1,4 @@
-use super::helpers::extract_impl_target_names;
+use super::helpers::{UseLeaf, extract_impl_target_names, push_path_segments, use_leaves};
 /// Rust relationship extraction
 /// - Trait implementations
 /// - Type references in fields
@@ -52,13 +52,19 @@ fn walk_tree_for_relationships(
         "impl_item" => {
             extract_impl_relationships(extractor, node, symbol_map, relationships);
         }
+        "trait_item" => {
+            extract_supertrait_relationships(extractor, node, symbol_map, relationships);
+        }
         "struct_item" | "enum_item" => {
             extract_type_relationships(extractor, node, symbol_map, relationships);
         }
         "call_expression" => {
             extract_call_relationships(extractor, node, symbols, symbol_index, relationships);
         }
-        "use_declaration" => {
+        "identifier" => {
+            extract_macro_token_call(extractor, node, symbols, symbol_index, relationships);
+        }
+        "use_declaration" | "extern_crate_declaration" => {
             extract_use_import_relationship(extractor, node, symbols);
         }
         _ => {}
@@ -83,96 +89,35 @@ fn walk_tree_for_relationships(
 }
 
 fn extract_use_import_relationship(extractor: &mut RustExtractor, node: Node, symbols: &[Symbol]) {
-    let import_symbol = {
-        let base = extractor.get_base_mut();
-        base.find_containing_symbol(&node, symbols)
-            .filter(|symbol| symbol.kind == SymbolKind::Import)
-            .cloned()
-    };
-    let Some(import_symbol) = import_symbol else {
-        return;
-    };
-
-    let use_text = import_symbol
-        .signature
-        .clone()
-        .unwrap_or_else(|| extractor.get_base_mut().get_node_text(&node));
-    let Some(target) = unresolved_import_target_from_use_text(&use_text) else {
-        return;
-    };
-
-    let pending = extractor.get_base_mut().create_pending_relationship(
-        import_symbol.id.clone(),
-        target,
-        RelationshipKind::Imports,
-        &node,
-        Some(import_symbol.id.clone()),
-        Some(1.0),
-    );
-    extractor.add_structured_pending_relationship(pending);
-}
-
-fn unresolved_import_target_from_use_text(use_text: &str) -> Option<UnresolvedTarget> {
-    let normalized_path = normalize_use_path(use_text)?;
-    let segments: Vec<String> = normalized_path
-        .split("::")
-        .map(str::trim)
-        .filter(|segment| !segment.is_empty() && *segment != "*")
-        .map(ToOwned::to_owned)
-        .collect();
-
-    if segments.is_empty() {
-        return Some(UnresolvedTarget {
-            display_name: normalized_path.clone(),
-            terminal_name: normalized_path,
+    let use_text = extractor.get_base_mut().get_node_text(&node);
+    let leaves = use_leaves(extractor.get_base_mut(), node);
+    for UseLeaf { name, path, .. } in leaves {
+        let Some(import_symbol) = symbols.iter().find(|symbol| {
+            symbol.kind == SymbolKind::Import
+                && symbol.name == name
+                && symbol.start_byte == node.start_byte() as u32
+        }) else {
+            continue;
+        };
+        let Some((terminal_name, namespace_path)) = path.split_last() else {
+            continue;
+        };
+        let target = UnresolvedTarget {
+            display_name: path.join("::"),
+            terminal_name: terminal_name.clone(),
             receiver: None,
-            namespace_path: Vec::new(),
+            namespace_path: namespace_path.to_vec(),
             import_context: Some(use_text.trim().to_string()),
-        });
-    }
-
-    let terminal_name = segments.last().cloned()?;
-    let namespace_path = segments[..segments.len().saturating_sub(1)].to_vec();
-
-    Some(UnresolvedTarget {
-        display_name: normalized_path,
-        terminal_name,
-        receiver: None,
-        namespace_path,
-        import_context: Some(use_text.trim().to_string()),
-    })
-}
-
-fn normalize_use_path(use_text: &str) -> Option<String> {
-    let path_text = use_text
-        .trim()
-        .trim_start_matches("pub(crate) use ")
-        .trim_start_matches("pub(super) use ")
-        .trim_start_matches("pub use ")
-        .trim_start_matches("use ")
-        .trim_end_matches(';')
-        .trim();
-    if path_text.is_empty() {
-        return None;
-    }
-
-    let without_alias = path_text.split(" as ").next().unwrap_or(path_text).trim();
-    let normalized = if without_alias.contains('{') {
-        without_alias
-            .split("::{")
-            .next()
-            .unwrap_or(without_alias)
-            .trim()
-    } else if without_alias.ends_with("::*") {
-        without_alias.trim_end_matches("::*").trim()
-    } else {
-        without_alias
-    };
-
-    if normalized.is_empty() {
-        None
-    } else {
-        Some(normalized.to_string())
+        };
+        let pending = extractor.get_base_mut().create_pending_relationship(
+            import_symbol.id.clone(),
+            target,
+            RelationshipKind::Imports,
+            &node,
+            Some(import_symbol.id.clone()),
+            Some(1.0),
+        );
+        extractor.add_structured_pending_relationship(pending);
     }
 }
 
@@ -184,23 +129,96 @@ fn extract_impl_relationships(
     relationships: &mut Vec<Relationship>,
 ) {
     let base = extractor.get_base_mut();
-    let targets = extract_impl_target_names(base, node);
+    let Some(type_name) = extract_impl_target_names(base, node).type_name else {
+        return;
+    };
+    let Some(type_symbol) = symbol_map.get(&type_name) else {
+        return;
+    };
+    if let Some(trait_node) = node.child_by_field_name("trait") {
+        emit_trait_edge(
+            extractor,
+            node,
+            type_symbol,
+            trait_node,
+            RelationshipKind::Implements,
+            symbol_map,
+            relationships,
+        );
+    }
+}
 
-    if let (Some(trait_name), Some(type_name)) = (targets.trait_name, targets.type_name)
-        && let (Some(trait_symbol), Some(type_symbol)) =
-            (symbol_map.get(&trait_name), symbol_map.get(&type_name))
-    {
+/// Extract `extends` edges from a trait to each of its supertraits.
+fn extract_supertrait_relationships(
+    extractor: &mut RustExtractor,
+    node: Node,
+    symbol_map: &HashMap<String, &Symbol>,
+    relationships: &mut Vec<Relationship>,
+) {
+    let (Some(name), Some(bounds)) = (
+        node.child_by_field_name("name"),
+        node.child_by_field_name("bounds"),
+    ) else {
+        return;
+    };
+    let trait_name = extractor.get_base_mut().get_node_text(&name);
+    let Some(trait_symbol) = symbol_map.get(&trait_name) else {
+        return;
+    };
+    for bound in bounds.named_children(&mut bounds.walk()) {
+        emit_trait_edge(
+            extractor,
+            node,
+            trait_symbol,
+            bound,
+            RelationshipKind::Extends,
+            symbol_map,
+            relationships,
+        );
+    }
+}
+
+/// Emit a resolved edge to a same-file trait, or a pending edge that keeps the
+/// trait path for cross-file resolution.
+fn emit_trait_edge(
+    extractor: &mut RustExtractor,
+    node: Node,
+    from: &Symbol,
+    trait_node: Node,
+    kind: RelationshipKind,
+    symbol_map: &HashMap<String, &Symbol>,
+    relationships: &mut Vec<Relationship>,
+) {
+    let trait_path = match trait_node.kind() {
+        "generic_type" => trait_node.child_by_field_name("type"),
+        "type_identifier" | "scoped_type_identifier" => Some(trait_node),
+        _ => None,
+    };
+    let Some(trait_path) = trait_path else {
+        return;
+    };
+    let base = extractor.get_base_mut();
+    let mut segments = Vec::new();
+    push_path_segments(base, trait_path, &mut segments);
+    let Some(terminal_name) = segments.pop() else {
+        return;
+    };
+
+    let local_trait = symbol_map
+        .get(&terminal_name)
+        .filter(|symbol| segments.is_empty() && symbol.kind == SymbolKind::Interface);
+    if let Some(trait_symbol) = local_trait {
         relationships.push(Relationship {
             id: format!(
                 "{}_{}_{:?}_{}",
-                type_symbol.id,
+                from.id,
                 trait_symbol.id,
-                RelationshipKind::Implements,
+                kind,
                 node.start_position().row
             ),
-            from_symbol_id: type_symbol.id.clone(),
+            from_symbol_id: from.id.clone(),
             to_symbol_id: trait_symbol.id.clone(),
-            kind: RelationshipKind::Implements,
+            kind,
             file_path: base.file_path.clone(),
             line_number: node.start_position().row as u32 + 1,
             span: Some(crate::base::NormalizedSpan::from_node(&node)),
@@ -208,7 +226,27 @@ fn extract_impl_relationships(
             confidence: 0.95,
             metadata: None,
         });
+        return;
     }
+
+    let mut display = segments.clone();
+    display.push(terminal_name.clone());
+    let target = UnresolvedTarget {
+        display_name: display.join("::"),
+        terminal_name,
+        receiver: None,
+        namespace_path: segments,
+        import_context: None,
+    };
+    let pending = base.create_pending_relationship(
+        from.id.clone(),
+        target,
+        kind,
+        &trait_node,
+        Some(from.id.clone()),
+        Some(0.9),
+    );
+    extractor.add_structured_pending_relationship(pending);
 }
 
 /// Extract type references in struct/enum fields
@@ -297,7 +335,13 @@ fn extract_call_relationships(
     symbol_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
-    let function_node = node.child_by_field_name("function");
+    let function_node = node.child_by_field_name("function").map(|function| {
+        if function.kind() == "generic_function" {
+            function.child_by_field_name("function").unwrap_or(function)
+        } else {
+            function
+        }
+    });
     if let Some(func_node) = function_node {
         // Handle method calls (receiver.method())
         if func_node.kind() == "field_expression" {
@@ -358,22 +402,52 @@ fn extract_call_relationships(
     }
 }
 
+fn extract_macro_token_call(
+    extractor: &mut RustExtractor,
+    node: Node,
+    symbols: &[Symbol],
+    symbol_index: &ScopedSymbolIndex<'_>,
+    relationships: &mut Vec<Relationship>,
+) {
+    let Some(call) = super::helpers::macro_token_call(extractor.get_base_mut(), node) else {
+        return;
+    };
+    let mut display = call.namespace_path.clone();
+    display.push(call.name.clone());
+    let display_name = match &call.receiver {
+        Some(receiver) => format!("{receiver}.{}", call.name),
+        None => display.join("::"),
+    };
+    let target = UnresolvedTarget {
+        display_name,
+        terminal_name: call.name.clone(),
+        receiver: call.receiver,
+        namespace_path: call.namespace_path,
+        import_context: None,
+    };
+    handle_call_target(
+        extractor,
+        node,
+        &call.name,
+        target,
+        symbols,
+        symbol_index,
+        relationships,
+    );
+}
+
 fn scoped_identifier_to_unresolved_target(
     extractor: &mut RustExtractor,
     scoped_identifier: Node,
 ) -> Option<UnresolvedTarget> {
-    let display_name = extractor.get_base_mut().get_node_text(&scoped_identifier);
-    let segments: Vec<String> = display_name
-        .split("::")
-        .map(str::trim)
-        .filter(|segment| !segment.is_empty())
-        .map(ToOwned::to_owned)
-        .collect();
+    let base = extractor.get_base_mut();
+    let mut segments = Vec::new();
+    push_path_segments(base, scoped_identifier, &mut segments);
     let terminal_name = segments.last()?.clone();
-    let namespace_path = segments[..segments.len().saturating_sub(1)].to_vec();
+    let namespace_path = segments[..segments.len() - 1].to_vec();
 
     Some(UnresolvedTarget {
-        display_name,
+        display_name: segments.join("::"),
         terminal_name,
         receiver: None,
         namespace_path,

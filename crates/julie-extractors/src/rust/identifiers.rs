@@ -234,6 +234,15 @@ fn extract_identifier_from_node(
             record_rust_macro_arg_literals(extractor, node, containing_symbols);
         }
 
+        "identifier"
+            if super::helpers::macro_token_call(extractor.get_base_mut(), node).is_some() =>
+        {
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            let base = extractor.get_base_mut();
+            let name = base.get_node_text(&node);
+            base.create_identifier(&node, name, IdentifierKind::Call, containing_symbol_id);
+        }
+
         // `variable_ref` complement arm: a bare `identifier` used as a value,
         // a field-access receiver, or a scoped-access path receiver (`X` in
         // `X::Y()`) — the reads the Call/MemberAccess/TypeUsage arms above do
@@ -313,9 +322,10 @@ fn is_rust_value_read_identifier(node: tree_sitter::Node) -> bool {
         // Call arm should, so it is NOT emitted here (see open-gaps note).
         // Token-tree interiors ARE reads when the tree belongs to a macro
         // invocation (`println!("{}", macro_only)`), but not in `macro_rules!`
-        // bodies or attribute arguments.
+        // bodies or attribute arguments. Call sites inside the token tree are
+        // owned by the macro-token Call arm above.
         "macro_invocation" => false,
-        "token_tree" => rust_token_tree_belongs_to_macro_invocation(node),
+        "token_tree" => super::helpers::token_tree_belongs_to_macro_invocation(node),
 
         // Rule 3: declaration names.
         "function_item"
@@ -396,21 +406,6 @@ fn rust_scoped_path_is_read_context(mut scoped: tree_sitter::Node) -> bool {
             | "visibility_modifier"
             | "mod_item"
     )
-}
-
-/// True when a `token_tree` interior identifier belongs to a macro INVOCATION
-/// (its tokens are call-site expressions and therefore reads), as opposed to a
-/// `macro_rules!` body or an attribute argument list.
-fn rust_token_tree_belongs_to_macro_invocation(node: tree_sitter::Node) -> bool {
-    let mut current = node;
-    while let Some(parent) = current.parent() {
-        match parent.kind() {
-            "token_tree" => current = parent,
-            "macro_invocation" => return true,
-            _ => return false,
-        }
-    }
-    false
 }
 
 fn is_rust_declaration_type_name(node: tree_sitter::Node) -> bool {

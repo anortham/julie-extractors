@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex as Lock};
 
 pub mod fixture {
     #[derive(Debug)]
@@ -45,6 +46,12 @@ pub mod fixture {
 
     pub fn build_index() -> HashMap<String, Vec<u8>> {
         HashMap::new()
+    }
+
+    /// Counts doubled ids and checks the helper inside a macro argument.
+    pub fn count_doubled(ids: &[i32]) -> usize {
+        assert_eq!(helper(1), 2);
+        ids.iter().map(|id| double(*id)).count()
     }
 
     pub fn evaluate(count: i32, enabled: bool) -> i32 {
