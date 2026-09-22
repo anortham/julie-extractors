@@ -1,7 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <definitions name="PhoneBookService"
              xmlns="http://schemas.xmlsoap.org/wsdl/"
-             xmlns:tns="urn:phonebook">
+             xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+             xmlns:xs="http://www.w3.org/2001/XMLSchema"
+             xmlns:tns="urn:phonebook"
+             targetNamespace="urn:phonebook">
+
+  <types>
+    <xs:schema targetNamespace="urn:phonebook">
+      <xs:import namespace="urn:phonebook-common" schemaLocation="common.xsd" />
+      <xs:complexType name="AddPhoneType" />
+      <xs:element name="AddPhone" type="tns:AddPhoneType" />
+    </xs:schema>
+  </types>
 
   <!-- Request and response envelopes for the phone book operations. -->
   <message name="AddPhoneRequest">
@@ -13,7 +24,9 @@
   </message>
 
   <portType name="PhoneBookPort">
+    <documentation>Phone book operations.</documentation>
     <operation name="AddPhone">
+      <documentation>Adds a phone number to the book.</documentation>
       <input message="tns:AddPhoneRequest" />
       <output message="tns:AddPhoneResponse" />
     </operation>
@@ -27,6 +40,8 @@
   </binding>
 
   <service name="PhoneBook">
-    <port name="PhoneBookPort" binding="tns:PhoneBookBinding" />
+    <port name="PhoneBookPort" binding="tns:PhoneBookBinding">
+      <soap:address location="https://api.example.com/phonebook" />
+    </port>
   </service>
 </definitions>

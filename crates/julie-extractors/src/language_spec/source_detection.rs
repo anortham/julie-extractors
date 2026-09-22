@@ -46,6 +46,15 @@ where
         .and_then(|ext| ext.to_str())
         .unwrap_or("");
 
+    if extension.eq_ignore_ascii_case("config")
+        && source
+            .trim_start_matches('\u{feff}')
+            .trim_start()
+            .starts_with('<')
+    {
+        return Ok(Some(("xml", None)));
+    }
+
     if extension.eq_ignore_ascii_case("h") {
         let blanked = crate::preprocess::blanked_source("cpp", source);
         let probe_source = blanked.as_deref().unwrap_or(source);

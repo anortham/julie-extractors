@@ -46,6 +46,7 @@ const XML_NAMESPACE_DECLARATION_PATTERN_ID: &str = "xml.namespace_declaration.v1
 const XML_XSD_TYPE_PATTERN_ID: &str = "xml.xsd.type.v1";
 const XML_XSD_ELEMENT_PATTERN_ID: &str = "xml.xsd.element.v1";
 const XML_XSD_IMPORT_PATTERN_ID: &str = "xml.xsd.import.v1";
+const XML_XSD_SCHEMA_PATTERN_ID: &str = "xml.xsd.schema.v1";
 const XML_WSDL_SERVICE_PATTERN_ID: &str = "xml.wsdl.service.v1";
 const XML_WSDL_PORT_PATTERN_ID: &str = "xml.wsdl.port.v1";
 const XML_WSDL_BINDING_PATTERN_ID: &str = "xml.wsdl.binding.v1";
@@ -122,8 +123,18 @@ const XML_DATA_PATTERN_IDS: &[&str] = &[
     XML_WSDL_SERVICE_PATTERN_ID,
     XML_XSD_ELEMENT_PATTERN_ID,
     XML_XSD_IMPORT_PATTERN_ID,
+    XML_XSD_SCHEMA_PATTERN_ID,
     XML_XSD_TYPE_PATTERN_ID,
     crate::xml::build::MSBUILD_PROPERTY_PATTERN_ID,
+    crate::xml::facts::ANDROID_COMPONENT_PATTERN_ID,
+    crate::xml::facts::ANDROID_PERMISSION_PATTERN_ID,
+    crate::xml::facts::CONFIG_ENTRY_PATTERN_ID,
+    crate::xml::facts::DOCUMENT_LINK_PATTERN_ID,
+    crate::xml::facts::MYBATIS_STATEMENT_PATTERN_ID,
+    crate::xml::facts::SERVLET_ROUTE_PATTERN_ID,
+    crate::xml::facts::SPRING_BEAN_PATTERN_ID,
+    crate::xml::facts::SPRING_COMPONENT_SCAN_PATTERN_ID,
+    crate::xml::facts::TEST_SELECTION_PATTERN_ID,
     crate::toml::dependencies::MANIFEST_DEPENDENCY_PATTERN_ID,
 ];
 
@@ -156,6 +167,7 @@ pub fn collect_data_structural_facts(
     };
     if language == "xml" {
         facts.extend(crate::xml::build::build_facts(tree, file_path, content));
+        facts.extend(crate::xml::facts::xml_facts(tree, file_path, content));
     }
     if language == "yaml" {
         facts.extend(crate::yaml::ci::ci_facts(tree, file_path, content, symbols));
@@ -185,6 +197,8 @@ pub fn collect_data_structural_facts(
         crate::regex::attach_fact_symbols(&mut facts, symbols);
     } else if language == "json" {
         super::containing_symbol::attach_byte_containing_symbols(&mut facts, symbols);
+    } else if language == "xml" {
+        super::containing_symbol::attach_declaring_symbols(&mut facts, symbols);
     } else {
         attach_containing_symbols(&mut facts, symbols);
     }
@@ -2013,6 +2027,7 @@ struct XmlDocument<'a> {
 #[derive(Default)]
 struct XmlDocumentStats {
     root_element: Option<String>,
+    target_namespace: Option<String>,
     has_xml_declaration: bool,
     element_count: u64,
     max_depth: u64,
@@ -2049,6 +2064,9 @@ fn collect_xml_structural_facts(
         let mut metadata = base_metadata("document_structure");
         insert_string(&mut metadata, "dialect", document.dialect.label());
         insert_string(&mut metadata, "root_element", root_element);
+        if let Some(target_namespace) = &stats.target_namespace {
+            insert_string(&mut metadata, "target_namespace", target_namespace);
+        }
         metadata.insert(
             "has_xml_declaration".to_string(),
             Value::Bool(stats.has_xml_declaration),
@@ -2101,6 +2119,8 @@ fn collect_xml_node(
                 && let Some(name) = xml_element_tag_name(node, document.content)
             {
                 stats.root_element = Some(name.to_string());
+                stats.target_namespace =
+                    xml_element_attribute(node, document.content, "targetNamespace");
             }
             collect_xml_element_facts(node, document, facts);
         }
@@ -2141,9 +2161,38 @@ fn collect_xml_element_facts(
         return;
     };
 
+    let in_inline_schema = dialect == XmlDialect::Service
+        && std::iter::successors(Some(element), |node| xml_parent_element(*node))
+            .any(|node| xml_element_tag_name(node, content).map(xml_local_name) == Some("schema"));
+    let dialect = if in_inline_schema {
+        XmlDialect::Schema
+    } else {
+        dialect
+    };
     match dialect {
         XmlDialect::Document => {}
         XmlDialect::Schema => match local_name {
+            "schema" => {
+                let mut metadata = base_metadata("schema_structure");
+                for (key, attribute) in [
+                    ("target_namespace", "targetNamespace"),
+                    ("element_form_default", "elementFormDefault"),
+                    ("attribute_form_default", "attributeFormDefault"),
+                    ("version", "version"),
+                ] {
+                    if let Some(value) = xml_element_attribute(element, content, attribute) {
+                        insert_string(&mut metadata, key, &value);
+                    }
+                }
+                facts.push(fact_for_node(
+                    file_path,
+                    "xml",
+                    XML_XSD_SCHEMA_PATTERN_ID,
+                    "schema",
+                    element,
+                    metadata,
+                ));
+            }
             "complexType" | "simpleType" => {
                 let type_kind = if local_name == "simpleType" {
                     "simple"
@@ -2233,12 +2282,25 @@ fn collect_xml_element_facts(
                     ));
                 }
             }
-            "port" => {
+            "port" | "endpoint" => {
                 if let Some(port_name) = xml_element_attribute(element, content, "name") {
                     let mut metadata = base_metadata("service_structure");
                     insert_string(&mut metadata, "port_name", &port_name);
                     if let Some(binding) = xml_element_attribute(element, content, "binding") {
                         insert_string(&mut metadata, "binding", &binding);
+                    }
+                    let address =
+                        xml_element_attribute(element, content, "address").or_else(|| {
+                            xml_child_elements(element)
+                                .into_iter()
+                                .filter(|child| {
+                                    xml_element_tag_name(*child, content).map(xml_local_name)
+                                        == Some("address")
+                                })
+                                .find_map(|child| xml_element_attribute(child, content, "location"))
+                        });
+                    if let Some(address) = address {
+                        insert_string(&mut metadata, "address_location", &address);
                     }
                     facts.push(fact_for_node(
                         file_path,

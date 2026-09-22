@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:context="http://www.springframework.org/schema/context">
+  <context:component-scan base-package="com.example.orders" />
+  <!-- Order use cases, wired to the JDBC repository. -->
+  <bean id="orderService" class="com.example.orders.OrderService" init-method="start" destroy-method="stop">
+    <property name="repository" ref="orderRepository" />
+    <constructor-arg ref="dataSource" />
+  </bean>
+  <bean id="orderRepository" class="com.example.orders.JdbcOrderRepository" scope="singleton" depends-on="orderAudit" />
+  <bean id="orderAudit" class="com.example.orders.AuditLog" />
+</beans>

@@ -89,10 +89,12 @@ fn collect_node(
     }
 
     let node_kind = node.kind();
-    let yaml_script = (language == "yaml")
-        .then(|| crate::yaml::ci::embedded_script_language(file_path, content, node))
-        .flatten();
-    if let Some(embedded_language) = yaml_script {
+    let embedded_script = match language {
+        "yaml" => crate::yaml::ci::embedded_script_language(file_path, content, node),
+        "xml" => crate::xml::embedded_sql_language(file_path, content, node),
+        _ => None,
+    };
+    if let Some(embedded_language) = embedded_script {
         let metadata = HashMap::from([
             (
                 "host_node_kind".to_string(),
@@ -134,6 +136,12 @@ fn collect_node(
             }
         } else if language == "json" {
             if crate::json::comment_documents_following_value(content, node) {
+                SourceRegionKind::DocComment
+            } else {
+                SourceRegionKind::Comment
+            }
+        } else if language == "xml" {
+            if crate::xml::comment_documents_following_element(content, node) {
                 SourceRegionKind::DocComment
             } else {
                 SourceRegionKind::Comment
@@ -554,7 +562,7 @@ fn config_for_language(language: &str) -> Option<RegionLanguageConfig> {
         }),
         "xml" => Some(RegionLanguageConfig {
             comment_node_kinds: &["Comment"],
-            string_literal_node_kinds: &["AttValue"],
+            string_literal_node_kinds: &["AttValue", "CData"],
             quoted_string_literal_node_kinds: &[],
             html_comment_node_kinds: &[],
             embedded_node_kinds: &[],

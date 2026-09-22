@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee" version="6.0">
+  <servlet>
+    <servlet-name>orders</servlet-name>
+    <servlet-class>com.example.web.OrdersServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>orders</servlet-name>
+    <url-pattern>/api/orders/*</url-pattern>
+  </servlet-mapping>
+  <filter>
+    <filter-name>auth</filter-name>
+    <filter-class>com.example.web.AuthFilter</filter-class>
+  </filter>
+  <filter-mapping>
+    <filter-name>auth</filter-name>
+    <url-pattern>/api/*</url-pattern>
+  </filter-mapping>
+  <listener>
+    <listener-class>com.example.web.StartupListener</listener-class>
+  </listener>
+</web-app>

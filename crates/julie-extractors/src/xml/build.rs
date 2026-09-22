@@ -1,13 +1,16 @@
 //! Build-manifest dialects of XML: MSBuild projects (`.csproj`, `.vbproj`,
-//! `.fsproj`, `.props`, `.targets`), `.slnx` solutions, NuGet `.nuspec`
-//! packages, and Maven `pom.xml` files, plus the file references of XSD and
-//! WSDL documents.
+//! `.fsproj`, `.vcxproj`, `.sqlproj`, `.proj`, `.props`, `.targets`), `.slnx`
+//! solutions, NuGet `.nuspec` packages, Maven `pom.xml` files, and Ant build
+//! files, plus the file references of XSD and WSDL documents.
 //!
-//! The dialect comes from the file name. Each helper reads the tree and the
-//! source text only, so the extractor and the structural-fact collector share
-//! one reading of the document.
+//! The dialect comes from the file name, except Ant: any file whose root is a
+//! namespace-free `<project>` with `<target>` or `<import>` children. Each
+//! helper reads the tree and the source text only, so the extractor and the
+//! structural-fact collector share one reading of the document.
 
 use tree_sitter::{Node, Tree};
+
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum BuildDialect {
@@ -16,6 +19,7 @@ pub(crate) enum BuildDialect {
     Nuspec,
     Maven,
     Schema,
+    Ant,
 }
 
 impl BuildDialect {
@@ -26,12 +30,31 @@ impl BuildDialect {
         }
         let extension = name.rsplit_once('.')?.1.to_ascii_lowercase();
         match extension.as_str() {
-            "csproj" | "vbproj" | "fsproj" | "props" | "targets" => Some(Self::MsBuild),
+            "csproj" | "vbproj" | "fsproj" | "vcxproj" | "sqlproj" | "proj" | "props"
+            | "targets" => Some(Self::MsBuild),
             "slnx" => Some(Self::Solution),
             "nuspec" => Some(Self::Nuspec),
             "xsd" | "wsdl" => Some(Self::Schema),
             _ => None,
         }
+    }
+
+    /// The file-name dialect, else Ant when the root is a namespace-free
+    /// `<project>` that holds targets or imports.
+    pub(crate) fn detect(file_path: &str, content: &str, root: Option<Node<'_>>) -> Option<Self> {
+        if let Some(dialect) = Self::for_path(file_path) {
+            return Some(dialect);
+        }
+        let root = root?;
+        let is_ant = local_tag(content, root) == Some("project")
+            && attribute(content, root, "xmlns").is_none()
+            && child_elements(root).into_iter().any(|child| {
+                matches!(
+                    local_tag(content, child),
+                    Some("target" | "import" | "taskdef")
+                )
+            });
+        is_ant.then_some(Self::Ant)
     }
 
     pub(crate) fn ecosystem(self) -> &'static str {
@@ -122,7 +145,11 @@ pub(crate) fn child_elements(element: Node<'_>) -> Vec<Node<'_>> {
     children
 }
 
-fn child<'tree>(content: &str, element: Node<'tree>, wanted: &str) -> Option<Node<'tree>> {
+pub(crate) fn child<'tree>(
+    content: &str,
+    element: Node<'tree>,
+    wanted: &str,
+) -> Option<Node<'tree>> {
     child_elements(element)
         .into_iter()
         .find(|child| local_tag(content, *child) == Some(wanted))
@@ -144,24 +171,31 @@ pub(crate) fn text(content: &str, element: Node<'_>) -> Option<String> {
     (!text.is_empty()).then(|| text.to_string())
 }
 
-fn child_text(content: &str, element: Node<'_>, wanted: &str) -> Option<String> {
+pub(crate) fn child_text(content: &str, element: Node<'_>, wanted: &str) -> Option<String> {
     child(content, element, wanted).and_then(|child| text(content, child))
 }
 
-fn elements<'tree>(root: Node<'tree>, out: &mut Vec<Node<'tree>>) {
+fn elements<'tree>(root: Node<'tree>, out: &mut Vec<Node<'tree>>, depth: u32) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
     out.push(root);
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     for child in child_elements(root) {
-        elements(child, out);
+        elements(child, out, child_depth);
     }
 }
 
-fn all_elements(root: Node<'_>) -> Vec<Node<'_>> {
+/// Every element under and including `root`, in document order.
+pub(crate) fn all_elements(root: Node<'_>) -> Vec<Node<'_>> {
     let mut out = Vec::new();
-    elements(root, &mut out);
+    elements(root, &mut out, 0);
     out
 }
 
-fn parent_element(element: Node<'_>) -> Option<Node<'_>> {
+pub(crate) fn parent_element(element: Node<'_>) -> Option<Node<'_>> {
     std::iter::successors(element.parent(), |node| node.parent())
         .find(|node| node.kind() == "element")
 }
@@ -193,7 +227,7 @@ pub(crate) fn document_symbol(
         BuildDialect::Solution => "Solution",
         BuildDialect::Nuspec => "package",
         BuildDialect::Maven => "project",
-        BuildDialect::Schema => return None,
+        BuildDialect::Schema | BuildDialect::Ant => return None,
     };
     if local_tag(content, root) != Some(expected_root) {
         return None;
@@ -234,7 +268,7 @@ pub(crate) fn document_symbol(
                 metadata: extra,
             })
         }
-        BuildDialect::Schema => None,
+        BuildDialect::Schema | BuildDialect::Ant => None,
     }
 }
 
@@ -360,7 +394,8 @@ pub(crate) fn file_references<'tree>(
 ) -> Vec<FileReference<'tree>> {
     let mut found = Vec::new();
     let mut push = |node, path: String, kind| {
-        if !path.is_empty() && !path.contains("$(") && !path.contains("://") {
+        if !path.is_empty() && !path.contains("$(") && !path.contains("${") && !path.contains("://")
+        {
             found.push(FileReference {
                 node,
                 path: path.replace('\\', "/"),
@@ -409,6 +444,11 @@ pub(crate) fn file_references<'tree>(
                 };
                 push(element, path, "parent");
             }
+            (BuildDialect::Ant, "import" | "include") => {
+                if let Some((_, path)) = attribute(content, element, "file") {
+                    push(element, path, "import");
+                }
+            }
             (BuildDialect::Schema, "import" | "include" | "redefine") => {
                 if let Some((_, path)) = attribute(content, element, "schemaLocation")
                     .or_else(|| attribute(content, element, "location"))
@@ -448,28 +488,40 @@ pub(crate) struct NameSite {
     pub start: usize,
     pub end: usize,
     pub name: String,
-    pub element: Option<usize>,
+    /// How the name is used: `depends_on`, `before`, `after`, `call`, or
+    /// `default` for target names; `property` for property references.
+    pub usage: &'static str,
 }
 
-/// Target names in `DependsOnTargets`, `BeforeTargets`, `AfterTargets`, and
-/// `<CallTarget Targets>`, with the id of the declaring `<Target>` element.
-pub(crate) fn target_references(content: &str, root: Node<'_>) -> Vec<NameSite> {
+/// Target names in MSBuild `DependsOnTargets`, `BeforeTargets`,
+/// `AfterTargets`, and `<CallTarget Targets>` (`;`-separated), and in Ant
+/// `depends` (`,`-separated), `<antcall target>`, and `<project default>`.
+pub(crate) fn target_references(
+    dialect: BuildDialect,
+    content: &str,
+    root: Node<'_>,
+) -> Vec<NameSite> {
     let mut sites = Vec::new();
     for element in all_elements(root) {
         let tag = local_tag(content, element);
-        let (attributes, owner): (&[&str], Option<Node>) = match tag {
-            Some("Target") => (
-                &["DependsOnTargets", "BeforeTargets", "AfterTargets"],
-                Some(element),
+        let (attributes, separator): (&[(&str, &'static str)], char) = match (dialect, tag) {
+            (BuildDialect::MsBuild, Some("Target")) => (
+                &[
+                    ("DependsOnTargets", "depends_on"),
+                    ("BeforeTargets", "before"),
+                    ("AfterTargets", "after"),
+                ],
+                ';',
             ),
-            Some("CallTarget") => (
-                &["Targets"],
-                std::iter::successors(parent_element(element), |node| parent_element(*node))
-                    .find(|node| local_tag(content, *node) == Some("Target")),
-            ),
+            (BuildDialect::MsBuild, Some("CallTarget")) => (&[("Targets", "call")], ';'),
+            (BuildDialect::Ant, Some("target")) => (&[("depends", "depends_on")], ','),
+            (BuildDialect::Ant, Some("antcall")) => (&[("target", "call")], ','),
+            (BuildDialect::Ant, Some("project")) if element.id() == root.id() => {
+                (&[("default", "default")], ',')
+            }
             _ => continue,
         };
-        for attribute_name in attributes {
+        for (attribute_name, usage) in attributes {
             let Some((value, _)) = attribute(content, element, attribute_name) else {
                 continue;
             };
@@ -478,15 +530,19 @@ pub(crate) fn target_references(content: &str, root: Node<'_>) -> Vec<NameSite> 
                 .get(start..value.end_byte().saturating_sub(1))
                 .unwrap_or("");
             let mut offset = 0;
-            for part in raw.split(';') {
+            for part in raw.split(separator) {
                 let name = part.trim();
                 let lead = part.len() - part.trim_start().len();
-                if !name.is_empty() && !name.contains("$(") && !name.contains("@(") {
+                if !name.is_empty()
+                    && !name.contains("$(")
+                    && !name.contains("@(")
+                    && !name.contains("${")
+                {
                     sites.push(NameSite {
                         start: start + offset + lead,
                         end: start + offset + lead + name.len(),
                         name: name.to_string(),
-                        element: owner.map(|owner| owner.id()),
+                        usage,
                     });
                 }
                 offset += part.len() + 1;
@@ -496,8 +552,18 @@ pub(crate) fn target_references(content: &str, root: Node<'_>) -> Vec<NameSite> 
     sites
 }
 
-/// `$(Name)` property references in attribute values and element text.
-pub(crate) fn property_references(content: &str, root: Node<'_>) -> Vec<NameSite> {
+/// MSBuild `$(Name)` and Ant `${name}` property references in attribute
+/// values and element text.
+pub(crate) fn property_references(
+    dialect: BuildDialect,
+    content: &str,
+    root: Node<'_>,
+) -> Vec<NameSite> {
+    let opener = match dialect {
+        BuildDialect::MsBuild => "$(",
+        BuildDialect::Ant => "${",
+        _ => return Vec::new(),
+    };
     let mut sites = Vec::new();
     for element in all_elements(root) {
         let mut texts = Vec::new();
@@ -524,28 +590,44 @@ pub(crate) fn property_references(content: &str, root: Node<'_>) -> Vec<NameSite
             );
         }
         for node in texts {
-            scan_property_references(content, node.start_byte(), node.end_byte(), &mut sites);
+            scan_property_references(
+                content,
+                opener,
+                node.start_byte(),
+                node.end_byte(),
+                &mut sites,
+            );
         }
     }
     sites
 }
 
-fn scan_property_references(content: &str, from: usize, to: usize, sites: &mut Vec<NameSite>) {
+fn scan_property_references(
+    content: &str,
+    opener: &str,
+    from: usize,
+    to: usize,
+    sites: &mut Vec<NameSite>,
+) {
     let Some(text) = content.get(from..to) else {
         return;
     };
+    let closer = if opener == "${" { '}' } else { ')' };
+    let allowed = |ch: char| {
+        ch.is_ascii_alphanumeric() || ch == '_' || (closer == '}' && matches!(ch, '.' | '-'))
+    };
     let mut search = 0;
-    while let Some(found) = text[search..].find("$(") {
+    while let Some(found) = text[search..].find(opener) {
         let start = search + found + 2;
         let end = text[start..]
-            .find(|ch: char| !(ch.is_ascii_alphanumeric() || ch == '_'))
+            .find(|ch: char| !allowed(ch))
             .map_or(text.len(), |index| start + index);
-        if end > start && text[end..].starts_with(')') {
+        if end > start && text[end..].starts_with(closer) {
             sites.push(NameSite {
                 start: from + start,
                 end: from + end,
                 name: text[start..end].to_string(),
-                element: None,
+                usage: "property",
             });
         }
         search = end.max(start);

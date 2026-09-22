@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="book.xsl"?>
+<!DOCTYPE book SYSTEM "book.dtd" [
+  <!-- The document element. -->
+  <!ELEMENT book (title, chapter+)>
+  <!ATTLIST chapter id ID #REQUIRED>
+  <!ENTITY publisher "Contoso Press">
+  <!ENTITY legal SYSTEM "legal.xml">
+]>
+<book name="guide" xmlns:xi="http://www.w3.org/2001/XInclude"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="urn:book book.xsd">
+  <title>Guide by &publisher; &amp; friends</title>
+  <script><![CDATA[ if (a < b) run(); ]]></script>
+  <xi:include href="chapter2.xml" />
+  &legal;
+</book>

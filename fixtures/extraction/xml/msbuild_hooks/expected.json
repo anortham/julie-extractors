@@ -1,0 +1,650 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:Docs:1:0",
+      "name": "Docs",
+      "kind": "module",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 10,
+      "start_byte": 0,
+      "end_byte": 338,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 9,
+        "end_line": 8,
+        "end_column": 0,
+        "start_byte": 9,
+        "end_byte": 328
+      },
+      "body_hash": "681098f2e679029e76af7c546c56c872",
+      "signature": "<Project>",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "name_attribute": "file_name",
+        "tag": "Project"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:DocsTask:7:2",
+      "name": "DocsTask",
+      "kind": "class",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "start_line": 7,
+      "start_column": 2,
+      "end_line": 7,
+      "end_column": 59,
+      "start_byte": 270,
+      "end_byte": 327,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "<UsingTask TaskName=\"DocsTask\" AssemblyFile=\"Docs.dll\" />",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:Docs:1:0",
+      "metadata": {
+        "name_attribute": "TaskName",
+        "tag": "UsingTask"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "name": "GenerateDocs",
+      "kind": "function",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "start_line": 3,
+      "start_column": 2,
+      "end_line": 5,
+      "end_column": 11,
+      "start_byte": 67,
+      "end_byte": 214,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 96,
+        "end_line": 5,
+        "end_column": 2,
+        "start_byte": 161,
+        "end_byte": 205
+      },
+      "body_hash": "753dda1a1fddc927c06422e21295822a",
+      "signature": "<Target Name=\"GenerateDocs\" AfterTargets=\"Build\" DependsOnTargets=\"Compile;ResolveReferences\">",
+      "doc_comment": "<!-- Builds the API reference after every build. -->",
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:Docs:1:0",
+      "metadata": {
+        "name_attribute": "Name",
+        "tag": "Target"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:PublishDocs:6:2",
+      "name": "PublishDocs",
+      "kind": "function",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "start_line": 6,
+      "start_column": 2,
+      "end_line": 6,
+      "end_column": 52,
+      "start_byte": 217,
+      "end_byte": 267,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "<Target Name=\"PublishDocs\" BeforeTargets=\"Pack\" />",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:Docs:1:0",
+      "metadata": {
+        "name_attribute": "Name",
+        "tag": "Target"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [
+    {
+      "from_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "to_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:PublishDocs:6:2",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "line_number": 4,
+      "span": {
+        "start_line": 4,
+        "start_column": 25,
+        "end_line": 4,
+        "end_column": 36,
+        "start_byte": 187,
+        "end_byte": 198
+      },
+      "reference_site_is_exact": true,
+      "confidence": "1.000",
+      "metadata": {
+        "target_usage": "call"
+      }
+    }
+  ],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "callee_name": "Build",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "line_number": 3,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "callee_name": "Compile",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "line_number": 3,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "callee_name": "ResolveReferences",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "line_number": 3,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:PublishDocs:6:2",
+      "callee_name": "Pack",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "line_number": 6,
+      "confidence": "1.000"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+        "callee_name": "Build",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+        "line_number": 3,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "Build",
+        "terminal_name": "Build",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "span": {
+        "start_line": 3,
+        "start_column": 44,
+        "end_line": 3,
+        "end_column": 49,
+        "start_byte": 109,
+        "end_byte": 114
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+        "callee_name": "Compile",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+        "line_number": 3,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "Compile",
+        "terminal_name": "Compile",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "span": {
+        "start_line": 3,
+        "start_column": 69,
+        "end_line": 3,
+        "end_column": 76,
+        "start_byte": 134,
+        "end_byte": 141
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+        "callee_name": "ResolveReferences",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+        "line_number": 3,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "ResolveReferences",
+        "terminal_name": "ResolveReferences",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "span": {
+        "start_line": 3,
+        "start_column": 77,
+        "end_line": 3,
+        "end_column": 94,
+        "start_byte": 142,
+        "end_byte": 159
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:PublishDocs:6:2",
+        "callee_name": "Pack",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+        "line_number": 6,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "Pack",
+        "terminal_name": "Pack",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:PublishDocs:6:2",
+      "span": {
+        "start_line": 6,
+        "start_column": 44,
+        "end_line": 6,
+        "end_column": 48,
+        "start_byte": 259,
+        "end_byte": 263
+      }
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:Build:call:3:44",
+      "name": "Build",
+      "kind": "call",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "start_line": 3,
+      "start_column": 44,
+      "end_line": 3,
+      "end_column": 49,
+      "start_byte": 109,
+      "end_byte": 114,
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:Compile:call:3:69",
+      "name": "Compile",
+      "kind": "call",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "start_line": 3,
+      "start_column": 69,
+      "end_line": 3,
+      "end_column": 76,
+      "start_byte": 134,
+      "end_byte": 141,
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:Pack:call:6:44",
+      "name": "Pack",
+      "kind": "call",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "start_line": 6,
+      "start_column": 44,
+      "end_line": 6,
+      "end_column": 48,
+      "start_byte": 259,
+      "end_byte": 263,
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:PublishDocs:6:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:PublishDocs:call:4:25",
+      "name": "PublishDocs",
+      "kind": "call",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "start_line": 4,
+      "start_column": 25,
+      "end_line": 4,
+      "end_column": 36,
+      "start_byte": 187,
+      "end_byte": 198,
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "target_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:PublishDocs:6:2",
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:ResolveReferences:call:3:77",
+      "name": "ResolveReferences",
+      "kind": "call",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "start_line": 3,
+      "start_column": 77,
+      "end_line": 3,
+      "end_column": 94,
+      "start_byte": 142,
+      "end_byte": 159,
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "xml.document.v1",
+      "capture_name": "document",
+      "node_kind": "document",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 339,
+      "confidence": "1.000",
+      "metadata": {
+        "dialect": "xml",
+        "element_count": 5,
+        "has_xml_declaration": false,
+        "max_depth": 3,
+        "namespace_count": 0,
+        "pattern_version": 1,
+        "query_family": "document_structure",
+        "root_element": "Project"
+      }
+    }
+  ],
+  "complexity_metrics": [],
+  "literals": [
+    {
+      "literal_text": "Build",
+      "kind": "other",
+      "carrier": "Target.aftertargets",
+      "arg_position": 0,
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "start_line": 3,
+      "start_column": 43,
+      "end_line": 3,
+      "end_column": 50,
+      "start_byte": 108,
+      "end_byte": 115,
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "Compile;ResolveReferences",
+      "kind": "other",
+      "carrier": "Target.dependsontargets",
+      "arg_position": 0,
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "start_line": 3,
+      "start_column": 68,
+      "end_line": 3,
+      "end_column": 95,
+      "start_byte": 133,
+      "end_byte": 160,
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "Docs.dll",
+      "kind": "other",
+      "carrier": "UsingTask.assemblyfile",
+      "arg_position": 0,
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "start_line": 7,
+      "start_column": 46,
+      "end_line": 7,
+      "end_column": 56,
+      "start_byte": 314,
+      "end_byte": 324,
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:DocsTask:7:2",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "DocsTask",
+      "kind": "other",
+      "carrier": "UsingTask.taskname",
+      "arg_position": 0,
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "start_line": 7,
+      "start_column": 22,
+      "end_line": 7,
+      "end_column": 32,
+      "start_byte": 290,
+      "end_byte": 300,
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:DocsTask:7:2",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "GenerateDocs",
+      "kind": "other",
+      "carrier": "Target.name",
+      "arg_position": 0,
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "start_line": 3,
+      "start_column": 15,
+      "end_line": 3,
+      "end_column": 29,
+      "start_byte": 80,
+      "end_byte": 94,
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "Pack",
+      "kind": "other",
+      "carrier": "Target.beforetargets",
+      "arg_position": 0,
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "start_line": 6,
+      "start_column": 43,
+      "end_line": 6,
+      "end_column": 49,
+      "start_byte": 258,
+      "end_byte": 264,
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:PublishDocs:6:2",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "PublishDocs",
+      "kind": "other",
+      "carrier": "CallTarget.targets",
+      "arg_position": 0,
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "start_line": 4,
+      "start_column": 24,
+      "end_line": 4,
+      "end_column": 37,
+      "start_byte": 186,
+      "end_byte": 199,
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "PublishDocs",
+      "kind": "other",
+      "carrier": "Target.name",
+      "arg_position": 0,
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "start_line": 6,
+      "start_column": 15,
+      "end_line": 6,
+      "end_column": 28,
+      "start_byte": 230,
+      "end_byte": 243,
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:PublishDocs:6:2",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "doc_comment",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "start_line": 2,
+      "start_column": 2,
+      "end_line": 2,
+      "end_column": 54,
+      "start_byte": 12,
+      "end_byte": 64,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:DocsTask:7:2",
+      "start_line": 7,
+      "start_column": 22,
+      "end_line": 7,
+      "end_column": 32,
+      "start_byte": 290,
+      "end_byte": 300,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:DocsTask:7:2",
+      "start_line": 7,
+      "start_column": 46,
+      "end_line": 7,
+      "end_column": 56,
+      "start_byte": 314,
+      "end_byte": 324,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "start_line": 3,
+      "start_column": 15,
+      "end_line": 3,
+      "end_column": 29,
+      "start_byte": 80,
+      "end_byte": 94,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "start_line": 3,
+      "start_column": 43,
+      "end_line": 3,
+      "end_column": 50,
+      "start_byte": 108,
+      "end_byte": 115,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "start_line": 3,
+      "start_column": 68,
+      "end_line": 3,
+      "end_column": 95,
+      "start_byte": 133,
+      "end_byte": 160,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:GenerateDocs:3:2",
+      "start_line": 4,
+      "start_column": 24,
+      "end_line": 4,
+      "end_column": 37,
+      "start_byte": 186,
+      "end_byte": 199,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:PublishDocs:6:2",
+      "start_line": 6,
+      "start_column": 15,
+      "end_line": 6,
+      "end_column": 28,
+      "start_byte": 230,
+      "end_byte": 243,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+      "containing_key": "fixtures/extraction/xml/msbuild_hooks/Docs.targets:PublishDocs:6:2",
+      "start_line": 6,
+      "start_column": 43,
+      "end_line": 6,
+      "end_column": 49,
+      "start_byte": 258,
+      "end_byte": 264,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

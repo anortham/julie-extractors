@@ -618,23 +618,28 @@ fn find_git_root(start: &Path) -> Option<PathBuf> {
 
 /// An extensionless file is selected by its first line (a shell shebang), so
 /// only those files are opened; everything else is decided by name alone.
+/// Extensionless files route by their first line (a shebang) and `.config`
+/// files by their leading text (XML or not), so only those read a head.
 fn language_for_path(path: &Path) -> Option<&'static str> {
-    let head = if path.extension().is_none() {
-        read_first_line(path)
-    } else {
-        String::new()
+    let head = match path.extension() {
+        None => read_head(path)
+            .lines()
+            .next()
+            .unwrap_or_default()
+            .to_string(),
+        Some(extension) if extension.eq_ignore_ascii_case("config") => read_head(path),
+        _ => String::new(),
     };
     detect_language_for_path(path, &head)
 }
 
-fn read_first_line(path: &Path) -> String {
+fn read_head(path: &Path) -> String {
     use std::io::Read;
     let mut head = [0u8; 256];
     let read = fs::File::open(path)
         .and_then(|mut file| file.read(&mut head))
         .unwrap_or(0);
-    let text = String::from_utf8_lossy(&head[..read]);
-    text.lines().next().unwrap_or_default().to_string()
+    String::from_utf8_lossy(&head[..read]).into_owned()
 }
 
 fn is_hard_excluded(
@@ -916,6 +921,33 @@ mod tests {
         );
         assert_eq!(
             policy.select_file(&readme),
+            FileSelection::Unsupported {
+                reason: UnsupportedReason::UnsupportedExtension
+            }
+        );
+    }
+
+    #[test]
+    fn discover_selects_xml_config_files_by_their_leading_text() {
+        let fixture = DiscoveryFixture::new();
+        let web = fixture.write(
+            "src/Web.config",
+            "\u{feff}<?xml version=\"1.0\"?>\n<configuration/>\n",
+        );
+        let app = fixture.write("src/App.Release.config", "\n  <configuration/>\n");
+        let other = fixture.write("src/tool.config", "key = value\n");
+        let policy = fixture.policy();
+
+        for target in [&web, &app] {
+            assert_eq!(
+                policy.select_file(target),
+                FileSelection::Supported {
+                    language: "xml".to_string()
+                }
+            );
+        }
+        assert_eq!(
+            policy.select_file(&other),
             FileSelection::Unsupported {
                 reason: UnsupportedReason::UnsupportedExtension
             }

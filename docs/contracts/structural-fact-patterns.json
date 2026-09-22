@@ -9411,6 +9411,144 @@
     "query_family": "component_template"
   },
   {
+    "description": "An Android manifest component: application, activity, activity alias, service, receiver, or provider.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Component element name.",
+        "key": "component",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Component class, qualified against the manifest `package` when written relative.",
+        "key": "class",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `android:exported`.",
+        "key": "exported",
+        "presence": "optional",
+        "value_type": "bool"
+      },
+      {
+        "description": "Actions of the component's intent filters.",
+        "key": "intent_actions",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Categories of the component's intent filters.",
+        "key": "intent_categories",
+        "presence": "optional",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "xml.android_component.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "An Android manifest permission the app uses or declares.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Permission name.",
+        "key": "permission",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"uses\" for `uses-permission`, \"declares\" for `permission`.",
+        "key": "usage",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.android_permission.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A `<add key=\"…\" value=\"…\"/>` configuration entry (.NET `appSettings` and similar sections).",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The entry's `key`.",
+        "key": "key",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The entry's `value`.",
+        "key": "value",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Local name of the enclosing section element.",
+        "key": "section",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.config_entry.v1",
+    "query_family": "config_structure"
+  },
+  {
     "description": "An XML document with a root element.",
     "languages": [
       "xml"
@@ -9441,6 +9579,12 @@
         "value_type": "string"
       },
       {
+        "description": "The root element's `targetNamespace`, for schema and service documents.",
+        "key": "target_namespace",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
         "description": "Whether the document opens with an `<?xml …?>` declaration.",
         "key": "has_xml_declaration",
         "presence": "always",
@@ -9467,6 +9611,46 @@
     ],
     "pattern_id": "xml.document.v1",
     "query_family": "document_structure"
+  },
+  {
+    "description": "A link to another file: a stylesheet or xml-model processing instruction, the DOCTYPE system id, an external entity, an XInclude, an `xsi` schema location, or an XSLT import or include.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Linked location as written.",
+        "key": "href",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"stylesheet\", \"xml_model\", \"dtd\", \"external_entity\", \"xinclude\", \"schema_location\", \"no_namespace_schema_location\", \"xsl_import\", or \"xsl_include\".",
+        "key": "link_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Namespace paired with the location in `xsi:schemaLocation`.",
+        "key": "namespace",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.document_link.v1",
+    "query_family": "document_links"
   },
   {
     "description": "An MSBuild property: a child element of `<PropertyGroup>`.",
@@ -9509,6 +9693,76 @@
     "query_family": "config_structure"
   },
   {
+    "description": "A MyBatis mapper statement or SQL fragment.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The mapper `namespace`: the Java interface the statements implement.",
+        "key": "namespace",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared statement `id`.",
+        "key": "statement_id",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"select\", \"insert\", \"update\", \"delete\", or \"sql\".",
+        "key": "operation",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Statement text, CDATA and dynamic-tag text included, whitespace collapsed.",
+        "key": "sql",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `parameterType`.",
+        "key": "parameter_type",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `resultType`.",
+        "key": "result_type",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `resultMap`.",
+        "key": "result_map",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.mybatis_statement.v1",
+    "query_family": "query_structure"
+  },
+  {
     "description": "An `xmlns` namespace declaration attribute.",
     "languages": [
       "xml"
@@ -9547,6 +9801,232 @@
     ],
     "pattern_id": "xml.namespace_declaration.v1",
     "query_family": "document_metadata"
+  },
+  {
+    "description": "A `web.xml` servlet or filter mapping: one fact per `url-pattern`.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"servlet\" or \"filter\".",
+        "key": "mapping_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `url-pattern` as written.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The mapped `servlet-name` or `filter-name`.",
+        "key": "target_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Class of the named servlet or filter, when it is declared in the same file.",
+        "key": "target_class",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.servlet_route.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Spring `<bean>` definition in a `<beans>` document.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `id`; absent on an inner bean.",
+        "key": "bean_id",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Qualified bean class.",
+        "key": "class",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `scope`.",
+        "key": "scope",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `init-method`.",
+        "key": "init_method",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `destroy-method`.",
+        "key": "destroy_method",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `factory-method`.",
+        "key": "factory_method",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `factory-bean`.",
+        "key": "factory_bean",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `parent` bean.",
+        "key": "parent",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.spring_bean.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Spring `<context:component-scan>` declaration.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Scanned `base-package` as written.",
+        "key": "base_package",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.spring_component_scan.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A TestNG suite `<class>` entry: the test class a suite runs and its method selection.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Qualified test class.",
+        "key": "class",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Name of the enclosing `<test>`.",
+        "key": "test",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Name of the enclosing `<suite>`.",
+        "key": "suite",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Methods named by `<include>`.",
+        "key": "included_methods",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Methods named by `<exclude>`.",
+        "key": "excluded_methods",
+        "presence": "optional",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "xml.test_selection.v1",
+    "query_family": "testing"
   },
   {
     "description": "A WSDL `binding` declaration.",
@@ -9669,7 +10149,7 @@
     "query_family": "service_structure"
   },
   {
-    "description": "A WSDL `port` declaration inside a service.",
+    "description": "A WSDL 1.1 `port` or WSDL 2.0 `endpoint` declaration inside a service.",
     "languages": [
       "xml"
     ],
@@ -9695,6 +10175,12 @@
       {
         "description": "Raw QName of the binding the port exposes.",
         "key": "binding",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Endpoint URL: the `location` of a SOAP or HTTP `address` child, or a WSDL 2.0 `address`.",
+        "key": "address_location",
         "presence": "optional",
         "value_type": "string"
       }
@@ -9808,6 +10294,52 @@
       }
     ],
     "pattern_id": "xml.xsd.import.v1",
+    "query_family": "schema_structure"
+  },
+  {
+    "description": "An XSD `schema` element, in a `.xsd` file or inline in a WSDL `types` section.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `targetNamespace`, which `tns:`-style QNames resolve against.",
+        "key": "target_namespace",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `elementFormDefault`.",
+        "key": "element_form_default",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `attributeFormDefault`.",
+        "key": "attribute_form_default",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared schema `version`.",
+        "key": "version",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.xsd.schema.v1",
     "query_family": "schema_structure"
   },
   {

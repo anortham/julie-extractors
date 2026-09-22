@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<project name="orders" default="dist">
+  <import file="common-build.xml" />
+  <property name="src.dir" value="src" />
+  <target name="dist" depends="compile, test" description="Build the distribution jar">
+    <antcall target="package" />
+  </target>
+  <target name="compile">
+    <javac srcdir="${src.dir}" />
+  </target>
+  <target name="test" depends="compile" />
+  <target name="package" depends="clean" />
+</project>

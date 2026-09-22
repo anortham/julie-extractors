@@ -1,0 +1,333 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/xml/webxml/WEB-INF/web.xml:auth:11:2",
+      "name": "auth",
+      "kind": "variable",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/webxml/WEB-INF/web.xml",
+      "start_line": 11,
+      "start_column": 2,
+      "end_line": 14,
+      "end_column": 11,
+      "start_byte": 365,
+      "end_byte": 481,
+      "body_span": {
+        "start_line": 11,
+        "start_column": 10,
+        "end_line": 14,
+        "end_column": 2,
+        "start_byte": 373,
+        "end_byte": 472
+      },
+      "body_hash": "8c35e14e1c4e231924b0ad1c9d4f0e4a",
+      "signature": "<filter>",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "name_attribute": "filter-name",
+        "tag": "filter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/xml/webxml/WEB-INF/web.xml:orders:3:2",
+      "name": "orders",
+      "kind": "variable",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/webxml/WEB-INF/web.xml",
+      "start_line": 3,
+      "start_column": 2,
+      "end_line": 6,
+      "end_column": 12,
+      "start_byte": 109,
+      "end_byte": 236,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 11,
+        "end_line": 6,
+        "end_column": 2,
+        "start_byte": 118,
+        "end_byte": 226
+      },
+      "body_hash": "ae416247359d8819fc56a94d08e6cf4b",
+      "signature": "<servlet>",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "name_attribute": "servlet-name",
+        "tag": "servlet"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/xml/webxml/WEB-INF/web.xml:AuthFilter:type_usage:13:34",
+      "name": "AuthFilter",
+      "kind": "type_usage",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/webxml/WEB-INF/web.xml",
+      "start_line": 13,
+      "start_column": 34,
+      "end_line": 13,
+      "end_column": 44,
+      "start_byte": 444,
+      "end_byte": 454,
+      "containing_key": "fixtures/extraction/xml/webxml/WEB-INF/web.xml:auth:11:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute": "filter-class",
+        "qualified_name": "com.example.web.AuthFilter"
+      }
+    },
+    {
+      "key": "fixtures/extraction/xml/webxml/WEB-INF/web.xml:OrdersServlet:type_usage:5:35",
+      "name": "OrdersServlet",
+      "kind": "type_usage",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/webxml/WEB-INF/web.xml",
+      "start_line": 5,
+      "start_column": 35,
+      "end_line": 5,
+      "end_column": 48,
+      "start_byte": 194,
+      "end_byte": 207,
+      "containing_key": "fixtures/extraction/xml/webxml/WEB-INF/web.xml:orders:3:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute": "servlet-class",
+        "qualified_name": "com.example.web.OrdersServlet"
+      }
+    },
+    {
+      "key": "fixtures/extraction/xml/webxml/WEB-INF/web.xml:StartupListener:type_usage:20:36",
+      "name": "StartupListener",
+      "kind": "type_usage",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/webxml/WEB-INF/web.xml",
+      "start_line": 20,
+      "start_column": 36,
+      "end_line": 20,
+      "end_column": 51,
+      "start_byte": 644,
+      "end_byte": 659,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute": "listener-class",
+        "qualified_name": "com.example.web.StartupListener"
+      }
+    },
+    {
+      "key": "fixtures/extraction/xml/webxml/WEB-INF/web.xml:auth:variable_ref:16:17",
+      "name": "auth",
+      "kind": "variable_ref",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/webxml/WEB-INF/web.xml",
+      "start_line": 16,
+      "start_column": 17,
+      "end_line": 16,
+      "end_column": 21,
+      "start_byte": 518,
+      "end_byte": 522,
+      "containing_key": null,
+      "target_key": "fixtures/extraction/xml/webxml/WEB-INF/web.xml:auth:11:2",
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/xml/webxml/WEB-INF/web.xml:orders:variable_ref:8:18",
+      "name": "orders",
+      "kind": "variable_ref",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/webxml/WEB-INF/web.xml",
+      "start_line": 8,
+      "start_column": 18,
+      "end_line": 8,
+      "end_column": 24,
+      "start_byte": 275,
+      "end_byte": 281,
+      "containing_key": null,
+      "target_key": "fixtures/extraction/xml/webxml/WEB-INF/web.xml:orders:3:2",
+      "confidence": "1.000"
+    }
+  ],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "xml.document.v1",
+      "capture_name": "document",
+      "node_kind": "document",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/webxml/WEB-INF/web.xml",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 23,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 702,
+      "confidence": "1.000",
+      "metadata": {
+        "dialect": "xml",
+        "element_count": 15,
+        "has_xml_declaration": true,
+        "max_depth": 3,
+        "namespace_count": 1,
+        "pattern_version": 1,
+        "query_family": "document_structure",
+        "root_element": "web-app"
+      }
+    },
+    {
+      "pattern_id": "xml.namespace_declaration.v1",
+      "capture_name": "namespace_declaration",
+      "node_kind": "Attribute",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/webxml/WEB-INF/web.xml",
+      "containing_key": null,
+      "start_line": 2,
+      "start_column": 9,
+      "end_line": 2,
+      "end_column": 52,
+      "start_byte": 48,
+      "end_byte": 91,
+      "confidence": "1.000",
+      "metadata": {
+        "is_default": true,
+        "namespace_uri": "https://jakarta.ee/xml/ns/jakartaee",
+        "pattern_version": 1,
+        "query_family": "document_metadata"
+      }
+    },
+    {
+      "pattern_id": "xml.servlet_route.v1",
+      "capture_name": "route",
+      "node_kind": "element",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/webxml/WEB-INF/web.xml",
+      "containing_key": null,
+      "start_line": 17,
+      "start_column": 4,
+      "end_line": 17,
+      "end_column": 37,
+      "start_byte": 541,
+      "end_byte": 574,
+      "confidence": "1.000",
+      "metadata": {
+        "framework": "java-servlet",
+        "mapping_kind": "filter",
+        "normalized_route_template": "/api/*",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/api/*",
+        "target_class": "com.example.web.AuthFilter",
+        "target_name": "auth"
+      }
+    },
+    {
+      "pattern_id": "xml.servlet_route.v1",
+      "capture_name": "route",
+      "node_kind": "element",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/webxml/WEB-INF/web.xml",
+      "containing_key": null,
+      "start_line": 9,
+      "start_column": 4,
+      "end_line": 9,
+      "end_column": 44,
+      "start_byte": 301,
+      "end_byte": 341,
+      "confidence": "1.000",
+      "metadata": {
+        "framework": "java-servlet",
+        "mapping_kind": "servlet",
+        "normalized_route_template": "/api/orders/*",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/api/orders/*",
+        "target_class": "com.example.web.OrdersServlet",
+        "target_name": "orders"
+      }
+    }
+  ],
+  "complexity_metrics": [],
+  "literals": [
+    {
+      "literal_text": "6.0",
+      "kind": "other",
+      "carrier": "web-app.version",
+      "arg_position": 0,
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/webxml/WEB-INF/web.xml",
+      "start_line": 2,
+      "start_column": 61,
+      "end_line": 2,
+      "end_column": 66,
+      "start_byte": 100,
+      "end_byte": 105,
+      "containing_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "https://jakarta.ee/xml/ns/jakartaee",
+      "kind": "other",
+      "carrier": "web-app.xmlns",
+      "arg_position": 0,
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/webxml/WEB-INF/web.xml",
+      "start_line": 2,
+      "start_column": 15,
+      "end_line": 2,
+      "end_column": 52,
+      "start_byte": 54,
+      "end_byte": 91,
+      "containing_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/webxml/WEB-INF/web.xml",
+      "containing_key": null,
+      "start_line": 2,
+      "start_column": 15,
+      "end_line": 2,
+      "end_column": 52,
+      "start_byte": 54,
+      "end_byte": 91,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/webxml/WEB-INF/web.xml",
+      "containing_key": null,
+      "start_line": 2,
+      "start_column": 61,
+      "end_line": 2,
+      "end_column": 66,
+      "start_byte": 100,
+      "end_byte": 105,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

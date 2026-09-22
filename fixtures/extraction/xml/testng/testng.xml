@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suite name="RegressionSuite">
+  <test name="CheckoutTests">
+    <parameter name="browser" value="chrome" />
+    <classes>
+      <class name="com.example.checkout.CartTest">
+        <methods>
+          <include name="addsItemToCart" />
+          <exclude name="flakyPayment" />
+        </methods>
+      </class>
+    </classes>
+  </test>
+</suite>

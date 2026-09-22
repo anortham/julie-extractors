@@ -4,14 +4,18 @@
 //! the xml arm of `base/data_structural_facts.rs`. Public registry access remains
 //! through [`super::structural_fact_pattern_specs`].
 //!
-//! Three layers share the `xml` language and the `xml.` id prefix: generic
-//! document facts fire for every registered extension, `xml.xsd.*` only for
-//! `.xsd`, `xml.wsdl.*` only for `.wsdl`, and `xml.msbuild_*` only for MSBuild
-//! project files. QName-valued keys carry the raw
-//! prefixed text; the tier performs no namespace resolution.
+//! Several layers share the `xml` language and the `xml.` id prefix: generic
+//! document facts (document, namespace declarations, document links, config
+//! entries) fire for every registered extension, `xml.xsd.*` for `.xsd` files
+//! and schemas inlined in `.wsdl` files, `xml.wsdl.*` only for `.wsdl`,
+//! `xml.msbuild_*` only for MSBuild project files, and the framework facts
+//! (Spring, servlet, Android, MyBatis, TestNG) only for documents of that
+//! framework. QName-valued keys carry the raw prefixed text; namespace
+//! resolution lives in the identifier and relationship rows.
 
 use super::{
-    ALWAYS, BOOL, K_PATTERN_VERSION, K_QUERY_FAMILY, NUM, OPT, STR, StructuralFactPatternSpec, key,
+    ALWAYS, ARR, BOOL, K_FRAMEWORK, K_PATTERN_VERSION, K_QUERY_FAMILY, NUM, OPT, STR,
+    StructuralFactPatternSpec, key,
 };
 
 pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
@@ -37,6 +41,12 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 STR,
                 ALWAYS,
                 "Qualified tag name of the root element, prefix included.",
+            ),
+            key(
+                "target_namespace",
+                STR,
+                OPT,
+                "The root element's `targetNamespace`, for schema and service documents.",
             ),
             key(
                 "has_xml_declaration",
@@ -95,6 +105,35 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     // -----------------------------------------------------------------------
     // XML Schema documents (.xsd).
     // -----------------------------------------------------------------------
+    StructuralFactPatternSpec {
+        pattern_id: "xml.xsd.schema.v1",
+        languages: &["xml"],
+        query_family: "schema_structure",
+        description: "An XSD `schema` element, in a `.xsd` file or inline in a WSDL `types` section.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "target_namespace",
+                STR,
+                OPT,
+                "Declared `targetNamespace`, which `tns:`-style QNames resolve against.",
+            ),
+            key(
+                "element_form_default",
+                STR,
+                OPT,
+                "Declared `elementFormDefault`.",
+            ),
+            key(
+                "attribute_form_default",
+                STR,
+                OPT,
+                "Declared `attributeFormDefault`.",
+            ),
+            key("version", STR, OPT, "Declared schema `version`."),
+        ],
+    },
     StructuralFactPatternSpec {
         pattern_id: "xml.xsd.type.v1",
         languages: &["xml"],
@@ -187,7 +226,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
         pattern_id: "xml.wsdl.port.v1",
         languages: &["xml"],
         query_family: "service_structure",
-        description: "A WSDL `port` declaration inside a service.",
+        description: "A WSDL 1.1 `port` or WSDL 2.0 `endpoint` declaration inside a service.",
         metadata_keys: &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
@@ -197,6 +236,12 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 STR,
                 OPT,
                 "Raw QName of the binding the port exposes.",
+            ),
+            key(
+                "address_location",
+                STR,
+                OPT,
+                "Endpoint URL: the `location` of a SOAP or HTTP `address` child, or a WSDL 2.0 `address`.",
             ),
         ],
     },
@@ -284,6 +329,235 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 STR,
                 OPT,
                 "The property's `Condition` attribute.",
+            ),
+        ],
+    },
+    // -----------------------------------------------------------------------
+    // Links, configuration entries, and framework vocabularies.
+    // -----------------------------------------------------------------------
+    StructuralFactPatternSpec {
+        pattern_id: "xml.document_link.v1",
+        languages: &["xml"],
+        query_family: "document_links",
+        description: "A link to another file: a stylesheet or xml-model processing instruction, the DOCTYPE system id, an external entity, an XInclude, an `xsi` schema location, or an XSLT import or include.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key("href", STR, ALWAYS, "Linked location as written."),
+            key(
+                "link_kind",
+                STR,
+                ALWAYS,
+                "\"stylesheet\", \"xml_model\", \"dtd\", \"external_entity\", \"xinclude\", \"schema_location\", \"no_namespace_schema_location\", \"xsl_import\", or \"xsl_include\".",
+            ),
+            key(
+                "namespace",
+                STR,
+                OPT,
+                "Namespace paired with the location in `xsi:schemaLocation`.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "xml.config_entry.v1",
+        languages: &["xml"],
+        query_family: "config_structure",
+        description: "A `<add key=\"…\" value=\"…\"/>` configuration entry (.NET `appSettings` and similar sections).",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key("key", STR, ALWAYS, "The entry's `key`."),
+            key("value", STR, OPT, "The entry's `value`."),
+            key(
+                "section",
+                STR,
+                OPT,
+                "Local name of the enclosing section element.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "xml.spring_bean.v1",
+        languages: &["xml"],
+        query_family: "framework",
+        description: "A Spring `<bean>` definition in a `<beans>` document.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key(
+                "bean_id",
+                STR,
+                OPT,
+                "Declared `id`; absent on an inner bean.",
+            ),
+            key("class", STR, OPT, "Qualified bean class."),
+            key("scope", STR, OPT, "Declared `scope`."),
+            key("init_method", STR, OPT, "Declared `init-method`."),
+            key("destroy_method", STR, OPT, "Declared `destroy-method`."),
+            key("factory_method", STR, OPT, "Declared `factory-method`."),
+            key("factory_bean", STR, OPT, "Declared `factory-bean`."),
+            key("parent", STR, OPT, "Declared `parent` bean."),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "xml.spring_component_scan.v1",
+        languages: &["xml"],
+        query_family: "framework",
+        description: "A Spring `<context:component-scan>` declaration.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key(
+                "base_package",
+                STR,
+                ALWAYS,
+                "Scanned `base-package` as written.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "xml.servlet_route.v1",
+        languages: &["xml"],
+        query_family: "framework",
+        description: "A `web.xml` servlet or filter mapping: one fact per `url-pattern`.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key("mapping_kind", STR, ALWAYS, "\"servlet\" or \"filter\"."),
+            key(
+                "route_template",
+                STR,
+                ALWAYS,
+                "The `url-pattern` as written.",
+            ),
+            key(
+                "normalized_route_template",
+                STR,
+                ALWAYS,
+                "Cross-family normalized route template.",
+            ),
+            key(
+                "target_name",
+                STR,
+                ALWAYS,
+                "The mapped `servlet-name` or `filter-name`.",
+            ),
+            key(
+                "target_class",
+                STR,
+                OPT,
+                "Class of the named servlet or filter, when it is declared in the same file.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "xml.android_component.v1",
+        languages: &["xml"],
+        query_family: "framework",
+        description: "An Android manifest component: application, activity, activity alias, service, receiver, or provider.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key("component", STR, ALWAYS, "Component element name."),
+            key(
+                "class",
+                STR,
+                ALWAYS,
+                "Component class, qualified against the manifest `package` when written relative.",
+            ),
+            key("exported", BOOL, OPT, "Declared `android:exported`."),
+            key(
+                "intent_actions",
+                ARR,
+                OPT,
+                "Actions of the component's intent filters.",
+            ),
+            key(
+                "intent_categories",
+                ARR,
+                OPT,
+                "Categories of the component's intent filters.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "xml.android_permission.v1",
+        languages: &["xml"],
+        query_family: "framework",
+        description: "An Android manifest permission the app uses or declares.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key("permission", STR, ALWAYS, "Permission name."),
+            key(
+                "usage",
+                STR,
+                ALWAYS,
+                "\"uses\" for `uses-permission`, \"declares\" for `permission`.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "xml.mybatis_statement.v1",
+        languages: &["xml"],
+        query_family: "query_structure",
+        description: "A MyBatis mapper statement or SQL fragment.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key(
+                "namespace",
+                STR,
+                OPT,
+                "The mapper `namespace`: the Java interface the statements implement.",
+            ),
+            key("statement_id", STR, ALWAYS, "Declared statement `id`."),
+            key(
+                "operation",
+                STR,
+                ALWAYS,
+                "\"select\", \"insert\", \"update\", \"delete\", or \"sql\".",
+            ),
+            key(
+                "sql",
+                STR,
+                ALWAYS,
+                "Statement text, CDATA and dynamic-tag text included, whitespace collapsed.",
+            ),
+            key("parameter_type", STR, OPT, "Declared `parameterType`."),
+            key("result_type", STR, OPT, "Declared `resultType`."),
+            key("result_map", STR, OPT, "Declared `resultMap`."),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "xml.test_selection.v1",
+        languages: &["xml"],
+        query_family: "testing",
+        description: "A TestNG suite `<class>` entry: the test class a suite runs and its method selection.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key("class", STR, ALWAYS, "Qualified test class."),
+            key("test", STR, OPT, "Name of the enclosing `<test>`."),
+            key("suite", STR, OPT, "Name of the enclosing `<suite>`."),
+            key(
+                "included_methods",
+                ARR,
+                OPT,
+                "Methods named by `<include>`.",
+            ),
+            key(
+                "excluded_methods",
+                ARR,
+                OPT,
+                "Methods named by `<exclude>`.",
             ),
         ],
     },

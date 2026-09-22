@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <xsd:element name="root">
+      <xsd:complexType>
+        <xsd:attribute name="name" type="xsd:string" />
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Spreadsheet_FileTab" xml:space="preserve">
+    <value>File</value>
+    <comment>Label of the first ribbon tab.</comment>
+  </data>
+  <data name="Spreadsheet_EditTab" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+</root>
