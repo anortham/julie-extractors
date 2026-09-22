@@ -17,6 +17,7 @@ pub(crate) mod helpers;
 mod identifiers;
 mod parameters;
 mod relationships;
+mod scope;
 mod tables;
 pub(crate) mod test_calls;
 mod type_facts;
@@ -55,7 +56,14 @@ impl LuaExtractor {
         self.base.clear_pending_relationships();
 
         // Use core module to traverse and extract symbols
-        core::traverse_tree(&mut self.symbols, &mut self.base, tree.root_node(), None, 0);
+        core::traverse_tree(
+            &mut self.symbols,
+            &mut self.base,
+            &mut HashMap::new(),
+            tree.root_node(),
+            None,
+            0,
+        );
 
         classes::detect_lua_classes(&mut self.symbols);
         type_facts::record_inferred_constructor_facts(

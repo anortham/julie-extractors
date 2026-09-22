@@ -1,21 +1,51 @@
-use super::type_facts;
-use crate::base::{BaseExtractor, RelationshipKind, Symbol, SymbolKind, UnresolvedTarget};
+use super::{scope, type_facts};
+use crate::base::{ContainingSymbolIndex, RelationshipKind, Symbol, SymbolKind, UnresolvedTarget};
 use crate::lua::{LuaExtractor, helpers};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
-/// Extract relationships such as function call edges from the Lua AST.
-pub(super) fn extract_relationships(extractor: &mut LuaExtractor, tree: &Tree, symbols: &[Symbol]) {
-    let symbol_map = crate::base::ScopedSymbolIndex::unique_symbol_map(symbols);
-
-    traverse_tree_for_relationships(extractor, tree.root_node(), &symbol_map, 0);
+struct CallContext<'a> {
+    symbols: &'a [Symbol],
+    callers: ContainingSymbolIndex<'a>,
+    callees: HashMap<String, &'a Symbol>,
 }
 
-fn traverse_tree_for_relationships<'a>(
+fn is_callable(symbol: &Symbol) -> bool {
+    matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
+}
+
+/// Extract relationships such as function call edges from the Lua AST.
+pub(super) fn extract_relationships(extractor: &mut LuaExtractor, tree: &Tree, symbols: &[Symbol]) {
+    let file_path = extractor.base().file_path.clone();
+    let callables = || {
+        symbols
+            .iter()
+            .filter(|symbol| symbol.file_path == file_path && is_callable(symbol))
+    };
+    let mut by_name: HashMap<String, Vec<&Symbol>> = HashMap::new();
+    for symbol in callables() {
+        by_name.entry(symbol.name.clone()).or_default().push(symbol);
+    }
+    let context = CallContext {
+        symbols,
+        callers: ContainingSymbolIndex::from_iter(callables()),
+        callees: by_name
+            .into_iter()
+            .filter_map(|(name, candidates)| match candidates.as_slice() {
+                [symbol] => Some((name, *symbol)),
+                _ => None,
+            })
+            .collect(),
+    };
+
+    traverse_tree_for_relationships(extractor, tree.root_node(), &context, 0);
+}
+
+fn traverse_tree_for_relationships(
     extractor: &mut LuaExtractor,
-    node: Node<'a>,
-    symbol_map: &HashMap<String, &'a Symbol>,
+    node: Node,
+    context: &CallContext,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -26,7 +56,7 @@ fn traverse_tree_for_relationships<'a>(
         // `require(...)` is handled during symbol extraction as an import symbol.
         if let Some(identifier) = helpers::find_child_by_type(&node, "identifier") {
             let callee_name = extractor.base().get_node_text(&identifier);
-            process_function_call(extractor, node, &callee_name, None, symbol_map);
+            process_function_call(extractor, node, &callee_name, None, context);
         }
         // Handle method calls: obj:method() or obj.method()
         else if let Some(method_expr) =
@@ -42,7 +72,7 @@ fn traverse_tree_for_relationships<'a>(
             } else {
                 &full_expr
             };
-            process_function_call(extractor, node, method_name, Some(&full_expr), symbol_map);
+            process_function_call(extractor, node, method_name, Some(&full_expr), context);
         }
     }
 
@@ -51,7 +81,7 @@ fn traverse_tree_for_relationships<'a>(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        traverse_tree_for_relationships(extractor, child, symbol_map, child_depth);
+        traverse_tree_for_relationships(extractor, child, context, child_depth);
     }
 }
 
@@ -60,14 +90,18 @@ fn process_function_call(
     node: Node,
     callee_name: &str,
     full_expr: Option<&str>,
-    symbol_map: &HashMap<String, &Symbol>,
+    context: &CallContext,
 ) {
     if callee_name == "require" {
         return;
     }
 
-    if let Some(caller_symbol) = find_enclosing_function(node, extractor.base(), symbol_map) {
-        let target = if let Some(full_expr) = full_expr {
+    let caller = context
+        .callers
+        .find(node)
+        .filter(|caller| caller.start_byte != node.start_byte() as u32);
+    if let Some(caller_symbol) = caller {
+        let mut target = if let Some(full_expr) = full_expr {
             let normalized = full_expr.replace(':', ".");
             let receiver = normalized
                 .rsplit_once('.')
@@ -82,14 +116,22 @@ fn process_function_call(
         } else {
             UnresolvedTarget::simple(callee_name.to_string())
         };
+        if let Some(receiver) = target.receiver.as_deref()
+            && scope::resolve_binding(receiver, node.start_byte() as u32, context.symbols)
+                .is_some_and(|binding| binding.kind == SymbolKind::Import)
+        {
+            target.import_context = Some(receiver.to_string());
+        }
         let can_resolve_locally = target
             .receiver
             .as_deref()
             .is_none_or(|receiver| matches!(receiver, "self"));
 
-        match symbol_map.get(callee_name).filter(|symbol| {
-            can_resolve_locally && matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
-        }) {
+        match context
+            .callees
+            .get(callee_name)
+            .filter(|_| can_resolve_locally)
+        {
             Some(callee_symbol) => {
                 // Target is a local function - create resolved Relationship
                 if caller_symbol.id != callee_symbol.id {
@@ -122,45 +164,4 @@ fn process_function_call(
             }
         }
     }
-}
-
-fn find_enclosing_function<'a>(
-    mut node: Node<'a>,
-    base: &BaseExtractor,
-    symbol_map: &HashMap<String, &'a Symbol>,
-) -> Option<&'a Symbol> {
-    while let Some(parent) = node.parent() {
-        match parent.kind() {
-            "function_declaration"
-            | "function_definition_statement"
-            | "local_function_declaration"
-            | "local_function_definition_statement" => {
-                if let Some(caller_name) = callable_name(base, parent)
-                    && let Some(symbol) = symbol_map.get(caller_name.as_str())
-                {
-                    return Some(*symbol);
-                }
-            }
-            _ => {}
-        }
-        node = parent;
-    }
-    None
-}
-
-fn callable_name(base: &BaseExtractor, node: Node) -> Option<String> {
-    if let Some(name) = node.child_by_field_name("name") {
-        return match name.kind() {
-            "identifier" => Some(base.get_node_text(&name)),
-            "method_index_expression" => name
-                .child_by_field_name("method")
-                .map(|method| base.get_node_text(&method)),
-            "dot_index_expression" => name
-                .child_by_field_name("field")
-                .map(|field| base.get_node_text(&field)),
-            _ => None,
-        };
-    }
-    helpers::find_child_by_type(&node, "identifier")
-        .map(|identifier| base.get_node_text(&identifier))
 }

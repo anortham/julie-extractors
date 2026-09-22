@@ -77,6 +77,16 @@ impl super::BashExtractor {
 
         // Look for variable assignments within the declaration
         let assignments = self.get_children_of_type(node, "variable_assignment");
+        let declaration_prefix = assignments
+            .first()
+            .and_then(|first| {
+                self.base
+                    .content
+                    .get(node.start_byte()..first.start_byte())
+                    .map(str::trim)
+                    .map(str::to_string)
+            })
+            .unwrap_or_else(|| declaration_type.to_string());
         assignments
             .into_iter()
             .filter_map(|assignment| {
@@ -88,7 +98,10 @@ impl super::BashExtractor {
                     !is_readonly && self.is_environment_variable(assignment, &name);
 
                 let options = SymbolOptions {
-                    signature: Some(format!("{} {}", declaration_type, name)),
+                    signature: Some(format!(
+                        "{declaration_prefix} {}",
+                        self.base.get_node_text(&assignment)
+                    )),
                     visibility: if is_exported {
                         Some(Visibility::Public)
                     } else {

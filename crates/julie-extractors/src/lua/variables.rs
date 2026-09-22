@@ -6,8 +6,10 @@
 /// - Assignment statements: `x, y = 1, 2`
 /// - Property assignments: `obj.prop = value`
 /// - Module property assignments: `M.PI = 3.14159`
+use super::core::{self, ValueOwners};
 use super::helpers;
-use super::tables;
+use super::parameters;
+use super::scope;
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -26,7 +28,7 @@ pub(super) fn collect_expression_nodes<'a>(expr_list: Node<'a>) -> Vec<Node<'a>>
 /// `is_field` controls whether function definitions become Method (true) or Function (false).
 /// Returns (kind, data_type) where kind is the override (if any) and data_type is the
 /// inferred type string.
-fn infer_kind_and_type(
+pub(super) fn infer_kind_and_type(
     base: &BaseExtractor,
     expression: Node,
     is_field: bool,
@@ -62,34 +64,16 @@ fn infer_kind_and_type(
     }
 }
 
-/// Resolve dot-notation name (e.g., "M.PI") into property name and parent symbol ID.
+/// Create a variable-like symbol for `name_node` bound to `value`.
 ///
-/// Returns Some((property_name, parent_id)) for valid two-part dot notation,
-/// or None if the name doesn't contain a dot or has more than two parts.
-fn resolve_dot_property(name: &str, symbols: &[Symbol]) -> Option<(String, Option<String>)> {
-    if !name.contains('.') {
-        return None;
-    }
-    let parts: Vec<&str> = name.split('.').collect();
-    if parts.len() != 2 {
-        return None;
-    }
-    let object_name = parts[0];
-    let property_name = parts[1];
-    let parent_id = symbols
-        .iter()
-        .find(|s| s.name == object_name)
-        .map(|s| s.id.clone());
-    Some((property_name.to_string(), parent_id))
-}
-
-/// Build metadata HashMap with dataType and create + push a symbol.
-///
-/// If the expression is a table constructor, also extracts table fields as children.
+/// A function value spans from the name to the closing `end`, carries the
+/// function body, and owns its parameters. Function and table values are
+/// registered in `owners` so the traversal parents their contents to this symbol.
 #[allow(clippy::too_many_arguments)]
-fn push_variable_symbol(
+pub(super) fn push_variable_symbol(
     symbols: &mut Vec<Symbol>,
     base: &mut BaseExtractor,
+    owners: &mut ValueOwners,
     name_node: &Node,
     name: String,
     kind: SymbolKind,
@@ -98,300 +82,185 @@ fn push_variable_symbol(
     parent_id: Option<String>,
     visibility: Visibility,
     doc_comment: Option<String>,
-    expression: Option<&Node>,
+    value: Option<Node>,
 ) {
     let mut metadata = HashMap::new();
     metadata.insert("dataType".to_string(), data_type.into());
+    let require = value
+        .filter(|_| kind == SymbolKind::Import)
+        .and_then(|value| core::require_import(base, value));
+    if let Some(require) = &require {
+        metadata.extend(require.metadata());
+    }
 
     let options = SymbolOptions {
         signature: Some(signature),
-        parent_id,
+        parent_id: parent_id.clone(),
         visibility: Some(visibility),
         metadata: Some(metadata),
         doc_comment,
         annotations: Vec::new(),
     };
 
-    let symbol = base.create_symbol(name_node, name, kind, options);
+    let function = value.and_then(scope::function_value);
+    let symbol = match function {
+        Some(function) => base.create_symbol_from_span(
+            &function,
+            scope::span_between(name_node, &function),
+            name,
+            kind,
+            options,
+        ),
+        None => base.create_symbol(name_node, name, kind, options),
+    };
+    let symbol_id = symbol.id.clone();
     symbols.push(symbol);
 
-    // If the expression is a table, extract its fields with this symbol as parent
-    if let Some(expr) = expression
-        && (expr.kind() == "table_constructor" || expr.kind() == "table")
-    {
-        let parent_id = symbols.last().unwrap().id.clone();
-        tables::extract_table_fields(symbols, base, *expr, Some(&parent_id));
+    if let Some(function) = function {
+        symbols.extend(parameters::extract_parameter_symbols(
+            base, function, &symbol_id,
+        ));
+        owners.insert(function.id(), symbol_id);
+    } else if let Some(value) = value.filter(|value| value.kind() == "table_constructor") {
+        owners.insert(value.id(), symbol_id);
+    } else if let (Some(require), Some(call)) = (require, value) {
+        core::record_require_pending(base, &symbol_id, require, call, parent_id.as_deref());
     }
 }
 
-/// Extract local variable declarations: `local x = 5` or `local x, y = 1, 2`
+fn variable_list_names(variable_list: Node) -> Vec<Node> {
+    let mut cursor = variable_list.walk();
+    variable_list
+        .children_by_field_name("name", &mut cursor)
+        .collect()
+}
+
+/// Extract local variable declarations: `local x = 5`, `local x, y = 1, 2`, `local x`
 pub(super) fn extract_local_variable_declaration(
     symbols: &mut Vec<Symbol>,
     base: &mut BaseExtractor,
+    owners: &mut ValueOwners,
     node: Node,
     parent_id: Option<&str>,
-) -> Option<Symbol> {
-    let assignment_statement = helpers::find_child_by_type(&node, "assignment_statement")?;
-    let variable_list = helpers::find_child_by_type(&assignment_statement, "variable_list")?;
-    let expression_list = helpers::find_child_by_type(&assignment_statement, "expression_list");
-
-    let signature = base.get_node_text(&node);
-    let mut cursor = variable_list.walk();
-    let variables: Vec<Node> = variable_list
-        .children(&mut cursor)
-        .filter(|child| child.kind() == "variable" || child.kind() == "identifier")
-        .collect();
-
-    let expressions: Vec<Node> = expression_list
+) {
+    let assignment_statement = helpers::find_child_by_type(&node, "assignment_statement");
+    let Some(variable_list) = assignment_statement
+        .and_then(|assignment| helpers::find_child_by_type(&assignment, "variable_list"))
+        .or_else(|| helpers::find_child_by_type(&node, "variable_list"))
+    else {
+        return;
+    };
+    let expressions: Vec<Node> = assignment_statement
+        .and_then(|assignment| helpers::find_child_by_type(&assignment, "expression_list"))
         .map(collect_expression_nodes)
         .unwrap_or_default();
 
-    for (i, var_node) in variables.iter().enumerate() {
-        let name_node = if var_node.kind() == "identifier" {
-            Some(*var_node)
-        } else if var_node.kind() == "variable" {
-            helpers::find_child_by_type(var_node, "identifier")
-        } else {
-            None
-        };
-
-        if let Some(name_node) = name_node {
-            let name = base.get_node_text(&name_node);
-            let expression = expressions.get(i);
-
-            let (kind, data_type) = expression
-                .map(|expr| infer_kind_and_type(base, *expr, false))
-                .unwrap_or((SymbolKind::Variable, String::new()));
-
-            let doc_comment = base.find_doc_comment(&node);
-
-            push_variable_symbol(
-                symbols,
-                base,
-                &name_node,
-                name,
-                kind,
-                data_type,
-                signature.clone(),
-                parent_id.map(|s| s.to_string()),
-                Visibility::Private,
-                doc_comment,
-                expression,
-            );
+    let signature = base.get_node_text(&node);
+    for (i, name_node) in variable_list_names(variable_list).into_iter().enumerate() {
+        if name_node.kind() != "identifier" {
+            continue;
         }
-    }
+        let name = base.get_node_text(&name_node);
+        let expression = expressions.get(i).copied();
+        let (kind, data_type) = expression
+            .map(|expr| infer_kind_and_type(base, expr, false))
+            .unwrap_or((SymbolKind::Variable, String::new()));
+        let doc_comment = base.find_doc_comment(&node);
 
-    None
+        push_variable_symbol(
+            symbols,
+            base,
+            owners,
+            &name_node,
+            name,
+            kind,
+            data_type,
+            signature.clone(),
+            parent_id.map(|s| s.to_string()),
+            Visibility::Private,
+            doc_comment,
+            expression,
+        );
+    }
 }
 
-/// Extract assignment statements: `x = 5` or `x, y = 1, 2`
+/// A global binding (`name = v` with no local in scope) already has a symbol.
+fn has_global_binding(symbols: &[Symbol], name: &str) -> bool {
+    symbols.iter().any(|symbol| {
+        symbol.name == name
+            && symbol.visibility == Some(Visibility::Public)
+            && matches!(
+                symbol.kind,
+                SymbolKind::Variable | SymbolKind::Function | SymbolKind::Import
+            )
+    })
+}
+
+/// Extract assignment statements: `x = 5`, `x, y = 1, 2`, `M.a.b = v`
 pub(super) fn extract_assignment_statement(
     symbols: &mut Vec<Symbol>,
     base: &mut BaseExtractor,
+    owners: &mut ValueOwners,
     node: Node,
     parent_id: Option<&str>,
-) -> Option<Symbol> {
-    let mut cursor = node.walk();
-    let children: Vec<Node> = node.children(&mut cursor).collect();
-
-    if children.len() < 3 {
-        return None;
-    }
-
-    let left = children[0];
-    let right = children[2]; // Skip the '=' operator
-
-    // Handle variable_list assignments
-    if left.kind() == "variable_list" {
-        let mut left_cursor = left.walk();
-        let variables: Vec<Node> = left
-            .children(&mut left_cursor)
-            .filter(|child| {
-                child.kind() == "variable"
-                    || child.kind() == "identifier"
-                    || child.kind() == "dot_index_expression"
-            })
-            .collect();
-
-        for (i, var_node) in variables.iter().enumerate() {
-            let name_node = if matches!(var_node.kind(), "identifier" | "dot_index_expression") {
-                *var_node
-            } else {
-                helpers::find_child_by_type(var_node, "identifier")?
-            };
-
-            let name = base.get_node_text(&name_node);
-            let signature = base.get_node_text(&node);
-
-            // Resolve dot notation (e.g., M.PI = 3.14159)
-            let (actual_name, parent_symbol_id, is_field) = if var_node.kind()
-                == "dot_index_expression"
-            {
-                if let Some((prop_name, prop_parent_id)) = resolve_dot_property(&name, symbols) {
-                    (prop_name, prop_parent_id, true)
-                } else {
-                    (name, None, false)
-                }
-            } else {
-                (name, None, false)
-            };
-
-            // Determine kind and type from the right-hand side
-            let (kind, data_type) = if right.kind() == "expression_list" {
-                let expressions = collect_expression_nodes(right);
-                if let Some(expression) = expressions.get(i) {
-                    infer_kind_and_type(base, *expression, is_field)
-                } else {
-                    (
-                        if is_field {
-                            SymbolKind::Field
-                        } else {
-                            SymbolKind::Variable
-                        },
-                        String::new(),
-                    )
-                }
-            } else {
-                infer_kind_and_type(base, right, is_field)
-            };
-
-            let doc_comment = base.find_doc_comment(&node);
-
-            push_variable_symbol(
-                symbols,
-                base,
-                &name_node,
-                actual_name,
-                kind,
-                data_type,
-                signature,
-                parent_symbol_id,
-                Visibility::Public,
-                doc_comment,
-                None, // extract_assignment_statement doesn't extract table fields
-            );
-        }
-    }
-    // Handle simple identifier assignments and dot notation
-    else if left.kind() == "variable" {
-        let full_variable_name = base.get_node_text(&left);
-
-        if let Some((property_name, property_parent_id)) =
-            resolve_dot_property(&full_variable_name, symbols)
-        {
-            // Dot notation assignment: M.PI = 3.14159
-            let (kind, data_type) = infer_kind_and_type(base, right, true);
-            let signature = base.get_node_text(&node);
-            let doc_comment = base.find_doc_comment(&node);
-
-            push_variable_symbol(
-                symbols,
-                base,
-                &left,
-                property_name,
-                kind,
-                data_type,
-                signature,
-                property_parent_id,
-                Visibility::Public,
-                doc_comment,
-                None,
-            );
-        } else if let Some(name_node) = helpers::find_child_by_type(&left, "identifier") {
-            // Simple identifier assignment: PI = 3.14159
-            let name = base.get_node_text(&name_node);
-            let (kind, data_type) = infer_kind_and_type(base, right, false);
-            let signature = base.get_node_text(&node);
-            let doc_comment = base.find_doc_comment(&node);
-
-            push_variable_symbol(
-                symbols,
-                base,
-                &name_node,
-                name,
-                kind,
-                data_type,
-                signature,
-                parent_id.map(|s| s.to_string()),
-                Visibility::Public,
-                doc_comment,
-                None,
-            );
-        }
-    }
-
-    None
-}
-
-/// Extract variable assignments: `PI = 3.14159` or similar global assignments
-pub(super) fn extract_variable_assignment(
-    symbols: &mut Vec<Symbol>,
-    base: &mut BaseExtractor,
-    node: Node,
-    parent_id: Option<&str>,
-) -> Option<Symbol> {
-    let variable_list = helpers::find_child_by_type(&node, "variable_list")?;
-    let expression_list = helpers::find_child_by_type(&node, "expression_list");
-
-    let signature = base.get_node_text(&node);
-    let mut var_cursor = variable_list.walk();
-    let variables: Vec<Node> = variable_list
-        .children(&mut var_cursor)
-        .filter(|child| child.kind() == "variable")
-        .collect();
-
-    let expressions: Vec<Node> = expression_list
+) {
+    let Some(variable_list) = helpers::find_child_by_type(&node, "variable_list") else {
+        return;
+    };
+    let expressions: Vec<Node> = helpers::find_child_by_type(&node, "expression_list")
         .map(collect_expression_nodes)
         .unwrap_or_default();
+    let signature = base.get_node_text(&node);
 
-    for (i, var_node) in variables.iter().enumerate() {
-        let full_variable_name = base.get_node_text(var_node);
-        let expression = expressions.get(i);
+    for (i, target) in variable_list_names(variable_list).into_iter().enumerate() {
+        let expression = expressions.get(i).copied();
+        let (name_node, name, owner_id, is_field) = match target.kind() {
+            "identifier" => {
+                let name = base.get_node_text(&target);
+                if scope::is_local_binding_in_scope(base, node, &name)
+                    || has_global_binding(symbols, &name)
+                {
+                    continue;
+                }
+                (target, name, parent_id.map(str::to_string), false)
+            }
+            "dot_index_expression" => {
+                let Some(field) = target.child_by_field_name("field") else {
+                    continue;
+                };
+                let owner_id = target
+                    .child_by_field_name("table")
+                    .and_then(|table| scope::resolve_table_symbol_id(base, table, symbols));
+                (target, base.get_node_text(&field), owner_id, true)
+            }
+            _ => continue,
+        };
 
-        if let Some((property_name, property_parent_id)) =
-            resolve_dot_property(&full_variable_name, symbols)
-        {
-            // Dot notation: M.PI = 3.14159
-            let (kind, data_type) = expression
-                .map(|expr| infer_kind_and_type(base, *expr, true))
-                .unwrap_or((SymbolKind::Field, String::new()));
+        let (kind, data_type) = expression
+            .map(|expr| infer_kind_and_type(base, expr, is_field))
+            .unwrap_or_else(|| {
+                let kind = if is_field {
+                    SymbolKind::Field
+                } else {
+                    SymbolKind::Variable
+                };
+                (kind, String::new())
+            });
+        let doc_comment = base.find_doc_comment(&node);
 
-            push_variable_symbol(
-                symbols,
-                base,
-                var_node,
-                property_name,
-                kind,
-                data_type,
-                signature.clone(),
-                property_parent_id,
-                Visibility::Public,
-                None, // doc_comment handled by create_symbol fallback
-                expression,
-            );
-        } else if let Some(name_node) = helpers::find_child_by_type(var_node, "identifier") {
-            // Simple variable: PI = 3.14159
-            let name = base.get_node_text(&name_node);
-
-            let (kind, data_type) = expression
-                .map(|expr| infer_kind_and_type(base, *expr, false))
-                .unwrap_or((SymbolKind::Variable, String::new()));
-
-            push_variable_symbol(
-                symbols,
-                base,
-                &name_node,
-                name,
-                kind,
-                data_type,
-                signature.clone(),
-                parent_id.map(|s| s.to_string()),
-                Visibility::Public,
-                None, // doc_comment handled by create_symbol fallback
-                expression,
-            );
-        }
+        push_variable_symbol(
+            symbols,
+            base,
+            owners,
+            &name_node,
+            name,
+            kind,
+            data_type,
+            signature.clone(),
+            owner_id,
+            Visibility::Public,
+            doc_comment,
+            expression,
+        );
     }
-
-    None
 }

@@ -173,8 +173,12 @@ export API_URL="https://example.test" FEATURE_FLAG=1 REGION=us-east-1
 
         let symbols = extract_symbols(bash_code);
 
-        for name in ["API_URL", "FEATURE_FLAG", "REGION"] {
-            let expected_signature = format!("export {name}");
+        for (name, value) in [
+            ("API_URL", "\"https://example.test\""),
+            ("FEATURE_FLAG", "1"),
+            ("REGION", "us-east-1"),
+        ] {
+            let expected_signature = format!("export {name}={value}");
             let symbol = symbols.iter().find(|s| {
                 s.name == name
                     && s.visibility == Some(crate::base::Visibility::Public)
@@ -630,11 +634,16 @@ configure_app() {
         let types = extractor.infer_types(&symbols);
 
         // Should infer types correctly
-        assert_eq!(types.get("PORT"), Some(&"integer".to_string()));
-        assert_eq!(types.get("HOST"), Some(&"string".to_string()));
-        assert_eq!(types.get("DEBUG"), Some(&"boolean".to_string()));
-        assert_eq!(types.get("RATE_LIMIT"), Some(&"float".to_string()));
-        assert_eq!(types.get("CONFIG_PATH"), Some(&"path".to_string()));
+        let type_of = |name: &str| {
+            let symbol = symbols.iter().find(|s| s.name == name).expect(name);
+            types.get(&symbol.id).map(String::as_str)
+        };
+        assert_eq!(type_of("PORT"), Some("integer"));
+        assert_eq!(type_of("HOST"), Some("string"));
+        assert_eq!(type_of("DEBUG"), Some("boolean"));
+        assert_eq!(type_of("RATE_LIMIT"), Some("float"));
+        assert_eq!(type_of("CONFIG_PATH"), Some("path"));
+        assert_eq!(type_of("ARRAY"), Some("array"));
 
         // Extract symbols to verify declarations
         let declarations: Vec<&Symbol> = symbols
@@ -667,7 +676,10 @@ configure_app() {
         let counter_var = declarations.iter().find(|d| d.name == "COUNTER");
         assert!(counter_var.is_some(), "COUNTER variable not found");
         let counter_var = counter_var.unwrap();
-        assert_eq!(counter_var.signature, Some("declare COUNTER".to_string()));
+        assert_eq!(
+            counter_var.signature,
+            Some("declare -i COUNTER=0".to_string())
+        );
     }
 
     #[test]
@@ -1683,3 +1695,4 @@ mod structural_facts;
 mod test_detection; // shellspec/bats call-style test detection
 mod type_facts;
 mod types; // Phase 4: Type extraction verification tests
+mod wave1_gaps;

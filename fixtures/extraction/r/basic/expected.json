@@ -381,32 +381,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/r/basic/source.r:self$id:33:6",
-      "name": "self$id",
-      "kind": "variable",
-      "language": "r",
-      "file_path": "fixtures/extraction/r/basic/source.r",
-      "start_line": 33,
-      "start_column": 6,
-      "end_line": 33,
-      "end_column": 19,
-      "start_byte": 537,
-      "end_byte": 550,
-      "body_span": null,
-      "body_hash": null,
-      "signature": null,
-      "doc_comment": null,
-      "visibility": null,
-      "parent_key": "fixtures/extraction/r/basic/source.r:Worker:28:0",
-      "metadata": {
-        "r_class_system": "R6"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/r/basic/source.r:total:16:2",
       "name": "total",
       "kind": "variable",
@@ -594,24 +568,6 @@
       "line_number": 12,
       "span": {
         "start_line": 12,
-        "start_column": 2,
-        "end_line": 12,
-        "end_column": 16,
-        "start_byte": 174,
-        "end_byte": 188
-      },
-      "reference_site_is_exact": false,
-      "confidence": "1.000",
-      "metadata": null
-    },
-    {
-      "from_key": "fixtures/extraction/r/basic/source.r:run_worker:11:0",
-      "to_key": "fixtures/extraction/r/basic/source.r:helper:5:0",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/r/basic/source.r",
-      "line_number": 12,
-      "span": {
-        "start_line": 12,
         "start_column": 8,
         "end_line": 12,
         "end_column": 16,
@@ -657,12 +613,12 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/r/basic/source.r:run:35:4",
-      "callee_name": "self.missing_wave2",
-      "kind": "uses",
+      "from_key": "fixtures/extraction/r/basic/source.r:w:42:0",
+      "callee_name": "Worker.new",
+      "kind": "calls",
       "file_path": "fixtures/extraction/r/basic/source.r",
-      "line_number": 37,
-      "confidence": "0.600"
+      "line_number": 42,
+      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
@@ -773,28 +729,28 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/r/basic/source.r:run:35:4",
-        "callee_name": "self.missing_wave2",
-        "kind": "uses",
+        "from_key": "fixtures/extraction/r/basic/source.r:w:42:0",
+        "callee_name": "Worker.new",
+        "kind": "calls",
         "file_path": "fixtures/extraction/r/basic/source.r",
-        "line_number": 37,
-        "confidence": "0.600"
+        "line_number": 42,
+        "confidence": "0.700"
       },
       "target": {
-        "display_name": "self.missing_wave2",
-        "terminal_name": "missing_wave2",
-        "receiver": "self",
+        "display_name": "Worker.new",
+        "terminal_name": "new",
+        "receiver": "Worker",
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/r/basic/source.r:run:35:4",
+      "caller_scope_key": "fixtures/extraction/r/basic/source.r:w:42:0",
       "span": {
-        "start_line": 37,
-        "start_column": 6,
-        "end_line": 37,
-        "end_column": 24,
-        "start_byte": 609,
-        "end_byte": 627
+        "start_line": 42,
+        "start_column": 5,
+        "end_line": 42,
+        "end_column": 17,
+        "start_byte": 648,
+        "end_byte": 660
       }
     }
   ],
@@ -812,6 +768,22 @@
       "start_byte": 442,
       "end_byte": 453,
       "containing_key": "fixtures/extraction/r/basic/source.r:Worker:28:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/r/basic/source.r:Worker:variable_ref:42:5",
+      "name": "Worker",
+      "kind": "variable_ref",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/basic/source.r",
+      "start_line": 42,
+      "start_column": 5,
+      "end_line": 42,
+      "end_column": 11,
+      "start_byte": 648,
+      "end_byte": 654,
+      "containing_key": "fixtures/extraction/r/basic/source.r:w:42:0",
       "target_key": null,
       "confidence": "1.000"
     },

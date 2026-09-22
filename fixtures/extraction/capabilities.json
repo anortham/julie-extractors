@@ -4900,6 +4900,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/lua/test_roles/test_source.lua",
           "expected": "fixtures/extraction/lua/test_roles/expected.json"
+        },
+        {
+          "name": "scopes",
+          "source": "fixtures/extraction/lua/scopes/source.lua",
+          "expected": "fixtures/extraction/lua/scopes/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5416,6 +5421,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/r/test_roles/test_source.r",
           "expected": "fixtures/extraction/r/test_roles/expected.json"
+        },
+        {
+          "name": "idioms",
+          "source": "fixtures/extraction/r/idioms/source.R",
+          "expected": "fixtures/extraction/r/idioms/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5430,8 +5440,10 @@
         "symbols": {
           "supported": [
             "class",
+            "field",
             "function",
             "import",
+            "method",
             "variable"
           ],
           "not_applicable": [],
@@ -5439,7 +5451,8 @@
         },
         "relationships": {
           "supported": [
-            "calls"
+            "calls",
+            "extends"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -5457,6 +5470,7 @@
           "supported": [
             "function",
             "import",
+            "method",
             "variable"
           ],
           "not_applicable": [],
@@ -5528,7 +5542,8 @@
       "parser_crate": "tree-sitter-bash",
       "extensions": [
         "sh",
-        "bash"
+        "bash",
+        "bats"
       ],
       "dependency_status": "current",
       "capabilities": {
@@ -5553,6 +5568,16 @@
           "name": "test_roles",
           "source": "fixtures/extraction/bash/test_roles/test_source.sh",
           "expected": "fixtures/extraction/bash/test_roles/expected.json"
+        },
+        {
+          "name": "bats",
+          "source": "fixtures/extraction/bash/bats/test_source.bats",
+          "expected": "fixtures/extraction/bash/bats/expected.json"
+        },
+        {
+          "name": "scripts",
+          "source": "fixtures/extraction/bash/scripts/source.sh",
+          "expected": "fixtures/extraction/bash/scripts/expected.json"
         }
       ],
       "target_capabilities": {

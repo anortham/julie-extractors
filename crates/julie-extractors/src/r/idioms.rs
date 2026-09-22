@@ -8,13 +8,203 @@ use super::text_args::{
     argument_list_text, clean_r_name, function_signature, split_top_level_arguments,
 };
 
+/// The bound name of an assignment target: an identifier, a backticked name, or a string.
+/// Member (`x$y`), slot (`x@s`), and subset (`x[[k]]`) targets write into an
+/// existing object and bind no new name.
 pub(super) fn assignment_name(extractor: &RExtractor, left: Node) -> Option<String> {
     match left.kind() {
         "identifier" | "string" | "string_content" => {
             clean_r_name(&extractor.base.get_node_text(&left))
         }
-        _ => clean_r_name(&extractor.base.get_node_text(&left)),
+        _ => None,
     }
+}
+
+/// `env$fn <- function(...)`: the receiver text and the member name.
+pub(super) fn member_function_target(
+    extractor: &RExtractor,
+    left: Node,
+) -> Option<(String, String)> {
+    if left.kind() != "extract_operator"
+        || extractor
+            .base
+            .get_node_text(&left.child_by_field_name("operator")?)
+            != "$"
+    {
+        return None;
+    }
+    let receiver = extractor
+        .base
+        .get_node_text(&left.child_by_field_name("lhs")?);
+    let member = assignment_name(extractor, left.child_by_field_name("rhs")?)?;
+    Some((receiver, member))
+}
+
+pub(super) fn with_receiver(
+    extractor: &mut RExtractor,
+    symbol: Symbol,
+    receiver: String,
+) -> Symbol {
+    let stored = extractor
+        .symbols
+        .iter_mut()
+        .find(|stored| stored.id == symbol.id)
+        .expect("function symbol was just pushed");
+    stored
+        .metadata
+        .get_or_insert_with(HashMap::new)
+        .insert("receiver".to_string(), serde_json::Value::String(receiver));
+    stored.clone()
+}
+
+pub(super) fn inside_function(node: Node) -> bool {
+    let mut current = node.parent();
+    while let Some(parent) = current {
+        if parent.kind() == "function_definition" {
+            return true;
+        }
+        current = parent.parent();
+    }
+    false
+}
+
+/// Names of same-file S3 generics: functions that call `UseMethod`, and `setGeneric` names.
+pub(super) fn collect_same_file_generics(
+    extractor: &RExtractor,
+    root: Node,
+) -> std::collections::HashSet<String> {
+    let mut generics = std::collections::HashSet::new();
+    collect_generics(extractor, root, 0, &mut generics);
+    generics
+}
+
+fn collect_generics(
+    extractor: &RExtractor,
+    node: Node,
+    depth: u32,
+    generics: &mut std::collections::HashSet<String>,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    match node.kind() {
+        "binary_operator" => {
+            if let (Some(lhs), Some(rhs)) = (
+                node.child_by_field_name("lhs"),
+                node.child_by_field_name("rhs"),
+            ) && rhs.kind() == "function_definition"
+                && rhs
+                    .child_by_field_name("body")
+                    .is_some_and(|body| extractor.base.get_node_text(&body).contains("UseMethod("))
+                && let Some(name) = assignment_name(extractor, lhs)
+            {
+                generics.insert(name);
+            }
+        }
+        "call" if call_name(extractor, node).as_deref() == Some("setGeneric") => {
+            if let Some(name) = node
+                .child_by_field_name("arguments")
+                .and_then(|args| bind_arguments(extractor, args, &["name", "def"]).remove("name"))
+                .and_then(|value| string_value(extractor, value))
+            {
+                generics.insert(name);
+            }
+        }
+        _ => {}
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_generics(extractor, child, child_depth, generics);
+    }
+}
+
+/// A class declaration's parent class, resolved to an `extends` edge after symbols exist.
+pub(crate) struct ExtendsRequest {
+    pub(crate) class_id: String,
+    pub(crate) base: String,
+    pub(crate) start_byte: usize,
+    pub(crate) end_byte: usize,
+}
+
+fn request_extends(extractor: &mut RExtractor, class_id: &str, base: String, site: Node) {
+    extractor.extends_requests.push(ExtendsRequest {
+        class_id: class_id.to_string(),
+        base,
+        start_byte: site.start_byte(),
+        end_byte: site.end_byte(),
+    });
+}
+
+/// Bind call arguments to formals the way R does: named arguments first,
+/// then unnamed arguments fill the remaining formals in order.
+pub(super) fn bind_arguments<'a>(
+    extractor: &RExtractor,
+    args: Node<'a>,
+    formals: &[&'static str],
+) -> HashMap<&'static str, Node<'a>> {
+    let mut bound = HashMap::new();
+    let mut unnamed = Vec::new();
+    let mut cursor = args.walk();
+    for argument in args.children_by_field_name("argument", &mut cursor) {
+        let Some(value) = argument.child_by_field_name("value") else {
+            continue;
+        };
+        match argument
+            .child_by_field_name("name")
+            .and_then(|name| clean_r_name(&extractor.base.get_node_text(&name)))
+        {
+            Some(name) => {
+                if let Some(formal) = formals.iter().find(|formal| **formal == name) {
+                    bound.insert(*formal, value);
+                }
+            }
+            None => unnamed.push(value),
+        }
+    }
+    let mut unnamed = unnamed.into_iter();
+    for formal in formals {
+        if !bound.contains_key(formal)
+            && let Some(value) = unnamed.next()
+        {
+            bound.insert(*formal, value);
+        }
+    }
+    bound
+}
+
+fn string_value(extractor: &RExtractor, value: Node) -> Option<String> {
+    matches!(value.kind(), "string" | "identifier")
+        .then(|| clean_r_name(&extractor.base.get_node_text(&value)))
+        .flatten()
+}
+
+/// String values of `"A"`, `c("A", "B")`, `signature(x = "A")`, or `representation("A", ...)`.
+/// With `unnamed_only`, named entries (slot declarations) are skipped.
+fn string_values(extractor: &RExtractor, value: Node, unnamed_only: bool) -> Vec<String> {
+    if let Some(single) = string_value(extractor, value).filter(|_| value.kind() == "string") {
+        return vec![single];
+    }
+    if value.kind() != "call"
+        || !matches!(
+            call_name(extractor, value).as_deref(),
+            Some("c" | "signature" | "representation" | "list")
+        )
+    {
+        return Vec::new();
+    }
+    let Some(args) = value.child_by_field_name("arguments") else {
+        return Vec::new();
+    };
+    let mut cursor = args.walk();
+    args.children_by_field_name("argument", &mut cursor)
+        .filter(|argument| !unnamed_only || argument.child_by_field_name("name").is_none())
+        .filter_map(|argument| argument.child_by_field_name("value"))
+        .filter(|value| value.kind() == "string")
+        .filter_map(|value| string_value(extractor, value))
+        .collect()
 }
 
 pub(super) fn is_container_assignment(extractor: &RExtractor, left: Node, right: Node) -> bool {
@@ -56,8 +246,37 @@ pub(super) fn extract_assignment_class_factory(
         "r_class_system".to_string(),
         serde_json::Value::String(class_system.to_string()),
     );
-    if let Some(inherits) = args.and_then(|args| named_argument_value(extractor, args, "inherit")) {
-        metadata.insert("inherit".to_string(), serde_json::Value::String(inherits));
+    let parent_key = if class_system == "R6" {
+        "inherit"
+    } else {
+        "contains"
+    };
+    let parent_value = call.child_by_field_name("arguments").and_then(|args| {
+        let mut cursor = args.walk();
+        args.children_by_field_name("argument", &mut cursor)
+            .find(|argument| {
+                argument
+                    .child_by_field_name("name")
+                    .and_then(|name| clean_r_name(&extractor.base.get_node_text(&name)))
+                    .as_deref()
+                    == Some(parent_key)
+            })
+            .and_then(|argument| argument.child_by_field_name("value"))
+    });
+    let parents: Vec<String> = parent_value
+        .map(|value| {
+            if class_system == "R6" {
+                vec![extractor.base.get_node_text(&value)]
+            } else {
+                string_values(extractor, value, false)
+            }
+        })
+        .unwrap_or_default();
+    if !parents.is_empty() {
+        metadata.insert(
+            parent_key.to_string(),
+            serde_json::Value::String(parents.join(",")),
+        );
     }
 
     let symbol = extractor.base.create_symbol(
@@ -73,6 +292,11 @@ pub(super) fn extract_assignment_class_factory(
         },
     );
     extractor.symbols.push(symbol.clone());
+    if let Some(site) = parent_value {
+        for parent in parents {
+            request_extends(extractor, &symbol.id, parent, site);
+        }
+    }
     extract_class_list_members(extractor, call, &symbol, class_system);
     Some(symbol)
 }
@@ -86,7 +310,8 @@ pub(super) fn extract_s4_call(
     match call_name.as_str() {
         "setClass" => extract_s4_class(extractor, node, parent_id),
         "setGeneric" => extract_s4_generic(extractor, node, parent_id),
-        "setMethod" => extract_s4_method(extractor, node, parent_id),
+        "setMethod" => extract_s4_method(extractor, node, parent_id, ""),
+        "setReplaceMethod" => extract_s4_method(extractor, node, parent_id, "<-"),
         _ => None,
     }
 }
@@ -144,7 +369,7 @@ pub(super) fn member_metadata(
         && let Some(parent) = extractor
             .symbols
             .iter()
-            .find(|symbol| symbol.id == *parent_id)
+            .find(|symbol| symbol.id == *parent_id && symbol.kind == SymbolKind::Class)
         && let Some(class_system) = parent
             .metadata
             .as_ref()
@@ -202,8 +427,13 @@ fn extract_s4_class(
     node: Node,
     parent_id: &Option<String>,
 ) -> Option<Symbol> {
-    let args = node.child(1)?;
-    let name = positional_string_argument(extractor, args, 0)?;
+    let args = node.child_by_field_name("arguments")?;
+    let bound = bind_arguments(
+        extractor,
+        args,
+        &["Class", "representation", "prototype", "contains"],
+    );
+    let name = string_value(extractor, *bound.get("Class")?)?;
     let mut metadata = s4_metadata("class");
     if let Some(slots) = named_c_argument_names(extractor, args, "slots") {
         metadata.insert(
@@ -211,7 +441,29 @@ fn extract_s4_class(
             serde_json::Value::String(slots.join(",")),
         );
     }
-    if let Some(contains) = named_string_argument(extractor, args, "contains") {
+    let contains_value = bound.get("contains").copied();
+    let mut parents: Vec<(String, Node)> = contains_value
+        .map(|value| {
+            string_values(extractor, value, false)
+                .into_iter()
+                .map(|parent| (parent, value))
+                .collect()
+        })
+        .unwrap_or_default();
+    if let Some(representation) = bound.get("representation") {
+        parents.extend(
+            string_values(extractor, *representation, true)
+                .into_iter()
+                .filter(|parent| parent != "VIRTUAL")
+                .map(|parent| (parent, *representation)),
+        );
+    }
+    if !parents.is_empty() {
+        let contains = parents
+            .iter()
+            .map(|(parent, _)| parent.as_str())
+            .collect::<Vec<_>>()
+            .join(",");
         metadata.insert("contains".to_string(), serde_json::Value::String(contains));
     }
 
@@ -228,6 +480,9 @@ fn extract_s4_class(
         },
     );
     extractor.symbols.push(symbol.clone());
+    for (parent, site) in parents {
+        request_extends(extractor, &symbol.id, parent, site);
+    }
     Some(symbol)
 }
 
@@ -236,8 +491,11 @@ fn extract_s4_generic(
     node: Node,
     parent_id: &Option<String>,
 ) -> Option<Symbol> {
-    let args = node.child(1)?;
-    let name = positional_string_argument(extractor, args, 0)?;
+    let args = node.child_by_field_name("arguments")?;
+    let name = string_value(
+        extractor,
+        *bind_arguments(extractor, args, &["name", "def"]).get("name")?,
+    )?;
     let symbol = extractor.base.create_symbol(
         &node,
         name.clone(),
@@ -258,10 +516,19 @@ fn extract_s4_method(
     extractor: &mut RExtractor,
     node: Node,
     parent_id: &Option<String>,
+    generic_suffix: &str,
 ) -> Option<Symbol> {
-    let args = node.child(1)?;
-    let generic = positional_string_argument(extractor, args, 0)?;
-    let class_name = positional_string_argument(extractor, args, 1).unwrap_or_default();
+    let args = node.child_by_field_name("arguments")?;
+    let bound = bind_arguments(extractor, args, &["f", "signature", "definition"]);
+    let generic = format!(
+        "{}{generic_suffix}",
+        string_value(extractor, *bound.get("f")?)?
+    );
+    let classes = bound
+        .get("signature")
+        .map(|signature| string_values(extractor, *signature, false))
+        .unwrap_or_default();
+    let class_name = classes.join(",");
     let name = if class_name.is_empty() {
         generic.clone()
     } else {
@@ -279,19 +546,35 @@ fn extract_s4_method(
         );
     }
 
-    let symbol = extractor.base.create_symbol(
-        &node,
-        name,
-        SymbolKind::Method,
-        SymbolOptions {
-            parent_id: parent_id.clone(),
-            signature: Some(format!("setMethod(\"{generic}\", \"{class_name}\")")),
-            metadata: Some(metadata),
-            doc_comment: extractor.base.find_doc_comment(&node),
-            ..Default::default()
-        },
-    );
+    let options = SymbolOptions {
+        parent_id: parent_id.clone(),
+        signature: Some(format!("setMethod(\"{generic}\", \"{class_name}\")")),
+        metadata: Some(metadata),
+        doc_comment: extractor.base.find_doc_comment(&node),
+        ..Default::default()
+    };
+    let definition = bound
+        .get("definition")
+        .copied()
+        .filter(|definition| definition.kind() == "function_definition");
+    let symbol = match definition {
+        Some(definition) => extractor.base.create_symbol_from_span(
+            &definition,
+            crate::base::NormalizedSpan::from_node(&node),
+            name,
+            SymbolKind::Method,
+            options,
+        ),
+        None => extractor
+            .base
+            .create_symbol(&node, name, SymbolKind::Method, options),
+    };
     extractor.symbols.push(symbol.clone());
+    if let Some(definition) = definition {
+        extractor
+            .value_owners
+            .insert(definition.id(), symbol.id.clone());
+    }
     Some(symbol)
 }
 
@@ -342,15 +625,13 @@ pub(super) fn positional_string_argument(
     args: Node,
     index: usize,
 ) -> Option<String> {
-    split_top_level_arguments(argument_list_text(&extractor.base.get_node_text(&args)).as_str())
-        .into_iter()
-        .filter(|argument| !argument.contains('='))
-        .nth(index)
-        .and_then(|argument| clean_r_name(&argument))
-}
-
-fn named_string_argument(extractor: &RExtractor, args: Node, name: &str) -> Option<String> {
-    named_argument_value(extractor, args, name).and_then(|text| clean_r_name(&text))
+    let mut cursor = args.walk();
+    let value = args
+        .children_by_field_name("argument", &mut cursor)
+        .filter(|argument| argument.child_by_field_name("name").is_none())
+        .nth(index)?
+        .child_by_field_name("value")?;
+    string_value(extractor, value)
 }
 
 fn named_argument_value(extractor: &RExtractor, args: Node, name: &str) -> Option<String> {
@@ -508,16 +789,25 @@ fn extract_class_list_member(
     } else {
         format!("{name} = {}", value_text.trim())
     };
-    let symbol = extractor.base.create_symbol(
-        &member,
-        name,
-        kind,
-        SymbolOptions {
-            parent_id: Some(class_symbol.id.clone()),
-            signature: Some(signature),
-            metadata: Some(metadata),
-            ..Default::default()
-        },
-    );
+    let options = SymbolOptions {
+        parent_id: Some(class_symbol.id.clone()),
+        signature: Some(signature),
+        metadata: Some(metadata),
+        ..Default::default()
+    };
+    let symbol = if is_method {
+        extractor.base.create_symbol_from_span(
+            &value,
+            crate::base::NormalizedSpan::from_node(&member),
+            name,
+            kind,
+            options,
+        )
+    } else {
+        extractor.base.create_symbol(&member, name, kind, options)
+    };
+    if is_method {
+        extractor.value_owners.insert(value.id(), symbol.id.clone());
+    }
     extractor.symbols.push(symbol);
 }

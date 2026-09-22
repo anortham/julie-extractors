@@ -31,7 +31,9 @@ impl BashExtractor for super::BashExtractor {
                 if let Some(value_part) = signature.split('=').nth(1) {
                     let value = value_part.trim().trim_matches(|c| c == '"' || c == '\'');
 
-                    if INTEGER_RE.is_match(value) {
+                    if value_part.trim_start().starts_with('(') {
+                        var_type = "array".to_string();
+                    } else if INTEGER_RE.is_match(value) {
                         var_type = "integer".to_string();
                     } else if FLOAT_RE.is_match(value) {
                         var_type = "float".to_string();
@@ -42,7 +44,7 @@ impl BashExtractor for super::BashExtractor {
                     }
                 }
 
-                types.insert(symbol.name.clone(), var_type);
+                types.insert(symbol.id.clone(), var_type);
             }
         }
 

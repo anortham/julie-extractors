@@ -8,19 +8,12 @@
       "file_path": "fixtures/extraction/bash/cross_file/source.sh",
       "start_line": 1,
       "start_column": 0,
-      "end_line": 17,
-      "end_column": 0,
+      "end_line": 1,
+      "end_column": 19,
       "start_byte": 0,
-      "end_byte": 393,
-      "body_span": {
-        "start_line": 9,
-        "start_column": 15,
-        "end_line": 16,
-        "end_column": 1,
-        "start_byte": 329,
-        "end_byte": 392
-      },
-      "body_hash": "4ee36cf680a19703bb04b2ce356a30a9",
+      "end_byte": 19,
+      "body_span": null,
+      "body_hash": null,
       "signature": "#!/usr/bin/env bash",
       "doc_comment": null,
       "visibility": null,
@@ -247,7 +240,7 @@
   ],
   "types": [
     {
-      "symbol_key": "unresolved:bash",
+      "symbol_key": "fixtures/extraction/bash/cross_file/source.sh:bash:1:0",
       "resolved_type": "string",
       "generic_params": null,
       "constraints": null,

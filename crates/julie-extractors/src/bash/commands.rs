@@ -3,7 +3,7 @@
 //! Handles Bash import-style command symbols like `alias` and `source`.
 //! External command calls stay in identifiers and relationships.
 
-use crate::base::{Symbol, SymbolKind, SymbolOptions, UnresolvedTarget, Visibility};
+use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, UnresolvedTarget, Visibility};
 use serde_json::json;
 use std::collections::HashMap;
 use std::path::Path;
@@ -52,22 +52,44 @@ pub(super) fn is_import_command(name: &str) -> bool {
     matches!(name, "source" | ".")
 }
 
+/// The file a `source`/`.` command loads, named after the static tail of its
+/// path: `"$(dirname "$0")/lib.sh"` imports `lib`. A path with no static tail,
+/// such as a process substitution, imports nothing.
 pub(super) fn extract_source_target(
+    base: &BaseExtractor,
     command_name: &str,
-    command_text: &str,
+    command: Node,
 ) -> Option<UnresolvedTarget> {
-    let rest = command_text.strip_prefix(command_name)?.trim_start();
-    let source_path = extract_first_shell_argument(rest)?;
-    let clean_path = strip_shell_quotes(&source_path).to_string();
-    let terminal_name = source_symbol_name(&clean_path)?;
+    let mut cursor = command.walk();
+    let argument = command
+        .children_by_field_name("argument", &mut cursor)
+        .next()?;
+    let mut tail = String::new();
+    collect_static_tail(base, argument, &mut tail);
+    let terminal_name = source_symbol_name(tail.trim())?;
+    let display_name = strip_shell_quotes(&base.get_node_text(&argument)).to_string();
 
     Some(UnresolvedTarget {
-        display_name: clean_path,
+        display_name,
         terminal_name,
         receiver: None,
         namespace_path: Vec::new(),
         import_context: Some(command_name.to_string()),
     })
+}
+
+fn collect_static_tail(base: &BaseExtractor, node: Node, tail: &mut String) {
+    match node.kind() {
+        "string" | "concatenation" => {
+            let mut cursor = node.walk();
+            for child in node.named_children(&mut cursor) {
+                collect_static_tail(base, child, tail);
+            }
+        }
+        "string_content" | "word" => tail.push_str(&base.get_node_text(&node)),
+        "raw_string" => tail.push_str(strip_shell_quotes(&base.get_node_text(&node))),
+        _ => tail.clear(),
+    }
 }
 
 fn extract_alias_symbol(
@@ -119,7 +141,7 @@ fn extract_source_symbol(
     command_name: &str,
     command_text: &str,
 ) -> Option<Symbol> {
-    let target = extract_source_target(command_name, command_text)?;
+    let target = extract_source_target(&extractor.base, command_name, *node)?;
     let source_path = target.display_name.clone();
     let source_name = target.terminal_name.clone();
     let visibility = if parent_id.is_some() {
@@ -144,23 +166,6 @@ fn extract_source_symbol(
             annotations: Vec::new(),
         },
     ))
-}
-
-fn extract_first_shell_argument(text: &str) -> Option<String> {
-    let text = text.trim_start();
-    if text.is_empty() {
-        return None;
-    }
-
-    let mut chars = text.chars();
-    let first = chars.next()?;
-    if first == '"' || first == '\'' {
-        let remainder = &text[first.len_utf8()..];
-        let closing = remainder.find(first)?;
-        Some(remainder[..closing].to_string())
-    } else {
-        Some(text.split_whitespace().next()?.to_string())
-    }
 }
 
 fn strip_shell_quotes(text: &str) -> &str {

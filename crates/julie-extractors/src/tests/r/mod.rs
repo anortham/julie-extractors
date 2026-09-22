@@ -93,3 +93,4 @@ pub mod structural_facts;
 pub mod test_detection; // testthat call-style test detection
 pub mod tidyverse; // %>% pipes, dplyr verbs, ggplot2 patterns
 pub mod type_facts;
+mod wave1_gaps;

@@ -21,40 +21,6 @@ pub(super) fn extract_parameter_symbols(
         .collect()
 }
 
-pub(super) fn extract_class_method_parameters(extractor: &mut RExtractor, func_def: Node) {
-    let Some(parent) = func_def.parent() else {
-        return;
-    };
-    let Some(method_name) = super::type_facts::argument_name(extractor, parent) else {
-        return;
-    };
-    let Some(class_name) = super::type_facts::enclosing_r6_class_name(extractor, func_def) else {
-        return;
-    };
-    let Some(class_id) = extractor
-        .symbols
-        .iter()
-        .find(|symbol| symbol.name == class_name && symbol.kind == SymbolKind::Class)
-        .map(|symbol| symbol.id.clone())
-    else {
-        return;
-    };
-    let Some(parent_id) = extractor
-        .symbols
-        .iter()
-        .find(|symbol| {
-            symbol.name == method_name
-                && symbol.parent_id.as_deref() == Some(class_id.as_str())
-                && matches!(symbol.kind, SymbolKind::Method | SymbolKind::Function)
-        })
-        .map(|symbol| symbol.id.clone())
-    else {
-        return;
-    };
-    let parameter_symbols = extract_parameter_symbols(extractor, func_def, &parent_id);
-    extractor.symbols.extend(parameter_symbols);
-}
-
 fn parameter_symbol(
     extractor: &mut RExtractor,
     param_node: Node,

@@ -121,10 +121,36 @@ fn extract_identifier_from_node(
                 match parent.kind() {
                     // Skip if this is the function being called
                     "call" if parent.child(0).map(|c| c.id()) == Some(node.id()) => {}
-                    // Skip if this is in an extract operator (handled separately)
-                    "extract_operator" => {}
-                    // Skip if this is in a namespace operator
-                    "namespace_operator" => {}
+                    "extract_operator" => {
+                        let name = extractor.base.get_node_text(&node);
+                        if parent.child_by_field_name("lhs") == Some(node)
+                            && !matches!(name.as_str(), "self" | "private" | "super")
+                        {
+                            push_identifier(
+                                extractor,
+                                node,
+                                name,
+                                IdentifierKind::VariableRef,
+                                containing_symbols,
+                            );
+                        }
+                    }
+                    "namespace_operator" => {
+                        let is_called = parent.parent().is_some_and(|call| {
+                            call.kind() == "call"
+                                && call.child_by_field_name("function") == Some(parent)
+                        });
+                        if !is_called && parent.child_by_field_name("rhs") == Some(node) {
+                            let name = extractor.base.get_node_text(&node);
+                            push_identifier(
+                                extractor,
+                                node,
+                                name,
+                                IdentifierKind::VariableRef,
+                                containing_symbols,
+                            );
+                        }
+                    }
                     // Skip if this is a parameter name
                     "parameter" => {}
                     // Check if this is the left side of an assignment
@@ -143,17 +169,17 @@ fn extract_identifier_from_node(
                                 return;
                             }
                         }
-                        // This is a variable being used in a binary expression
+                        let is_bare_pipe_target = parent.child(2) == Some(node)
+                            && parent
+                                .child(1)
+                                .is_some_and(|op| extractor.base.get_node_text(&op) == "%>%");
+                        let kind = if is_bare_pipe_target {
+                            IdentifierKind::Call
+                        } else {
+                            IdentifierKind::VariableRef
+                        };
                         let name = extractor.base.get_node_text(&node);
-                        let containing_symbol_id =
-                            find_containing_symbol_id(node, containing_symbols);
-
-                        extractor.base.create_identifier(
-                            &node,
-                            name,
-                            IdentifierKind::VariableRef,
-                            containing_symbol_id,
-                        );
+                        push_identifier(extractor, node, name, kind, containing_symbols);
                     }
                     _ => {
                         // This is likely a variable reference
@@ -172,10 +198,35 @@ fn extract_identifier_from_node(
             }
         }
 
-        _ => {
-            // Skip other node types
+        "binary_operator" => {
+            if let Some(operator) = super::relationships::user_operator(extractor, node)
+                && let Some(operator_node) = node.child_by_field_name("operator")
+            {
+                push_identifier(
+                    extractor,
+                    operator_node,
+                    operator,
+                    IdentifierKind::Call,
+                    containing_symbols,
+                );
+            }
         }
+
+        _ => {}
     }
+}
+
+fn push_identifier(
+    extractor: &mut RExtractor,
+    node: Node,
+    name: String,
+    kind: IdentifierKind,
+    containing_symbols: &ContainingSymbolIndex<'_>,
+) {
+    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+    extractor
+        .base
+        .create_identifier(&node, name, kind, containing_symbol_id);
 }
 
 /// Find the containing symbol ID for a node using byte-range containment

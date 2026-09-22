@@ -15,13 +15,20 @@ pub(super) fn extract_relationships(
     tree: &Tree,
     symbols: &[Symbol],
 ) -> Vec<Relationship> {
-    let symbol_index = ScopedSymbolIndex::new(symbols);
-    let function_symbols = ContainingSymbolIndex::from_iter(
-        symbols
-            .iter()
-            .filter(|s| s.kind == SymbolKind::Function || s.kind == SymbolKind::Method),
-    );
+    let call_targets: Vec<Symbol> = symbols
+        .iter()
+        .filter(|symbol| !is_test_symbol(symbol))
+        .cloned()
+        .collect();
+    let symbol_index = ScopedSymbolIndex::new(&call_targets);
+    let function_symbols = ContainingSymbolIndex::from_iter(symbols.iter().filter(|s| {
+        matches!(
+            s.kind,
+            SymbolKind::Function | SymbolKind::Method | SymbolKind::Variable
+        ) && !is_parameter(s)
+    }));
     let mut relationships = Vec::new();
+    extract_extends_relationships(extractor, tree, symbols, &mut relationships);
     extract_call_relationships(
         extractor,
         tree.root_node(),
@@ -55,6 +62,31 @@ fn extract_call_relationships<'a>(
         return;
     }
 
+    if let Some(operator) = user_operator(extractor, node)
+        && let Some(caller_symbol) = find_containing_function(node, function_symbols)
+    {
+        let target = UnresolvedTarget::simple(operator.clone());
+        match local_call_target(extractor, symbol_index, &target, caller_symbol, node) {
+            Some(called_symbol) => relationships.push(call_relationship(
+                extractor,
+                caller_symbol,
+                called_symbol,
+                node,
+            )),
+            None => {
+                let pending = extractor.base.create_pending_relationship(
+                    caller_symbol.id.clone(),
+                    target,
+                    RelationshipKind::Calls,
+                    &node,
+                    Some(caller_symbol.id.clone()),
+                    Some(0.7),
+                );
+                extractor.add_structured_pending_relationship(pending);
+            }
+        }
+    }
+
     // R function calls are represented as "call" nodes
     if node.kind() == "call" {
         // The function being called is the first child
@@ -80,43 +112,21 @@ fn extract_call_relationships<'a>(
                 _ => extractor.base.get_node_text(&function_node),
             };
 
-            // Find the containing function (caller)
-            if let Some(caller_symbol) = find_containing_function(node, function_symbols) {
+            // A DSL call (`test_that`, `setMethod`) never calls itself from the symbol it declares.
+            let caller = find_containing_function(node, function_symbols)
+                .filter(|caller| caller.start_byte != node.start_byte() as u32);
+            if let Some(caller_symbol) = caller {
                 let target = unresolved_call_target(extractor, function_node, &function_name);
-                let local_target = if target.namespace_path.is_empty() {
-                    symbol_index
-                        .resolve_call_target(
-                            &target.terminal_name,
-                            Some(caller_symbol),
-                            target.receiver.as_deref(),
-                        )
-                        .as_symbol()
-                        .filter(|symbol| symbol.kind == SymbolKind::Function)
-                } else {
-                    None
-                };
+                let local_target =
+                    local_call_target(extractor, symbol_index, &target, caller_symbol, node);
 
-                // Find the called function symbol (might be user-defined or built-in)
                 if let Some(called_symbol) = local_target {
-                    let relationship = Relationship {
-                        id: format!(
-                            "{}_{}_{:?}_{}",
-                            caller_symbol.id,
-                            called_symbol.id,
-                            RelationshipKind::Calls,
-                            node.start_position().row
-                        ),
-                        from_symbol_id: caller_symbol.id.clone(),
-                        to_symbol_id: called_symbol.id.clone(),
-                        kind: RelationshipKind::Calls,
-                        file_path: extractor.base.file_path.clone(),
-                        line_number: (node.start_position().row + 1) as u32,
-                        span: Some(crate::base::NormalizedSpan::from_node(&node)),
-                        reference_site_is_exact: false,
-                        confidence: 1.0,
-                        metadata: None,
-                    };
-                    relationships.push(relationship);
+                    relationships.push(call_relationship(
+                        extractor,
+                        caller_symbol,
+                        called_symbol,
+                        node,
+                    ));
                 } else if function_node.kind() != "identifier"
                     || !is_builtin_function(&function_name)
                 {
@@ -177,68 +187,40 @@ fn extract_pipe_relationships<'a>(
     {
         let op_text = extractor.base.get_node_text(&operator);
 
-        // Check if this is a pipe operator
-        if op_text == "%>%" || op_text == "|>" {
-            // The right side of the pipe is typically a function call
-            if let Some(right_child) = node.child(2)
-                && right_child.kind() == "call"
-            {
-                // Extract the function being called
-                if let Some(function_node) = right_child.child(0) {
-                    let function_name = extractor.base.get_node_text(&function_node);
-                    let target = unresolved_call_target(extractor, function_node, &function_name);
-
-                    // Find containing function
-                    if let Some(containing_symbol) =
-                        find_containing_function(node, function_symbols)
-                    {
-                        let local_target = if target.namespace_path.is_empty() {
-                            symbol_index
-                                .resolve_call_target(
-                                    &target.terminal_name,
-                                    Some(containing_symbol),
-                                    target.receiver.as_deref(),
-                                )
-                                .as_symbol()
-                                .filter(|symbol| symbol.kind == SymbolKind::Function)
-                        } else {
-                            None
-                        };
-
-                        // Check if the piped function is defined locally
-                        if let Some(called_symbol) = local_target {
-                            let relationship = Relationship {
-                                id: format!(
-                                    "{}_{}_{:?}_{}",
-                                    containing_symbol.id,
-                                    called_symbol.id,
-                                    RelationshipKind::Calls,
-                                    node.start_position().row
-                                ),
-                                from_symbol_id: containing_symbol.id.clone(),
-                                to_symbol_id: called_symbol.id.clone(),
-                                kind: RelationshipKind::Calls,
-                                file_path: extractor.base.file_path.clone(),
-                                line_number: (node.start_position().row + 1) as u32,
-                                span: Some(crate::base::NormalizedSpan::from_node(&node)),
-                                reference_site_is_exact: false,
-                                confidence: 1.0,
-                                metadata: None,
-                            };
-                            relationships.push(relationship);
-                        } else {
-                            // Not found locally - create PendingRelationship
-                            let pending = extractor.base.create_pending_relationship(
-                                containing_symbol.id.clone(),
-                                target,
-                                RelationshipKind::Calls,
-                                &node,
-                                Some(containing_symbol.id.clone()),
-                                Some(0.7),
-                            );
-                            extractor.add_structured_pending_relationship(pending);
-                        }
+        // Piped calls (`x %>% f()`) are ordinary call nodes that the call pass
+        // already covers; only magrittr's bare-function target needs an edge here.
+        if op_text == "%>%"
+            && let Some(right_child) = node.child(2)
+            && right_child.kind() == "identifier"
+        {
+            let function_name = extractor.base.get_node_text(&right_child);
+            if let Some(containing_symbol) = find_containing_function(node, function_symbols) {
+                let target = UnresolvedTarget::simple(function_name.clone());
+                match local_call_target(
+                    extractor,
+                    symbol_index,
+                    &target,
+                    containing_symbol,
+                    right_child,
+                ) {
+                    Some(called_symbol) => relationships.push(call_relationship(
+                        extractor,
+                        containing_symbol,
+                        called_symbol,
+                        right_child,
+                    )),
+                    None if !is_builtin_function(&function_name) => {
+                        let pending = extractor.base.create_pending_relationship(
+                            containing_symbol.id.clone(),
+                            target,
+                            RelationshipKind::Calls,
+                            &right_child,
+                            Some(containing_symbol.id.clone()),
+                            Some(0.7),
+                        );
+                        extractor.add_structured_pending_relationship(pending);
                     }
+                    None => {}
                 }
             }
         }
@@ -272,8 +254,11 @@ fn extract_member_access_relationships<'a>(
         return;
     }
 
-    // R uses extract_operator for $ and @
-    if node.kind() == "extract_operator" {
+    let is_called = node.parent().is_some_and(|call| {
+        call.kind() == "call" && call.child_by_field_name("function") == Some(node)
+    });
+    // R uses extract_operator for $ and @; a called member is covered by the call pass.
+    if node.kind() == "extract_operator" && !is_called {
         // The member being accessed is the third child (index 2)
         if let Some(member_node) = node.child(2) {
             let member_name = extractor.base.get_node_text(&member_node);
@@ -321,6 +306,173 @@ fn extract_member_access_relationships<'a>(
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         extract_member_access_relationships(extractor, child, function_symbols, child_depth);
+    }
+}
+
+fn is_parameter(symbol: &Symbol) -> bool {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get("role"))
+        .and_then(|role| role.as_str())
+        == Some("parameter")
+}
+
+fn is_test_symbol(symbol: &Symbol) -> bool {
+    symbol
+        .metadata
+        .as_ref()
+        .is_some_and(|metadata| metadata.contains_key("test_role"))
+}
+
+/// A same-file function or method a call resolves to. `self$m()` and
+/// `private$m()` resolve within the caller's class; `super$m()` resolves in the
+/// class named by `inherit`. Test DSL symbols are never call targets.
+fn local_call_target<'a>(
+    extractor: &RExtractor,
+    symbol_index: &ScopedSymbolIndex<'a>,
+    target: &UnresolvedTarget,
+    caller: &'a Symbol,
+    site: Node,
+) -> Option<&'a Symbol> {
+    if !target.namespace_path.is_empty() {
+        return None;
+    }
+    let resolved = match target.receiver.as_deref() {
+        Some("super") => {
+            let base = super::type_facts::super_receiver_type(extractor, site)?;
+            symbol_index
+                .candidates_by_name(&target.terminal_name)
+                .filter(|candidate| {
+                    candidate.parent_id.as_deref().is_some_and(|parent_id| {
+                        symbol_index
+                            .candidates_by_name(&base)
+                            .any(|class| class.id == parent_id && class.kind == SymbolKind::Class)
+                    })
+                })
+                .fold(
+                    None,
+                    |found: Option<Option<&Symbol>>, candidate| match found {
+                        None => Some(Some(candidate)),
+                        Some(_) => Some(None),
+                    },
+                )
+                .flatten()
+        }
+        Some("private") => symbol_index
+            .resolve_call_target(&target.terminal_name, Some(caller), Some("self"))
+            .as_symbol(),
+        receiver => symbol_index
+            .resolve_call_target(&target.terminal_name, Some(caller), receiver)
+            .as_symbol(),
+    };
+    resolved.filter(|symbol| matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method))
+}
+
+fn call_relationship(
+    extractor: &RExtractor,
+    caller: &Symbol,
+    callee: &Symbol,
+    node: Node,
+) -> Relationship {
+    Relationship {
+        id: format!(
+            "{}_{}_{:?}_{}",
+            caller.id,
+            callee.id,
+            RelationshipKind::Calls,
+            node.start_position().row
+        ),
+        from_symbol_id: caller.id.clone(),
+        to_symbol_id: callee.id.clone(),
+        kind: RelationshipKind::Calls,
+        file_path: extractor.base.file_path.clone(),
+        line_number: (node.start_position().row + 1) as u32,
+        span: Some(crate::base::NormalizedSpan::from_node(&node)),
+        reference_site_is_exact: false,
+        confidence: 1.0,
+        metadata: None,
+    }
+}
+
+/// The name of a user-defined `%op%` operator applied at `node`.
+pub(super) fn user_operator(extractor: &RExtractor, node: Node) -> Option<String> {
+    if node.kind() != "binary_operator" {
+        return None;
+    }
+    let operator = extractor
+        .base
+        .get_node_text(&node.child_by_field_name("operator")?);
+    let is_special = operator.len() > 2 && operator.starts_with('%') && operator.ends_with('%');
+    let is_base = matches!(
+        operator.as_str(),
+        "%%" | "%/%" | "%*%" | "%o%" | "%x%" | "%in%" | "%>%" | "%<>%" | "%T>%" | "%$%" | "%||%"
+    );
+    (is_special && !is_base).then_some(operator)
+}
+
+/// Resolve `inherit =` / `contains =` declarations to `extends` edges.
+fn extract_extends_relationships(
+    extractor: &mut RExtractor,
+    tree: &Tree,
+    symbols: &[Symbol],
+    relationships: &mut Vec<Relationship>,
+) {
+    let requests = std::mem::take(&mut extractor.extends_requests);
+    for request in requests {
+        let Some(site) = tree
+            .root_node()
+            .descendant_for_byte_range(request.start_byte, request.end_byte)
+        else {
+            continue;
+        };
+        let (namespace, base) = match request.base.rsplit_once("::") {
+            Some((namespace, base)) => (Some(namespace.trim_end_matches(':')), base),
+            None => (None, request.base.as_str()),
+        };
+        let local = namespace.is_none().then(|| {
+            symbols
+                .iter()
+                .find(|symbol| symbol.kind == SymbolKind::Class && symbol.name == base)
+        });
+        match local.flatten() {
+            Some(parent) => relationships.push(Relationship {
+                id: format!(
+                    "{}_{}_{:?}_{}",
+                    request.class_id,
+                    parent.id,
+                    RelationshipKind::Extends,
+                    site.start_position().row
+                ),
+                from_symbol_id: request.class_id.clone(),
+                to_symbol_id: parent.id.clone(),
+                kind: RelationshipKind::Extends,
+                file_path: extractor.base.file_path.clone(),
+                line_number: (site.start_position().row + 1) as u32,
+                span: Some(crate::base::NormalizedSpan::from_node(&site)),
+                reference_site_is_exact: false,
+                confidence: 1.0,
+                metadata: None,
+            }),
+            None => {
+                let target = UnresolvedTarget {
+                    display_name: request.base.clone(),
+                    terminal_name: base.to_string(),
+                    receiver: None,
+                    namespace_path: namespace.map(str::to_string).into_iter().collect(),
+                    import_context: None,
+                };
+                let pending = extractor.base.create_pending_relationship(
+                    request.class_id.clone(),
+                    target,
+                    RelationshipKind::Extends,
+                    &site,
+                    Some(request.class_id.clone()),
+                    Some(0.9),
+                );
+                extractor.add_structured_pending_relationship(pending);
+            }
+        }
     }
 }
 
@@ -376,7 +528,11 @@ fn is_builtin_function(name: &str) -> bool {
         "attach" | "detach" | "search" | "get" | "assign" | "remove" |
         // Common functions from tidyverse-like operations
         "filter" | "select" | "mutate" | "arrange" | "group_by" | "summarize" | "summarise" |
-        "join" | "left_join" | "right_join" | "inner_join" | "full_join" | "ggplot" | "aes"
+        "join" | "left_join" | "right_join" | "inner_join" | "full_join" | "ggplot" | "aes" |
+        // S3, S4, and R6 declaration machinery
+        "UseMethod" | "NextMethod" | "standardGeneric" | "callNextMethod" | "signature" |
+        "representation" | "setClass" | "setGeneric" | "setMethod" | "setReplaceMethod" |
+        "setValidity" | "setRefClass" | "validObject" | "R6Class"
     )
 }
 
