@@ -317,6 +317,7 @@ pub mod basic;
 pub mod cross_file_pending;
 pub mod custom;
 pub mod doc_comments;
+pub mod gap_closure;
 pub mod identifier_extraction;
 pub mod media_queries;
 pub mod modern;

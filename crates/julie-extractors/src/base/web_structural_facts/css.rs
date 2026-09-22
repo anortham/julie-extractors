@@ -4,9 +4,9 @@ use tree_sitter::{Node, Tree};
 use super::fact_builders::{base_metadata, child_by_kind, fact_for_node, insert_string, node_text};
 use super::{
     CSS_CHARSET_PATTERN_ID, CSS_CONTAINER_PATTERN_ID, CSS_CUSTOM_PROPERTY_PATTERN_ID,
-    CSS_FONT_FACE_PATTERN_ID, CSS_KEYFRAMES_PATTERN_ID, CSS_LAYER_PATTERN_ID,
-    CSS_MEDIA_QUERY_PATTERN_ID, CSS_NAMESPACE_PATTERN_ID, CSS_SELECTOR_RULE_PATTERN_ID,
-    CSS_SUPPORTS_PATTERN_ID,
+    CSS_FONT_FACE_PATTERN_ID, CSS_IMPORT_PATTERN_ID, CSS_KEYFRAMES_PATTERN_ID,
+    CSS_LAYER_PATTERN_ID, CSS_MEDIA_QUERY_PATTERN_ID, CSS_NAMESPACE_PATTERN_ID,
+    CSS_SELECTOR_RULE_PATTERN_ID, CSS_SUPPORTS_PATTERN_ID,
 };
 use crate::base::embedded_span::EmbeddedSpanOffset;
 use crate::base::span::NormalizedSpan;
@@ -106,6 +106,23 @@ fn collect_css_node(
         "namespace_statement" => {
             if let Some(fact) = css_namespace_fact(file_path, content, language, node) {
                 facts.push(fact);
+            }
+        }
+        "import_statement" => {
+            if let Some((url, media)) = crate::css::import_target(content, node) {
+                let mut metadata = base_metadata("stylesheet_structure");
+                insert_string(&mut metadata, "url", &url);
+                if let Some(media) = media {
+                    insert_string(&mut metadata, "media", &media);
+                }
+                facts.push(fact_for_node(
+                    file_path,
+                    language,
+                    CSS_IMPORT_PATTERN_ID,
+                    "import",
+                    node,
+                    metadata,
+                ));
             }
         }
         "at_rule" => {

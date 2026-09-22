@@ -38,6 +38,7 @@ const CSS_FONT_FACE_PATTERN_ID: &str = "css.font_face.v1";
 const CSS_LAYER_PATTERN_ID: &str = "css.layer.v1";
 const CSS_CHARSET_PATTERN_ID: &str = "css.charset.v1";
 const CSS_NAMESPACE_PATTERN_ID: &str = "css.namespace.v1";
+const CSS_IMPORT_PATTERN_ID: &str = "css.import.v1";
 const HTML_LINK_PATTERN_ID: &str = "html.link.v1";
 const HTML_SCRIPT_PATTERN_ID: &str = "html.script.v1";
 const HTML_FORM_PATTERN_ID: &str = "html.form.v1";
@@ -66,6 +67,7 @@ const CSS_WEB_PATTERN_IDS: &[&str] = &[
     CSS_CONTAINER_PATTERN_ID,
     CSS_CUSTOM_PROPERTY_PATTERN_ID,
     CSS_FONT_FACE_PATTERN_ID,
+    CSS_IMPORT_PATTERN_ID,
     CSS_KEYFRAMES_PATTERN_ID,
     CSS_LAYER_PATTERN_ID,
     CSS_MEDIA_QUERY_PATTERN_ID,

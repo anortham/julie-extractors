@@ -181,4 +181,26 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
             ),
         ],
     },
+    StructuralFactPatternSpec {
+        pattern_id: "css.import.v1",
+        languages: &["css", "vue", "html"],
+        query_family: "stylesheet_structure",
+        description: "A CSS `@import` of another stylesheet.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "url",
+                STR,
+                ALWAYS,
+                "The unquoted import target path or URL.",
+            ),
+            key(
+                "media",
+                STR,
+                OPT,
+                "Media, supports, or layer conditions after the target, when present.",
+            ),
+        ],
+    },
 ];

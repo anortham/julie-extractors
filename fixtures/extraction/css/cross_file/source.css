@@ -1,8 +1,5 @@
-/* Phase 4c fixture: CSS cross-file refs. @import resolves at extraction
- * time to a direct relationship edge; CSS has no forward-reference
- * construct that would benefit from pending relationships. This fixture
- * exercises @import and intra-file selector/var references to lock the
- * no-pending classification.
+/* CSS cross-file refs: @import emits an imports pending row to its raw
+ * target; var() references resolve to custom properties in this file.
  */
 
 @import url("./other.css");

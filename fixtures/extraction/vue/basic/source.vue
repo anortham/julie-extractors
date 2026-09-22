@@ -54,6 +54,7 @@ defineExpose({ format, evaluate });
 <style scoped>
 @charset "UTF-8";
 @namespace url(http://www.w3.org/1999/xhtml);
+@import "theme.css" screen;
 
 :root {
   --accent: #0f766e;

@@ -237,8 +237,8 @@ macro_rules! define_relationship_data_extractors {
                 Ok(ExtractionResults {
                     symbols,
                     relationships,
-                    pending_relationships: Vec::new(),
-                    structured_pending_relationships: Vec::new(),
+                    pending_relationships: ext.base.take_pending_relationships(),
+                    structured_pending_relationships: ext.base.take_structured_pending_relationships(),
                     identifiers,
                     type_argument_usages: ext.base.take_type_argument_usages(),
                     literals: ext.base.take_literals(),
@@ -1012,11 +1012,8 @@ mod registry_tests {
                 .unwrap()
                 .pending_relationships
         );
-        // CSS extracts `@import` directives as `references` relationship edges
-        // (see the blessed css entry in fixtures/extraction/capabilities.json:
-        // kind_coverage.relationships.supported = ["references"]). This assertion
-        // previously hardcoded the opposite and drifted out of sync with the
-        // capability golden.
-        assert!(capabilities_for_language("css").unwrap().relationships);
+        let css = capabilities_for_language("css").unwrap();
+        assert!(css.relationships);
+        assert!(css.pending_relationships);
     }
 }

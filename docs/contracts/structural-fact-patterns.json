@@ -1102,6 +1102,42 @@
     "query_family": "stylesheet_structure"
   },
   {
+    "description": "A CSS `@import` of another stylesheet.",
+    "languages": [
+      "css",
+      "vue",
+      "html"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The unquoted import target path or URL.",
+        "key": "url",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Media, supports, or layer conditions after the target, when present.",
+        "key": "media",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "css.import.v1",
+    "query_family": "stylesheet_structure"
+  },
+  {
     "description": "A CSS `@keyframes` animation.",
     "languages": [
       "css",

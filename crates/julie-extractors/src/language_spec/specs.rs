@@ -85,7 +85,7 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
         "css",
         &["css"],
         "tree-sitter-css",
-        RELATIONSHIP_DATA_CAPABILITIES,
+        PENDING_NO_TYPES_CAPABILITIES,
         parser_css,
         CSS_DOCS,
     ),

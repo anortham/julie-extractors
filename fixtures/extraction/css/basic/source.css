@@ -1,5 +1,11 @@
+@import "reset.css";
+@import url("theme/dark.css") screen and (prefers-color-scheme: dark);
+
 :root {
     --accent: #0f766e;
+    --font-body: "Inter", system-ui, sans-serif;
+    --gap: calc(var(--space) * 2);
+    --space: 0.25rem;
 }
 
 .logo {
@@ -52,3 +58,10 @@
         margin: 0;
     }
 }
+
+[data-theme="dark"] {
+    --accent: #14b8a6;
+}
+
+button.primary, div#main-content, .btn.btn-large, .sm\:flex { gap: var(--gap); }
+.x{margin:var(--space)}.y{padding:var(--accent)}.w{animation-name:spin}

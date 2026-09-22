@@ -25,6 +25,8 @@ use properties::PropertyExtractor;
 use rules::RuleExtractor;
 use tree_sitter::Tree;
 
+pub(crate) use at_rules::import_target;
+
 pub struct CSSExtractor {
     pub(crate) base: BaseExtractor,
 }
@@ -171,7 +173,7 @@ impl CSSExtractor {
         IdentifierExtractor::extract_identifiers(&mut self.base, tree, symbols)
     }
 
-    pub fn extract_relationships(&mut self, _tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
-        relationships::extract_relationships(&self.base, symbols)
+    pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
+        relationships::extract_relationships(&self.base, tree, symbols)
     }
 }

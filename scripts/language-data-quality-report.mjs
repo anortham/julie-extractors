@@ -120,7 +120,7 @@ const DOMAIN_APPLICABILITY = {
     quality_debt: [],
   },
   pending_relationships: {
-    not_applicable: ["css", "markdown", "razor", "regex", "toml", "yaml"],
+    not_applicable: ["markdown", "razor", "regex", "toml", "yaml"],
     convention_only: [],
     native_debt: [],
     quality_debt: [],
