@@ -341,10 +341,10 @@ pub(super) fn extract_friend_declaration(
     };
 
     // Build friend signature
-    let return_type = functions::extract_basic_return_type(base, inner_declaration);
+    let return_type = functions::declared_return_type(base, inner_declaration);
     let parameters = functions::extract_function_parameters(base, function_declarator);
 
-    let signature = format!("friend {} {}{}", return_type, name, parameters)
+    let signature = format!("friend {return_type}{name}{parameters}")
         .trim()
         .to_string();
 

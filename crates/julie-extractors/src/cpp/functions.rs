@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use tree_sitter::Node;
 
 pub(super) use super::function_signature_parts::{
-    extract_basic_return_type, extract_function_modifiers, extract_function_parameters,
+    declared_return_type, extract_function_modifiers, extract_function_parameters,
     extract_noexcept_specifier,
 };
 use super::function_signature_parts::{
@@ -103,7 +103,7 @@ pub(super) fn extract_function(
     let return_type = if is_constructor_flag || is_destructor {
         String::new()
     } else {
-        extract_basic_return_type(base, node)
+        declared_return_type(base, node)
     };
     let trailing_return_type = extract_trailing_return_type(base, node);
     let parameters = extract_function_parameters(base, func_node);
@@ -125,10 +125,7 @@ pub(super) fn extract_function(
     }
 
     // Add return type
-    if !return_type.is_empty() {
-        signature.push_str(&return_type);
-        signature.push(' ');
-    }
+    signature.push_str(&return_type);
 
     // Add function name and parameters
     signature.push_str(&name);
@@ -233,19 +230,19 @@ pub(super) fn extract_function(
     ))
 }
 
-/// `override` follows the parameters in C++, the way `const` does, so it never
-/// leads a signature.
-const TRAILING_SPECIFIERS: &[&str] = &["override"];
+/// `override` and `final` follow the parameters in C++, the way `const` does, so
+/// they never lead a signature.
+const TRAILING_SPECIFIERS: &[&str] = &["override", "final"];
 
 /// A member declared in a class body carries its return type on the declaration,
 /// not on the `function_declarator` the symbol is built from.
 fn method_return_type(base: &mut BaseExtractor, node: Node, declaration: Option<Node>) -> String {
-    let own = extract_basic_return_type(base, node);
+    let own = declared_return_type(base, node);
     if !own.is_empty() {
         return own;
     }
     declaration
-        .map(|declaration| extract_basic_return_type(base, declaration))
+        .map(|declaration| declared_return_type(base, declaration))
         .unwrap_or_default()
 }
 
@@ -290,10 +287,7 @@ fn extract_method(
         signature.push_str(&modifiers.join(" "));
         signature.push(' ');
     }
-    if !return_type.is_empty() {
-        signature.push_str(&return_type);
-        signature.push(' ');
-    }
+    signature.push_str(&return_type);
     signature.push_str(name);
     signature.push_str(&parameters);
     if const_qualifier {

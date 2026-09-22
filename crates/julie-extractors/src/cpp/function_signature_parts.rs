@@ -21,7 +21,7 @@ pub(super) fn extract_method_modifiers(
 ) -> Vec<String> {
     let mut modifiers = Vec::new();
     let modifier_types = [
-        "virtual", "static", "explicit", "friend", "inline", "override",
+        "virtual", "static", "explicit", "friend", "inline", "override", "final",
     ];
 
     let mut nodes_to_check = vec![declaration_node, func_node];
@@ -52,21 +52,97 @@ pub(super) fn extract_method_modifiers(
     modifiers
 }
 
-/// Extract return type from function node
-pub(super) fn extract_basic_return_type(base: &mut BaseExtractor, node: Node) -> String {
-    for child in node.children(&mut node.walk()) {
-        if matches!(
-            child.kind(),
-            "primitive_type"
-                | "type_identifier"
-                | "qualified_identifier"
-                | "auto"
-                | "placeholder_type_specifier"
-        ) {
-            return base.get_node_text(&child);
+/// The node kinds a declared return type is written as.
+const RETURN_TYPE_KINDS: &[&str] = &[
+    "primitive_type",
+    "type_identifier",
+    "qualified_identifier",
+    "scoped_type_identifier",
+    "sized_type_specifier",
+    "template_type",
+    "dependent_type",
+    "decltype",
+    "struct_specifier",
+    "enum_specifier",
+    "union_specifier",
+    "auto",
+    "placeholder_type_specifier",
+];
+
+/// The whole declared return type, ready to prepend to the name: the qualifiers
+/// written before the type, the type text, and one `*`, `&` or `&&` per
+/// declarator wrapper. Qt style attaches the mark to the name, so the result
+/// ends in the mark (`QQuickItem *`) or in a space (`void `), and is empty when
+/// nothing is declared.
+pub(super) fn declared_return_type(base: &mut BaseExtractor, node: Node) -> String {
+    let (declaration, marks) = return_type_declaration(node);
+    let declaration = declaration.unwrap_or(node);
+    let mut qualifiers = Vec::new();
+    let mut type_node = None;
+    for child in declaration.children(&mut declaration.walk()) {
+        if RETURN_TYPE_KINDS.contains(&child.kind()) {
+            type_node = Some(child);
+            break;
+        }
+        if child.kind() == "type_qualifier" {
+            qualifiers.push(base.get_node_text(&child));
         }
     }
-    String::new()
+    let Some(type_node) = type_node else {
+        return String::new();
+    };
+
+    let mut text = String::new();
+    for qualifier in qualifiers {
+        text.push_str(&qualifier);
+        text.push(' ');
+    }
+    text.push_str(&base.get_node_text(&type_node));
+    text.push(' ');
+    text.push_str(&marks);
+    text
+}
+
+/// The declaration that carries the return type, reached from the
+/// `function_declarator`, and the pointer and reference marks written between
+/// the two.
+fn return_type_declaration(node: Node) -> (Option<Node>, String) {
+    let declarator = if node.kind() == "function_declarator" {
+        Some(node)
+    } else {
+        node.child_by_field_name("declarator")
+            .and_then(function_declarators::unwrap_to_function_declarator)
+    };
+    let Some(declarator) = declarator else {
+        return (None, String::new());
+    };
+
+    let mut marks = String::new();
+    let mut current = declarator;
+    while let Some(parent) = current.parent() {
+        match parent.kind() {
+            "pointer_declarator" | "reference_declarator" => {
+                marks.insert_str(0, declarator_mark(parent));
+                current = parent;
+            }
+            "field_declaration" | "declaration" | "function_definition" => {
+                return (Some(parent), marks);
+            }
+            _ => return (None, marks),
+        }
+    }
+    (None, marks)
+}
+
+fn declarator_mark(node: Node) -> &'static str {
+    node.children(&mut node.walk())
+        .find_map(|child| match child.kind() {
+            "*" => Some("*"),
+            "&" => Some("&"),
+            "&&" => Some("&&"),
+            _ => None,
+        })
+        .unwrap_or_default()
 }
 
 /// Extract trailing return type (for auto return type deduction)

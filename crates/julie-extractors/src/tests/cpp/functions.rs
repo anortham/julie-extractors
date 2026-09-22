@@ -225,4 +225,27 @@ mod tests {
         );
         assert_eq!(signature("run", SymbolKind::Method), "int run() const");
     }
+
+    #[test]
+    fn a_signature_keeps_the_whole_declared_return_type() {
+        let code = "class X\n{\npublic:\n    QQuickItem *contentItem() const;\n    const QString &name() const;\n    QString &&take();\n    static X *instance();\n    QList<int> *items();\n    void paint() final;\n};\n\nconst char *free_name();\n\nX &&mover();\n";
+        let (mut extractor, tree) = parse_cpp(code);
+        let symbols = extractor.extract_symbols(&tree);
+        let signature = |name: &str| {
+            symbols
+                .iter()
+                .find(|symbol| symbol.name == name)
+                .and_then(|symbol| symbol.signature.clone())
+                .unwrap_or_else(|| panic!("no symbol named {name} in {symbols:?}"))
+        };
+
+        assert_eq!(signature("contentItem"), "QQuickItem *contentItem() const");
+        assert_eq!(signature("name"), "const QString &name() const");
+        assert_eq!(signature("take"), "QString &&take()");
+        assert_eq!(signature("instance"), "static X *instance()");
+        assert_eq!(signature("items"), "QList<int> *items()");
+        assert_eq!(signature("paint"), "void paint() final");
+        assert_eq!(signature("free_name"), "const char *free_name()");
+        assert_eq!(signature("mover"), "X &&mover()");
+    }
 }
