@@ -3852,6 +3852,16 @@
           "name": "return_types",
           "source": "fixtures/extraction/scala/return_types/source.scala",
           "expected": "fixtures/extraction/scala/return_types/expected.json"
+        },
+        {
+          "name": "calls_and_layout",
+          "source": "fixtures/extraction/scala/calls_and_layout/source.scala",
+          "expected": "fixtures/extraction/scala/calls_and_layout/expected.json"
+        },
+        {
+          "name": "test_suites",
+          "source": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+          "expected": "fixtures/extraction/scala/test_suites/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3873,6 +3883,7 @@
             "namespace",
             "property",
             "trait",
+            "type",
             "variable"
           ],
           "not_applicable": [],
@@ -3881,6 +3892,7 @@
         "relationships": {
           "supported": [
             "calls",
+            "extends",
             "implements"
           ],
           "not_applicable": [],
@@ -3889,6 +3901,7 @@
         "identifiers": {
           "supported": [
             "call",
+            "member_access",
             "type_usage",
             "variable_ref"
           ],
@@ -3938,6 +3951,7 @@
         },
         "doc_comments": {
           "supported": [
+            "class",
             "method"
           ],
           "not_applicable": [],

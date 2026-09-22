@@ -230,43 +230,9 @@
       "file_path": "fixtures/extraction/scala/cross_file/source.scala",
       "line_number": 16,
       "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
-      "callee_name": "Thing.apply",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/scala/cross_file/source.scala",
-      "line_number": 16,
-      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
-        "callee_name": "Thing.apply",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/scala/cross_file/source.scala",
-        "line_number": 16,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Thing.apply",
-        "terminal_name": "apply",
-        "receiver": "Thing",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
-      "span": {
-        "start_line": 16,
-        "start_column": 4,
-        "end_line": 16,
-        "end_column": 17,
-        "start_byte": 442,
-        "end_byte": 455
-      }
-    },
     {
       "pending": {
         "from_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",

@@ -892,6 +892,85 @@ pub(crate) fn mark_kotlin_test_containers(symbols: &mut [Symbol]) {
     }
 }
 
+/// Suite base types of ScalaTest, MUnit, specs2, ZIO Test, weaver, utest and
+/// ScalaCheck. A class or object extending one is a test container.
+const SCALA_SUITE_BASE_TYPES: &[&str] = &[
+    "AnyFunSuite",
+    "AnyFlatSpec",
+    "AnyWordSpec",
+    "AnyFreeSpec",
+    "AnyFunSpec",
+    "AnyFeatureSpec",
+    "AnyPropSpec",
+    "AsyncFunSuite",
+    "AsyncFlatSpec",
+    "AsyncWordSpec",
+    "AsyncFreeSpec",
+    "AsyncFunSpec",
+    "AsyncFeatureSpec",
+    "FunSuite",
+    "FlatSpec",
+    "WordSpec",
+    "FreeSpec",
+    "FunSpec",
+    "FeatureSpec",
+    "PropSpec",
+    "CatsEffectSuite",
+    "ScalaCheckSuite",
+    "Specification",
+    "SpecificationWithJUnit",
+    "ZIOSpecDefault",
+    "ZIOSpec",
+    "SimpleIOSuite",
+    "IOSuite",
+    "TestSuite",
+    "Properties",
+];
+
+/// Mark Scala test containers, then clear the name-based roles (`test*`,
+/// `beforeAll`, `it("…")`) of every callable outside one.
+///
+/// A class or object is a container when it extends a known suite base type,
+/// holds a JUnit-annotated test method, or sits in a test path and holds a
+/// ScalaTest / MUnit DSL step. The test-path guard keeps a production object
+/// that happens to call `it("…") { }` out.
+pub(crate) fn mark_scala_test_containers(symbols: &mut [Symbol]) {
+    let scopes_with_tests: HashSet<String> = symbols
+        .iter()
+        .filter(|symbol| {
+            (symbol.kind == SymbolKind::Function
+                && metadata_has_test_role(symbol)
+                && is_test_path(&symbol.file_path))
+                || (symbol.kind == SymbolKind::Method
+                    && has_java_annotation(symbol, is_java_member_test_annotation))
+        })
+        .filter_map(|symbol| symbol.parent_id.clone())
+        .collect();
+
+    for symbol in symbols
+        .iter_mut()
+        .filter(|symbol| matches!(symbol.kind, SymbolKind::Class | SymbolKind::Trait))
+    {
+        let extends_suite = SCALA_SUITE_BASE_TYPES
+            .iter()
+            .any(|base_type| metadata_string_list_contains(symbol, "base_types", base_type));
+        if extends_suite || scopes_with_tests.contains(&symbol.id) {
+            mark_class_test_container(symbol);
+        }
+    }
+
+    mark_ancestor_test_containers(symbols);
+    let container_ids = marked_test_container_ids(symbols);
+    normalize_scoped_test_roles(symbols, &container_ids);
+}
+
+fn metadata_has_test_role(symbol: &Symbol) -> bool {
+    symbol
+        .metadata
+        .as_ref()
+        .is_some_and(|metadata| metadata.contains_key("test_role"))
+}
+
 /// Annotations that make a method test infrastructure, so its enclosing class is
 /// a test container. A class holding only hooks — a shared JUnit base class —
 /// still counts.

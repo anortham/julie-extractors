@@ -26,7 +26,7 @@ pub(super) fn extract_class(
     // Add modifiers to signature (exclude visibility)
     let sig_modifiers: Vec<&String> = modifiers
         .iter()
-        .filter(|m| !matches!(m.as_str(), "private" | "protected"))
+        .filter(|m| !helpers::is_access_modifier(m))
         .collect();
     if !sig_modifiers.is_empty() {
         sig_parts.push(
@@ -86,7 +86,7 @@ pub(super) fn extract_trait(
     let mut sig_parts = Vec::new();
     let sig_modifiers: Vec<&String> = modifiers
         .iter()
-        .filter(|m| !matches!(m.as_str(), "private" | "protected"))
+        .filter(|m| !helpers::is_access_modifier(m))
         .collect();
     if !sig_modifiers.is_empty() {
         sig_parts.push(
@@ -153,7 +153,7 @@ pub(super) fn extract_object(
     let mut sig_parts = Vec::new();
     let sig_modifiers: Vec<&String> = modifiers
         .iter()
-        .filter(|m| !matches!(m.as_str(), "private" | "protected"))
+        .filter(|m| !helpers::is_access_modifier(m))
         .collect();
     if !sig_modifiers.is_empty() {
         sig_parts.push(
