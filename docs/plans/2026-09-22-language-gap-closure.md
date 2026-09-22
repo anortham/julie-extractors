@@ -78,8 +78,31 @@ The branch gate is the CI set: `cargo fmt --check`, workspace clippy with
 `cargo xtask test contract`. Windows verification runs when a group changes
 paths, discovery, or file lifecycle code.
 
+## Wave 2: medium and low gaps
+
+Scope:
+
+- The audit's medium and low gaps that wave 1 did not close: 685 after
+  merging duplicate ids (476 medium, 209 low). Wave 1 closed or dropped 70.
+- The `open_gaps` entries in `fixtures/extraction/capabilities.json` for the
+  group's languages when one file holds the evidence and no owner decision is
+  needed. Entries that need workspace-global resolution (cross-file route
+  prefixes) or a recorded policy decision stay open with their reason.
+
+Work runs on the same integration branch, groups, worktrees, rules, and gates
+as wave 1. Each group branch fast-forwards to the integration head first.
+
+Verification: 26 of 37 audit units stayed `unverified` because the verifier
+run stopped at a usage limit. Rule 1 (reproduce with a failing test, else
+drop) is the verification for those units, so no separate verifier run
+happens.
+
+Integration: 3.4.0 is not released, so wave 2 keeps the crate version, the
+`language-gap-closure-v1` contract marker, and extends the `## 3.4.0` ledger
+entry. The branch gate, the real-repository comparison, the Windows default
+tier, and a new two-pass Codex review of the full branch run before release.
+
 ## Later waves
 
-Medium and low gaps stay in the audit inventory. A later wave takes them
-language by language with the same rules, and verifies the `unverified` units
-first.
+Gaps that wave 2 defers stay as `open_gaps` entries with a reason, the
+required closure, and this plan as the planned closure task.

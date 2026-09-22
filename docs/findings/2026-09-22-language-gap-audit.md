@@ -7,7 +7,7 @@ Verification status per unit:
 - `verified`: an adversarial verifier re-ran every probe, merged duplicates, and refuted gaps that did not reproduce or that a recorded contract intends.
 - `unverified`: the verifier did not run. Duplicate reports from the two lenses are merged by id only. The fix wave reproduces each gap with a failing test before it changes code, and drops gaps that do not reproduce.
 
-Totals after id merge: 1102 gaps, 347 rated high. Wave 1 closes the high-rated gaps; see [the closure plan](../plans/2026-09-22-language-gap-closure.md). Medium and low gaps stay listed here until a later wave closes them.
+Totals after id merge: 1102 gaps, 347 rated high. Wave 1 closes the high-rated gaps; see [the closure plan](../plans/2026-09-22-language-gap-closure.md). Wave 2 of the same plan takes the medium and low gaps.
 
 The full evidence (snippet, observed rows, expected rows, fix location) was kept in the session scratchpad and handed to the fix agents; this file keeps the inventory.
 
