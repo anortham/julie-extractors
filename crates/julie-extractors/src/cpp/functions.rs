@@ -233,6 +233,22 @@ pub(super) fn extract_function(
     ))
 }
 
+/// `override` follows the parameters in C++, the way `const` does, so it never
+/// leads a signature.
+const TRAILING_SPECIFIERS: &[&str] = &["override"];
+
+/// A member declared in a class body carries its return type on the declaration,
+/// not on the `function_declarator` the symbol is built from.
+fn method_return_type(base: &mut BaseExtractor, node: Node, declaration: Option<Node>) -> String {
+    let own = extract_basic_return_type(base, node);
+    if !own.is_empty() {
+        return own;
+    }
+    declaration
+        .map(|declaration| extract_basic_return_type(base, declaration))
+        .unwrap_or_default()
+}
+
 /// Extract method (function inside a class)
 fn extract_method(
     base: &mut BaseExtractor,
@@ -256,12 +272,15 @@ fn extract_method(
         SymbolKind::Method
     };
 
-    // For methods in classes, look for modifiers in the parent declaration node as well
-    let modifiers = extract_method_modifiers(base, node, func_node);
+    let declaration = function_declarators::enclosing_declaration(node);
+    let (trailing_specifiers, modifiers): (Vec<String>, Vec<String>) =
+        extract_method_modifiers(base, node, func_node)
+            .into_iter()
+            .partition(|modifier| TRAILING_SPECIFIERS.contains(&modifier.as_str()));
     let return_type = if is_constructor || is_destructor {
         String::new()
     } else {
-        extract_basic_return_type(base, node)
+        method_return_type(base, node, declaration)
     };
     let parameters = extract_function_parameters(base, func_node);
     let const_qualifier = extract_const_qualifier(func_node);
@@ -279,6 +298,10 @@ fn extract_method(
     signature.push_str(&parameters);
     if const_qualifier {
         signature.push_str(" const");
+    }
+    for specifier in &trailing_specifiers {
+        signature.push(' ');
+        signature.push_str(specifier);
     }
 
     // Extract visibility based on access specifiers (private:/protected:/public:)

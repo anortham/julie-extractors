@@ -55,3 +55,19 @@ pub(super) fn unwrap_to_function_declarator(node: Node) -> Option<Node> {
         }
     }
 }
+
+/// The declaration a `function_declarator` belongs to, reached through the
+/// `pointer_declarator`/`reference_declarator` wrappers a pointer or reference
+/// return type adds. The member's own modifiers and return type live there; the
+/// enclosing class body does not, so the walk stops at the declaration.
+pub(super) fn enclosing_declaration(node: Node) -> Option<Node> {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        match parent.kind() {
+            "field_declaration" | "declaration" => return Some(parent),
+            "pointer_declarator" | "reference_declarator" => current = parent,
+            _ => return None,
+        }
+    }
+    None
+}

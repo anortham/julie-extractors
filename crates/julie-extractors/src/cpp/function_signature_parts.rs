@@ -1,7 +1,7 @@
 use crate::base::BaseExtractor;
 use tree_sitter::Node;
 
-use super::helpers;
+use super::{function_declarators, helpers};
 
 /// Extract function modifiers (virtual, static, explicit, inline, etc.)
 pub(super) fn extract_function_modifiers(base: &mut BaseExtractor, node: Node) -> Vec<String> {
@@ -25,13 +25,9 @@ pub(super) fn extract_method_modifiers(
     ];
 
     let mut nodes_to_check = vec![declaration_node, func_node];
-
-    if let Some(parent) = declaration_node.parent() {
-        nodes_to_check.push(parent);
-        if let Some(grandparent) = parent.parent() {
-            nodes_to_check.push(grandparent);
-        }
-    }
+    nodes_to_check.extend(function_declarators::enclosing_declaration(
+        declaration_node,
+    ));
 
     for node in nodes_to_check {
         if node.kind() == "field_declaration" || node.kind() == "declaration" {

@@ -507,4 +507,86 @@ mod tests {
             "Method 'cleanup' should be Private (declared in private: section)"
         );
     }
+
+    fn constructor_and_destructor_rows(code: &str) -> Vec<crate::base::Symbol> {
+        let (mut extractor, tree) = parse_cpp(code);
+        extractor
+            .extract_symbols(&tree)
+            .into_iter()
+            .filter(|symbol| {
+                matches!(
+                    symbol.kind,
+                    SymbolKind::Constructor | SymbolKind::Destructor
+                )
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_declared_constructor_emits_one_row() {
+        let rows = constructor_and_destructor_rows(
+            "class X\n{\npublic:\n    explicit X(QObject *parent = nullptr);\n};\n",
+        );
+
+        assert_eq!(rows.len(), 1, "{rows:?}");
+        assert_eq!(rows[0].kind, SymbolKind::Constructor);
+    }
+
+    #[test]
+    fn a_declared_destructor_emits_one_row() {
+        let rows = constructor_and_destructor_rows("class X\n{\npublic:\n    ~X() override;\n};\n");
+
+        assert_eq!(rows.len(), 1, "{rows:?}");
+        assert_eq!(rows[0].kind, SymbolKind::Destructor);
+    }
+
+    #[test]
+    fn an_in_body_constructor_definition_emits_one_row() {
+        let rows = constructor_and_destructor_rows("class X\n{\npublic:\n    X() {}\n};\n");
+
+        assert_eq!(rows.len(), 1, "{rows:?}");
+    }
+
+    #[test]
+    fn two_declared_constructor_overloads_emit_two_rows() {
+        let rows =
+            constructor_and_destructor_rows("class X\n{\npublic:\n    X();\n    X(int id);\n};\n");
+
+        assert_eq!(rows.len(), 2, "{rows:?}");
+        assert_ne!(rows[0].signature, rows[1].signature);
+    }
+
+    #[test]
+    fn a_constructor_declaration_and_its_out_of_class_definition_emit_two_rows() {
+        let (mut extractor, tree) =
+            parse_cpp("class X\n{\npublic:\n    X();\n};\n\nX::X()\n{\n}\n");
+        let symbols = extractor.extract_symbols(&tree);
+
+        let lines = symbols
+            .iter()
+            .filter(|symbol| symbol.name.ends_with('X') && symbol.kind != SymbolKind::Class)
+            .map(|symbol| symbol.start_line)
+            .collect::<Vec<_>>();
+        assert_eq!(lines, vec![4, 7], "{symbols:?}");
+    }
+
+    #[test]
+    fn a_private_constructor_and_destructor_keep_their_access_level() {
+        let rows =
+            constructor_and_destructor_rows("class X\n{\nprivate:\n    X();\n    ~X();\n};\n");
+
+        assert_eq!(rows.len(), 2, "{rows:?}");
+        assert!(
+            rows.iter()
+                .all(|row| row.visibility == Some(crate::base::Visibility::Private)),
+            "{rows:?}"
+        );
+    }
+
+    #[test]
+    fn a_declared_destructor_signature_drops_the_statement_terminator() {
+        let rows = constructor_and_destructor_rows("class X\n{\npublic:\n    ~X() override;\n};\n");
+
+        assert_eq!(rows[0].signature.as_deref(), Some("~X() override"));
+    }
 }

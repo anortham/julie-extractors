@@ -608,7 +608,7 @@
         "end_byte": 227
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "override static void SetUp()",
+      "signature": "void SetUp() override",
       "doc_comment": null,
       "visibility": "Protected",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:GoogleFixture:9:0",
@@ -643,7 +643,7 @@
         "end_byte": 446
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "override static void SetUp()",
+      "signature": "void SetUp() override",
       "doc_comment": null,
       "visibility": "Protected",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:ParameterizedFixture:17:0",
@@ -678,7 +678,7 @@
         "end_byte": 644
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "override static void SetUp()",
+      "signature": "void SetUp() override",
       "doc_comment": null,
       "visibility": "Protected",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:IndirectFixture:25:0",
@@ -709,7 +709,7 @@
         "end_byte": 830
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "static void SetUp()",
+      "signature": "void SetUp()",
       "doc_comment": null,
       "visibility": "Protected",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:UnrelatedFixture:33:0",
@@ -740,7 +740,7 @@
         "end_byte": 1008
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "override static SetUp()",
+      "signature": "void SetUp() override",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture:41:0",
@@ -775,7 +775,7 @@
         "end_byte": 1226
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "override static SetUp()",
+      "signature": "void SetUp() override",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassParameterizedFixture:49:0",
@@ -810,7 +810,7 @@
         "end_byte": 1427
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "SetUp()",
+      "signature": "void SetUp()",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassIndirectFixture:57:0",
@@ -841,7 +841,7 @@
         "end_byte": 1511
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "SetUp()",
+      "signature": "void SetUp()",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassUnrelatedFixture:62:0",
@@ -903,7 +903,7 @@
         "end_byte": 295
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "static override void SetUpTestSuite()",
+      "signature": "static void SetUpTestSuite()",
       "doc_comment": null,
       "visibility": "Protected",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:GoogleFixture:9:0",
@@ -938,7 +938,7 @@
         "end_byte": 514
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "static override void SetUpTestSuite()",
+      "signature": "static void SetUpTestSuite()",
       "doc_comment": null,
       "visibility": "Protected",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:ParameterizedFixture:17:0",
@@ -973,7 +973,7 @@
         "end_byte": 712
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "static override void SetUpTestSuite()",
+      "signature": "static void SetUpTestSuite()",
       "doc_comment": null,
       "visibility": "Protected",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:IndirectFixture:25:0",
@@ -1035,7 +1035,7 @@
         "end_byte": 1081
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "static override SetUpTestSuite()",
+      "signature": "static void SetUpTestSuite()",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture:41:0",
@@ -1070,7 +1070,7 @@
         "end_byte": 1299
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "static override SetUpTestSuite()",
+      "signature": "static void SetUpTestSuite()",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassParameterizedFixture:49:0",
@@ -1105,7 +1105,7 @@
         "end_byte": 259
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "override static void TearDown()",
+      "signature": "void TearDown() override",
       "doc_comment": null,
       "visibility": "Protected",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:GoogleFixture:9:0",
@@ -1140,7 +1140,7 @@
         "end_byte": 478
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "override static void TearDown()",
+      "signature": "void TearDown() override",
       "doc_comment": null,
       "visibility": "Protected",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:ParameterizedFixture:17:0",
@@ -1175,7 +1175,7 @@
         "end_byte": 676
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "override static void TearDown()",
+      "signature": "void TearDown() override",
       "doc_comment": null,
       "visibility": "Protected",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:IndirectFixture:25:0",
@@ -1206,7 +1206,7 @@
         "end_byte": 853
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "static void TearDown()",
+      "signature": "void TearDown()",
       "doc_comment": null,
       "visibility": "Protected",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:UnrelatedFixture:33:0",
@@ -1237,7 +1237,7 @@
         "end_byte": 1038
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "override static TearDown()",
+      "signature": "void TearDown() override",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture:41:0",
@@ -1272,7 +1272,7 @@
         "end_byte": 1256
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "override static TearDown()",
+      "signature": "void TearDown() override",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassParameterizedFixture:49:0",
@@ -1307,7 +1307,7 @@
         "end_byte": 334
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "static override void TearDownTestSuite()",
+      "signature": "static void TearDownTestSuite()",
       "doc_comment": null,
       "visibility": "Protected",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:GoogleFixture:9:0",
@@ -1342,7 +1342,7 @@
         "end_byte": 553
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "static override void TearDownTestSuite()",
+      "signature": "static void TearDownTestSuite()",
       "doc_comment": null,
       "visibility": "Protected",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:ParameterizedFixture:17:0",
@@ -1377,7 +1377,7 @@
         "end_byte": 751
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "static override void TearDownTestSuite()",
+      "signature": "static void TearDownTestSuite()",
       "doc_comment": null,
       "visibility": "Protected",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:IndirectFixture:25:0",
@@ -1439,7 +1439,7 @@
         "end_byte": 1118
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "static override TearDownTestSuite()",
+      "signature": "static void TearDownTestSuite()",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassFixture:41:0",
@@ -1474,7 +1474,7 @@
         "end_byte": 1336
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "static override TearDownTestSuite()",
+      "signature": "static void TearDownTestSuite()",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/cpp/test_roles/source.cpp:OutOfClassParameterizedFixture:49:0",
@@ -2153,6 +2153,33 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUp:11:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUp:19:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUp:27:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUp:35:4",
       "resolved_type": "void",
       "generic_params": null,
@@ -2162,7 +2189,70 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUp:43:9",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUp:51:9",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUp:59:9",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUp:64:9",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUp:78:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUpTestSuite:13:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUpTestSuite:21:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUpTestSuite:29:4",
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
@@ -2181,7 +2271,7 @@
     },
     {
       "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUpTestSuite:45:16",
-      "resolved_type": "override",
+      "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -2190,7 +2280,34 @@
     },
     {
       "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:SetUpTestSuite:53:16",
-      "resolved_type": "override",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:TearDown:12:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:TearDown:20:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:TearDown:28:4",
+      "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -2199,6 +2316,51 @@
     },
     {
       "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:TearDown:36:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:TearDown:44:9",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:TearDown:52:9",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:TearDownTestSuite:14:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:TearDownTestSuite:22:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:TearDownTestSuite:30:4",
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
@@ -2217,7 +2379,7 @@
     },
     {
       "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:TearDownTestSuite:46:16",
-      "resolved_type": "override",
+      "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -2226,7 +2388,7 @@
     },
     {
       "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:TearDownTestSuite:54:16",
-      "resolved_type": "override",
+      "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,

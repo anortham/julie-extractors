@@ -194,4 +194,63 @@ typedef struct {
         );
         assert_eq!(point.unwrap().kind, SymbolKind::Type);
     }
+
+    #[test]
+    fn a_class_forward_declaration_emits_no_symbol() {
+        let symbols = extract_symbols("class Units;\n");
+
+        assert!(
+            symbols.iter().all(|symbol| symbol.name != "Units"),
+            "{symbols:?}"
+        );
+    }
+
+    #[test]
+    fn a_class_definition_still_emits_one_symbol() {
+        let symbols = extract_symbols("class Units { };\n");
+
+        let units = symbols
+            .iter()
+            .filter(|symbol| symbol.name == "Units")
+            .collect::<Vec<_>>();
+        assert_eq!(units.len(), 1);
+        assert_eq!(units[0].kind, SymbolKind::Class);
+    }
+
+    #[test]
+    fn a_forward_declaration_before_the_definition_emits_one_class_row() {
+        let code =
+            "#pragma once\nclass Units;\n\n\nclass Units\n{\npublic:\n    int scale() const;\n};\n";
+
+        let symbols = extract_symbols(code);
+
+        let units = symbols
+            .iter()
+            .filter(|symbol| symbol.name == "Units" && symbol.kind == SymbolKind::Class)
+            .collect::<Vec<_>>();
+        assert_eq!(units.len(), 1, "{units:?}");
+        assert_eq!(units[0].start_line, 5);
+    }
+
+    #[test]
+    fn a_struct_forward_declaration_emits_no_symbol() {
+        let symbols = extract_symbols("struct Geometry;\n");
+
+        assert!(
+            symbols.iter().all(|symbol| symbol.name != "Geometry"),
+            "{symbols:?}"
+        );
+    }
+
+    #[test]
+    fn an_elaborated_type_specifier_emits_no_class_row() {
+        let symbols = extract_symbols("class ColumnView *view;\n");
+
+        assert!(
+            symbols
+                .iter()
+                .all(|symbol| symbol.kind != SymbolKind::Class),
+            "{symbols:?}"
+        );
+    }
 }

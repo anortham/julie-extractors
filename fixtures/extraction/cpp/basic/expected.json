@@ -515,7 +515,7 @@
         "end_byte": 480
       },
       "body_hash": "9d7bfc03ef03477a6cc1004df50e77c5",
-      "signature": "explicit int helper(int value) const",
+      "signature": "int helper(int value) const",
       "doc_comment": null,
       "visibility": "Private",
       "parent_key": "fixtures/extraction/cpp/basic/source.cpp:Worker:10:0",
@@ -719,7 +719,7 @@
         "end_byte": 397
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "explicit ping() const",
+      "signature": "void ping() const",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/cpp/basic/source.cpp:Worker:10:0",
@@ -750,7 +750,7 @@
         "end_byte": 380
       },
       "body_hash": "9537d98a7583feb978b9d2a7138db8e3",
-      "signature": "explicit int run() const",
+      "signature": "int run() const",
       "doc_comment": "/// Run the worker helper pipeline.",
       "visibility": "Public",
       "parent_key": "fixtures/extraction/cpp/basic/source.cpp:Worker:10:0",
@@ -2105,6 +2105,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/cpp/basic/source.cpp:helper:25:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/cpp/basic/source.cpp:helper_value:38:0",
       "resolved_type": "int",
       "generic_params": null,
@@ -2151,7 +2160,16 @@
     },
     {
       "symbol_key": "fixtures/extraction/cpp/basic/source.cpp:ping:22:9",
-      "resolved_type": "explicit",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/basic/source.cpp:run:15:4",
+      "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,

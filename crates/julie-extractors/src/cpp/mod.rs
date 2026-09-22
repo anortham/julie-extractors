@@ -241,6 +241,11 @@ impl CppExtractor {
             "using_declaration" | "namespace_alias_definition" => {
                 declarations::extract_using(&mut self.base, node, parent_id)
             }
+            "class_specifier" | "struct_specifier" | "union_specifier"
+                if !has_member_list(node) =>
+            {
+                None
+            }
             "class_specifier" => types::extract_class(&mut self.base, node, parent_id),
             "struct_specifier" => types::extract_struct(&mut self.base, node, parent_id),
             "union_specifier" => types::extract_union(&mut self.base, node, parent_id),
@@ -263,12 +268,13 @@ impl CppExtractor {
                     functions::extract_function(&mut self.base, node, parent_id, symbols)
                 }
             }
-            "declaration" => {
-                declarations::extract_declaration(&mut self.base, node, parent_id, symbols)
-            }
-            "field_declaration" => {
-                // Field declarations with function_declarators (method declarations) fall through here
-                declarations::extract_declaration(&mut self.base, node, parent_id, symbols)
+            "declaration" | "field_declaration" => {
+                let result =
+                    declarations::extract_declaration(&mut self.base, node, parent_id, symbols);
+                if result.is_some() {
+                    self.own_declarators(node);
+                }
+                result
             }
             "friend_declaration" => {
                 declarations::extract_friend_declaration(&mut self.base, node, parent_id)
@@ -306,6 +312,21 @@ impl CppExtractor {
         }
 
         symbol
+    }
+
+    /// A declaration that built its own symbol, such as a constructor or a
+    /// destructor, owns its `function_declarator`, so the bare-declarator dispatch
+    /// stands down the way it does inside a `function_definition`.
+    fn own_declarators(&mut self, node: Node) {
+        let mut cursor = node.walk();
+        let declarators = node
+            .children(&mut cursor)
+            .filter_map(function_declarators::unwrap_to_function_declarator)
+            .collect::<Vec<_>>();
+        for declarator in declarators {
+            let key = self.get_node_key(declarator);
+            self.processed_nodes.insert(key);
+        }
     }
 
     /// Extract from ERROR node - handle malformed code gracefully
@@ -362,6 +383,14 @@ impl CppExtractor {
         // No reconstructible symbol found
         None
     }
+}
+
+/// A `class_specifier`, `struct_specifier` or `union_specifier` without a member
+/// list is a forward declaration (`class Units;`) or an elaborated type specifier
+/// (`class ColumnView *view;`), not a definition, so it names no new type.
+fn has_member_list(node: Node) -> bool {
+    node.children(&mut node.walk())
+        .any(|child| child.kind() == "field_declaration_list")
 }
 
 /// Whether a `function_declarator` ultimately belongs to a `function_definition`.

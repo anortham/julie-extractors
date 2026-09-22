@@ -200,4 +200,29 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(raw_texts, vec![Some("nodiscard"), Some("maybe_unused")]);
     }
+
+    #[test]
+    fn a_member_modifier_stays_on_the_member_that_declares_it() {
+        let code = "class Foo\n{\npublic:\n    explicit Foo(int id);\n    void ping() const;\n    void paint() override;\n    int run() const;\n};\n";
+        let (mut extractor, tree) = parse_cpp(code);
+        let symbols = extractor.extract_symbols(&tree);
+        let signature = |name: &str, kind: SymbolKind| {
+            symbols
+                .iter()
+                .find(|symbol| symbol.name == name && symbol.kind == kind)
+                .and_then(|symbol| symbol.signature.clone())
+                .unwrap_or_else(|| panic!("no {kind:?} named {name} in {symbols:?}"))
+        };
+
+        assert_eq!(
+            signature("Foo", SymbolKind::Constructor),
+            "explicit Foo(int id)"
+        );
+        assert_eq!(signature("ping", SymbolKind::Method), "void ping() const");
+        assert_eq!(
+            signature("paint", SymbolKind::Method),
+            "void paint() override"
+        );
+        assert_eq!(signature("run", SymbolKind::Method), "int run() const");
+    }
 }

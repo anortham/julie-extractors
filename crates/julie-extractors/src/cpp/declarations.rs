@@ -424,7 +424,12 @@ fn extract_destructor_from_declaration(
     _func_declarator: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let signature = base.get_node_text(&node);
+    let declaration = base.get_node_text(&node);
+    let signature = declaration
+        .trim_end()
+        .trim_end_matches(';')
+        .trim_end()
+        .to_string();
     let name_start = signature.find('~')?;
     let name_end = signature[name_start..].find('(').map(|i| name_start + i)?;
     // SAFETY: Check char boundaries before slicing to prevent UTF-8 panic
@@ -441,7 +446,7 @@ fn extract_destructor_from_declaration(
         SymbolKind::Destructor,
         SymbolOptions {
             signature: Some(signature),
-            visibility: Some(Visibility::Public),
+            visibility: Some(visibility::extract_cpp_visibility(base, node)),
             parent_id: parent_id.map(String::from),
             metadata: None,
             doc_comment,
@@ -501,7 +506,7 @@ fn extract_constructor_from_declaration(
         SymbolKind::Constructor,
         SymbolOptions {
             signature: Some(signature),
-            visibility: Some(Visibility::Public),
+            visibility: Some(visibility::extract_cpp_visibility(base, node)),
             parent_id: parent_id.map(String::from),
             metadata: None,
             doc_comment,
