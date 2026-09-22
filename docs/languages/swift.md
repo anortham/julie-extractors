@@ -17,6 +17,40 @@ with `JULIE_GOLDEN_LANGUAGE=swift`. The normal golden target stays unfiltered:
 cargo xtask test golden
 ```
 
+## Extraction contract
+
+The golden fixture `swift:structure` holds the evidence for these rules.
+
+- **Calls.** The target comes from the callee node, not from the call text.
+  The receiver is the expression before the called name, without `try` or
+  `await`: `api.client().fetch(id:)` has the receiver `api.client()`. A
+  `Type(...)` construction with generic arguments calls the type. A subscript
+  (`cache[id]`) and a `defer` block are not calls.
+- **Callers.** A call belongs to the declaration whose syntax holds it: a
+  property accessor, observer, or lazy initializer, a `deinit`, or a Quick
+  group. A Quick group never calls itself.
+- **Conformances.** A protocol that refines a protocol `extends` it. A class
+  or actor extends its first base and implements the rest. A struct, an enum,
+  and an extension implement their protocols. An extension of a type from
+  another file publishes the edge from the extension symbol.
+- **Multi-name declarations.** `case a = 1, b, c(Int)`, `var x, y: Double`,
+  and `let (head, tail) = ...` publish one symbol per name. The first name
+  spans the whole declaration, and each later name spans its own pattern.
+- **Return types.** Signatures keep `async`, `throws`, and the declared return
+  type of any shape. Functions, protocol requirements, and subscripts record
+  the declared return type as a non-inferred type fact. `some P` and `any P`
+  record `P`. No declaration keyword (`class`, `extension`, `initializer`)
+  and no placeholder (`Any`, `Void`) is ever a type fact.
+- **Access levels.** An explicit modifier wins. Without one, a declaration is
+  `internal`, a member of a private type is `fileprivate`, an extension member
+  takes the extension's level (`private` there means `fileprivate`), and a
+  protocol requirement or an enum case takes its parent's level. Locals have
+  no access level.
+- **Body spans.** A property has a body only when it runs code: an accessor
+  block, an observer block, or a lazy closure. Such a property also gets a
+  complexity row. Enum cases, protocol requirements, and type aliases have no
+  body.
+
 ## Test-role contract
 
 Swift ships three test frameworks and none of them marks a suite the same way.
@@ -27,7 +61,9 @@ a call. The contract reads all three.
 | --- | --- | --- |
 | `class X: XCTestCase` | `test_container` | XCTest base class |
 | `extension X` of a container in the same file | `test_container` | XCTest and Swift Testing split declarations |
-| `func testXxx` in a container | `test_case` | XCTest method prefix |
+| `class Y: X` where `X` is a container in the same file | `test_container` | XCTest project base case |
+| `class Y: Base` with a parameterless `func testXxx`, in a file that imports `XCTest` | `test_container` | XCTest base case from another file |
+| `func testXxx()` in a container, with no parameters | `test_case` | XCTest method prefix |
 | `setUp`, `setUpWithError` | `fixture_setup` | XCTest per-test hooks |
 | `tearDown`, `tearDownWithError` | `fixture_teardown` | XCTest per-test hooks |
 | `@Suite` on a struct, class, enum, or actor | `test_container` | Swift Testing suite macro |
@@ -127,10 +163,10 @@ The golden fixture `swift:test_roles` registers two sources:
 
 | Source | What it proves |
 | --- | --- |
-| `test_source.swift` | the XCTest container, its four hooks, a case, a case in an extension, a non-test method, the Quick tree including the shared group and the suite and wrapping hooks, and the in-test-path controls |
+| `test_source.swift` | the XCTest container, its four hooks, a case, a case in an extension, a non-test method, a subclass of a same-file base case, a subclass of a base case from another file with a helper that takes parameters, the Quick tree including the shared group and the suite and wrapping hooks, and the in-test-path controls |
 | `production_roles.swift` | the Swift Testing suite, case, parameterized case, `init`/`deinit` hooks, a top-level `@Test` function, and the production-path control, all outside a test path |
 
-The registered goldens observe 7 `test_case` rows, 7 `test_container` rows, and
+The registered goldens observe 9 `test_case` rows, 10 `test_container` rows, and
 11 `test_lifecycle` rows for swift.
 
 No real-world corpus scan was run for this contract. The evidence above is

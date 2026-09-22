@@ -23,7 +23,7 @@
       "body_hash": "fda1193b410677ed669764165e857a15",
       "signature": "class Executor",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
@@ -57,7 +57,7 @@
       "body_hash": "7bf8286254cc858325279c016fdf7417",
       "signature": "struct OwnershipBox",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
@@ -91,7 +91,7 @@
       "body_hash": "591010428041b636f4674a2f08d30004",
       "signature": "class Registry",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
@@ -125,7 +125,7 @@
       "body_hash": "5d3c70699da5dd54f8e71fad9c60cb02",
       "signature": "enum SampleError: Error",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "base_types": [
@@ -162,7 +162,7 @@
       "body_hash": "c9b2f192fca0f3dbfc9d9f1133c666e5",
       "signature": "deinit",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/current_syntax/source.swift:OwnershipBox:1:0",
       "metadata": {
         "type": "deinitializer"
@@ -188,7 +188,7 @@
       "body_hash": null,
       "signature": "failed",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/current_syntax/source.swift:SampleError:13:0",
       "metadata": {
         "type": "enum-case"
@@ -221,12 +221,11 @@
       "body_hash": "c298fa890c85c19bd8a43f4358aedc75",
       "signature": "let formatter",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "keyword": "let",
         "modifiers": "",
-        "propertyType": "Any",
         "type": "property"
       },
       "annotations": [],
@@ -257,12 +256,11 @@
       "body_hash": "d08edef4c1ba8d74f29fe8bc9ce12945",
       "signature": "func handle()",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
         "parameters": "()",
-        "returnType": "Void",
         "type": "function"
       },
       "annotations": [],
@@ -293,12 +291,11 @@
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "func nestedIndex(_ range: Range<[String].Index>)",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
         "parameters": "(_ range: Range<[String].Index>)",
-        "returnType": "Void",
         "type": "function"
       },
       "annotations": [],
@@ -329,12 +326,11 @@
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "func perform()",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
         "parameters": "()",
-        "returnType": "Void",
         "type": "function"
       },
       "annotations": [],
@@ -358,12 +354,11 @@
       "body_hash": null,
       "signature": "static let platformName",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/current_syntax/source.swift:Registry:27:0",
       "metadata": {
         "keyword": "let",
         "modifiers": "static",
-        "propertyType": "Any",
         "type": "property"
       },
       "annotations": [],
@@ -387,12 +382,11 @@
       "body_hash": null,
       "signature": "static let platformName",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/current_syntax/source.swift:Registry:27:0",
       "metadata": {
         "keyword": "let",
         "modifiers": "static",
-        "propertyType": "Any",
         "type": "property"
       },
       "annotations": [],
@@ -447,14 +441,13 @@
         "end_byte": 611
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "nonisolated(nonsending) func schedule()",
+      "signature": "nonisolated(nonsending) func schedule() async",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/current_syntax/source.swift:Executor:37:0",
       "metadata": {
         "modifiers": "nonisolated(nonsending)",
         "parameters": "()",
-        "returnType": "Void",
         "type": "function"
       },
       "annotations": [],
@@ -474,23 +467,15 @@
       "end_column": 54,
       "start_byte": 376,
       "end_byte": 426,
-      "body_span": {
-        "start_line": 28,
-        "start_column": 15,
-        "end_line": 28,
-        "end_column": 54,
-        "start_byte": 387,
-        "end_byte": 426
-      },
-      "body_hash": "773d776ab5b076fdf494fec8ac2f3f8b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "nonisolated(unsafe) static var shared",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/current_syntax/source.swift:Registry:27:0",
       "metadata": {
         "keyword": "var",
         "modifiers": "nonisolated(unsafe), static",
-        "propertyType": "Any",
         "type": "property"
       },
       "annotations": [],
@@ -521,7 +506,7 @@
       "body_hash": "d286195e3ca04c8e864478c5b4f6ffc6",
       "signature": "func take() -> OwnershipBox",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/current_syntax/source.swift:OwnershipBox:1:0",
       "metadata": {
         "modifiers": "",
@@ -550,7 +535,7 @@
       "body_hash": null,
       "signature": "let value: String",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/current_syntax/source.swift:OwnershipBox:1:0",
       "metadata": {
         "keyword": "let",
@@ -586,7 +571,7 @@
   ],
   "pending_relationships": [
     {
-      "from_key": "fixtures/extraction/swift/current_syntax/source.swift:Registry:27:0",
+      "from_key": "fixtures/extraction/swift/current_syntax/source.swift:shared:28:4",
       "callee_name": "Registry",
       "kind": "calls",
       "file_path": "fixtures/extraction/swift/current_syntax/source.swift",
@@ -597,7 +582,7 @@
   "structured_pending_relationships": [
     {
       "pending": {
-        "from_key": "fixtures/extraction/swift/current_syntax/source.swift:Registry:27:0",
+        "from_key": "fixtures/extraction/swift/current_syntax/source.swift:shared:28:4",
         "callee_name": "Registry",
         "kind": "calls",
         "file_path": "fixtures/extraction/swift/current_syntax/source.swift",
@@ -611,7 +596,7 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/swift/current_syntax/source.swift:Registry:27:0",
+      "caller_scope_key": "fixtures/extraction/swift/current_syntax/source.swift:shared:28:4",
       "span": {
         "start_line": 28,
         "start_column": 44,
@@ -715,7 +700,7 @@
       "end_column": 52,
       "start_byte": 416,
       "end_byte": 424,
-      "containing_key": "fixtures/extraction/swift/current_syntax/source.swift:Registry:27:0",
+      "containing_key": "fixtures/extraction/swift/current_syntax/source.swift:shared:28:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -818,105 +803,6 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/swift/current_syntax/source.swift:Executor:37:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/current_syntax/source.swift:OwnershipBox:1:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/current_syntax/source.swift:Registry:27:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/current_syntax/source.swift:SampleError:13:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/current_syntax/source.swift:deinit:8:4",
-      "resolved_type": "deinitializer",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/current_syntax/source.swift:formatter:43:0",
-      "resolved_type": "Any",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/current_syntax/source.swift:handle:19:0",
-      "resolved_type": "Void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/current_syntax/source.swift:nestedIndex:41:0",
-      "resolved_type": "Void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/current_syntax/source.swift:perform:17:0",
-      "resolved_type": "Void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/current_syntax/source.swift:platformName:31:4",
-      "resolved_type": "Any",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/current_syntax/source.swift:platformName:33:4",
-      "resolved_type": "Any",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/swift/current_syntax/source.swift:range:41:17",
       "resolved_type": "Range",
       "generic_params": null,
@@ -926,15 +812,6 @@
       "metadata": {
         "declared": "Range<[String].Index>"
       }
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/current_syntax/source.swift:schedule:38:4",
-      "resolved_type": "Void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
     },
     {
       "symbol_key": "fixtures/extraction/swift/current_syntax/source.swift:shared:28:4",
@@ -950,7 +827,7 @@
       "resolved_type": "OwnershipBox",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "swift",
       "metadata": null
     },
@@ -1028,6 +905,28 @@
       "end_column": 5,
       "start_byte": 128,
       "end_byte": 156,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/current_syntax/source.swift:formatter:43:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/current_syntax/source.swift",
+      "covered_lines": 3,
+      "covered_bytes": 46,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 43,
+      "start_column": 16,
+      "end_line": 45,
+      "end_column": 1,
+      "start_byte": 684,
+      "end_byte": 730,
       "metadata": {
         "metric_version": 1
       }

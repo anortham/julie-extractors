@@ -1,3 +1,5 @@
+use super::signatures::return_type_node;
+use super::type_facts;
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
 use crate::test_detection::apply_callable_test_metadata;
 use std::collections::HashMap;
@@ -39,12 +41,12 @@ impl SwiftExtractor {
         }
 
         let params_str = parameters.unwrap_or_else(|| "()".to_string());
-        let return_str = return_type.unwrap_or_else(|| "Void".to_string());
-
         signature.push_str(&params_str);
-
-        if !return_str.is_empty() && return_str != "Void" {
-            signature.push_str(&format!(" -> {}", return_str));
+        if let Some(effects) = self.extract_effects(node) {
+            signature.push_str(&format!(" {effects}"));
+        }
+        if let Some(ref return_type) = return_type {
+            signature.push_str(&format!(" -> {return_type}"));
         }
 
         // Functions inside classes/structs are methods
@@ -67,11 +69,13 @@ impl SwiftExtractor {
                 "parameters".to_string(),
                 serde_json::Value::String(params_str),
             ),
-            (
-                "returnType".to_string(),
-                serde_json::Value::String(return_str),
-            ),
         ]);
+        if let Some(return_type) = return_type {
+            metadata.insert(
+                "returnType".to_string(),
+                serde_json::Value::String(return_type),
+            );
+        }
 
         // Extract Swift documentation comment
         let doc_comment = self.base.find_doc_comment(&node);
@@ -86,7 +90,7 @@ impl SwiftExtractor {
             &mut metadata,
         );
 
-        Some(self.base.create_symbol(
+        let symbol = self.base.create_symbol(
             &node,
             name,
             symbol_kind,
@@ -98,7 +102,11 @@ impl SwiftExtractor {
                 doc_comment,
                 annotations,
             },
-        ))
+        );
+        if let Some(type_node) = return_type_node(node) {
+            type_facts::record_declared_type(&mut self.base, &symbol.id, type_node);
+        }
+        Some(symbol)
     }
 
     /// Implementation of extractInitializer method
@@ -110,10 +118,13 @@ impl SwiftExtractor {
             .iter()
             .map(|annotation| annotation.annotation_key.clone())
             .collect();
-        let parameters = self.extract_initializer_parameters(node);
-
-        let params_str = parameters.unwrap_or_else(|| "()".to_string());
+        let params_str = self
+            .extract_parameters(node)
+            .unwrap_or_else(|| "()".to_string());
         let mut signature = format!("init{}", params_str);
+        if let Some(effects) = self.extract_effects(node) {
+            signature.push_str(&format!(" {effects}"));
+        }
 
         if !modifiers.is_empty() {
             signature = format!("{} {}", modifiers.join(" "), signature);
@@ -153,7 +164,7 @@ impl SwiftExtractor {
             SymbolKind::Constructor,
             SymbolOptions {
                 signature: Some(signature),
-                visibility: Some(Visibility::Public),
+                visibility: Some(self.determine_visibility(&modifiers)),
                 parent_id: parent_id.map(|s| s.to_string()),
                 metadata: Some(metadata),
                 doc_comment,

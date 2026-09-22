@@ -23,6 +23,8 @@ impl SwiftExtractor {
                         | "access_level_modifier"
                         | "property_modifier"
                         | "member_modifier"
+                        | "inheritance_modifier"
+                        | "ownership_modifier"
                         | "public"
                         | "private"
                         | "internal"
@@ -278,92 +280,27 @@ impl SwiftExtractor {
         }
     }
 
-    /// Implementation of extractInitializerParameters method
-    pub(super) fn extract_initializer_parameters(&self, node: Node) -> Option<String> {
-        // Look for parameter nodes
-        if let Some(parameter_node) = node
-            .children(&mut node.walk())
-            .find(|c| c.kind() == "parameter")
-        {
-            return Some(format!("({})", self.base.get_node_text(&parameter_node)));
-        }
-
-        // Check if there are parentheses but no parameters
-        if node.children(&mut node.walk()).any(|c| c.kind() == "(") {
-            Some("()".to_string())
-        } else {
-            None
-        }
-    }
-
-    /// Implementation of extractReturnType method
+    /// The declared return type text: the type after `->`.
     pub(super) fn extract_return_type(&self, node: Node) -> Option<String> {
-        // Try function_type first
-        if let Some(return_clause) = node
-            .children(&mut node.walk())
-            .find(|c| c.kind() == "function_type")
-            && let Some(type_node) = return_clause
-                .children(&mut return_clause.walk())
-                .find(|c| c.kind() == "type")
-        {
-            return Some(self.base.get_node_text(&type_node));
-        }
-
-        // Try type_annotation
-        if let Some(type_annotation) = node
-            .children(&mut node.walk())
-            .find(|c| c.kind() == "type_annotation")
-            && let Some(type_node) = type_annotation
-                .children(&mut type_annotation.walk())
-                .find(|c| matches!(c.kind(), "type" | "type_identifier" | "user_type"))
-        {
-            return Some(self.base.get_node_text(&type_node));
-        }
-
-        // Try direct type nodes (for simple cases)
-        let children: Vec<_> = node.children(&mut node.walk()).collect();
-        if let Some((node_index, direct_type)) = children
-            .iter()
-            .enumerate()
-            .find(|(_, c)| matches!(c.kind(), "type" | "type_identifier" | "user_type"))
-        {
-            let has_arrow = children
-                .iter()
-                .take(node_index)
-                .any(|child| self.base.get_node_text(child).contains("->"));
-            if has_arrow {
-                return Some(self.base.get_node_text(direct_type));
-            }
-        }
-
-        None
+        return_type_node(node).map(|type_node| self.base.get_node_text(&type_node))
     }
 
-    /// Implementation of extractVariableType method
+    /// `async`, `throws`, and `rethrows` effects in source order, as one string.
+    pub(super) fn extract_effects(&self, node: Node) -> Option<String> {
+        let mut cursor = node.walk();
+        let effects: Vec<String> = node
+            .children(&mut cursor)
+            .take_while(|child| child.kind() != "->")
+            .filter(|child| matches!(child.kind(), "async" | "throws" | "rethrows"))
+            .map(|child| self.base.get_node_text(&child))
+            .collect();
+        (!effects.is_empty()).then(|| effects.join(" "))
+    }
+
+    /// The declared type text of a `type_annotation` child.
     pub(super) fn extract_variable_type(&self, node: Node) -> Option<String> {
-        if let Some(type_annotation) = node
-            .children(&mut node.walk())
-            .find(|c| c.kind() == "type_annotation")
-            && let Some(type_node) =
-                type_annotation
-                    .children(&mut type_annotation.walk())
-                    .find(|c| {
-                        matches!(
-                            c.kind(),
-                            "type"
-                                | "user_type"
-                                | "primitive_type"
-                                | "optional_type"
-                                | "function_type"
-                                | "tuple_type"
-                                | "dictionary_type"
-                                | "array_type"
-                        )
-                    })
-        {
-            return Some(self.base.get_node_text(&type_node));
-        }
-        None
+        super::type_facts::property_type_node(node)
+            .map(|type_node| self.base.get_node_text(&type_node))
     }
 
     /// Implementation of extractPropertyType method
@@ -373,12 +310,32 @@ impl SwiftExtractor {
 
     /// Implementation of determineVisibility method
     pub(super) fn determine_visibility(&self, modifiers: &[String]) -> Visibility {
-        if modifiers.iter().any(|m| m == "open") {
-            Visibility::Open
-        } else {
-            crate::base::visibility::visibility_from_modifiers(modifiers)
-        }
+        explicit_access_level(modifiers).unwrap_or(Visibility::Internal)
     }
+}
+
+/// The access level a declaration spells out, if any. `private(set)` limits
+/// only the setter, so it is not a declaration access level.
+pub(super) fn explicit_access_level(modifiers: &[String]) -> Option<Visibility> {
+    modifiers
+        .iter()
+        .find_map(|modifier| match modifier.as_str() {
+            "open" => Some(Visibility::Open),
+            "public" => Some(Visibility::Public),
+            "internal" => Some(Visibility::Internal),
+            "fileprivate" => Some(Visibility::FilePrivate),
+            "private" => Some(Visibility::Private),
+            _ => None,
+        })
+}
+
+/// The return type node after the `->` token of a function, protocol
+/// requirement, or subscript.
+pub(super) fn return_type_node(node: Node) -> Option<Node> {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .skip_while(|child| child.kind() != "->")
+        .find(|child| child.is_named())
 }
 
 fn is_declaration_attribute_boundary(kind: &str) -> bool {

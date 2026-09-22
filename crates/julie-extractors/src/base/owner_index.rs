@@ -1,4 +1,7 @@
 //! The symbol that owns a call or identifier, found through syntax ancestors.
+//!
+//! Used by extractors whose span-priority lookup would hand a field
+//! initializer, property accessor, or destructor body to the enclosing type.
 
 use crate::base::{BaseExtractor, ContainingSymbolIndex, Symbol, SymbolKind};
 use std::collections::{HashMap, HashSet};
@@ -8,13 +11,13 @@ use tree_sitter::Node;
 /// initializer belongs to its field, a constructor body to its constructor,
 /// and a `test(...)` closure to its test. Locals and parameters never own
 /// code. Nodes outside every declaration fall back to the span index.
-pub(super) struct OwnerIndex<'a> {
+pub(crate) struct OwnerIndex<'a> {
     by_range: HashMap<(u32, u32), &'a Symbol>,
     fallback: ContainingSymbolIndex<'a>,
 }
 
 impl<'a> OwnerIndex<'a> {
-    pub(super) fn new(base: &BaseExtractor, symbols: &'a [Symbol]) -> Self {
+    pub(crate) fn new(base: &BaseExtractor, symbols: &'a [Symbol]) -> Self {
         let callable_ids: HashSet<&str> = symbols
             .iter()
             .filter(|symbol| is_callable(&symbol.kind))
@@ -26,6 +29,7 @@ impl<'a> OwnerIndex<'a> {
                 SymbolKind::Function
                 | SymbolKind::Method
                 | SymbolKind::Constructor
+                | SymbolKind::Destructor
                 | SymbolKind::Property
                 | SymbolKind::Field
                 | SymbolKind::Constant => true,
@@ -47,7 +51,7 @@ impl<'a> OwnerIndex<'a> {
         }
     }
 
-    pub(super) fn find(&self, node: Node) -> Option<&'a Symbol> {
+    pub(crate) fn find(&self, node: Node) -> Option<&'a Symbol> {
         let mut current = node.parent();
         while let Some(ancestor) = current {
             if let Some(symbol) = self
@@ -65,13 +69,16 @@ impl<'a> OwnerIndex<'a> {
 fn is_callable(kind: &SymbolKind) -> bool {
     matches!(
         kind,
-        SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
+        SymbolKind::Function
+            | SymbolKind::Method
+            | SymbolKind::Constructor
+            | SymbolKind::Destructor
     )
 }
 
-/// A `package:test` DSL symbol (`test('adds', ...)`, `group`, `setUp`): it
-/// names a closure, so it is never the target of a call.
-pub(super) fn is_test_call_symbol(symbol: &Symbol) -> bool {
+/// A test DSL call symbol, such as Dart's `test('adds', ...)` or Quick's
+/// `it("adds")`: it names a closure, so it is never the target of a call.
+pub(crate) fn is_test_call_symbol(symbol: &Symbol) -> bool {
     symbol.kind == SymbolKind::Function
         && symbol.visibility.is_none()
         && symbol

@@ -19,8 +19,8 @@ use std::collections::HashSet;
 
 use crate::base::{AnnotationMarker, Symbol, SymbolKind, TestRole};
 use crate::test_detection::{
-    SWIFT_SUITE_MACRO_KEY, SWIFT_TEST_MACRO_KEY, apply_test_role, mark_base_type_test_containers,
-    normalize_scoped_test_roles,
+    SWIFT_SUITE_MACRO_KEY, SWIFT_TEST_MACRO_KEY, apply_test_role, clear_test_role,
+    mark_base_type_test_containers, normalize_scoped_test_roles,
 };
 
 const XCTEST_BASE_TYPE: &str = "XCTestCase";
@@ -32,12 +32,91 @@ const ARGUMENT_ROWS_LABEL: &str = "arguments:";
 pub(super) fn apply_swift_test_roles(symbols: &mut [Symbol]) {
     mark_suite_containers(symbols);
     mark_base_type_test_containers(symbols, XCTEST_BASE_TYPE);
+    mark_xctest_subclasses(symbols);
     mark_container_extensions(symbols);
 
     let container_ids = test_container_ids(symbols);
     normalize_scoped_test_roles(symbols, &container_ids);
     restore_container_roles(symbols, &container_ids);
     apply_member_roles(symbols, &container_ids);
+    clear_xctest_methods_with_parameters(symbols);
+}
+
+/// XCTest suites often subclass a project base case. A class is a container
+/// when its superclass is a container in this file, or when the file imports
+/// XCTest and the class has a superclass and a parameterless `test` method:
+/// the base case then lives in another file.
+fn mark_xctest_subclasses(symbols: &mut [Symbol]) {
+    let imports_xctest = symbols
+        .iter()
+        .any(|symbol| symbol.kind == SymbolKind::Import && symbol.name == "XCTest");
+    let owners_of_test_methods: HashSet<String> = symbols
+        .iter()
+        .filter(|symbol| is_xctest_method(symbol) && parameters(symbol) == Some("()"))
+        .filter_map(|symbol| symbol.parent_id.clone())
+        .collect();
+    let mut container_names: HashSet<String> = symbols
+        .iter()
+        .filter(|symbol| is_test_container(symbol))
+        .map(|symbol| symbol.name.clone())
+        .collect();
+
+    loop {
+        let mut changed = false;
+        for symbol in symbols
+            .iter_mut()
+            .filter(|symbol| symbol.kind == SymbolKind::Class && !is_test_container(symbol))
+        {
+            let Some(superclass) = superclass(symbol) else {
+                continue;
+            };
+            let inherits_container = container_names.contains(&superclass);
+            let imported_base_case = imports_xctest && owners_of_test_methods.contains(&symbol.id);
+            if inherits_container || imported_base_case {
+                apply_test_role(
+                    symbol.metadata.get_or_insert_with(Default::default),
+                    TestRole::TestContainer,
+                );
+                container_names.insert(symbol.name.clone());
+                changed = true;
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+}
+
+/// XCTest runs only parameterless `test` methods; one that takes arguments is
+/// a helper unless Swift Testing's `@Test` macro marks it.
+fn clear_xctest_methods_with_parameters(symbols: &mut [Symbol]) {
+    for symbol in symbols.iter_mut().filter(|symbol| {
+        is_xctest_method(symbol)
+            && parameters(symbol).is_some_and(|parameters| parameters != "()")
+            && !has_macro(symbol, SWIFT_TEST_MACRO_KEY)
+    }) {
+        if let Some(metadata) = symbol.metadata.as_mut() {
+            clear_test_role(metadata);
+        }
+    }
+}
+
+fn is_xctest_method(symbol: &Symbol) -> bool {
+    symbol.kind == SymbolKind::Method && symbol.name.starts_with("test")
+}
+
+fn parameters(symbol: &Symbol) -> Option<&str> {
+    symbol.metadata.as_ref()?.get("parameters")?.as_str()
+}
+
+fn superclass(symbol: &Symbol) -> Option<String> {
+    let base = symbol
+        .metadata
+        .as_ref()?
+        .get("base_types")?
+        .as_array()?
+        .first()?;
+    base.as_str().map(str::to_string)
 }
 
 /// Swift Testing accepts a suite on any type declaration, so every type kind the

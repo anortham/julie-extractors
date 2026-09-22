@@ -3442,6 +3442,11 @@
           "name": "return_types",
           "source": "fixtures/extraction/swift/return_types/source.swift",
           "expected": "fixtures/extraction/swift/return_types/expected.json"
+        },
+        {
+          "name": "structure",
+          "source": "fixtures/extraction/swift/structure/source.swift",
+          "expected": "fixtures/extraction/swift/structure/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3456,12 +3461,18 @@
         "symbols": {
           "supported": [
             "class",
+            "constructor",
+            "destructor",
+            "enum",
+            "enum_member",
             "function",
             "import",
             "interface",
             "method",
+            "module",
             "property",
             "struct",
+            "type",
             "variable"
           ],
           "not_applicable": [],
@@ -3470,6 +3481,7 @@
         "relationships": {
           "supported": [
             "calls",
+            "extends",
             "implements"
           ],
           "not_applicable": [],
@@ -3478,6 +3490,7 @@
         "identifiers": {
           "supported": [
             "call",
+            "member_access",
             "type_usage",
             "variable_ref"
           ],
@@ -3487,14 +3500,18 @@
         "body_spans": {
           "supported": [
             "class",
+            "constructor",
+            "destructor",
+            "enum",
             "function",
             "interface",
             "method",
+            "module",
+            "property",
             "struct"
           ],
           "not_applicable": [
-            "import",
-            "property"
+            "import"
           ],
           "open_gaps": []
         },
@@ -3543,7 +3560,11 @@
         },
         "doc_comments": {
           "supported": [
-            "function"
+            "class",
+            "enum",
+            "function",
+            "interface",
+            "property"
           ],
           "not_applicable": [],
           "open_gaps": []

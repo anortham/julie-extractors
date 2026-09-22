@@ -3,8 +3,7 @@
 // Methods for extracting identifier usages (function calls, member access, etc.)
 
 use super::helpers::{find_child_by_type, get_node_text};
-use super::owners::OwnerIndex;
-use crate::base::{BaseExtractor, Identifier, IdentifierKind};
+use crate::base::{BaseExtractor, Identifier, IdentifierKind, OwnerIndex};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 

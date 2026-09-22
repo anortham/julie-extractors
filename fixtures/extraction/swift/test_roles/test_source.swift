@@ -73,3 +73,16 @@ describe("calculator") {
 }
 
 func itNamedButNotCalled() { }
+
+class ServiceBaseTestCase: XCTestCase {
+    func makeService() -> Int { 0 }
+}
+
+final class ServiceTests: ServiceBaseTestCase {
+    func testServiceStarts() { XCTAssertEqual(makeService(), 0) }
+}
+
+final class RemoteTests: RemoteBaseTestCase {
+    func testFetch() { }
+    func testHelper(_ value: Int) { }
+}

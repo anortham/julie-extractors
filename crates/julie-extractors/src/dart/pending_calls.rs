@@ -1,10 +1,9 @@
 //! Call sites: same-file `calls` relationships and pending calls for the rest.
 
 use super::identifiers::{call_callee, instantiation_target, self_receiver_type};
-use super::owners::{OwnerIndex, is_test_call_symbol};
 use crate::base::{
-    LocalTargetResolution, NormalizedSpan, RelationshipKind, ScopedSymbolIndex, Symbol, SymbolKind,
-    UnresolvedTarget,
+    LocalTargetResolution, NormalizedSpan, OwnerIndex, RelationshipKind, ScopedSymbolIndex, Symbol,
+    SymbolKind, UnresolvedTarget, is_test_call_symbol,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;

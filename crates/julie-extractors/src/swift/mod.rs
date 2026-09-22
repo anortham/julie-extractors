@@ -16,7 +16,10 @@ pub(super) mod test_roles;
 pub(super) mod type_facts;
 pub(super) mod types;
 
-use crate::base::{BaseExtractor, PendingRelationship, StructuredPendingRelationship, Symbol};
+use crate::base::{
+    BaseExtractor, NormalizedSpan, PendingRelationship, StructuredPendingRelationship, Symbol,
+    SymbolKind, Visibility,
+};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashSet;
 use tree_sitter::{Node, Tree};
@@ -93,8 +96,8 @@ impl SwiftExtractor {
             return;
         }
 
+        let mut extracted: Vec<Symbol> = Vec::new();
         let mut symbol: Option<Symbol> = None;
-        let mut current_parent_id = parent_id.clone();
 
         match node.kind() {
             "class_declaration" => {
@@ -110,10 +113,10 @@ impl SwiftExtractor {
                 symbol = self.extract_enum(node, parent_id.as_deref());
             }
             "enum_case_declaration" => {
-                self.extract_enum_cases(node, symbols, parent_id.as_deref());
+                self.extract_enum_cases(node, &mut extracted, parent_id.as_deref());
             }
             "enum_entry" => {
-                symbol = self.extract_enum_case(node, parent_id.as_deref());
+                extracted = self.extract_enum_case(node, parent_id.as_deref());
             }
             "function_declaration" => {
                 symbol = self.extract_function(node, parent_id.as_deref());
@@ -137,7 +140,7 @@ impl SwiftExtractor {
                 symbol = Some(self.extract_deinitializer(node, parent_id.as_deref()));
             }
             "property_declaration" => {
-                symbol = self.extract_property(node, parent_id.as_deref());
+                extracted = self.extract_property(node, parent_id.as_deref());
             }
             "extension_declaration" => {
                 symbol = self.extract_extension(node, parent_id.as_deref());
@@ -149,20 +152,32 @@ impl SwiftExtractor {
                 symbol = self.extract_type_alias(node, parent_id.as_deref());
             }
             "call_expression" => {
-                // Quick/Nimble DSL: describe/context/it/beforeEach/…
                 symbol =
                     test_calls::extract_quick_test_call(&mut self.base, node, parent_id.as_deref());
             }
             _ => {}
         }
+        extracted.extend(symbol);
 
-        if let Some(sym) = &symbol {
-            symbols.push(sym.clone());
-            current_parent_id = Some(sym.id.clone());
+        let parent = parent_id
+            .as_deref()
+            .and_then(|id| symbols.iter().rev().find(|symbol| symbol.id == id));
+        let explicit = signatures::explicit_access_level(&self.extract_modifiers(node));
+        for symbol in &mut extracted {
+            symbol.visibility = access_level(symbol, explicit.clone(), parent);
+        }
+
+        let mut current_parent_id = parent_id.clone();
+        if node.kind() != "enum_entry"
+            && let Some(first) = extracted.first()
+        {
+            current_parent_id = Some(first.id.clone());
             if matches!(node.kind(), "function_declaration" | "init_declaration") {
-                symbols.extend(parameters::extract_parameter_symbols(self, node, &sym.id));
+                let parameters = parameters::extract_parameter_symbols(self, node, &first.id);
+                extracted.extend(parameters);
             }
         }
+        symbols.extend(extracted);
 
         // Recursively visit children
         let Some(child_depth) = child_tree_depth(depth) else {
@@ -173,4 +188,67 @@ impl SwiftExtractor {
             self.visit_node(child, symbols, current_parent_id.clone(), child_depth);
         }
     }
+}
+
+/// Swift access control: an explicit modifier wins. Otherwise protocol
+/// requirements and enum cases share their parent's level, extension members
+/// take the extension's level (`private` there means file-private), members of
+/// a private type are file-private, and everything else is `internal`. Locals
+/// and declarations inside a function body have no access level.
+fn access_level(
+    symbol: &Symbol,
+    explicit: Option<Visibility>,
+    parent: Option<&Symbol>,
+) -> Option<Visibility> {
+    symbol.visibility.as_ref()?;
+    if symbol.kind == SymbolKind::Import {
+        return symbol.visibility.clone();
+    }
+    let parent_kind = parent.map(|parent| &parent.kind);
+    if symbol.kind == SymbolKind::Variable
+        || matches!(
+            parent_kind,
+            Some(
+                SymbolKind::Function
+                    | SymbolKind::Method
+                    | SymbolKind::Constructor
+                    | SymbolKind::Destructor
+            )
+        )
+    {
+        return None;
+    }
+    if explicit.is_some() {
+        return explicit;
+    }
+    let Some(parent) = parent else {
+        return Some(Visibility::Internal);
+    };
+    let parent_level = parent.visibility.clone().unwrap_or(Visibility::Internal);
+    Some(match parent.kind {
+        SymbolKind::Interface => parent_level,
+        SymbolKind::Enum if symbol.kind == SymbolKind::EnumMember => parent_level,
+        SymbolKind::Module => match parent_level {
+            Visibility::Private | Visibility::FilePrivate => Visibility::FilePrivate,
+            other => other,
+        },
+        _ => match parent_level {
+            Visibility::Private | Visibility::FilePrivate => Visibility::FilePrivate,
+            _ => Visibility::Internal,
+        },
+    })
+}
+
+/// Replace a symbol's inferred body with `body`, or clear it.
+pub(super) fn set_body(base: &BaseExtractor, symbol: &mut Symbol, body: Option<Node>) {
+    symbol.body_span = body.map(|body| NormalizedSpan::from_node(&body));
+    symbol.body_hash = symbol
+        .body_span
+        .and_then(|span| crate::base::body::body_hash(&base.content, span, "swift"));
+}
+
+/// Declarations without code (enum cases, protocol requirements) have no body.
+pub(super) fn clear_body(symbol: &mut Symbol) {
+    symbol.body_span = None;
+    symbol.body_hash = None;
 }

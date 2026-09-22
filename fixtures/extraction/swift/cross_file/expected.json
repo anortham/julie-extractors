@@ -49,7 +49,7 @@
       "body_hash": "231d5d245fb55a6ceb1e8306c33dfdb2",
       "signature": "class Worker",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
@@ -83,7 +83,7 @@
       "body_hash": "50e7e527d45bdaac230ed205af61f79c",
       "signature": "func entry() -> Int",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/cross_file/source.swift:Worker:8:0",
       "metadata": {
         "modifiers": "",
@@ -119,7 +119,7 @@
       "body_hash": "00057cd6f3017f1caa32903ade9bd0cc",
       "signature": "func localHelper() -> Int",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/cross_file/source.swift:Worker:8:0",
       "metadata": {
         "modifiers": "",
@@ -243,29 +243,11 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/swift/cross_file/source.swift:Other:6:0",
-      "resolved_type": "import",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/cross_file/source.swift:Worker:8:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/swift/cross_file/source.swift:entry:9:4",
       "resolved_type": "Int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "swift",
       "metadata": null
     },
@@ -274,7 +256,7 @@
       "resolved_type": "Int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "swift",
       "metadata": null
     }

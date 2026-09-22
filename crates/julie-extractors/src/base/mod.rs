@@ -27,6 +27,7 @@ pub mod http_boundary;
 pub mod kinds;
 pub mod marker_structural_facts;
 mod markup_scan;
+pub(crate) mod owner_index;
 pub mod relationship_resolution;
 mod results_normalization;
 mod rust_doc_test_facts;
@@ -58,6 +59,7 @@ pub use extractor::BaseExtractor;
 pub use framework_structural_facts::collect_framework_structural_facts;
 pub use kinds::{IdentifierKind, RelationshipKind, SymbolKind, TestRole, Visibility};
 pub use marker_structural_facts::collect_marker_structural_facts;
+pub(crate) use owner_index::{OwnerIndex, is_test_call_symbol};
 pub use relationship_resolution::{
     LocalTargetResolution, ScopedSymbolIndex, StructuredPendingRelationship, UnresolvedTarget,
 };

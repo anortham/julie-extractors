@@ -12,6 +12,7 @@ mod task14;
 mod test_detection; // base_types + Swift Testing annotations
 mod type_arguments;
 mod type_facts;
+mod wave1_gaps;
 
 use crate::base::{RelationshipKind, SymbolKind, Visibility};
 use crate::swift::SwiftExtractor;

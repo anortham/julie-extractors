@@ -60,7 +60,7 @@ pub(crate) fn apply_test_role(metadata: &mut HashMap<String, serde_json::Value>,
     );
 }
 
-fn clear_test_role(metadata: &mut HashMap<String, serde_json::Value>) {
+pub(crate) fn clear_test_role(metadata: &mut HashMap<String, serde_json::Value>) {
     metadata.remove("is_test");
     metadata.remove("test_lifecycle");
     metadata.remove("test_container");

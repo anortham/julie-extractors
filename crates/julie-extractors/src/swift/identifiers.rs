@@ -1,4 +1,4 @@
-use crate::base::{BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol};
+use crate::base::{BaseExtractor, Identifier, IdentifierKind, OwnerIndex, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
@@ -13,102 +13,55 @@ impl SwiftExtractor {
         tree: &tree_sitter::Tree,
         symbols: &[Symbol],
     ) -> Vec<Identifier> {
-        let containing_symbols = self.base.containing_symbol_index(symbols);
-
-        // Walk the tree and extract identifiers
-        self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, 0);
-
-        // Return the collected identifiers
+        let owners = OwnerIndex::new(&self.base, symbols);
+        self.walk_tree_for_identifiers(tree.root_node(), &owners, 0);
         self.base.identifiers.clone()
     }
 
-    /// Recursively walk tree extracting identifiers from each node
-    fn walk_tree_for_identifiers(
-        &mut self,
-        node: Node,
-        containing_symbols: &ContainingSymbolIndex<'_>,
-        depth: u32,
-    ) {
+    fn walk_tree_for_identifiers(&mut self, node: Node, owners: &OwnerIndex<'_>, depth: u32) {
         if !should_visit_tree_depth(depth) {
             return;
         }
 
-        // Extract identifier from this node if applicable
-        self.extract_identifier_from_node(node, containing_symbols);
+        self.extract_identifier_from_node(node, owners);
 
-        // Recursively walk children
         let Some(child_depth) = child_tree_depth(depth) else {
             return;
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_identifiers(child, containing_symbols, child_depth);
+            self.walk_tree_for_identifiers(child, owners, child_depth);
         }
     }
 
-    /// Extract identifier from a single node based on its kind
-    fn extract_identifier_from_node(
-        &mut self,
-        node: Node,
-        containing_symbols: &ContainingSymbolIndex<'_>,
-    ) {
+    fn extract_identifier_from_node(&mut self, node: Node, owners: &OwnerIndex<'_>) {
         match node.kind() {
-            // Function/method calls: foo(), bar.baz()
             "call_expression" => {
-                // Swift call_expression has the function as a child
-                // For simple calls: identifier is direct child
-                // For member calls: navigation_expression is child, then we get rightmost identifier
-                let mut cursor = node.walk();
-                for child in node.children(&mut cursor) {
-                    if child.kind() == "simple_identifier" {
-                        let name = self.base.get_node_text(&child);
-                        let containing_symbol_id =
-                            self.find_containing_symbol_id(node, containing_symbols);
-
-                        self.base.create_identifier(
-                            &child,
-                            name,
-                            IdentifierKind::Call,
-                            containing_symbol_id,
-                        );
-                        break;
-                    } else if child.kind() == "navigation_expression" {
-                        // For member access calls, extract the rightmost identifier (the method name)
-                        if let Some((name_node, name)) = self.extract_rightmost_identifier(&child) {
-                            let containing_symbol_id =
-                                self.find_containing_symbol_id(node, containing_symbols);
-                            let receiver_type = self_receiver_type(&self.base, node);
-
-                            self.base.create_identifier_with_receiver_type(
-                                &name_node,
-                                name,
-                                IdentifierKind::Call,
-                                containing_symbol_id,
-                                receiver_type,
-                            );
-                        }
-                        break;
-                    }
+                if let Some(callee) = call_callee(&self.base, node) {
+                    let name = self.base.get_node_text(&callee.name);
+                    let containing_symbol_id = self.find_containing_symbol_id(node, owners);
+                    let receiver_type = self_receiver_type(&self.base, node);
+                    self.base.create_identifier_with_receiver_type(
+                        &callee.name,
+                        name,
+                        IdentifierKind::Call,
+                        containing_symbol_id,
+                        receiver_type,
+                    );
                 }
-                // Phase 3b: capture string-literal call-arguments (config-free;
-                // carrier classification + gate run later in the artifact language-policy pass).
-                self.record_call_arg_literals(node, containing_symbols);
+                self.record_call_arg_literals(node, owners);
             }
 
-            // Member access: object.property
             "navigation_expression" => {
-                // Only extract if it's NOT part of a call_expression
-                // (we handle those in the call_expression case above)
-                if let Some(parent) = node.parent()
-                    && parent.kind() == "call_expression"
+                if node
+                    .parent()
+                    .is_some_and(|parent| call_callee(&self.base, parent).is_some())
                 {
-                    return; // Skip - handled by call_expression
+                    return;
                 }
 
-                // Extract the rightmost identifier (the member name)
                 if let Some((name_node, name)) = self.extract_rightmost_identifier(&node) {
-                    let containing_symbol_id =
-                        self.find_containing_symbol_id(node, containing_symbols);
+                    let containing_symbol_id = self.find_containing_symbol_id(node, owners);
 
                     self.base.create_identifier(
                         &name_node,
@@ -123,8 +76,7 @@ impl SwiftExtractor {
                 let name = self.base.get_node_text(&node);
                 if is_swift_type_usage_identifier(node) {
                     if !is_swift_builtin_type(&name) {
-                        let containing_symbol_id =
-                            self.find_containing_symbol_id(node, containing_symbols);
+                        let containing_symbol_id = self.find_containing_symbol_id(node, owners);
                         let identifier = self.base.create_identifier(
                             &node,
                             name,
@@ -146,8 +98,7 @@ impl SwiftExtractor {
                     // `nil` are distinct grammar nodes, never simple_identifier.)
                     && !is_swift_builtin_type(&name)
                 {
-                    let containing_symbol_id =
-                        self.find_containing_symbol_id(node, containing_symbols);
+                    let containing_symbol_id = self.find_containing_symbol_id(node, owners);
                     self.base.create_identifier(
                         &node,
                         name,
@@ -163,12 +114,8 @@ impl SwiftExtractor {
 
     /// Find the ID of the symbol that contains this node
     /// CRITICAL: Only search symbols from THIS FILE (file-scoped filtering)
-    fn find_containing_symbol_id(
-        &self,
-        node: Node,
-        containing_symbols: &ContainingSymbolIndex<'_>,
-    ) -> Option<String> {
-        containing_symbols.find(node).map(|s| s.id.clone())
+    fn find_containing_symbol_id(&self, node: Node, owners: &OwnerIndex<'_>) -> Option<String> {
+        owners.find(node).map(|s| s.id.clone())
     }
 
     /// Helper to extract the rightmost identifier in a navigation_expression
@@ -218,11 +165,7 @@ impl SwiftExtractor {
     /// which the shared `decode_string_literal` does NOT recognize as a hole, so
     /// interpolated literals decode without a `{}` placeholder. Plain string
     /// literals (the common URL/SQL case) decode correctly. Flagged to the lead.
-    fn record_call_arg_literals(
-        &mut self,
-        call_node: Node,
-        containing_symbols: &ContainingSymbolIndex<'_>,
-    ) {
+    fn record_call_arg_literals(&mut self, call_node: Node, owners: &OwnerIndex<'_>) {
         // The callee is the first child; the args live in the `call_suffix`.
         let mut callee: Option<Node> = None;
         let mut call_suffix: Option<Node> = None;
@@ -241,7 +184,7 @@ impl SwiftExtractor {
             return;
         };
         let carrier = callee.and_then(|c| swift_carrier(&self.base, c));
-        let containing_symbol_id = self.find_containing_symbol_id(call_node, containing_symbols);
+        let containing_symbol_id = self.find_containing_symbol_id(call_node, owners);
 
         let mut ac = value_args.walk();
         for (pos, arg) in value_args.named_children(&mut ac).enumerate() {
@@ -422,8 +365,9 @@ fn is_swift_value_read_identifier(node: Node) -> bool {
     }
 
     match parent.kind() {
-        // Rule 2: the direct identifier child of a call is the callee (Call arm).
-        "call_expression" => false,
+        // Rule 2: the direct identifier child of a call is the callee (Call
+        // arm). A subscript's base is a value read.
+        "call_expression" => is_subscript(parent),
 
         // Rule 1/2: only the `target` receiver of a navigation is a read; the
         // suffix member name is owned by the MemberAccess/Call arms.
@@ -607,4 +551,51 @@ fn enclosing_class_declaration(node: Node) -> Option<Node> {
         current = parent.parent();
     }
     None
+}
+
+/// The called name of a `call_expression` and the receiver expression before
+/// it, with `try` and `await` removed from the receiver.
+pub(super) struct Callee<'a> {
+    pub(super) name: Node<'a>,
+    pub(super) receiver: Option<Node<'a>>,
+}
+
+/// The callee of a real call. A subscript (`cache[id]`) and a `defer` block,
+/// which the grammar parses as calls, have none.
+pub(super) fn call_callee<'a>(base: &BaseExtractor, call: Node<'a>) -> Option<Callee<'a>> {
+    if call.kind() != "call_expression" || is_subscript(call) {
+        return None;
+    }
+    let callee = call.named_child(0)?;
+    match callee.kind() {
+        "simple_identifier" if base.get_node_text(&callee) != "defer" => Some(Callee {
+            name: callee,
+            receiver: None,
+        }),
+        "navigation_expression" => {
+            let name = callee
+                .child_by_field_name("suffix")?
+                .child_by_field_name("suffix")
+                .filter(|name| name.kind() == "simple_identifier")?;
+            let mut receiver = callee.child_by_field_name("target");
+            while let Some(wrapper) =
+                receiver.filter(|r| matches!(r.kind(), "await_expression" | "try_expression"))
+            {
+                receiver = wrapper.child_by_field_name("expr");
+            }
+            Some(Callee { name, receiver })
+        }
+        _ => None,
+    }
+}
+
+/// `value[index]`: the grammar parses a subscript as a call with bracketed
+/// arguments.
+fn is_subscript(call: Node) -> bool {
+    let mut cursor = call.walk();
+    call.children(&mut cursor)
+        .find(|child| child.kind() == "call_suffix")
+        .and_then(swift_value_arguments)
+        .and_then(|arguments| arguments.child(0))
+        .is_some_and(|open| open.kind() == "[")
 }
