@@ -288,7 +288,12 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "importedName": "contextlib",
+        "isWildcard": false,
+        "source": "contextlib",
+        "specifier": "contextlib"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -312,7 +317,12 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "importedName": "functools",
+        "isWildcard": false,
+        "source": "functools",
+        "specifier": "functools"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -519,7 +529,12 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "importedName": "pytest",
+        "isWildcard": false,
+        "source": "pytest",
+        "specifier": "pytest"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -1262,42 +1277,9 @@
       "end_column": 38,
       "start_byte": 703,
       "end_byte": 733,
-      "body_span": {
-        "start_line": 47,
-        "start_column": 36,
-        "end_line": 47,
-        "end_column": 38,
-        "start_byte": 731,
-        "end_byte": 733
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "total = calculate_total()",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/python/test_roles/test_source.py:TestArithmetic:45:0",
-      "metadata": {
-        "hasTypeAnnotation": false
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/python/test_roles/test_source.py:total:50:8",
-      "name": "total",
-      "kind": "property",
-      "language": "python",
-      "file_path": "fixtures/extraction/python/test_roles/test_source.py",
-      "start_line": 50,
-      "start_column": 8,
-      "end_line": 50,
-      "end_column": 22,
-      "start_byte": 782,
-      "end_byte": 796,
       "body_span": null,
       "body_hash": null,
-      "signature": "total = 0",
+      "signature": "total = calculate_total()",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/python/test_roles/test_source.py:TestArithmetic:45:0",
@@ -1321,42 +1303,9 @@
       "end_column": 38,
       "start_byte": 987,
       "end_byte": 1017,
-      "body_span": {
-        "start_line": 61,
-        "start_column": 36,
-        "end_line": 61,
-        "end_column": 38,
-        "start_byte": 1015,
-        "end_byte": 1017
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "total = calculate_total()",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/python/test_roles/test_source.py:ArithmeticTest:59:0",
-      "metadata": {
-        "hasTypeAnnotation": false
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/python/test_roles/test_source.py:total:64:8",
-      "name": "total",
-      "kind": "property",
-      "language": "python",
-      "file_path": "fixtures/extraction/python/test_roles/test_source.py",
-      "start_line": 64,
-      "start_column": 8,
-      "end_line": 64,
-      "end_column": 22,
-      "start_byte": 1051,
-      "end_byte": 1065,
       "body_span": null,
       "body_hash": null,
-      "signature": "total = 0",
+      "signature": "total = calculate_total()",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/python/test_roles/test_source.py:ArithmeticTest:59:0",
@@ -1386,7 +1335,12 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "importedName": "unittest",
+        "isWildcard": false,
+        "source": "unittest",
+        "specifier": "unittest"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -1452,6 +1406,14 @@
   "pending_relationships": [
     {
       "from_key": "fixtures/extraction/python/test_roles/test_source.py:ArithmeticTest:59:0",
+      "callee_name": "unittest.TestCase",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/python/test_roles/test_source.py",
+      "line_number": 59,
+      "confidence": "0.800"
+    },
+    {
+      "from_key": "fixtures/extraction/python/test_roles/test_source.py:ArithmeticTest:59:0",
       "callee_name": "unittest.skipIf",
       "kind": "calls",
       "file_path": "fixtures/extraction/python/test_roles/test_source.py",
@@ -1487,6 +1449,32 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/python/test_roles/test_source.py:ArithmeticTest:59:0",
+        "callee_name": "unittest.TestCase",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/python/test_roles/test_source.py",
+        "line_number": 59,
+        "confidence": "0.800"
+      },
+      "target": {
+        "display_name": "unittest.TestCase",
+        "terminal_name": "TestCase",
+        "receiver": "unittest",
+        "namespace_path": [],
+        "import_context": "unittest"
+      },
+      "caller_scope_key": "fixtures/extraction/python/test_roles/test_source.py:ArithmeticTest:59:0",
+      "span": {
+        "start_line": 59,
+        "start_column": 30,
+        "end_line": 59,
+        "end_column": 38,
+        "start_byte": 947,
+        "end_byte": 955
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/python/test_roles/test_source.py:ArithmeticTest:59:0",
         "callee_name": "unittest.skipIf",
         "kind": "calls",
         "file_path": "fixtures/extraction/python/test_roles/test_source.py",
@@ -1498,7 +1486,7 @@
         "terminal_name": "skipIf",
         "receiver": "unittest",
         "namespace_path": [],
-        "import_context": null
+        "import_context": "unittest"
       },
       "caller_scope_key": "fixtures/extraction/python/test_roles/test_source.py:ArithmeticTest:59:0",
       "span": {

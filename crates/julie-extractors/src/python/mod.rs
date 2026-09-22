@@ -23,30 +23,17 @@ pub(crate) mod type_arguments;
 pub(crate) mod type_facts;
 pub(crate) mod types;
 
-use crate::base::{
-    BaseExtractor, Identifier, Relationship, StructuredPendingRelationship, Symbol, SymbolKind,
-};
+use crate::base::{BaseExtractor, Identifier, Relationship, StructuredPendingRelationship, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use regex::Regex;
 use std::collections::{HashMap, HashSet};
-use std::sync::LazyLock;
 use tree_sitter::{Node, Tree};
-
-/// Matches return type hint at end of signature: `: ReturnType`
-static RETURN_HINT_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r":\s*([^=\s]+)\s*$").unwrap());
-
-/// Matches type annotation with default value: `: Type =`
-static VAR_ANNOTATION_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r":\s*([^=]+)\s*=").unwrap());
-
-// All public API is through PythonExtractor methods
-// Internal functions are used via module paths within the parent module
 
 /// Python extractor for extracting symbols and relationships from Python source code
 pub struct PythonExtractor {
     pub(crate) base: BaseExtractor,
     pub(crate) same_file_class_names: HashSet<String>,
+    /// Ids of `self.x` attribute symbols, so a class keeps one row per attribute.
+    pub(crate) instance_attribute_ids: HashSet<String>,
 }
 
 impl PythonExtractor {
@@ -54,6 +41,7 @@ impl PythonExtractor {
         Self {
             base: BaseExtractor::new("python".to_string(), file_path, content, workspace_root),
             same_file_class_names: HashSet::new(),
+            instance_attribute_ids: HashSet::new(),
         }
     }
 
@@ -62,6 +50,7 @@ impl PythonExtractor {
         self.same_file_class_names = types::collect_class_names(self, tree.root_node());
         let mut symbols = Vec::new();
         self.traverse_tree(tree.root_node(), &mut symbols, 0);
+        assignments::keep_first_attribute_declaration(&mut symbols, &self.instance_attribute_ids);
         crate::test_detection::mark_python_test_containers(&mut symbols);
         symbols
     }
@@ -102,7 +91,7 @@ impl PythonExtractor {
                 let import_symbols = imports::extract_imports(self, node);
                 symbols.extend(import_symbols);
             }
-            "lambda" => {
+            "lambda" if node.is_named() => {
                 let symbol = functions::extract_lambda(self, node);
                 symbols.push(symbol);
             }
@@ -124,47 +113,10 @@ impl PythonExtractor {
         relationships::extract_relationships(self, tree, symbols)
     }
 
-    /// Infer types from Python type annotations and assignments
-    pub fn infer_types(&self, symbols: &[Symbol]) -> HashMap<String, String> {
-        let mut type_map = HashMap::new();
-
-        for symbol in symbols {
-            if matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
-                && let Some(return_type) = metadata_return_type(symbol)
-            {
-                type_map.insert(symbol.id.clone(), return_type);
-                continue;
-            }
-
-            // Infer types from Python-specific patterns
-            if let Some(ref signature) = symbol.signature
-                && let Some(inferred_type) = self.infer_type_from_signature(signature, &symbol.kind)
-            {
-                type_map.insert(symbol.id.clone(), inferred_type);
-            }
-        }
-
-        type_map
-    }
-
-    fn infer_type_from_signature(&self, signature: &str, kind: &SymbolKind) -> Option<String> {
-        match kind {
-            SymbolKind::Function | SymbolKind::Method => {
-                // Extract type hints from function signatures
-                if let Some(captures) = RETURN_HINT_RE.captures(signature) {
-                    return Some(captures[1].to_string());
-                }
-            }
-            SymbolKind::Variable | SymbolKind::Property => {
-                // Extract type from variable annotations
-                if let Some(captures) = VAR_ANNOTATION_RE.captures(signature) {
-                    return Some(captures[1].trim().to_string());
-                }
-            }
-            _ => {}
-        }
-
-        None
+    /// Python records every type fact on the base extractor during symbol
+    /// extraction, from annotation nodes only; nothing is inferred from text.
+    pub fn infer_types(&self, _symbols: &[Symbol]) -> HashMap<String, String> {
+        HashMap::new()
     }
 
     /// Extract all identifier usages (function calls, member access, etc.)
@@ -212,28 +164,5 @@ impl PythonExtractor {
 
     pub fn get_structured_pending_relationships(&self) -> Vec<StructuredPendingRelationship> {
         self.base.get_structured_pending_relationships()
-    }
-}
-
-fn metadata_return_type(symbol: &Symbol) -> Option<String> {
-    symbol
-        .metadata
-        .as_ref()?
-        .get("returnType")?
-        .as_str()
-        .and_then(normalize_python_return_hint)
-}
-
-fn normalize_python_return_hint(raw: &str) -> Option<String> {
-    let trimmed = raw.trim();
-    if trimmed.is_empty() {
-        return None;
-    }
-
-    let without_colon = trimmed.strip_prefix(':').unwrap_or(trimmed).trim();
-    if without_colon.is_empty() {
-        None
-    } else {
-        Some(without_colon.to_string())
     }
 }

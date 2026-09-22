@@ -628,19 +628,17 @@ count: int = 42
 
         let (mut extractor, tree) = create_extractor_and_parse(python_code);
         let symbols = extractor.extract_symbols(&tree);
-        let types = extractor.infer_types(&symbols);
+        assert!(extractor.infer_types(&symbols).is_empty());
+        let types = &extractor.base.type_info;
 
-        let get_name = symbols.iter().find(|s| s.name == "get_name");
-        assert!(get_name.is_some());
-        assert_eq!(types.get(&get_name.unwrap().id).unwrap(), "str");
-
-        let calculate = symbols.iter().find(|s| s.name == "calculate");
-        assert!(calculate.is_some());
-        assert_eq!(types.get(&calculate.unwrap().id).unwrap(), "float");
-
-        let username = symbols.iter().find(|s| s.name == "username");
-        assert!(username.is_some());
-        assert_eq!(types.get(&username.unwrap().id).unwrap(), "str");
+        for (name, expected) in [
+            ("get_name", "str"),
+            ("calculate", "float"),
+            ("username", "str"),
+        ] {
+            let symbol = symbols.iter().find(|s| s.name == name).unwrap();
+            assert_eq!(types[&symbol.id].resolved_type, expected, "{name}");
+        }
     }
 
     #[test]
@@ -1348,3 +1346,4 @@ class Test:
         );
     }
 }
+pub mod wave1_gaps;

@@ -71,6 +71,7 @@ pub(super) fn collect_python_web_facts(
     facts.extend(collect_fastapi_routes(&context, &fastapi));
     facts.extend(collect_fastapi_includes(&context, &fastapi));
     facts.extend(collect_flask_routes(&context, &flask));
+    facts.extend(collect_flask_url_rules(&context, &flask));
     facts.extend(collect_flask_blueprint_registrations(&context, &flask));
     if imports.django_path.is_some() || imports.django_re_path.is_some() {
         facts.extend(collect_django_urls(&context, &imports));
@@ -84,6 +85,11 @@ struct PythonImports {
     api_router_class: Option<String>,
     flask_class: Option<String>,
     blueprint_class: Option<String>,
+    /// The file imports from `flask`, so an imported receiver's route
+    /// decorators are Flask routes.
+    flask_imported: bool,
+    /// Local names bound by `from <module> import ...` from other modules.
+    imported_names: Vec<String>,
     django_path: Option<String>,
     django_re_path: Option<String>,
     django_include: Option<String>,
@@ -95,6 +101,7 @@ impl PythonImports {
             && self.api_router_class.is_none()
             && self.flask_class.is_none()
             && self.blueprint_class.is_none()
+            && !self.flask_imported
             && self.django_path.is_none()
             && self.django_re_path.is_none()
             && self.django_include.is_none()
@@ -124,6 +131,8 @@ struct FlaskReceiver {
 enum FlaskReceiverKind {
     App,
     Blueprint,
+    /// A Flask app or blueprint constructed in another module and imported here.
+    Imported,
 }
 
 fn collect_imports(content: &str) -> PythonImports {
@@ -138,6 +147,7 @@ fn collect_imports(content: &str) -> PythonImports {
                 }
             }
         } else if let Some(rest) = trimmed.strip_prefix("from flask import ") {
+            imports.flask_imported = true;
             for (imported, local) in parse_from_import_items(rest) {
                 match imported.as_str() {
                     "Flask" => imports.flask_class = Some(local),
@@ -159,8 +169,21 @@ fn collect_imports(content: &str) -> PythonImports {
                 if module == "fastapi" {
                     imports.fastapi_class = Some(format!("{local}.FastAPI"));
                     imports.api_router_class = Some(format!("{local}.APIRouter"));
+                } else if module == "flask" {
+                    imports.flask_imported = true;
+                    imports.flask_class = Some(format!("{local}.Flask"));
+                    imports.blueprint_class = Some(format!("{local}.Blueprint"));
                 }
             }
+        } else if let Some(rest) = trimmed.strip_prefix("from ")
+            && let Some((_, items)) = rest.split_once(" import ")
+        {
+            imports.imported_names.extend(
+                parse_from_import_items(items)
+                    .into_iter()
+                    .map(|(_, local)| local)
+                    .filter(|local| is_ascii_identifier(local)),
+            );
         }
     }
     imports
@@ -291,6 +314,17 @@ fn collect_flask_receivers(
                     prefix: keyword_string_arg(&assignment.args, "url_prefix"),
                 },
             );
+        }
+    }
+    if imports.flask_imported {
+        for name in &imports.imported_names {
+            receivers
+                .entry(name.clone())
+                .or_insert_with(|| FlaskReceiver {
+                    kind: FlaskReceiverKind::Imported,
+                    blueprint_name: None,
+                    prefix: None,
+                });
         }
     }
     receivers
@@ -492,6 +526,116 @@ fn collect_flask_routes(
         }
     }
     facts
+}
+
+/// `app.add_url_rule("/ping", view_func=ping, methods=[...])` registers a
+/// route without a decorator. The view is the `view_func` keyword or the third
+/// positional argument.
+fn collect_flask_url_rules(
+    context: &PythonFactContext<'_>,
+    receivers: &HashMap<String, FlaskReceiver>,
+) -> Vec<StructuralFact> {
+    let content = context.content;
+    let mut facts = Vec::new();
+    for (name, receiver) in receivers {
+        let needle = format!("{name}.add_url_rule");
+        let mut cursor = 0;
+        while let Some(relative) = content[cursor..].find(&needle) {
+            let call_start = cursor + relative;
+            cursor = call_start + needle.len();
+            if context.mask.is_string_or_comment(call_start)
+                || !is_identifier_boundary(content, call_start, name.len())
+            {
+                continue;
+            }
+            let open = skip_ascii_whitespace_until(content, cursor, content.len());
+            if content.as_bytes().get(open) != Some(&b'(') {
+                continue;
+            }
+            let Some(close) = find_matching_paren(content, context.mask, open) else {
+                continue;
+            };
+            let args = &content[open + 1..close];
+            let Some(route_template) =
+                positional_string_arg(args, 0).or_else(|| keyword_string_arg(args, "rule"))
+            else {
+                continue;
+            };
+            let view_target = keyword_value_start(args, "view_func")
+                .map(|start| {
+                    let args_mask = SourceMask::new(args, MaskLanguage::Python);
+                    let end = find_top_level_comma_or_end(args, &args_mask, start, args.len());
+                    args[start..end].trim().to_string()
+                })
+                .or_else(|| positional_raw_arg(args, 2));
+            let methods = methods_keyword(args);
+            let verb_source = if methods.is_empty() {
+                "default"
+            } else {
+                "attested"
+            };
+            let verbs = if methods.is_empty() {
+                vec!["GET".to_string()]
+            } else {
+                methods
+            };
+            for verb in verbs {
+                if let Some(fact) = route_fact(
+                    context.language,
+                    context.tree,
+                    context.file_path,
+                    content,
+                    call_start,
+                    close + 1,
+                    RouteFactSpec {
+                        framework: "flask",
+                        pattern_id: FLASK_ROUTE_PATTERN_ID,
+                        capture_name: "route",
+                        api_style: "call_routing",
+                        route_template: &route_template,
+                        verb: Some(&verb),
+                        verb_source: Some(verb_source),
+                        flavor: ParamFlavor::AngleBrackets,
+                        prefix: receiver.prefix.as_deref(),
+                        prefix_key: None,
+                    },
+                    |metadata| {
+                        if let Some(prefix) = receiver.prefix.as_deref() {
+                            insert_string(metadata, "url_prefix", prefix);
+                        }
+                        if let Some(name) = receiver.blueprint_name.as_deref() {
+                            insert_string(metadata, "blueprint", name);
+                        }
+                        if let Some(view_target) = view_target.as_deref() {
+                            insert_string(metadata, "view_target", view_target);
+                        }
+                    },
+                ) {
+                    facts.push(fact);
+                }
+            }
+        }
+    }
+    facts.sort_by_key(|fact| (fact.start_byte, fact.end_byte));
+    facts
+}
+
+fn positional_raw_arg(args: &str, index: usize) -> Option<String> {
+    let args_mask = SourceMask::new(args, MaskLanguage::Python);
+    let mut cursor = 0;
+    for current in 0..=index {
+        cursor = skip_ascii_whitespace_until(args, cursor, args.len());
+        if cursor >= args.len() {
+            return None;
+        }
+        let end = find_top_level_comma_or_end(args, &args_mask, cursor, args.len());
+        if current == index {
+            let value = args[cursor..end].trim();
+            return (!value.is_empty() && !value.contains('=')).then(|| value.to_string());
+        }
+        cursor = end.saturating_add(1);
+    }
+    None
 }
 
 fn collect_flask_blueprint_registrations(

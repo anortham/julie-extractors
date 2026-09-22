@@ -65,15 +65,16 @@ def login() -> list[AuthResult | User]:
 "#;
 
     let (symbols, _identifiers, extractor) = extract_all(code);
-    let types = extractor.infer_types(&symbols);
     let login = symbols
         .iter()
         .find(|symbol| symbol.name == "login")
         .expect("login function should be extracted");
 
+    let fact = &extractor.base.type_info[&login.id];
+    assert_eq!(fact.resolved_type, "list");
     assert_eq!(
-        types.get(&login.id).map(String::as_str),
-        Some("list[AuthResult | User]")
+        fact.metadata.as_ref().unwrap()["declared"],
+        "list[AuthResult | User]"
     );
 }
 

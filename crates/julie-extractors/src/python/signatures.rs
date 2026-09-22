@@ -114,7 +114,7 @@ pub(super) fn extract_parameter_symbols(
             type_facts::record_annotation_fact(extractor.base_mut(), &symbol.id, type_node);
         }
 
-        symbols.push(symbol);
+        symbols.push(super::helpers::without_body(symbol));
     }
 
     symbols

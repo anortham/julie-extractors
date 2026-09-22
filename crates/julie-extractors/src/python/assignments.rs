@@ -3,7 +3,7 @@
 use super::super::base::{Symbol, SymbolKind, SymbolOptions};
 use super::PythonExtractor;
 use super::{helpers, signatures, type_facts, types};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
 
 /// Extract an assignment statement - can return multiple symbols for tuple unpacking
@@ -20,30 +20,18 @@ pub(super) fn extract_assignment(extractor: &mut PythonExtractor, node: Node) ->
         return extract_multiple_assignment_targets(extractor, left, right);
     }
 
-    // Handle single assignments
     let (name, mut symbol_kind) = match left.kind() {
         "identifier" => {
             let name = extractor.base_mut().get_node_text(&left);
             (name, SymbolKind::Variable)
         }
-        "attribute" => {
-            // Handle self.attribute assignments
-            let object_node = left.child_by_field_name("object");
-            let attribute_node = left.child_by_field_name("attribute");
-
-            if let (Some(object_node), Some(attribute_node)) = (object_node, attribute_node) {
-                if extractor.base_mut().get_node_text(&object_node) == "self" {
-                    let name = extractor.base_mut().get_node_text(&attribute_node);
-                    (name, SymbolKind::Property)
-                } else {
-                    return vec![]; // Skip non-self attributes for now
-                }
-            } else {
-                return vec![];
-            }
-        }
+        "attribute" => match self_attribute_name(extractor, left) {
+            Some(name) => (name, SymbolKind::Property),
+            None => return vec![],
+        },
         _ => return vec![],
     };
+    let is_instance_attribute = left.kind() == "attribute";
 
     // Check if this is a special class attribute
     if name == "__slots__" {
@@ -112,8 +100,51 @@ pub(super) fn extract_assignment(extractor: &mut PythonExtractor, node: Node) ->
     } else if let Some(class_name) = same_file_constructor_class(extractor, right) {
         type_facts::record_constructor_fact(extractor.base_mut(), &symbol.id, &class_name);
     }
+    if is_instance_attribute {
+        extractor.instance_attribute_ids.insert(symbol.id.clone());
+    }
 
-    vec![symbol]
+    vec![helpers::without_body(symbol)]
+}
+
+/// The attribute name of a `self.x` assignment target.
+fn self_attribute_name(extractor: &PythonExtractor, target: Node) -> Option<String> {
+    let object = target.child_by_field_name("object")?;
+    let attribute = target.child_by_field_name("attribute")?;
+    (extractor.base().get_node_text(&object) == "self")
+        .then(|| extractor.base().get_node_text(&attribute))
+}
+
+/// Keep one member row per class attribute. A class-level declaration wins;
+/// otherwise the first `self.x` assignment in source order does. Later
+/// assignments stay visible as member-access identifiers.
+pub(super) fn keep_first_attribute_declaration(
+    symbols: &mut Vec<Symbol>,
+    instance_attribute_ids: &HashSet<String>,
+) {
+    let mut declared: HashSet<(String, String)> = symbols
+        .iter()
+        .filter(|symbol| !instance_attribute_ids.contains(&symbol.id))
+        .filter(|symbol| {
+            matches!(
+                symbol.kind,
+                SymbolKind::Variable
+                    | SymbolKind::Constant
+                    | SymbolKind::EnumMember
+                    | SymbolKind::Property
+            )
+        })
+        .filter_map(|symbol| Some((symbol.parent_id.clone()?, symbol.name.clone())))
+        .collect();
+    symbols.retain(|symbol| {
+        if !instance_attribute_ids.contains(&symbol.id) {
+            return true;
+        }
+        let Some(parent_id) = symbol.parent_id.clone() else {
+            return true;
+        };
+        declared.insert((parent_id, symbol.name.clone()))
+    });
 }
 
 fn same_file_constructor_class(extractor: &PythonExtractor, right: Option<Node>) -> Option<String> {
@@ -150,45 +181,52 @@ fn extract_multiple_assignment_targets(
 
     let parent_id = helpers::find_enclosing_callable_id(extractor, &left_node);
 
-    // Iterate through all identifiers in the pattern
     let mut cursor = left_node.walk();
     for child in left_node.children(&mut cursor) {
-        if child.kind() == "identifier" {
-            let name = extractor.base_mut().get_node_text(&child);
+        let (name, symbol_kind, parent_id) = match child.kind() {
+            "identifier" => {
+                let name = extractor.base_mut().get_node_text(&child);
+                let kind = if name == name.to_uppercase() && name.len() > 1 {
+                    SymbolKind::Constant
+                } else {
+                    SymbolKind::Variable
+                };
+                (name, kind, parent_id.clone())
+            }
+            "attribute" => match self_attribute_name(extractor, child) {
+                Some(name) => (
+                    name,
+                    SymbolKind::Property,
+                    helpers::find_parent_class_id(extractor, &child),
+                ),
+                None => continue,
+            },
+            _ => continue,
+        };
+        let signature = format!("{} = {}", name, value);
 
-            // Determine if it's a constant (uppercase) or variable
-            let symbol_kind = if name == name.to_uppercase() && name.len() > 1 {
-                SymbolKind::Constant
-            } else {
-                SymbolKind::Variable
-            };
+        let visibility = signatures::infer_visibility(&name);
 
-            // Build signature for this variable
-            let signature = format!("{} = {}", name, value);
+        let doc_comment = extractor.base().find_doc_comment(&child);
 
-            // Infer visibility from name
-            let visibility = signatures::infer_visibility(&name);
+        let symbol = extractor.base_mut().create_symbol(
+            &child,
+            name,
+            symbol_kind.clone(),
+            SymbolOptions {
+                signature: Some(signature),
+                visibility: Some(visibility),
+                parent_id,
+                metadata: None,
+                doc_comment,
+                annotations: Vec::new(),
+            },
+        );
 
-            // Extract doc comment (preceding comments)
-            let doc_comment = extractor.base().find_doc_comment(&child);
-
-            // Create symbol for this variable
-            let symbol = extractor.base_mut().create_symbol(
-                &child,
-                name,
-                symbol_kind,
-                SymbolOptions {
-                    signature: Some(signature),
-                    visibility: Some(visibility),
-                    parent_id: parent_id.clone(),
-                    metadata: None,
-                    doc_comment,
-                    annotations: Vec::new(),
-                },
-            );
-
-            symbols.push(symbol);
+        if symbol_kind == SymbolKind::Property {
+            extractor.instance_attribute_ids.insert(symbol.id.clone());
         }
+        symbols.push(helpers::without_body(symbol));
     }
 
     symbols

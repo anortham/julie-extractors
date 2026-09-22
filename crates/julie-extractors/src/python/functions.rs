@@ -2,7 +2,7 @@
 /// Handles regular functions, async functions, lambdas, and method detection
 use super::super::base::{Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations};
 use super::PythonExtractor;
-use super::{decorators, signatures};
+use super::{decorators, helpers, signatures, type_facts};
 use crate::test_detection::apply_callable_test_metadata;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -60,7 +60,7 @@ pub fn extract_function(extractor: &mut PythonExtractor, node: Node) -> Option<S
     );
 
     // Determine if it's a method or function based on context
-    let (symbol_kind, parent_id) =
+    let (symbol_kind, parent_id, nested_in_function) =
         determine_function_kind(extractor, &node, &name, &decorators_list);
 
     // Extract docstring
@@ -74,17 +74,20 @@ pub fn extract_function(extractor: &mut PythonExtractor, node: Node) -> Option<S
     metadata.insert("isAsync".to_string(), serde_json::json!(is_async));
     metadata.insert("returnType".to_string(), serde_json::json!(return_type));
 
-    apply_callable_test_metadata(
-        "python",
-        &name,
-        &extractor.base().file_path,
-        &symbol_kind,
-        &annotation_keys,
-        doc_comment.as_deref(),
-        &mut metadata,
-    );
+    // pytest and unittest collect only module- and class-level callables.
+    if !nested_in_function {
+        apply_callable_test_metadata(
+            "python",
+            &name,
+            &extractor.base().file_path,
+            &symbol_kind,
+            &annotation_keys,
+            doc_comment.as_deref(),
+            &mut metadata,
+        );
+    }
 
-    Some(extractor.base_mut().create_symbol(
+    let symbol = extractor.base_mut().create_symbol(
         &node,
         name,
         symbol_kind,
@@ -96,7 +99,11 @@ pub fn extract_function(extractor: &mut PythonExtractor, node: Node) -> Option<S
             doc_comment,
             annotations,
         },
-    ))
+    );
+    if let Some(return_type_node) = node.child_by_field_name("return_type") {
+        type_facts::record_annotation_fact(extractor.base_mut(), &symbol.id, return_type_node);
+    }
+    Some(symbol)
 }
 
 /// Extract an async function definition
@@ -133,6 +140,7 @@ pub(super) fn extract_lambda(extractor: &mut PythonExtractor, node: Node) -> Sym
 
     // Extract doc comment (preceding comments)
     let doc_comment = extractor.base().find_doc_comment(&node);
+    let parent_id = helpers::find_enclosing_callable_id(extractor, &node);
 
     extractor.base_mut().create_symbol(
         &node,
@@ -141,7 +149,7 @@ pub(super) fn extract_lambda(extractor: &mut PythonExtractor, node: Node) -> Sym
         SymbolOptions {
             signature: Some(signature),
             visibility: Some(Visibility::Public),
-            parent_id: None, // Lambdas are typically inline and don't have meaningful parent relationships
+            parent_id,
             metadata: None,
             doc_comment,
             annotations: Vec::new(),
@@ -149,42 +157,43 @@ pub(super) fn extract_lambda(extractor: &mut PythonExtractor, node: Node) -> Sym
     )
 }
 
-/// Determine if a function is a method or standalone function
+/// Classify a def by its nearest enclosing definition: a class body makes it a
+/// method of that class, a function body makes it a nested function of that
+/// function, and the module makes it a top-level function. The flag reports
+/// the nested-function case.
 fn determine_function_kind(
     extractor: &PythonExtractor,
     node: &Node,
     name: &str,
     decorators: &[String],
-) -> (SymbolKind, Option<String>) {
-    // Check if this function is inside a class definition
+) -> (SymbolKind, Option<String>, bool) {
     let mut current = *node;
     while let Some(parent) = current.parent() {
-        if parent.kind() == "class_definition" {
-            // This is a method inside a class
-            // Extract the class name to create parent_id
-            let class_name = match parent.child_by_field_name("name") {
-                Some(name_node) => extractor.base().get_node_text(&name_node),
-                None => continue, // Skip if class has no name
-            };
-
-            let parent_id = extractor.base().generate_id_for_node(&class_name, &parent);
-
-            // Determine method type
-            let symbol_kind = if name == "__init__" {
-                SymbolKind::Constructor
-            } else if is_property_decorator(decorators) {
-                SymbolKind::Property
-            } else {
-                SymbolKind::Method
-            };
-
-            return (symbol_kind, Some(parent_id));
-        }
         current = parent;
+        let is_class = match parent.kind() {
+            "class_definition" => true,
+            "function_definition" | "async_function_definition" => false,
+            _ => continue,
+        };
+        let Some(name_node) = parent.child_by_field_name("name") else {
+            continue;
+        };
+        let parent_name = extractor.base().get_node_text(&name_node);
+        let parent_id = Some(extractor.base().generate_id_for_node(&parent_name, &parent));
+        if !is_class {
+            return (SymbolKind::Function, parent_id, true);
+        }
+        let symbol_kind = if name == "__init__" {
+            SymbolKind::Constructor
+        } else if is_property_decorator(decorators) {
+            SymbolKind::Property
+        } else {
+            SymbolKind::Method
+        };
+        return (symbol_kind, parent_id, false);
     }
 
-    // Not inside a class, so it's a standalone function
-    (SymbolKind::Function, None)
+    (SymbolKind::Function, None, false)
 }
 
 /// Check if any decorator indicates this is a property

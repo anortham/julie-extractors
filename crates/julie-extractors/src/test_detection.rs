@@ -131,7 +131,7 @@ pub(crate) fn is_test_path(file_path: &str) -> bool {
         .rsplit(PATH_SEPARATORS)
         .next()
         .unwrap_or(file_path);
-    if file_name == "conftest.py" {
+    if file_name == "conftest.py" || file_name == "tests.py" {
         return true;
     }
     if TEST_FILE_NAME_SUFFIXES
@@ -303,19 +303,26 @@ fn python_test_lifecycle_direction(
 ) -> TestLifecycleDirection {
     if annotation_keys
         .iter()
-        .any(|annotation| annotation == "pytest.fixture")
+        .any(|annotation| is_python_fixture_annotation(annotation))
     {
         return TestLifecycleDirection::Setup;
     }
     match name {
-        "setUp" | "setUpClass" | "setUpModule" | "asyncSetUp" | "setup_method" | "setup_class"
-        | "setup_function" | "setup_module" => TestLifecycleDirection::Setup,
+        "setUp" | "setUpClass" | "setUpTestData" | "setUpModule" | "asyncSetUp"
+        | "setup_method" | "setup_class" | "setup_function" | "setup_module" => {
+            TestLifecycleDirection::Setup
+        }
         "tearDown" | "tearDownClass" | "tearDownModule" | "asyncTearDown" | "teardown_method"
         | "teardown_class" | "teardown_function" | "teardown_module" => {
             TestLifecycleDirection::Teardown
         }
         _ => TestLifecycleDirection::None,
     }
+}
+
+/// `@pytest.fixture` and the pytest-asyncio `@pytest_asyncio.fixture`.
+fn is_python_fixture_annotation(annotation: &str) -> bool {
+    matches!(annotation, "pytest.fixture" | "pytest_asyncio.fixture")
 }
 
 /// `@pytest.mark.parametrize` runs one case per argument set.
@@ -348,7 +355,7 @@ fn detect_python(name: &str, file_path: &str, annotation_keys: &[String]) -> boo
     }
     if annotation_keys
         .iter()
-        .any(|annotation| annotation == "pytest.fixture")
+        .any(|annotation| is_python_fixture_annotation(annotation))
     {
         return true;
     }
@@ -1008,13 +1015,77 @@ pub(crate) fn mark_python_test_containers(symbols: &mut [Symbol]) {
         .filter_map(|symbol| symbol.parent_id.clone())
         .collect();
 
+    let mut testcase_ids = HashSet::new();
     for symbol in symbols
         .iter_mut()
         .filter(|symbol| symbol.kind == SymbolKind::Class)
     {
-        let extends_testcase = metadata_string_list_contains(symbol, "superclasses", "TestCase");
+        let extends_testcase = extends_python_testcase(symbol);
+        if extends_testcase {
+            testcase_ids.insert(symbol.id.clone());
+        }
         if extends_testcase || containers_with_test_members.contains(&symbol.id) {
             mark_class_test_container(symbol);
+        }
+    }
+
+    apply_python_testcase_member_roles(symbols, &testcase_ids);
+}
+
+/// unittest loads every `TestCase` subclass wherever it lives. These are the
+/// standard library, Django, and DRF `TestCase` subclasses.
+const PYTHON_TESTCASE_BASES: &[&str] = &[
+    "TestCase",
+    "IsolatedAsyncioTestCase",
+    "SimpleTestCase",
+    "TransactionTestCase",
+    "LiveServerTestCase",
+    "StaticLiveServerTestCase",
+    "APITestCase",
+    "APISimpleTestCase",
+    "APITransactionTestCase",
+    "APILiveServerTestCase",
+];
+
+fn extends_python_testcase(symbol: &Symbol) -> bool {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get("superclasses"))
+        .and_then(|value| value.as_array())
+        .is_some_and(|bases| {
+            bases.iter().filter_map(|base| base.as_str()).any(|base| {
+                base.rsplit('.')
+                    .next()
+                    .is_some_and(|name| PYTHON_TESTCASE_BASES.contains(&name))
+            })
+        })
+}
+
+/// A `test*` method or a unittest lifecycle hook inside a `TestCase` subclass
+/// is collected whatever the file path, so it gets its role here even when the
+/// path guard in `detect_python` withheld it.
+fn apply_python_testcase_member_roles(symbols: &mut [Symbol], testcase_ids: &HashSet<String>) {
+    for symbol in symbols.iter_mut().filter(|symbol| {
+        matches!(
+            symbol.kind,
+            SymbolKind::Method | SymbolKind::Constructor | SymbolKind::Function
+        ) && symbol
+            .parent_id
+            .as_ref()
+            .is_some_and(|parent| testcase_ids.contains(parent))
+            && !metadata_flag(symbol, "is_test")
+    }) {
+        let role = python_test_lifecycle_direction(&symbol.name, &[])
+            .fixture_role()
+            .or_else(|| {
+                symbol
+                    .name
+                    .starts_with("test")
+                    .then_some(TestRole::TestCase)
+            });
+        if let Some(role) = role {
+            apply_test_role(symbol.metadata.get_or_insert_with(Default::default), role);
         }
     }
 }

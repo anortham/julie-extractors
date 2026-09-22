@@ -2231,7 +2231,7 @@
     "query_family": "framework"
   },
   {
-    "description": "A static Flask route decorator on a traced Flask/Blueprint receiver.",
+    "description": "A static Flask route: a route decorator or an add_url_rule call on a Flask app or Blueprint receiver that is constructed in the file or imported into a file that imports flask.",
     "languages": [
       "python"
     ],
@@ -2255,13 +2255,13 @@
         "value_type": "string"
       },
       {
-        "description": "Routing style (\"decorator_routing\").",
+        "description": "Routing style (\"decorator_routing\" or \"call_routing\" for add_url_rule).",
         "key": "api_style",
         "presence": "always",
         "value_type": "string"
       },
       {
-        "description": "Raw static route path from the decorator.",
+        "description": "Raw static route path from the decorator or add_url_rule call.",
         "key": "route_template",
         "presence": "always",
         "value_type": "string"
@@ -2299,6 +2299,12 @@
       {
         "description": "Same-file Blueprint url_prefix.",
         "key": "url_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Source text of the add_url_rule view function.",
+        "key": "view_target",
         "presence": "optional",
         "value_type": "string"
       },

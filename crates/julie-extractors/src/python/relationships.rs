@@ -78,56 +78,97 @@ fn extract_class_relationships(
     symbol_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
-    let base = extractor.base();
-
-    // Get class name from the name field
     let name_node = match node.child_by_field_name("name") {
         Some(node) => node,
         None => return,
     };
 
-    let class_name = base.get_node_text(&name_node);
+    let class_name = extractor.base().get_node_text(&name_node);
     let class_symbol = match symbol_index.first_by_name(&class_name) {
         Some(symbol) => symbol,
         None => return,
     };
 
-    // Extract inheritance relationships
-    if let Some(superclasses_node) = node.child_by_field_name("superclasses") {
-        let bases = helpers::extract_argument_list(extractor, &superclasses_node);
-
-        for base_name in bases {
-            if let Some(base_symbol) = symbol_index.first_by_name(&base_name) {
-                // Determine relationship kind: implements for interfaces/protocols, extends for classes
-                let relationship_kind = if base_symbol.kind == SymbolKind::Interface {
-                    RelationshipKind::Implements
-                } else {
-                    RelationshipKind::Extends
-                };
-
-                let relationship = Relationship {
-                    id: format!(
-                        "{}_{}_{:?}_{}",
-                        class_symbol.id,
-                        base_symbol.id,
-                        relationship_kind,
-                        node.start_position().row
-                    ),
-                    from_symbol_id: class_symbol.id.clone(),
-                    to_symbol_id: base_symbol.id.clone(),
-                    kind: relationship_kind,
-                    file_path: base.file_path.clone(),
-                    line_number: (node.start_position().row + 1) as u32,
-                    span: Some(crate::base::NormalizedSpan::from_node(&node)),
-                    reference_site_is_exact: false,
-                    confidence: 0.95,
-                    metadata: None,
-                };
-
-                relationships.push(relationship);
-            }
+    let Some(superclasses_node) = node.child_by_field_name("superclasses") else {
+        return;
+    };
+    let class_symbol_id = class_symbol.id.clone();
+    let mut cursor = superclasses_node.walk();
+    let base_nodes: Vec<Node> = superclasses_node.named_children(&mut cursor).collect();
+    for base_node in base_nodes {
+        let base_node = match base_node.kind() {
+            "identifier" | "attribute" => base_node,
+            "subscript" => match base_node.child_by_field_name("value") {
+                Some(value) => value,
+                None => continue,
+            },
+            _ => continue,
+        };
+        let base_name = extractor.base().get_node_text(&base_node);
+        let local_base = symbol_index
+            .first_by_name(&base_name)
+            .filter(|symbol| symbol.kind != SymbolKind::Import);
+        if let Some(base_symbol) = local_base {
+            let relationship_kind = if base_symbol.kind == SymbolKind::Interface {
+                RelationshipKind::Implements
+            } else {
+                RelationshipKind::Extends
+            };
+            relationships.push(Relationship {
+                id: format!(
+                    "{}_{}_{:?}_{}",
+                    class_symbol_id,
+                    base_symbol.id,
+                    relationship_kind,
+                    node.start_position().row
+                ),
+                from_symbol_id: class_symbol_id.clone(),
+                to_symbol_id: base_symbol.id.clone(),
+                kind: relationship_kind,
+                file_path: extractor.base().file_path.clone(),
+                line_number: (node.start_position().row + 1) as u32,
+                span: Some(crate::base::NormalizedSpan::from_node(&node)),
+                reference_site_is_exact: false,
+                confidence: 0.95,
+                metadata: None,
+            });
+            continue;
         }
+        let Some(mut target) = UnresolvedTarget::from_qualified_text(&base_name, &["."]) else {
+            continue;
+        };
+        target.import_context = import_binding_context(&target, symbol_index);
+        let target_token_node = base_node
+            .child_by_field_name("attribute")
+            .unwrap_or(base_node);
+        let pending = extractor.base().create_pending_relationship_at_target(
+            class_symbol_id.clone(),
+            target,
+            RelationshipKind::Extends,
+            &target_token_node,
+            Some(class_symbol_id.clone()),
+            Some(0.8),
+        );
+        extractor.add_structured_pending_relationship(pending);
     }
+}
+
+/// The local name of the import binding a target's leading segment names:
+/// `O` for `O()`, `billing` for `billing.charge()`, `models` for
+/// `models.Model`. `None` when that segment is not an import in this file.
+fn import_binding_context(
+    target: &UnresolvedTarget,
+    symbol_index: &ScopedSymbolIndex<'_>,
+) -> Option<String> {
+    let root = target
+        .namespace_path
+        .first()
+        .or(target.receiver.as_ref())
+        .unwrap_or(&target.terminal_name);
+    symbol_index
+        .first_by_name(root)
+        .filter(|symbol| symbol.kind == SymbolKind::Import)
+        .map(|_| root.clone())
 }
 
 /// Extract call relationships from a function call
@@ -140,7 +181,9 @@ fn extract_call_relationships(
 ) {
     // For a call node, extract the function/method being called
     if let Some(function_node) = node.child_by_field_name("function") {
-        let (target, receiver_type) = extract_target_from_call(extractor.base(), &function_node);
+        let (mut target, receiver_type) =
+            extract_target_from_call(extractor.base(), &function_node);
+        target.import_context = import_binding_context(&target, symbol_index);
         let called_method_name = target.terminal_name.clone();
         let target_token_node = function_node
             .child_by_field_name("attribute")

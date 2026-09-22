@@ -1,7 +1,10 @@
 /// Declared-type fact recording for receiver-typed call resolution.
-/// Records only plainly named annotations: a bare identifier, a plain dotted
-/// name, or a subscript whose base is one of those. Unions, string
-/// annotations, and inline callables record nothing.
+/// Records the one plainly named type an annotation binds: a bare identifier,
+/// a plain dotted name, or a subscript whose base is one of those. Wrappers
+/// that do not change the receiver type (`Optional[X]`, `X | None`,
+/// `Annotated[X, ...]`, `ClassVar[X]`, `Final[X]`, `Mapped[X]`) and string
+/// forward references (`"X"`) unwrap to `X`. Other unions and inline
+/// callables record nothing.
 use crate::base::BaseExtractor;
 use crate::base::types::TypeNameRules;
 use tree_sitter::Node;
@@ -12,10 +15,19 @@ pub(super) const PYTHON_TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
     generic_open: &['['],
 };
 
+const TRANSPARENT_WRAPPERS: &[&str] = &["Optional", "Annotated", "ClassVar", "Final", "Mapped"];
+
 /// Record a syntactically stated annotation for a symbol (`is_inferred=false`).
 pub(super) fn record_annotation_fact(base: &mut BaseExtractor, symbol_id: &str, type_node: Node) {
-    if let Some(declared) = plainly_named_annotation(base, type_node) {
-        base.record_declared_type_fact(symbol_id, &declared, &PYTHON_TYPE_NAME_RULES, false);
+    if let Some(named) = plainly_named_annotation(base, type_node) {
+        let declared = base.get_node_text(&type_node);
+        base.record_declared_type_fact_with_declared(
+            symbol_id,
+            &named,
+            &declared,
+            &PYTHON_TYPE_NAME_RULES,
+            false,
+        );
     }
 }
 
@@ -28,15 +40,109 @@ pub(super) fn record_constructor_fact(base: &mut BaseExtractor, symbol_id: &str,
 fn plainly_named_annotation(base: &BaseExtractor, node: Node) -> Option<String> {
     match node.kind() {
         "type" => plainly_named_annotation(base, node.named_child(0)?),
-        "identifier" => Some(base.get_node_text(&node)),
+        "identifier" | "none" => Some(base.get_node_text(&node)),
         "attribute" | "member_type" => is_plain_name(node).then(|| base.get_node_text(&node)),
-        "generic_type" => Some(base.get_node_text(&node)),
+        "string" => forward_reference(base, node),
+        "generic_type" => {
+            let mut cursor = node.walk();
+            let head = node.named_children(&mut cursor).next()?;
+            let arguments = type_arguments(node);
+            unwrap_wrapper(base, head, &arguments).or_else(|| Some(base.get_node_text(&node)))
+        }
         "subscript" => {
             let value = node.child_by_field_name("value")?;
-            is_plain_name(value).then(|| base.get_node_text(&node))
+            if !is_plain_name(value) {
+                return None;
+            }
+            let mut cursor = node.walk();
+            let arguments: Vec<Node> = node
+                .children_by_field_name("subscript", &mut cursor)
+                .collect();
+            unwrap_wrapper(base, value, &arguments).or_else(|| Some(base.get_node_text(&node)))
+        }
+        "binary_operator" | "union_type" => {
+            let mut members = Vec::new();
+            collect_union_members(node, &mut members);
+            let mut non_none = members.into_iter().filter(|member| !is_none(*member));
+            let only = non_none.next()?;
+            non_none
+                .next()
+                .is_none()
+                .then(|| plainly_named_annotation(base, only))?
         }
         _ => None,
     }
+}
+
+fn type_arguments(generic: Node) -> Vec<Node> {
+    let mut cursor = generic.walk();
+    generic
+        .named_children(&mut cursor)
+        .find(|child| child.kind() == "type_parameter")
+        .map(|parameters| {
+            let mut inner = parameters.walk();
+            parameters.named_children(&mut inner).collect()
+        })
+        .unwrap_or_default()
+}
+
+fn unwrap_wrapper(base: &BaseExtractor, head: Node, arguments: &[Node]) -> Option<String> {
+    let head_text = base.get_node_text(&head);
+    let wrapper = head_text.rsplit('.').next().unwrap_or(&head_text);
+    if wrapper == "Union" {
+        let mut non_none = arguments.iter().filter(|argument| !is_none(**argument));
+        let only = non_none.next()?;
+        return non_none
+            .next()
+            .is_none()
+            .then(|| plainly_named_annotation(base, *only))?;
+    }
+    if !TRANSPARENT_WRAPPERS.contains(&wrapper) {
+        return None;
+    }
+    plainly_named_annotation(base, *arguments.first()?)
+}
+
+fn collect_union_members<'a>(node: Node<'a>, members: &mut Vec<Node<'a>>) {
+    let is_pipe = node
+        .child_by_field_name("operator")
+        .is_none_or(|operator| operator.kind() == "|");
+    if matches!(node.kind(), "binary_operator" | "union_type") && is_pipe {
+        let mut cursor = node.walk();
+        for child in node.named_children(&mut cursor) {
+            collect_union_members(child, members);
+        }
+    } else if node.kind() == "type" && node.named_child_count() == 1 {
+        collect_union_members(node.named_child(0).unwrap_or(node), members);
+    } else {
+        members.push(node);
+    }
+}
+
+fn is_none(node: Node) -> bool {
+    match node.kind() {
+        "none" => true,
+        "type" => node.named_child(0).is_some_and(is_none),
+        _ => false,
+    }
+}
+
+fn forward_reference(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut cursor = node.walk();
+    let content = node
+        .named_children(&mut cursor)
+        .find(|child| child.kind() == "string_content")?;
+    let text = base.get_node_text(&content);
+    let text = text.trim();
+    let is_dotted_name = !text.is_empty()
+        && text.split('.').all(|segment| {
+            segment
+                .chars()
+                .next()
+                .is_some_and(|c| c.is_alphabetic() || c == '_')
+                && segment.chars().all(|c| c.is_alphanumeric() || c == '_')
+        });
+    is_dotted_name.then(|| text.to_string())
 }
 
 fn is_plain_name(node: Node) -> bool {
