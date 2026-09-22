@@ -118,7 +118,11 @@ fn record_type_node(base: &mut BaseExtractor, symbol_id: &str, type_node: Node, 
     );
 }
 
-fn base_type_name_node(node: Node) -> Option<Node> {
+/// Reduce a type-position node to the node naming its base type: the last
+/// segment of a qualified name (`std.mem.Allocator` -> `Allocator`), the
+/// constructor of a generic application (`std.ArrayList(u8)` -> `ArrayList`),
+/// with pointer, optional, slice, and error-union wrappers dropped.
+pub(super) fn base_type_name_node(node: Node) -> Option<Node> {
     let mut node = node;
     loop {
         match node.kind() {
@@ -126,15 +130,20 @@ fn base_type_name_node(node: Node) -> Option<Node> {
             "pointer_type" | "nullable_type" | "slice_type" => {
                 node = inner_type_child(node)?;
             }
+            "error_union_type" => {
+                node = node.child_by_field_name("ok")?;
+            }
             "parenthesized_expression" => {
                 node = node.named_child(0)?;
             }
+            "field_expression" => return node.child_by_field_name("member"),
             "call_expression" => {
                 let function = node.child_by_field_name("function")?;
-                if function.kind() == "identifier" {
-                    return Some(function);
-                }
-                return None;
+                return match function.kind() {
+                    "identifier" => Some(function),
+                    "field_expression" => function.child_by_field_name("member"),
+                    _ => None,
+                };
             }
             _ => return None,
         }

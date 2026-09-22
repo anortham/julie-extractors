@@ -811,6 +811,7 @@
         "identifiers": {
           "supported": [
             "call",
+            "member_access",
             "type_usage",
             "variable_ref"
           ],

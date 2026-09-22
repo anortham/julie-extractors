@@ -26,8 +26,11 @@ pub(super) fn extract_variable(
     parent_id: Option<&String>,
     is_public_fn: fn(&BaseExtractor, Node) -> bool,
 ) -> Option<Symbol> {
-    let node_text = base.get_node_text(&node);
     let is_const = type_facts::has_keyword(node, "const");
+    if !is_const && !type_facts::has_keyword(node, "var") {
+        return None;
+    }
+    let node_text = base.get_node_text(&node);
     let is_public = is_public_fn(base, node);
 
     // Check for @import, Zig's module import mechanism.
@@ -323,6 +326,37 @@ fn extract_function_type_assignment(
             annotations: Vec::new(),
         },
     ))
+}
+
+/// The names after the first in a destructuring declaration
+/// (`const q, const r = .{ .. };` declares `r` too).
+pub(super) fn extract_destructured_names(
+    base: &mut BaseExtractor,
+    node: Node,
+    parent_id: Option<&String>,
+    is_public_fn: fn(&BaseExtractor, Node) -> bool,
+) -> Vec<Symbol> {
+    if node.kind() != "variable_declaration" {
+        return Vec::new();
+    }
+    let is_public = is_public_fn(base, node);
+    let mut cursor = node.walk();
+    let declared: Vec<(Node, bool)> = node
+        .children(&mut cursor)
+        .filter(|child| child.kind() == "identifier")
+        .filter_map(|name| {
+            let keyword = name.prev_sibling()?;
+            matches!(keyword.kind(), "const" | "var").then(|| (name, keyword.kind() == "const"))
+        })
+        .collect();
+    declared
+        .into_iter()
+        .skip(1)
+        .filter_map(|(name_node, is_const)| {
+            let name = base.get_node_text(&name_node);
+            extract_standard_variable(base, node, name, parent_id, is_public, is_const)
+        })
+        .collect()
 }
 
 fn extract_standard_variable(

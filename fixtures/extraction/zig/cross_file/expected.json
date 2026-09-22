@@ -1,37 +1,6 @@
 {
   "symbols": [
     {
-      "key": "fixtures/extraction/zig/cross_file/source.zig:_:17:4",
-      "name": "_",
-      "kind": "variable",
-      "language": "zig",
-      "file_path": "fixtures/extraction/zig/cross_file/source.zig",
-      "start_line": 17,
-      "start_column": 4,
-      "end_line": 17,
-      "end_column": 17,
-      "start_byte": 459,
-      "end_byte": 472,
-      "body_span": {
-        "start_line": 17,
-        "start_column": 14,
-        "end_line": 17,
-        "end_column": 16,
-        "start_byte": 469,
-        "end_byte": 471
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "var _: inferred",
-      "doc_comment": null,
-      "visibility": "Private",
-      "parent_key": "fixtures/extraction/zig/cross_file/source.zig:entry:12:0",
-      "metadata": {},
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/zig/cross_file/source.zig:entry:12:0",
       "name": "entry",
       "kind": "function",
@@ -314,7 +283,26 @@
       "confidence": "1.000"
     }
   ],
-  "types": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/zig/cross_file/source.zig:entry:12:0",
+      "resolved_type": "i32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "zig",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/zig/cross_file/source.zig:local_helper:8:0",
+      "resolved_type": "i32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "zig",
+      "metadata": null
+    }
+  ],
   "parse_diagnostics": [],
   "structural_facts": [
     {
