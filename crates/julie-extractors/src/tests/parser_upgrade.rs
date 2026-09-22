@@ -1,4 +1,4 @@
-use crate::pipeline::detect_language_for_path;
+use crate::language_spec::detect_language_for_source;
 use crate::registry::supported_languages;
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
@@ -57,12 +57,22 @@ fn parser_upgrade_gate_covers_full_language_inventory() {
                 row.language,
                 fixture.expected
             );
-            let detected = detect_language_for_path(&fixture.source).unwrap_or_else(|err| {
+            let source_path = root.join(&fixture.source);
+            let source = fs::read_to_string(&source_path).unwrap_or_else(|err| {
                 panic!(
-                    "{} fixture should route through language detection: {}",
-                    row.language, err
+                    "{} fixture source is unreadable: {}: {}",
+                    row.language,
+                    source_path.display(),
+                    err
                 )
             });
+            let detected =
+                detect_language_for_source(&fixture.source, &source).unwrap_or_else(|| {
+                    panic!(
+                        "{} fixture should route through language detection: {}",
+                        row.language, fixture.source
+                    )
+                });
             assert_eq!(
                 detected, row.language,
                 "{} fixture must exercise its own parser entry",
