@@ -40,6 +40,16 @@ const MEMBER_PREFIX_MACROS: &[&str] = &[
     "Q_SLOT",
 ];
 
+const RUNTIME_MACROS: &[&str] = &[
+    "Q_ASSERT",
+    "Q_ASSERT_X",
+    "Q_CHECK_PTR",
+    "Q_ASSUME",
+    "Q_LIKELY",
+    "Q_UNLIKELY",
+    "Q_UNREACHABLE",
+];
+
 /// Vendor macros outside the Qt vocabulary are rewritten only by name, because a
 /// line-leading all-caps identifier is also how Catch2 and gtest declare a test.
 const VENDOR_STATEMENT_MACROS: &[&str] = &[
@@ -89,6 +99,18 @@ pub(crate) fn blank_macros(content: &str) -> Option<String> {
 
     let mut bytes = content.as_bytes().to_vec();
     for site in &sites {
+        if site.name == "Q_UNUSED" && site.arguments.is_some() {
+            let name_end = site.start_byte + site.name.len();
+            let open = argument_list_start(content.as_bytes(), name_end)
+                .expect("Q_UNUSED site has an argument list");
+            for byte in &mut bytes[site.start_byte..=open] {
+                if *byte != b'\n' && *byte != b'\r' {
+                    *byte = b' ';
+                }
+            }
+            bytes[site.end_byte - 1] = b';';
+            continue;
+        }
         for byte in &mut bytes[site.start_byte..site.end_byte] {
             if *byte != b'\n' && *byte != b'\r' {
                 *byte = b' ';
@@ -108,6 +130,9 @@ pub(crate) fn scan(content: &str) -> Vec<MacroSite> {
     let mut sites = Vec::new();
     let mut cursor = 0;
     let mut consumed = 0;
+    let mut brace_depth = 0usize;
+    let mut class_brace_depths = Vec::new();
+    let mut class_pending = false;
 
     while cursor < bytes.len() {
         match bytes[cursor] {
@@ -122,14 +147,55 @@ pub(crate) fn scan(content: &str) -> Vec<MacroSite> {
             b'"' | b'\'' => {
                 cursor = end_of_literal_token(bytes, cursor).unwrap_or(cursor + 1);
             }
-            b'#' if line_prefix(content, consumed, cursor).is_empty() => {
+            byte if byte.is_ascii_digit() => cursor = end_of_numeric_literal(bytes, cursor),
+            b'{' => {
+                brace_depth += 1;
+                if class_pending {
+                    class_brace_depths.push(brace_depth);
+                }
+                class_pending = false;
+                cursor += 1;
+            }
+            b'}' => {
+                if class_brace_depths.last() == Some(&brace_depth) {
+                    class_brace_depths.pop();
+                }
+                brace_depth = brace_depth.saturating_sub(1);
+                cursor += 1;
+            }
+            b';' => {
+                class_pending = false;
+                cursor += 1;
+            }
+            b'#' if line_prefix(
+                content,
+                line_starts[line_of(&line_starts, cursor) - 1],
+                consumed,
+                cursor,
+            )
+            .is_empty() =>
+            {
                 cursor = end_of_logical_line(bytes, cursor);
             }
             byte if is_identifier_start(byte) => {
-                let (next, site) = identifier(content, bytes, &line_starts, consumed, cursor);
+                let line = line_of(&line_starts, cursor);
+                let prefix = line_prefix(content, line_starts[line - 1], consumed, cursor);
+                let (next, site) = identifier(
+                    content,
+                    bytes,
+                    &line_starts,
+                    consumed,
+                    cursor,
+                    class_brace_depths.last() == Some(&brace_depth),
+                );
                 if let Some(site) = site {
                     consumed = site.end_byte;
                     sites.push(site);
+                }
+                if class_body_can_follow(prefix)
+                    && matches!(&content[cursor..next], "class" | "struct" | "union")
+                {
+                    class_pending = true;
                 }
                 cursor = next;
             }
@@ -155,6 +221,7 @@ fn identifier(
     line_starts: &[usize],
     consumed: usize,
     start: usize,
+    inside_class_member: bool,
 ) -> (usize, Option<MacroSite>) {
     if let Some(after_literal) = end_of_literal_token(bytes, start) {
         return (after_literal, None);
@@ -163,7 +230,8 @@ fn identifier(
     let end = end_of_identifier(bytes, start);
     let word = &content[start..end];
 
-    let prefix = line_prefix(content, consumed, start);
+    let line = line_of(line_starts, start);
+    let prefix = line_prefix(content, line_starts[line - 1], consumed, start);
     let site = |kind, name: &str, arguments, end_byte| {
         Some(MacroSite {
             kind,
@@ -171,11 +239,14 @@ fn identifier(
             arguments,
             start_byte: start,
             end_byte,
-            line: line_of(line_starts, start),
+            line,
         })
     };
 
     if let Some(section) = section_name(word) {
+        if matches!(word, "signals" | "slots") && !inside_class_member {
+            return (end, None);
+        }
         let access = match prefix {
             "" => None,
             "public" | "private" | "protected" => Some(prefix.to_string()),
@@ -194,6 +265,19 @@ fn identifier(
     if is_declaration_attribute_macro(word) {
         let (end_byte, arguments, kind) = macro_extent(content, bytes, end);
         return (end_byte, site(kind, word, arguments, end_byte));
+    }
+
+    if word == "Q_UNUSED" {
+        let (end_byte, arguments, kind) = macro_extent(content, bytes, end);
+        return (end_byte, site(kind, word, arguments, end_byte));
+    }
+
+    if word == "Q_NULLPTR" {
+        return (end, None);
+    }
+
+    if RUNTIME_MACROS.contains(&word) {
+        return (end, None);
     }
 
     if is_specifier_prefix(prefix) && is_qt_macro_name(word) {
@@ -259,13 +343,10 @@ fn is_qt_macro_name(word: &str) -> bool {
 }
 
 /// `Q_DECL_*` expands to a keyword, an attribute, `= default`, `= delete` or
-/// nothing, so it is blanked wherever it stands; `Q_DECL_EXPORT` and
-/// `Q_DECL_IMPORT` keep the export handling instead.
+/// nothing, so it is blanked wherever it stands.
 fn is_declaration_attribute_macro(word: &str) -> bool {
-    !matches!(word, "Q_DECL_EXPORT" | "Q_DECL_IMPORT")
-        && word
-            .strip_prefix("Q_DECL_")
-            .is_some_and(|rest| !rest.is_empty() && rest.bytes().all(is_macro_body_byte))
+    word.strip_prefix("Q_DECL_")
+        .is_some_and(|rest| !rest.is_empty() && rest.bytes().all(is_macro_body_byte))
 }
 
 fn is_deprecation_macro_name(word: &str) -> bool {
@@ -291,9 +372,6 @@ fn is_declaration_prefix(prefix: &str) -> bool {
 }
 
 fn is_export_macro_name(word: &str) -> bool {
-    if matches!(word, "Q_DECL_EXPORT" | "Q_DECL_IMPORT") {
-        return true;
-    }
     let Some(head) = word.strip_suffix("_EXPORT") else {
         return false;
     };
@@ -365,6 +443,7 @@ fn matching_paren(bytes: &[u8], open: usize) -> Option<usize> {
             b'/' if bytes.get(cursor + 1) == Some(&b'*') => {
                 cursor = end_of_block_comment(bytes, cursor + 2);
             }
+            byte if byte.is_ascii_digit() => cursor = end_of_numeric_literal(bytes, cursor),
             byte if byte == b'"' || byte == b'\'' || is_identifier_start(byte) => {
                 cursor = end_of_literal_token(bytes, cursor)
                     .unwrap_or_else(|| end_of_identifier(bytes, cursor).max(cursor + 1));
@@ -409,13 +488,14 @@ fn precedes_identifier(bytes: &[u8], from: usize) -> bool {
 /// The text before `index` on its line that the scan has not consumed yet. A
 /// blanked macro site and a comment count as blanks, so any run of specifiers
 /// and recognized macros is still a declaration prefix.
-fn line_prefix(content: &str, consumed: usize, index: usize) -> &str {
-    let bytes = content.as_bytes();
-    let line_start = bytes[..index]
-        .iter()
-        .rposition(|byte| *byte == b'\n')
-        .map_or(0, |at| at + 1);
+fn line_prefix(content: &str, line_start: usize, consumed: usize, index: usize) -> &str {
     content[line_start.max(consumed.min(index))..index].trim()
+}
+
+fn class_body_can_follow(prefix: &str) -> bool {
+    prefix.is_empty()
+        || matches!(prefix.as_bytes().last(), Some(b'{' | b'}' | b';' | b'>'))
+        || matches!(prefix, "export" | "typedef")
 }
 
 fn skip_blanks(bytes: &[u8], from: usize) -> usize {
@@ -549,4 +629,15 @@ fn is_identifier_start(byte: u8) -> bool {
 
 fn is_identifier_byte(byte: u8) -> bool {
     byte.is_ascii_alphanumeric() || byte == b'_'
+}
+
+fn end_of_numeric_literal(bytes: &[u8], from: usize) -> usize {
+    let mut cursor = from;
+    while bytes
+        .get(cursor)
+        .is_some_and(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'\'' | b'.'))
+    {
+        cursor += 1;
+    }
+    cursor
 }

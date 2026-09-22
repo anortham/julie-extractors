@@ -97,6 +97,22 @@ fn a_member_property_records_member_constant_and_final() {
 }
 
 #[test]
+fn a_property_records_its_design_time_attributes() {
+    let source = in_class(
+        "    Q_PROPERTY(int index READ index DESIGNABLE isIndexDesignable SCRIPTABLE false STORED isIndexStored USER true REVISION(2, 1))\n",
+    );
+
+    let results = extract(&source);
+    let property = symbol(&results, "index");
+
+    assert_eq!(text(property, "designable"), "isIndexDesignable");
+    assert_eq!(text(property, "scriptable"), "false");
+    assert_eq!(text(property, "stored"), "isIndexStored");
+    assert_eq!(text(property, "user"), "true");
+    assert_eq!(text(property, "revision"), "(2, 1)");
+}
+
+#[test]
 fn a_pointer_typed_property_keeps_the_pointer_in_its_type() {
     let source = in_class("    Q_PROPERTY(QQuickItem *view READ view NOTIFY viewChanged FINAL)\n");
 

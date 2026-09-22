@@ -184,7 +184,7 @@ fn scan(content: &str) -> Vec<Located> {
             directive,
             text: directive_text.to_string(),
             start_byte: line_start + cursor,
-            end_byte: line_start + cursor + line_rest.len(),
+            end_byte: line_start + cursor + directive_text.len(),
         });
     }
 

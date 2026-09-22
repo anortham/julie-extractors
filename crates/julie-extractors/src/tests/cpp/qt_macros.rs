@@ -1,6 +1,6 @@
 //! Qt's C++ macros are blanked to same-length spaces before the grammar sees them.
 
-use crate::base::{ExtractionLevel, ExtractionResults, SymbolKind};
+use crate::base::{ExtractionLevel, ExtractionResults, IdentifierKind, SymbolKind};
 use crate::cpp::qt_macros::{MacroKind, blank_macros, scan};
 use crate::pipeline::extract_canonical_at;
 use std::path::Path;
@@ -133,6 +133,67 @@ fn a_bare_lowercase_signals_label_becomes_a_padded_public_label() {
 }
 
 #[test]
+fn ordinary_function_labels_are_not_rewritten_as_qt_sections() {
+    let source = "void f()\n{\nsignals:\n    goto slots;\nslots:\n    return;\n}\n";
+
+    assert!(scan(source).is_empty());
+    assert!(blank_macros(source).is_none());
+    assert!(!raw_cpp_parse_has_errors(source));
+    let results = extract_canonical_at(
+        "src/labels.cpp",
+        source,
+        Path::new("/repo"),
+        ExtractionLevel::Full,
+    )
+    .expect("ordinary C++ labels should extract");
+    assert!(results.parse_diagnostics.is_empty());
+}
+
+#[test]
+fn lowercase_labels_in_methods_stay_ordinary_but_class_sections_are_rewritten() {
+    let source = "class Foo {\n    void f()\n    {\n    signals:\n        goto slots;\n    slots:\n        return;\n    }\nsignals:\n    void changed();\n};\n";
+
+    assert_eq!(
+        scan(source)
+            .iter()
+            .map(|site| site.name.as_str())
+            .collect::<Vec<_>>(),
+        ["signals"]
+    );
+}
+
+#[test]
+fn lower_case_sections_work_after_template_and_namespace_class_headers() {
+    let source = "namespace N { class Foo {\nsignals:\n    void changed();\n}; }\ntemplate<class T> class Bar {\nsignals:\n    void changed();\n};\n";
+
+    assert_eq!(
+        scan(source)
+            .iter()
+            .map(|site| site.name.as_str())
+            .collect::<Vec<_>>(),
+        ["signals", "signals"]
+    );
+}
+
+#[test]
+fn lower_case_sections_work_after_standard_class_declaration_prefixes() {
+    for header in [
+        "class Forward; class Widget {",
+        "export class Widget {",
+        "typedef class Widget {",
+    ] {
+        let source = format!("{header}\nsignals:\n    void changed();\n}};\n");
+        assert_eq!(
+            scan(&source)
+                .iter()
+                .map(|site| site.name.as_str())
+                .collect::<Vec<_>>(),
+            ["signals"]
+        );
+    }
+}
+
+#[test]
 fn a_bare_slots_label_becomes_spaces() {
     let source = "class Foo\n{\npublic:\nQ_SLOTS:\n    void run();\n};\n";
 
@@ -237,6 +298,22 @@ fn literals_comments_and_preprocessor_lines_are_untouched() {
     );
     assert_eq!(sites.len(), 1);
     assert_eq!(sites[0].name, "Q_GADGET");
+}
+
+#[test]
+fn character_literals_and_digit_separators_do_not_hide_later_macros() {
+    let source = "void f(int n) { switch (n) { case'a': break; } }\nclass Foo {\n    Q_CLASSINFO(\"n\", 1'000)\n    Q_OBJECT\n};\n";
+
+    let sites = scan(source);
+
+    assert_eq!(
+        sites
+            .iter()
+            .map(|site| site.name.as_str())
+            .collect::<Vec<_>>(),
+        ["Q_CLASSINFO", "Q_OBJECT"]
+    );
+    assert_eq!(sites[0].arguments.as_deref(), Some("\"n\", 1'000"));
 }
 
 #[test]
@@ -517,6 +594,121 @@ fn a_qt_prefixed_statement_macro_becomes_spaces() {
 }
 
 #[test]
+fn runtime_qt_expression_macros_keep_nested_calls() {
+    let source = "void helper();\nvoid run()\n{\n    Q_ASSERT(helper());\n}\n";
+
+    assert!(scan(source).is_empty());
+    let results = extract_canonical_at(
+        "src/layouts/columnview.cpp",
+        source,
+        Path::new("/repo"),
+        ExtractionLevel::Full,
+    )
+    .expect("a Qt expression macro should extract");
+
+    assert!(results.identifiers.iter().any(|identifier| {
+        identifier.name == "helper"
+            && identifier.kind == IdentifierKind::Call
+            && identifier.start_line == 4
+            && identifier.start_column == 13
+    }));
+}
+
+#[test]
+fn q_unused_without_a_semicolon_keeps_nested_calls() {
+    let source = "void helper();\nvoid run()\n{\n    Q_UNUSED(helper())\n}\n";
+
+    let results = extract_canonical_at(
+        "src/layouts/columnview.cpp",
+        source,
+        Path::new("/repo"),
+        ExtractionLevel::Full,
+    )
+    .expect("Q_UNUSED should extract");
+
+    assert!(results.parse_diagnostics.is_empty());
+    assert!(results.identifiers.iter().any(|identifier| {
+        identifier.name == "helper"
+            && identifier.kind == IdentifierKind::Call
+            && identifier.start_line == 4
+            && identifier.start_column == 13
+    }));
+}
+
+#[test]
+fn qt_declaration_macros_parse_typed_forms() {
+    let source = "class FooPrivate {};\nclass Foo {\n    void run()\n    {\n        Q_D(const Foo);\n        Q_Q(const Foo);\n        Q_FOREACH(const FooPrivate &item, items()) {}\n    }\n};\n";
+
+    let results = extract_canonical_at(
+        "src/declarations.cpp",
+        source,
+        Path::new("/repo"),
+        ExtractionLevel::Full,
+    )
+    .expect("Qt declaration macros should extract");
+
+    assert!(results.parse_diagnostics.is_empty());
+}
+
+#[test]
+fn declaration_macro_families_remain_supported() {
+    let source = "class Foo {\n    Q_DISABLE_COPY_MOVE(Foo)\n    Q_DECLARE_PRIVATE(Foo)\n    Q_DECLARE_PUBLIC(Foo)\n    QML_FOREIGN(Foo)\n    QML_EXTENDED(Base)\n    QML_ADDED_IN_VERSION(1, 2)\n};\n";
+
+    assert_eq!(
+        scan(source)
+            .into_iter()
+            .map(|site| site.name)
+            .collect::<Vec<_>>(),
+        [
+            "Q_DISABLE_COPY_MOVE",
+            "Q_DECLARE_PRIVATE",
+            "Q_DECLARE_PUBLIC",
+            "QML_FOREIGN",
+            "QML_EXTENDED",
+            "QML_ADDED_IN_VERSION",
+        ]
+    );
+}
+
+#[test]
+fn released_declaration_macros_remain_supported() {
+    let source = "Q_ALWAYS_INLINE void fast();\nQ_NODISCARD_CTOR explicit Foo();\nQ_IMPLICIT Foo(int);\nQ_REVISION(2, 1) void revised();\nQ_ENUMS(Mode)\nQ_PRIVATE_SLOT(d, void changed())\nQ_OBJECT_BINDABLE_PROPERTY(Foo, int, value)\nQ_MOC_INCLUDE(\"private.h\")\nQT_WARNING_PUSH\nQT_WARNING_DISABLE_CLANG(\"-Wfoo\")\nQT_FORWARD_DECLARE_CLASS(Forward)\nQT_REQUIRE_CONFIG(feature)\nQ_LOGGING_CATEGORY(category, \"app\")\nQ_GLOBAL_STATIC_WITH_ARGS(Foo, instance, ())\n";
+
+    assert_eq!(
+        scan(source)
+            .iter()
+            .map(|site| site.name.as_str())
+            .collect::<Vec<_>>(),
+        [
+            "Q_ALWAYS_INLINE",
+            "Q_NODISCARD_CTOR",
+            "Q_IMPLICIT",
+            "Q_REVISION",
+            "Q_ENUMS",
+            "Q_PRIVATE_SLOT",
+            "Q_OBJECT_BINDABLE_PROPERTY",
+            "Q_MOC_INCLUDE",
+            "QT_WARNING_PUSH",
+            "QT_WARNING_DISABLE_CLANG",
+            "QT_FORWARD_DECLARE_CLASS",
+            "QT_REQUIRE_CONFIG",
+            "Q_LOGGING_CATEGORY",
+            "Q_GLOBAL_STATIC_WITH_ARGS",
+        ]
+    );
+}
+
+#[test]
+fn long_ordinary_line_does_not_hide_the_next_qt_macro() {
+    let source = format!("{}\nQ_OBJECT\n", "ordinary ".repeat(10_000));
+
+    let blanked = blank_macros(&source).expect("Q_OBJECT should be blanked");
+
+    assert_eq!(scan(&source).len(), 1);
+    assert_eq!(blanked.len(), source.len());
+}
+
+#[test]
 fn a_deprecated_vendor_macro_and_its_arguments_become_spaces() {
     let source =
         "class Foo\n{\n    KIRIGAMIPLATFORM_DEPRECATED_VERSION(5, 80, \"use y\") void old();\n};\n";
@@ -600,16 +792,27 @@ public:
 
 #[test]
 fn a_line_leading_macro_call_in_an_initializer_list_is_untouched() {
-    let blanked = blank_macros(INITIALIZER_PROBE).expect("Q_NULLPTR should be blanked");
+    let blanked = blank_macros(INITIALIZER_PROBE);
     let sites = scan(INITIALIZER_PROBE);
 
-    assert!(blanked.contains("QT_TR_NOOP(\"One\"),"), "{blanked}");
-    assert!(
-        blanked.contains("QT_TRANSLATE_NOOP(\"Ctx\", \"Two\"),"),
-        "{blanked}"
-    );
-    assert_eq!(sites.len(), 1);
-    assert_eq!(sites[0].name, "Q_NULLPTR");
+    assert!(blanked.is_none());
+    assert!(!sites.iter().any(|site| site.name == "Q_NULLPTR"));
+}
+
+#[test]
+fn q_nullptr_stays_in_ordinary_expression_operands() {
+    let source = "struct QObject {};\nstruct Foo { Foo(QObject *parent = Q_NULLPTR); };\nvoid f(QObject *value) { value = Q_NULLPTR; if (value != Q_NULLPTR) {} }\n";
+
+    let results = extract_canonical_at(
+        "src/null.cpp",
+        source,
+        Path::new("/repo"),
+        ExtractionLevel::Full,
+    )
+    .expect("Q_NULLPTR source should extract");
+
+    assert!(blank_macros(source).is_none());
+    assert!(results.parse_diagnostics.is_empty());
 }
 
 #[test]

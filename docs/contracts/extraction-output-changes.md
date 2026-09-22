@@ -88,6 +88,46 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 3.3.1
+
+classification: compatible
+
+This unreleased review patch corrects Qt/QML extraction rows without adding,
+removing, or changing the type of a SQLite or report-schema column. SQLite
+schema remains 7, report schema remains 3, and extraction identity epoch remains
+10. `EXTRACTION_CONTRACT_VERSION` adds `qt-reference-corrections-v1` because canonical
+output changes. Consumers must rebuild artifacts after replacing the binary.
+
+`qml` rows change at inline-component scope boundaries. Calls and pending calls
+now use the owning same-line inline component, respect local and parameter
+shadowing, and keep inaccessible known targets as structured pending edges. The
+same applies to handler calls. Nested-object `parent` and `this` binding `uses`
+relationships now target the exact object row rather than a containing component,
+and same-line inline-component `extends` relationships use byte-exact ownership.
+Consumers must rebuild to replace previously mis-owned or falsely resolved
+relationship rows.
+
+`cpp.qt_property.v1` structural-fact metadata and the corresponding `property`
+symbol metadata can now carry optional string keys `designable`, `scriptable`,
+`stored`, `user`, and `revision`. These are additive metadata keys registered in
+`structural-fact-patterns.json`; existing readers continue to parse the rows.
+
+`javascript` QML-directive import symbols and pragma facts now end at directive
+text rather than including a trailing line comment, so their source spans and
+location-derived ids change for that input. C++ Qt preprocessing preserves
+runtime calls for `Q_ASSERT`, `Q_ASSERT_X`, `Q_CHECK_PTR`, `Q_ASSUME`,
+`Q_LIKELY`, `Q_UNLIKELY`, `Q_UNREACHABLE`, and `Q_UNUSED`; preserves `Q_NULLPTR`
+unmodified in ordinary expressions; leaves ordinary `signals:` and `slots:`
+labels outside a class body untouched; restores declaration-context macro
+preprocessing; and parses numeric digit separators without hiding later macros.
+Typed `Q_D`, `Q_Q`, and `Q_FOREACH` remain declaration-preprocessed. This does
+not expand Qt macros or publish new typed-loop facts. Consumers must rebuild to
+remove the old parse diagnostics and restore the corrected symbols, identifiers,
+and facts.
+
+Consumer action: replace the binary and rebuild every affected artifact. No
+schema migration is required.
+
 ## 3.3.0
 
 classification: compatible

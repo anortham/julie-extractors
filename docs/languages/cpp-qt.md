@@ -115,6 +115,11 @@ so a multi-line macro reads as one line.
 | `member` | string | the `MEMBER` field |
 | `reset` | string | the `RESET` method |
 | `bindable` | string | the `BINDABLE` accessor |
+| `designable` | string | the `DESIGNABLE` value or predicate |
+| `scriptable` | string | the `SCRIPTABLE` value or predicate |
+| `stored` | string | the `STORED` value or predicate |
+| `user` | string | the `USER` value or predicate |
+| `revision` | string | the `REVISION` number or tuple |
 | `constant` | bool | `CONSTANT` is present |
 | `final` | bool | `FINAL` is present |
 | `required` | bool | `REQUIRED` is present |
@@ -186,16 +191,16 @@ never parsed before, and they apply to every C++ file.
 
 - `Q_DECLARE_FLAGS(Modes, Mode)` and a `Q_OBJECT_BINDABLE_PROPERTY(...)` member are
   statement macros. They are blanked, so the typedef and the member emit nothing.
-- A section label is recognized by name and a single colon. A goto label named
-  `signals` or `slots` inside a function body would be rewritten the same way.
+- Lowercase `signals:` and `slots:` are recognized only at class-member depth, so
+  ordinary function labels retain their C++ meaning.
 - A lowercase `emit` at the start of a line, followed by an identifier, is blanked.
   A variable named `emit` in that position would be blanked too.
 - A macro used mid-line, such as `Q_ARG(bool, true)`, is untouched by design.
-- A `Q_*` identifier alone on its line inside an initializer list, such as
-  `Q_NULLPTR` as the last element, is a terminal line, so the `Statement` rule
-  blanks it. The list still parses through its trailing comma and no symbol is
-  affected. Telling `Q_NULLPTR` from `Q_OBJECT` needs the enclosing context, which
-  a token scanner does not have.
+- The macro pre-pass is deliberately limited to declaration syntax. Runtime
+  expression macros such as `Q_ASSERT(condition)` remain in the parsed source so
+  calls and identifiers inside their arguments are retained. `Q_UNUSED(value)`
+  is normalized to its argument expression plus a semicolon when needed, so it
+  also preserves nested calls while accommodating the macro's optional semicolon.
 - `Q_ENUM(Mode)` is blanked and marks nothing on the enum. The enum and its members
   are extracted as ordinary C++ rows.
 - An out-of-class constructor definition `X::X() {}` in a `.cpp` file is a

@@ -42,6 +42,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "marker-razorback-v1",
         "receiver-type-facts-v1",
         "receiver-type-facts-v2",
+        "qt-reference-corrections-v1",
     ] {
         assert!(
             version.contains(marker),

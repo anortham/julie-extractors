@@ -64,14 +64,6 @@ The metadata key `role` says what the reference is:
 
 A reference with no `role` is an ordinary type usage or member access.
 
-### Known limits
-
-Relationship ownership matches an object to its row by start line. A
-`component X:` header whose body object starts on the next line, or several
-objects written on one line, can therefore attribute members to the outer class
-instead of the object that holds them. Write the body's opening brace on the
-header line to keep the attribution exact.
-
 ### `.qmltypes` files record no base type
 
 A `.qmltypes` file's root is `Module { ... }`, a descriptor of a module rather

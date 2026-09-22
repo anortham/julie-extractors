@@ -14,8 +14,8 @@ pub(crate) use imports::{import_kind, source_kind as import_source_kind};
 pub(crate) use typeinfo::is_typeinfo_path;
 
 use crate::base::{
-    BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
-    Symbol,
+    BaseExtractor, ContainingSymbolIndex, Identifier, PendingRelationship, Relationship,
+    StructuredPendingRelationship, Symbol, SymbolKind,
 };
 use crate::test_detection::{apply_callable_test_metadata, mark_base_type_test_containers};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -494,15 +494,22 @@ impl QmlExtractor {
     fn extract_pending_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) {
         let symbol_map: std::collections::HashMap<String, &Symbol> =
             crate::base::ScopedSymbolIndex::unique_symbol_map(symbols);
+        let class_symbols = ContainingSymbolIndex::from_iter(
+            symbols
+                .iter()
+                .filter(|symbol| symbol.kind == SymbolKind::Class),
+        );
 
-        self.walk_for_pending_calls(tree.root_node(), &symbol_map, 0);
+        self.walk_for_pending_calls(tree.root_node(), symbols, &symbol_map, &class_symbols, 0);
     }
 
-    /// Walk the tree looking for function calls that are not in the local symbol map
+    /// Walk the tree for calls that cannot resolve in their lexical component scope
     fn walk_for_pending_calls(
         &mut self,
         node: tree_sitter::Node,
+        symbols: &[Symbol],
         symbol_map: &std::collections::HashMap<String, &Symbol>,
+        class_symbols: &ContainingSymbolIndex<'_>,
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
@@ -525,13 +532,27 @@ impl QmlExtractor {
                 self.base.get_node_text(&function_node)
             };
 
-            // Check if this is a call to a function not in our symbol map
-            if !symbol_map.contains_key(function_name.as_str()) {
-                // Unknown function - could be from another file
-                // Check if it's being called from within a function
-                if let Some(caller_symbol) =
-                    self.find_containing_function_in_symbols(node, symbol_map)
-                {
+            if let Some(caller_symbol) =
+                relationships::find_containing_function(node, symbols, class_symbols)
+            {
+                let receiver = function_node
+                    .child_by_field_name("object")
+                    .map(|object| self.base.get_node_text(&object));
+                let resolves_locally = symbol_map
+                    .get(function_name.as_str())
+                    .filter(|symbol| {
+                        matches!(symbol.kind, SymbolKind::Function | SymbolKind::Event)
+                    })
+                    .is_some_and(|called_symbol| {
+                        relationships::receiver_can_resolve_locally(
+                            receiver.as_deref(),
+                            called_symbol,
+                            symbols,
+                            relationships::find_containing_component(node, class_symbols),
+                            caller_symbol,
+                        )
+                    });
+                if !resolves_locally {
                     let pending = self
                         .base
                         .create_pending_relationship(
@@ -561,39 +582,8 @@ impl QmlExtractor {
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_for_pending_calls(child, symbol_map, child_depth);
+            self.walk_for_pending_calls(child, symbols, symbol_map, class_symbols, child_depth);
         }
-    }
-
-    /// Find the containing function for a node by walking up the tree
-    fn find_containing_function_in_symbols<'a>(
-        &self,
-        node: tree_sitter::Node,
-        symbol_map: &'a std::collections::HashMap<String, &'a Symbol>,
-    ) -> Option<&'a Symbol> {
-        let mut current = node.parent();
-
-        while let Some(current_node) = current {
-            // Check for function declarations
-            if current_node.kind() == "function_declaration" {
-                // Get the function name
-                if let Some(name_node) = current_node.child_by_field_name("name") {
-                    let func_name = self.base.get_node_text(&name_node);
-                    if let Some(symbol) = symbol_map.get(&func_name)
-                        && matches!(
-                            symbol.kind,
-                            crate::base::SymbolKind::Function | crate::base::SymbolKind::Event
-                        )
-                    {
-                        return Some(symbol);
-                    }
-                }
-            }
-
-            current = current_node.parent();
-        }
-
-        None
     }
 
     /// Get pending relationships that need cross-file resolution

@@ -36,6 +36,61 @@ fn test_qml_emits_structured_pending_for_cross_module_call() {
 }
 
 #[test]
+fn inaccessible_component_calls_emit_structured_pending_relationships() {
+    let source = r#"
+import QtQuick 2.15
+
+Item {
+    id: root
+    function helper() {}
+
+    function parameterShadow(root) {
+        root.helper()
+    }
+
+    component First: Item {
+        function run() {
+            secondOnly()
+        }
+        Component.onCompleted: secondOnly()
+    }
+
+    component Second: Item {
+        function secondOnly() {}
+    }
+}
+"#;
+    let result = extract_canonical("scope.qml", source, Path::new("/tmp/test"))
+        .expect("canonical QML extraction must succeed");
+
+    for name in ["helper", "secondOnly"] {
+        assert!(
+            result
+                .structured_pending_relationships
+                .iter()
+                .any(|pending| pending.target.terminal_name == name),
+            "expected pending {name}, got {:#?}",
+            result.structured_pending_relationships
+        );
+    }
+
+    let first = result
+        .symbols
+        .iter()
+        .find(|symbol| symbol.name == "First")
+        .expect("first inline component");
+    assert!(
+        result
+            .structured_pending_relationships
+            .iter()
+            .any(|pending| {
+                pending.target.terminal_name == "secondOnly"
+                    && pending.pending.from_symbol_id == first.id
+            })
+    );
+}
+
+#[test]
 fn test_qml_negative_local_helper_not_emitted_as_pending() {
     let source = include_str!("../../../../../fixtures/extraction/qml/cross_file/source.qml");
     let workspace_root = Path::new("/tmp/test");

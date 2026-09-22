@@ -964,6 +964,14 @@
       "confidence": "0.900"
     },
     {
+      "from_key": "fixtures/extraction/qml/qt_symbols/source.qml:DeviceBadge:19:4",
+      "callee_name": "console.log",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/qml/qt_symbols/source.qml",
+      "line_number": 26,
+      "confidence": "0.700"
+    },
+    {
       "from_key": "fixtures/extraction/qml/qt_symbols/source.qml:onCloseRequested:39:12",
       "callee_name": "console.log",
       "kind": "calls",
@@ -1135,6 +1143,32 @@
         "end_column": 13,
         "start_byte": 1004,
         "end_byte": 1059
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/qml/qt_symbols/source.qml:DeviceBadge:19:4",
+        "callee_name": "console.log",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/qml/qt_symbols/source.qml",
+        "line_number": 26,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "console.log",
+        "terminal_name": "log",
+        "receiver": "console",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/qml/qt_symbols/source.qml:DeviceBadge:19:4",
+      "span": {
+        "start_line": 26,
+        "start_column": 24,
+        "end_line": 26,
+        "end_column": 42,
+        "start_byte": 508,
+        "end_byte": 526
       }
     },
     {

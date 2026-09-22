@@ -930,6 +930,36 @@
         "value_type": "string"
       },
       {
+        "description": "The DESIGNABLE condition or value.",
+        "key": "designable",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The SCRIPTABLE condition or value.",
+        "key": "scriptable",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The STORED condition or value.",
+        "key": "stored",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The USER condition or value.",
+        "key": "user",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The REVISION value.",
+        "key": "revision",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
         "description": "Whether CONSTANT was declared.",
         "key": "constant",
         "presence": "optional",

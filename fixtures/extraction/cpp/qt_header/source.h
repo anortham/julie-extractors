@@ -19,6 +19,7 @@ class KIRIGAMI2_EXPORT ColumnViewAttached : public QObject
     Q_PROPERTY(QPointF origin
                MEMBER origin
                CONSTANT FINAL)
+    Q_PROPERTY(int visibleIndex READ index DESIGNABLE isIndexDesignable SCRIPTABLE false STORED isIndexStored USER true REVISION(2, 1))
 
 public:
     enum class ColumnResizeMode {

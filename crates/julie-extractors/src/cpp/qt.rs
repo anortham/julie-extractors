@@ -26,6 +26,11 @@ const STRING_KEYWORDS: &[(&str, &str)] = &[
     ("NOTIFY", "notify"),
     ("RESET", "reset"),
     ("BINDABLE", "bindable"),
+    ("DESIGNABLE", "designable"),
+    ("SCRIPTABLE", "scriptable"),
+    ("STORED", "stored"),
+    ("USER", "user"),
+    ("REVISION", "revision"),
 ];
 
 const FLAG_KEYWORDS: &[(&str, &str)] = &[
@@ -383,7 +388,8 @@ fn property_metadata(property: &Property) -> HashMap<String, Value> {
 fn parse_property(arguments: &str) -> Option<Property> {
     let arguments = without_comments(arguments);
     let collapsed = arguments.split_whitespace().collect::<Vec<_>>().join(" ");
-    let tokens = collapsed.split(' ').filter(|token| !token.is_empty());
+    let revision_tokens = collapsed.replace("REVISION(", "REVISION (");
+    let tokens = revision_tokens.split(' ').filter(|token| !token.is_empty());
     let tokens = tokens.collect::<Vec<_>>();
     let boundary = tokens
         .iter()
@@ -405,8 +411,17 @@ fn parse_property(arguments: &str) -> Option<Property> {
             .find(|(keyword, _)| *keyword == tokens[index])
             && let Some(value) = tokens.get(index + 1)
         {
-            strings.push((*key, (*value).to_string()));
-            index += 2;
+            let end = if *key == "revision" && value.starts_with('(') {
+                tokens[index + 1..]
+                    .iter()
+                    .position(|token| token.ends_with(')'))
+                    .map(|offset| index + offset + 1)
+                    .unwrap_or(index + 1)
+            } else {
+                index + 1
+            };
+            strings.push((*key, tokens[index + 1..=end].join(" ")));
+            index = end + 1;
             continue;
         }
         if let Some((_, key)) = FLAG_KEYWORDS

@@ -971,6 +971,14 @@
     },
     {
       "from_key": "fixtures/extraction/qml/cross_file/source.qml:source:7:0",
+      "callee_name": "Helpers.label",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/qml/cross_file/source.qml",
+      "line_number": 25,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/qml/cross_file/source.qml:source:7:0",
       "callee_name": "Item",
       "kind": "extends",
       "file_path": "fixtures/extraction/qml/cross_file/source.qml",
@@ -1063,6 +1071,32 @@
         "end_column": 5,
         "start_byte": 547,
         "end_byte": 599
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/qml/cross_file/source.qml:source:7:0",
+        "callee_name": "Helpers.label",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/qml/cross_file/source.qml",
+        "line_number": 25,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Helpers.label",
+        "terminal_name": "label",
+        "receiver": "Helpers",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/qml/cross_file/source.qml:source:7:0",
+      "span": {
+        "start_line": 25,
+        "start_column": 15,
+        "end_line": 25,
+        "end_column": 36,
+        "start_byte": 514,
+        "end_byte": 535
       }
     },
     {

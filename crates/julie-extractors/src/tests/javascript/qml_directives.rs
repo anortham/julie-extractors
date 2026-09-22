@@ -240,3 +240,21 @@ fn a_double_slash_inside_a_quoted_import_source_is_not_a_comment() {
     assert_eq!(imports.len(), 1);
     assert_eq!(imports[0].name, "http://cdn/Helpers.js");
 }
+
+#[test]
+fn directive_spans_exclude_trailing_comments() {
+    let source = ".pragma library // shared\n.import \"Helpers.js\" as Helpers // helpers\n";
+    let results = extract(source);
+
+    let fact = directive_facts(&results)[0];
+    assert_eq!(
+        fact.end_byte as usize,
+        source.find(" // shared").expect("pragma comment offset")
+    );
+
+    let import = imports(&results)[0];
+    assert_eq!(
+        import.end_byte as usize,
+        source.find(" // helpers").expect("import comment offset")
+    );
+}

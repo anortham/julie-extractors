@@ -112,6 +112,11 @@ fn syntax_api_selects_source_sensitive_grammars() {
             "namespace app { class Widget { public: void run(); }; }\n",
             "cpp",
         ),
+        (
+            "indented_widget.h",
+            "  namespace app { class Widget { public: void run(); }; }\n",
+            "cpp",
+        ),
         ("empty.h", "", "c"),
         ("widget.H", "class C { public: int x; };\n", "cpp"),
         ("qmldir", "module MyModule\n", "qmldir"),

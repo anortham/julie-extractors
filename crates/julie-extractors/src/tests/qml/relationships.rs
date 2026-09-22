@@ -835,6 +835,215 @@ Item {
     }
 
     #[test]
+    fn a_multiline_inline_component_handler_belongs_to_the_inline_component() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    component Detail: Item
+    {
+        function helper() {}
+
+        Component.onCompleted: helper()
+    }
+}
+"#;
+
+        let (symbols, relationships) = extract_symbols_and_relationships(qml_code);
+        let detail = symbols
+            .iter()
+            .find(|symbol| symbol.name == "Detail" && symbol.kind == SymbolKind::Class)
+            .expect("inline component class");
+        let helper = symbols
+            .iter()
+            .find(|symbol| symbol.name == "helper" && symbol.kind == SymbolKind::Function)
+            .expect("inline helper");
+
+        assert!(relationships.iter().any(|relationship| {
+            relationship.kind == RelationshipKind::Calls
+                && relationship.from_symbol_id == detail.id
+                && relationship.to_symbol_id == helper.id
+        }));
+    }
+
+    #[test]
+    fn a_same_line_inline_component_handler_belongs_to_the_inline_component() {
+        let qml_code = r#"
+import QtQuick 2.15
+Item { component Detail: Item { function helper() {} Component.onCompleted: helper() } }
+"#;
+
+        let (symbols, relationships) = extract_symbols_and_relationships(qml_code);
+        let detail = symbols
+            .iter()
+            .find(|symbol| symbol.name == "Detail" && symbol.kind == SymbolKind::Class)
+            .expect("inline component class");
+        let helper = symbols
+            .iter()
+            .find(|symbol| symbol.name == "helper" && symbol.kind == SymbolKind::Function)
+            .expect("inline helper");
+
+        assert!(relationships.iter().any(|relationship| {
+            relationship.kind == RelationshipKind::Calls
+                && relationship.from_symbol_id == detail.id
+                && relationship.to_symbol_id == helper.id
+        }));
+    }
+
+    #[test]
+    fn a_sibling_inline_component_id_does_not_resolve_a_call() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    component First: Item {
+        id: shared
+        function run() { shared.secondOnly() }
+    }
+    component Second: Item {
+        id: shared
+        function secondOnly() {}
+    }
+}
+"#;
+
+        let (symbols, relationships) = extract_symbols_and_relationships(qml_code);
+        let run = symbols
+            .iter()
+            .find(|symbol| symbol.name == "run" && symbol.kind == SymbolKind::Function)
+            .expect("first component function");
+        let second_only = symbols
+            .iter()
+            .find(|symbol| symbol.name == "secondOnly" && symbol.kind == SymbolKind::Function)
+            .expect("second component function");
+
+        assert!(!relationships.iter().any(|relationship| {
+            relationship.kind == RelationshipKind::Calls
+                && relationship.from_symbol_id == run.id
+                && relationship.to_symbol_id == second_only.id
+        }));
+    }
+
+    #[test]
+    fn a_local_receiver_shadowing_an_id_does_not_resolve_a_call() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    id: root
+    function helper() {}
+
+    function run() {
+        let root = {}
+        root.helper()
+    }
+}
+"#;
+
+        let (symbols, relationships) = extract_symbols_and_relationships(qml_code);
+        let run = symbols
+            .iter()
+            .find(|symbol| symbol.name == "run" && symbol.kind == SymbolKind::Function)
+            .expect("caller");
+        let helper = symbols
+            .iter()
+            .find(|symbol| symbol.name == "helper" && symbol.kind == SymbolKind::Function)
+            .expect("component helper");
+
+        assert!(!relationships.iter().any(|relationship| {
+            relationship.kind == RelationshipKind::Calls
+                && relationship.from_symbol_id == run.id
+                && relationship.to_symbol_id == helper.id
+        }));
+    }
+
+    #[test]
+    fn same_line_functions_keep_the_actual_caller() {
+        let qml_code = r#"
+import QtQuick 2.15
+Item { function first() {} function second() { first() } }
+"#;
+
+        let (symbols, relationships) = extract_symbols_and_relationships(qml_code);
+        let first = symbols
+            .iter()
+            .find(|symbol| symbol.name == "first" && symbol.kind == SymbolKind::Function)
+            .expect("first function");
+        let second = symbols
+            .iter()
+            .find(|symbol| symbol.name == "second" && symbol.kind == SymbolKind::Function)
+            .expect("second function");
+
+        assert!(relationships.iter().any(|relationship| {
+            relationship.kind == RelationshipKind::Calls
+                && relationship.from_symbol_id == second.id
+                && relationship.to_symbol_id == first.id
+        }));
+    }
+
+    #[test]
+    fn nested_parent_and_this_receivers_target_the_nested_object() {
+        let qml_code = r#"
+import QtQuick 2.15
+
+Item {
+    property int gap: 100
+
+    Column {
+        property int gap: 50
+
+        Rectangle {
+            height: parent.gap
+        }
+
+        function ownGap() {
+            return this.gap
+        }
+    }
+}
+"#;
+
+        let (symbols, relationships) = extract_symbols_and_relationships(qml_code);
+        let column_gap = property_row(&symbols, "gap", owner_row(&symbols, "Column"));
+        let root_gap = property_row(&symbols, "gap", owner_row(&symbols, "test"));
+
+        for line in [11, 15] {
+            let target = relationships
+                .iter()
+                .find(|relationship| {
+                    relationship.kind == RelationshipKind::Uses && relationship.line_number == line
+                })
+                .expect("nested property use");
+            assert_eq!(target.to_symbol_id, column_gap.id, "line {line}");
+            assert_ne!(target.to_symbol_id, root_gap.id);
+        }
+    }
+
+    #[test]
+    fn same_line_inline_component_extends_from_the_inline_class() {
+        let qml_code = r#"
+import QtQuick 2.15
+Item { component Detail: Item { } }
+"#;
+
+        let (symbols, relationships, pending) =
+            extract_symbols_and_relationships_with_path(qml_code, "Panel.qml");
+        let detail = symbols
+            .iter()
+            .find(|symbol| symbol.name == "Detail" && symbol.kind == SymbolKind::Class)
+            .expect("inline component class");
+
+        assert!(pending.iter().any(|entry| {
+            entry.target.terminal_name == "Item" && entry.pending.from_symbol_id == detail.id
+        }));
+        assert!(
+            relationships
+                .iter()
+                .all(|relationship| relationship.from_symbol_id != detail.id)
+        );
+    }
+
+    #[test]
     fn a_qualified_type_never_resolves_to_a_same_file_class() {
         let qml_code = r#"
 import QtQuick.Controls as QQC2

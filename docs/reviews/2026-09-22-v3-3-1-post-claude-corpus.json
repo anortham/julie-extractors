@@ -1,0 +1,75 @@
+{
+  "review": "v3.3.1 post-Claude corpus and performance evidence",
+  "baseline_binary": {
+    "version": "3.3.0",
+    "tag_commit": "64edc9d5a1ec3c71c15686a67bcee12aad8a5e34",
+    "linux_binary_sha256": "141eb7f4ba2e848acd31dd0c43ee9337d23b634889bb373071845b3b7c7f9e99"
+  },
+  "candidate_binary": {
+    "version": "3.3.1",
+    "linux_binary_sha256": "ceaa8e391f6658d4f63e4fa73f776dfabcc43076bbd83edc74b922559df160f6"
+  },
+  "method": "All artifact scans use --force --jobs 1 --level full and fresh SQLite outputs. Quality comparisons are non-timed. Real-corpus timing uses one unmeasured warm scan and five quiet-machine wall-clock samples. The adversarial scaling comparison uses one warm scan and three interleaved samples per binary.",
+  "corpora": {
+    "plasma_cpp": {"source": "KDE plasma-workspace", "commit": "a45871a7b24f68bed09df3c7282effc86c42535c", "files": 1050, "bytes": 5659418},
+    "kirigami_cpp": {"source": "KDE Kirigami", "commit": "b5ff40fa6ada29bfc4e95f1c80be28e469fa83d5", "files": 102, "bytes": 629361},
+    "kirigami_qml": {"source": "KDE Kirigami", "commit": "b5ff40fa6ada29bfc4e95f1c80be28e469fa83d5", "files": 225, "bytes": 1006266},
+    "quickshell_qml": {"source": "Quickshell", "commit": "fae96f1a5b7f53de9b7e40e5b53c0b7a2e97b1d7", "files": 26, "bytes": 67466}
+  },
+  "quality_counts": {
+    "v3.3.0": {
+      "plasma_cpp": {"files_failed": 0, "parse_diagnostics": 298, "symbols": 36572, "identifiers": 184172, "relationships": 1730, "structural_facts": 1306},
+      "kirigami_cpp": {"files_failed": 0, "parse_diagnostics": 31, "symbols": 4271, "identifiers": 16689, "relationships": 154, "structural_facts": 354},
+      "kirigami_qml": {"files_failed": 0, "parse_diagnostics": 2, "symbols": 5329, "identifiers": 34845, "relationships": 1561, "structural_facts": 9715},
+      "quickshell_qml": {"files_failed": 0, "parse_diagnostics": 0, "symbols": 655, "identifiers": 2620, "relationships": 164, "structural_facts": 1222}
+    },
+    "v3.3.1": {
+      "plasma_cpp": {"files_failed": 0, "parse_diagnostics": 297, "symbols": 36573, "identifiers": 185282, "relationships": 1730, "structural_facts": 1306},
+      "kirigami_cpp": {"files_failed": 0, "parse_diagnostics": 31, "symbols": 4271, "identifiers": 16780, "relationships": 154, "structural_facts": 354},
+      "kirigami_qml": {"files_failed": 0, "parse_diagnostics": 2, "symbols": 5329, "identifiers": 34845, "relationships": 1559, "structural_facts": 9715},
+      "quickshell_qml": {"files_failed": 0, "parse_diagnostics": 0, "symbols": 655, "identifiers": 2620, "relationships": 164, "structural_facts": 1222}
+    }
+  },
+  "diagnostic_set_comparison": {
+    "kirigami_cpp": "exact match",
+    "plasma_cpp": "Q_DECL_EXPORT diagnostic at kioworkers/desktop/kio_desktop.cpp:33 removed; Q_ASSERT error at applets/systemtray/systemtraymodel.cpp:94 retains the same kind and start span with only its end span extended. No new diagnostic failure was introduced.",
+    "qml": "Kirigami and Quickshell diagnostic span sets exactly match v3.3.0."
+  },
+  "declaration_family_checks": {
+    "plasma_source_sites": ["Q_PRIVATE_SLOT", "Q_OBJECT_BINDABLE_PROPERTY", "Q_ENUMS", "Q_LOGGING_CATEGORY"],
+    "result": "No v3.3.1 parse diagnostic occurs at sampled source sites; C++ focused macro suite also covers the restored declaration family."
+  },
+  "wall_clock_samples_seconds": {
+    "v3.3.0": {
+      "plasma_cpp": [7.62, 7.5, 7.58, 7.54, 7.51],
+      "kirigami_cpp": [0.74, 0.74, 0.77, 0.75, 0.75],
+      "kirigami_qml": [1.13, 1.12, 1.12, 1.14, 1.22],
+      "quickshell_qml": [0.17, 0.17, 0.17, 0.17, 0.17]
+    },
+    "v3.3.1": {
+      "plasma_cpp": [8.47, 8.3, 8.46, 8.68, 8.44],
+      "kirigami_cpp": [0.86, 0.86, 0.87, 0.88, 0.87],
+      "kirigami_qml": [1.23, 1.24, 1.23, 1.25, 1.22],
+      "quickshell_qml": [0.18, 0.17, 0.18, 0.17, 0.17]
+    },
+    "p95_seconds": {
+      "v3.3.0": {"plasma_cpp": 7.62, "kirigami_cpp": 0.77, "kirigami_qml": 1.22, "quickshell_qml": 0.17},
+      "v3.3.1": {"plasma_cpp": 8.68, "kirigami_cpp": 0.88, "kirigami_qml": 1.25, "quickshell_qml": 0.18}
+    },
+    "comparison": "v3.3.1 p95 is higher on all four corpora: Plasma C++ 7.62 to 8.68 seconds (13.9%, non-overlapping samples), Kirigami C++ 0.77 to 0.88 seconds (14.3%, non-overlapping), Kirigami QML 1.22 to 1.25 seconds, and Quickshell QML 0.17 to 0.18 seconds. The aggregate scans do not isolate a causal repair."
+  },
+  "adversarial_qt_macro_scaling": {
+    "input": "169KB single-line C++ class containing Q_OBJECT and 10,000 members",
+    "v3.3.0_samples_seconds": [3.55, 3.73, 3.44],
+    "v3.3.1_samples_seconds": [2.21, 2.14, 2.21],
+    "p95_seconds": {"v3.3.0": 3.73, "v3.3.1": 2.21},
+    "result": "40.8% lower v3.3.1 p95; the measured fix uses the precomputed line-start index instead of rescanning from byte zero per identifier."
+  },
+  "raw_samples": ["target/qt-release-review/results/v3.3.1-final-quiet.oq7snV.txt", "target/qt-release-review/results/v3.3.0-plasma-baseline-quiet.UHSLsY.txt"],
+  "limitations": [
+    "No Windows corpus or timing verification was run.",
+    "The quality and wall-time runs exercise julie-extract directly; code-kb was used for source inspection but was not executed as a corpus workload.",
+    "Wall time includes process startup, parsing, extraction, and SQLite artifact creation; it does not prove the cause of any small runtime difference.",
+    "Third-party source remains untracked under target/qt-release-review and is not redistributed."
+  ]
+}
