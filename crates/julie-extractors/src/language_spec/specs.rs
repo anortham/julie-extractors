@@ -291,7 +291,16 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
     ),
     spec(
         "json",
-        &["json", "jsonl", "jsonc"],
+        &[
+            "json",
+            "jsonl",
+            "jsonc",
+            "ndjson",
+            "jsonld",
+            "geojson",
+            "webmanifest",
+            "code-workspace",
+        ],
         "tree-sitter-json",
         PENDING_NO_TYPES_NO_IDENTIFIERS_CAPABILITIES,
         parser_json,

@@ -105,6 +105,12 @@ fn collect_node(
             } else {
                 SourceRegionKind::Comment
             }
+        } else if language == "json" {
+            if crate::json::comment_documents_following_value(content, node) {
+                SourceRegionKind::DocComment
+            } else {
+                SourceRegionKind::Comment
+            }
         } else if is_doc_comment(language, text.unwrap_or_default()) {
             SourceRegionKind::DocComment
         } else {

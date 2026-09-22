@@ -6800,7 +6800,12 @@
       "extensions": [
         "json",
         "jsonl",
-        "jsonc"
+        "jsonc",
+        "ndjson",
+        "jsonld",
+        "geojson",
+        "webmanifest",
+        "code-workspace"
       ],
       "dependency_status": "current",
       "capabilities": {
@@ -6840,6 +6845,31 @@
           "name": "test_roles",
           "source": "fixtures/extraction/json/test_roles/source.json",
           "expected": "fixtures/extraction/json/test_roles/expected.json"
+        },
+        {
+          "name": "npm",
+          "source": "fixtures/extraction/json/npm/package.json",
+          "expected": "fixtures/extraction/json/npm/expected.json"
+        },
+        {
+          "name": "composer",
+          "source": "fixtures/extraction/json/composer/composer.json",
+          "expected": "fixtures/extraction/json/composer/expected.json"
+        },
+        {
+          "name": "tsconfig",
+          "source": "fixtures/extraction/json/tsconfig/tsconfig.json",
+          "expected": "fixtures/extraction/json/tsconfig/expected.json"
+        },
+        {
+          "name": "jsonl",
+          "source": "fixtures/extraction/json/jsonl/events.jsonl",
+          "expected": "fixtures/extraction/json/jsonl/expected.json"
+        },
+        {
+          "name": "keys",
+          "source": "fixtures/extraction/json/keys/source.json",
+          "expected": "fixtures/extraction/json/keys/expected.json"
         }
       ],
       "target_capabilities": {
@@ -6884,6 +6914,7 @@
         },
         "relationships": {
           "supported": [
+            "imports",
             "references"
           ],
           "not_applicable": [],
@@ -6915,6 +6946,9 @@
             "json.property.v1",
             "json.ref.v1",
             "json.schema.v1",
+            "json.schema_definition.v1",
+            "manifest.dependency.v1",
+            "manifest.script.v1",
             "openapi.route.v1"
           ],
           "not_applicable": [],
@@ -6945,6 +6979,7 @@
         },
         "doc_comments": {
           "supported": [
+            "module",
             "variable"
           ],
           "not_applicable": [],
@@ -6960,6 +6995,7 @@
         "source_regions": {
           "supported": [
             "comment",
+            "doc_comment",
             "string_literal"
           ],
           "not_applicable": [],

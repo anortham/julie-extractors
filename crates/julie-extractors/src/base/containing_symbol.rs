@@ -57,6 +57,17 @@ pub(crate) fn attach_containing_symbols(facts: &mut [StructuralFact], symbols: &
     }
 }
 
+/// Bind each fact by byte containment only. Data documents nest every value
+/// inside its key's span, so a fact outside every symbol is top-level; the line
+/// fallback would bind it to an unrelated sibling on the same line (minified
+/// JSON, JSON Lines records).
+pub(crate) fn attach_byte_containing_symbols(facts: &mut [StructuralFact], symbols: &[Symbol]) {
+    for fact in facts {
+        fact.containing_symbol_id =
+            byte_containing_symbol(fact, symbols).map(|symbol| symbol.id.clone());
+    }
+}
+
 fn containing_symbol_id(fact: &StructuralFact, symbols: &[Symbol]) -> Option<String> {
     byte_containing_symbol(fact, symbols)
         .or_else(|| line_containing_symbol(fact, symbols))

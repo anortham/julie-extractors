@@ -1,0 +1,2 @@
+{"id": 1, "user": {"name": "ada", "role": "admin"}, "action": "login"}
+{"id": 2, "user": {"name": "bob", "role": "viewer"}, "action": "logout"}

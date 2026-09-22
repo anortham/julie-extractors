@@ -3,14 +3,23 @@
   "$ref": "#/$defs/Address",
   "$defs": {
     "Address": {
+      "description": "A postal address used for billing and shipping.",
       "type": "object",
       "properties": {
         "street": { "type": "string" }
       }
-    }
+    },
+    "Person": { "$anchor": "person", "type": ["object", "null"] },
+    "Routes": { "/users": { "type": "string" } },
+    "Legacy": { "$defs": { "Address": { "type": "string" } } },
+    "Tagged": { "oneOf": [ { "$ref": "#person" } ] }
   },
   "properties": {
-    "billing": { "$ref": "#\/$defs\/Addr\u0065ss" },
-    "shipping": { "$ref": "external.json#/$defs/Address" }
+    "billing": { "$ref": "#\/$defs\/Address" },
+    "shipping": { "$ref": "external.json#/$defs/Address" },
+    "owner": { "$ref": "#person" },
+    "route": { "$ref": "#/$defs/Routes/~1users" },
+    "common": { "$ref": "common.json#" },
+    "customer": { "$ref": "./customer.schema.json" }
   }
 }

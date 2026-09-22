@@ -108,13 +108,8 @@ pub fn parse_source_with_options(
     options.check()?;
     validate_source_len(source.len(), options.max_source_bytes)?;
     let is_jsonl = file_path
-        .extension()
-        .and_then(|e| e.to_str())
-        .is_some_and(|e| e.eq_ignore_ascii_case("jsonl"))
-        || file_path
-            .file_name()
-            .and_then(|n| n.to_str())
-            .is_some_and(|n| n.eq_ignore_ascii_case(".jsonl"));
+        .to_str()
+        .is_some_and(crate::pipeline::is_json_lines_path);
     if is_jsonl {
         return Err(SyntaxError::UnsupportedContainer {
             path: file_path.to_path_buf(),

@@ -70,7 +70,7 @@ pub fn extract_canonical_at(
     level: ExtractionLevel,
 ) -> Result<ExtractionResults, anyhow::Error> {
     let normalized_path = normalize_pipeline_path(file_path, workspace_root);
-    if normalized_path.ends_with(".jsonl") {
+    if is_json_lines_path(&normalized_path) {
         return extract_jsonl_canonical(&normalized_path, content, workspace_root, level);
     }
 
@@ -107,7 +107,7 @@ pub fn extract_canonical_for_language_at(
     level: ExtractionLevel,
 ) -> Result<ExtractionResults, anyhow::Error> {
     let normalized_path = normalize_pipeline_path(file_path, workspace_root);
-    if normalized_path.ends_with(".jsonl") {
+    if is_json_lines_path(&normalized_path) {
         return extract_jsonl_canonical(&normalized_path, content, workspace_root, level);
     }
 
@@ -241,6 +241,16 @@ where
     }
 
     Ok(results)
+}
+
+/// JSON Lines files (`.jsonl`, `.ndjson`, any case): one JSON document per
+/// line, extracted record by record.
+pub(crate) fn is_json_lines_path(path: &str) -> bool {
+    let name = path.rsplit(['/', '\\']).next().unwrap_or(path);
+    let extension = name.rsplit_once('.').map_or("", |(_, extension)| extension);
+    ["jsonl", "ndjson"]
+        .iter()
+        .any(|lines| extension.eq_ignore_ascii_case(lines))
 }
 
 fn jsonl_records(content: &str) -> Vec<(u32, u32, &str)> {

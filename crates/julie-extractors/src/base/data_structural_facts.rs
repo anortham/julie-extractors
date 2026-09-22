@@ -23,6 +23,7 @@ const JSON_ARRAY_PATTERN_ID: &str = "json.array.v1";
 const JSON_PROPERTY_PATTERN_ID: &str = "json.property.v1";
 const JSON_SCHEMA_PATTERN_ID: &str = "json.schema.v1";
 const JSON_REF_PATTERN_ID: &str = "json.ref.v1";
+const JSON_SCHEMA_DEFINITION_PATTERN_ID: &str = "json.schema_definition.v1";
 
 // TOML
 const TOML_TABLE_PATTERN_ID: &str = "toml.table.v1";
@@ -76,8 +77,11 @@ const JSON_DATA_PATTERN_IDS: &[&str] = &[
     JSON_OBJECT_PATTERN_ID,
     JSON_PROPERTY_PATTERN_ID,
     JSON_REF_PATTERN_ID,
+    JSON_SCHEMA_DEFINITION_PATTERN_ID,
     JSON_SCHEMA_PATTERN_ID,
     super::openapi_route_facts::OPENAPI_ROUTE_PATTERN_ID,
+    crate::json::manifest::MANIFEST_SCRIPT_PATTERN_ID,
+    crate::toml::dependencies::MANIFEST_DEPENDENCY_PATTERN_ID,
 ];
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -153,6 +157,13 @@ pub fn collect_data_structural_facts(
     if language == "yaml" {
         facts.extend(crate::yaml::ci::ci_facts(tree, file_path, content, symbols));
     }
+    if language == "json" {
+        facts.extend(crate::json::manifest::manifest_facts(
+            tree.root_node(),
+            file_path,
+            content,
+        ));
+    }
     if language == "toml" {
         facts.extend(crate::toml::dependencies::dependency_facts(
             tree.root_node(),
@@ -168,6 +179,8 @@ pub fn collect_data_structural_facts(
 
     if language == "regex" {
         crate::regex::attach_fact_symbols(&mut facts, symbols);
+    } else if language == "json" {
+        super::containing_symbol::attach_byte_containing_symbols(&mut facts, symbols);
     } else {
         attach_containing_symbols(&mut facts, symbols);
     }
@@ -491,7 +504,165 @@ fn collect_json_structural_facts(
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
     collect_json_node(tree.root_node(), file_path, content, &[], 0, &mut facts, 0);
+    let declares_schema = facts
+        .iter()
+        .any(|fact| fact.pattern_id == JSON_SCHEMA_PATTERN_ID);
+    collect_json_schema_definitions(
+        tree.root_node(),
+        file_path,
+        content,
+        &[],
+        declares_schema,
+        &mut facts,
+        0,
+    );
     facts
+}
+
+/// One `json.schema_definition.v1` fact per object entry under `$defs` (at any
+/// depth), `definitions` (at the root, or at any depth in a document that
+/// declares `$schema`), and the root `components.schemas` of OpenAPI.
+fn collect_json_schema_definitions(
+    node: Node<'_>,
+    file_path: &str,
+    content: &str,
+    path: &[String],
+    declares_schema: bool,
+    facts: &mut Vec<StructuralFact>,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let container = match path {
+        [.., last] if last == "$defs" => Some("$defs"),
+        [only] if only == "definitions" => Some("definitions"),
+        [.., last] if last == "definitions" && declares_schema => Some("definitions"),
+        [first, second] if first == "components" && second == "schemas" => {
+            Some("components.schemas")
+        }
+        _ => None,
+    };
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        let (child_path, value) = match child.kind() {
+            "pair" => {
+                let (Some(key), Some(value)) =
+                    (json_pair_key(content, child), json_pair_value(child))
+                else {
+                    continue;
+                };
+                if let Some(container) = container
+                    && value.kind() == "object"
+                {
+                    facts.push(json_schema_definition_fact(
+                        file_path, content, child, &key, container, path, value,
+                    ));
+                }
+                let mut child_path = path.to_vec();
+                child_path.push(key);
+                (child_path, value)
+            }
+            "object" | "document" => (path.to_vec(), child),
+            "array" => {
+                let mut element_cursor = child.walk();
+                for (index, element) in child
+                    .named_children(&mut element_cursor)
+                    .filter(|element| is_json_value_node_kind(element.kind()))
+                    .enumerate()
+                {
+                    let mut element_path = path.to_vec();
+                    element_path.push(format!("[{index}]"));
+                    collect_json_schema_definitions(
+                        element,
+                        file_path,
+                        content,
+                        &element_path,
+                        declares_schema,
+                        facts,
+                        child_depth,
+                    );
+                }
+                continue;
+            }
+            _ => continue,
+        };
+        collect_json_schema_definitions(
+            value,
+            file_path,
+            content,
+            &child_path,
+            declares_schema,
+            facts,
+            child_depth,
+        );
+    }
+}
+
+#[inline(never)]
+fn json_schema_definition_fact(
+    file_path: &str,
+    content: &str,
+    pair: Node<'_>,
+    name: &str,
+    container: &str,
+    container_path: &[String],
+    definition: Node<'_>,
+) -> StructuralFact {
+    let mut metadata = base_metadata("schema_structure");
+    insert_string(&mut metadata, "name", name);
+    insert_string(&mut metadata, "container", container);
+    insert_string(&mut metadata, "path", &json_path(container_path));
+    let mut cursor = definition.walk();
+    for field in definition
+        .named_children(&mut cursor)
+        .filter(|child| child.kind() == "pair")
+    {
+        let (Some(key), Some(value)) = (json_pair_key(content, field), json_pair_value(field))
+        else {
+            continue;
+        };
+        match key.as_str() {
+            "type" => {
+                let declared = match value.kind() {
+                    "array" => {
+                        let mut type_cursor = value.walk();
+                        value
+                            .named_children(&mut type_cursor)
+                            .filter_map(|item| json_string_value(content, item))
+                            .collect::<Vec<_>>()
+                            .join("|")
+                    }
+                    _ => json_string_value(content, value).unwrap_or_default(),
+                };
+                if !declared.is_empty() {
+                    insert_string(&mut metadata, "declared_type", &declared);
+                }
+            }
+            "allOf" | "oneOf" | "anyOf" if !metadata.contains_key("composition") => {
+                insert_string(&mut metadata, "composition", &key);
+            }
+            _ => {}
+        }
+    }
+    fact_for_node(
+        file_path,
+        "json",
+        JSON_SCHEMA_DEFINITION_PATTERN_ID,
+        "definition",
+        pair,
+        metadata,
+    )
+}
+
+fn json_string_value(content: &str, node: Node<'_>) -> Option<String> {
+    (node.kind() == "string")
+        .then(|| node_text(content, node))
+        .flatten()
+        .map(crate::json::decode_json_string)
 }
 
 fn collect_json_node(
@@ -2294,23 +2465,43 @@ fn parse_link_reference_definition(text: &str) -> Option<(String, String)> {
     (!label.is_empty() && !destination.is_empty()).then_some((label, destination))
 }
 
+/// JSONPath of a key chain: `$.a.b[0]`. A key that is not a plain name is
+/// bracket-quoted (`$['files.exclude']`), so each path names one location.
 fn json_path(path: &[String]) -> String {
     let mut rendered = "$".to_string();
     for segment in path {
-        if segment.starts_with('[') {
+        if is_json_index_segment(segment) {
             rendered.push_str(segment);
-        } else {
+        } else if is_plain_json_path_name(segment) {
             rendered.push('.');
             rendered.push_str(segment);
+        } else {
+            rendered.push_str("['");
+            rendered.push_str(&segment.replace('\\', "\\\\").replace('\'', "\\'"));
+            rendered.push_str("']");
         }
     }
     rendered
 }
 
+fn is_json_index_segment(segment: &str) -> bool {
+    segment
+        .strip_prefix('[')
+        .and_then(|rest| rest.strip_suffix(']'))
+        .is_some_and(|index| !index.is_empty() && index.bytes().all(|b| b.is_ascii_digit()))
+}
+
+fn is_plain_json_path_name(segment: &str) -> bool {
+    !segment.is_empty()
+        && segment
+            .chars()
+            .all(|ch| !matches!(ch, '.' | '[' | ']' | '\'' | '"' | '\\') && !ch.is_whitespace())
+}
+
 fn json_pair_key(content: &str, node: Node<'_>) -> Option<String> {
     let key_node = node.child(0)?;
     let text = node_text(content, key_node)?;
-    Some(text.trim_matches('"').to_string())
+    Some(crate::json::decode_json_string(text))
 }
 
 fn json_pair_value(node: Node<'_>) -> Option<Node<'_>> {

@@ -3679,7 +3679,7 @@
         "value_type": "string"
       },
       {
-        "description": "Dotted/indexed JSON path to the property's parent.",
+        "description": "JSONPath to the property's parent (`$.a.b[0]`); a key that is not a plain name is bracket-quoted (`$['files.exclude']`).",
         "key": "path",
         "presence": "always",
         "value_type": "string"
@@ -3725,7 +3725,7 @@
         "value_type": "string"
       },
       {
-        "description": "Dotted/indexed JSON path to the property's parent.",
+        "description": "JSONPath to the property's parent (`$.a.b[0]`); a key that is not a plain name is bracket-quoted (`$['files.exclude']`).",
         "key": "path",
         "presence": "always",
         "value_type": "string"
@@ -3759,13 +3759,65 @@
         "value_type": "string"
       },
       {
-        "description": "Dotted/indexed JSON path to the property's parent.",
+        "description": "JSONPath to the property's parent (`$.a.b[0]`); a key that is not a plain name is bracket-quoted (`$['files.exclude']`).",
         "key": "path",
         "presence": "always",
         "value_type": "string"
       }
     ],
     "pattern_id": "json.schema.v1",
+    "query_family": "schema_structure"
+  },
+  {
+    "description": "A named JSON Schema or OpenAPI definition: an object under `$defs`, `definitions`, or `components.schemas`.",
+    "languages": [
+      "json"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Definition name (the decoded key).",
+        "key": "name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Keyword that holds the definition: \"$defs\", \"definitions\", or \"components.schemas\".",
+        "key": "container",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "JSONPath to the container object.",
+        "key": "path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The definition's `type`; a type list is joined with `|`.",
+        "key": "declared_type",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "First composition keyword the definition uses (\"allOf\", \"oneOf\", or \"anyOf\").",
+        "key": "composition",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "json.schema_definition.v1",
     "query_family": "schema_structure"
   },
   {
@@ -4265,8 +4317,9 @@
     "query_family": "data"
   },
   {
-    "description": "A package dependency declared in a Cargo.toml, pyproject.toml, MSBuild, NuGet, or Maven manifest.",
+    "description": "A package dependency declared in a Cargo.toml, pyproject.toml, package.json, composer.json, MSBuild, NuGet, or Maven manifest.",
     "languages": [
+      "json",
       "toml",
       "xml"
     ],
@@ -4284,19 +4337,19 @@
         "value_type": "string"
       },
       {
-        "description": "Package ecosystem (\"cargo\", \"pypi\", \"nuget\", or \"maven\").",
+        "description": "Package ecosystem (\"cargo\", \"pypi\", \"npm\", \"composer\", \"nuget\", or \"maven\").",
         "key": "ecosystem",
         "presence": "always",
         "value_type": "string"
       },
       {
-        "description": "Dependency name: the Cargo key, the PEP 503-normalized distribution name, the NuGet package id, or the Maven `groupId:artifactId`.",
+        "description": "Dependency name: the Cargo key, the PEP 503-normalized distribution name, the npm or Composer package name, the NuGet package id, or the Maven `groupId:artifactId`.",
         "key": "name",
         "presence": "always",
         "value_type": "string"
       },
       {
-        "description": "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`; Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`; NuGet `PackageReference`/`PackageVersion`/`GlobalPackageReference`/`dependency`; Maven scope, `managed`, `plugin`, or `managed-plugin`.",
+        "description": "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`; Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`; npm `dependencies`/`devDependencies`/`peerDependencies`/`optionalDependencies`; Composer `require`/`require-dev`; NuGet `PackageReference`/`PackageVersion`/`GlobalPackageReference`/`dependency`; Maven scope, `managed`, `plugin`, or `managed-plugin`.",
         "key": "group",
         "presence": "always",
         "value_type": "string"
@@ -4320,7 +4373,7 @@
         "value_type": "string"
       },
       {
-        "description": "True when the Cargo dependency inherits from `[workspace.dependencies]`.",
+        "description": "True when the Cargo dependency inherits from `[workspace.dependencies]`, or the npm version uses the `workspace:` protocol.",
         "key": "workspace",
         "presence": "optional",
         "value_type": "bool"
@@ -4340,6 +4393,46 @@
     ],
     "pattern_id": "manifest.dependency.v1",
     "query_family": "dependencies"
+  },
+  {
+    "description": "A named script in a package.json or composer.json `scripts` object.",
+    "languages": [
+      "json"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Package ecosystem (\"npm\" or \"composer\").",
+        "key": "ecosystem",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Script name.",
+        "key": "name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Command as written; a Composer command list is joined with ` && `.",
+        "key": "command",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "manifest.script.v1",
+    "query_family": "pipeline"
   },
   {
     "description": "A Markdown fenced code block.",

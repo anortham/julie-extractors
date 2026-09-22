@@ -14,7 +14,7 @@
       "end_byte": 389,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "\"$ref\": \"#/definitions/local_helper\"",
       "doc_comment": "#/definitions/local_helper",
       "visibility": null,
       "parent_key": "fixtures/extraction/json/cross_file/source.json:entry:9:4",
@@ -38,7 +38,7 @@
       "end_byte": 237,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "\"_comment\": \"Phase 4d fixture: JSON $ref pointers are intra-document by JSON ...",
       "doc_comment": "Phase 4d fixture: JSON $ref pointers are intra-document by JSON Schema spec; cross-document $refs are URL strings, not symbol references. This fixture exercises intra-document refs to lock the no-pending classification.",
       "visibility": null,
       "parent_key": null,
@@ -186,7 +186,7 @@
       "end_byte": 302,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "\"type\": \"string\"",
       "doc_comment": "string",
       "visibility": null,
       "parent_key": "fixtures/extraction/json/cross_file/source.json:local_helper:4:4",
@@ -515,6 +515,29 @@
         "pattern_version": 1,
         "query_family": "schema_structure",
         "ref": "#/definitions/local_helper"
+      }
+    },
+    {
+      "pattern_id": "json.schema_definition.v1",
+      "capture_name": "definition",
+      "node_kind": "pair",
+      "language": "json",
+      "file_path": "fixtures/extraction/json/cross_file/source.json",
+      "containing_key": "fixtures/extraction/json/cross_file/source.json:local_helper:4:4",
+      "start_line": 4,
+      "start_column": 4,
+      "end_line": 6,
+      "end_column": 5,
+      "start_byte": 262,
+      "end_byte": 308,
+      "confidence": "1.000",
+      "metadata": {
+        "container": "definitions",
+        "declared_type": "string",
+        "name": "local_helper",
+        "path": "$.definitions",
+        "pattern_version": 1,
+        "query_family": "schema_structure"
       }
     }
   ],
