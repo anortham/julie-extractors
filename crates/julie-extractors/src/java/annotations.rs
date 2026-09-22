@@ -17,7 +17,7 @@ pub(super) fn extract_annotation(
 
     let name = extractor.base().get_node_text(&name_node);
     let modifiers = helpers::extract_modifiers(extractor.base(), node);
-    let visibility = helpers::determine_visibility(&modifiers);
+    let visibility = helpers::determine_visibility(&modifiers, node);
 
     // Build signature
     let signature = if modifiers.is_empty() {

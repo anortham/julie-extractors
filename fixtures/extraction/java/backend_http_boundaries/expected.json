@@ -23,7 +23,7 @@
       "body_hash": "964e10291249cab1e5420b926f1139e1",
       "signature": "@RestController class HealthController",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {},
       "annotations": [
@@ -108,7 +108,7 @@
       "body_hash": "a7663d9e2e1c0b06334fcb59b0afd998",
       "signature": "@RestController @RequestMapping(\"/api\") class UserController",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {},
       "annotations": [
@@ -174,7 +174,7 @@
       "body_hash": "74dc90f8371ea1e084b3dabb00594333",
       "signature": "void callClient()",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/backend_http_boundaries/source.java:UserController:5:0",
       "metadata": null,
       "annotations": [],

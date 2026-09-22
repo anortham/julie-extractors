@@ -1,7 +1,7 @@
 /// Inheritance, implementation, and call relationship extraction
 use crate::base::{
-    LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex, Symbol, SymbolKind,
-    UnresolvedTarget,
+    BaseExtractor, LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex,
+    Symbol, SymbolKind, UnresolvedTarget,
 };
 use crate::java::JavaExtractor;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -10,104 +10,81 @@ use tree_sitter::Node;
 
 use super::helpers;
 
-/// Extract inheritance relationships from a class/interface/enum declaration
+/// Extract inheritance relationships from a class, interface, enum or record
+/// declaration. Targets drop type arguments and split qualified names, so
+/// `Base<String>` targets `Base` and `java.io.Serializable` targets
+/// `Serializable` in namespace `java.io`.
 pub(super) fn extract_inheritance_relationships(
     extractor: &mut JavaExtractor,
     node: Node,
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
 ) {
-    let type_symbol = find_type_symbol(extractor, node, symbols);
-    if type_symbol.is_none() {
+    let Some(type_symbol) = find_type_symbol(extractor, node, symbols) else {
         return;
+    };
+
+    let mut supertypes: Vec<(RelationshipKind, Node)> = Vec::new();
+    if let Some(superclass) = helpers::superclass_type_node(node) {
+        supertypes.push((RelationshipKind::Extends, superclass));
     }
-    let type_symbol = type_symbol.unwrap();
+    for interface in helpers::type_list_nodes(node, "super_interfaces") {
+        supertypes.push((RelationshipKind::Implements, interface));
+    }
+    for interface in helpers::type_list_nodes(node, "extends_interfaces") {
+        supertypes.push((RelationshipKind::Extends, interface));
+    }
 
     let file_path = extractor.base().file_path.clone();
     let line_number = (node.start_position().row + 1) as u32;
+    for (kind, type_node) in supertypes {
+        let target = helpers::type_reference_target(extractor.base(), type_node);
+        let local_base = target
+            .receiver
+            .is_none()
+            .then(|| {
+                symbols.iter().find(|s| {
+                    s.name == target.terminal_name
+                        && s.file_path == file_path
+                        && match kind {
+                            RelationshipKind::Implements => s.kind == SymbolKind::Interface,
+                            _ => matches!(s.kind, SymbolKind::Class | SymbolKind::Interface),
+                        }
+                })
+            })
+            .flatten();
 
-    // Handle class inheritance (extends)
-    if let Some(superclass) = helpers::extract_superclass(extractor.base(), node) {
-        if let Some(base_type_symbol) = symbols.iter().find(|s| {
-            s.name == superclass && matches!(s.kind, SymbolKind::Class | SymbolKind::Interface)
-        }) {
+        if let Some(base_type_symbol) = local_base {
+            let metadata_key = match kind {
+                RelationshipKind::Implements => "interface",
+                _ => "baseType",
+            };
             relationships.push(Relationship {
                 id: format!(
                     "{}_{}_{:?}_{}",
                     type_symbol.id,
                     base_type_symbol.id,
-                    RelationshipKind::Extends,
+                    kind,
                     node.start_position().row
                 ),
                 from_symbol_id: type_symbol.id.clone(),
                 to_symbol_id: base_type_symbol.id.clone(),
-                kind: RelationshipKind::Extends,
+                kind,
                 file_path: file_path.clone(),
                 line_number,
                 span: Some(crate::base::NormalizedSpan::from_node(&node)),
                 reference_site_is_exact: false,
                 confidence: 1.0,
-                metadata: {
-                    let mut map = HashMap::new();
-                    map.insert(
-                        "baseType".to_string(),
-                        serde_json::Value::String(superclass),
-                    );
-                    Some(map)
-                },
+                metadata: Some(HashMap::from([(
+                    metadata_key.to_string(),
+                    serde_json::Value::String(target.terminal_name),
+                )])),
             });
         } else {
-            // Cross-file: superclass is defined in another file
             let pending = extractor.base().create_pending_relationship(
                 type_symbol.id.clone(),
-                UnresolvedTarget::simple(superclass),
-                RelationshipKind::Extends,
-                &node,
-                Some(type_symbol.id.clone()),
-                Some(0.9),
-            );
-            extractor.add_structured_pending_relationship(pending);
-        }
-    }
-
-    // Handle interface implementations
-    let interfaces = helpers::extract_implemented_interfaces(extractor.base(), node);
-    for interface_name in interfaces {
-        if let Some(interface_symbol) = symbols
-            .iter()
-            .find(|s| s.name == interface_name && s.kind == SymbolKind::Interface)
-        {
-            relationships.push(Relationship {
-                id: format!(
-                    "{}_{}_{:?}_{}",
-                    type_symbol.id,
-                    interface_symbol.id,
-                    RelationshipKind::Implements,
-                    node.start_position().row
-                ),
-                from_symbol_id: type_symbol.id.clone(),
-                to_symbol_id: interface_symbol.id.clone(),
-                kind: RelationshipKind::Implements,
-                file_path: file_path.clone(),
-                line_number,
-                span: Some(crate::base::NormalizedSpan::from_node(&node)),
-                reference_site_is_exact: false,
-                confidence: 1.0,
-                metadata: {
-                    let mut map = HashMap::new();
-                    map.insert(
-                        "interface".to_string(),
-                        serde_json::Value::String(interface_name),
-                    );
-                    Some(map)
-                },
-            });
-        } else {
-            // Cross-file: interface is defined in another file
-            let pending = extractor.base().create_pending_relationship(
-                type_symbol.id.clone(),
-                UnresolvedTarget::simple(interface_name),
-                RelationshipKind::Implements,
+                target,
+                kind,
                 &node,
                 Some(type_symbol.id.clone()),
                 Some(0.9),
@@ -117,19 +94,16 @@ pub(super) fn extract_inheritance_relationships(
     }
 }
 
-/// Find the type symbol (class/interface/enum) that corresponds to this node
+/// The type symbol declared by this node, matched by span so that nested
+/// types sharing a name each own their own edges.
 fn find_type_symbol<'a>(
     extractor: &JavaExtractor,
     node: Node,
     symbols: &'a [Symbol],
 ) -> Option<&'a Symbol> {
-    let name_node = node
-        .children(&mut node.walk())
-        .find(|c| c.kind() == "identifier")?;
-    let type_name = extractor.base().get_node_text(&name_node);
-
     symbols.iter().find(|s| {
-        s.name == type_name
+        s.start_byte == node.start_byte() as u32
+            && s.end_byte == node.end_byte() as u32
             && matches!(
                 s.kind,
                 SymbolKind::Class | SymbolKind::Interface | SymbolKind::Enum
@@ -179,21 +153,40 @@ fn walk_tree_for_calls(
         return;
     }
 
-    if node.kind() == "method_invocation" {
-        extract_method_call_relationship(extractor, node, symbol_index, all_symbols, relationships);
+    let call = match node.kind() {
+        "method_invocation" => method_invocation_target(extractor, node)
+            .map(|target| (CallTarget::Method(target), None)),
+        "method_reference" => method_reference_target(extractor, node),
+        "object_creation_expression" => node
+            .child_by_field_name("type")
+            .map(|type_node| {
+                CallTarget::Constructor(helpers::type_reference_target(extractor.base(), type_node))
+            })
+            .map(|target| (target, None)),
+        "explicit_constructor_invocation" => explicit_constructor_target(extractor, node)
+            .map(|target| (CallTarget::Constructor(target), None)),
+        _ => None,
+    };
+    if let Some((target, receiver_type)) = call
+        && let Some(caller) = find_caller(node, all_symbols, &extractor.base().file_path)
+    {
+        match target {
+            CallTarget::Method(target) => emit_method_call(
+                extractor,
+                node,
+                caller,
+                target,
+                receiver_type
+                    .or_else(|| super::identifiers::self_receiver_type(extractor.base(), node)),
+                symbol_index,
+                relationships,
+            ),
+            CallTarget::Constructor(target) => {
+                emit_constructor_call(extractor, node, caller, target, symbol_map, relationships)
+            }
+        }
     }
 
-    if node.kind() == "object_creation_expression" {
-        extract_constructor_call_relationship(
-            extractor,
-            node,
-            symbol_map,
-            all_symbols,
-            relationships,
-        );
-    }
-
-    // Recursively process children
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
@@ -211,78 +204,135 @@ fn walk_tree_for_calls(
     }
 }
 
-fn extract_method_call_relationship(
-    extractor: &mut JavaExtractor,
-    node: Node,
-    symbol_index: &ScopedSymbolIndex<'_>,
-    all_symbols: &[Symbol],
-    relationships: &mut Vec<Relationship>,
-) {
-    let base = extractor.base();
+enum CallTarget {
+    Method(UnresolvedTarget),
+    Constructor(UnresolvedTarget),
+}
 
-    // Extract the method name being called
-    // In a method_invocation, the last identifier is the method name
-    let method_name = {
-        let mut last_id = None;
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            if child.kind() == "identifier" {
-                last_id = Some(base.get_node_text(&child));
-            }
-        }
-        last_id
-    };
-
-    let Some(method_name) = method_name else {
-        return;
-    };
-
-    let caller_symbol = extractor
-        .base()
-        .find_containing_symbol(&node, all_symbols)
-        .filter(|symbol| {
+/// The symbol that owns a call: the innermost method or constructor, else the
+/// field, constant or enum constant whose initializer holds it, else the type
+/// whose initializer block holds it.
+fn find_caller<'a>(node: Node, symbols: &'a [Symbol], file_path: &str) -> Option<&'a Symbol> {
+    let tiers: [fn(&SymbolKind) -> bool; 3] = [
+        |kind| {
             matches!(
-                symbol.kind,
+                kind,
                 SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
             )
-        });
+        },
+        |kind| {
+            matches!(
+                kind,
+                SymbolKind::Property | SymbolKind::Constant | SymbolKind::EnumMember
+            )
+        },
+        |kind| {
+            matches!(
+                kind,
+                SymbolKind::Class | SymbolKind::Interface | SymbolKind::Enum
+            )
+        },
+    ];
+    tiers.iter().find_map(|in_tier| {
+        BaseExtractor::find_containing_symbol_from_iter(
+            &node,
+            symbols
+                .iter()
+                .filter(|symbol| symbol.file_path == file_path && in_tier(&symbol.kind)),
+        )
+    })
+}
 
-    // No caller context means we can't create a meaningful relationship
-    let Some(caller) = caller_symbol else {
-        return;
+fn method_invocation_target(extractor: &JavaExtractor, node: Node) -> Option<UnresolvedTarget> {
+    let base = extractor.base();
+    let method_name = node
+        .children(&mut node.walk())
+        .filter(|child| child.kind() == "identifier")
+        .last()
+        .map(|child| base.get_node_text(&child))?;
+    Some(unresolved_call_target(extractor, node, &method_name))
+}
+
+/// `this::handle`, `User::getName`, `System.out::println` call the member;
+/// `Type::new` calls the constructor of `Type`.
+fn method_reference_target(
+    extractor: &JavaExtractor,
+    node: Node,
+) -> Option<(CallTarget, Option<String>)> {
+    let base = extractor.base();
+    let object = node.named_child(0)?;
+    let member = node.child((node.child_count() as u32).checked_sub(1)?)?;
+    if member.kind() == "new" {
+        return Some((
+            CallTarget::Constructor(helpers::type_reference_target(base, object)),
+            None,
+        ));
+    }
+    if member.kind() != "identifier" || member.id() == object.id() {
+        return None;
+    }
+    let name = base.get_node_text(&member);
+    let target = match object.kind() {
+        "identifier"
+        | "type_identifier"
+        | "field_access"
+        | "scoped_type_identifier"
+        | "generic_type" => {
+            let object_text = base.get_node_text(&helpers::generic_base_node(object));
+            UnresolvedTarget::from_qualified_text(&format!("{object_text}.{name}"), &["."])
+                .unwrap_or_else(|| UnresolvedTarget::simple(name))
+        }
+        _ => UnresolvedTarget::simple(name),
     };
+    Some((
+        CallTarget::Method(target),
+        super::identifiers::method_reference_receiver_type(base, node),
+    ))
+}
 
-    let line_number = node.start_position().row as u32 + 1;
-    let file_path = extractor.base().file_path.clone();
-    let target = unresolved_call_target(extractor, node, &method_name);
-    let receiver_type = super::identifiers::self_receiver_type(extractor.base(), node);
+/// `this(...)` calls a constructor of the enclosing class and `super(...)` a
+/// constructor of its superclass.
+fn explicit_constructor_target(extractor: &JavaExtractor, node: Node) -> Option<UnresolvedTarget> {
+    let base = extractor.base();
+    let constructor = node.child_by_field_name("constructor")?;
+    let declaration = std::iter::successors(node.parent(), |n| n.parent()).find(|n| {
+        matches!(
+            n.kind(),
+            "class_declaration" | "enum_declaration" | "record_declaration"
+        )
+    })?;
+    match constructor.kind() {
+        "this" => declaration
+            .child_by_field_name("name")
+            .map(|name| UnresolvedTarget::simple(base.get_node_text(&name))),
+        "super" => helpers::superclass_type_node(declaration)
+            .map(|superclass| helpers::type_reference_target(base, superclass)),
+        _ => None,
+    }
+}
 
+fn emit_method_call(
+    extractor: &mut JavaExtractor,
+    node: Node,
+    caller: &Symbol,
+    target: UnresolvedTarget,
+    receiver_type: Option<String>,
+    symbol_index: &ScopedSymbolIndex<'_>,
+    relationships: &mut Vec<Relationship>,
+) {
     match symbol_index.resolve_call_target(
         &target.terminal_name,
         Some(caller),
         target.receiver.as_deref(),
     ) {
         LocalTargetResolution::Resolved(called_symbol) => {
-            relationships.push(Relationship {
-                id: format!(
-                    "{}_{}_{:?}_{}",
-                    caller.id,
-                    called_symbol.id,
-                    RelationshipKind::Calls,
-                    node.start_position().row
-                ),
-                from_symbol_id: caller.id.clone(),
-                to_symbol_id: called_symbol.id.clone(),
-                kind: RelationshipKind::Calls,
-                file_path,
-                line_number,
-                span: Some(crate::base::NormalizedSpan::from_node(&node)),
-                reference_site_is_exact: false,
-                confidence: 0.9,
-                metadata: None,
-            });
+            push_call(extractor, node, caller, called_symbol, relationships);
         }
-        LocalTargetResolution::Import(_) => {
+        resolution => {
+            let confidence = match resolution {
+                LocalTargetResolution::Import(_) => 0.8,
+                _ => 0.7,
+            };
             let pending = extractor
                 .base()
                 .create_pending_relationship(
@@ -291,23 +341,7 @@ fn extract_method_call_relationship(
                     RelationshipKind::Calls,
                     &node,
                     Some(caller.id.clone()),
-                    Some(0.8),
-                )
-                .with_receiver_type(receiver_type);
-            extractor.add_structured_pending_relationship(pending);
-        }
-        LocalTargetResolution::Ambiguous
-        | LocalTargetResolution::ReceiverQualified
-        | LocalTargetResolution::Missing => {
-            let pending = extractor
-                .base()
-                .create_pending_relationship(
-                    caller.id.clone(),
-                    target,
-                    RelationshipKind::Calls,
-                    &node,
-                    Some(caller.id.clone()),
-                    Some(0.7),
+                    Some(confidence),
                 )
                 .with_receiver_type(receiver_type);
             extractor.add_structured_pending_relationship(pending);
@@ -315,103 +349,63 @@ fn extract_method_call_relationship(
     }
 }
 
-/// Extract constructor call relationship from `new ClassName(args)` expressions.
-fn extract_constructor_call_relationship(
+fn emit_constructor_call(
     extractor: &mut JavaExtractor,
     node: Node,
+    caller: &Symbol,
+    target: UnresolvedTarget,
     symbol_map: &HashMap<String, &Symbol>,
-    all_symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
 ) {
-    let base = extractor.base();
-
-    // In an object_creation_expression, find the type name
-    let type_name = {
-        let mut found = None;
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            if child.kind() == "identifier" {
-                found = Some(base.get_node_text(&child));
-                break;
-            }
-            // type_identifier: simple type like "Calculator"
-            // scoped_type_identifier: qualified type like "com.utils.Calculator"
-            if child.kind() == "type_identifier" || child.kind() == "scoped_type_identifier" {
-                found = Some(base.get_node_text(&child));
-                break;
-            }
+    let local = target
+        .receiver
+        .is_none()
+        .then(|| symbol_map.get(target.terminal_name.as_str()).copied())
+        .flatten();
+    match local {
+        Some(called_symbol) if called_symbol.kind != SymbolKind::Import => {
+            push_call(extractor, node, caller, called_symbol, relationships);
         }
-        found
-    };
-
-    let Some(type_name) = type_name else {
-        return;
-    };
-
-    let caller_symbol = extractor
-        .base()
-        .find_containing_symbol(&node, all_symbols)
-        .filter(|symbol| {
-            matches!(
-                symbol.kind,
-                SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
-            )
-        });
-
-    let Some(caller) = caller_symbol else {
-        return;
-    };
-
-    let line_number = node.start_position().row as u32 + 1;
-    let file_path = extractor.base().file_path.clone();
-
-    // Check if we can resolve the constructor locally
-    match symbol_map.get(type_name.as_str()) {
-        Some(called_symbol) if called_symbol.kind == SymbolKind::Import => {
+        local => {
+            let confidence = if local.is_some() { 0.8 } else { 0.7 };
             let pending = extractor.base().create_pending_relationship(
                 caller.id.clone(),
-                UnresolvedTarget::simple(type_name),
+                target,
                 RelationshipKind::Calls,
                 &node,
                 Some(caller.id.clone()),
-                Some(0.8),
-            );
-            extractor.add_structured_pending_relationship(pending);
-        }
-        Some(called_symbol) => {
-            // Local class - create resolved Relationship
-            relationships.push(Relationship {
-                id: format!(
-                    "{}_{}_{:?}_{}",
-                    caller.id,
-                    called_symbol.id,
-                    RelationshipKind::Calls,
-                    node.start_position().row
-                ),
-                from_symbol_id: caller.id.clone(),
-                to_symbol_id: called_symbol.id.clone(),
-                kind: RelationshipKind::Calls,
-                file_path,
-                line_number,
-                span: Some(crate::base::NormalizedSpan::from_node(&node)),
-                reference_site_is_exact: false,
-                confidence: 0.9,
-                metadata: None,
-            });
-        }
-        None => {
-            // Cross-file constructor call
-            let pending = extractor.base().create_pending_relationship(
-                caller.id.clone(),
-                UnresolvedTarget::simple(type_name),
-                RelationshipKind::Calls,
-                &node,
-                Some(caller.id.clone()),
-                Some(0.7),
+                Some(confidence),
             );
             extractor.add_structured_pending_relationship(pending);
         }
     }
+}
+
+fn push_call(
+    extractor: &JavaExtractor,
+    node: Node,
+    caller: &Symbol,
+    called_symbol: &Symbol,
+    relationships: &mut Vec<Relationship>,
+) {
+    relationships.push(Relationship {
+        id: format!(
+            "{}_{}_{:?}_{}",
+            caller.id,
+            called_symbol.id,
+            RelationshipKind::Calls,
+            node.start_position().row
+        ),
+        from_symbol_id: caller.id.clone(),
+        to_symbol_id: called_symbol.id.clone(),
+        kind: RelationshipKind::Calls,
+        file_path: extractor.base().file_path.clone(),
+        line_number: node.start_position().row as u32 + 1,
+        span: Some(crate::base::NormalizedSpan::from_node(&node)),
+        reference_site_is_exact: false,
+        confidence: 0.9,
+        metadata: None,
+    });
 }
 
 fn unresolved_call_target(

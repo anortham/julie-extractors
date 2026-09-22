@@ -19,7 +19,7 @@ pub(super) fn extract_class(
 
     let name = extractor.base().get_node_text(&name_node);
     let modifiers = helpers::extract_modifiers(extractor.base(), node);
-    let visibility = helpers::determine_visibility(&modifiers);
+    let visibility = helpers::determine_visibility(&modifiers, node);
 
     // Build signature
     let mut signature = if modifiers.is_empty() {
@@ -70,10 +70,7 @@ pub(super) fn extract_class(
         base_types.push(superclass);
     }
     base_types.extend(interfaces);
-    let mut metadata = HashMap::new();
-    if !base_types.is_empty() {
-        metadata.insert("base_types".to_string(), serde_json::json!(base_types));
-    }
+    let metadata = base_types_metadata(base_types).unwrap_or_default();
 
     // Extract JavaDoc comment
     let doc_comment = extractor.base().find_doc_comment(&node);
@@ -110,7 +107,7 @@ pub(super) fn extract_interface(
 
     let name = extractor.base().get_node_text(&name_node);
     let modifiers = helpers::extract_modifiers(extractor.base(), node);
-    let visibility = helpers::determine_visibility(&modifiers);
+    let visibility = helpers::determine_visibility(&modifiers, node);
 
     // Build signature
     let mut signature = if modifiers.is_empty() {
@@ -133,13 +130,13 @@ pub(super) fn extract_interface(
         );
     }
 
-    // Extract JavaDoc comment
     let doc_comment = extractor.base().find_doc_comment(&node);
 
     let options = SymbolOptions {
         signature: Some(signature),
         visibility: Some(visibility),
         parent_id: parent_id.map(|s| s.to_string()),
+        metadata: base_types_metadata(super_interfaces),
         doc_comment,
         ..Default::default()
     };
@@ -163,7 +160,7 @@ pub(super) fn extract_enum(
 
     let name = extractor.base().get_node_text(&name_node);
     let modifiers = helpers::extract_modifiers(extractor.base(), node);
-    let visibility = helpers::determine_visibility(&modifiers);
+    let visibility = helpers::determine_visibility(&modifiers, node);
 
     // Build signature
     let mut signature = if modifiers.is_empty() {
@@ -178,13 +175,13 @@ pub(super) fn extract_enum(
         signature.push_str(&format!(" implements {}", interfaces.join(", ")));
     }
 
-    // Extract JavaDoc comment
     let doc_comment = extractor.base().find_doc_comment(&node);
 
     let options = SymbolOptions {
         signature: Some(signature),
         visibility: Some(visibility),
         parent_id: parent_id.map(|s| s.to_string()),
+        metadata: base_types_metadata(interfaces),
         doc_comment,
         ..Default::default()
     };
@@ -247,7 +244,7 @@ pub(super) fn extract_record(
 
     let name = extractor.base().get_node_text(&name_node);
     let modifiers = helpers::extract_modifiers(extractor.base(), node);
-    let visibility = helpers::determine_visibility(&modifiers);
+    let visibility = helpers::determine_visibility(&modifiers, node);
 
     // Get record parameters (record components)
     let param_list = node
@@ -278,7 +275,7 @@ pub(super) fn extract_record(
         signature.push_str(&format!(" implements {}", interfaces.join(", ")));
     }
 
-    let mut metadata = HashMap::new();
+    let mut metadata = base_types_metadata(interfaces).unwrap_or_default();
     metadata.insert(
         "type".to_string(),
         serde_json::Value::String("record".to_string()),
@@ -356,4 +353,9 @@ pub(super) fn extract_record_components(
     }
 
     components
+}
+
+fn base_types_metadata(base_types: Vec<String>) -> Option<HashMap<String, serde_json::Value>> {
+    (!base_types.is_empty())
+        .then(|| HashMap::from([("base_types".to_string(), serde_json::json!(base_types))]))
 }

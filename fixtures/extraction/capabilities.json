@@ -2517,6 +2517,11 @@
           "name": "return_types",
           "source": "fixtures/extraction/java/return_types/source.java",
           "expected": "fixtures/extraction/java/return_types/expected.json"
+        },
+        {
+          "name": "hierarchy_and_calls",
+          "source": "fixtures/extraction/java/hierarchy_and_calls/source.java",
+          "expected": "fixtures/extraction/java/hierarchy_and_calls/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2531,7 +2536,10 @@
         "symbols": {
           "supported": [
             "class",
+            "constant",
             "constructor",
+            "enum",
+            "enum_member",
             "import",
             "interface",
             "method",

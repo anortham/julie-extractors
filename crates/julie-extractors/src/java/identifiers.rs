@@ -105,6 +105,21 @@ fn extract_identifier_from_node(
             record_java_call_arg_literals(extractor, node, containing_symbols);
         }
 
+        "method_reference" => {
+            if let Some(member) = method_reference_member(node) {
+                let name = extractor.base().get_node_text(&member);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                let receiver_type = method_reference_receiver_type(extractor.base(), node);
+                extractor.base_mut().create_identifier_with_receiver_type(
+                    &member,
+                    name,
+                    IdentifierKind::Call,
+                    containing_symbol_id,
+                    receiver_type,
+                );
+            }
+        }
+
         // Field access: object.field
         //
         // This fires for a field_access ANYWHERE, including as the `object`
@@ -208,6 +223,9 @@ fn is_java_value_read_identifier(node: Node) -> bool {
         // is a read this arm owns.
         "method_invocation" | "field_access" => is_field("object"),
 
+        // The referenced member of `Type::member` is owned by the Call arm.
+        "method_reference" => method_reference_member(parent).map(|m| m.id()) != Some(node.id()),
+
         // Rule 3: declaration names. Their NON-name identifier children (a
         // declarator initializer value, the enhanced-for collection) fall
         // through as reads.
@@ -259,8 +277,7 @@ fn is_java_value_read_identifier(node: Node) -> bool {
         }
 
         // Every other position — argument, operand, return value, ternary arm,
-        // array element/index, switch label constant, method-reference member,
-        // update expression (`i++` reads), annotation named-arg key — is a read.
+        // array element/index, switch label constant, update expression (`i++` reads), annotation named-arg key — is a read.
         _ => true,
     }
 }
@@ -454,6 +471,22 @@ fn java_carrier(base: &BaseExtractor, call_node: Node) -> Option<String> {
 pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
     let object = node.child_by_field_name("object")?;
     match object.kind() {
+        "this" => enclosing_type_name(base, node),
+        "super" => declared_superclass_name(base, node),
+        _ => None,
+    }
+}
+
+/// The member identifier of `receiver::member`; `Type::new` has none.
+fn method_reference_member(node: Node) -> Option<Node> {
+    let member = node.child((node.child_count() as u32).checked_sub(1)?)?;
+    (member.kind() == "identifier" && node.named_child(0).map(|n| n.id()) != Some(member.id()))
+        .then_some(member)
+}
+
+/// The `receiver_type` of `this::m` or `super::m`, mirroring [`self_receiver_type`].
+pub(super) fn method_reference_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
+    match node.named_child(0)?.kind() {
         "this" => enclosing_type_name(base, node),
         "super" => declared_superclass_name(base, node),
         _ => None,

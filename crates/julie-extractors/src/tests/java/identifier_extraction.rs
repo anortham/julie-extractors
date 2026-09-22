@@ -519,7 +519,7 @@ public class Sample {
         x = 7;                            // plain write LHS -> NOT a read
         int total = seed;                 // initializer value -> read seed
         int g = GraphTraversal.reach();   // receiver -> read; reach -> call
-        java.util.function.IntSupplier s = this::helper; // method reference -> read helper
+        java.util.function.IntSupplier s = this::helper; // method reference -> call helper
         return total > 0 ? total : VISIBILITY_UNKNOWN;   // bare reads
     }
 
@@ -558,7 +558,6 @@ class Decorated {
             "seed",               // initializer value read
             "total",              // ternary condition + consequence
             "VISIBILITY_UNKNOWN", // bare read in ternary alternative
-            "helper",             // method-reference (method group) read
             "baz",                // annotation named argument (member reference)
         ] {
             assert!(
@@ -566,6 +565,14 @@ class Decorated {
                 "expected variable_ref for {expected}; got {var_refs:?}"
             );
         }
+
+        assert!(
+            identifiers
+                .iter()
+                .any(|id| id.name == "helper" && id.kind == IdentifierKind::Call),
+            "a method-reference member is a call identifier"
+        );
+        assert!(!var_refs.contains(&"helper"));
 
         // Receiver + call coexist: GraphTraversal.reach()
         assert!(
