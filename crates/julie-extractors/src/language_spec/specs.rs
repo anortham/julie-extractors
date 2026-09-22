@@ -139,7 +139,9 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
     ),
     spec(
         "ruby",
-        &["rb", "rbw"],
+        &[
+            "rb", "rbw", "rake", "gemspec", "ru", "jbuilder", "builder", "thor",
+        ],
         "tree-sitter-ruby",
         FULL_CAPABILITIES,
         parser_ruby,

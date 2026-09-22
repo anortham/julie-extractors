@@ -140,30 +140,6 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/ruby/cross_file/source.rb:total:14:8",
-      "name": "total",
-      "kind": "variable",
-      "language": "ruby",
-      "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
-      "start_line": 14,
-      "start_column": 8,
-      "end_line": 14,
-      "end_column": 18,
-      "start_byte": 460,
-      "end_byte": 470,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "total = i",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/ruby/cross_file/source.rb:entry:10:2",
-      "metadata": {},
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
     }
   ],
   "relationships": [

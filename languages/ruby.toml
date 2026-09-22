@@ -27,8 +27,19 @@ url = [
 sql = [
     "execute",
     "exec_query",
+    "exec_update",
+    "exec_insert",
+    "exec_delete",
     "find_by_sql",
     "select_all",
+    "select_value",
+    "select_values",
+    "select_rows",
     "query",
+    "where",
+    "order",
+    "reorder",
+    "joins",
+    "having",
 ]
 route = []

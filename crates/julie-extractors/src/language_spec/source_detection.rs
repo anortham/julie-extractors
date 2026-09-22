@@ -26,12 +26,12 @@ pub(crate) fn detect_with_probe<E, F>(
 where
     F: FnMut(&str) -> Result<Option<(&'static str, tree_sitter::Tree)>, E>,
 {
-    if file_path
-        .file_name()
-        .and_then(|name| name.to_str())
-        .is_some_and(|name| name.eq_ignore_ascii_case("qmldir"))
-    {
+    let file_name = file_path.file_name().and_then(|name| name.to_str());
+    if file_name.is_some_and(|name| name.eq_ignore_ascii_case("qmldir")) {
         return Ok(Some(("qmldir", None)));
+    }
+    if file_name.is_some_and(|name| RUBY_FILE_NAMES.contains(&name)) {
+        return Ok(Some(("ruby", None)));
     }
 
     let extension = file_path
@@ -54,6 +54,22 @@ where
 
     Ok(crate::language_spec::detect_language_from_extension(extension).map(|lang| (lang, None)))
 }
+
+/// Extensionless build and tool files that hold plain Ruby source.
+const RUBY_FILE_NAMES: &[&str] = &[
+    "Gemfile",
+    "Rakefile",
+    "Guardfile",
+    "Capfile",
+    "Vagrantfile",
+    "Brewfile",
+    "Podfile",
+    "Fastfile",
+    "Appfile",
+    "Dangerfile",
+    "Berksfile",
+    "Thorfile",
+];
 
 /// Shell startup files, which carry no extension and often no shebang.
 const SHELL_DOTFILES: &[&str] = &[

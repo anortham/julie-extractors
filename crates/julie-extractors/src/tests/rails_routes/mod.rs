@@ -221,11 +221,11 @@ end
         .expect("member route");
     assert_eq!(
         metadata_str(preview, "scope_path"),
-        Some("/admin/posts/:post_id")
+        Some("/admin/posts/:id")
     );
     assert_eq!(
         metadata_str(preview, "normalized_route_template"),
-        Some("/admin/posts/:post_id/preview")
+        Some("/admin/posts/:id/preview")
     );
 
     let bulk = routes
@@ -311,4 +311,109 @@ end
 "#;
     let results = extract("app/controllers/users_controller.rb", source);
     assert!(facts_with_pattern(&results, RAILS_ROUTE_PATTERN_ID).is_empty());
+}
+
+fn route<'a>(routes: &[&'a StructuralFact], normalized: &str) -> &'a StructuralFact {
+    routes
+        .iter()
+        .copied()
+        .find(|fact| metadata_str(fact, "normalized_route_template") == Some(normalized))
+        .unwrap_or_else(|| panic!("no route {normalized}: {routes:#?}"))
+}
+
+#[test]
+fn rails_symbol_paths_member_on_option_and_nested_resources_follow_rails_paths() {
+    let source = r#"
+Rails.application.routes.draw do
+  resources :users, only: %i[index show] do
+    member do
+      post :activate
+      get "deactivate"
+    end
+    collection do
+      get :search
+    end
+    get :receipt, on: :member
+    get :export, on: :collection
+    get :preview
+    resources :posts, only: :index
+  end
+end
+"#;
+    let results = extract("config/routes.rb", source);
+    let routes = facts_with_pattern(&results, RAILS_ROUTE_PATTERN_ID);
+    assert_eq!(routes.len(), 6, "{routes:#?}");
+
+    let activate = route(&routes, "/users/:id/activate");
+    assert_eq!(metadata_str(activate, "verb"), Some("POST"));
+    assert_eq!(
+        metadata_str(activate, "controller_action"),
+        Some("users#activate")
+    );
+    assert_eq!(
+        metadata_str(route(&routes, "/users/:id/deactivate"), "controller_action"),
+        Some("users#deactivate")
+    );
+    assert_eq!(
+        metadata_str(route(&routes, "/users/search"), "controller_action"),
+        Some("users#search")
+    );
+    assert_eq!(
+        metadata_str(route(&routes, "/users/:id/receipt"), "controller_action"),
+        Some("users#receipt")
+    );
+    route(&routes, "/users/export");
+    route(&routes, "/users/:user_id/preview");
+
+    let resources = facts_with_pattern(&results, RAILS_RESOURCE_ROUTE_PATTERN_ID);
+    let users = resources
+        .iter()
+        .find(|fact| metadata_str(fact, "resource_name") == Some("users"))
+        .expect("users resource");
+    assert_eq!(metadata_array(users, "only"), vec!["index", "show"]);
+    assert_eq!(metadata_str(users, "scope_path"), None);
+    let posts = resources
+        .iter()
+        .find(|fact| metadata_str(fact, "resource_name") == Some("posts"))
+        .expect("posts resource");
+    assert_eq!(metadata_str(posts, "scope_path"), Some("/users/:user_id"));
+    assert_eq!(metadata_array(posts, "only"), vec!["index"]);
+}
+
+#[test]
+fn rails_multi_line_calls_one_line_blocks_and_hash_rocket_targets_emit_routes() {
+    let source = r#"
+Rails.application.routes.draw do
+  get "login" => "sessions#new"
+  get "/reports/:id",
+      to: "reports#show",
+      as: :report
+  namespace :admin do resources :audits end
+  namespace :api, defaults: { format: :json } do
+    resources :orders
+  end
+end
+"#;
+    let results = extract("config/routes.rb", source);
+    let routes = facts_with_pattern(&results, RAILS_ROUTE_PATTERN_ID);
+    assert_eq!(
+        metadata_str(route(&routes, "/login"), "controller_action"),
+        Some("sessions#new")
+    );
+    let report = route(&routes, "/reports/:id");
+    assert_eq!(
+        metadata_str(report, "controller_action"),
+        Some("reports#show")
+    );
+    assert_eq!(metadata_str(report, "route_name"), Some("report"));
+
+    let resources = facts_with_pattern(&results, RAILS_RESOURCE_ROUTE_PATTERN_ID);
+    let scope_of = |name: &str| {
+        resources
+            .iter()
+            .find(|fact| metadata_str(fact, "resource_name") == Some(name))
+            .and_then(|fact| metadata_str(fact, "scope_path"))
+    };
+    assert_eq!(scope_of("audits"), Some("/admin"));
+    assert_eq!(scope_of("orders"), Some("/api"));
 }

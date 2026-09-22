@@ -632,54 +632,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/ruby/basic/source.rb:total:50:8",
-      "name": "total",
-      "kind": "variable",
-      "language": "ruby",
-      "file_path": "fixtures/extraction/ruby/basic/source.rb",
-      "start_line": 50,
-      "start_column": 8,
-      "end_line": 50,
-      "end_column": 18,
-      "start_byte": 655,
-      "end_byte": 665,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "total = i",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/ruby/basic/source.rb:evaluate:46:2",
-      "metadata": {},
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/ruby/basic/source.rb:total:54:6",
-      "name": "total",
-      "kind": "variable",
-      "language": "ruby",
-      "file_path": "fixtures/extraction/ruby/basic/source.rb",
-      "start_line": 54,
-      "start_column": 6,
-      "end_line": 54,
-      "end_column": 16,
-      "start_byte": 715,
-      "end_byte": 725,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "total = 1",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/ruby/basic/source.rb:evaluate:46:2",
-      "metadata": {},
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/ruby/basic/source.rb:u:22:4",
       "name": "u",
       "kind": "variable",
@@ -902,10 +854,10 @@
       "caller_scope_key": "fixtures/extraction/ruby/basic/source.rb:Worker:7:0",
       "span": {
         "start_line": 8,
-        "start_column": 2,
+        "start_column": 10,
         "end_line": 8,
         "end_column": 20,
-        "start_byte": 77,
+        "start_byte": 85,
         "end_byte": 95
       }
     },
@@ -1096,6 +1048,22 @@
     }
   ],
   "identifiers": [
+    {
+      "key": "fixtures/extraction/ruby/basic/source.rb:@id:variable_ref:17:4",
+      "name": "@id",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/basic/source.rb",
+      "start_line": 17,
+      "start_column": 4,
+      "end_line": 17,
+      "end_column": 7,
+      "start_byte": 182,
+      "end_byte": 185,
+      "containing_key": "fixtures/extraction/ruby/basic/source.rb:reset:16:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
     {
       "key": "fixtures/extraction/ruby/basic/source.rb:Enumerable:type_usage:8:10",
       "name": "Enumerable",
@@ -1558,25 +1526,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/ruby/basic/source.rb:b:20:18",
-      "resolved_type": "Integer",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "ruby",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/ruby/basic/source.rb:total:47:4",
-      "resolved_type": "Integer",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "ruby",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/ruby/basic/source.rb:total:54:6",
       "resolved_type": "Integer",
       "generic_params": null,
       "constraints": null,
@@ -1694,6 +1644,9 @@
       "confidence": "1.000",
       "metadata": {
         "exception_type": "ZeroDivisionError",
+        "exception_types": [
+          "ZeroDivisionError"
+        ],
         "pattern_version": 1,
         "query_family": "error_handling"
       }

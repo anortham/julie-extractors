@@ -804,8 +804,13 @@ fn enrich_metadata(
             }
         }
         "ruby.rescue_clause.v1" => {
-            if let Some(exception) = ruby_rescue_exception(content, node) {
-                insert_string(metadata, "exception_type", &exception);
+            let exceptions = ruby_rescue_exceptions(content, node);
+            if let Some(first) = exceptions.first() {
+                insert_string(metadata, "exception_type", first);
+                metadata.insert(
+                    "exception_types".to_string(),
+                    Value::Array(exceptions.into_iter().map(Value::String).collect()),
+                );
             }
         }
         "elixir.defmodule_call.v1" => {
@@ -1175,10 +1180,7 @@ fn matches_pattern(
     match (language, pattern_id) {
         ("ruby", "ruby.require_call.v1") => ruby_require_kind(content, node).is_some(),
         ("ruby", "ruby.mixin_call.v1") => ruby_mixin_kind(content, node).is_some(),
-        ("ruby", "ruby.rescue_clause.v1") => {
-            ruby_rescue_exception(content, node).is_some()
-                || node_text(content, node).trim().len() > "rescue".len()
-        }
+        ("ruby", "ruby.rescue_clause.v1") => node.is_named(),
         ("elixir", "elixir.defmodule_call.v1") => {
             elixir_call_target(content, node).as_deref() == Some("defmodule")
         }
@@ -1301,7 +1303,19 @@ fn ruby_call_method_name(content: &str, node: Node<'_>) -> Option<String> {
         .map(str::to_string)
 }
 
+/// A `require` or mixin call acts on the current scope only when it is bare or
+/// sent to `self` or `Kernel`; `params.require(:user)` and `record.extend(M)`
+/// are ordinary messages to another object.
+fn ruby_is_scope_call(content: &str, node: Node<'_>) -> bool {
+    node.child_by_field_name("receiver").is_none_or(|receiver| {
+        receiver.kind() == "self" || node_text(content, receiver) == "Kernel"
+    })
+}
+
 fn ruby_require_kind(content: &str, node: Node<'_>) -> Option<&'static str> {
+    if !ruby_is_scope_call(content, node) {
+        return None;
+    }
     match ruby_call_method_name(content, node).as_deref()? {
         "require" => Some("require"),
         "require_relative" => Some("require_relative"),
@@ -1321,6 +1335,9 @@ fn ruby_require_path(content: &str, node: Node<'_>) -> Option<String> {
 }
 
 fn ruby_mixin_kind(content: &str, node: Node<'_>) -> Option<&'static str> {
+    if !ruby_is_scope_call(content, node) {
+        return None;
+    }
     match ruby_call_method_name(content, node).as_deref()? {
         "include" => Some("include"),
         "extend" => Some("extend"),
@@ -1339,8 +1356,18 @@ fn ruby_mixin_target(content: &str, node: Node<'_>) -> Option<String> {
     })
 }
 
-fn ruby_rescue_exception(content: &str, node: Node<'_>) -> Option<String> {
-    first_named_identifier(content, node, &["constant", "identifier"])
+/// The exception classes a `rescue` clause lists, in order and fully
+/// qualified. A bare `rescue` or `rescue => e` lists none.
+fn ruby_rescue_exceptions(content: &str, node: Node<'_>) -> Vec<String> {
+    let Some(exceptions) = node.child_by_field_name("exceptions") else {
+        return Vec::new();
+    };
+    let mut cursor = exceptions.walk();
+    exceptions
+        .named_children(&mut cursor)
+        .filter(|exception| matches!(exception.kind(), "constant" | "scope_resolution"))
+        .map(|exception| node_text(content, exception))
+        .collect()
 }
 
 /// Declared name of an Erlang attribute. `tree-sitter-erlang` spells the

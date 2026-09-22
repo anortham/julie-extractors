@@ -232,7 +232,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "controller_action",
                 STR,
                 OPT,
-                "Literal controller#action target.",
+                "controller#action target: literal from to: or a string pair, or the resource controller and path action inside a resources block.",
             ),
             key("route_name", STR, OPT, "Literal/as-symbol route name."),
         ],
@@ -251,7 +251,12 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
             key("resource_kind", STR, ALWAYS, "collection or singular."),
             key("only", ARR, OPT, "Literal only: action list."),
             key("except", ARR, OPT, "Literal except: action list."),
-            key("scope_path", STR, OPT, "Enclosing namespace/scope path."),
+            key(
+                "scope_path",
+                STR,
+                OPT,
+                "Enclosing namespace/scope path, including the parent resource path for nested resources.",
+            ),
         ],
     },
     StructuralFactPatternSpec {

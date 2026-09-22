@@ -778,9 +778,9 @@
       "start_line": 13,
       "start_column": 4,
       "end_line": 13,
-      "end_column": 23,
+      "end_column": 20,
       "start_byte": 332,
-      "end_byte": 351,
+      "end_byte": 348,
       "confidence": "1.000",
       "metadata": {
         "api_style": "dsl_routing",
@@ -836,6 +836,7 @@
       "confidence": "1.000",
       "metadata": {
         "api_style": "dsl_routing",
+        "controller_action": "home#index",
         "framework": "rails",
         "normalized_route_template": "/",
         "pattern_version": 1,
@@ -861,16 +862,17 @@
       "confidence": "1.000",
       "metadata": {
         "api_style": "dsl_routing",
+        "controller_action": "posts#activate",
         "dynamic_segments": [
-          "post_id"
+          "id"
         ],
-        "effective_route_template": "/api/posts/:post_id/activate",
+        "effective_route_template": "/api/posts/:id/activate",
         "framework": "rails",
-        "normalized_route_template": "/api/posts/:post_id/activate",
+        "normalized_route_template": "/api/posts/:id/activate",
         "pattern_version": 1,
         "query_family": "framework",
         "route_template": "activate",
-        "scope_path": "/api/posts/:post_id",
+        "scope_path": "/api/posts/:id",
         "verb": "GET",
         "verb_source": "attested"
       }

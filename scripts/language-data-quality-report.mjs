@@ -148,7 +148,6 @@ const DOMAIN_APPLICABILITY = {
       "qml",
       "r",
       "regex",
-      "ruby",
       "sql",
       "toml",
       "yaml",

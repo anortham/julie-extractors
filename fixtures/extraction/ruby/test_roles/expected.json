@@ -1072,7 +1072,7 @@
         "end_byte": 93
       },
       "body_hash": "8ae7e2a9205a147ce112275332de28d3",
-      "signature": "let! \"eager_order\"",
+      "signature": "let!(:eager_order)",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/ruby/test_roles/test_source.rb:ruby roles:1:0",
@@ -1209,7 +1209,7 @@
         "end_byte": 58
       },
       "body_hash": "8ae7e2a9205a147ce112275332de28d3",
-      "signature": "let \"order\"",
+      "signature": "let(:order)",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/ruby/test_roles/test_source.rb:ruby roles:1:0",
@@ -1438,7 +1438,7 @@
         "end_byte": 344
       },
       "body_hash": "2f86304b72925c9cdb444fd84b8bbb71",
-      "signature": "describe \"ruby roles\"",
+      "signature": "RSpec.describe \"ruby roles\"",
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
@@ -1472,7 +1472,7 @@
         "end_byte": 671
       },
       "body_hash": "8ae7e2a9205a147ce112275332de28d3",
-      "signature": "let \"shared_order\"",
+      "signature": "let(:shared_order)",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/ruby/test_roles/test_source.rb:with an order:44:0",
@@ -1507,7 +1507,7 @@
         "end_byte": 127
       },
       "body_hash": "b0f8e644e6c850c5f4fc790b415e1741",
-      "signature": "subject \"subject\"",
+      "signature": "subject",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/ruby/test_roles/test_source.rb:ruby roles:1:0",
@@ -2409,6 +2409,54 @@
   ],
   "identifiers": [
     {
+      "key": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb:@calculator:variable_ref:13:20",
+      "name": "@calculator",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb",
+      "start_line": 13,
+      "start_column": 20,
+      "end_line": 13,
+      "end_column": 31,
+      "start_byte": 210,
+      "end_byte": 221,
+      "containing_key": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb:test_adds_two_numbers:12:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb:@calculator:variable_ref:9:4",
+      "name": "@calculator",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb",
+      "start_line": 9,
+      "start_column": 4,
+      "end_line": 9,
+      "end_column": 15,
+      "start_byte": 137,
+      "end_byte": 148,
+      "containing_key": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb:teardown:8:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb:@rows:variable_ref:33:4",
+      "name": "@rows",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb",
+      "start_line": 33,
+      "start_column": 4,
+      "end_line": 33,
+      "end_column": 9,
+      "start_byte": 471,
+      "end_byte": 476,
+      "containing_key": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb:test_rows:32:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb:Calculator:type_usage:5:18",
       "name": "Calculator",
       "kind": "type_usage",
@@ -2585,6 +2633,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/ruby/test_roles/production_roles.rb:@rows:variable_ref:7:4",
+      "name": "@rows",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/test_roles/production_roles.rb",
+      "start_line": 7,
+      "start_column": 4,
+      "end_line": 7,
+      "end_column": 9,
+      "start_byte": 73,
+      "end_byte": 78,
+      "containing_key": "fixtures/extraction/ruby/test_roles/production_roles.rb:teardown:6:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/ruby/test_roles/production_roles.rb:after:call:21:0",
       "name": "after",
       "kind": "call",
@@ -2661,6 +2725,38 @@
       "start_byte": 194,
       "end_byte": 198,
       "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/test_roles/rails_macro_test.rb:@order:variable_ref:13:20",
+      "name": "@order",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/test_roles/rails_macro_test.rb",
+      "start_line": 13,
+      "start_column": 20,
+      "end_line": 13,
+      "end_column": 26,
+      "start_byte": 201,
+      "end_byte": 207,
+      "containing_key": "fixtures/extraction/ruby/test_roles/rails_macro_test.rb:computes the order total:12:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/ruby/test_roles/rails_macro_test.rb:@order:variable_ref:9:4",
+      "name": "@order",
+      "kind": "variable_ref",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/test_roles/rails_macro_test.rb",
+      "start_line": 9,
+      "start_column": 4,
+      "end_line": 9,
+      "end_column": 10,
+      "start_byte": 124,
+      "end_byte": 130,
+      "containing_key": "fixtures/extraction/ruby/test_roles/rails_macro_test.rb:teardown:8:2",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -3561,7 +3657,26 @@
       "confidence": "1.000"
     }
   ],
-  "types": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb:@rows:29:4",
+      "resolved_type": "Array",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "ruby",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/ruby/test_roles/production_roles.rb:@rows:3:4",
+      "resolved_type": "Array",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "ruby",
+      "metadata": null
+    }
+  ],
   "parse_diagnostics": [],
   "structural_facts": [
     {

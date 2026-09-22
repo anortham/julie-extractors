@@ -9,8 +9,7 @@
 ///
 /// Implementation of comprehensive Ruby extractor
 use crate::base::{
-    BaseExtractor, Identifier, Relationship, StructuredPendingRelationship, Symbol, SymbolKind,
-    Visibility,
+    BaseExtractor, Identifier, Relationship, StructuredPendingRelationship, Symbol, Visibility,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
@@ -33,8 +32,17 @@ mod type_facts;
 pub struct RubyExtractor {
     pub(crate) base: BaseExtractor,
     current_visibility: Visibility,
+    /// Inside a `class << self` body, where every `def` is a class method.
+    in_singleton_class: bool,
     same_file_class_names: std::collections::HashSet<String>,
     recorded_fields: std::collections::HashSet<(Option<String>, String)>,
+    /// Locals already declared per scope: a later assignment or `+=` to the
+    /// same name writes the existing local and declares nothing.
+    recorded_locals: std::collections::HashSet<(Option<String>, String)>,
+    /// `private :name` style calls, applied once every symbol exists.
+    visibility_calls: Vec<calls::VisibilityCall>,
+    /// Literal types read from each assignment's right-hand node.
+    literal_types: HashMap<String, String>,
     symbol_map: std::collections::HashMap<String, Symbol>,
 }
 
@@ -43,8 +51,12 @@ impl RubyExtractor {
         Self {
             base: BaseExtractor::new("ruby".to_string(), file_path, content, workspace_root),
             current_visibility: Visibility::Public,
+            in_singleton_class: false,
             same_file_class_names: std::collections::HashSet::new(),
             recorded_fields: std::collections::HashSet::new(),
+            recorded_locals: std::collections::HashSet::new(),
+            visibility_calls: Vec::new(),
+            literal_types: HashMap::new(),
             symbol_map: std::collections::HashMap::new(),
         }
     }
@@ -59,6 +71,10 @@ impl RubyExtractor {
         self.same_file_class_names =
             type_facts::collect_same_file_class_names(&self.base, tree.root_node());
         self.recorded_fields.clear();
+        self.recorded_locals.clear();
+        self.visibility_calls.clear();
+        self.literal_types.clear();
+        self.in_singleton_class = false;
 
         self.traverse_tree(tree.root_node(), &mut symbols);
 
@@ -74,6 +90,7 @@ impl RubyExtractor {
             }
         }
 
+        calls::apply_visibility_calls(&mut symbols, &self.visibility_calls);
         crate::test_detection::mark_ruby_test_containers(&mut symbols);
 
         symbols
@@ -89,55 +106,12 @@ impl RubyExtractor {
         identifiers::extract_identifiers(&mut self.base, tree, symbols)
     }
 
-    /// Infer types from Ruby signatures.
-    ///
-    /// Ruby is dynamically typed, so we infer from literal assignments in constants
-    /// and variables: `CONST = "value"` → String, `@@count = 0` → Integer.
-    pub fn infer_types(&self, symbols: &[Symbol]) -> HashMap<String, String> {
-        let mut type_map = HashMap::new();
-
-        for symbol in symbols {
-            if let Some(ref signature) = symbol.signature
-                && let Some(inferred) = Self::infer_type_from_signature(signature, &symbol.kind)
-            {
-                type_map.insert(symbol.id.clone(), inferred);
-            }
-        }
-
-        type_map
-    }
-
-    fn infer_type_from_signature(signature: &str, kind: &SymbolKind) -> Option<String> {
-        match kind {
-            SymbolKind::Constant | SymbolKind::Variable => {
-                // Extract type from literal RHS: `NAME = "value"` → String
-                let rhs = signature.split('=').nth(1)?.trim();
-                Self::infer_ruby_literal_type(rhs)
-            }
-            _ => None,
-        }
-    }
-
-    fn infer_ruby_literal_type(value: &str) -> Option<String> {
-        if value.starts_with('"') || value.starts_with('\'') || value.starts_with('%') {
-            Some("String".to_string())
-        } else if value.starts_with('[') {
-            Some("Array".to_string())
-        } else if value.starts_with('{') {
-            Some("Hash".to_string())
-        } else if value.starts_with(':') {
-            Some("Symbol".to_string())
-        } else if value == "true" || value == "false" {
-            Some("Boolean".to_string())
-        } else if value == "nil" {
-            Some("NilClass".to_string())
-        } else if value.parse::<i64>().is_ok() {
-            Some("Integer".to_string())
-        } else if value.parse::<f64>().is_ok() {
-            Some("Float".to_string())
-        } else {
-            None
-        }
+    /// Literal types of constants, variables, and fields, read from the node
+    /// kind of each assignment's right-hand side: `%w[a b]` is an Array,
+    /// `%r{x}` a Regexp. A method call on a literal (`"a,b".split`) states no
+    /// type. Parameters record nothing.
+    pub fn infer_types(&self, _symbols: &[Symbol]) -> HashMap<String, String> {
+        self.literal_types.clone()
     }
 
     // ========================================================================
@@ -161,57 +135,42 @@ impl RubyExtractor {
 
         let mut symbol_opt: Option<Symbol> = None;
         let mut extra_symbols = Vec::new();
+        let scope = symbols::MemberScope {
+            visibility: self.current_visibility.clone(),
+            class_method: self.in_singleton_class,
+        };
 
         match node.kind() {
             "module" => {
-                symbol_opt = symbols::extract_module(
-                    &mut self.base,
-                    node,
-                    parent_id.clone(),
-                    self.current_visibility.clone(),
-                );
+                symbol_opt = symbols::extract_module(&mut self.base, node, parent_id.clone());
             }
             "class" => {
-                symbol_opt = symbols::extract_class(
-                    &mut self.base,
-                    node,
-                    parent_id.clone(),
-                    self.current_visibility.clone(),
-                );
-            }
-            "singleton_class" => {
-                symbol_opt = Some(symbols::extract_singleton_class(
-                    &mut self.base,
-                    node,
-                    parent_id.clone(),
-                ));
+                symbol_opt = symbols::extract_class(&mut self.base, node, parent_id.clone());
             }
             "method" => {
-                symbol_opt = symbols::extract_method(
-                    &mut self.base,
-                    node,
-                    parent_id.clone(),
-                    self.current_visibility.clone(),
-                );
+                symbol_opt =
+                    symbols::extract_method(&mut self.base, node, parent_id.clone(), &scope);
                 if let Some(symbol) = &symbol_opt {
                     extra_symbols =
                         parameters::extract_parameter_symbols(&mut self.base, node, &symbol.id);
                 }
             }
             "singleton_method" => {
-                symbol_opt = symbols::extract_singleton_method(
-                    &mut self.base,
-                    node,
-                    parent_id.clone(),
-                    self.current_visibility.clone(),
-                );
+                symbol_opt =
+                    symbols::extract_singleton_method(&mut self.base, node, parent_id.clone());
                 if let Some(symbol) = &symbol_opt {
                     extra_symbols =
                         parameters::extract_parameter_symbols(&mut self.base, node, &symbol.id);
                 }
             }
             "call" => {
-                let call_symbols = calls::extract_call(&mut self.base, node, parent_id.clone());
+                if let Some(visibility_call) =
+                    calls::visibility_call(&self.base, node, parent_id.clone(), &scope)
+                {
+                    self.visibility_calls.push(visibility_call);
+                }
+                let call_symbols =
+                    calls::extract_call(&mut self.base, node, parent_id.clone(), &scope);
                 if call_symbols.len() == 1 {
                     symbol_opt = call_symbols.into_iter().next();
                 } else {
@@ -222,8 +181,8 @@ impl RubyExtractor {
                 }
             }
             "assignment" | "operator_assignment" => {
-                // Check for Struct.new pattern first (e.g., Person = Struct.new(:name, :age))
-                // Use symbol_opt so do_block methods get parented under the Class
+                // `Name = Struct.new(...)`, `Class.new(Base)`, and `Data.define(...)`
+                // declare a class; its block methods are parented to it.
                 if let Some((struct_class, field_props)) =
                     calls::try_extract_struct_new(&mut self.base, node, parent_id.clone())
                 {
@@ -239,6 +198,8 @@ impl RubyExtractor {
                     assignments::AssignmentContext {
                         same_file_class_names: &self.same_file_class_names,
                         recorded_fields: &mut self.recorded_fields,
+                        recorded_locals: &mut self.recorded_locals,
+                        literal_types: &mut self.literal_types,
                         symbol_map: &mut self.symbol_map,
                     },
                 ) {
@@ -247,7 +208,8 @@ impl RubyExtractor {
                 }
             }
             "alias" => {
-                symbol_opt = symbols::extract_alias(&mut self.base, node);
+                symbol_opt =
+                    symbols::extract_alias(&mut self.base, node, parent_id.clone(), &scope);
             }
             "identifier" => {
                 // Handle visibility modifiers
@@ -257,6 +219,11 @@ impl RubyExtractor {
                 }
             }
             _ => {}
+        }
+
+        for parameter in &extra_symbols {
+            self.recorded_locals
+                .insert((parameter.parent_id.clone(), parameter.name.clone()));
         }
 
         // Add symbol to collection and update parent_id for children
@@ -273,8 +240,13 @@ impl RubyExtractor {
             parent_id
         };
 
-        // Recursively traverse children with updated parent context
+        // Each class, module, and `class << self` body starts public.
         let old_visibility = self.current_visibility.clone();
+        let old_singleton = self.in_singleton_class;
+        if matches!(node.kind(), "class" | "module" | "singleton_class") {
+            self.current_visibility = Visibility::Public;
+            self.in_singleton_class = node.kind() == "singleton_class";
+        }
         if let Some(child_depth) = child_tree_depth(depth) {
             let mut cursor = node.walk();
             for child in node.children(&mut cursor) {
@@ -293,7 +265,8 @@ impl RubyExtractor {
                 );
             }
         }
-        self.current_visibility = old_visibility; // Restore previous visibility
+        self.current_visibility = old_visibility;
+        self.in_singleton_class = old_singleton;
     }
 
     // ========================================================================

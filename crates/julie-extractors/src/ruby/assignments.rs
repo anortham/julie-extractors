@@ -8,6 +8,8 @@ use tree_sitter::Node;
 pub(super) struct AssignmentContext<'a> {
     pub(super) same_file_class_names: &'a HashSet<String>,
     pub(super) recorded_fields: &'a mut HashSet<(Option<String>, String)>,
+    pub(super) recorded_locals: &'a mut HashSet<(Option<String>, String)>,
+    pub(super) literal_types: &'a mut HashMap<String, String>,
     pub(super) symbol_map: &'a mut HashMap<String, Symbol>,
 }
 
@@ -38,13 +40,22 @@ pub(super) fn extract_assignment(
         .child_by_field_name("right")
         .or_else(|| node.children(&mut node.walk()).last());
     let name = base.get_node_text(&left_side);
-    let signature = if let Some(right) = right_side {
+    let signature = if node.kind() == "operator_assignment" {
+        base.get_node_text(&node)
+    } else if let Some(right) = right_side {
         format!("{} = {}", name, base.get_node_text(&right))
     } else {
         name.clone()
     };
 
     let kind = infer_symbol_kind_from_assignment(&left_side, |n| base.get_node_text(n));
+    if left_side.kind() == "identifier"
+        && !context
+            .recorded_locals
+            .insert((parent_id.clone(), name.clone()))
+    {
+        return None;
+    }
     let parent_id = if kind == SymbolKind::Field {
         let class_parent = class_parent_id(context.symbol_map, parent_id.clone());
         if !context
@@ -57,7 +68,7 @@ pub(super) fn extract_assignment(
     } else {
         parent_id
     };
-    let record_constructor = kind == SymbolKind::Variable;
+    let record_constructor = matches!(kind, SymbolKind::Variable | SymbolKind::Field);
     let symbol = base.create_symbol(
         &node,
         name,
@@ -71,6 +82,13 @@ pub(super) fn extract_assignment(
             annotations: Vec::new(),
         },
     );
+    if node.kind() == "assignment"
+        && let Some(literal_type) = right_side.and_then(literal_type)
+    {
+        context
+            .literal_types
+            .insert(symbol.id.clone(), literal_type.to_string());
+    }
     if record_constructor && let Some(right) = right_side {
         type_facts::record_same_file_new_fact(
             base,
@@ -80,6 +98,23 @@ pub(super) fn extract_assignment(
         );
     }
     Some(symbol)
+}
+
+/// The core class of a literal right-hand side, read from its node kind.
+fn literal_type(value: Node) -> Option<&'static str> {
+    Some(match value.kind() {
+        "string" | "chained_string" | "heredoc_beginning" => "String",
+        "array" | "string_array" | "symbol_array" => "Array",
+        "hash" => "Hash",
+        "simple_symbol" | "delimited_symbol" => "Symbol",
+        "regex" => "Regexp",
+        "true" | "false" => "Boolean",
+        "nil" => "NilClass",
+        "integer" => "Integer",
+        "float" => "Float",
+        "range" => "Range",
+        _ => return None,
+    })
 }
 
 fn class_parent_id(

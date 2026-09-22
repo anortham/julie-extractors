@@ -5,8 +5,8 @@
 //! [`super::super::structural_fact_pattern_specs`].
 
 use super::super::{
-    ALWAYS, BASE_KEYS, K_PATTERN_VERSION, K_QUERY_FAMILY, NUM, OPT, STR, StructuralFactPatternSpec,
-    key,
+    ALWAYS, ARR, BASE_KEYS, K_PATTERN_VERSION, K_QUERY_FAMILY, NUM, OPT, STR,
+    StructuralFactPatternSpec, key,
 };
 
 pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
@@ -147,7 +147,13 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "exception_type",
                 STR,
                 OPT,
-                "The rescued exception class name.",
+                "The first rescued exception class, fully qualified; absent for a bare rescue.",
+            ),
+            key(
+                "exception_types",
+                ARR,
+                OPT,
+                "Every rescued exception class in the clause, in order.",
             ),
         ],
     },

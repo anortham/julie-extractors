@@ -1,6 +1,10 @@
 # Ruby support
 
-Julie registers one Ruby language: `ruby` handles `.rb` and `.rbw` files.
+Julie registers one Ruby language: `ruby` handles `.rb`, `.rbw`, `.rake`,
+`.gemspec`, `.ru`, `.jbuilder`, `.builder`, and `.thor` files. The
+extensionless files `Gemfile`, `Rakefile`, `Guardfile`, `Capfile`,
+`Vagrantfile`, `Brewfile`, `Podfile`, `Fastfile`, `Appfile`, `Dangerfile`,
+`Berksfile`, and `Thorfile` are Ruby by exact file name.
 
 ## Continuous testing
 
@@ -120,6 +124,60 @@ before they count as a mixin on the enclosing class, which keeps
   receiver `super` and the declared superclass as `receiver_type`.
 - A DSL call that declares its own symbol, such as `test "x" do` or
   `setup do`, is that declaration and gives no call row.
+- Each `class`, `module`, and `class << self` body starts public. A bare
+  `private` does not reach `def self.x`. `private :a, :b`, `protected :a`,
+  `public :a`, `private_class_method :m`, `private attr_reader :x`, and
+  `private def x` change the named members, wherever the call sits in the
+  class body.
+- `def self.x`, `def self.x=`, `def self.[]`, and methods in a `class << self`
+  body are methods of the enclosing class with `metadata.isStatic = true`.
+  No symbol is emitted for the `class << self` block itself.
+- `alias`, `alias_method`, `define_method`, `define_singleton_method`,
+  `def_delegator(s)`, and `delegate` define methods of the enclosing class.
+  `has_many`, `has_one`, `belongs_to`, and `has_and_belongs_to_many` define
+  properties; `scope :name` defines a class method.
+- `X = Class.new(Base) do ... end`, `X = Struct.new(:a)`, and
+  `X = Data.define(:a)` declare a class. Block methods belong to it, `Base`
+  is its superclass, and the symbol arguments are properties.
+- Callback and dispatch symbols call the named method: `before_*`,
+  `after_*`, `around_*`, `skip_*`, `prepend_*`, `append_*`, `validate`,
+  `helper_method`, the `with:`/`if:`/`unless:` options of callbacks,
+  `rescue_from`, and `validates`.
+- A superclass constant resolves lexically: `class Card < Base` inside
+  `module Payments` prefers `Payments::Base`. Every argument of
+  `include A, B` gives an `implements` row. A computed superclass such as
+  `Struct.new(...)` gives no edge.
+- A local variable is defined once, at its first assignment. `x += 1` on a
+  bound local is a `variable_ref`. Instance, class, and global variable reads
+  are `variable_ref` identifiers; the declaring assignment is not.
+- Inferred type facts come from literal initializers (`String`, `Array`,
+  `Hash`, `Symbol`, `Regexp`, `Boolean`, `NilClass`, `Integer`, `Float`,
+  `Range`) and from same-file `Foo.new(...)`. A method call result gives no
+  fact. `docs/decisions/2026-09-08-receiver-type-facts-wave-2.md` keeps
+  imported and namespace-qualified constructors out.
+
+## Rake files
+
+In a `.rake` file or a `Rakefile`, `namespace :db do` is a `namespace` symbol
+and `task seed: :environment do` (or `task :seed`) is a `function` symbol.
+A preceding `desc "..."` is the task doc comment. Calls in a task body
+therefore have a containing symbol and give pending rows. Other files keep
+`task` and `namespace` as ordinary calls.
+
+## RSpec references and tags
+
+- `it_behaves_like`, `it_should_behave_like`, `include_examples`, and
+  `include_context` give a `references` relationship to a same-file shared
+  group, or a pending `references` row named after the group.
+- Metadata after a group or example description is a symbol annotation with
+  carrier `rspec_metadata`: `:slow` gives annotation `slow`, and
+  `type: :model` gives key `type` with the pair text in `raw_text`.
+- A one-liner `it { ... }` is named `example at line N`, the way RSpec names
+  it. Descriptions are decoded string contents. Test block signatures are the
+  call text up to the block.
+- A hook is a hook only directly in an example group. A `before` block inside
+  an example, a `let` body, or a mock app is an ordinary call and never
+  resolves to a hook symbol.
 
 ## Doc comments
 
@@ -129,6 +187,32 @@ documents that member. A shebang, a magic comment (`frozen_string_literal:`,
 `encoding:`, `coding:`, `warn_indent:`, `shareable_constant_value:`,
 `typed:`), and a `rubocop:` directive are never docs and end the block. They
 are plain `comment` source regions.
+
+## Rails routes
+
+The collector reads the AST inside `*.routes.draw do ... end`, or the whole
+file for split route files under `config/routes/`. `namespace`, `scope`
+(positional or `path:`), `resources`, `resource`, `member`, `collection`, the
+HTTP verbs, `match` with `via:`, `root`, and `mount` are read with their
+multi-line arguments and one-line `do ... end` blocks. Member routes join
+`/:id`; routes written directly in a `resources :users` block and nested
+resources join `/users/:user_id`. See `docs/contracts/sqlite-schema-v4.md`
+for the metadata rules.
+
+## Facts, literals, and HTTP clients
+
+- `ruby.require_call.v1` and `ruby.mixin_call.v1` count only bare, `self`,
+  or `Kernel` receivers. `params.require(:user)` is not a require.
+- `ruby.rescue_clause.v1` reads the `exceptions` field: `exception_type` is
+  the first class and `exception_types` lists every class. A bare `rescue`
+  and `rescue => e` carry neither key.
+- A heredoc argument is a literal with its dedented body text. The first
+  argument of `where`, `order`, `reorder`, `joins`, and `having` is a SQL
+  fragment carrier.
+- `http.client_request.v1` covers `HTTParty`, `RestClient`, `Faraday`
+  (constant, `conn = Faraday.new(...)` receiver, or a chained
+  `Faraday.new(...).get`), and `Net::HTTP.get/get_response/post/post_form`
+  with a same-scope `URI("...")` binding.
 
 ## Sinatra routes
 
@@ -142,22 +226,9 @@ app class.
 
 ## Recorded gaps
 
-Two RSpec surfaces are recorded as `open_gaps` on the ruby row in
-`fixtures/extraction/capabilities.json`, under
-`kind_coverage.structural_facts.open_gaps`. The `test_detection` vocabulary is
-frozen to `test_case`, `test_container`, and `test_lifecycle`, and ruby
-classifies each exactly once, so a ruby-specific gap cannot live there.
-
-- `rspec.shared_example_group_references`. `it_behaves_like "a countable"` and
-  `include_examples "a countable"` run a group that `shared_examples` defines
-  somewhere else, often in another file. The call names the group; it does not
-  define it, so a symbol row would publish a second definition. The extractor
-  emits the `shared_examples` container and leaves the call as an ordinary
-  identifier row.
-- `rspec.example_metadata_tags`. `it "is slow", :slow do` and
-  `describe Order, type: :model do` attach metadata through extra call
-  arguments. Ruby has no annotation syntax, so the ruby row classifies every
-  annotation kind as not applicable and these tags reach no channel today.
+The ruby row in `fixtures/extraction/capabilities.json` has no open gaps.
+The RSpec shared-group reference and metadata-tag gaps closed in wave 2 of
+`docs/plans/2026-09-22-language-gap-closure.md`.
 
 ## Evidence
 
@@ -170,7 +241,13 @@ The golden fixture `ruby:test_roles` registers four sources:
 | `rails_macro_test.rb` | the Rails `test` macro, block-form `setup`/`teardown`, and `ActionDispatch::IntegrationTest` |
 | `production_roles.rb` | the production-path control |
 
-The registered goldens observe 11 `test_case` rows, 9 `test_container` rows,
+The golden fixture `ruby:wave2_semantics` registers five sources: a class
+file with the wave-2 symbol, visibility, callback, fact, literal, and HTTP
+client shapes; a shared example group in `spec/support/` that
+`spec/list_spec.rb` runs from another file; a Rake task file; and a
+`config/routes.rb` with the AST route shapes.
+
+The `ruby:test_roles` goldens observe 11 `test_case` rows, 9 `test_container` rows,
 and 11 `test_lifecycle` rows for ruby.
 
 No real-world corpus scan was run for this contract. The evidence above is

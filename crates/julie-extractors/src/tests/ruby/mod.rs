@@ -460,13 +460,22 @@ end
         });
         assert!(define_method_call.is_some());
 
-        // Singleton class
-        let singleton_class = symbols.iter().find(|s| {
-            s.signature
+        let create_accessor = symbols
+            .iter()
+            .find(|s| s.name == "create_accessor")
+            .expect("class << self method");
+        assert_eq!(
+            create_accessor
+                .metadata
                 .as_ref()
-                .is_some_and(|sig| sig.contains("class << self"))
-        });
-        assert!(singleton_class.is_some());
+                .and_then(|m| m.get("isStatic"))
+                .and_then(|v| v.as_bool()),
+            Some(true)
+        );
+        assert_eq!(
+            create_accessor.parent_id,
+            dynamic_class.map(|class| class.id.clone())
+        );
 
         // method_missing
         let method_missing = symbols.iter().find(|s| s.name == "method_missing");
@@ -1744,3 +1753,4 @@ end
     }
 }
 pub mod wave1_gaps;
+pub mod wave2_gaps;

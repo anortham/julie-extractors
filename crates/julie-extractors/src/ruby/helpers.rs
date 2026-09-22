@@ -146,19 +146,106 @@ pub(super) fn is_self_directed_call(node: Node) -> bool {
         .is_none_or(|receiver| receiver.kind() == "self")
 }
 
-/// Extract method name from a singleton method node
-pub(super) fn extract_singleton_method_name(
-    node: Node,
-    base_get_text: impl Fn(&Node) -> String,
-) -> Option<String> {
-    // Ruby singleton method structure: def target.method_name
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if child.kind() == "identifier" && child.prev_sibling().is_some_and(|s| s.kind() == ".") {
-            return Some(base_get_text(&child));
+/// A symbol argument that names a method the call sends or registers: a
+/// Rails callback (`before_action :set_post`, `validate :check`,
+/// `rescue_from E, with: :handle`, `helper_method :current_user`), a dynamic
+/// send (`send(:audit)`, `method(:audit)`), or a `&:price` block argument.
+pub(crate) struct MethodSymbolArgument<'tree> {
+    pub(crate) node: Node<'tree>,
+    pub(crate) name: String,
+    /// The named method belongs to the enclosing class, so it may resolve to
+    /// a same-file method.
+    pub(crate) resolve_locally: bool,
+}
+
+pub(crate) fn method_symbol_arguments<'tree>(
+    base: &crate::base::BaseExtractor,
+    call: Node<'tree>,
+) -> Vec<MethodSymbolArgument<'tree>> {
+    let Some(method) = call.child_by_field_name("method") else {
+        return Vec::new();
+    };
+    let method = base.get_node_text(&method);
+    let Some(arguments) = call.child_by_field_name("arguments") else {
+        return Vec::new();
+    };
+    let self_directed = is_self_directed_call(call);
+    let symbol = |node: Node<'tree>, resolve_locally: bool| {
+        (node.kind() == "simple_symbol").then(|| MethodSymbolArgument {
+            node,
+            name: base
+                .get_node_text(&node)
+                .trim_start_matches(':')
+                .to_string(),
+            resolve_locally,
+        })
+    };
+    let mut cursor = arguments.walk();
+    let children: Vec<Node<'tree>> = arguments.named_children(&mut cursor).collect();
+    let mut found = Vec::new();
+    if let Some(block_argument) = children
+        .first()
+        .filter(|first| first.kind() == "block_argument")
+        .and_then(|first| first.named_child(0))
+    {
+        found.extend(symbol(block_argument, false));
+        return found;
+    }
+    if matches!(
+        method.as_str(),
+        "send" | "public_send" | "__send__" | "method"
+    ) {
+        found.extend(
+            children
+                .first()
+                .and_then(|first| symbol(*first, self_directed)),
+        );
+        return found;
+    }
+    if !self_directed {
+        return found;
+    }
+    let positional = is_callback_macro(&method) || method == "helper_method";
+    for child in children {
+        if positional {
+            found.extend(symbol(child, true));
+        }
+        if child.kind() == "pair"
+            && let Some(key) = child.child_by_field_name("key")
+            && matches!(
+                base.get_node_text(&key).trim_end_matches(':'),
+                "with" | "if" | "unless"
+            )
+            && (is_callback_macro(&method)
+                || matches!(method.as_str(), "rescue_from" | "validates"))
+            && let Some(value) = child.child_by_field_name("value")
+        {
+            found.extend(symbol(value, true));
         }
     }
-    None
+    found
+}
+
+/// Rails controller and model callbacks and custom validators, whose symbol
+/// arguments name methods of the same class.
+fn is_callback_macro(method: &str) -> bool {
+    let callback = [
+        "before_",
+        "after_",
+        "around_",
+        "skip_before_",
+        "skip_after_",
+        "skip_around_",
+        "prepend_before_",
+        "prepend_after_",
+        "prepend_around_",
+        "append_before_",
+        "append_after_",
+        "append_around_",
+    ]
+    .iter()
+    .any(|prefix| method.starts_with(prefix));
+    callback || method == "validate"
 }
 
 /// Extract target of a singleton method (e.g., 'self' or object name)
@@ -234,12 +321,17 @@ fn find_includes_and_extends_recursive(
         includes.push(base_get_text(&node));
     }
 
-    // Recursively search children
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
+        if matches!(
+            child.kind(),
+            "class" | "module" | "singleton_class" | "method" | "singleton_method"
+        ) {
+            continue;
+        }
         find_includes_and_extends_recursive(
             child,
             includes,

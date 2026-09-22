@@ -6831,7 +6831,7 @@
         "value_type": "string_array"
       },
       {
-        "description": "Enclosing namespace/scope path.",
+        "description": "Enclosing namespace/scope path, including the parent resource path for nested resources.",
         "key": "scope_path",
         "presence": "optional",
         "value_type": "string"
@@ -6913,7 +6913,7 @@
         "value_type": "string"
       },
       {
-        "description": "Literal controller#action target.",
+        "description": "controller#action target: literal from to: or a string pair, or the resource controller and path action inside a resources block.",
         "key": "controller_action",
         "presence": "optional",
         "value_type": "string"
@@ -7605,10 +7605,16 @@
         "value_type": "string"
       },
       {
-        "description": "The rescued exception class name.",
+        "description": "The first rescued exception class, fully qualified; absent for a bare rescue.",
         "key": "exception_type",
         "presence": "optional",
         "value_type": "string"
+      },
+      {
+        "description": "Every rescued exception class in the clause, in order.",
+        "key": "exception_types",
+        "presence": "optional",
+        "value_type": "string_array"
       }
     ],
     "pattern_id": "ruby.rescue_clause.v1",

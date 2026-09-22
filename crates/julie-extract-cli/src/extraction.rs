@@ -760,7 +760,10 @@ fn receiver_token_before(source: &str, at: usize, language: &str) -> Option<(Str
     let arrow_is_member_access = matches!(language, "c" | "cpp" | "php");
     let bytes = source.as_bytes();
     let mut cursor = at.min(bytes.len());
-    while cursor > 0 && bytes[cursor - 1].is_ascii_whitespace() {
+    // A member separator ends the previous line only in a trailing-dot chain;
+    // across a line break the `.` is far more often the end of a comment or
+    // sentence, so the separator must sit on the identifier's own line.
+    while cursor > 0 && bytes[cursor - 1].is_ascii_whitespace() && bytes[cursor - 1] != b'\n' {
         cursor -= 1;
     }
     let separator_width = if cursor >= 2
@@ -1456,6 +1459,19 @@ mod tests {
         ] {
             assert_eq!(receiver_before_identifier(source, start, "php"), None);
         }
+    }
+
+    #[test]
+    fn a_separator_on_the_previous_line_is_not_a_receiver() {
+        let source = "    # Then push it to the remote.\n    push(record)";
+        let at = source.find("push").unwrap() as u32;
+        assert_eq!(receiver_before_identifier(source, at, "ruby"), None);
+        let chained = "records\n  .select(&:valid?)";
+        let at = chained.find("select").unwrap() as u32;
+        assert_eq!(
+            receiver_before_identifier(chained, at, "ruby"),
+            Some("records".to_string())
+        );
     }
 
     #[test]

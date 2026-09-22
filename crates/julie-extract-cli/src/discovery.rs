@@ -923,6 +923,34 @@ mod tests {
     }
 
     #[test]
+    fn discover_selects_ruby_build_files_by_basename_and_extension() {
+        let fixture = DiscoveryFixture::new();
+        let ruby = FileSelection::Supported {
+            language: "ruby".to_string(),
+        };
+        let policy = fixture.policy();
+        for path in [
+            "Gemfile",
+            "Rakefile",
+            "config.ru",
+            "lib/tasks/seed.rake",
+            "widget.gemspec",
+            "app/views/users/show.json.jbuilder",
+            "tools/Guardfile",
+        ] {
+            let target = fixture.write(path, "source 'https://rubygems.org'\n");
+            assert_eq!(policy.select_file(&target), ruby, "{path}");
+        }
+        let lowercase = fixture.write("docs/gemfile", "not ruby\n");
+        assert_eq!(
+            policy.select_file(&lowercase),
+            FileSelection::Unsupported {
+                reason: UnsupportedReason::UnsupportedExtension
+            }
+        );
+    }
+
+    #[test]
     fn discover_selects_bats_shell_dotfiles_and_shell_shebang_scripts_as_bash() {
         let fixture = DiscoveryFixture::new();
         let bash = FileSelection::Supported {
