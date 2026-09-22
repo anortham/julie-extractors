@@ -1,40 +1,46 @@
-use crate::base::{BaseExtractor, Relationship, RelationshipKind, Symbol, SymbolKind};
-use regex::Regex;
+use crate::base::{
+    BaseExtractor, NormalizedSpan, Relationship, RelationshipKind, Symbol, SymbolKind,
+};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
-use std::sync::LazyLock;
 
-static LOCAL_LINK_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\[[^\]]+\]\(#([^)]+)\)").unwrap());
-
+/// `References` edges from the heading that holds an inline `[text](#anchor)`
+/// link to the heading with that slug. Links come from the inline-link
+/// symbols, so text in code blocks, code spans, and HTML never links.
 pub(super) fn extract_relationships(base: &BaseExtractor, symbols: &[Symbol]) -> Vec<Relationship> {
     let headings = heading_symbols_by_slug(symbols);
     let mut relationships = Vec::new();
     let mut seen = HashSet::new();
 
-    for (line_index, line) in base.content.lines().enumerate() {
-        let line_number = line_index as u32 + 1;
-        for captures in LOCAL_LINK_RE.captures_iter(line) {
-            let Some(raw_anchor) = captures.get(1).map(|matched| matched.as_str()) else {
-                continue;
-            };
-            let slug = normalize_anchor(raw_anchor);
-            let Some(target) = headings.get(&slug) else {
-                continue;
-            };
-            let Some(source) = containing_heading_at_line(symbols, line_number) else {
-                continue;
-            };
-            push_relationship(
-                base,
-                source,
-                target,
-                line_number,
-                raw_anchor,
-                &mut seen,
-                &mut relationships,
-            );
+    for link in symbols {
+        let Some(metadata) = link.metadata.as_ref() else {
+            continue;
+        };
+        if metadata.get("markdown_kind").and_then(Value::as_str) != Some("inline_link") {
+            continue;
         }
+        let Some(raw_anchor) = metadata
+            .get("destination")
+            .and_then(Value::as_str)
+            .and_then(|destination| destination.strip_prefix('#'))
+        else {
+            continue;
+        };
+        let Some(target) = headings.get(&normalize_anchor(raw_anchor)) else {
+            continue;
+        };
+        let Some(source) = containing_heading_at_line(symbols, link.start_line) else {
+            continue;
+        };
+        push_relationship(
+            base,
+            source,
+            target,
+            link,
+            raw_anchor,
+            &mut seen,
+            &mut relationships,
+        );
     }
 
     relationships
@@ -68,7 +74,7 @@ fn push_relationship(
     base: &BaseExtractor,
     source: &Symbol,
     target: &Symbol,
-    line_number: u32,
+    link: &Symbol,
     anchor: &str,
     seen: &mut HashSet<(String, String, u32, String)>,
     relationships: &mut Vec<Relationship>,
@@ -76,6 +82,7 @@ fn push_relationship(
     if source.id == target.id {
         return;
     }
+    let line_number = link.start_line;
 
     let key = (
         source.id.clone(),
@@ -104,8 +111,15 @@ fn push_relationship(
         kind: RelationshipKind::References,
         file_path: base.file_path.clone(),
         line_number,
-        span: crate::base::NormalizedSpan::from_line_occurrence(&base.content, line_number, anchor),
-        reference_site_is_exact: false,
+        span: Some(NormalizedSpan {
+            start_line: link.start_line,
+            start_column: link.start_column,
+            end_line: link.end_line,
+            end_column: link.end_column,
+            start_byte: link.start_byte,
+            end_byte: link.end_byte,
+        }),
+        reference_site_is_exact: true,
         confidence: 1.0,
         metadata: Some(metadata),
     });

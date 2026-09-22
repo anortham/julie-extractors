@@ -193,254 +193,28 @@ fn collect_markdown_structural_facts(
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
     collect_markdown_node(tree.root_node(), file_path, content, &mut facts, 0);
-    append_markdown_setext_heading_facts(file_path, content, &mut facts);
-    append_markdown_inline_link_facts(file_path, content, &mut facts);
-    facts
-}
-
-fn append_markdown_inline_link_facts(
-    file_path: &str,
-    content: &str,
-    facts: &mut Vec<StructuralFact>,
-) {
-    let excluded_spans = markdown_inline_link_excluded_spans(content, facts);
-
-    for link in find_markdown_inline_links(content) {
-        let start = link.start;
-        let end = link.end;
-        if span_is_covered(&excluded_spans, start, end) {
-            continue;
-        }
-        if facts.iter().any(|fact| {
-            fact.pattern_id == MARKDOWN_INLINE_LINK_PATTERN_ID
-                && fact.start_byte <= start as u32
-                && fact.end_byte >= end as u32
-        }) {
-            continue;
-        }
-
-        let Some(span) = NormalizedSpan::from_content_range(content, start, end) else {
-            continue;
-        };
-
-        let mut metadata = base_metadata("document_links");
-        insert_string(
-            &mut metadata,
-            "label",
-            &clean_markdown_link_text(&link.label),
-        );
-        insert_string(
-            &mut metadata,
-            "destination",
-            &clean_markdown_link_destination(&link.destination),
-        );
-
-        facts.push(fact_for_span(
-            file_path,
-            "markdown",
-            MARKDOWN_INLINE_LINK_PATTERN_ID,
-            "inline_link",
-            "inline_link",
-            span,
-            metadata,
-        ));
-    }
-}
-
-fn append_markdown_setext_heading_facts(
-    file_path: &str,
-    content: &str,
-    facts: &mut Vec<StructuralFact>,
-) {
-    let excluded_spans = markdown_block_excluded_spans(facts);
-    let mut previous: Option<(usize, usize, &str)> = None;
-    let mut offset = 0usize;
-    for line in content.split_inclusive('\n') {
-        let line_start = offset;
-        let line_end = offset + line.len();
-        let trimmed = line.trim();
-        if let Some(level) = setext_heading_level(trimmed)
-            && let Some((heading_start, heading_end, heading_text)) = previous
-            && !heading_text.trim().is_empty()
-            && !span_is_covered(&excluded_spans, heading_start, line_end)
-            && !facts.iter().any(|fact| {
-                fact.pattern_id == MARKDOWN_HEADING_PATTERN_ID
-                    && fact.start_byte <= heading_start as u32
-                    && fact.end_byte >= heading_end as u32
-            })
-            && let Some(span) = NormalizedSpan::from_content_range(content, heading_start, line_end)
-        {
-            let mut metadata = base_metadata("document_structure");
-            metadata.insert("level".to_string(), Value::Number(Number::from(level)));
-            insert_string(&mut metadata, "text", heading_text.trim());
+    for inline_tree in crate::markdown::inline::parse_inline_trees(tree, content) {
+        collect_markdown_node(inline_tree.root_node(), file_path, content, &mut facts, 0);
+        for link in crate::markdown::inline::nested_bracket_links(&inline_tree, content) {
+            let Some(span) = NormalizedSpan::from_content_range(content, link.start, link.end)
+            else {
+                continue;
+            };
+            let mut metadata = base_metadata("document_links");
+            insert_string(&mut metadata, "label", &link.label);
+            insert_string(&mut metadata, "destination", &link.destination);
             facts.push(fact_for_span(
                 file_path,
                 "markdown",
-                MARKDOWN_HEADING_PATTERN_ID,
-                "heading",
-                "setext_heading",
+                MARKDOWN_INLINE_LINK_PATTERN_ID,
+                "inline_link",
+                "inline_link",
                 span,
                 metadata,
             ));
         }
-        previous = if trimmed.is_empty() {
-            None
-        } else {
-            Some((
-                line_start,
-                line_end,
-                line.trim_end_matches('\n').trim_end_matches('\r'),
-            ))
-        };
-        offset = line_end;
     }
-}
-
-fn setext_heading_level(line: &str) -> Option<u64> {
-    if line.len() < 3 {
-        return None;
-    }
-    if line.bytes().all(|byte| byte == b'=') {
-        return Some(1);
-    }
-    if line.bytes().all(|byte| byte == b'-') {
-        return Some(2);
-    }
-    None
-}
-
-fn markdown_inline_link_excluded_spans(content: &str, facts: &[StructuralFact]) -> Vec<(u32, u32)> {
-    let mut spans = markdown_block_excluded_spans(facts);
-    spans.extend(markdown_inline_code_spans(content));
-    spans
-}
-
-fn markdown_block_excluded_spans(facts: &[StructuralFact]) -> Vec<(u32, u32)> {
     facts
-        .iter()
-        .filter(|fact| {
-            matches!(
-                fact.pattern_id.as_str(),
-                MARKDOWN_FENCED_CODE_BLOCK_PATTERN_ID | MARKDOWN_FRONTMATTER_PATTERN_ID
-            )
-        })
-        .map(|fact| (fact.start_byte, fact.end_byte))
-        .collect()
-}
-
-struct MarkdownInlineLink {
-    start: usize,
-    end: usize,
-    label: String,
-    destination: String,
-}
-
-fn find_markdown_inline_links(content: &str) -> Vec<MarkdownInlineLink> {
-    let bytes = content.as_bytes();
-    let mut links = Vec::new();
-    let mut cursor = 0usize;
-    while cursor < bytes.len() {
-        if bytes[cursor] != b'[' || cursor > 0 && bytes[cursor - 1] == b'!' {
-            cursor += 1;
-            continue;
-        }
-        let Some((label, close_bracket)) = parse_markdown_link_label(content, cursor) else {
-            cursor += 1;
-            continue;
-        };
-        if bytes.get(close_bracket + 1) != Some(&b'(') {
-            cursor += 1;
-            continue;
-        }
-        let Some((destination, close_paren)) =
-            parse_markdown_link_destination(content, close_bracket + 1)
-        else {
-            cursor += 1;
-            continue;
-        };
-        links.push(MarkdownInlineLink {
-            start: cursor,
-            end: close_paren + 1,
-            label,
-            destination,
-        });
-        cursor = close_paren + 1;
-    }
-    links
-}
-
-fn parse_markdown_link_label(content: &str, open: usize) -> Option<(String, usize)> {
-    let mut depth = 0usize;
-    let mut escaped = false;
-    for (relative, ch) in content[open..].char_indices() {
-        let index = open + relative;
-        if escaped {
-            escaped = false;
-            continue;
-        }
-        match ch {
-            '\\' => escaped = true,
-            '\n' | '\r' => return None,
-            '[' => depth += 1,
-            ']' => {
-                depth = depth.checked_sub(1)?;
-                if depth == 0 {
-                    return Some((content[open + 1..index].to_string(), index));
-                }
-            }
-            _ => {}
-        }
-    }
-    None
-}
-
-fn parse_markdown_link_destination(content: &str, open: usize) -> Option<(String, usize)> {
-    let mut escaped = false;
-    for (relative, ch) in content[open + 1..].char_indices() {
-        let index = open + 1 + relative;
-        if escaped {
-            escaped = false;
-            continue;
-        }
-        match ch {
-            '\\' => escaped = true,
-            '\n' | '\r' => return None,
-            ')' => return Some((content[open + 1..index].to_string(), index)),
-            _ => {}
-        }
-    }
-    None
-}
-
-fn markdown_inline_code_spans(content: &str) -> Vec<(u32, u32)> {
-    let bytes = content.as_bytes();
-    let mut spans = Vec::new();
-    let mut cursor = 0usize;
-    while cursor < bytes.len() {
-        if bytes[cursor] != b'`' {
-            cursor += 1;
-            continue;
-        }
-        let tick_count = bytes[cursor..]
-            .iter()
-            .take_while(|byte| **byte == b'`')
-            .count();
-        let closing = "`".repeat(tick_count);
-        let search_start = cursor + tick_count;
-        let Some(relative_close) = content[search_start..].find(&closing) else {
-            break;
-        };
-        let end = search_start + relative_close + tick_count;
-        spans.push((cursor as u32, end as u32));
-        cursor = end;
-    }
-    spans
-}
-
-fn span_is_covered(spans: &[(u32, u32)], start: usize, end: usize) -> bool {
-    spans
-        .iter()
-        .any(|(span_start, span_end)| *span_start <= start as u32 && *span_end >= end as u32)
 }
 
 fn collect_markdown_node(
@@ -460,7 +234,7 @@ fn collect_markdown_node(
                 facts.push(fact);
             }
         }
-        "atx_heading" | "heading" => {
+        "atx_heading" | "setext_heading" | "heading" => {
             if let Some(fact) = markdown_heading_fact(file_path, content, node) {
                 facts.push(fact);
             }
@@ -565,8 +339,19 @@ fn toml_frontmatter_key_line(line: &str) -> bool {
 
 fn markdown_heading_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<StructuralFact> {
     let text = node_text(content, node)?;
-    let level = text.chars().take_while(|ch| *ch == '#').count().clamp(1, 6);
-    let heading_text = strip_atx_heading_marker(text);
+    let (level, heading_text) = match crate::markdown::setext_level(node) {
+        Some(level) => {
+            let heading = node_text(content, node.child_by_field_name("heading_content")?)?;
+            (
+                level,
+                heading.split_whitespace().collect::<Vec<_>>().join(" "),
+            )
+        }
+        None => (
+            text.chars().take_while(|ch| *ch == '#').count().clamp(1, 6),
+            strip_atx_heading_marker(text),
+        ),
+    };
     if heading_text.is_empty() {
         return None;
     }
@@ -617,7 +402,7 @@ fn markdown_inline_link_fact(
     content: &str,
     node: Node<'_>,
 ) -> Option<StructuralFact> {
-    let label = clean_markdown_link_text(child_text(node, content, "link_text")?);
+    let label = crate::markdown::inline::plain_text(content, child_node(node, "link_text")?);
     let destination =
         clean_markdown_link_destination(child_text(node, content, "link_destination")?);
     if label.is_empty() || destination.is_empty() {
@@ -2276,14 +2061,14 @@ fn node_text<'a>(content: &'a str, node: Node<'_>) -> Option<&'a str> {
     content.get(node.start_byte()..node.end_byte())
 }
 
-fn child_text<'a>(node: Node<'_>, content: &'a str, child_kind: &str) -> Option<&'a str> {
+fn child_node<'tree>(node: Node<'tree>, child_kind: &str) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if child.kind() == child_kind {
-            return node_text(content, child);
-        }
-    }
-    None
+    node.children(&mut cursor)
+        .find(|child| child.kind() == child_kind)
+}
+
+fn child_text<'a>(node: Node<'_>, content: &'a str, child_kind: &str) -> Option<&'a str> {
+    node_text(content, child_node(node, child_kind)?)
 }
 
 fn first_child_text<'a>(node: Node<'_>, content: &'a str, child_kind: &str) -> Option<&'a str> {
@@ -2366,12 +2151,11 @@ fn strip_atx_heading_marker(raw: &str) -> String {
         .to_string()
 }
 
-fn clean_markdown_link_text(raw: &str) -> String {
-    raw.trim().to_string()
-}
-
 fn clean_markdown_link_destination(raw: &str) -> String {
-    raw.trim_matches(|ch| ch == '<' || ch == '>' || ch == '(' || ch == ')')
+    let raw = raw.trim();
+    raw.strip_prefix('<')
+        .and_then(|inner| inner.strip_suffix('>'))
+        .unwrap_or(raw)
         .trim()
         .to_string()
 }

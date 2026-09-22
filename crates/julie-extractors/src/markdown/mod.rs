@@ -4,6 +4,7 @@
 /// 1. Semantic search across documentation
 /// 2. goto definition for heading navigation
 /// 3. Knowledge graph connections between code and docs
+pub(crate) mod inline;
 mod relationships;
 mod semantic_symbols;
 
@@ -30,68 +31,110 @@ impl MarkdownExtractor {
     }
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
-        let mut symbols = Vec::new();
-        self.walk_tree_for_symbols(tree.root_node(), &mut symbols, None, 0);
-        symbols.extend(semantic_symbols::extract_line_based_symbols(
-            &mut self.base,
-            &symbols,
-        ));
+        let blocks = outline_blocks(tree.root_node());
+        let mut symbols = self.extract_headings(&blocks, tree.root_node().end_byte());
+        let headings = symbols.clone();
+        self.walk_tree_for_symbols(tree.root_node(), &blocks, &headings, &mut symbols, 0);
+        let inline_symbols =
+            semantic_symbols::extract_inline_symbols(&mut self.base, tree, &symbols);
+        symbols.extend(inline_symbols);
         symbols
     }
 
-    /// Walk the tree and extract heading symbols
+    /// One Module symbol per ATX or setext heading. The block grammar nests
+    /// `section` nodes by ATX level only and never opens one for a setext
+    /// heading, so the outline is rebuilt here: a heading's span runs to the
+    /// next heading of the same or a higher level, its parent is the nearest
+    /// earlier heading of a lower level, and its doc comment is the content
+    /// before the next heading of any level.
+    fn extract_headings(
+        &mut self,
+        blocks: &[tree_sitter::Node],
+        document_end: usize,
+    ) -> Vec<Symbol> {
+        let mut symbols: Vec<Symbol> = Vec::new();
+        let mut open: Vec<(usize, String)> = Vec::new();
+        for (index, heading) in blocks.iter().enumerate() {
+            if !is_heading(heading.kind()) {
+                continue;
+            }
+            let level = self.determine_heading_level(*heading);
+            let later = &blocks[index + 1..];
+            let end = later
+                .iter()
+                .find(|block| {
+                    is_heading(block.kind()) && self.determine_heading_level(**block) <= level
+                })
+                .map_or(document_end, |block| block.start_byte());
+            let content =
+                self.content_text(later.iter().take_while(|block| !is_heading(block.kind())));
+            while open
+                .last()
+                .is_some_and(|(open_level, _)| *open_level >= level)
+            {
+                open.pop();
+            }
+            let parent_id = open.last().map(|(_, id)| id.clone());
+            let Some(mut symbol) =
+                self.extract_heading(*heading, parent_id.as_deref(), Some(content))
+            else {
+                continue;
+            };
+            if let Some(span) = self.base.span_for_byte_range(heading.start_byte(), end) {
+                symbol.start_line = span.start_line;
+                symbol.start_column = span.start_column;
+                symbol.end_line = span.end_line;
+                symbol.end_column = span.end_column;
+                symbol.start_byte = span.start_byte;
+                symbol.end_byte = span.end_byte;
+            }
+            open.push((level, symbol.id.clone()));
+            symbols.push(symbol);
+        }
+        symbols
+    }
+
     fn walk_tree_for_symbols(
         &mut self,
         node: tree_sitter::Node,
+        blocks: &[tree_sitter::Node],
+        headings: &[Symbol],
         symbols: &mut Vec<Symbol>,
-        parent_id: Option<String>,
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
             return;
         }
+        let symbol = match node.kind() {
+            "fenced_code_block" | "link_reference_definition" => {
+                let parent_id = containing_heading(headings, node.start_byte() as u32)
+                    .map(|heading| heading.id.clone());
+                semantic_symbols::extract_symbol_from_node(
+                    &mut self.base,
+                    node,
+                    parent_id.as_deref(),
+                )
+            }
+            "minus_metadata" | "plus_metadata" => self.extract_frontmatter(node, blocks),
+            _ => None,
+        };
+        symbols.extend(symbol);
 
-        let symbol = self.extract_symbol_from_node(node, parent_id.as_deref());
-        let mut current_parent_id = parent_id;
-
-        if let Some(ref sym) = symbol {
-            symbols.push(sym.clone());
-            current_parent_id = Some(sym.id.clone());
-        }
-
-        // Recursively process child nodes
         let Some(child_depth) = child_tree_depth(depth) else {
             return;
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_symbols(child, symbols, current_parent_id.clone(), child_depth);
+            self.walk_tree_for_symbols(child, blocks, headings, symbols, child_depth);
         }
     }
 
-    /// Extract symbol from a node based on its type
-    fn extract_symbol_from_node(
-        &mut self,
-        node: tree_sitter::Node,
-        parent_id: Option<&str>,
-    ) -> Option<Symbol> {
-        match node.kind() {
-            // tree-sitter-md uses "section" nodes for headings
-            "section" => self.extract_section(node, parent_id),
-            "fenced_code_block"
-            | "inline_link"
-            | "full_reference_link"
-            | "collapsed_reference_link"
-            | "shortcut_link"
-            | "link_reference_definition" => {
-                semantic_symbols::extract_symbol_from_node(&mut self.base, node, parent_id)
-            }
-            // YAML frontmatter (--- delimited)
-            "minus_metadata" => self.extract_frontmatter(node),
-            // TOML frontmatter (+++ delimited)
-            "plus_metadata" => self.extract_frontmatter(node),
-            _ => None,
-        }
+    fn content_text<'a>(&self, blocks: impl Iterator<Item = &'a tree_sitter::Node<'a>>) -> String {
+        blocks
+            .filter(|block| self.is_content_node(block))
+            .map(|block| self.base.get_node_text(block).trim_end().to_string())
+            .collect::<Vec<_>>()
+            .join("\n\n")
     }
 
     /// Extract frontmatter (YAML or TOML) as a symbol
@@ -105,7 +148,11 @@ impl MarkdownExtractor {
     /// 2. Documentation organization
     /// 3. Blog/static site content discovery
     /// 4. Development memory checkpoint search
-    fn extract_frontmatter(&mut self, node: tree_sitter::Node) -> Option<Symbol> {
+    fn extract_frontmatter(
+        &mut self,
+        node: tree_sitter::Node,
+        blocks: &[tree_sitter::Node],
+    ) -> Option<Symbol> {
         let raw_text = self.base.get_node_text(&node);
 
         // Strip the delimiters (--- or +++) from start and end
@@ -116,9 +163,13 @@ impl MarkdownExtractor {
             return None;
         }
 
-        // Capture body content that follows frontmatter but precedes any heading
-        // This is critical for memory files that have descriptions after frontmatter
-        let body_content = self.capture_body_after_frontmatter(node);
+        let body_content = self.content_text(
+            blocks
+                .iter()
+                .skip_while(|block| block.id() != node.id())
+                .skip(1)
+                .take_while(|block| !is_heading(block.kind())),
+        );
 
         // Combine frontmatter and body content for rich semantic search
         let doc_comment = if body_content.is_empty() {
@@ -135,90 +186,15 @@ impl MarkdownExtractor {
             ..Default::default()
         };
 
-        let symbol = self.base.create_symbol(
+        let mut symbol = self.base.create_symbol(
             &node,
             "frontmatter".to_string(),
             SymbolKind::Property, // Metadata property
             options,
         );
+        self.base.set_body_span(&mut symbol, None);
 
         Some(symbol)
-    }
-
-    /// Capture body content that follows frontmatter but precedes any heading
-    ///
-    /// tree-sitter-md wraps content in "section" nodes. We need to:
-    /// 1. Find sections after frontmatter
-    /// 2. Extract content from sections that have NO heading (just body text)
-    /// 3. Stop at sections that HAVE a heading
-    fn capture_body_after_frontmatter(&mut self, frontmatter_node: tree_sitter::Node) -> String {
-        let Some(parent) = frontmatter_node.parent() else {
-            return String::new();
-        };
-
-        let mut body_content = String::new();
-        let mut found_frontmatter = false;
-        let mut cursor = parent.walk();
-
-        for sibling in parent.children(&mut cursor) {
-            if sibling.id() == frontmatter_node.id() {
-                found_frontmatter = true;
-                continue;
-            }
-
-            if found_frontmatter {
-                // tree-sitter-md wraps content in "section" nodes
-                if sibling.kind() == "section" {
-                    // Check if this section has a heading
-                    let has_heading = self.section_has_heading(&sibling);
-
-                    if has_heading {
-                        // Stop at first section with a heading
-                        break;
-                    } else {
-                        // This section has no heading - extract its content
-                        let section_content = self.extract_section_content(&sibling);
-                        if !section_content.is_empty() {
-                            if !body_content.is_empty() {
-                                body_content.push_str("\n\n");
-                            }
-                            body_content.push_str(&section_content);
-                        }
-                    }
-                }
-            }
-        }
-
-        body_content
-    }
-
-    /// Check if a section node contains a heading (atx_heading)
-    fn section_has_heading(&self, section_node: &tree_sitter::Node) -> bool {
-        let mut cursor = section_node.walk();
-        for child in section_node.children(&mut cursor) {
-            if child.kind() == "atx_heading" || child.kind() == "heading" {
-                return true;
-            }
-        }
-        false
-    }
-
-    /// Extract all content from a section (paragraphs, lists, etc.)
-    fn extract_section_content(&mut self, section_node: &tree_sitter::Node) -> String {
-        let mut content = String::new();
-        let mut cursor = section_node.walk();
-
-        for child in section_node.children(&mut cursor) {
-            if self.is_content_node(&child) {
-                let text = self.base.get_node_text(&child);
-                if !content.is_empty() {
-                    content.push_str("\n\n");
-                }
-                content.push_str(&text);
-            }
-        }
-
-        content
     }
 
     /// Strip frontmatter delimiters (--- or +++) from raw text
@@ -245,44 +221,6 @@ impl MarkdownExtractor {
         };
 
         lines[start..end].join("\n")
-    }
-
-    /// Extract a section (heading) as a symbol
-    fn extract_section(
-        &mut self,
-        node: tree_sitter::Node,
-        parent_id: Option<&str>,
-    ) -> Option<Symbol> {
-        // Find the heading and section content within the section
-        let mut heading_node = None;
-        let mut section_content = String::new();
-
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            if child.kind() == "atx_heading" || child.kind() == "heading" {
-                heading_node = Some(child);
-            } else if self.is_content_node(&child) {
-                // Collect ALL content nodes (not just paragraphs) for RAG embedding
-                // This includes: paragraphs, lists, code blocks, block quotes, tables, etc.
-                let content_text = self.base.get_node_text(&child);
-                if !section_content.is_empty() {
-                    section_content.push_str("\n\n");
-                }
-                section_content.push_str(&content_text);
-            }
-        }
-
-        if let Some(heading) = heading_node {
-            let mut symbol = self.extract_heading(heading, parent_id, Some(section_content))?;
-            // Fix: expand range to cover the full section, not just the heading line.
-            symbol.start_line = (node.start_position().row + 1) as u32;
-            symbol.end_line = (node.end_position().row + 1) as u32;
-            symbol.start_byte = node.start_byte() as u32;
-            symbol.end_byte = node.end_byte() as u32;
-            return Some(symbol);
-        }
-
-        None
     }
 
     /// Check if a node contains content that should be included in section body
@@ -329,18 +267,24 @@ impl MarkdownExtractor {
             ..Default::default()
         };
 
-        let symbol = self.base.create_symbol(
+        let mut symbol = self.base.create_symbol(
             &node,
             heading_text,
             SymbolKind::Module, // Treat sections as modules for semantic grouping
             options,
         );
+        self.base.set_body_span(&mut symbol, None);
 
         Some(symbol)
     }
 
     /// Extract the text content of a heading (without # markers)
     fn extract_heading_text(&self, node: tree_sitter::Node) -> Option<String> {
+        if node.kind() == "setext_heading" {
+            let content = node.child_by_field_name("heading_content")?;
+            let text = self.base.get_node_text(&content);
+            return Some(text.split_whitespace().collect::<Vec<_>>().join(" "));
+        }
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
             // Look for inline content or heading_content
@@ -357,6 +301,9 @@ impl MarkdownExtractor {
 
     /// Determine heading level from number of # markers
     fn determine_heading_level(&self, node: tree_sitter::Node) -> usize {
+        if let Some(level) = setext_level(node) {
+            return level;
+        }
         let text = self.base.get_node_text(&node);
 
         // Count leading # characters
@@ -384,6 +331,52 @@ impl MarkdownExtractor {
     pub fn extract_relationships(&mut self, _tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
         relationships::extract_relationships(&self.base, symbols)
     }
+}
+
+/// The children of the document and of every nested `section`, in document
+/// order, with the sections themselves flattened away.
+fn outline_blocks(root: tree_sitter::Node) -> Vec<tree_sitter::Node> {
+    fn collect<'tree>(
+        container: tree_sitter::Node<'tree>,
+        blocks: &mut Vec<tree_sitter::Node<'tree>>,
+    ) {
+        let mut cursor = container.walk();
+        for child in container.children(&mut cursor) {
+            if child.kind() == "section" {
+                collect(child, blocks);
+            } else {
+                blocks.push(child);
+            }
+        }
+    }
+    let mut blocks = Vec::new();
+    collect(root, &mut blocks);
+    blocks
+}
+
+/// The innermost heading whose section holds `byte`.
+fn containing_heading(symbols: &[Symbol], byte: u32) -> Option<&Symbol> {
+    symbols
+        .iter()
+        .filter(|symbol| {
+            symbol.kind == SymbolKind::Module && symbol.start_byte <= byte && byte < symbol.end_byte
+        })
+        .min_by_key(|symbol| symbol.end_byte - symbol.start_byte)
+}
+
+fn is_heading(kind: &str) -> bool {
+    matches!(kind, "atx_heading" | "setext_heading" | "heading")
+}
+
+/// `===` underlines make level 1 and `---` underlines level 2.
+pub(crate) fn setext_level(node: tree_sitter::Node) -> Option<usize> {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .find_map(|child| match child.kind() {
+            "setext_h1_underline" => Some(1),
+            "setext_h2_underline" => Some(2),
+            _ => None,
+        })
 }
 
 fn strip_atx_heading_marker(raw: &str) -> String {
