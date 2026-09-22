@@ -44,8 +44,11 @@ fn visit_relationships(
         "property_declaration" => {
             extract_property_type_relationships(extractor, node, symbols, relationships);
         }
-        "invocation_expression" | "invocation" => {
+        "invocation_expression" | "invocation" | "element_access" | "call_statement" => {
             extract_call_relationships(extractor, node, symbols, relationships);
+        }
+        "member_access" if helpers::misparsed_new_root(node).is_some() => {
+            extract_misparsed_new_member_access(extractor, node, symbols, relationships);
         }
         "new_expression" | "object_creation_expression" => {
             extract_new_expression_relationships(extractor, node, symbols, relationships);
@@ -424,27 +427,21 @@ fn extract_call_relationships(
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
 ) {
+    let Some(callee) = helpers::call_callee(node) else {
+        return;
+    };
+    if let Some(type_name) = helpers::misparsed_new_type_name(extractor.get_base(), callee) {
+        emit_instantiation(extractor, node, &type_name, symbols, relationships);
+        return;
+    }
     let method_name = {
         let base = extractor.get_base();
-        let mut cursor = node.walk();
-        let children: Vec<_> = node.children(&mut cursor).collect();
-        if let Some(first_child) = children.first() {
-            match first_child.kind() {
-                "identifier" => base.get_node_text(first_child),
-                "member_access_expression" | "member_access" => {
-                    let mut mc = first_child.walk();
-                    let inner: Vec<_> = first_child.children(&mut mc).collect();
-                    inner
-                        .iter()
-                        .rev()
-                        .find(|c| c.kind() == "identifier")
-                        .map(|n| base.get_node_text(n))
-                        .unwrap_or_default()
-                }
-                _ => String::new(),
-            }
-        } else {
-            String::new()
+        match callee.kind() {
+            "identifier" => base.get_node_text(&callee),
+            _ => callee
+                .child_by_field_name("member")
+                .map(|member| base.get_node_text(&member))
+                .unwrap_or_default(),
         }
     };
 
@@ -454,18 +451,9 @@ fn extract_call_relationships(
 
     let base = extractor.get_base();
     let symbol_index = ScopedSymbolIndex::new(symbols);
-    let target = unresolved_call_target(extractor, node, &method_name);
+    let target = unresolved_call_target(extractor, callee, &method_name);
     let receiver_type = super::identifiers::self_receiver_type(base, node);
-    let caller_symbol = base
-        .find_containing_symbol(&node, symbols)
-        .filter(|symbol| {
-            matches!(
-                symbol.kind,
-                SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
-            )
-        });
-
-    let Some(caller) = caller_symbol else {
+    let Some(caller) = find_caller(base, node, symbols) else {
         return;
     };
 
@@ -560,33 +548,63 @@ fn extract_new_expression_relationships(
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
 ) {
+    if is_misparsed_new_root(node) {
+        return;
+    }
     let type_name = {
         let base = extractor.get_base();
-        find_first_identifier(base, node)
+        node.child_by_field_name("type")
+            .and_then(|type_node| helpers::type_name_text(base, type_node))
     };
     let Some(type_name) = type_name else {
         return;
     };
-    if type_name.is_empty() {
+    emit_instantiation(extractor, node, &type_name, symbols, relationships);
+}
+
+/// True for the bare `New A` at the root of a misparsed `New A.B.C` chain;
+/// the outermost member access or invocation of the chain owns the edge.
+fn is_misparsed_new_root(node: tree_sitter::Node) -> bool {
+    helpers::is_bare_new(node)
+        && node.parent().is_some_and(|parent| {
+            parent.kind() == "member_access"
+                && parent
+                    .child_by_field_name("object")
+                    .is_some_and(|object| object.id() == node.id())
+        })
+}
+
+/// A bare member access that ends a misparsed `New A.B.C` chain without an
+/// argument list (`Dim x = New A.B.C`).
+fn extract_misparsed_new_member_access(
+    extractor: &mut VbNetExtractor,
+    node: tree_sitter::Node,
+    symbols: &[Symbol],
+    relationships: &mut Vec<Relationship>,
+) {
+    let is_outermost = node.parent().is_none_or(|parent| {
+        parent.kind() != "member_access" && helpers::call_callee(parent).is_none()
+    });
+    if !is_outermost {
         return;
     }
+    if let Some(type_name) = helpers::misparsed_new_type_name(extractor.get_base(), node) {
+        emit_instantiation(extractor, node, &type_name, symbols, relationships);
+    }
+}
 
-    let Some(target) = helpers::unresolved_type_target(&type_name) else {
+fn emit_instantiation(
+    extractor: &mut VbNetExtractor,
+    node: tree_sitter::Node,
+    type_name: &str,
+    symbols: &[Symbol],
+    relationships: &mut Vec<Relationship>,
+) {
+    let Some(target) = helpers::unresolved_type_target(type_name) else {
         return;
     };
 
-    let caller_symbol = extractor
-        .get_base()
-        .find_containing_symbol(&node, symbols)
-        .filter(|symbol| {
-            matches!(
-                symbol.kind,
-                SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
-            )
-        })
-        .cloned();
-
-    let Some(caller) = caller_symbol else {
+    let Some(caller) = find_caller(extractor.get_base(), node, symbols).cloned() else {
         return;
     };
 
@@ -621,35 +639,6 @@ fn extract_new_expression_relationships(
         Some(0.9),
     );
     extractor.add_structured_pending_relationship(pending);
-}
-
-fn find_first_identifier(
-    base: &crate::base::BaseExtractor,
-    node: tree_sitter::Node,
-) -> Option<String> {
-    find_first_identifier_at_depth(base, node, 0)
-}
-
-fn find_first_identifier_at_depth(
-    base: &crate::base::BaseExtractor,
-    node: tree_sitter::Node,
-    depth: u32,
-) -> Option<String> {
-    if !should_visit_tree_depth(depth) {
-        return None;
-    }
-
-    if node.kind() == "identifier" {
-        return Some(base.get_node_text(&node));
-    }
-    let child_depth = child_tree_depth(depth)?;
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if let Some(name) = find_first_identifier_at_depth(base, child, child_depth) {
-            return Some(name);
-        }
-    }
-    None
 }
 
 fn find_vb_type_symbol<'a>(symbols: &'a [Symbol], type_name: &str) -> Option<&'a Symbol> {
@@ -711,6 +700,11 @@ fn unresolved_call_target(
     };
 
     let mut identifiers = Vec::new();
+    if callee_expression.kind() == "implicit_member_access"
+        && let Some(with_target) = helpers::with_target(callee_expression)
+    {
+        collect_identifiers(extractor, with_target, &mut identifiers);
+    }
     collect_identifiers(extractor, callee_expression, &mut identifiers);
 
     if identifiers.len() >= 2 {
@@ -766,4 +760,27 @@ fn collect_identifiers_at_depth(
     for child in node.children(&mut cursor) {
         collect_identifiers_at_depth(extractor, child, identifiers, child_depth);
     }
+}
+
+/// The symbol a call or instantiation belongs to: the enclosing method,
+/// constructor, operator, property, or event; otherwise (a field
+/// initializer) the enclosing type.
+fn find_caller<'a>(
+    base: &crate::base::BaseExtractor,
+    node: tree_sitter::Node,
+    symbols: &'a [Symbol],
+) -> Option<&'a Symbol> {
+    helpers::enclosing_member_symbol(node, symbols).or_else(|| {
+        base.find_containing_symbol(&node, symbols)
+            .filter(|symbol| {
+                matches!(
+                    symbol.kind,
+                    SymbolKind::Function
+                        | SymbolKind::Method
+                        | SymbolKind::Constructor
+                        | SymbolKind::Class
+                        | SymbolKind::Struct
+                )
+            })
+    })
 }

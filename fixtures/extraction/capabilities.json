@@ -2888,6 +2888,11 @@
           "name": "return_types",
           "source": "fixtures/extraction/vbnet/return_types/source.vb",
           "expected": "fixtures/extraction/vbnet/return_types/expected.json"
+        },
+        {
+          "name": "calls_and_bodies",
+          "source": "fixtures/extraction/vbnet/calls_and_bodies/source.vb",
+          "expected": "fixtures/extraction/vbnet/calls_and_bodies/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2925,6 +2930,7 @@
           "supported": [
             "call",
             "member_access",
+            "type_usage",
             "variable_ref"
           ],
           "not_applicable": [],
@@ -2933,9 +2939,11 @@
         "body_spans": {
           "supported": [
             "class",
+            "enum",
             "interface",
             "method",
             "namespace",
+            "operator",
             "property"
           ],
           "not_applicable": [
@@ -2972,7 +2980,10 @@
         },
         "doc_comments": {
           "supported": [
-            "method"
+            "class",
+            "enum",
+            "method",
+            "property"
           ],
           "not_applicable": [],
           "open_gaps": []
