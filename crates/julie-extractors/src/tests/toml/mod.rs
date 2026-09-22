@@ -19,6 +19,9 @@ mod values_and_spans;
 pub mod structural_facts;
 
 #[cfg(test)]
+mod wave2;
+
+#[cfg(test)]
 mod test_detection;
 
 #[cfg(test)]

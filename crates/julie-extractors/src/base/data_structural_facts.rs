@@ -850,8 +850,53 @@ fn collect_toml_structural_facts(
     content: &str,
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
-    collect_toml_node(tree.root_node(), file_path, content, &[], &mut facts, 0);
+    let table_paths = toml_table_paths(tree.root_node(), content);
+    collect_toml_node(
+        tree.root_node(),
+        file_path,
+        content,
+        &[],
+        &table_paths,
+        &mut facts,
+        0,
+    );
     facts
+}
+
+/// The key path of each table header, by start byte. An array-of-tables
+/// element and every table under it carry the element index:
+/// `[[products]]` twice, then `[products.dims]` -> `products[1].dims`.
+fn toml_table_paths(
+    root: Node<'_>,
+    content: &str,
+) -> std::collections::HashMap<usize, Vec<String>> {
+    let mut array_index: std::collections::HashMap<Vec<String>, usize> =
+        std::collections::HashMap::new();
+    let mut paths = std::collections::HashMap::new();
+    let mut cursor = root.walk();
+    for table in root
+        .named_children(&mut cursor)
+        .filter(|node| matches!(node.kind(), "table" | "table_array_element"))
+    {
+        let Some(parts) = crate::toml::dependencies::header_parts(table, content) else {
+            continue;
+        };
+        if table.kind() == "table_array_element" {
+            array_index
+                .retain(|header, _| !(header.len() > parts.len() && header.starts_with(&parts)));
+            let next = array_index.get(&parts).map_or(0, |index| index + 1);
+            array_index.insert(parts.clone(), next);
+        }
+        let mut path = Vec::new();
+        for end in 1..=parts.len() {
+            path.push(parts[end - 1].clone());
+            if let Some(index) = array_index.get(&parts[..end]) {
+                path.push(format!("[{index}]"));
+            }
+        }
+        paths.insert(table.start_byte(), path);
+    }
+    paths
 }
 
 fn collect_toml_node(
@@ -859,6 +904,7 @@ fn collect_toml_node(
     file_path: &str,
     content: &str,
     table_path: &[String],
+    table_paths: &std::collections::HashMap<usize, Vec<String>>,
     facts: &mut Vec<StructuralFact>,
     depth: u32,
 ) {
@@ -868,13 +914,17 @@ fn collect_toml_node(
 
     match node.kind() {
         "table" => {
-            if let Some(table_name) = toml_table_name(content, node) {
+            if let Some(table_name) = crate::toml::header_name(node, content) {
+                let own_path = table_paths
+                    .get(&node.start_byte())
+                    .cloned()
+                    .unwrap_or_else(|| vec![table_name.clone()]);
                 let mut metadata = base_metadata("config_structure");
                 insert_string(&mut metadata, "table_name", &table_name);
                 insert_string(
                     &mut metadata,
                     "key_path",
-                    &toml_key_path(table_path, &table_name),
+                    &toml_key_path_parts(table_path, &own_path),
                 );
                 metadata.insert("is_array_table".to_string(), Value::Bool(false));
                 if let Some(span) = NormalizedSpan::from_content_range_with_line_starts(
@@ -895,19 +945,31 @@ fn collect_toml_node(
                 }
 
                 let mut child_path = table_path.to_vec();
-                child_path.push(table_name);
-                walk_toml_children(node, file_path, content, &child_path, facts, depth);
+                child_path.extend(own_path);
+                walk_toml_children(
+                    node,
+                    file_path,
+                    content,
+                    &child_path,
+                    table_paths,
+                    facts,
+                    depth,
+                );
                 return;
             }
         }
         "table_array_element" => {
-            if let Some(table_name) = toml_table_name(content, node) {
+            if let Some(table_name) = crate::toml::header_name(node, content) {
+                let own_path = table_paths
+                    .get(&node.start_byte())
+                    .cloned()
+                    .unwrap_or_else(|| vec![table_name.clone()]);
                 let mut metadata = base_metadata("config_structure");
                 insert_string(&mut metadata, "table_name", &table_name);
                 insert_string(
                     &mut metadata,
                     "key_path",
-                    &toml_key_path(table_path, &table_name),
+                    &toml_key_path_parts(table_path, &own_path),
                 );
                 metadata.insert("is_array_table".to_string(), Value::Bool(true));
                 if let Some(span) = NormalizedSpan::from_content_range_with_line_starts(
@@ -928,8 +990,16 @@ fn collect_toml_node(
                 }
 
                 let mut child_path = table_path.to_vec();
-                child_path.push(table_name);
-                walk_toml_children(node, file_path, content, &child_path, facts, depth);
+                child_path.extend(own_path);
+                walk_toml_children(
+                    node,
+                    file_path,
+                    content,
+                    &child_path,
+                    table_paths,
+                    facts,
+                    depth,
+                );
                 return;
             }
         }
@@ -951,6 +1021,7 @@ fn collect_toml_node(
                                 file_path,
                                 content,
                                 &inline_path,
+                                table_paths,
                                 facts,
                                 depth,
                             );
@@ -967,6 +1038,7 @@ fn collect_toml_node(
                             file_path,
                             content,
                             &array_path,
+                            table_paths,
                             facts,
                             depth,
                         );
@@ -993,18 +1065,42 @@ fn collect_toml_node(
                     node,
                     inline_metadata,
                 ));
-                walk_toml_children(node, file_path, content, &inline_path, facts, depth);
+                walk_toml_children(
+                    node,
+                    file_path,
+                    content,
+                    &inline_path,
+                    table_paths,
+                    facts,
+                    depth,
+                );
                 return;
             }
         }
         "array" => {
-            collect_toml_array_children(node, file_path, content, table_path, facts, depth);
+            collect_toml_array_children(
+                node,
+                file_path,
+                content,
+                table_path,
+                table_paths,
+                facts,
+                depth,
+            );
             return;
         }
         _ => {}
     }
 
-    walk_toml_children(node, file_path, content, table_path, facts, depth);
+    walk_toml_children(
+        node,
+        file_path,
+        content,
+        table_path,
+        table_paths,
+        facts,
+        depth,
+    );
 }
 
 fn walk_toml_children(
@@ -1012,6 +1108,7 @@ fn walk_toml_children(
     file_path: &str,
     content: &str,
     table_path: &[String],
+    table_paths: &std::collections::HashMap<usize, Vec<String>>,
     facts: &mut Vec<StructuralFact>,
     depth: u32,
 ) {
@@ -1020,7 +1117,15 @@ fn walk_toml_children(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_toml_node(child, file_path, content, table_path, facts, child_depth);
+        collect_toml_node(
+            child,
+            file_path,
+            content,
+            table_path,
+            table_paths,
+            facts,
+            child_depth,
+        );
     }
 }
 
@@ -1029,6 +1134,7 @@ fn collect_toml_array_children(
     file_path: &str,
     content: &str,
     table_path: &[String],
+    table_paths: &std::collections::HashMap<usize, Vec<String>>,
     facts: &mut Vec<StructuralFact>,
     depth: u32,
 ) {
@@ -1059,7 +1165,15 @@ fn collect_toml_array_children(
             child,
             inline_metadata,
         ));
-        walk_toml_children(child, file_path, content, &indexed_path, facts, child_depth);
+        walk_toml_children(
+            child,
+            file_path,
+            content,
+            &indexed_path,
+            table_paths,
+            facts,
+            child_depth,
+        );
         index += 1;
     }
 }
@@ -1158,6 +1272,12 @@ fn toml_key_value_facts(
         "value_kind",
         toml_value_kind(value_node.kind()),
     );
+    if value_node.kind() == "string"
+        && let Some((_, style)) =
+            node_text(content, value_node).and_then(crate::toml::text::decode_toml_string)
+    {
+        insert_string(&mut metadata, "string_style", style);
+    }
     metadata.insert("is_array_table".to_string(), Value::Bool(false));
 
     let key_value = fact_for_node(
@@ -2539,72 +2659,8 @@ fn count_json_array_elements(node: Node<'_>) -> usize {
     count
 }
 
-fn toml_table_name(content: &str, node: Node<'_>) -> Option<String> {
-    toml_table_name_at_depth(content, node, 0)
-}
-
-fn toml_table_name_at_depth(content: &str, node: Node<'_>, depth: u32) -> Option<String> {
-    if !should_visit_tree_depth(depth) {
-        return None;
-    }
-    let child_depth = child_tree_depth(depth)?;
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        match child.kind() {
-            "bare_key" | "quoted_key" | "dotted_key" => {
-                let name = node_text(content, child)?;
-                return Some(name.trim_matches('"').trim_matches('\'').to_string());
-            }
-            _ => {
-                if let Some(name) = toml_table_name_at_depth(content, child, child_depth) {
-                    return Some(name);
-                }
-            }
-        }
-    }
-    None
-}
-
 fn toml_pair_key_parts(content: &str, node: Node<'_>) -> Option<Vec<String>> {
-    let pair_text = node_text(content, node)?;
-    let left = pair_text.split_once('=')?.0.trim();
-    parse_toml_key_parts(left)
-}
-
-fn parse_toml_key_parts(source: &str) -> Option<Vec<String>> {
-    let mut parts = Vec::new();
-    let mut part_start = 0usize;
-    let mut quote = None;
-    let mut escaped = false;
-    for (index, ch) in source.char_indices() {
-        if escaped {
-            escaped = false;
-            continue;
-        }
-        match (quote, ch) {
-            (Some(_), '\\') => escaped = true,
-            (Some(active), _) if ch == active => quote = None,
-            (None, '"' | '\'') => quote = Some(ch),
-            (None, '.') => {
-                push_toml_key_part(source, part_start, index, &mut parts);
-                part_start = index + ch.len_utf8();
-            }
-            _ => {}
-        }
-    }
-    push_toml_key_part(source, part_start, source.len(), &mut parts);
-    (!parts.is_empty()).then_some(parts)
-}
-
-fn push_toml_key_part(source: &str, start: usize, end: usize, parts: &mut Vec<String>) {
-    let part = source[start..end]
-        .trim()
-        .trim_matches('"')
-        .trim_matches('\'')
-        .trim();
-    if !part.is_empty() {
-        parts.push(part.to_string());
-    }
+    crate::toml::dependencies::pair_key_parts(node, content)
 }
 
 fn toml_pair_value(node: Node<'_>) -> Option<Node<'_>> {
@@ -2624,10 +2680,6 @@ fn toml_value_kind(kind: &str) -> &'static str {
         }
         _ => "other",
     }
-}
-
-fn toml_key_path(table_path: &[String], key: &str) -> String {
-    toml_key_path_parts(table_path, &[key.to_string()])
 }
 
 fn toml_key_path_parts(table_path: &[String], key_parts: &[String]) -> String {

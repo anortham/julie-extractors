@@ -190,6 +190,7 @@
         "key_path": "scripts.setup.database.command",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "string_style": "basic",
         "value_kind": "string"
       }
     },

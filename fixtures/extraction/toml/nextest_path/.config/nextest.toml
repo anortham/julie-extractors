@@ -1,0 +1,9 @@
+# Profile used by CI.
+[profile.ci]
+retries = 2
+
+[test-groups.serial-db]
+max-threads = 1
+
+[scripts.setup.migrate]
+command = "cargo run -p migrate"

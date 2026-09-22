@@ -33,6 +33,13 @@ where
     {
         return Ok(Some(("qmldir", None)));
     }
+    if file_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name == "Pipfile")
+    {
+        return Ok(Some(("toml", None)));
+    }
 
     let extension = file_path
         .extension()

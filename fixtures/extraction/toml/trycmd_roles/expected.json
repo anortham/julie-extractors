@@ -149,7 +149,7 @@
       },
       "body_hash": "177171ddfc6e1e60876f59127b117659",
       "signature": "stdout = \"demo\\n\"",
-      "doc_comment": "demo\\n",
+      "doc_comment": "demo\n",
       "visibility": null,
       "parent_key": null,
       "metadata": {},
@@ -209,6 +209,7 @@
         "key_path": "bin.name",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "string_style": "basic",
         "value_kind": "string"
       }
     },
@@ -255,6 +256,7 @@
         "key_path": "stderr",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "string_style": "basic",
         "value_kind": "string"
       }
     },
@@ -278,28 +280,13 @@
         "key_path": "stdout",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "string_style": "basic",
         "value_kind": "string"
       }
     }
   ],
   "complexity_metrics": [],
   "literals": [
-    {
-      "literal_text": "\\n",
-      "kind": "other",
-      "carrier": "stdout",
-      "arg_position": 0,
-      "language": "toml",
-      "file_path": "fixtures/extraction/toml/trycmd_roles/source.toml",
-      "start_line": 4,
-      "start_column": 9,
-      "end_line": 4,
-      "end_column": 17,
-      "start_byte": 56,
-      "end_byte": 64,
-      "containing_key": "fixtures/extraction/toml/trycmd_roles/source.toml:stdout:4:0",
-      "confidence": "1.000"
-    },
     {
       "literal_text": "demo",
       "kind": "other",
@@ -314,6 +301,22 @@
       "start_byte": 11,
       "end_byte": 17,
       "containing_key": "fixtures/extraction/toml/trycmd_roles/source.toml:bin.name:1:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "demo\n",
+      "kind": "other",
+      "carrier": "stdout",
+      "arg_position": 0,
+      "language": "toml",
+      "file_path": "fixtures/extraction/toml/trycmd_roles/source.toml",
+      "start_line": 4,
+      "start_column": 9,
+      "end_line": 4,
+      "end_column": 17,
+      "start_byte": 56,
+      "end_byte": 64,
+      "containing_key": "fixtures/extraction/toml/trycmd_roles/source.toml:stdout:4:0",
       "confidence": "1.000"
     }
   ],

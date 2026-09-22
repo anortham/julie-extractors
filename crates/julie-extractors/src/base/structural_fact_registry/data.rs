@@ -295,7 +295,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "key_path",
                 STR,
                 ALWAYS,
-                "Full dotted key path to the table including ancestors.",
+                "Full dotted key path to the table including ancestors; quoted key segments are unquoted and an array-of-tables ancestor carries its element index (`products[1].dims`).",
             ),
             key(
                 "is_array_table",
@@ -323,7 +323,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "key_path",
                 STR,
                 ALWAYS,
-                "Full dotted key path to the array table including ancestors.",
+                "Full dotted key path to the array table including ancestors, ending in the element index (`products[1]`).",
             ),
             key(
                 "is_array_table",
@@ -353,6 +353,12 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 STR,
                 ALWAYS,
                 "Normalized kind of the assigned value.",
+            ),
+            key(
+                "string_style",
+                STR,
+                OPT,
+                "TOML string form of a string value: \"basic\", \"literal\", \"multiline_basic\", or \"multiline_literal\". The fact span covers every line of a multi-line value.",
             ),
             key(
                 "is_array_table",

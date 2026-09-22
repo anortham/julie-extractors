@@ -1,9 +1,31 @@
+# Worker process settings.
 [worker]
 id = 1
 name = "fixture" # display name
 active = true
 profile = { role = "admin", active = true }
+# Status endpoint polled by the dashboard.
 api_url = "https://api.example.com/workers/status"
+greeting = "say \"hi\" from C:\\workers"
+banner = """
+Worker \
+ready
+"""
+pattern = '''
+^\d+$'''
+
+[server]
+"key=with=eq" = "x"
+"caf\u00e9" = 'literal \n stays'
+
+[project.entry-points."pytest11"]
+plugin = "acme.plugin"
 
 [[items]]
 key = "alpha"
+
+[[items]]
+key = "beta"
+
+[items.meta]
+owner = "ops"

@@ -2,6 +2,21 @@
 # Data-language literals are config values and link targets, not call arguments, so every one is kept.
 [literal_carriers]
 retain_unclassified = true
-url = []
+url = [
+    "url",
+    "uri",
+    "href",
+    "homepage",
+    "repository",
+    "documentation",
+    "website",
+    "endpoint",
+    "base_url",
+    "base-url",
+    "baseurl",
+    "api_url",
+    "api-url",
+    "apiurl",
+]
 sql = []
 route = []

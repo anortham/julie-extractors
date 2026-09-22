@@ -105,6 +105,12 @@ fn collect_node(
             } else {
                 SourceRegionKind::Comment
             }
+        } else if language == "toml" {
+            if crate::toml::comment_documents_following_item(content, node) {
+                SourceRegionKind::DocComment
+            } else {
+                SourceRegionKind::Comment
+            }
         } else if language == "json" {
             if crate::json::comment_documents_following_value(content, node) {
                 SourceRegionKind::DocComment

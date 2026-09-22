@@ -7057,6 +7057,26 @@
           "name": "nextest_roles",
           "source": "fixtures/extraction/toml/nextest_roles/source.toml",
           "expected": "fixtures/extraction/toml/nextest_roles/expected.json"
+        },
+        {
+          "name": "pipfile",
+          "source": "fixtures/extraction/toml/pipfile/Pipfile",
+          "expected": "fixtures/extraction/toml/pipfile/expected.json"
+        },
+        {
+          "name": "gradle_catalog",
+          "source": "fixtures/extraction/toml/gradle/libs.versions.toml",
+          "expected": "fixtures/extraction/toml/gradle/expected.json"
+        },
+        {
+          "name": "nextest_path",
+          "source": "fixtures/extraction/toml/nextest_path/.config/nextest.toml",
+          "expected": "fixtures/extraction/toml/nextest_path/expected.json"
+        },
+        {
+          "name": "trycmd_case",
+          "source": "fixtures/extraction/toml/trycmd_case/tests/cmd/exit.toml",
+          "expected": "fixtures/extraction/toml/trycmd_case/expected.json"
         }
       ],
       "target_capabilities": {
@@ -7134,14 +7154,7 @@
             "toml.table.v1"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "toml_multiline_string_semantics",
-              "reason": "TOML structural facts now preserve dotted-key and array-of-inline-table paths, but multi-line basic/literal strings are not classified with string-style or line-span semantics beyond the generic key-value value_kind.",
-              "required_closure": "add fixture-backed metadata for TOML multi-line string style, normalized content policy, and span behavior before claiming that construct as structurally supported",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: TOML multi-line string facts"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [],
@@ -7161,6 +7174,7 @@
         },
         "doc_comments": {
           "supported": [
+            "module",
             "property"
           ],
           "not_applicable": [],
@@ -7176,6 +7190,7 @@
         "source_regions": {
           "supported": [
             "comment",
+            "doc_comment",
             "string_literal"
           ],
           "not_applicable": [],
