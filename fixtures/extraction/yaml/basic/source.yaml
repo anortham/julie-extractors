@@ -11,3 +11,4 @@ worker:
     - fixture
     - active
   api_url: "https://api.example.com/workers/status"
+  docs_url: https://docs.example.com/workers

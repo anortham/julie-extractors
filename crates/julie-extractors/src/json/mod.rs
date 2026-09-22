@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use tree_sitter::Tree;
 
-mod relationships;
+pub(crate) mod relationships;
 mod test_detection;
 
 pub struct JsonExtractor {

@@ -309,7 +309,7 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
         "yaml",
         &["yml", "yaml"],
         "tree-sitter-yaml",
-        RELATIONSHIP_DATA_CAPABILITIES,
+        PENDING_NO_TYPES_CAPABILITIES,
         parser_yaml,
         EMPTY,
     ),

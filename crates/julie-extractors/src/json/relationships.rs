@@ -79,6 +79,27 @@ fn handle_ref_pair(
     let Some(from_symbol) = ref_source_symbol(symbols, pair) else {
         return;
     };
+    emit_schema_ref(
+        base,
+        from_symbol,
+        value_node,
+        value_text,
+        symbols,
+        relationships,
+    );
+}
+
+/// Emit the edge for one JSON Schema `$ref` value: a `References` relationship
+/// for a resolvable local pointer, or a structured pending row for a pointer
+/// into another file. Shared by the JSON and YAML extractors.
+pub(crate) fn emit_schema_ref(
+    base: &mut BaseExtractor,
+    from_symbol: &Symbol,
+    value_node: Node,
+    value_text: &str,
+    symbols: &[Symbol],
+    relationships: &mut Vec<Relationship>,
+) {
     let line_number = value_node.start_position().row as u32 + 1;
 
     if let Some((file_part, fragment)) = split_external_ref(value_text) {

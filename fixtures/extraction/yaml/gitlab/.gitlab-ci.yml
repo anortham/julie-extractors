@@ -1,0 +1,12 @@
+include:
+  - local: ci/templates/deploy.yml
+stages: [build, test]
+.ruby:
+  image: ruby:3.3
+compile:
+  extends: .ruby
+  stage: build
+rspec:
+  extends: [.ruby]
+  needs:
+    - job: compile

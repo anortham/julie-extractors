@@ -1,12 +1,15 @@
 use super::resolve_alias_anchor_target;
-use crate::base::{BaseExtractor, Relationship, RelationshipKind, Symbol};
+use crate::base::{
+    BaseExtractor, Relationship, RelationshipKind, StructuredPendingRelationship, Symbol,
+    UnresolvedTarget,
+};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use tree_sitter::{Node, Tree};
 
 pub(super) fn extract_relationships(
-    base: &BaseExtractor,
+    base: &mut BaseExtractor,
     tree: &Tree,
     symbols: &[Symbol],
 ) -> Vec<Relationship> {
@@ -20,11 +23,13 @@ pub(super) fn extract_relationships(
         &mut seen,
         0,
     );
+    super::cloudformation::extract_relationships(base, tree, symbols, &mut relationships);
+    super::ci::extract_relationships(base, tree, symbols, &mut relationships);
     relationships
 }
 
 fn walk_tree(
-    base: &BaseExtractor,
+    base: &mut BaseExtractor,
     node: Node,
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
@@ -38,6 +43,11 @@ fn walk_tree(
     if node.kind() == "alias" {
         extract_alias_relationship(base, node, symbols, relationships, seen);
     }
+    if matches!(node.kind(), "block_mapping_pair" | "flow_pair")
+        && pair_key(&base.content, node).as_deref() == Some("$ref")
+    {
+        extract_schema_ref(base, node, symbols, relationships);
+    }
 
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
@@ -46,6 +56,38 @@ fn walk_tree(
     for child in node.children(&mut cursor) {
         walk_tree(base, child, symbols, relationships, seen, child_depth);
     }
+}
+
+/// `$ref` in YAML OpenAPI, AsyncAPI, and JSON Schema documents, with the JSON
+/// model: the edge starts at the symbol that owns the mapping holding the
+/// `$ref` (a key or a `[i]` sequence item), or at the `$ref` key at the root.
+fn extract_schema_ref(
+    base: &mut BaseExtractor,
+    pair: Node,
+    symbols: &[Symbol],
+    relationships: &mut Vec<Relationship>,
+) {
+    let Some(value) = pair.child_by_field_name("value") else {
+        return;
+    };
+    let Some((scalar, text)) = scalar_value(&base.content, value) else {
+        return;
+    };
+    let from_symbol = ancestors(pair)
+        .filter(|node| matches!(node.kind(), "block_mapping_pair" | "block_sequence_item"))
+        .find_map(|node| symbol_for_node(symbols, node))
+        .or_else(|| symbol_for_node(symbols, pair));
+    let Some(from_symbol) = from_symbol else {
+        return;
+    };
+    crate::json::relationships::emit_schema_ref(
+        base,
+        from_symbol,
+        scalar,
+        &text,
+        symbols,
+        relationships,
+    );
 }
 
 fn extract_alias_relationship(
@@ -97,4 +139,140 @@ fn alias_name(base: &BaseExtractor, node: Node) -> Option<String> {
         }
     }
     None
+}
+
+/// The strict ancestors of `node`, innermost first.
+pub(super) fn ancestors(node: Node) -> impl Iterator<Item = Node> {
+    std::iter::successors(node.parent(), |node| node.parent())
+}
+
+/// The symbol whose span is exactly this node (a mapping pair or sequence item).
+pub(super) fn symbol_for_node<'a>(symbols: &'a [Symbol], node: Node) -> Option<&'a Symbol> {
+    let (start, end) = (node.start_byte() as u32, node.end_byte() as u32);
+    symbols
+        .iter()
+        .find(|symbol| symbol.start_byte == start && symbol.end_byte == end)
+}
+
+/// The unquoted key text of a mapping pair.
+pub(super) fn pair_key(content: &str, pair: Node) -> Option<String> {
+    let key = pair.child_by_field_name("key")?;
+    scalar_value(content, key).map(|(_, text)| text)
+}
+
+/// The scalar node and its unquoted text inside a `flow_node` (after any tag
+/// or anchor), or `None` for containers.
+pub(super) fn scalar_value<'tree>(
+    content: &str,
+    value: Node<'tree>,
+) -> Option<(Node<'tree>, String)> {
+    let scalar = if is_scalar(value.kind()) {
+        value
+    } else {
+        let mut cursor = value.walk();
+        value
+            .named_children(&mut cursor)
+            .find(|child| is_scalar(child.kind()))?
+    };
+    let text = content.get(scalar.byte_range())?;
+    let text = match scalar.kind() {
+        "double_quote_scalar" | "single_quote_scalar" => text.get(1..text.len() - 1)?.to_string(),
+        _ => text.trim().to_string(),
+    };
+    Some((scalar, text))
+}
+
+fn is_scalar(kind: &str) -> bool {
+    matches!(
+        kind,
+        "plain_scalar" | "double_quote_scalar" | "single_quote_scalar"
+    )
+}
+
+/// Scalars of a value that is one scalar or a flow/block sequence of scalars.
+pub(super) fn scalar_list<'tree>(content: &str, value: Node<'tree>) -> Vec<(Node<'tree>, String)> {
+    if let Some(scalar) = scalar_value(content, value) {
+        return vec![scalar];
+    }
+    let mut cursor = value.walk();
+    let Some(sequence) = value
+        .named_children(&mut cursor)
+        .find(|child| matches!(child.kind(), "flow_sequence" | "block_sequence"))
+    else {
+        return Vec::new();
+    };
+    let mut cursor = sequence.walk();
+    sequence
+        .named_children(&mut cursor)
+        .filter_map(|item| {
+            let node = if item.kind() == "block_sequence_item" {
+                item.named_child(0)?
+            } else {
+                item
+            };
+            scalar_value(content, node)
+        })
+        .collect()
+}
+
+/// Structured pending `References` row for a reference into another file.
+pub(super) fn push_file_pending(
+    base: &mut BaseExtractor,
+    from_symbol: &Symbol,
+    path: &str,
+    display_name: &str,
+    node: Node,
+) {
+    let terminal_name = path
+        .rsplit('/')
+        .find(|segment| !segment.is_empty())
+        .unwrap_or(path)
+        .to_string();
+    let target = UnresolvedTarget {
+        display_name: display_name.to_string(),
+        terminal_name,
+        receiver: None,
+        namespace_path: Vec::new(),
+        import_context: Some(path.to_string()),
+    };
+    let pending = StructuredPendingRelationship::new(
+        from_symbol.id.clone(),
+        target,
+        Some(from_symbol.id.clone()),
+        RelationshipKind::References,
+        base.file_path.clone(),
+        node.start_position().row as u32 + 1,
+        1.0,
+    );
+    base.add_structured_pending_relationship(pending);
+}
+
+/// A `References` edge with a one-key metadata map, deduplicated per site.
+pub(super) fn push_reference(
+    base: &BaseExtractor,
+    from: &Symbol,
+    to: &Symbol,
+    node: &Node,
+    metadata: (&str, &str),
+    relationships: &mut Vec<Relationship>,
+) {
+    let line = node.start_position().row as u32 + 1;
+    if relationships
+        .iter()
+        .any(|r| r.from_symbol_id == from.id && r.to_symbol_id == to.id && r.line_number == line)
+    {
+        return;
+    }
+    let metadata = HashMap::from([(
+        metadata.0.to_string(),
+        Value::String(metadata.1.to_string()),
+    )]);
+    relationships.push(base.create_relationship(
+        from.id.clone(),
+        to.id.clone(),
+        RelationshipKind::References,
+        node,
+        Some(1.0),
+        Some(metadata),
+    ));
 }

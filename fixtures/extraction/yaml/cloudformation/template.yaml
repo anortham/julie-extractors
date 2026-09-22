@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  Stage:
+    Type: String
+Resources:
+  DataBucket:
+    Type: AWS::S3::Bucket
+  Handler:
+    Type: AWS::Lambda::Function
+    DependsOn: DataBucket
+    Properties:
+      Role: !GetAtt HandlerRole.Arn
+      Environment:
+        Variables:
+          BUCKET: !Ref DataBucket
+          NAME: !Sub '${Stage}-${AWS::Region}'
+  HandlerRole:
+    Type: AWS::IAM::Role
+Outputs:
+  BucketArn:
+    Value:
+      Fn::GetAtt: [DataBucket, Arn]

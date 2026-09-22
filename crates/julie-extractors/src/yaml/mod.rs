@@ -14,10 +14,13 @@
 /// - Docker Compose files
 /// - Ansible playbooks
 /// - Configuration files
+pub(crate) mod ci;
+mod cloudformation;
 mod relationships;
 
 use crate::base::{
-    BaseExtractor, Identifier, IdentifierKind, Relationship, Symbol, SymbolKind, TestRole,
+    BaseExtractor, Identifier, IdentifierKind, NormalizedSpan, Relationship, Symbol, SymbolKind,
+    TestRole,
 };
 use crate::test_detection::apply_test_role;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -86,11 +89,39 @@ impl YamlExtractor {
         match node.kind() {
             // Block mapping pairs are the useful symbols (key: value entries)
             "block_mapping_pair" => self.extract_mapping_pair(node, parent_id, symbols),
+            "block_sequence_item" => self.extract_sequence_item_mapping(node, parent_id),
 
             // "document" and "flow_mapping" are noise — generic names with no
             // search value. Their children are still walked and extracted.
             _ => None,
         }
+    }
+
+    /// A mapping inside a block sequence has no key, so it gets a container
+    /// symbol named by its item index (`[0]`), like JSON array elements.
+    fn extract_sequence_item_mapping(
+        &mut self,
+        node: tree_sitter::Node,
+        parent_id: Option<&str>,
+    ) -> Option<Symbol> {
+        let value = first_child_of_kind(node, "block_node")?;
+        first_child_of_kind(value, "block_mapping")?;
+        let sequence = node.parent()?;
+        let mut cursor = sequence.walk();
+        let index = sequence
+            .named_children(&mut cursor)
+            .filter(|item| item.kind() == "block_sequence_item")
+            .position(|item| item.id() == node.id())?;
+        let options = crate::base::SymbolOptions {
+            parent_id: parent_id.map(str::to_string),
+            ..Default::default()
+        };
+        let mut symbol =
+            self.base
+                .create_symbol(&node, format!("[{index}]"), SymbolKind::Module, options);
+        let body_span = trimmed_span(&self.base, value);
+        self.base.set_body_span(&mut symbol, body_span);
+        Some(symbol)
     }
 
     /// Extract a block mapping pair (key: value) as a symbol.
@@ -126,8 +157,8 @@ impl YamlExtractor {
             apply_test_role(metadata.get_or_insert_with(HashMap::new), role);
         }
 
-        // Determine kind: container keys (with nested mappings) are Module, leaves are Variable
-        let is_leaf_value = !self.has_nested_mapping(node);
+        let container_value = container_value(node);
+        let is_leaf_value = container_value.is_none();
         let kind = if is_leaf_value {
             SymbolKind::Variable
         } else {
@@ -143,9 +174,11 @@ impl YamlExtractor {
             ..Default::default()
         };
 
-        let symbol = self
+        let mut symbol = self
             .base
             .create_symbol(&node, key_name.clone(), kind, options);
+        let body_span = container_value.and_then(|value| trimmed_span(&self.base, value));
+        self.base.set_body_span(&mut symbol, body_span);
 
         if !is_leaf_value {
             return Some(symbol);
@@ -168,12 +201,6 @@ impl YamlExtractor {
                     "double_quote_scalar" | "single_quote_scalar" | "plain_scalar"
                 ) {
                     continue;
-                }
-                if scalar.kind() == "plain_scalar" {
-                    let text = self.base.get_node_text(&scalar);
-                    if text.contains(':') || text.starts_with('&') || text.starts_with('*') {
-                        continue;
-                    }
                 }
                 let carrier = crate::base::config_literals::build_config_key_carrier(
                     symbols, parent_id, &key_name,
@@ -214,12 +241,6 @@ impl YamlExtractor {
             }
         }
         None
-    }
-
-    /// Check if a block_mapping_pair's value side contains a nested block_mapping.
-    /// This distinguishes container keys (database:) from leaf keys (host: localhost).
-    fn has_nested_mapping(&self, node: tree_sitter::Node) -> bool {
-        yaml_pair_has_nested_mapping(node)
     }
 
     /// Extract the key from a block_mapping_pair
@@ -361,6 +382,8 @@ impl YamlExtractor {
         symbols: &[Symbol],
     ) -> Vec<Identifier> {
         self.walk_tree_for_aliases(tree.root_node(), symbols);
+        cloudformation::extract_identifiers(&mut self.base, tree, symbols);
+        ci::extract_identifiers(&mut self.base, tree, symbols);
         self.base.identifiers.clone()
     }
 
@@ -373,7 +396,7 @@ impl YamlExtractor {
         tree: &tree_sitter::Tree,
         symbols: &[Symbol],
     ) -> Vec<Relationship> {
-        relationships::extract_relationships(&self.base, tree, symbols)
+        relationships::extract_relationships(&mut self.base, tree, symbols)
     }
 
     /// Walk the tree looking for alias nodes (*name) and create VariableRef identifiers
@@ -485,43 +508,64 @@ fn is_yaml_anchor_char(ch: char) -> bool {
     !ch.is_whitespace() && !matches!(ch, '[' | ']' | '{' | '}' | ',')
 }
 
-/// Attach a single `#` line only when it immediately precedes a leaf mapping key
-/// at the same indentation. File headers and container-key section comments stay
-/// ordinary comments, not symbol documentation.
+/// The contiguous `#` comment lines directly above a mapping key, at the key's
+/// column. A blank line, a code line, or a comment at another column ends the block.
 fn find_yaml_key_doc_comment(base: &BaseExtractor, node: tree_sitter::Node) -> Option<String> {
-    if node.kind() != "block_mapping_pair" || yaml_pair_has_nested_mapping(node) {
+    if node.kind() != "block_mapping_pair" {
         return None;
     }
-
     let key_column = mapping_key_start_column(base, node)?;
-    let mut comments = Vec::new();
-    let mut current = node.prev_sibling();
+    let line_start = node.start_byte() - node.start_position().column;
+    doc_comment_block_above(&base.content, line_start, key_column)
+}
 
-    while let Some(sibling) = current {
-        match sibling.kind() {
-            "comment" => {
-                let text = base.get_node_text(&sibling);
-                if !text.trim_start().starts_with('#')
-                    || sibling.start_position().column != key_column
-                {
-                    break;
-                }
-                comments.push(text);
-                current = sibling.prev_sibling();
-            }
-            "blank_line" => {
-                current = sibling.prev_sibling();
-            }
-            _ => break,
+fn doc_comment_block_above(content: &str, line_start: usize, key_column: usize) -> Option<String> {
+    let mut lines = Vec::new();
+    for line in content.get(..line_start)?.lines().rev() {
+        let indent = line.len() - line.trim_start().len();
+        if indent != key_column || !line.trim_start().starts_with('#') {
+            break;
+        }
+        lines.push(line.trim());
+    }
+    lines.reverse();
+    (!lines.is_empty()).then(|| lines.join("\n"))
+}
+
+/// True when a whole-line `#` comment is part of the doc block of the mapping
+/// key that follows it, by the same rule as [`find_yaml_key_doc_comment`].
+pub(crate) fn comment_documents_following_key(content: &str, comment_start: usize) -> bool {
+    let line_start = content[..comment_start]
+        .rfind('\n')
+        .map_or(0, |index| index + 1);
+    let column = comment_start - line_start;
+    if !content[line_start..comment_start].trim().is_empty() {
+        return false;
+    }
+    for line in content[line_start..].lines().skip(1) {
+        let indent = line.len() - line.trim_start().len();
+        let text = line.trim_start();
+        if indent != column || text.is_empty() {
+            return false;
+        }
+        if !text.starts_with('#') {
+            return is_mapping_key_line(text);
         }
     }
+    false
+}
 
-    comments.reverse();
-    if comments.len() == 1 {
-        Some(comments.into_iter().next().unwrap())
-    } else {
-        None
+fn is_mapping_key_line(text: &str) -> bool {
+    if text.starts_with(['-', '[', '{', '&', '*', '!', '|', '>']) {
+        return false;
     }
+    let key_end = match text.chars().next() {
+        Some(quote @ ('"' | '\'')) => text[1..].find(quote).map(|index| index + 2),
+        _ => text
+            .find(": ")
+            .or_else(|| text.strip_suffix(':').map(str::len)),
+    };
+    key_end.is_some_and(|end| text[end..].starts_with(':'))
 }
 
 fn mapping_key_start_column(_base: &BaseExtractor, pair: tree_sitter::Node) -> Option<usize> {
@@ -657,18 +701,25 @@ fn is_plain_yaml_string(value: &str) -> bool {
     normalized.parse::<i64>().is_err() && normalized.parse::<f64>().is_err()
 }
 
-fn yaml_pair_has_nested_mapping(pair: tree_sitter::Node) -> bool {
-    let mut cursor = pair.walk();
-    for child in pair.children(&mut cursor) {
-        if child.kind() != "block_node" {
-            continue;
-        }
-        let mut block_cursor = child.walk();
-        for block_child in child.children(&mut block_cursor) {
-            if block_child.kind() == "block_mapping" {
-                return true;
-            }
-        }
-    }
-    false
+/// A block node's span runs over the trailing line break; the body ends at its
+/// last non-whitespace byte.
+fn trimmed_span(base: &BaseExtractor, node: tree_sitter::Node) -> Option<NormalizedSpan> {
+    let text = base.content.get(node.byte_range())?;
+    let end = node.start_byte() + text.trim_end().len();
+    base.span_for_byte_range(node.start_byte(), end)
+}
+
+/// The value node of a mapping pair when it holds a mapping or a sequence.
+fn container_value(pair: tree_sitter::Node) -> Option<tree_sitter::Node> {
+    let value = pair.child_by_field_name("value")?;
+    let mut cursor = value.walk();
+    value
+        .named_children(&mut cursor)
+        .any(|child| {
+            matches!(
+                child.kind(),
+                "block_mapping" | "block_sequence" | "flow_mapping" | "flow_sequence"
+            )
+        })
+        .then_some(value)
 }

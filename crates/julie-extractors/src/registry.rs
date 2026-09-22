@@ -237,8 +237,10 @@ macro_rules! define_relationship_data_extractors {
                 Ok(ExtractionResults {
                     symbols,
                     relationships,
-                    pending_relationships: Vec::new(),
-                    structured_pending_relationships: Vec::new(),
+                    pending_relationships: ext.base.take_pending_relationships(),
+                    structured_pending_relationships: ext
+                        .base
+                        .take_structured_pending_relationships(),
                     identifiers,
                     type_argument_usages: ext.base.take_type_argument_usages(),
                     literals: ext.base.take_literals(),

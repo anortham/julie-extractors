@@ -108,7 +108,7 @@ const DOMAIN_APPLICABILITY = {
     quality_debt: [],
   },
   body_spans: {
-    not_applicable: ["yaml"],
+    not_applicable: [],
     convention_only: [],
     native_debt: [],
     quality_debt: [],
@@ -120,7 +120,7 @@ const DOMAIN_APPLICABILITY = {
     quality_debt: [],
   },
   pending_relationships: {
-    not_applicable: ["css", "markdown", "razor", "regex", "yaml"],
+    not_applicable: ["css", "markdown", "razor", "regex"],
     convention_only: [],
     native_debt: [],
     quality_debt: [],

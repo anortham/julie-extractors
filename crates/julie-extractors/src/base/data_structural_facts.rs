@@ -37,6 +37,7 @@ const YAML_SEQUENCE_PATTERN_ID: &str = "yaml.sequence.v1";
 const YAML_ANCHOR_PATTERN_ID: &str = "yaml.anchor.v1";
 const YAML_ALIAS_PATTERN_ID: &str = "yaml.alias.v1";
 const YAML_KEY_VALUE_PATTERN_ID: &str = "yaml.key_value.v1";
+const YAML_REF_PATTERN_ID: &str = "yaml.ref.v1";
 
 // XML
 const XML_DOCUMENT_PATTERN_ID: &str = "xml.document.v1";
@@ -95,7 +96,12 @@ const YAML_DATA_PATTERN_IDS: &[&str] = &[
     YAML_DOCUMENT_PATTERN_ID,
     YAML_KEY_VALUE_PATTERN_ID,
     YAML_MAPPING_PATTERN_ID,
+    YAML_REF_PATTERN_ID,
     YAML_SEQUENCE_PATTERN_ID,
+    super::openapi_route_facts::OPENAPI_ROUTE_PATTERN_ID,
+    crate::yaml::ci::CI_JOB_PATTERN_ID,
+    crate::yaml::ci::CI_TRIGGER_PATTERN_ID,
+    crate::yaml::ci::CI_USES_PATTERN_ID,
 ];
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -139,6 +145,9 @@ pub fn collect_data_structural_facts(
         "regex" => collect_regex_structural_facts(tree, file_path, content),
         _ => Vec::new(),
     };
+    if language == "yaml" {
+        facts.extend(crate::yaml::ci::ci_facts(tree, file_path, content, symbols));
+    }
     if language == "toml" {
         facts.extend(crate::toml::dependencies::dependency_facts(
             tree.root_node(),
@@ -146,7 +155,7 @@ pub fn collect_data_structural_facts(
             content,
         ));
     }
-    if language == "json" {
+    if matches!(language, "json" | "yaml") {
         facts.extend(collect_openapi_route_facts(
             language, tree, file_path, content, symbols,
         ));
@@ -1289,6 +1298,21 @@ fn collect_yaml_node(
                     node,
                     metadata,
                 ));
+                if key == "$ref"
+                    && let Some(target) = yaml_node_scalar_text(content, value_node)
+                {
+                    let mut metadata = base_metadata("schema_structure");
+                    insert_string(&mut metadata, "ref", &target);
+                    insert_string(&mut metadata, "key_path", &yaml_key_path(path));
+                    facts.push(fact_for_node(
+                        file_path,
+                        "yaml",
+                        YAML_REF_PATTERN_ID,
+                        "ref",
+                        node,
+                        metadata,
+                    ));
+                }
 
                 let mut child_path = path.to_vec();
                 child_path.push(key);

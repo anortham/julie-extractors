@@ -6834,7 +6834,7 @@
       "capabilities": {
         "symbols": true,
         "relationships": true,
-        "pending_relationships": false,
+        "pending_relationships": true,
         "identifiers": true,
         "types": false
       },
@@ -6853,27 +6853,36 @@
           "name": "test_roles",
           "source": "fixtures/extraction/yaml/test_roles/source.yaml",
           "expected": "fixtures/extraction/yaml/test_roles/expected.json"
+        },
+        {
+          "name": "openapi",
+          "source": "fixtures/extraction/yaml/openapi/source.yaml",
+          "expected": "fixtures/extraction/yaml/openapi/expected.json"
+        },
+        {
+          "name": "cloudformation",
+          "source": "fixtures/extraction/yaml/cloudformation/template.yaml",
+          "expected": "fixtures/extraction/yaml/cloudformation/expected.json"
+        },
+        {
+          "name": "github_actions",
+          "source": "fixtures/extraction/yaml/ci/.github/workflows/ci.yml",
+          "expected": "fixtures/extraction/yaml/ci/expected.json"
+        },
+        {
+          "name": "gitlab_ci",
+          "source": "fixtures/extraction/yaml/gitlab/.gitlab-ci.yml",
+          "expected": "fixtures/extraction/yaml/gitlab/expected.json"
         }
       ],
       "target_capabilities": {
         "symbols": true,
         "relationships": true,
-        "pending_relationships": false,
+        "pending_relationships": true,
         "identifiers": true,
         "types": false
       },
       "capability_gaps": [
-        {
-          "capability": "pending_relationships",
-          "status": "exception",
-          "reason": "YAML anchors/aliases are within-document. YAML has no cross-document forward-reference construct.",
-          "required_closure": "N/A — domain limitation.",
-          "evidence": {
-            "kind": "test",
-            "value": "yaml_pending_relationships_intra_document_only",
-            "command": "cargo nextest run -p julie-extractors --lib tests::yaml::cross_file_pending::yaml_pending_relationships_intra_document_only"
-          }
-        },
         {
           "capability": "types",
           "status": "exception",
@@ -6910,20 +6919,26 @@
           "open_gaps": []
         },
         "body_spans": {
-          "supported": [],
+          "supported": [
+            "module"
+          ],
           "not_applicable": [
-            "module",
             "variable"
           ],
           "open_gaps": []
         },
         "structural_facts": {
           "supported": [
+            "openapi.route.v1",
             "yaml.alias.v1",
             "yaml.anchor.v1",
+            "yaml.ci_job.v1",
+            "yaml.ci_trigger.v1",
+            "yaml.ci_uses.v1",
             "yaml.document.v1",
             "yaml.key_value.v1",
             "yaml.mapping.v1",
+            "yaml.ref.v1",
             "yaml.sequence.v1"
           ],
           "not_applicable": [],
@@ -6954,6 +6969,7 @@
         },
         "doc_comments": {
           "supported": [
+            "module",
             "variable"
           ],
           "not_applicable": [],
