@@ -346,9 +346,11 @@ fn main() {}
             language: "toml",
             file_path: "config.toml",
             source: r#"# plain
+
+# The display name.
 name = "hi"
 "#,
-            expected_kinds: &[Comment, StringLiteral],
+            expected_kinds: &[Comment, DocComment, StringLiteral],
         },
         SourceRegionFixture {
             language: "yaml",
@@ -364,9 +366,11 @@ name: "hi"
             language: "xml",
             file_path: "config.xml",
             source: r#"<!-- plain -->
+
+<!-- The configuration root. -->
 <config name="hi"/>
 "#,
-            expected_kinds: &[Comment, StringLiteral],
+            expected_kinds: &[Comment, DocComment, StringLiteral],
         },
     ];
 
