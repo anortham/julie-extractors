@@ -4669,6 +4669,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/lua/test_roles/test_source.lua",
           "expected": "fixtures/extraction/lua/test_roles/expected.json"
+        },
+        {
+          "name": "scopes",
+          "source": "fixtures/extraction/lua/scopes/source.lua",
+          "expected": "fixtures/extraction/lua/scopes/expected.json"
         }
       ],
       "target_capabilities": {

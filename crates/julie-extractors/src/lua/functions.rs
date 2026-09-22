@@ -1,5 +1,6 @@
 use super::helpers;
 use super::parameters;
+use super::scope;
 /// Function and method definition extraction
 ///
 /// Handles extraction of:
@@ -47,63 +48,28 @@ pub(super) fn extract_function_definition_statement(
     node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    // Handle both regular functions and colon syntax methods
-    let mut name_node = helpers::find_child_by_type(&node, "identifier");
-    let name: String;
-    let mut kind = SymbolKind::Function;
-    let mut method_parent_id = None;
-
-    if let Some(name_n) = name_node {
-        name = base.get_node_text(&name_n);
-    } else {
-        // Check for colon syntax: function obj:method() or dot syntax: function obj.method()
-        let variable_node = helpers::find_child_by_type(&node, "variable")
-            .or_else(|| helpers::find_child_by_type(&node, "dot_index_expression"))
-            .or_else(|| helpers::find_child_by_type(&node, "method_index_expression"))?;
-        let full_name = base.get_node_text(&variable_node);
-
-        // Handle colon syntax: function obj:method()
-        if full_name.contains(':') {
-            let parts: Vec<&str> = full_name.split(':').collect();
-            if parts.len() == 2 {
-                let object_name = parts[0];
-                let method_name = parts[1];
-                name = method_name.to_string();
-                name_node = Some(variable_node);
-                kind = SymbolKind::Method;
-
-                // Try to find the object this method belongs to
-                if let Some(object_symbol) = symbols.iter().find(|s| s.name == object_name) {
-                    method_parent_id = Some(object_symbol.id.clone());
-                }
+    let declared_name = node.child_by_field_name("name")?;
+    let (name, kind, method_parent_id) = match declared_name.kind() {
+        "identifier" => (
+            base.get_node_text(&declared_name),
+            SymbolKind::Function,
+            None,
+        ),
+        "dot_index_expression" | "method_index_expression" => {
+            let member_field = if declared_name.kind() == "dot_index_expression" {
+                "field"
             } else {
-                return None;
-            }
+                "method"
+            };
+            let member = declared_name.child_by_field_name(member_field)?;
+            let owner_id = declared_name
+                .child_by_field_name("table")
+                .and_then(|table| scope::resolve_table_symbol_id(base, table, symbols));
+            (base.get_node_text(&member), SymbolKind::Method, owner_id)
         }
-        // Handle dot syntax: function obj.method()
-        else if full_name.contains('.') {
-            let parts: Vec<&str> = full_name.split('.').collect();
-            if parts.len() == 2 {
-                let object_name = parts[0];
-                let method_name = parts[1];
-                name = method_name.to_string();
-                name_node = Some(variable_node);
-                kind = SymbolKind::Method;
-
-                // Try to find the object this method belongs to
-                if let Some(object_symbol) = symbols.iter().find(|s| s.name == object_name) {
-                    method_parent_id = Some(object_symbol.id.clone());
-                }
-            } else {
-                return None;
-            }
-        } else {
-            return None;
-        }
-    }
-
-    let name_node = name_node.unwrap_or(node);
-    let signature = build_function_signature(base, node, name_node);
+        _ => return None,
+    };
+    let signature = build_function_signature(base, node, declared_name);
 
     // Determine visibility: check if function is local (contains "local" keyword) or uses underscore prefix
     let node_text = base.get_node_text(&node);

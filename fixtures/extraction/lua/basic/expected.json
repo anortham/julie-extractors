@@ -14,32 +14,6 @@
       "end_byte": 42,
       "body_span": null,
       "body_hash": null,
-      "signature": "Worker = {}",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {
-        "dataType": "table"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/lua/basic/source.lua:Worker:3:6",
-      "name": "Worker",
-      "kind": "class",
-      "language": "lua",
-      "file_path": "fixtures/extraction/lua/basic/source.lua",
-      "start_line": 3,
-      "start_column": 6,
-      "end_line": 3,
-      "end_column": 12,
-      "start_byte": 36,
-      "end_byte": 42,
-      "body_span": null,
-      "body_hash": null,
       "signature": "local Worker = {}",
       "doc_comment": null,
       "visibility": "Private",
@@ -92,65 +66,12 @@
       "end_byte": 767,
       "body_span": null,
       "body_hash": null,
-      "signature": "boxed = setmetatable({}, Worker)",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {
-        "baseClass": "Worker",
-        "dataType": ""
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/lua/basic/source.lua:boxed:45:6",
-      "name": "boxed",
-      "kind": "class",
-      "language": "lua",
-      "file_path": "fixtures/extraction/lua/basic/source.lua",
-      "start_line": 45,
-      "start_column": 6,
-      "end_line": 45,
-      "end_column": 11,
-      "start_byte": 762,
-      "end_byte": 767,
-      "body_span": null,
-      "body_hash": null,
       "signature": "local boxed = setmetatable({}, Worker)",
       "doc_comment": null,
       "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "baseClass": "Worker",
-        "dataType": ""
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/lua/basic/source.lua:co:40:6",
-      "name": "co",
-      "kind": "variable",
-      "language": "lua",
-      "file_path": "fixtures/extraction/lua/basic/source.lua",
-      "start_line": 40,
-      "start_column": 6,
-      "end_line": 40,
-      "end_column": 8,
-      "start_byte": 675,
-      "end_byte": 677,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "co = coroutine.create(function()\n    return 1\nend)",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {
         "dataType": ""
       },
       "annotations": [],
@@ -364,38 +285,14 @@
       "end_byte": 10,
       "body_span": null,
       "body_hash": null,
-      "signature": "json = require(\"json\")",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {
-        "dataType": "import"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/lua/basic/source.lua:json:1:6",
-      "name": "json",
-      "kind": "import",
-      "language": "lua",
-      "file_path": "fixtures/extraction/lua/basic/source.lua",
-      "start_line": 1,
-      "start_column": 6,
-      "end_line": 1,
-      "end_column": 10,
-      "start_byte": 6,
-      "end_byte": 10,
-      "body_span": null,
-      "body_hash": null,
       "signature": "local json = require(\"json\")",
       "doc_comment": null,
       "visibility": "Private",
       "parent_key": null,
       "metadata": {
-        "dataType": "import"
+        "dataType": "import",
+        "importContext": "require(\"json\")",
+        "source": "json"
       },
       "annotations": [],
       "semantic_group": null,
@@ -631,84 +528,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/lua/basic/source.lua:total:29:10",
-      "name": "total",
-      "kind": "variable",
-      "language": "lua",
-      "file_path": "fixtures/extraction/lua/basic/source.lua",
-      "start_line": 29,
-      "start_column": 10,
-      "end_line": 29,
-      "end_column": 15,
-      "start_byte": 475,
-      "end_byte": 480,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "total = 0",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {
-        "dataType": "number"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/lua/basic/source.lua:total:32:12",
-      "name": "total",
-      "kind": "variable",
-      "language": "lua",
-      "file_path": "fixtures/extraction/lua/basic/source.lua",
-      "start_line": 32,
-      "start_column": 12,
-      "end_line": 32,
-      "end_column": 17,
-      "start_byte": 545,
-      "end_byte": 550,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "total = total + i",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {
-        "dataType": ""
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/lua/basic/source.lua:total:35:8",
-      "name": "total",
-      "kind": "variable",
-      "language": "lua",
-      "file_path": "fixtures/extraction/lua/basic/source.lua",
-      "start_line": 35,
-      "start_column": 8,
-      "end_line": 35,
-      "end_column": 13,
-      "start_byte": 609,
-      "end_byte": 614,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "total = count > 10 and 1 or 0",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {
-        "dataType": ""
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/lua/basic/source.lua:value:7:22",
       "name": "value",
       "kind": "variable",
@@ -785,32 +604,6 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/lua/basic/source.lua:worker:44:6",
-      "name": "worker",
-      "kind": "variable",
-      "language": "lua",
-      "file_path": "fixtures/extraction/lua/basic/source.lua",
-      "start_line": 44,
-      "start_column": 6,
-      "end_line": 44,
-      "end_column": 12,
-      "start_byte": 733,
-      "end_byte": 739,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "worker = Worker.new(1)",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {
-        "dataType": ""
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
     }
   ],
   "relationships": [
@@ -871,6 +664,14 @@
   ],
   "pending_relationships": [
     {
+      "from_key": "fixtures/extraction/lua/basic/source.lua:json:1:6",
+      "callee_name": "json",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/lua/basic/source.lua",
+      "line_number": 1,
+      "confidence": "0.700"
+    },
+    {
       "from_key": "fixtures/extraction/lua/basic/source.lua:log:23:0",
       "callee_name": "self.missing_wave2",
       "kind": "calls",
@@ -888,6 +689,32 @@
     }
   ],
   "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/lua/basic/source.lua:json:1:6",
+        "callee_name": "json",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/lua/basic/source.lua",
+        "line_number": 1,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "json",
+        "terminal_name": "json",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "require(\"json\")"
+      },
+      "caller_scope_key": "fixtures/extraction/lua/basic/source.lua:json:1:6",
+      "span": {
+        "start_line": 1,
+        "start_column": 13,
+        "end_line": 1,
+        "end_column": 28,
+        "start_byte": 13,
+        "end_byte": 28
+      }
+    },
     {
       "pending": {
         "from_key": "fixtures/extraction/lua/basic/source.lua:log:23:0",

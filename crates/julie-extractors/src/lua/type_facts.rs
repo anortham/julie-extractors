@@ -33,7 +33,13 @@ pub(super) fn record_inferred_constructor_facts(
 }
 
 pub(super) fn colon_method_owner_name(base: &BaseExtractor, function_node: Node) -> Option<String> {
-    identifier_table_name(base, colon_method_index(function_node)?)
+    let table = colon_method_index(function_node)?.child_by_field_name("table")?;
+    let owner = match table.kind() {
+        "identifier" => table,
+        "dot_index_expression" => table.child_by_field_name("field")?,
+        _ => return None,
+    };
+    Some(base.get_node_text(&owner))
 }
 
 pub(super) fn colon_method_name_node(function_node: Node) -> Option<Node> {
