@@ -308,6 +308,23 @@ impl BaseExtractor {
         if matches!(self.language.as_str(), "dart" | "sql") {
             return true;
         }
+        if matches!(
+            self.language.as_str(),
+            "typescript" | "tsx" | "javascript" | "jsx"
+        ) && matches!(
+            ancestor.kind(),
+            "export_statement"
+                | "lexical_declaration"
+                | "variable_declaration"
+                | "variable_declarator"
+        ) {
+            return true;
+        }
+        if matches!(self.language.as_str(), "javascript" | "jsx")
+            && ancestor.kind() == "expression_statement"
+        {
+            return true;
+        }
 
         matches!(
             ancestor.kind(),

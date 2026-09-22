@@ -19,6 +19,7 @@ pub mod scoping;
 pub mod test_detection;
 pub mod type_facts;
 pub mod types;
+pub mod wave1_gaps;
 
 #[cfg(test)]
 mod traversal_depth {

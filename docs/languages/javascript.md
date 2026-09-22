@@ -131,6 +131,33 @@ Closing it needs the extractor to tell a DSL call site from an ordinary
 declaration at the point of declaration, which is an extractor change rather
 than a detection-rule change. The measured cost is 3 rows in 4,328.
 
+## Call edges and pending calls
+
+The JavaScript extractor follows the TypeScript contract in
+[`docs/languages/typescript.md`](typescript.md), with these additions:
+
+- A function value bound by `const`/`let`/`var` is one `function` symbol
+  named by the binding. A function value bound by an object key
+  (`post: function () {}`), a member assignment
+  (`A.prototype.m = function () {}`, `exports.m = ...`), or a class field
+  (`handle = () => {}`) is one `method` symbol. Its parameters hang off that
+  symbol.
+- Calls inside function expressions and generators belong to the nearest
+  callable symbol, the same as calls inside declarations and arrows.
+- A bare call never binds to a method. A bare call whose name is a local
+  binding (variable, parameter, destructured name, local function) emits no
+  pending row.
+- `const { a, b: c } = require("./x")` and `const A = require("./x").A` are
+  CommonJS `import` symbols with `importedName` and `source`, so calls to
+  them carry an import context.
+- Renamed, defaulted, nested, and rest destructuring bindings are variables.
+  Destructured parameters are parameter symbols, one per binding.
+- Test-DSL call sites (`describe`, `it`, hooks) emit no call edges.
+
+The `javascript/language_gaps` and `jsx/language_gaps` goldens hold the
+evidence, together with Express mounts for imported, required, and
+middleware-prefixed routers.
+
 ## Named exclusions
 
 - `test.step(...)` is not a role. A Playwright step is a report annotation
@@ -190,10 +217,23 @@ grammar does not parse. JavaScript produced zero parse diagnostics across all
 ### Precision
 
 Express is a Mocha BDD project, so the corpus exercises `describe`, `it`,
-`before`, and `after` at volume. Of the 1,783 flagged symbols, 1 is wrong:
-`function test(app)` at `test/res.format.js:182`, a helper that wraps `it(...)`
-calls. That is 99.94 percent precision, and the single failure has the cause
-recorded under "Known limitation" above.
+`before`, and `after` at volume. The first count missed a class of false
+positives: 37 of the 40 `fixture_teardown` rows were calls to the `after` npm
+counter (`var after = require('after')`, then `after(2, done)`), not Mocha
+hooks. Two rules now remove them:
+
+- A bare DSL word is not a role when the file binds it at module level to a
+  package that is not a test framework (`require`/`import`) or to a local
+  function.
+- A lifecycle call is a hook only when it passes a function literal, or one
+  function reference such as `afterEach(cleanup)`.
+
+A rescan at commit `bed501c695a61886399ee622875f3be933c716d8` gives 3
+`fixture_teardown` rows (the three `after(function () {...})` hooks in
+`test/app.js`), 59 `fixture_setup`, 1,127 `test_case`, and 557
+`test_container`, all inside `test/`. One known false positive stays:
+`function test(app)` at `test/res.format.js:182`, a helper that wraps
+`it(...)` calls, with the cause recorded under "Known limitation" above.
 
 The temporary checkout and SQLite artifact were removed after recording this
 evidence.

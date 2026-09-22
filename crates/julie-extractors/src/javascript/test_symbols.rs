@@ -292,6 +292,12 @@ fn resolve(base: &BaseExtractor, node: Node) -> Option<TestCall> {
     };
 
     let (category, role, word) = classify_callee(&callee)?;
+    if category == TestCallCategory::Lifecycle && !has_hook_argument(node) {
+        return None;
+    }
+    if !callee.contains('.') && is_bound_to_non_test_code(base, node, word) {
+        return None;
+    }
     let word = word.to_string();
 
     // Jest and Vitest run `describe.each` as a suite factory: the table
@@ -312,6 +318,86 @@ fn resolve(base: &BaseExtractor, node: Node) -> Option<TestCall> {
         category,
         role,
     })
+}
+
+/// A hook call passes its body: a function literal, or a single function
+/// reference (`afterEach(cleanup)`). `after(2, done)` passes neither.
+fn has_hook_argument(node: Node) -> bool {
+    let Some(arguments) = node.child_by_field_name("arguments") else {
+        return false;
+    };
+    let mut cursor = arguments.walk();
+    let arguments: Vec<Node> = arguments.named_children(&mut cursor).collect();
+    arguments.iter().any(|argument| {
+        matches!(
+            argument.kind(),
+            "arrow_function" | "function_expression" | "function" | "generator_function"
+        )
+    }) || matches!(
+        arguments.as_slice(),
+        [argument] if matches!(argument.kind(), "identifier" | "member_expression")
+    )
+}
+
+/// Whether the file binds `word` at module level to something that is not a
+/// test framework: a package `require`/`import` or a local function.
+fn is_bound_to_non_test_code(base: &BaseExtractor, node: Node, word: &str) -> bool {
+    let mut root = node;
+    while let Some(parent) = root.parent() {
+        root = parent;
+    }
+    let mut cursor = root.walk();
+    root.named_children(&mut cursor).any(|statement| {
+        let statement = match statement.kind() {
+            "export_statement" => match statement.child_by_field_name("declaration") {
+                Some(declaration) => declaration,
+                None => return false,
+            },
+            _ => statement,
+        };
+        match statement.kind() {
+            "function_declaration" => statement
+                .child_by_field_name("name")
+                .is_some_and(|name| base.get_node_text(&name) == word),
+            "lexical_declaration" | "variable_declaration" => {
+                let mut declarators = statement.walk();
+                statement
+                    .named_children(&mut declarators)
+                    .filter(|declarator| declarator.kind() == "variable_declarator")
+                    .any(|declarator| {
+                        declarator
+                            .child_by_field_name("name")
+                            .is_some_and(|name| base.get_node_text(&name) == word)
+                            && declarator
+                                .child_by_field_name("value")
+                                .and_then(|value| import_specifier(base, value))
+                                .is_some_and(|specifier| is_non_test_package(&specifier))
+                    })
+            }
+            "import_statement" => import_specifier(base, statement).is_some_and(|specifier| {
+                is_non_test_package(&specifier)
+                    && statement
+                        .child(1)
+                        .is_some_and(|clause| binds_name(base, clause, word))
+            }),
+            _ => false,
+        }
+    })
+}
+
+fn is_non_test_package(specifier: &str) -> bool {
+    !specifier.starts_with('.')
+        && !specifier.starts_with('/')
+        && !is_test_framework_module(specifier)
+}
+
+fn binds_name(base: &BaseExtractor, node: Node, word: &str) -> bool {
+    if node.kind() == "identifier" && base.get_node_text(&node) == word {
+        return true;
+    }
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .any(|child| child.kind() != "string" && binds_name(base, child, word))
 }
 
 /// Whether this node is a test-DSL call, without building a symbol for it.

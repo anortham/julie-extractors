@@ -48,19 +48,18 @@ pub(super) fn extract_class(
                         }
                     }
                 }
-                // Also pick up extends from heritage if not already found via superclass field
-                if heritage_child.kind() == "extends_clause" && extends_name.is_none() {
-                    let mut ext_cursor = heritage_child.walk();
-                    for ext_child in heritage_child.children(&mut ext_cursor) {
-                        if ext_child.kind() != "extends" && ext_child.kind() != "," {
-                            let ext_name = extractor.base().get_node_text(&ext_child);
-                            if !ext_name.is_empty() {
-                                metadata
-                                    .insert("extends".to_string(), serde_json::json!(&ext_name));
-                                extends_name = Some(ext_name);
-                            }
-                        }
+                if heritage_child.kind() == "extends_clause"
+                    && extends_name.is_none()
+                    && let Some(value) = heritage_child.child_by_field_name("value")
+                {
+                    let mut ext_name = extractor.base().get_node_text(&value);
+                    if let Some(type_arguments) =
+                        heritage_child.child_by_field_name("type_arguments")
+                    {
+                        ext_name.push_str(&extractor.base().get_node_text(&type_arguments));
                     }
+                    metadata.insert("extends".to_string(), serde_json::json!(&ext_name));
+                    extends_name = Some(ext_name);
                 }
             }
         }

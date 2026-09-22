@@ -159,16 +159,14 @@ pub(super) fn extract_export(extractor: &mut TypeScriptExtractor, node: Node) ->
             Some(n) => n,
             None => return Vec::new(),
         };
-        let doc_comment = extractor.base().find_doc_comment(&node);
-        vec![extractor.base_mut().create_symbol(
+        let mut export_symbol = extractor.base_mut().create_symbol(
             &node,
             name,
             SymbolKind::Export,
-            SymbolOptions {
-                doc_comment,
-                ..Default::default()
-            },
-        )]
+            SymbolOptions::default(),
+        );
+        export_symbol.doc_comment = None;
+        vec![export_symbol]
     } else if let Some(source_node) = node.child_by_field_name("source") {
         // export { ... } from '...' — single re-export symbol
         let name = extractor

@@ -1012,6 +1012,11 @@
           "name": "return_types",
           "source": "fixtures/extraction/typescript/return_types/source.ts",
           "expected": "fixtures/extraction/typescript/return_types/expected.json"
+        },
+        {
+          "name": "language_gaps",
+          "source": "fixtures/extraction/typescript/language_gaps/source.ts",
+          "expected": "fixtures/extraction/typescript/language_gaps/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1027,11 +1032,15 @@
           "supported": [
             "class",
             "constructor",
+            "enum",
+            "enum_member",
             "export",
             "function",
             "import",
             "interface",
             "method",
+            "property",
+            "type",
             "variable"
           ],
           "not_applicable": [],
@@ -1040,6 +1049,7 @@
         "relationships": {
           "supported": [
             "calls",
+            "extends",
             "implements",
             "instantiates"
           ],
@@ -1060,11 +1070,14 @@
           "supported": [
             "class",
             "constructor",
+            "enum",
             "export",
             "function",
             "import",
             "interface",
             "method",
+            "property",
+            "type",
             "variable"
           ],
           "not_applicable": [],
@@ -1113,7 +1126,11 @@
         },
         "doc_comments": {
           "supported": [
-            "function"
+            "class",
+            "enum_member",
+            "function",
+            "method",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1239,6 +1256,11 @@
           "name": "return_types",
           "source": "fixtures/extraction/tsx/return_types/source.tsx",
           "expected": "fixtures/extraction/tsx/return_types/expected.json"
+        },
+        {
+          "name": "language_gaps",
+          "source": "fixtures/extraction/tsx/language_gaps/source.tsx",
+          "expected": "fixtures/extraction/tsx/language_gaps/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1251,9 +1273,13 @@
       "kind_coverage": {
         "symbols": {
           "supported": [
+            "class",
+            "constructor",
             "export",
             "function",
             "import",
+            "interface",
+            "method",
             "property",
             "type",
             "variable"
@@ -1281,9 +1307,13 @@
         },
         "body_spans": {
           "supported": [
+            "class",
+            "constructor",
             "export",
             "function",
             "import",
+            "interface",
+            "method",
             "type",
             "variable"
           ],
@@ -1477,6 +1507,11 @@
           "name": "agent_usefulness",
           "source": "fixtures/extraction/javascript/agent_usefulness/source.js",
           "expected": "fixtures/extraction/javascript/agent_usefulness/expected.json"
+        },
+        {
+          "name": "language_gaps",
+          "source": "fixtures/extraction/javascript/language_gaps/source.js",
+          "expected": "fixtures/extraction/javascript/language_gaps/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1496,6 +1531,7 @@
             "function",
             "import",
             "method",
+            "property",
             "variable"
           ],
           "not_applicable": [],
@@ -1524,7 +1560,9 @@
             "export",
             "function",
             "import",
-            "method"
+            "method",
+            "property",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1576,7 +1614,9 @@
         },
         "doc_comments": {
           "supported": [
-            "function"
+            "class",
+            "function",
+            "method"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1682,6 +1722,11 @@
           "name": "agent_usefulness",
           "source": "fixtures/extraction/jsx/agent_usefulness/source.jsx",
           "expected": "fixtures/extraction/jsx/agent_usefulness/expected.json"
+        },
+        {
+          "name": "language_gaps",
+          "source": "fixtures/extraction/jsx/language_gaps/source.jsx",
+          "expected": "fixtures/extraction/jsx/language_gaps/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1694,9 +1739,13 @@
       "kind_coverage": {
         "symbols": {
           "supported": [
+            "class",
+            "constructor",
             "export",
             "function",
             "import",
+            "method",
+            "property",
             "variable"
           ],
           "not_applicable": [],
@@ -1713,6 +1762,7 @@
         "identifiers": {
           "supported": [
             "call",
+            "member_access",
             "variable_ref"
           ],
           "not_applicable": [],
@@ -1720,9 +1770,13 @@
         },
         "body_spans": {
           "supported": [
+            "class",
+            "constructor",
             "export",
             "function",
             "import",
+            "method",
+            "property",
             "variable"
           ],
           "not_applicable": [],

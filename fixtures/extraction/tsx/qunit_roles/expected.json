@@ -263,6 +263,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:label:7:17",
+      "name": "label",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
+      "start_line": 7,
+      "start_column": 17,
+      "end_line": 7,
+      "end_column": 22,
+      "start_byte": 118,
+      "end_byte": 123,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "label",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:Badge:7:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:label:7:28",
       "name": "label",
       "kind": "property",
@@ -556,7 +582,62 @@
       "content_type": null
     }
   ],
-  "relationships": [],
+  "relationships": [
+    {
+      "from_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:renderBadge:27:0",
+      "to_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:Badge:7:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
+      "line_number": 28,
+      "span": {
+        "start_line": 28,
+        "start_column": 9,
+        "end_line": 28,
+        "end_column": 32,
+        "start_byte": 789,
+        "end_byte": 812
+      },
+      "reference_site_is_exact": false,
+      "confidence": "1.000",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:renders a label:14:2",
+      "to_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:Badge:7:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
+      "line_number": 15,
+      "span": {
+        "start_line": 15,
+        "start_column": 17,
+        "end_line": 15,
+        "end_column": 40,
+        "start_byte": 371,
+        "end_byte": 394
+      },
+      "reference_site_is_exact": false,
+      "confidence": "1.000",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:renders a label:14:2",
+      "to_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:Badge:7:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
+      "line_number": 15,
+      "span": {
+        "start_line": 15,
+        "start_column": 42,
+        "end_line": 15,
+        "end_column": 65,
+        "start_byte": 396,
+        "end_byte": 419
+      },
+      "reference_site_is_exact": false,
+      "confidence": "1.000",
+      "metadata": null
+    }
+  ],
   "pending_relationships": [
     {
       "from_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:module:32:2",

@@ -123,45 +123,6 @@
         "end_byte": 187
       },
       "body_hash": "e489d67e13e183803a61de11ba173620",
-      "signature": "create = (payload) => ",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:create:5:8",
-      "metadata": {
-        "isArrowFunction": true,
-        "isAsync": false,
-        "isExpression": false,
-        "isGenerator": false,
-        "parameters": [
-          "payload"
-        ]
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/jsx/http_client_axios/source.jsx:create:5:8",
-      "name": "create",
-      "kind": "function",
-      "language": "jsx",
-      "file_path": "fixtures/extraction/jsx/http_client_axios/source.jsx",
-      "start_line": 5,
-      "start_column": 8,
-      "end_line": 5,
-      "end_column": 84,
-      "start_byte": 111,
-      "end_byte": 187,
-      "body_span": {
-        "start_line": 5,
-        "start_column": 50,
-        "end_line": 5,
-        "end_column": 83,
-        "start_byte": 153,
-        "end_byte": 186
-      },
-      "body_hash": "68cd2f7cda5942fd33c7c47633804be1",
       "signature": "const create = (payload) =>",
       "doc_comment": null,
       "visibility": "Public",
@@ -169,7 +130,7 @@
       "metadata": {
         "isArrowFunction": true,
         "isAsync": false,
-        "isExpression": true,
+        "isExpression": false,
         "isGenerator": false,
         "parameters": [
           "payload"
@@ -230,45 +191,6 @@
         "end_byte": 230
       },
       "body_hash": "53724c90cf026398d122b79161afbecc",
-      "signature": "dynamic = (url) => ",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:dynamic:6:8",
-      "metadata": {
-        "isArrowFunction": true,
-        "isAsync": false,
-        "isExpression": false,
-        "isGenerator": false,
-        "parameters": [
-          "url"
-        ]
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/jsx/http_client_axios/source.jsx:dynamic:6:8",
-      "name": "dynamic",
-      "kind": "function",
-      "language": "jsx",
-      "file_path": "fixtures/extraction/jsx/http_client_axios/source.jsx",
-      "start_line": 6,
-      "start_column": 8,
-      "end_line": 6,
-      "end_column": 41,
-      "start_byte": 197,
-      "end_byte": 230,
-      "body_span": {
-        "start_line": 6,
-        "start_column": 18,
-        "end_line": 6,
-        "end_column": 41,
-        "start_byte": 207,
-        "end_byte": 230
-      },
-      "body_hash": "1d184cc1910f5d00c7af2328a3ff1b02",
       "signature": "const dynamic = (url) => axios.get(url)",
       "doc_comment": null,
       "visibility": "Public",
@@ -276,7 +198,7 @@
       "metadata": {
         "isArrowFunction": true,
         "isAsync": false,
-        "isExpression": true,
+        "isExpression": false,
         "isGenerator": false,
         "parameters": [
           "url"
@@ -308,43 +230,6 @@
         "end_byte": 101
       },
       "body_hash": "0c2cbae3364221b52cd8aa8267032117",
-      "signature": "load = () => ",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:load:4:8",
-      "metadata": {
-        "isArrowFunction": true,
-        "isAsync": false,
-        "isExpression": false,
-        "isGenerator": false,
-        "parameters": []
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/jsx/http_client_axios/source.jsx:load:4:8",
-      "name": "load",
-      "kind": "function",
-      "language": "jsx",
-      "file_path": "fixtures/extraction/jsx/http_client_axios/source.jsx",
-      "start_line": 4,
-      "start_column": 8,
-      "end_line": 4,
-      "end_column": 44,
-      "start_byte": 65,
-      "end_byte": 101,
-      "body_span": {
-        "start_line": 4,
-        "start_column": 15,
-        "end_line": 4,
-        "end_column": 44,
-        "start_byte": 72,
-        "end_byte": 101
-      },
-      "body_hash": "1890f87fa9a4fa601a77c2eeac6c8938",
       "signature": "const load = () => axios.get(\"/api/users\")",
       "doc_comment": null,
       "visibility": "Public",
@@ -352,7 +237,7 @@
       "metadata": {
         "isArrowFunction": true,
         "isAsync": false,
-        "isExpression": true,
+        "isExpression": false,
         "isGenerator": false,
         "parameters": []
       },
@@ -701,28 +586,6 @@
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:create:5:8",
-      "algorithm_id": "julie-ast-complexity-v1",
-      "language": "jsx",
-      "file_path": "fixtures/extraction/jsx/http_client_axios/source.jsx",
-      "covered_lines": 1,
-      "covered_bytes": 33,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
-      "parameter_count": 1,
-      "start_line": 5,
-      "start_column": 50,
-      "end_line": 5,
-      "end_column": 83,
-      "start_byte": 153,
-      "end_byte": 186,
-      "metadata": {
-        "metric_version": 1
-      }
-    },
-    {
-      "scope": "symbol",
       "symbol_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:dynamic:6:18",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "jsx",
@@ -745,28 +608,6 @@
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:dynamic:6:8",
-      "algorithm_id": "julie-ast-complexity-v1",
-      "language": "jsx",
-      "file_path": "fixtures/extraction/jsx/http_client_axios/source.jsx",
-      "covered_lines": 1,
-      "covered_bytes": 23,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
-      "parameter_count": 1,
-      "start_line": 6,
-      "start_column": 18,
-      "end_line": 6,
-      "end_column": 41,
-      "start_byte": 207,
-      "end_byte": 230,
-      "metadata": {
-        "metric_version": 1
-      }
-    },
-    {
-      "scope": "symbol",
       "symbol_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:load:4:15",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "jsx",
@@ -782,28 +623,6 @@
       "end_line": 4,
       "end_column": 44,
       "start_byte": 78,
-      "end_byte": 101,
-      "metadata": {
-        "metric_version": 1
-      }
-    },
-    {
-      "scope": "symbol",
-      "symbol_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:load:4:8",
-      "algorithm_id": "julie-ast-complexity-v1",
-      "language": "jsx",
-      "file_path": "fixtures/extraction/jsx/http_client_axios/source.jsx",
-      "covered_lines": 1,
-      "covered_bytes": 29,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
-      "parameter_count": 0,
-      "start_line": 4,
-      "start_column": 15,
-      "end_line": 4,
-      "end_column": 44,
-      "start_byte": 72,
       "end_byte": 101,
       "metadata": {
         "metric_version": 1

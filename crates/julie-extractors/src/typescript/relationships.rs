@@ -159,10 +159,7 @@ fn extract_call_relationships(
         return;
     }
 
-    // Look for call expressions
-    if node.kind() == "call_expression"
-        && let Some(function_node) = node.child_by_field_name("function")
-    {
+    if let Some(function_node) = call_site_callee(extractor, node) {
         let target = extract_call_target(extractor, function_node);
 
         // Find the calling function (containing function)
@@ -246,8 +243,35 @@ fn find_containing_callable_symbol<'a>(node: Node, symbols: &'a [Symbol]) -> Opt
         .min_by_key(|symbol| symbol.end_byte - symbol.start_byte)
 }
 
+/// The callee of a call site: the `function` of a call expression, or the
+/// name of a JSX element that renders a component (capitalized terminal name).
+pub(super) fn call_site_callee<'tree>(
+    extractor: &TypeScriptExtractor,
+    node: Node<'tree>,
+) -> Option<Node<'tree>> {
+    match node.kind() {
+        "call_expression" => node.child_by_field_name("function"),
+        "jsx_opening_element" | "jsx_self_closing_element" => {
+            let name = node.child_by_field_name("name")?;
+            let terminal = match name.kind() {
+                "identifier" => name,
+                "member_expression" => name.child_by_field_name("property")?,
+                _ => return None,
+            };
+            extractor
+                .base()
+                .get_node_text(&terminal)
+                .starts_with(|first: char| first.is_ascii_uppercase())
+                .then_some(name)
+        }
+        _ => None,
+    }
+}
+
 /// Collects the identifier chain of `Q1.Q2 ... Qn.t` and its root node; `None`
-/// when any link is not a plain identifier (a call result, `this`, an index).
+/// when any link is not a plain identifier (a call result, an index). A
+/// `this`/`super` root stays in a two-part chain (`this.m`) and is dropped from
+/// a longer one, so `this.repo.save` names the `repo` receiver.
 pub(super) fn member_chain<'tree>(
     extractor: &TypeScriptExtractor,
     node: Node<'tree>,
@@ -258,7 +282,7 @@ pub(super) fn member_chain<'tree>(
         parts: &mut Vec<String>,
     ) -> Option<Node<'tree>> {
         match node.kind() {
-            "identifier" => {
+            "identifier" | "this" | "super" => {
                 parts.push(extractor.base().get_node_text(&node));
                 Some(node)
             }
@@ -277,6 +301,9 @@ pub(super) fn member_chain<'tree>(
 
     let mut parts = Vec::new();
     let root = collect(extractor, node, &mut parts)?;
+    if parts.len() > 2 && matches!(root.kind(), "this" | "super") {
+        parts.remove(0);
+    }
     Some((parts, root))
 }
 
@@ -401,7 +428,10 @@ fn collect_heritage_data(
     symbols: &[Symbol],
 ) -> Option<HeritageData> {
     let mut parent = node.parent()?;
-    while parent.kind() != "class_declaration" {
+    while !matches!(
+        parent.kind(),
+        "class_declaration" | "abstract_class_declaration"
+    ) {
         parent = parent.parent()?;
     }
 

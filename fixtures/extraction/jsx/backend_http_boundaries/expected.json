@@ -133,43 +133,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:handler:13:69",
-      "name": "handler",
-      "kind": "function",
-      "language": "jsx",
-      "file_path": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx",
-      "start_line": 13,
-      "start_column": 69,
-      "end_line": 13,
-      "end_column": 95,
-      "start_byte": 409,
-      "end_byte": 435,
-      "body_span": {
-        "start_line": 13,
-        "start_column": 81,
-        "end_line": 13,
-        "end_column": 95,
-        "start_byte": 421,
-        "end_byte": 435
-      },
-      "body_hash": "bee4acb94687f5344de550791f7c16e8",
-      "signature": "async handler = () => ",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:handler:13:60",
-      "metadata": {
-        "isArrowFunction": true,
-        "isAsync": true,
-        "isExpression": false,
-        "isGenerator": false,
-        "parameters": []
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:method:13:17",
       "name": "method",
       "kind": "property",
@@ -215,7 +178,7 @@
       "signature": "ok: true",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:handler:13:69",
+      "parent_key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:handler:13:60",
       "metadata": {
         "isComputed": false,
         "isPrivate": false,
@@ -876,28 +839,6 @@
       "end_column": 94,
       "start_byte": 422,
       "end_byte": 434,
-      "metadata": {
-        "metric_version": 1
-      }
-    },
-    {
-      "scope": "symbol",
-      "symbol_key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:handler:13:69",
-      "algorithm_id": "julie-ast-complexity-v1",
-      "language": "jsx",
-      "file_path": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx",
-      "covered_lines": 1,
-      "covered_bytes": 14,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
-      "parameter_count": 0,
-      "start_line": 13,
-      "start_column": 81,
-      "end_line": 13,
-      "end_column": 95,
-      "start_byte": 421,
-      "end_byte": 435,
       "metadata": {
         "metric_version": 1
       }

@@ -123,15 +123,19 @@ class Worker {
     }
 
     #[test]
-    fn destructured_parameters_get_no_symbols() {
+    fn destructured_parameters_get_one_symbol_per_binding() {
         let (symbols, _extractor) = extract("function draw({x, y}) {}");
 
-        assert!(!symbols.iter().any(|s| {
-            s.metadata
-                .as_ref()
-                .and_then(|m| m.get("role"))
-                .map(|role| role == &serde_json::json!("parameter"))
-                .unwrap_or(false)
-        }));
+        let names: Vec<&str> = symbols
+            .iter()
+            .filter(|s| {
+                s.metadata
+                    .as_ref()
+                    .and_then(|m| m.get("role"))
+                    .is_some_and(|role| role == &serde_json::json!("parameter"))
+            })
+            .map(|s| s.name.as_str())
+            .collect();
+        assert_eq!(names, vec!["x", "y"]);
     }
 }

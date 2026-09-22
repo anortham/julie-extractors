@@ -36,6 +36,78 @@ use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::{HashMap, HashSet};
 use tree_sitter::Tree;
 
+struct PendingCallContext<'a> {
+    symbols: &'a [Symbol],
+    symbol_index: crate::base::ScopedSymbolIndex<'a>,
+    typed_receivers: HashSet<String>,
+}
+
+/// Names of the file's bindings (variables, parameters, properties) that carry
+/// a type fact, so a member call on them can be bound by the consumer.
+pub(crate) fn typed_receiver_names(
+    symbols: &[Symbol],
+    type_info: &HashMap<String, crate::base::TypeInfo>,
+) -> HashSet<String> {
+    let external_imports: HashSet<&str> = symbols
+        .iter()
+        .filter(|symbol| {
+            symbol.kind == SymbolKind::Import
+                && import_source_from_symbol(symbol)
+                    .is_some_and(|source| import_source_kind(source) == ImportSourceKind::External)
+        })
+        .map(|symbol| symbol.name.as_str())
+        .collect();
+    symbols
+        .iter()
+        .filter(|symbol| {
+            matches!(
+                symbol.kind,
+                SymbolKind::Variable
+                    | SymbolKind::Property
+                    | SymbolKind::Field
+                    | SymbolKind::Constant
+            ) && type_info.get(&symbol.id).is_some_and(|info| {
+                names_project_type(&info.resolved_type)
+                    && !external_imports
+                        .contains(info.resolved_type.split('.').next().unwrap_or_default())
+            })
+        })
+        .map(|symbol| symbol.name.clone())
+        .collect()
+}
+
+/// Built-in value types and arrays never bind to a project type, so member
+/// calls on them stay local noise.
+fn names_project_type(resolved_type: &str) -> bool {
+    !resolved_type.ends_with("[]")
+        && !matches!(
+            resolved_type,
+            "string"
+                | "number"
+                | "boolean"
+                | "bigint"
+                | "symbol"
+                | "object"
+                | "any"
+                | "unknown"
+                | "never"
+                | "void"
+                | "undefined"
+                | "null"
+                | "String"
+                | "Number"
+                | "Boolean"
+                | "Object"
+                | "Array"
+                | "Promise"
+                | "Map"
+                | "Set"
+                | "Date"
+                | "RegExp"
+                | "Error"
+        )
+}
+
 /// Main TypeScript extractor that orchestrates modular extraction components
 pub struct TypeScriptExtractor {
     pub(crate) base: BaseExtractor,
@@ -81,18 +153,23 @@ impl TypeScriptExtractor {
     /// Extract pending relationships from the syntax tree
     /// This handles cross-file function calls that need resolution
     fn extract_pending_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) {
-        let symbol_map: std::collections::HashMap<String, &Symbol> =
+        let symbol_map: HashMap<String, &Symbol> =
             crate::base::ScopedSymbolIndex::unique_symbol_map(symbols);
+        let context = PendingCallContext {
+            symbols,
+            symbol_index: crate::base::ScopedSymbolIndex::new(symbols),
+            typed_receivers: typed_receiver_names(symbols, &self.base.type_info),
+        };
 
-        self.walk_for_pending_calls(tree.root_node(), symbols, &symbol_map, None, 0);
+        self.walk_for_pending_calls(tree.root_node(), &context, &symbol_map, None, 0);
     }
 
-    /// Walk the tree looking for function calls that reference imported symbols
+    /// Walk the tree looking for calls that need cross-file resolution
     fn walk_for_pending_calls<'a>(
         &mut self,
         node: tree_sitter::Node,
-        symbols: &'a [Symbol],
-        symbol_map: &std::collections::HashMap<String, &'a Symbol>,
+        context: &PendingCallContext<'a>,
+        symbol_map: &HashMap<String, &'a Symbol>,
         current_caller: Option<&'a Symbol>,
         depth: u32,
     ) {
@@ -101,51 +178,42 @@ impl TypeScriptExtractor {
         }
 
         let current_caller = self
-            .caller_for_pending_scope_node(node, symbols, symbol_map)
+            .caller_for_pending_scope_node(node, context.symbols, symbol_map)
             .or(current_caller);
 
-        // Look for call expressions
-        if node.kind() == "call_expression"
-            && let (Some(caller_symbol), Some(function_node)) =
-                (current_caller, node.child_by_field_name("function"))
+        if let (Some(caller_symbol), Some(function_node)) =
+            (current_caller, relationships::call_site_callee(self, node))
         {
-            let function_name = self.call_terminal_name(function_node);
-
-            // Check if this is a call to an import or unknown function
-            match symbol_map.get(function_name.as_str()) {
-                Some(called_symbol) if called_symbol.kind == SymbolKind::Import => {
-                    if let Some(target) =
+            if function_node.kind() == "member_expression" {
+                self.emit_pending_member_call(
+                    node,
+                    function_node,
+                    caller_symbol,
+                    context,
+                    symbol_map,
+                );
+            } else {
+                let confidence = match symbol_map
+                    .get(self.base.get_node_text(&function_node).as_str())
+                {
+                    Some(called_symbol) if called_symbol.kind == SymbolKind::Import => Some(0.8),
+                    None => Some(0.7),
+                    _ => None,
+                };
+                if let Some(confidence) = confidence
+                    && let Some(target) =
                         self.build_unresolved_target(node, function_node, symbol_map)
-                        && Self::should_emit_pending_call(&target)
-                    {
-                        let pending = self.base.create_pending_relationship(
-                            caller_symbol.id.clone(),
-                            target,
-                            RelationshipKind::Calls,
-                            &node,
-                            Some(caller_symbol.id.clone()),
-                            Some(0.8),
-                        );
-                        self.add_structured_pending_relationship(pending);
-                    }
+                {
+                    let pending = self.base.create_pending_relationship(
+                        caller_symbol.id.clone(),
+                        target,
+                        RelationshipKind::Calls,
+                        &node,
+                        Some(caller_symbol.id.clone()),
+                        Some(confidence),
+                    );
+                    self.add_structured_pending_relationship(pending);
                 }
-                None => {
-                    if let Some(target) =
-                        self.build_unresolved_target(node, function_node, symbol_map)
-                        && Self::should_emit_pending_call(&target)
-                    {
-                        let pending = self.base.create_pending_relationship(
-                            caller_symbol.id.clone(),
-                            target,
-                            RelationshipKind::Calls,
-                            &node,
-                            Some(caller_symbol.id.clone()),
-                            Some(0.7),
-                        );
-                        self.add_structured_pending_relationship(pending);
-                    }
-                }
-                _ => {}
             }
         }
 
@@ -157,13 +225,66 @@ impl TypeScriptExtractor {
             if let Some(child) = node.named_child(index as u32) {
                 self.walk_for_pending_calls(
                     child,
-                    symbols,
+                    context,
                     symbol_map,
                     current_caller,
                     child_depth,
                 );
             }
         }
+    }
+
+    /// A member call is pending when its receiver names an import, a binding
+    /// with a type fact, or `this`/`super` with a known class and no
+    /// same-class target. The terminal name alone never makes it local.
+    fn emit_pending_member_call(
+        &mut self,
+        call_node: tree_sitter::Node,
+        function_node: tree_sitter::Node,
+        caller_symbol: &Symbol,
+        context: &PendingCallContext<'_>,
+        symbol_map: &HashMap<String, &Symbol>,
+    ) {
+        let Some(target) = self.build_unresolved_target(call_node, function_node, symbol_map)
+        else {
+            return;
+        };
+        let Some(receiver) = target.receiver.as_deref() else {
+            return;
+        };
+        let receiver_type = function_node
+            .child_by_field_name("object")
+            .and_then(|object| {
+                crate::javascript::identifiers::ecmascript_self_receiver_type(&self.base, object)
+            });
+        let emit = if matches!(receiver, "this" | "super") {
+            receiver_type.is_some()
+                && !matches!(
+                    context.symbol_index.resolve_call_target(
+                        &target.terminal_name,
+                        Some(caller_symbol),
+                        Some(receiver),
+                    ),
+                    crate::base::LocalTargetResolution::Resolved(_)
+                )
+        } else {
+            target.import_context.is_some() || context.typed_receivers.contains(receiver)
+        };
+        if !emit {
+            return;
+        }
+        let pending = self
+            .base
+            .create_pending_relationship(
+                caller_symbol.id.clone(),
+                target,
+                RelationshipKind::Calls,
+                &call_node,
+                Some(caller_symbol.id.clone()),
+                Some(0.7),
+            )
+            .with_receiver_type(receiver_type);
+        self.add_structured_pending_relationship(pending);
     }
 
     fn caller_for_pending_scope_node<'a>(
@@ -254,10 +375,6 @@ impl TypeScriptExtractor {
         }
 
         self.base.get_node_text(&function_node)
-    }
-
-    fn should_emit_pending_call(target: &UnresolvedTarget) -> bool {
-        target.receiver.is_none() || target.import_context.is_some()
     }
 
     fn build_unresolved_target(

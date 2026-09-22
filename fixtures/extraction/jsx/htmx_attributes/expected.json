@@ -73,6 +73,32 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/jsx/htmx_attributes/source.jsx:dynamicUrl:1:27",
+      "name": "dynamicUrl",
+      "kind": "variable",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/htmx_attributes/source.jsx",
+      "start_line": 1,
+      "start_column": 27,
+      "end_line": 1,
+      "end_column": 37,
+      "start_byte": 27,
+      "end_byte": 37,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "dynamicUrl",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/jsx/htmx_attributes/source.jsx:TodoList:1:7",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [],

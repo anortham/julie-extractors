@@ -198,6 +198,14 @@
     {
       "from_key": "fixtures/extraction/tsx/cross_file/source.tsx:entry:12:7",
       "callee_name": "Foo",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/tsx/cross_file/source.tsx",
+      "line_number": 14,
+      "confidence": "0.800"
+    },
+    {
+      "from_key": "fixtures/extraction/tsx/cross_file/source.tsx:entry:12:7",
+      "callee_name": "Foo",
       "kind": "instantiates",
       "file_path": "fixtures/extraction/tsx/cross_file/source.tsx",
       "line_number": 13,
@@ -205,6 +213,32 @@
     }
   ],
   "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/tsx/cross_file/source.tsx:entry:12:7",
+        "callee_name": "Foo",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/tsx/cross_file/source.tsx",
+        "line_number": 14,
+        "confidence": "0.800"
+      },
+      "target": {
+        "display_name": "Foo",
+        "terminal_name": "Foo",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "Foo"
+      },
+      "caller_scope_key": "fixtures/extraction/tsx/cross_file/source.tsx:entry:12:7",
+      "span": {
+        "start_line": 14,
+        "start_column": 11,
+        "end_line": 14,
+        "end_column": 16,
+        "start_byte": 447,
+        "end_byte": 452
+      }
+    },
     {
       "pending": {
         "from_key": "fixtures/extraction/tsx/cross_file/source.tsx:entry:12:7",

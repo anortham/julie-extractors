@@ -31,10 +31,26 @@ impl super::JavaScriptExtractor {
 
         // Check if this is a CommonJS require statement (reference logic)
         if let Some(value) = &value_node {
-            if self.is_require_call(value) {
+            let required_member = (value.kind() == "member_expression")
+                .then(|| value.child_by_field_name("object"))
+                .flatten()
+                .filter(|object| self.is_require_call(object))
+                .zip(value.child_by_field_name("property"));
+            let require_node = if self.is_require_call(value) {
+                Some(*value)
+            } else {
+                required_member.map(|(object, _)| object)
+            };
+            if let Some(require_node) = require_node {
                 let mut metadata = HashMap::new();
-                if let Some(source) = self.extract_require_source(value) {
+                if let Some(source) = self.extract_require_source(&require_node) {
                     metadata.insert("source".to_string(), json!(source));
+                }
+                if let Some((_, property)) = required_member {
+                    metadata.insert(
+                        "importedName".to_string(),
+                        json!(self.base.get_node_text(&property)),
+                    );
                 }
                 metadata.insert("isCommonJS".to_string(), json!(true));
 
@@ -56,40 +72,11 @@ impl super::JavaScriptExtractor {
                 ));
             }
 
-            // For function expressions, create a function symbol with the variable's name (reference logic)
-            if value.kind() == "arrow_function"
-                || value.kind() == "function_expression"
-                || value.kind() == "generator_function"
-            {
-                let mut metadata = HashMap::new();
-                metadata.insert("isAsync".to_string(), json!(self.is_async(value)));
-                metadata.insert("isGenerator".to_string(), json!(self.is_generator(value)));
-                metadata.insert(
-                    "isArrowFunction".to_string(),
-                    json!(value.kind() == "arrow_function"),
-                );
-                metadata.insert("isExpression".to_string(), json!(true));
-                metadata.insert(
-                    "parameters".to_string(),
-                    json!(self.extract_parameters(value)),
-                );
-
-                // Extract JSDoc comment
-                let doc_comment = self.base.find_doc_comment(&doc_node);
-
-                return Some(self.base.create_symbol(
-                    &node,
-                    name,
-                    SymbolKind::Function,
-                    SymbolOptions {
-                        signature: Some(signature),
-                        visibility: Some(self.extract_visibility(&node)),
-                        parent_id,
-                        metadata: Some(metadata),
-                        doc_comment,
-                        annotations: Vec::new(),
-                    },
-                ));
+            if matches!(
+                value.kind(),
+                "arrow_function" | "function_expression" | "generator_function"
+            ) {
+                return None;
             }
         }
 
@@ -135,142 +122,170 @@ impl super::JavaScriptExtractor {
         Some(symbol)
     }
 
-    /// Extract destructuring variables - implementation's extractDestructuringVariables
+    /// One symbol per binding in a destructuring declarator. Bindings taken by
+    /// key from `require("...")` are CommonJS imports; every other binding,
+    /// including renamed, defaulted, nested, and rest bindings, is a variable.
     pub(super) fn extract_destructuring_variables(
         &mut self,
         node: Node,
         parent_id: Option<String>,
     ) -> Vec<Symbol> {
-        let name_node = node.child_by_field_name("name");
+        let Some(pattern) = node.child_by_field_name("name") else {
+            return Vec::new();
+        };
         let value_node = node.child_by_field_name("value");
-        let mut symbols = Vec::new();
+        let require_source = value_node
+            .filter(|value| self.is_require_call(value))
+            .and_then(|value| self.extract_require_source(&value));
+        let declaration_type = self.get_declaration_type(&node);
+        let value_text = value_node
+            .map(|value| self.base.get_node_text(&value))
+            .unwrap_or_default();
+        let doc_node = node.parent().unwrap_or(node);
+        let doc_comment = self.base.find_doc_comment(&doc_node);
 
-        if let Some(name) = name_node {
-            let declaration_type = self.get_declaration_type(&node);
-            let value_text = value_node
-                .map(|v| self.base.get_node_text(&v))
-                .unwrap_or_default();
+        let mut bindings = Vec::new();
+        collect_pattern_bindings(pattern, None, &mut bindings);
 
-            match name.kind() {
-                "object_pattern" => {
-                    // Handle object destructuring: const { name, age, ...rest } = user (reference logic)
-                    for child in name.children(&mut name.walk()) {
-                        match child.kind() {
-                            "shorthand_property_identifier_pattern"
-                            | "property_identifier"
-                            | "identifier" => {
-                                let var_name = self.base.get_node_text(&child);
-                                let signature = format!(
-                                    "{} {{ {} }} = {}",
-                                    declaration_type, var_name, value_text
-                                );
-
-                                let mut metadata = HashMap::new();
-                                metadata
-                                    .insert("declarationType".to_string(), json!(declaration_type));
-                                metadata.insert("isDestructured".to_string(), json!(true));
-                                metadata.insert("destructuringType".to_string(), json!("object"));
-
-                                // Extract JSDoc comment
-                                let doc_comment = self.base.find_doc_comment(&node);
-
-                                symbols.push(self.base.create_symbol(
-                                    &node,
-                                    var_name,
-                                    SymbolKind::Variable,
-                                    SymbolOptions {
-                                        signature: Some(signature),
-                                        visibility: Some(self.extract_visibility(&node)),
-                                        parent_id: parent_id.clone(),
-                                        metadata: Some(metadata),
-                                        doc_comment,
-                                        annotations: Vec::new(),
-                                    },
-                                ));
-                            }
-                            "rest_pattern" => {
-                                // Handle rest parameters: const { name, ...rest } = user (reference logic)
-                                if let Some(rest_identifier) = child
-                                    .children(&mut child.walk())
-                                    .find(|c| c.kind() == "identifier")
-                                {
-                                    let var_name = self.base.get_node_text(&rest_identifier);
-                                    let signature = format!(
-                                        "{} {{ ...{} }} = {}",
-                                        declaration_type, var_name, value_text
-                                    );
-
-                                    let mut metadata = HashMap::new();
-                                    metadata.insert(
-                                        "declarationType".to_string(),
-                                        json!(declaration_type),
-                                    );
-                                    metadata.insert("isDestructured".to_string(), json!(true));
-                                    metadata
-                                        .insert("destructuringType".to_string(), json!("object"));
-                                    metadata.insert("isRestParameter".to_string(), json!(true));
-
-                                    // Extract JSDoc comment
-                                    let doc_comment = self.base.find_doc_comment(&node);
-
-                                    symbols.push(self.base.create_symbol(
-                                        &node,
-                                        var_name,
-                                        SymbolKind::Variable,
-                                        SymbolOptions {
-                                            signature: Some(signature),
-                                            visibility: Some(self.extract_visibility(&node)),
-                                            parent_id: parent_id.clone(),
-                                            metadata: Some(metadata),
-                                            doc_comment,
-                                            annotations: Vec::new(),
-                                        },
-                                    ));
-                                }
-                            }
-                            _ => {}
-                        }
+        bindings
+            .into_iter()
+            .map(|binding| {
+                let name = self.base.get_node_text(&binding.name);
+                let imported_name = binding
+                    .key
+                    .map(|key| self.base.get_node_text(&key))
+                    .unwrap_or_else(|| name.clone());
+                let mut metadata = HashMap::new();
+                let kind = match (&require_source, binding.top_level_object) {
+                    (Some(source), true) => {
+                        metadata.insert("source".to_string(), json!(source));
+                        metadata.insert("importedName".to_string(), json!(imported_name));
+                        metadata.insert("isCommonJS".to_string(), json!(true));
+                        SymbolKind::Import
                     }
-                }
-                "array_pattern" => {
-                    // Handle array destructuring: const [first, second] = array (reference logic)
-                    let mut index = 0;
-                    for child in name.children(&mut name.walk()) {
-                        if child.kind() == "identifier" {
-                            let var_name = self.base.get_node_text(&child);
-                            let signature =
-                                format!("{} [{}] = {}", declaration_type, var_name, value_text);
-
-                            let mut metadata = HashMap::new();
-                            metadata.insert("declarationType".to_string(), json!(declaration_type));
-                            metadata.insert("isDestructured".to_string(), json!(true));
-                            metadata.insert("destructuringType".to_string(), json!("array"));
-                            metadata.insert("destructuringIndex".to_string(), json!(index));
-
-                            // Extract JSDoc comment
-                            let doc_comment = self.base.find_doc_comment(&node);
-
-                            symbols.push(self.base.create_symbol(
-                                &node,
-                                var_name,
-                                SymbolKind::Variable,
-                                SymbolOptions {
-                                    signature: Some(signature),
-                                    visibility: Some(self.extract_visibility(&node)),
-                                    parent_id: parent_id.clone(),
-                                    metadata: Some(metadata),
-                                    doc_comment,
-                                    annotations: Vec::new(),
-                                },
-                            ));
-                            index += 1;
+                    _ => {
+                        metadata.insert("declarationType".to_string(), json!(declaration_type));
+                        metadata.insert("isDestructured".to_string(), json!(true));
+                        metadata.insert(
+                            "destructuringType".to_string(),
+                            json!(if pattern.kind() == "array_pattern" {
+                                "array"
+                            } else {
+                                "object"
+                            }),
+                        );
+                        if binding.is_rest {
+                            metadata.insert("isRestParameter".to_string(), json!(true));
                         }
+                        SymbolKind::Variable
                     }
-                }
-                _ => {}
+                };
+                let signature = format!(
+                    "{} {} = {}",
+                    declaration_type,
+                    self.base.get_node_text(&pattern),
+                    value_text
+                );
+                self.base.create_symbol(
+                    &binding.name,
+                    name,
+                    kind,
+                    SymbolOptions {
+                        signature: Some(signature),
+                        visibility: Some(self.extract_visibility(&node)),
+                        parent_id: parent_id.clone(),
+                        metadata: Some(metadata),
+                        doc_comment: doc_comment.clone(),
+                        annotations: Vec::new(),
+                    },
+                )
+            })
+            .collect()
+    }
+}
+
+pub(crate) struct PatternBinding<'tree> {
+    pub(crate) name: Node<'tree>,
+    key: Option<Node<'tree>>,
+    top_level_object: bool,
+    is_rest: bool,
+}
+
+/// Collect the identifiers a destructuring pattern binds, in source order.
+/// `key` is the property a top-level object binding reads (`audit` in
+/// `{ audit: log }`).
+pub(crate) fn collect_pattern_bindings<'tree>(
+    pattern: Node<'tree>,
+    parent_kind: Option<&str>,
+    bindings: &mut Vec<PatternBinding<'tree>>,
+) {
+    let top_level_object = parent_kind.is_none() && pattern.kind() == "object_pattern";
+    let mut cursor = pattern.walk();
+    for child in pattern.named_children(&mut cursor) {
+        match child.kind() {
+            "identifier" | "shorthand_property_identifier_pattern" => {
+                bindings.push(PatternBinding {
+                    name: child,
+                    key: None,
+                    top_level_object,
+                    is_rest: false,
+                });
             }
+            "pair_pattern" => {
+                let Some(value) = child.child_by_field_name("value") else {
+                    continue;
+                };
+                let value = match value.kind() {
+                    "assignment_pattern" => value.child_by_field_name("left").unwrap_or(value),
+                    _ => value,
+                };
+                if value.kind() == "identifier" {
+                    bindings.push(PatternBinding {
+                        name: value,
+                        key: child.child_by_field_name("key"),
+                        top_level_object,
+                        is_rest: false,
+                    });
+                } else {
+                    collect_pattern_bindings(value, Some(pattern.kind()), bindings);
+                }
+            }
+            "object_assignment_pattern" | "assignment_pattern" => {
+                if let Some(left) = child.child_by_field_name("left") {
+                    if matches!(
+                        left.kind(),
+                        "identifier" | "shorthand_property_identifier_pattern"
+                    ) {
+                        bindings.push(PatternBinding {
+                            name: left,
+                            key: None,
+                            top_level_object,
+                            is_rest: false,
+                        });
+                    } else {
+                        collect_pattern_bindings(left, Some(pattern.kind()), bindings);
+                    }
+                }
+            }
+            "rest_pattern" => {
+                let mut rest_cursor = child.walk();
+                if let Some(target) = child.named_children(&mut rest_cursor).next() {
+                    if target.kind() == "identifier" {
+                        bindings.push(PatternBinding {
+                            name: target,
+                            key: None,
+                            top_level_object: false,
+                            is_rest: true,
+                        });
+                    } else {
+                        collect_pattern_bindings(target, Some(pattern.kind()), bindings);
+                    }
+                }
+            }
+            "object_pattern" | "array_pattern" => {
+                collect_pattern_bindings(child, Some(pattern.kind()), bindings);
+            }
+            _ => {}
         }
-
-        symbols
     }
 }

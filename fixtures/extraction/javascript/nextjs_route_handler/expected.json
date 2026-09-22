@@ -108,45 +108,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:POST:5:13",
-      "name": "POST",
-      "kind": "function",
-      "language": "javascript",
-      "file_path": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js",
-      "start_line": 5,
-      "start_column": 13,
-      "end_line": 8,
-      "end_column": 1,
-      "start_byte": 87,
-      "end_byte": 204,
-      "body_span": {
-        "start_line": 5,
-        "start_column": 39,
-        "end_line": 8,
-        "end_column": 1,
-        "start_byte": 113,
-        "end_byte": 204
-      },
-      "body_hash": "3ae2641d40179ee351f5652cf4351c87",
-      "signature": "const POST = async (request) =>",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:POST:5:0",
-      "metadata": {
-        "isArrowFunction": true,
-        "isAsync": true,
-        "isExpression": true,
-        "isGenerator": false,
-        "parameters": [
-          "request"
-        ]
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:POST:5:20",
       "name": "POST",
       "kind": "function",
@@ -167,10 +128,10 @@
         "end_byte": 204
       },
       "body_hash": "3ae2641d40179ee351f5652cf4351c87",
-      "signature": "async POST = (request) => ",
+      "signature": "const POST = async (request) =>",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:POST:5:13",
+      "parent_key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:POST:5:0",
       "metadata": {
         "isArrowFunction": true,
         "isAsync": true,
@@ -687,28 +648,6 @@
       "end_column": 1,
       "start_byte": 28,
       "end_byte": 72,
-      "metadata": {
-        "metric_version": 1
-      }
-    },
-    {
-      "scope": "symbol",
-      "symbol_key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:POST:5:13",
-      "algorithm_id": "julie-ast-complexity-v1",
-      "language": "javascript",
-      "file_path": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js",
-      "covered_lines": 4,
-      "covered_bytes": 91,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
-      "parameter_count": 1,
-      "start_line": 5,
-      "start_column": 39,
-      "end_line": 8,
-      "end_column": 1,
-      "start_byte": 113,
-      "end_byte": 204,
       "metadata": {
         "metric_version": 1
       }

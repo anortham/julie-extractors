@@ -44,7 +44,7 @@ fn visit_node(
     // Route node types to appropriate extraction modules
     match node.kind() {
         // Class extraction
-        "class_declaration" => {
+        "class_declaration" | "abstract_class_declaration" => {
             symbol = classes::extract_class(extractor, node, parent_id.as_deref());
         }
 
@@ -55,7 +55,7 @@ fn visit_node(
 
         // Method extraction (inside classes, not interfaces — interface methods
         // are extracted by extract_interface to get correct parent_id)
-        "method_definition" => {
+        "method_definition" | "abstract_method_signature" => {
             symbol = functions::extract_method(extractor, node, parent_id.as_deref());
         }
         "method_signature" if !is_inside_interface(&node) => {
