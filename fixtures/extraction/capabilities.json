@@ -6147,6 +6147,11 @@
           "name": "cross_file",
           "source": "fixtures/extraction/regex/cross_file/source.regex",
           "expected": "fixtures/extraction/regex/cross_file/expected.json"
+        },
+        {
+          "name": "verbose",
+          "source": "fixtures/extraction/regex/verbose/source.regex",
+          "expected": "fixtures/extraction/regex/verbose/expected.json"
         }
       ],
       "target_capabilities": {

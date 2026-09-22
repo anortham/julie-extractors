@@ -9,8 +9,7 @@
 // - Tests extracted: 3
 // - Original test module size: 26 lines
 
-use crate::base::SymbolKind;
-use crate::regex::helpers::{calculate_complexity, determine_pattern_kind, is_valid_regex_pattern};
+use crate::regex::helpers::{calculate_complexity, is_valid_regex_pattern};
 
 #[test]
 fn test_is_valid_regex_pattern() {
@@ -25,11 +24,4 @@ fn test_calculate_complexity() {
     assert_eq!(calculate_complexity("a"), 0);
     assert_eq!(calculate_complexity("a*"), 1);
     assert_eq!(calculate_complexity("[a-z]+"), 3);
-}
-
-#[test]
-fn test_determine_pattern_kind() {
-    assert_eq!(determine_pattern_kind("[abc]"), SymbolKind::Class);
-    assert_eq!(determine_pattern_kind("a*"), SymbolKind::Function);
-    assert_eq!(determine_pattern_kind("^"), SymbolKind::Constant);
 }

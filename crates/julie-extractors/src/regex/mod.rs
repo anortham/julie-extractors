@@ -11,10 +11,86 @@ pub(crate) mod signatures;
 use crate::base::{BaseExtractor, Identifier, NormalizedSpan, Relationship, Symbol, SymbolKind};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::{HashMap, HashSet};
-use tree_sitter::{Node, Tree};
+use tree_sitter::{Node, Parser, Point, Range, Tree};
 
 pub struct RegexExtractor {
     pub(crate) base: BaseExtractor,
+    pattern_trees: Vec<Tree>,
+}
+
+/// Parses each independent pattern of a `.regex` file into its own tree.
+///
+/// The grammar treats newlines as extras, so one parse joins every line into a
+/// single pattern. A pattern-list file has one pattern per non-blank line; a
+/// file that opens with an inline flag group containing `x` (verbose mode) is
+/// one pattern. Each tree keeps the file's byte and point coordinates.
+pub(crate) fn pattern_trees(content: &str) -> Vec<Tree> {
+    let lines = pattern_line_ranges(content);
+    let ranges = match lines.first() {
+        Some(first) if is_verbose_flag_group(&content[first.start_byte..first.end_byte]) => {
+            let last = lines.last().expect("non-empty");
+            vec![Range {
+                start_byte: first.start_byte,
+                end_byte: last.end_byte,
+                start_point: first.start_point,
+                end_point: last.end_point,
+            }]
+        }
+        _ => lines,
+    };
+    let mut parser = Parser::new();
+    if parser
+        .set_language(&tree_sitter_regex::LANGUAGE.into())
+        .is_err()
+    {
+        return Vec::new();
+    }
+    ranges
+        .into_iter()
+        .filter_map(|range| {
+            parser.set_included_ranges(&[range]).ok()?;
+            parser.parse(content, None)
+        })
+        .collect()
+}
+
+/// Binds each regex structural fact to the innermost symbol holding its bytes.
+///
+/// The shared binder skips value-holder kinds, but the root pattern symbol is a
+/// variable and is the scope of every construct in its line.
+pub(crate) fn attach_fact_symbols(facts: &mut [crate::base::StructuralFact], symbols: &[Symbol]) {
+    for fact in facts {
+        fact.containing_symbol_id =
+            helpers::innermost_symbol_for_bytes(symbols, fact.start_byte, fact.end_byte)
+                .map(|symbol| symbol.id.clone());
+    }
+}
+
+fn pattern_line_ranges(content: &str) -> Vec<Range> {
+    let mut ranges = Vec::new();
+    let mut line_start = 0;
+    for (row, line) in content.split('\n').enumerate() {
+        let text = line.strip_suffix('\r').unwrap_or(line);
+        if !text.trim().is_empty() {
+            ranges.push(Range {
+                start_byte: line_start,
+                end_byte: line_start + text.len(),
+                start_point: Point::new(row, 0),
+                end_point: Point::new(row, text.len()),
+            });
+        }
+        line_start += line.len() + 1;
+    }
+    ranges
+}
+
+fn is_verbose_flag_group(line: &str) -> bool {
+    line.trim_start()
+        .strip_prefix("(?")
+        .and_then(|rest| rest.split([')', ':']).next())
+        .is_some_and(|flags| {
+            flags.contains('x') && flags.chars().all(|c| c.is_ascii_alphabetic() || c == '-')
+        })
 }
 
 impl RegexExtractor {
@@ -24,24 +100,32 @@ impl RegexExtractor {
         content: String,
         workspace_root: &std::path::Path,
     ) -> Self {
+        let pattern_trees = pattern_trees(&content);
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
+            pattern_trees,
         }
     }
 
+    /// Extracts symbols from the file's pattern trees; `tree` supplies only the
+    /// root node that anchors text-scanned lookaround and unicode symbols.
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        let referenced_capture_numbers =
-            relationships::referenced_capture_numbers(&self.base, tree);
-        let mut capture_index = 0;
-        self.visit_node(
-            tree.root_node(),
-            &mut symbols,
-            None,
-            &referenced_capture_numbers,
-            &mut capture_index,
-            0,
-        );
+        let pattern_trees = std::mem::take(&mut self.pattern_trees);
+        for pattern_tree in &pattern_trees {
+            let referenced_capture_numbers =
+                relationships::referenced_capture_numbers(&self.base, pattern_tree);
+            let mut capture_index = 0;
+            self.visit_node(
+                pattern_tree.root_node(),
+                &mut symbols,
+                None,
+                &referenced_capture_numbers,
+                &mut capture_index,
+                0,
+            );
+        }
+        self.pattern_trees = pattern_trees;
         self.extract_missing_lookarounds_from_source(tree.root_node(), &mut symbols);
         self.extract_missing_unicode_properties_from_source(tree.root_node(), &mut symbols);
         symbols
@@ -187,8 +271,22 @@ impl RegexExtractor {
         current_parent_id
     }
 
-    pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
-        relationships::extract_relationships(&self.base, tree, symbols)
+    pub fn extract_relationships(&mut self, _tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
+        self.pattern_trees
+            .iter()
+            .flat_map(|pattern_tree| {
+                let root = pattern_tree.root_node();
+                let pattern_symbols: Vec<Symbol> = symbols
+                    .iter()
+                    .filter(|symbol| {
+                        root.start_byte() as u32 <= symbol.start_byte
+                            && symbol.end_byte <= root.end_byte() as u32
+                    })
+                    .cloned()
+                    .collect();
+                relationships::extract_relationships(&self.base, pattern_tree, &pattern_symbols)
+            })
+            .collect()
     }
 
     pub fn infer_types(&self, symbols: &[Symbol]) -> HashMap<String, String> {
@@ -216,8 +314,8 @@ impl RegexExtractor {
         self.base.get_literals()
     }
 
-    pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
-        identifiers::extract_identifiers(&mut self.base, tree, symbols)
+    pub fn extract_identifiers(&mut self, _tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
+        identifiers::extract_identifiers(&mut self.base, &self.pattern_trees, symbols)
     }
 
     fn extract_missing_lookarounds_from_source(&mut self, root: Node, symbols: &mut Vec<Symbol>) {

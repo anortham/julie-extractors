@@ -133,11 +133,15 @@ pub fn collect_data_structural_facts(
         "toml" => collect_toml_structural_facts(tree, file_path, content),
         "yaml" => collect_yaml_structural_facts(tree, file_path, content),
         "xml" => collect_xml_structural_facts(tree, file_path, content),
-        "regex" => collect_regex_structural_facts(tree, file_path, content),
+        "regex" => collect_regex_structural_facts(file_path, content),
         _ => Vec::new(),
     };
 
-    attach_containing_symbols(&mut facts, symbols);
+    if language == "regex" {
+        crate::regex::attach_fact_symbols(&mut facts, symbols);
+    } else {
+        attach_containing_symbols(&mut facts, symbols);
+    }
     sort_structural_facts(&mut facts);
     facts
 }
@@ -1330,21 +1334,19 @@ fn collect_yaml_node(
     }
 }
 
-fn collect_regex_structural_facts(
-    tree: &Tree,
-    file_path: &str,
-    content: &str,
-) -> Vec<StructuralFact> {
+fn collect_regex_structural_facts(file_path: &str, content: &str) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
-    let mut capture_index = 0usize;
-    collect_regex_node(
-        tree.root_node(),
-        file_path,
-        content,
-        &mut facts,
-        &mut capture_index,
-        0,
-    );
+    for pattern_tree in crate::regex::pattern_trees(content) {
+        let mut capture_index = 0usize;
+        collect_regex_node(
+            pattern_tree.root_node(),
+            file_path,
+            content,
+            &mut facts,
+            &mut capture_index,
+            0,
+        );
+    }
     append_missing_regex_lookaround_facts(file_path, content, &mut facts);
     facts
 }

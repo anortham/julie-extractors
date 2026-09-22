@@ -4,7 +4,7 @@ use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use tree_sitter::{Node, Tree};
 
-use super::flags;
+use super::{flags, helpers};
 
 pub(super) fn extract_relationships(
     base: &BaseExtractor,
@@ -47,7 +47,7 @@ fn visit_node(
 
     if let Some(group_name) = named_backreference_name(base, node)
         && let Some(target) = named_groups.get(&group_name)
-        && let Some(source) = base.find_containing_symbol(&node, symbols)
+        && let Some(source) = helpers::innermost_symbol(symbols, node)
     {
         push_backreference_relationship(
             base,
@@ -63,7 +63,7 @@ fn visit_node(
 
     if let Some(group_number) = numeric_backreference_number(base, node)
         && let Some(target) = numbered_groups.get(&group_number)
-        && let Some(source) = base.find_containing_symbol(&node, symbols)
+        && let Some(source) = helpers::innermost_symbol(symbols, node)
     {
         push_backreference_relationship(
             base,

@@ -11,9 +11,9 @@ const FIXTURE_SOURCE: &str =
 #[test]
 fn regex_complexity_metrics_emit_file_and_symbol_scopes() {
     // Hand-tallied expectations for fixtures/extraction/regex/basic/source.regex:
-    //   decisions (0): no alternation/conditional nodes
-    //   loops (2): quantifiers on [A-Za-z]+ and \d+
-    //   max nesting depth (1): named capture groups, no nested groups
+    //   decisions (1): the line-5 alternation
+    //   loops (6): [A-Za-z]+, \d+, \d{3}, \d{4}, [a-z]+, [0-9]+
+    //   max nesting depth (1): capture groups, no nested groups
     let results = extract(
         "fixtures/extraction/regex/basic/source.regex",
         FIXTURE_SOURCE,
@@ -27,15 +27,15 @@ fn regex_complexity_metrics_emit_file_and_symbol_scopes() {
     assert_eq!(file_metric.algorithm_id, "julie-regex-complexity-v1");
     assert_eq!(file_metric.language, "regex");
     assert_eq!(file_metric.symbol_id, None);
-    assert_eq!(file_metric.decision_count, 0);
-    assert_eq!(file_metric.loop_count, 2);
+    assert_eq!(file_metric.decision_count, 1);
+    assert_eq!(file_metric.loop_count, 6);
     assert_eq!(file_metric.max_nesting_depth, 1);
     assert_eq!(file_metric.parameter_count, None);
 
     let name_group = results
         .symbols
         .iter()
-        .find(|symbol| symbol.name == "(?<name>[A-Za-z]+)")
+        .find(|symbol| symbol.name == "name")
         .expect("expected name capture symbol");
     let body_span = name_group
         .body_span
@@ -72,7 +72,7 @@ fn regex_symbol_complexity_does_not_inherit_surrounding_alternation_or_quantifie
     let named = results
         .symbols
         .iter()
-        .find(|symbol| symbol.name == "(?<named>[a-z]+)")
+        .find(|symbol| symbol.name == "named")
         .expect("expected named capture symbol");
     let named_metric = results
         .complexity_metrics
@@ -85,7 +85,7 @@ fn regex_symbol_complexity_does_not_inherit_surrounding_alternation_or_quantifie
     let simple = results
         .symbols
         .iter()
-        .find(|symbol| symbol.name == "(?<simple>bar)")
+        .find(|symbol| symbol.name == "simple")
         .expect("expected simple capture symbol");
     let simple_metric = results
         .complexity_metrics
@@ -105,7 +105,7 @@ fn regex_named_group_metric_prefers_body_span_after_leading_comment() {
     let part = results
         .symbols
         .iter()
-        .find(|symbol| symbol.name == "(?<part>[a-z]+)")
+        .find(|symbol| symbol.name == "part")
         .expect("expected part capture symbol");
     assert!(
         part.start_byte > 0,

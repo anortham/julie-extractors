@@ -949,6 +949,7 @@ pub fn extract_for_language_at(
             ),
             "regex" => crate::regex::complexity_metrics::collect_complexity_metrics(
                 tree,
+                content,
                 file_path,
                 &results.symbols,
             ),

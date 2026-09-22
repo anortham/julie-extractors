@@ -1,5 +1,3 @@
-use crate::base::SymbolKind;
-
 /// Check if text is a valid regex pattern
 #[cfg(test)]
 pub(crate) fn is_valid_regex_pattern(text: &str) -> bool {
@@ -73,66 +71,6 @@ pub(crate) fn is_valid_regex_pattern(text: &str) -> bool {
     })
 }
 
-/// Determine the symbol kind for a pattern
-pub(crate) fn determine_pattern_kind(pattern: &str) -> SymbolKind {
-    // Lookarounds (check first, before groups)
-    if pattern.contains("(?=")
-        || pattern.contains("(?!")
-        || pattern.contains("(?<=")
-        || pattern.contains("(?<!")
-    {
-        return SymbolKind::Method;
-    }
-
-    // Character classes
-    if pattern.starts_with('[') && pattern.ends_with(']') {
-        return SymbolKind::Class;
-    }
-
-    // Groups (but not lookarounds)
-    if pattern.starts_with('(')
-        && pattern.ends_with(')')
-        && !pattern.contains("(?=")
-        && !pattern.contains("(?!")
-        && !pattern.contains("(?<=")
-        && !pattern.contains("(?<!")
-    {
-        return SymbolKind::Class;
-    }
-
-    // Quantifiers
-    if pattern.ends_with('?')
-        || pattern.ends_with('*')
-        || pattern.ends_with('+')
-        || (pattern.contains('{') && pattern.contains('}'))
-    {
-        return SymbolKind::Function;
-    }
-
-    // Anchors and predefined classes
-    if matches!(pattern, "^" | "$")
-        || pattern == r"\b"
-        || pattern == r"\B"
-        || pattern == r"\d"
-        || pattern == r"\D"
-        || pattern == r"\w"
-        || pattern == r"\W"
-        || pattern == r"\s"
-        || pattern == r"\S"
-        || pattern == "."
-    {
-        return SymbolKind::Constant;
-    }
-
-    // Unicode properties
-    if pattern.contains(r"\p{") || pattern.contains(r"\P{") {
-        return SymbolKind::Constant;
-    }
-
-    // Default to Variable for basic patterns
-    SymbolKind::Variable
-}
-
 /// Calculate complexity score of a pattern
 pub(crate) fn calculate_complexity(pattern: &str) -> u32 {
     let mut complexity = 0;
@@ -145,4 +83,32 @@ pub(crate) fn calculate_complexity(pattern: &str) -> u32 {
     complexity += pattern.matches('|').count() as u32; // Alternations
 
     complexity
+}
+
+/// Returns the smallest symbol whose byte range holds the whole node.
+///
+/// Regex constructs sit side by side with no separator, so a group's end
+/// column equals the next construct's start column; line/column containment
+/// with an inclusive end would attach a following backreference to the group.
+pub(super) fn innermost_symbol<'a>(
+    symbols: &'a [crate::base::Symbol],
+    node: tree_sitter::Node,
+) -> Option<&'a crate::base::Symbol> {
+    innermost_symbol_for_bytes(symbols, node.start_byte() as u32, node.end_byte() as u32)
+}
+
+pub(super) fn innermost_symbol_for_bytes(
+    symbols: &[crate::base::Symbol],
+    start: u32,
+    end: u32,
+) -> Option<&crate::base::Symbol> {
+    symbols
+        .iter()
+        .filter(|symbol| symbol.start_byte <= start && end <= symbol.end_byte)
+        .min_by_key(|symbol| {
+            (
+                symbol.end_byte - symbol.start_byte,
+                symbol.parent_id.is_none(),
+            )
+        })
 }
