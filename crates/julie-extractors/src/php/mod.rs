@@ -32,7 +32,9 @@ use locals::extract_assignment;
 use members::{extract_constant, extract_property};
 use namespaces::{extract_namespace, extract_use};
 use parameters::extract_parameter_symbols;
-use relationships::{extract_class_relationships, extract_interface_relationships};
+use relationships::{
+    extract_class_relationships, extract_interface_relationships, extract_trait_use_relationships,
+};
 use test_calls::extract_php_pest_test_call;
 use types::{
     extract_anonymous_class, extract_class, extract_enum, extract_enum_case, extract_interface,
@@ -73,29 +75,11 @@ impl PhpExtractor {
         relationships
     }
 
-    /// Infer types from PHP type declarations - type inference
-    pub fn infer_types(&self, symbols: &[Symbol]) -> HashMap<String, String> {
-        let mut types = HashMap::new();
-        for symbol in symbols {
-            let metadata = &symbol.metadata;
-            if let Some(return_type) = metadata.as_ref().and_then(|m| m.get("returnType")) {
-                if let Some(type_str) = return_type.as_str() {
-                    types.insert(symbol.id.clone(), type_str.to_string());
-                }
-            } else if let Some(property_type) =
-                metadata.as_ref().and_then(|m| m.get("propertyType"))
-            {
-                if let Some(type_str) = property_type.as_str() {
-                    types.insert(symbol.id.clone(), type_str.to_string());
-                }
-            } else if let Some(type_val) = metadata.as_ref().and_then(|m| m.get("type"))
-                && let Some(type_str) = type_val.as_str()
-                && !matches!(type_str, "function" | "property")
-            {
-                types.insert(symbol.id.clone(), type_str.to_string());
-            }
-        }
-        types
+    /// PHP records every type fact on the base extractor during symbol
+    /// extraction, from declared parameter, property, and return types and
+    /// same-file `new` expressions; nothing is inferred from metadata labels.
+    pub fn infer_types(&self, _symbols: &[Symbol]) -> HashMap<String, String> {
+        HashMap::new()
     }
 
     /// Extract all identifier usages (function calls, member access, etc.)
@@ -139,14 +123,24 @@ impl PhpExtractor {
             "property_promotion_parameter" => extract_property(self, node, parent_id.as_deref()),
             "const_declaration" => extract_constant(self, node, parent_id.as_deref()),
             "namespace_definition" => extract_namespace(self, node, parent_id.as_deref()),
-            "use_declaration" | "namespace_use_declaration" => {
+            // A trait `use` inside a class body is a relationship, not an import.
+            "use_declaration" => None,
+            "namespace_use_declaration" => {
                 let use_symbols = extract_use(self, node, parent_id.as_deref());
                 symbols.extend(use_symbols);
                 None // Already added to symbols; imports have no children
             }
             "enum_case" => extract_enum_case(self, node, parent_id.as_deref()),
             "anonymous_class" => extract_anonymous_class(self, node, parent_id.as_deref()),
-            "assignment_expression" => extract_assignment(self, node, parent_id.as_deref()),
+            "assignment_expression" => {
+                let mut assigned = extract_assignment(self, node, parent_id.as_deref());
+                if assigned.len() == 1 {
+                    assigned.pop()
+                } else {
+                    symbols.extend(assigned);
+                    None
+                }
+            }
             // Pest call-style tests: test(...)/it(...)/describe(...)/lifecycle hooks.
             "function_call_expression" => {
                 extract_php_pest_test_call(&mut self.base, node, parent_id.as_deref())
@@ -197,8 +191,12 @@ impl PhpExtractor {
             "interface_declaration" => {
                 extract_interface_relationships(self, node, symbols, relationships);
             }
+            "use_declaration" => {
+                extract_trait_use_relationships(self, node, symbols, relationships);
+            }
             "function_call_expression"
             | "member_call_expression"
+            | "nullsafe_member_call_expression"
             | "scoped_call_expression"
             | "object_creation_expression" => {
                 extract_call_relationships(self, node, symbols, relationships);

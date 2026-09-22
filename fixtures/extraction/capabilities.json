@@ -3069,6 +3069,16 @@
           "name": "return_types",
           "source": "fixtures/extraction/php/return_types/source.php",
           "expected": "fixtures/extraction/php/return_types/expected.json"
+        },
+        {
+          "name": "modern_members",
+          "source": "fixtures/extraction/php/modern_members/source.php",
+          "expected": "fixtures/extraction/php/modern_members/expected.json"
+        },
+        {
+          "name": "phpunit_attributes",
+          "source": "fixtures/extraction/php/phpunit_attributes/PriceTest.php",
+          "expected": "fixtures/extraction/php/phpunit_attributes/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3098,7 +3108,10 @@
         "relationships": {
           "supported": [
             "calls",
-            "instantiates"
+            "extends",
+            "implements",
+            "instantiates",
+            "uses"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -3107,6 +3120,7 @@
           "supported": [
             "call",
             "member_access",
+            "type_usage",
             "variable_ref"
           ],
           "not_applicable": [],

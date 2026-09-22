@@ -47,33 +47,18 @@ pub(super) fn extract_use(
     node: Node,
     parent_id: Option<&str>,
 ) -> Vec<Symbol> {
-    match node.kind() {
-        "namespace_use_declaration" => {
-            // Check for grouped use: `use Prefix\{A, B, C};`
-            // AST: namespace_use_declaration -> namespace_name + namespace_use_group
-            if let Some(group) = find_child(extractor, &node, "namespace_use_group") {
-                return extract_grouped_use(extractor, &node, &group, parent_id);
-            }
-
-            // Non-grouped: `use App\Models\User;`
-            // AST: namespace_use_declaration -> namespace_use_clause -> qualified_name
-            if let Some(clause) = find_child(extractor, &node, "namespace_use_clause")
-                && let Some(sym) = extract_single_use_clause(extractor, &node, &clause, parent_id)
-            {
-                return vec![sym];
-            }
-
-            Vec::new()
-        }
-        _ => {
-            // Handle legacy use_declaration format
-            if let Some(sym) = extract_legacy_use(extractor, &node, parent_id) {
-                vec![sym]
-            } else {
-                Vec::new()
-            }
-        }
+    // Check for grouped use: `use Prefix\{A, B, C};`
+    // AST: namespace_use_declaration -> namespace_name + namespace_use_group
+    if let Some(group) = find_child(extractor, &node, "namespace_use_group") {
+        return extract_grouped_use(extractor, &node, &group, parent_id);
     }
+
+    // Non-grouped: `use App\Models\User;`
+    // AST: namespace_use_declaration -> namespace_use_clause -> qualified_name
+    find_child(extractor, &node, "namespace_use_clause")
+        .and_then(|clause| extract_single_use_clause(extractor, &node, &clause, parent_id))
+        .into_iter()
+        .collect()
 }
 
 /// Extract symbols from a grouped use declaration like `use App\Models\{User, Post as BlogPost};`
@@ -179,20 +164,6 @@ fn extract_single_use_clause(
 }
 
 /// Extract legacy use_declaration format
-fn extract_legacy_use(
-    extractor: &mut PhpExtractor,
-    node: &Node,
-    parent_id: Option<&str>,
-) -> Option<Symbol> {
-    let name = find_child(extractor, node, "namespace_name")
-        .or_else(|| find_child(extractor, node, "qualified_name"))
-        .map(|n| extractor.get_base().get_node_text(&n))?;
-    let alias = find_child(extractor, node, "namespace_aliasing_clause")
-        .map(|alias_node| extractor.get_base().get_node_text(&alias_node));
-
-    create_use_symbol(extractor, node, name, alias, parent_id)
-}
-
 /// Extract alias from a namespace_use_clause by looking for `as` + `name` children
 fn extract_clause_alias(extractor: &PhpExtractor, clause: &Node) -> Option<String> {
     let mut cursor = clause.walk();
@@ -246,50 +217,37 @@ fn create_use_symbol(
     ))
 }
 
-/// Extract variable assignments
+/// Create the variable symbol for one assignment target `$name`.
 pub(super) fn extract_variable_assignment(
     extractor: &mut PhpExtractor,
     node: Node,
+    variable_name_node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    // Find variable name (left side of assignment)
-    let variable_name_node = find_child(extractor, &node, "variable_name")?;
     let name_node = find_child(extractor, &variable_name_node, "name")?;
     let var_name = extractor.get_base().get_node_text(&name_node);
-
-    // Find assignment value (right side of assignment)
-    let mut value_text = String::new();
-    let mut cursor = node.walk();
-    let mut found_assignment = false;
-
-    for child in node.children(&mut cursor) {
-        if found_assignment {
-            value_text = extractor.get_base().get_node_text(&child);
-            break;
-        }
-        if child.kind() == "=" {
-            found_assignment = true;
-        }
-    }
-
-    let signature = format!(
-        "{} = {}",
-        extractor.get_base().get_node_text(&variable_name_node),
-        value_text
-    );
+    let value_text = node
+        .child_by_field_name("right")
+        .map(|right| extractor.get_base().get_node_text(&right))
+        .unwrap_or_default();
+    let target_text = extractor.get_base().get_node_text(&variable_name_node);
+    let is_whole_left = node
+        .child_by_field_name("left")
+        .is_some_and(|left| left.id() == variable_name_node.id());
+    let signature = format!("{target_text} = {value_text}");
 
     let mut metadata = HashMap::new();
-    metadata.insert(
-        "type".to_string(),
-        serde_json::Value::String("variable_assignment".to_string()),
-    );
     metadata.insert("value".to_string(), serde_json::Value::String(value_text));
 
-    // Extract PHPDoc comment
     let doc_comment = extractor.get_base().find_doc_comment(&node);
+    let anchor = if is_whole_left {
+        node
+    } else {
+        variable_name_node
+    };
 
     Some(extractor.get_base_mut().create_symbol(
-        &node,
+        &anchor,
         var_name,
         SymbolKind::Variable,
         SymbolOptions {

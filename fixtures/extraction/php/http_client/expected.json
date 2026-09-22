@@ -751,24 +751,6 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/php/http_client/source.php:GuzzleHttp\\Client:3:0",
-      "resolved_type": "use",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/http_client/source.php:Illuminate\\Support\\Facades\\Http:4:0",
-      "resolved_type": "use",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/php/http_client/source.php:client:6:20",
       "resolved_type": "Client",
       "generic_params": null,

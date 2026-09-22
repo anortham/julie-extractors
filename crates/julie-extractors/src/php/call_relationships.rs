@@ -27,7 +27,7 @@ pub(super) fn extract_call_relationships(
                 return;
             }
         }
-        "member_call_expression" => {
+        "member_call_expression" | "nullsafe_member_call_expression" => {
             if let Some(name_node) = node.child_by_field_name("name") {
                 base.get_node_text(&name_node)
             } else {
@@ -266,7 +266,9 @@ fn unresolved_call_target(
     fallback_name: &str,
 ) -> UnresolvedTarget {
     match node.kind() {
-        "member_call_expression" => member_call_target(extractor, node, fallback_name),
+        "member_call_expression" | "nullsafe_member_call_expression" => {
+            member_call_target(extractor, node, fallback_name)
+        }
         "scoped_call_expression" => scoped_call_target(extractor, node, fallback_name),
         "object_creation_expression" => node
             .named_child(0)
@@ -285,9 +287,12 @@ fn member_call_target(
     node: Node,
     fallback_name: &str,
 ) -> UnresolvedTarget {
-    let object_text = node
-        .child_by_field_name("object")
-        .map(|object| extractor.get_base().get_node_text(&object));
+    let object_text = node.child_by_field_name("object").map(|object| {
+        extractor
+            .get_base()
+            .get_node_text(&object)
+            .replace("?->", "->")
+    });
     let terminal_name = node
         .child_by_field_name("name")
         .map(|name| extractor.get_base().get_node_text(&name))

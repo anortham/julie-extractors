@@ -510,35 +510,7 @@
       "confidence": "1.000"
     }
   ],
-  "types": [
-    {
-      "symbol_key": "fixtures/extraction/php/symfony_routes/source.php:DynController:35:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/symfony_routes/source.php:Symfony\\Component\\Routing\\Attribute\\Route:3:0",
-      "resolved_type": "use",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/symfony_routes/source.php:UserController:5:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    }
-  ],
+  "types": [],
   "parse_diagnostics": [],
   "structural_facts": [
     {

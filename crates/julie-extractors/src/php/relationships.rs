@@ -37,6 +37,75 @@ pub(super) fn unresolved_php_type_target(raw_name: &str) -> UnresolvedTarget {
     }
 }
 
+/// A trait `use` in a class, trait, or enum body gives a `uses` relationship
+/// to each named trait: resolved to a same-file trait, pending otherwise.
+pub(crate) fn extract_trait_use_relationships(
+    extractor: &mut PhpExtractor,
+    node: Node,
+    symbols: &[Symbol],
+    relationships: &mut Vec<Relationship>,
+) {
+    let Some(owner_node) = node
+        .parent()
+        .filter(|parent| parent.kind() == "declaration_list")
+        .and_then(|list| list.parent())
+    else {
+        return;
+    };
+    let owner_start = owner_node.start_byte() as u32;
+    let Some(owner) = symbols.iter().find(|symbol| {
+        symbol.start_byte == owner_start
+            && matches!(
+                symbol.kind,
+                SymbolKind::Class | SymbolKind::Trait | SymbolKind::Enum
+            )
+    }) else {
+        return;
+    };
+    let owner_id = owner.id.clone();
+    let mut cursor = node.walk();
+    let trait_nodes: Vec<Node> = node
+        .named_children(&mut cursor)
+        .filter(|child| matches!(child.kind(), "name" | "qualified_name" | "relative_name"))
+        .collect();
+    for trait_node in trait_nodes {
+        let target = unresolved_php_type_target(&extractor.get_base().get_node_text(&trait_node));
+        let local_trait = symbols
+            .iter()
+            .find(|s| s.name == target.terminal_name && s.kind == SymbolKind::Trait);
+        if let Some(trait_symbol) = local_trait {
+            relationships.push(Relationship {
+                id: format!(
+                    "{}_{}_{:?}_{}",
+                    owner_id,
+                    trait_symbol.id,
+                    RelationshipKind::Uses,
+                    trait_node.start_position().row
+                ),
+                from_symbol_id: owner_id.clone(),
+                to_symbol_id: trait_symbol.id.clone(),
+                kind: RelationshipKind::Uses,
+                file_path: extractor.get_base().file_path.clone(),
+                line_number: trait_node.start_position().row as u32 + 1,
+                span: Some(crate::base::NormalizedSpan::from_node(&trait_node)),
+                reference_site_is_exact: true,
+                confidence: 1.0,
+                metadata: None,
+            });
+        } else {
+            let pending = extractor.get_base().create_pending_relationship_at_target(
+                owner_id.clone(),
+                target,
+                RelationshipKind::Uses,
+                &trait_node,
+                Some(owner_id.clone()),
+                Some(0.9),
+            );
+            extractor.add_structured_pending_relationship(pending);
+        }
+    }
+}
+
 /// Extract class inheritance and implementation relationships
 pub(super) fn extract_class_relationships(
     extractor: &mut PhpExtractor,

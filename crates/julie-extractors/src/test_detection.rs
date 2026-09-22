@@ -1246,6 +1246,23 @@ fn php_member_test_role(name: &str, annotation_keys: &[String]) -> Option<TestRo
         .then(|| php_test_case_role(annotation_keys).unwrap_or(TestRole::TestCase))
 }
 
+/// Whether a PHPDoc block carries `@tag` as a whole tag: `@test` matches
+/// `@test` but not `@tested-by`, `@testdox`, or `qa@testing.example.com`.
+pub(crate) fn has_phpdoc_tag(doc_comment: &str, tag: &str) -> bool {
+    doc_comment.match_indices('@').any(|(at, _)| {
+        let starts_tag = doc_comment[..at]
+            .chars()
+            .next_back()
+            .is_none_or(|before| before.is_whitespace() || before == '*');
+        starts_tag
+            && doc_comment[at + 1..].strip_prefix(tag).is_some_and(|rest| {
+                rest.chars()
+                    .next()
+                    .is_none_or(|ch| !ch.is_alphanumeric() && ch != '-' && ch != '_')
+            })
+    })
+}
+
 /// An attribute or a `@test` docblock names a case wherever the file sits,
 /// because neither spelling occurs in ordinary PHP. The `test` name prefix is
 /// ordinary PHP — `testConnection()` on a service class — so it stays gated on
@@ -1264,9 +1281,7 @@ fn detect_php(
     {
         return true;
     }
-    if let Some(doc) = doc_comment
-        && doc.contains("@test")
-    {
+    if doc_comment.is_some_and(|doc| has_phpdoc_tag(doc, "test")) {
         return true;
     }
     is_test_path(file_path)

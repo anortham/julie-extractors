@@ -113,20 +113,11 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/php/return_types/source.php:Result:2:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/php/return_types/source.php:make:3:0",
       "resolved_type": "Result",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     }

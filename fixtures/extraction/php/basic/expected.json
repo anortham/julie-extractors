@@ -591,7 +591,6 @@
       "visibility": "Public",
       "parent_key": "fixtures/extraction/php/basic/source.php:evaluate:93:0",
       "metadata": {
-        "type": "variable_assignment",
         "value": "0"
       },
       "annotations": [],
@@ -653,33 +652,6 @@
       "parent_key": "fixtures/extraction/php/basic/source.php:__construct:39:4",
       "metadata": {
         "role": "parameter"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/php/basic/source.php:id:41:8",
-      "name": "id",
-      "kind": "variable",
-      "language": "php",
-      "file_path": "fixtures/extraction/php/basic/source.php",
-      "start_line": 41,
-      "start_column": 8,
-      "end_line": 41,
-      "end_column": 23,
-      "start_byte": 595,
-      "end_byte": 610,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "$id = $id",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/php/basic/source.php:__construct:39:4",
-      "metadata": {
-        "type": "variable_assignment",
-        "value": "$id"
       },
       "annotations": [],
       "semantic_group": null,
@@ -764,7 +736,6 @@
       "visibility": "Public",
       "parent_key": "fixtures/extraction/php/basic/source.php:withMapper:85:0",
       "metadata": {
-        "type": "variable_assignment",
         "value": "function (int $input): int {\n        return $input + 1;\n    }"
       },
       "annotations": [],
@@ -837,16 +808,16 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/php/basic/source.php:path:19:32",
+      "key": "fixtures/extraction/php/basic/source.php:path:19:46",
       "name": "path",
       "kind": "variable",
       "language": "php",
       "file_path": "fixtures/extraction/php/basic/source.php",
       "start_line": 19,
-      "start_column": 32,
+      "start_column": 46,
       "end_line": 19,
       "end_column": 51,
-      "start_byte": 319,
+      "start_byte": 333,
       "end_byte": 338,
       "body_span": null,
       "body_hash": null,
@@ -966,7 +937,6 @@
       "visibility": "Public",
       "parent_key": "fixtures/extraction/php/basic/source.php:evaluate:93:0",
       "metadata": {
-        "type": "variable_assignment",
         "value": "match (true) {\n            $count > 10 => 1,\n            default => 0,\n        }"
       },
       "annotations": [],
@@ -993,7 +963,6 @@
       "visibility": "Public",
       "parent_key": "fixtures/extraction/php/basic/source.php:evaluate:93:0",
       "metadata": {
-        "type": "variable_assignment",
         "value": "0"
       },
       "annotations": [],
@@ -1117,6 +1086,24 @@
     }
   ],
   "relationships": [
+    {
+      "from_key": "fixtures/extraction/php/basic/source.php:Worker:29:0",
+      "to_key": "fixtures/extraction/php/basic/source.php:Timestampable:7:0",
+      "kind": "uses",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "line_number": 32,
+      "span": {
+        "start_line": 32,
+        "start_column": 8,
+        "end_line": 32,
+        "end_column": 21,
+        "start_byte": 451,
+        "end_byte": 464
+      },
+      "reference_site_is_exact": true,
+      "confidence": "1.000",
+      "metadata": null
+    },
     {
       "from_key": "fixtures/extraction/php/basic/source.php:fetchStatus:76:0",
       "to_key": "fixtures/extraction/php/basic/source.php:fetchUrl:81:0",
@@ -1277,6 +1264,86 @@
       "start_byte": 1502,
       "end_byte": 1509,
       "containing_key": "fixtures/extraction/php/basic/source.php:withMapper:85:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/basic/source.php:TARGET_CLASS:member_access:11:25",
+      "name": "TARGET_CLASS",
+      "kind": "member_access",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "start_line": 11,
+      "start_column": 25,
+      "end_line": 11,
+      "end_column": 37,
+      "start_byte": 141,
+      "end_byte": 153,
+      "containing_key": "fixtures/extraction/php/basic/source.php:Entity:11:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/basic/source.php:TARGET_METHOD:member_access:11:52",
+      "name": "TARGET_METHOD",
+      "kind": "member_access",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "start_line": 11,
+      "start_column": 52,
+      "end_line": 11,
+      "end_column": 65,
+      "start_byte": 168,
+      "end_byte": 181,
+      "containing_key": "fixtures/extraction/php/basic/source.php:Entity:11:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/basic/source.php:TARGET_METHOD:member_access:16:25",
+      "name": "TARGET_METHOD",
+      "kind": "member_access",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "start_line": 16,
+      "start_column": 25,
+      "end_line": 16,
+      "end_column": 38,
+      "start_byte": 257,
+      "end_byte": 270,
+      "containing_key": "fixtures/extraction/php/basic/source.php:Route:16:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/basic/source.php:TARGET_PROPERTY:member_access:11:80",
+      "name": "TARGET_PROPERTY",
+      "kind": "member_access",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "start_line": 11,
+      "start_column": 80,
+      "end_line": 11,
+      "end_column": 95,
+      "start_byte": 196,
+      "end_byte": 211,
+      "containing_key": "fixtures/extraction/php/basic/source.php:Entity:11:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/basic/source.php:TARGET_PROPERTY:member_access:24:25",
+      "name": "TARGET_PROPERTY",
+      "kind": "member_access",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "start_line": 24,
+      "start_column": 25,
+      "end_line": 24,
+      "end_column": 40,
+      "start_byte": 380,
+      "end_byte": 395,
+      "containing_key": "fixtures/extraction/php/basic/source.php:Required:24:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1652,78 +1719,6 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/php/basic/source.php:Entity:11:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/basic/source.php:Fixture:3:0",
-      "resolved_type": "namespace",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/basic/source.php:Required:24:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/basic/source.php:Route:16:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/basic/source.php:STATUS:37:4",
-      "resolved_type": "constant",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/basic/source.php:Symfony\\Component\\HttpFoundation\\Response:5:0",
-      "resolved_type": "use",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/basic/source.php:Timestampable:7:0",
-      "resolved_type": "trait",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/basic/source.php:Worker:29:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/php/basic/source.php:count:93:18",
       "resolved_type": "int",
       "generic_params": null,
@@ -1746,7 +1741,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -1764,7 +1759,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -1773,7 +1768,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -1782,16 +1777,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/basic/source.php:i:97:13",
-      "resolved_type": "variable_assignment",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -1814,15 +1800,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/php/basic/source.php:id:41:8",
-      "resolved_type": "variable_assignment",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/php/basic/source.php:id:65:19",
       "resolved_type": "int",
       "generic_params": null,
@@ -1841,20 +1818,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/php/basic/source.php:mapper:87:4",
-      "resolved_type": "variable_assignment",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/php/basic/source.php:observeRun:71:0",
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -1868,11 +1836,20 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/php/basic/source.php:path:19:46",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "php",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/php/basic/source.php:recordRun:65:0",
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -1881,25 +1858,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/basic/source.php:total:101:8",
-      "resolved_type": "variable_assignment",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/basic/source.php:total:95:4",
-      "resolved_type": "variable_assignment",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -1935,7 +1894,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     }

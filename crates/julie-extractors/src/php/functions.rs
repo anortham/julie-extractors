@@ -1,8 +1,10 @@
 // PHP Extractor - Function/method extraction
 
-use super::{PhpExtractor, determine_visibility, extract_modifiers, find_child, find_child_text};
+use super::{
+    PhpExtractor, determine_visibility, extract_modifiers, find_child, find_child_text, type_facts,
+};
 use crate::base::{AnnotationMarker, Symbol, SymbolKind, SymbolOptions, normalize_annotations};
-use crate::test_detection::apply_callable_test_metadata;
+use crate::test_detection::{apply_callable_test_metadata, has_phpdoc_tag};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -110,7 +112,7 @@ pub(super) fn extract_function(
         &mut json_metadata,
     );
 
-    Some(extractor.get_base_mut().create_symbol(
+    let symbol = extractor.get_base_mut().create_symbol(
         &node,
         name,
         symbol_kind,
@@ -122,13 +124,24 @@ pub(super) fn extract_function(
             doc_comment,
             annotations,
         },
-    ))
+    );
+    if let Some(return_node) = return_type_node {
+        type_facts::record_declared_type(extractor.get_base_mut(), &symbol.id, return_node);
+    }
+    Some(symbol)
 }
 
 /// PHPUnit tags that carry a test role in a PHPDoc block. Each spells the same
 /// metadata as an attribute of the same name — `@before` and `#[Before]` both
 /// declare a setup hook — so both reach the shared detector as one key.
-const PHPDOC_ROLE_TAGS: [&str; 5] = ["test", "before", "after", "beforeClass", "afterClass"];
+const PHPDOC_ROLE_TAGS: [&str; 6] = [
+    "test",
+    "before",
+    "after",
+    "beforeClass",
+    "afterClass",
+    "dataProvider",
+];
 
 fn role_annotation_keys(annotation_keys: &[String], doc_comment: Option<&str>) -> Vec<String> {
     let mut keys = annotation_keys.to_vec();
@@ -144,23 +157,35 @@ fn role_annotation_keys(annotation_keys: &[String], doc_comment: Option<&str>) -
     keys
 }
 
-fn has_phpdoc_tag(doc_comment: &str, tag: &str) -> bool {
-    doc_comment.match_indices('@').any(|(at, _)| {
-        doc_comment[at + 1..]
-            .strip_prefix(tag)
-            .is_some_and(|rest| rest.chars().next().is_none_or(|ch| !ch.is_alphanumeric()))
-    })
-}
-
+/// One annotation marker per attribute. Stacked groups (`#[A]` on one line,
+/// `#[B]` on the next) share one `attribute_list`, so each `attribute` is
+/// read on its own.
 pub(super) fn extract_attribute_markers(
     extractor: &PhpExtractor,
     node: &Node,
 ) -> Vec<AnnotationMarker> {
-    let raw_attributes: Vec<String> = node
-        .children(&mut node.walk())
+    let mut raw_attributes = Vec::new();
+    let mut cursor = node.walk();
+    for list in node
+        .children(&mut cursor)
         .filter(|child| child.kind() == "attribute_list")
-        .map(|child| extractor.get_base().get_node_text(&child))
-        .collect();
+    {
+        let mut group_cursor = list.walk();
+        for group in list
+            .named_children(&mut group_cursor)
+            .filter(|child| child.kind() == "attribute_group")
+        {
+            let mut attribute_cursor = group.walk();
+            raw_attributes.extend(
+                group
+                    .named_children(&mut attribute_cursor)
+                    .filter(|child| child.kind() == "attribute")
+                    .map(|attribute| {
+                        format!("#[{}]", extractor.get_base().get_node_text(&attribute))
+                    }),
+            );
+        }
+    }
 
     normalize_annotations(&raw_attributes, "php")
 }

@@ -1008,7 +1008,6 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "type": "variable_assignment",
         "value": "new stdClass()"
       },
       "annotations": [],
@@ -2336,74 +2335,11 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/php/test_roles/ArithmeticTest.php:App\\Tests\\Billing:3:0",
-      "resolved_type": "namespace",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/test_roles/ArithmeticTest.php:ArithmeticTest:11:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/test_roles/ArithmeticTest.php:PHPUnit\\Framework\\Attributes\\After:5:0",
-      "resolved_type": "use",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/test_roles/ArithmeticTest.php:PHPUnit\\Framework\\Attributes\\Before:6:0",
-      "resolved_type": "use",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/test_roles/ArithmeticTest.php:PHPUnit\\Framework\\Attributes\\DataProvider:7:0",
-      "resolved_type": "use",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/test_roles/ArithmeticTest.php:PHPUnit\\Framework\\Attributes\\Test:8:0",
-      "resolved_type": "use",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/test_roles/ArithmeticTest.php:PHPUnit\\Framework\\TestCase:9:0",
-      "resolved_type": "use",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/php/test_roles/ArithmeticTest.php:buildCalculator:79:4",
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -2412,7 +2348,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -2421,7 +2357,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -2439,7 +2375,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -2448,7 +2384,7 @@
       "resolved_type": "array",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -2457,7 +2393,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -2466,7 +2402,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -2484,7 +2420,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -2493,7 +2429,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -2502,7 +2438,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -2511,7 +2447,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -2520,7 +2456,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -2529,7 +2465,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -2538,7 +2474,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -2552,65 +2488,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/php/test_roles/legacy_suite.php:App\\Billing:3:0",
-      "resolved_type": "namespace",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/test_roles/legacy_suite.php:AttributeOnlySuite:22:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/test_roles/legacy_suite.php:ConnectionProbe:30:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/test_roles/legacy_suite.php:LegacyOrderTest:11:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/test_roles/legacy_suite.php:OrderProbe:7:0",
-      "resolved_type": "interface",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/test_roles/legacy_suite.php:PHPUnit\\Framework\\Attributes\\Test:5:0",
-      "resolved_type": "use",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/php/test_roles/legacy_suite.php:refundsAnOrder:24:4",
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -2619,7 +2501,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -2628,7 +2510,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -2637,7 +2519,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -2646,16 +2528,7 @@
       "resolved_type": "bool",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
-      "language": "php",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/php/test_roles/production_roles.php:App\\Reporting:3:0",
-      "resolved_type": "namespace",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     },
@@ -2664,7 +2537,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "php",
       "metadata": null
     }

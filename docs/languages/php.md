@@ -26,7 +26,7 @@ method. Pest declares a case as a top-level `test()` or `it()` call.
 | --- | --- | --- |
 | `#[Test]` attribute, or a `@test` docblock tag | `test_case` | PHPUnit test metadata |
 | `testXxx` method of a container | `test_case` | PHPUnit method-name prefix |
-| `#[DataProvider]` on a case | `parameterized_test` | PHPUnit data provider |
+| `#[DataProvider]` attribute or `@dataProvider` docblock tag on a case | `parameterized_test` | PHPUnit data provider |
 | `setUp`, `setUpBeforeClass` | `fixture_setup` | PHPUnit fixture methods |
 | `tearDown`, `tearDownAfterClass` | `fixture_teardown` | PHPUnit fixture methods |
 | `#[Before]`, `#[BeforeClass]`, or a `@before` docblock tag | `fixture_setup` | PHPUnit hook metadata |
@@ -42,10 +42,15 @@ method. Pest declares a case as a top-level `test()` or `it()` call.
 
 PHPUnit spells the same metadata two ways. `#[Before]` is an attribute;
 `@before` is a PHPDoc tag. The PHP extractor reads the docblock tags `@test`,
-`@before`, `@after`, `@beforeClass`, and `@afterClass` and passes each one to
-the shared detector under the same key its attribute produces, so a docblock
-hook classifies exactly like the attribute form. A tag matches whole: `@tested`
-is not `@test`.
+`@before`, `@after`, `@beforeClass`, `@afterClass`, and `@dataProvider` and
+passes each one to the shared detector under the same key its attribute
+produces, so a docblock hook classifies exactly like the attribute form. A tag
+matches whole and starts a word: `@tested`, `@tested-by`, `@testdox`, and the
+`@testing` in `qa@testing.example.com` are not `@test`.
+
+Stacked attribute groups (`#[Test]` on one line, `#[DataProvider('rows')]` on
+the next) share one `attribute_list` node. The extractor reads each attribute
+on its own, so every attribute gives one annotation row with a clean key.
 
 ### A provider is a helper, not a case
 
@@ -104,6 +109,27 @@ classifies each exactly once, so a php-specific gap cannot live there.
 - `phpspec.example_roles`. PHPSpec collects a `*Spec.php` class extending
   `ObjectBehavior` and runs its `it_`/`its_` methods as examples. Neither the
   base class nor the name convention matches a rule today.
+
+## Members, types, and references
+
+- A constructor-promoted parameter gives a `property` on the class and a
+  parameter `variable` on the constructor. The parameter anchors on its
+  `$name`, so the two rows have distinct ids.
+- An assignment declares a variable only for a `$local` target or each
+  target of `[$a, $b] = ...` and `list($a, $b) = ...`. A property, element,
+  or static-property target declares nothing.
+- Type facts come from declared parameter, property, and return types
+  (`is_inferred=false`) and from a `new Foo()` initializer
+  (`is_inferred=true`). A declaration kind, a namespace, an import, or an
+  untyped assignment has no type fact.
+- A trait `use` in a class, trait, or enum body gives a `uses` relationship:
+  resolved to a same-file trait, pending otherwise. It is not an import. The
+  names in its conflict list (`A::m as protected alias`) give no identifiers.
+- `$x?->m()` and `$x?->p` give the same call, member-access, relationship,
+  pending, and literal rows as `->`.
+- `Foo::class` gives a `type_usage` of `Foo`. `Status::Active`,
+  `self::ROLE`, and `static::$registry` give a `member_access` of the
+  member; a `self`, `static`, or `parent` scope sets `receiver_type`.
 
 ## Class base types
 

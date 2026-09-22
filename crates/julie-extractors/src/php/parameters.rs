@@ -34,8 +34,15 @@ pub(super) fn extract_parameter_symbols(
             "role".to_string(),
             serde_json::Value::String("parameter".to_string()),
         )]);
+        // A promoted parameter also declares a property on the same node; the
+        // parameter anchors on its `$name` so the two symbols get distinct ids.
+        let anchor = if param_node.kind() == "property_promotion_parameter" {
+            param_node.child_by_field_name("name").unwrap_or(param_node)
+        } else {
+            param_node
+        };
         let symbol = extractor.get_base_mut().create_symbol(
-            &param_node,
+            &anchor,
             name,
             SymbolKind::Variable,
             SymbolOptions {

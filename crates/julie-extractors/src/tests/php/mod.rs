@@ -1263,30 +1263,28 @@ class UserService
         );
 
         let symbols = extractor.extract_symbols(&tree);
-        let types = extractor.infer_types(&symbols);
+        assert!(extractor.infer_types(&symbols).is_empty());
+        let types = &extractor.base.type_info;
 
-        // Function return types
-        let find_by_id = symbols.iter().find(|s| s.name == "findById").unwrap();
-        assert_eq!(types.get(&find_by_id.id), Some(&"?User".to_string()));
-
-        let get_users = symbols.iter().find(|s| s.name == "getUsers").unwrap();
-        assert_eq!(types.get(&get_users.id), Some(&"array".to_string()));
-
-        let create_user = symbols.iter().find(|s| s.name == "createUser").unwrap();
-        assert_eq!(types.get(&create_user.id), Some(&"User".to_string()));
-
-        let update_user = symbols.iter().find(|s| s.name == "updateUser").unwrap();
-        assert_eq!(types.get(&update_user.id), Some(&"bool".to_string()));
-
-        // Property types
-        let api_key = symbols.iter().find(|s| s.name == "apiKey").unwrap();
-        assert_eq!(types.get(&api_key.id), Some(&"string".to_string()));
-
-        let last_sync = symbols.iter().find(|s| s.name == "lastSync").unwrap();
-        assert_eq!(types.get(&last_sync.id), Some(&"?\\DateTime".to_string()));
-
-        let cache = symbols.iter().find(|s| s.name == "cache").unwrap();
-        assert_eq!(types.get(&cache.id), Some(&"array".to_string()));
+        for (name, expected) in [
+            ("findById", "User"),
+            ("getUsers", "array"),
+            ("createUser", "User"),
+            ("updateUser", "bool"),
+            ("apiKey", "string"),
+            ("lastSync", "DateTime"),
+            ("cache", "array"),
+        ] {
+            let symbol = symbols
+                .iter()
+                .find(|s| {
+                    s.name == name && s.metadata.as_ref().and_then(|m| m.get("role")).is_none()
+                })
+                .unwrap();
+            let fact = &types[&symbol.id];
+            assert_eq!(fact.resolved_type, expected, "{name}");
+            assert!(!fact.is_inferred, "{name}");
+        }
     }
 
     #[test]
@@ -2575,3 +2573,4 @@ $simple = new class {
         );
     }
 }
+pub mod wave1_gaps;
