@@ -1,0 +1,84 @@
+# Language gap closure
+
+Date: 2026-09-22. Source: [the language gap audit](../findings/2026-09-22-language-gap-audit.md)
+at `ea0bd76a` (v3.3.1).
+
+## Outcome
+
+Every language closes the audit's high-rated gaps with fixture evidence, and the
+capability ledger records any gap that stays open with a concrete reason.
+
+## Wave 1: high-rated gaps
+
+Scope: the 347 gaps rated `high` in the audit. A medium or low gap is in scope
+only when the same change closes it.
+
+Work runs on the integration branch `feat/language-gap-closure`. Each language
+group gets one worktree under `.worktrees/gaps-<group>` on branch
+`gaps/<group>`, cut from the integration branch. One agent owns each group and
+commits once per language. At most four groups run at the same time.
+
+| Group | Languages |
+| --- | --- |
+| ecmascript | typescript, tsx, javascript, jsx |
+| web | html, vue, css |
+| cfamily | c, cpp |
+| dotnet | csharp, vbnet, fsharp |
+| razorps | razor, powershell |
+| jvm | java, kotlin, scala |
+| scripting | python, ruby, php |
+| systems | rust, go, zig |
+| appgame | swift, dart, gdscript |
+| beam | elixir, erlang |
+| dynamic | lua, r, bash |
+| qmlsql | qml, qmldir, sql, regex |
+| data | json, toml, yaml, xml, markdown |
+
+### Rules for each gap
+
+1. Reproduce the gap with a focused failing test under
+   `crates/julie-extractors/src/tests/<language>/`. A gap that does not
+   reproduce, or that a recorded decision intends, is dropped and reported.
+2. Fix the extractor. Keep the change inside the language module where
+   possible. A shared-module change must not alter other languages' output
+   unless that change is intended and shown in their goldens.
+3. Add golden fixture evidence and review the `expected.json` diff as a
+   contract change.
+4. Update `fixtures/extraction/capabilities.json`: add newly supported kinds,
+   remove closed `open_gaps`, and register new structural-fact pattern ids.
+5. A gap that cannot close in this wave (grammar limit, workspace-global
+   resolution, or an owner decision) becomes an `open_gaps` entry with a
+   reason, the required closure, and this plan as the planned closure task.
+   Effort alone does not defer a gap.
+
+### Gates per group
+
+- `cargo xtask test language <language>` for each language in the group
+- `cargo xtask test golden` and `cargo xtask test capability`
+- `cargo fmt --all --check`
+- `cargo clippy -p julie-extractors --all-targets --all-features --no-deps -- -D warnings`
+- `node scripts/language-data-quality-report.mjs --strict` with
+  `silent_cells` and `quality_bar_debts` at 0
+
+## Integration
+
+The lead merges each group branch into `feat/language-gap-closure` and
+regenerates goldens where two groups changed an embedded language. Then the
+lead makes the output-contract changes once for the whole wave:
+
+- append a wave suffix to `EXTRACTION_CONTRACT_VERSION` and bump
+  `EXTRACTION_IDENTITY_EPOCH` in `crates/julie-extractors/src/lib.rs`
+- declare the output change in
+  `docs/contracts/extraction-output-changes.md`
+
+The branch gate is the CI set: `cargo fmt --check`, workspace clippy with
+`-D warnings`, `scripts/check-agent-doc-sync.sh`, the strict quality report,
+`cargo test -p xtask`, `cargo xtask test default`, and
+`cargo xtask test contract`. Windows verification runs when a group changes
+paths, discovery, or file lifecycle code.
+
+## Later waves
+
+Medium and low gaps stay in the audit inventory. A later wave takes them
+language by language with the same rules, and verifies the `unverified` units
+first.
