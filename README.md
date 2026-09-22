@@ -115,7 +115,10 @@ F# is extracted at the full capability tier and covers `.fs`, `.fsx`, and
 publish the `fsharp` artifact language. Erlang is extracted at the full
 capability tier — symbols, relationships, pending relationships, identifiers,
 and types. XML is extracted at the data tier — symbols and identifiers — plus
-document, XSD, and WSDL structural facts.
+document, XSD, and WSDL structural facts. Qt C++ headers are extracted as
+`cpp`: Qt's macros are blanked before the parse, and `Q_PROPERTY`, signals,
+slots, and the `QML_*` macros become rows — see
+[Qt C++ support](docs/languages/cpp-qt.md).
 
 Use `julie-extract languages --json` for the current parser and capability
 snapshot instead of hard-coding this list in consumers.

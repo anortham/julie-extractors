@@ -160,6 +160,11 @@ measure after the pre-pass before patching downstream symptoms.
     section markers in both the bare (`Q_SIGNALS:`) and prefixed
     (`public Q_SLOTS:`, `columnview.h:627`) forms without rewriting the
     existing access label. Strings and comments are never rewritten.
+
+    Status: done in 3.3.0, commits `3a28fde8`, `ebc09b77`, `7d2be7f3`,
+    `a0be6571`, `2e54a1b2`, `9e466709`. `cpp/qt_macros.rs` blanks four rule
+    kinds on the scan path, the `check` path, and the `.h` header probe, with
+    the byte length and every newline preserved.
 20. **Qt facts and symbols.** Each captured `Q_PROPERTY(type name READ r
     WRITE w NOTIFY n ...)` emits a `Property` symbol under the class with
     metadata `read`, `write`, `notify`, `member`, `constant`, `final` and a
@@ -167,11 +172,20 @@ measure after the pre-pass before patching downstream symptoms.
     symbols; slots get `qt_slot: true`; `Q_INVOKABLE` methods get
     `qt_invokable: true`; `QML_NAMED_ELEMENT(X)` and `QML_ELEMENT` set
     `qml_element` on the class.
+
+    Status: done in 3.3.0, commits `37d9d9db`, `7d2be7f3`, `9e466709`. Kirigami
+    yields 297 `property` rows, 297 `cpp.qt_property.v1` facts, and 196 `event`
+    rows; plasma-workspace yields 920, 920, and 1,060.
 21. **Existing C++ defects on the same headers, re-measured after task 19:**
     false `override` prefix and lost return types (`cpp/signatures.rs`),
     duplicate constructor and destructor rows (same declaration extracted
     twice, not overloads or declaration/definition pairs), and forward
     declarations (`class X;`), which stop being emitted as symbols.
+
+    Status: done in 3.3.0, commits `9f256e54`, `b593492e`. All three counters
+    are 0 on both corpora: `override `-prefixed signatures fall from 412 to 0
+    on Kirigami and 2,365 to 0 on plasma, forward-declaration rows from 57 and
+    653 to 0, duplicate constructor rows from 43 and 493 to 0.
 22. Goldens: a Kirigami-style header (`Q_OBJECT`, `Q_PROPERTY`, `Q_SIGNALS`,
     `public Q_SLOTS:`, `Q_INVOKABLE`, `QML_ELEMENT`, export macro, forward
     declaration). Acceptance on Kirigami `src/layouts/columnview.h` at
@@ -179,10 +193,20 @@ measure after the pre-pass before patching downstream symptoms.
     one row per constructor, no forward-declaration rows. Add
     `docs/languages/cpp-qt.md`. Advance the epoch again.
 
+    Status: done in 3.3.0, commits `3d05f3d5`, `7f0b18ff`, `1650681a`,
+    `43e2e149`. `columnview.h` reports 0 parse diagnostics (was 92), 38
+    property rows, 37 events, one row per declared constructor and destructor,
+    and no forward-declaration row. The epoch was **not** advanced: it stays 10,
+    and `EXTRACTION_CONTRACT_VERSION` gains the `qt-cpp-v1` suffix instead,
+    because the contract version is what consumers observe and no symbol id of
+    an unchanged non-Qt file moves.
+
 ## Effort (agent sessions)
 
-3.2.0: 4 to 5 sessions (task 8 to 12 is the largest block). 3.3.0: 2 to 3
-sessions. Human time: approval of this plan, the decision on task 2, and the
+3.2.0: 4 to 5 sessions (task 8 to 12 is the largest block). 3.3.0 took 4
+sessions against the 2-to-3 estimate: waves 6 and 7 built the pre-pass and the
+symbols, wave 8 closed a review round, and wave 9 did the contracts, docs, and
+release. Human time: approval of this plan, the decision on task 2, and the
 two release approvals. Each julie release needs a code-kb release after it
 (pin bump with all six checksums) before users see the change.
 
