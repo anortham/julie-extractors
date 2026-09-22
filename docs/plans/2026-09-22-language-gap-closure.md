@@ -66,10 +66,11 @@ The lead merges each group branch into `feat/language-gap-closure` and
 regenerates goldens where two groups changed an embedded language. Then the
 lead makes the output-contract changes once for the whole wave:
 
-- append a wave suffix to `EXTRACTION_CONTRACT_VERSION` and bump
-  `EXTRACTION_IDENTITY_EPOCH` in `crates/julie-extractors/src/lib.rs`
-- declare the output change in
-  `docs/contracts/extraction-output-changes.md`
+- append `language-gap-closure-v1` to `EXTRACTION_CONTRACT_VERSION` in
+  `crates/julie-extractors/src/lib.rs`, as 3.3.0 and 3.3.1 did. The identity
+  epoch stays 10: only the retired store import read it.
+- move the crate version to 3.4.0 and declare the output change under
+  `## 3.4.0` in `docs/contracts/extraction-output-changes.md`
 
 The branch gate is the CI set: `cargo fmt --check`, workspace clippy with
 `-D warnings`, `scripts/check-agent-doc-sync.sh`, the strict quality report,

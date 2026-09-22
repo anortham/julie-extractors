@@ -88,6 +88,89 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 3.4.0
+
+classification: compatible
+
+This unreleased wave closes the high-rated gaps of the
+[2026-09-22 language gap audit](../findings/2026-09-22-language-gap-audit.md)
+across all 40 languages. No SQLite or report-schema column is added, removed,
+or retyped: SQLite schema remains 7, report schema remains 3, and extraction
+identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` adds
+`language-gap-closure-v1` because canonical output changes for every language
+family. Consumers must rebuild artifacts after replacing the binary.
+
+File selection changes. `.bats` is a `bash` extension. An extensionless file is
+`bash` when it is a shell startup file (`.bashrc`, `.bash_profile`,
+`.bash_login`, `.bash_logout`, `.bash_aliases`, `.profile`, `.envrc`) or when
+its first line is a `sh`, `bash`, or `bats` shebang. A rebuild therefore adds
+`files` rows that earlier scans reported as unsupported. See
+[2026-09-22-shell-script-selection.md](../decisions/2026-09-22-shell-script-selection.md).
+
+Capability flags change. `razor` now publishes `pending_relationships`; `css`,
+`toml`, `yaml`, and `xml` publish `pending_relationships` and `xml` publishes
+`relationships`. Readers of `language_capabilities` see the new flags; no
+column changes.
+
+Embedded blocks change. HTML `<script>`/`<style>` and Vue script and style
+sections run the native JavaScript, TypeScript, TSX, JSX, or CSS pipeline and
+publish every row family remapped to host coordinates. Calls inside an embedded
+function now come from that function, not the host element or component. See
+[2026-09-22-embedded-blocks-use-native-pipeline.md](../decisions/2026-09-22-embedded-blocks-use-native-pipeline.md).
+
+Row families that move, by language family:
+
+- Symbols and ids. Many languages add symbol kinds they dropped before (Rust
+  generic-impl methods, C and C++ pointer declarators and out-of-line
+  members, Go grouped types and interface methods, JS/TS enums and
+  destructured bindings, Razor `@code` members, and more) and remove false
+  or duplicate rows (C type references, duplicate JS function values, Lua
+  nested-local duplicates, PowerShell phantom functions and read-site
+  variables, R `self$x` names). A changed span changes the location-derived
+  symbol id, so consumers must not carry ids across the rebuild.
+- Visibility. Java members with no modifier report `internal`; interface
+  members report `public`. Swift defaults to `internal` and propagates
+  `private` to `fileprivate` members. C# interface and enum members report
+  `public`, namespace-level types `internal`, and constructors without a
+  modifier `private`.
+- Body spans and hashes. Rust, Kotlin, C#, VB.NET, F#, SQL, Swift, YAML,
+  Markdown, and Regex take body spans from the syntax tree instead of the
+  text heuristic; declarations without a body lose their body span and hash.
+- Doc comments. JavaScript and TypeScript attach a doc comment to the
+  declaration, not the `export` row. Elixir stores the `@doc` string content.
+  Erlang orders `-doc`, EDoc, and `-moduledoc` sources. YAML treats a
+  same-column comment block above a key as its doc comment, and source regions
+  follow the same rule.
+- Relationships and pending relationships. Many languages add call, extends,
+  implements, imports, and references edges that were missing, and remove
+  self-edges and pending rows to test-DSL words (`describe`, `it`, `test`,
+  `context`). Elixir pending remote calls carry the full module name as one
+  namespace segment. SQL built-in function calls become pending `calls` rows.
+- Identifiers. Receiver metadata no longer treats `->` as a member separator
+  outside C, C++, and PHP. PowerShell names drop the `$` sigil and scope
+  qualifier. Several languages add `call`, `member_access`, and `type_usage`
+  rows for positions they skipped.
+- Type facts. Swift, Python, PHP, Zig, and QML add declared type facts and
+  remove placeholder facts (`Void`, `Any`, symbol-kind names). Bash type facts
+  are keyed by symbol id and now persist.
+- Structural facts. New pattern ids: `css.import.v1`,
+  `manifest.dependency.v1`, `openapi.route.v1`, `sinatra.route.v1`,
+  `sinatra.filter.v1`, `xml.msbuild_property.v1`, `yaml.ci_job.v1`,
+  `yaml.ci_trigger.v1`, `yaml.ci_uses.v1`, and `yaml.ref.v1`. Existing Go
+  router, Express and Fastify, Django, Razor Pages, and SQL facts cover more
+  source forms. `docs/contracts/structural-fact-patterns.json` lists every id
+  and its metadata keys.
+- Test roles. Several frameworks gain container and lifecycle roles (Scala
+  suites, Python Django `TestCase` bases, F# .NET test attributes, QML
+  `TestCase`, C Criterion, C++ Catch2, bats, ShellSpec).
+
+Per-language detail is in `docs/languages/*.md` and in the golden fixtures
+under `fixtures/extraction/`.
+
+Consumer action: replace the binary and rebuild every artifact. No schema
+migration is required. A consumer that pinned the previous
+`EXTRACTION_CONTRACT_VERSION` must accept the new suffix.
+
 ## 3.3.1
 
 classification: compatible
