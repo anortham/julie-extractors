@@ -380,3 +380,35 @@ fn a_nested_class_body_does_not_end_the_outer_signals_section() {
     assert_eq!(symbol(&results, "b").kind, SymbolKind::Method);
     assert_eq!(symbol(&results, "c").kind, SymbolKind::Event);
 }
+
+#[test]
+fn a_member_prefix_macro_marks_only_the_member_that_follows_it() {
+    let source = in_class("    Q_SIGNAL void changed(); void helper();\n");
+
+    let results = extract(&source);
+
+    assert_eq!(symbol(&results, "changed").kind, SymbolKind::Event);
+    assert_eq!(symbol(&results, "helper").kind, SymbolKind::Method);
+}
+
+#[test]
+fn a_member_prefix_macro_on_its_own_line_marks_the_next_member() {
+    let source = in_class("    Q_INVOKABLE\n    void own();\n");
+
+    let results = extract(&source);
+
+    assert_eq!(flag(symbol(&results, "own"), "qt_invokable"), Some(true));
+}
+
+#[test]
+fn a_comment_inside_a_property_macro_is_read_as_whitespace() {
+    let source = in_class(
+        "    Q_PROPERTY(int value /* units */ READ value)\n    Q_PROPERTY(int other READ /* getter */ other)\n",
+    );
+
+    let results = extract(&source);
+
+    assert_eq!(symbol(&results, "value").kind, SymbolKind::Property);
+    assert_eq!(text(symbol(&results, "value"), "read"), "value");
+    assert_eq!(text(symbol(&results, "other"), "read"), "other");
+}

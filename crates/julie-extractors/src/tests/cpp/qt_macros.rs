@@ -747,3 +747,36 @@ fn the_check_path_accepts_raw_string_literals_between_macros() {
 
     assert!(diagnostics.is_empty(), "{diagnostics:?}");
 }
+
+const STACKED_PROBE: &str = r#"class Foo
+{
+public:
+    Q_REQUIRED_RESULT Q_INVOKABLE int count();
+    /* keep */ Q_INVOKABLE void run();
+};
+"#;
+
+#[test]
+fn a_run_of_declaration_macros_after_a_comment_becomes_spaces() {
+    let blanked = blank_macros(STACKED_PROBE).expect("the macros should be blanked");
+    let sites = scan(STACKED_PROBE);
+
+    let names = sites
+        .iter()
+        .map(|site| site.name.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        names,
+        vec!["Q_REQUIRED_RESULT", "Q_INVOKABLE", "Q_INVOKABLE"]
+    );
+    assert!(!blanked.contains("Q_INVOKABLE"), "{blanked}");
+    assert!(blanked.contains("/* keep */"), "{blanked}");
+}
+
+#[test]
+#[cfg(feature = "syntax-api")]
+fn the_check_path_accepts_a_run_of_declaration_macros() {
+    let diagnostics = check_diagnostics("counter.h", STACKED_PROBE);
+
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}

@@ -29,6 +29,17 @@ const DECLARATION_SPECIFIERS: &[&str] = &[
 
 const TYPE_INTRODUCERS: &[&str] = &["class", "struct", "union", "enum"];
 
+/// These stand in front of one member declaration, so they are prefix sites
+/// whatever follows them on the line.
+const MEMBER_PREFIX_MACROS: &[&str] = &[
+    "Q_INVOKABLE",
+    "Q_NOREPLY",
+    "Q_REQUIRED_RESULT",
+    "Q_SCRIPTABLE",
+    "Q_SIGNAL",
+    "Q_SLOT",
+];
+
 /// Vendor macros outside the Qt vocabulary are rewritten only by name, because a
 /// line-leading all-caps identifier is also how Catch2 and gtest declare a test.
 const VENDOR_STATEMENT_MACROS: &[&str] = &[
@@ -96,24 +107,30 @@ pub(crate) fn scan(content: &str) -> Vec<MacroSite> {
     let line_starts = line_starts(bytes);
     let mut sites = Vec::new();
     let mut cursor = 0;
+    let mut consumed = 0;
 
     while cursor < bytes.len() {
         match bytes[cursor] {
             b'/' if bytes.get(cursor + 1) == Some(&b'/') => {
                 cursor = end_of_logical_line(bytes, cursor);
+                consumed = cursor;
             }
             b'/' if bytes.get(cursor + 1) == Some(&b'*') => {
                 cursor = end_of_block_comment(bytes, cursor + 2);
+                consumed = cursor;
             }
             b'"' | b'\'' => {
                 cursor = end_of_literal_token(bytes, cursor).unwrap_or(cursor + 1);
             }
-            b'#' if line_prefix(content, cursor).is_empty() => {
+            b'#' if line_prefix(content, consumed, cursor).is_empty() => {
                 cursor = end_of_logical_line(bytes, cursor);
             }
             byte if is_identifier_start(byte) => {
-                let (next, site) = identifier(content, bytes, &line_starts, cursor);
-                sites.extend(site);
+                let (next, site) = identifier(content, bytes, &line_starts, consumed, cursor);
+                if let Some(site) = site {
+                    consumed = site.end_byte;
+                    sites.push(site);
+                }
                 cursor = next;
             }
             _ => cursor += 1,
@@ -136,6 +153,7 @@ fn identifier(
     content: &str,
     bytes: &[u8],
     line_starts: &[usize],
+    consumed: usize,
     start: usize,
 ) -> (usize, Option<MacroSite>) {
     if let Some(after_literal) = end_of_literal_token(bytes, start) {
@@ -145,7 +163,7 @@ fn identifier(
     let end = end_of_identifier(bytes, start);
     let word = &content[start..end];
 
-    let prefix = line_prefix(content, start);
+    let prefix = line_prefix(content, consumed, start);
     let site = |kind, name: &str, arguments, end_byte| {
         Some(MacroSite {
             kind,
@@ -180,6 +198,9 @@ fn identifier(
 
     if is_specifier_prefix(prefix) && is_qt_macro_name(word) {
         let (end_byte, arguments, kind) = macro_extent(content, bytes, end);
+        if MEMBER_PREFIX_MACROS.contains(&word) {
+            return (end_byte, site(MacroKind::Prefix, word, arguments, end_byte));
+        }
         if kind == MacroKind::Prefix && !declaration_follows(bytes, end_byte) {
             return (end, None);
         }
@@ -385,13 +406,16 @@ fn precedes_identifier(bytes: &[u8], from: usize) -> bool {
             .is_some_and(is_identifier_start)
 }
 
-fn line_prefix(content: &str, index: usize) -> &str {
+/// The text before `index` on its line that the scan has not consumed yet. A
+/// blanked macro site and a comment count as blanks, so any run of specifiers
+/// and recognized macros is still a declaration prefix.
+fn line_prefix(content: &str, consumed: usize, index: usize) -> &str {
     let bytes = content.as_bytes();
     let line_start = bytes[..index]
         .iter()
         .rposition(|byte| *byte == b'\n')
         .map_or(0, |at| at + 1);
-    content[line_start..index].trim()
+    content[line_start.max(consumed.min(index))..index].trim()
 }
 
 fn skip_blanks(bytes: &[u8], from: usize) -> usize {

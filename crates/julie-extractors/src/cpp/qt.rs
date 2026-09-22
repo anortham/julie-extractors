@@ -76,6 +76,7 @@ pub(crate) fn apply(base: &BaseExtractor, tree: &Tree, symbols: &mut Vec<Symbol>
 
     apply_class_metadata(&sites, symbols);
     apply_member_sections(&sites, tree, symbols);
+    apply_member_prefixes(&base.content, &sites, symbols);
     let properties = property_symbols(base, &sites, symbols);
     symbols.extend(properties);
 }
@@ -158,19 +159,57 @@ fn apply_member_sections(sites: &[MacroSite], tree: &Tree, symbols: &mut [Symbol
             Some(Section::Slots) => insert_flag(symbol, "qt_slot"),
             _ => {}
         }
-        let line = symbol.start_line as usize;
-        for site in sites
-            .iter()
-            .filter(|site| site.kind == MacroKind::Prefix && site.line == line)
+    }
+}
+
+/// A prefix macro stands in front of exactly one member, wherever the line
+/// breaks fall: the member that starts first after the site.
+fn apply_member_prefixes(content: &str, sites: &[MacroSite], symbols: &mut [Symbol]) {
+    for site in sites {
+        if site.kind != MacroKind::Prefix
+            || !matches!(site.name.as_str(), "Q_INVOKABLE" | "Q_SIGNAL" | "Q_SLOT")
         {
-            match site.name.as_str() {
-                "Q_INVOKABLE" => insert_flag(symbol, "qt_invokable"),
-                "Q_SIGNAL" => symbol.kind = SymbolKind::Event,
-                "Q_SLOT" => insert_flag(symbol, "qt_slot"),
-                _ => {}
-            }
+            continue;
+        }
+        let Some(index) = prefixed_member(content, site, symbols) else {
+            continue;
+        };
+        match site.name.as_str() {
+            "Q_INVOKABLE" => insert_flag(&mut symbols[index], "qt_invokable"),
+            "Q_SIGNAL" => symbols[index].kind = SymbolKind::Event,
+            _ => insert_flag(&mut symbols[index], "qt_slot"),
         }
     }
+}
+
+/// The member a prefix site belongs to: the first callable after it, with no
+/// declaration boundary in the text between the two.
+fn prefixed_member(content: &str, site: &MacroSite, symbols: &[Symbol]) -> Option<usize> {
+    let (index, member) = symbols
+        .iter()
+        .enumerate()
+        .filter(|(_, symbol)| {
+            is_member_callable(symbol) && symbol.start_byte as usize >= site.end_byte
+        })
+        .min_by_key(|(_, symbol)| symbol.start_byte)?;
+    content
+        .as_bytes()
+        .get(site.end_byte..member.start_byte as usize)?
+        .iter()
+        .all(|byte| !matches!(byte, b';' | b'{' | b'}'))
+        .then_some(index)
+}
+
+fn is_member_callable(symbol: &Symbol) -> bool {
+    matches!(
+        symbol.kind,
+        SymbolKind::Method
+            | SymbolKind::Event
+            | SymbolKind::Constructor
+            | SymbolKind::Destructor
+            | SymbolKind::Operator
+            | SymbolKind::Function
+    )
 }
 
 fn section_of(site: &MacroSite) -> Section {
@@ -342,6 +381,7 @@ fn property_metadata(property: &Property) -> HashMap<String, Value> {
 }
 
 fn parse_property(arguments: &str) -> Option<Property> {
+    let arguments = without_comments(arguments);
     let collapsed = arguments.split_whitespace().collect::<Vec<_>>().join(" ");
     let tokens = collapsed.split(' ').filter(|token| !token.is_empty());
     let tokens = tokens.collect::<Vec<_>>();
@@ -385,6 +425,25 @@ fn parse_property(arguments: &str) -> Option<Property> {
         flags,
         signature: format!("{PROPERTY_MACRO}({collapsed})"),
     })
+}
+
+/// A comment inside a macro argument list is whitespace, so the tokenizer never
+/// sees one; the site's span still covers the original bytes.
+fn without_comments(arguments: &str) -> String {
+    let mut text = arguments.to_string();
+    while let Some(start) = text.find("/*") {
+        let end = text[start + 2..]
+            .find("*/")
+            .map_or(text.len(), |at| start + 4 + at);
+        text.replace_range(start..end, " ");
+    }
+    text.lines()
+        .map(|line| match line.find("//") {
+            Some(at) => &line[..at],
+            None => line,
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn trailing_identifier(declaration: &str) -> Option<&str> {
