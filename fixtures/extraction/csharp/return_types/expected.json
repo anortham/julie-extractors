@@ -89,10 +89,10 @@
       "body_hash": "0f77cf095c366f60b3f15e42e6ad3910",
       "signature": "class Factory",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
-        "csharp_visibility": "private"
+        "csharp_visibility": "internal"
       },
       "annotations": [],
       "semantic_group": null,

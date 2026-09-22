@@ -1634,78 +1634,8 @@
     }
   ],
   "relationships": [],
-  "pending_relationships": [
-    {
-      "from_key": "fixtures/extraction/csharp/test_roles/source.cs:NUnitSourcedCase:23:4",
-      "callee_name": "nameof",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
-      "line_number": 23,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/csharp/test_roles/source.cs:ParameterizedFixture:48:0",
-      "callee_name": "nameof",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
-      "line_number": 48,
-      "confidence": "0.700"
-    }
-  ],
-  "structured_pending_relationships": [
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/csharp/test_roles/source.cs:NUnitSourcedCase:23:4",
-        "callee_name": "nameof",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
-        "line_number": 23,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "nameof",
-        "terminal_name": "nameof",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/csharp/test_roles/source.cs:NUnitSourcedCase:23:4",
-      "span": {
-        "start_line": 23,
-        "start_column": 20,
-        "end_line": 23,
-        "end_column": 33,
-        "start_byte": 681,
-        "end_byte": 694
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/csharp/test_roles/source.cs:ParameterizedFixture:48:0",
-        "callee_name": "nameof",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
-        "line_number": 48,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "nameof",
-        "terminal_name": "nameof",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/csharp/test_roles/source.cs:ParameterizedFixture:48:0",
-      "span": {
-        "start_line": 48,
-        "start_column": 19,
-        "end_line": 48,
-        "end_column": 32,
-        "start_byte": 1277,
-        "end_byte": 1290
-      }
-    }
-  ],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
   "identifiers": [
     {
       "key": "fixtures/extraction/csharp/test_roles/source.cs:Cases:variable_ref:23:27",
@@ -1880,38 +1810,6 @@
       "start_byte": 1738,
       "end_byte": 1747,
       "containing_key": "fixtures/extraction/csharp/test_roles/source.cs:DisposeAsync:70:4",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/csharp/test_roles/source.cs:nameof:call:23:20",
-      "name": "nameof",
-      "kind": "call",
-      "language": "csharp",
-      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
-      "start_line": 23,
-      "start_column": 20,
-      "end_line": 23,
-      "end_column": 26,
-      "start_byte": 681,
-      "end_byte": 687,
-      "containing_key": "fixtures/extraction/csharp/test_roles/source.cs:NUnitSourcedCase:23:4",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/csharp/test_roles/source.cs:nameof:call:48:19",
-      "name": "nameof",
-      "kind": "call",
-      "language": "csharp",
-      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
-      "start_line": 48,
-      "start_column": 19,
-      "end_line": 48,
-      "end_column": 25,
-      "start_byte": 1277,
-      "end_byte": 1283,
-      "containing_key": "fixtures/extraction/csharp/test_roles/source.cs:ParameterizedFixture:48:0",
       "target_key": null,
       "confidence": "1.000"
     }

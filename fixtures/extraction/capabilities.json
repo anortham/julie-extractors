@@ -2714,6 +2714,11 @@
           "name": "agent_usefulness",
           "source": "fixtures/extraction/csharp/agent_usefulness/source.cs",
           "expected": "fixtures/extraction/csharp/agent_usefulness/expected.json"
+        },
+        {
+          "name": "base_lists_and_calls",
+          "source": "fixtures/extraction/csharp/base_lists_and_calls/source.cs",
+          "expected": "fixtures/extraction/csharp/base_lists_and_calls/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2742,6 +2747,7 @@
         "relationships": {
           "supported": [
             "calls",
+            "extends",
             "implements",
             "instantiates"
           ],

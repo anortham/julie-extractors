@@ -42,33 +42,35 @@ fn extract_identifier_from_node(
 ) {
     match node.kind() {
         "invocation_expression" => {
-            let mut cursor = node.walk();
-            for child in node.children(&mut cursor) {
-                if child.kind() == "identifier" {
-                    let name = base.get_node_text(&child);
-                    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
-                    base.create_identifier(
-                        &child,
-                        name,
-                        IdentifierKind::Call,
-                        containing_symbol_id,
-                    );
-                    break;
-                } else if child.kind() == "member_access_expression" {
-                    if let Some(name_node) = child.child_by_field_name("name") {
-                        let name = base.get_node_text(&name_node);
-                        let containing_symbol_id =
-                            find_containing_symbol_id(node, containing_symbols);
-                        let receiver_type = self_receiver_type(base, child);
-                        base.create_identifier_with_receiver_type(
-                            &name_node,
-                            name,
-                            IdentifierKind::Call,
-                            containing_symbol_id,
-                            receiver_type,
-                        );
+            if let Some(function) = node.child_by_field_name("function") {
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                match function.kind() {
+                    "identifier" => {
+                        let name = base.get_node_text(&function);
+                        if name != "nameof" {
+                            base.create_identifier(
+                                &function,
+                                name,
+                                IdentifierKind::Call,
+                                containing_symbol_id,
+                            );
+                        }
                     }
-                    break;
+                    "generic_name" => {
+                        create_call_identifier(base, function, containing_symbol_id, None);
+                    }
+                    "member_access_expression" => {
+                        if let Some(name_node) = function.child_by_field_name("name") {
+                            let receiver_type = self_receiver_type(base, function);
+                            create_call_identifier(
+                                base,
+                                name_node,
+                                containing_symbol_id,
+                                receiver_type,
+                            );
+                        }
+                    }
+                    _ => {}
                 }
             }
             // Phase 3: capture string-literal call-arguments (config-free; the
@@ -119,7 +121,11 @@ fn extract_identifier_from_node(
                     IdentifierKind::MemberAccess
                 };
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
-                base.create_identifier(&name_node, name, kind, containing_symbol_id);
+                if kind == IdentifierKind::Call {
+                    create_call_identifier(base, name_node, containing_symbol_id, None);
+                } else {
+                    base.create_identifier(&name_node, name, kind, containing_symbol_id);
+                }
             }
         }
         // `A * B` mis-parse recovery (LOCKED CONTRACT addendum). tree-sitter-c-sharp
@@ -177,6 +183,72 @@ fn extract_identifier_from_node(
         }
         _ => {}
     }
+}
+
+/// Emits a call identifier for a callee name node. A generic callee
+/// (`Create<T>`) is named by its bare identifier, and its type arguments are
+/// recorded against the call.
+fn create_call_identifier(
+    base: &mut BaseExtractor,
+    name_node: Node,
+    containing_symbol_id: Option<String>,
+    receiver_type: Option<String>,
+) {
+    let name_node = if name_node.kind() == "generic_name" {
+        match direct_identifier(base, name_node) {
+            Some((identifier, _)) => identifier,
+            None => return,
+        }
+    } else {
+        name_node
+    };
+    let name = base.get_node_text(&name_node);
+    let identifier = base.create_identifier_with_receiver_type(
+        &name_node,
+        name,
+        IdentifierKind::Call,
+        containing_symbol_id,
+        receiver_type,
+    );
+    record_outermost_generic_type_arguments(base, name_node, &identifier);
+}
+
+/// True for the identifier of a generic method name that is being invoked
+/// (`Create` in `Create<T>()` or `x.Create<T>()`): a call, not a type use.
+fn is_generic_callee_identifier(node: Node) -> bool {
+    let Some(generic_name) = node
+        .parent()
+        .filter(|parent| parent.kind() == "generic_name")
+    else {
+        return false;
+    };
+    let Some(owner) = generic_name.parent() else {
+        return false;
+    };
+    let callee = match owner.kind() {
+        "invocation_expression" => Some(owner),
+        "member_access_expression" | "member_binding_expression" => {
+            if owner.child_by_field_name("name").map(|name| name.id()) != Some(generic_name.id()) {
+                return false;
+            }
+            let mut current = owner;
+            while let Some(parent) = current.parent() {
+                if parent.kind() != "conditional_access_expression" {
+                    break;
+                }
+                current = parent;
+            }
+            current
+                .parent()
+                .filter(|parent| parent.kind() == "invocation_expression")
+        }
+        _ => None,
+    };
+    callee.is_some_and(|invocation| {
+        invocation
+            .child_by_field_name("function")
+            .is_some_and(|function| contains_node(function, generic_name))
+    })
 }
 
 /// If `name_node` is the base identifier of an *outermost* generic type use
@@ -371,7 +443,7 @@ fn rightmost_identifier<'a>(
 }
 
 fn is_csharp_type_usage_identifier(node: Node) -> bool {
-    if is_csharp_declaration_name(node) {
+    if is_csharp_declaration_name(node) || is_generic_callee_identifier(node) {
         return false;
     }
 

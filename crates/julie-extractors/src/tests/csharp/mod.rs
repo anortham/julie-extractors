@@ -59,6 +59,7 @@ pub mod cross_file_relationships;
 mod csharp14;
 pub mod di_registration_relationships;
 pub mod field_property_relationships;
+mod gap_closure;
 pub mod identifier_extraction;
 pub mod language_features;
 pub mod literals;

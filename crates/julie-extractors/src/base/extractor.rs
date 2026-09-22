@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use tracing::debug;
 use tree_sitter::Node;
 
+use super::body::BodySpan;
 use super::relationship_resolution::StructuredPendingRelationship;
 use super::span::{NormalizedSpan, normalize_file_path};
 use super::string_literals;
@@ -38,7 +39,13 @@ pub struct BaseExtractor {
     /// artifact language-policy pass classifies + gates them by carrier before
     /// persistence.
     pub literals: Vec<Literal>,
+    /// Language-owned body span rule. When set, it decides every symbol's
+    /// body span from the declaration node, and the text heuristics never run.
+    pub(crate) body_span_rule: Option<BodySpanRule>,
 }
+
+/// Returns the body span of a declaration node, or `None` when it has no body.
+pub(crate) type BodySpanRule = fn(&Node, &str) -> Option<BodySpan>;
 
 impl BaseExtractor {
     /// Create new abstract extractor - port of constructor
@@ -71,6 +78,7 @@ impl BaseExtractor {
             identifiers: Vec::new(), // NEW: Initialize empty identifier list
             type_argument_usages: Vec::new(),
             literals: Vec::new(),
+            body_span_rule: None,
         }
     }
 

@@ -218,27 +218,23 @@ fn emit_uses_relationship(
 
     let file_path = extractor.get_base().file_path.clone();
 
-    // Build symbol map preferring type-defining symbols (Class, Interface, Struct, Enum)
-    // over member symbols (Property, Field, Method) for type resolution.
-    // This handles cases where a member symbol shares a name with a type
-    // (e.g., property extracted with type name due to AST ambiguity).
-    let mut symbol_map: std::collections::HashMap<String, &Symbol> =
-        symbols.iter().map(|s| (s.name.clone(), s)).collect();
-    for s in symbols.iter().filter(|s| {
-        matches!(
-            s.kind,
-            SymbolKind::Class
-                | SymbolKind::Interface
-                | SymbolKind::Struct
-                | SymbolKind::Enum
-                | SymbolKind::Trait
-                | SymbolKind::Type
-        )
-    }) {
-        symbol_map.insert(s.name.clone(), s);
-    }
+    // Only a type symbol can be the target of a type use; a member that
+    // shares the type's name must never bind.
+    let type_symbol = symbols.iter().find(|s| {
+        s.name == type_name
+            && matches!(
+                s.kind,
+                SymbolKind::Class
+                    | SymbolKind::Interface
+                    | SymbolKind::Struct
+                    | SymbolKind::Enum
+                    | SymbolKind::Trait
+                    | SymbolKind::Type
+                    | SymbolKind::Delegate
+            )
+    });
 
-    match symbol_map.get(type_name) {
+    match type_symbol {
         Some(type_symbol) => {
             relationships.push(Relationship {
                 id: format!(

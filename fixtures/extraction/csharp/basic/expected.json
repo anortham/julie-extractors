@@ -730,18 +730,11 @@
       "end_column": 14,
       "start_byte": 48,
       "end_byte": 58,
-      "body_span": {
-        "start_line": 5,
-        "start_column": 11,
-        "end_line": 5,
-        "end_column": 13,
-        "start_byte": 55,
-        "end_byte": 57
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "int Run()",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Public",
       "parent_key": "fixtures/extraction/csharp/basic/source.cs:IJob:3:0",
       "metadata": {
         "isStatic": false
@@ -1187,15 +1180,8 @@
       "end_column": 35,
       "start_byte": 1492,
       "end_byte": 1515,
-      "body_span": {
-        "start_line": 73,
-        "start_column": 26,
-        "end_line": 73,
-        "end_column": 35,
-        "start_byte": 1506,
-        "end_byte": 1515
-      },
-      "body_hash": "84d2eab2e4fcf290cfb17e7cdb7a6d3e",
+      "body_span": null,
+      "body_hash": null,
       "signature": "var label = nameof(Default)",
       "doc_comment": null,
       "visibility": "Private",
@@ -1223,15 +1209,8 @@
       "end_column": 53,
       "start_byte": 1381,
       "end_byte": 1422,
-      "body_span": {
-        "start_line": 71,
-        "start_column": 42,
-        "end_line": 71,
-        "end_column": 53,
-        "start_byte": 1411,
-        "end_byte": 1422
-      },
-      "body_hash": "a5cd2307e3ba8a58aa5ea2c7e049ce29",
+      "body_span": null,
+      "body_hash": null,
       "signature": "var reached = GraphTraversal.Reach(requested)",
       "doc_comment": null,
       "visibility": "Private",
@@ -1343,15 +1322,8 @@
       "end_column": 54,
       "start_byte": 1436,
       "end_byte": 1478,
-      "body_span": {
-        "start_line": 72,
-        "start_column": 32,
-        "end_line": 72,
-        "end_column": 54,
-        "start_byte": 1456,
-        "end_byte": 1478
-      },
-      "body_hash": "87feb021c0d5eb6c41d0c8f163fe6754",
+      "body_span": null,
+      "body_hash": null,
       "signature": "var slot = new Registry { Capacity = reached }",
       "doc_comment": null,
       "visibility": "Private",
@@ -1379,8 +1351,15 @@
       "end_column": 53,
       "start_byte": 2497,
       "end_byte": 2546,
-      "body_span": null,
-      "body_hash": null,
+      "body_span": {
+        "start_line": 104,
+        "start_column": 45,
+        "end_line": 104,
+        "end_column": 52,
+        "start_byte": 2538,
+        "end_byte": 2545
+      },
+      "body_hash": "fd5c21be78289afd8f64ee330f4e1b83",
       "signature": "public IReadOnlyList<Worker> this[int i]",
       "doc_comment": null,
       "visibility": "Public",
@@ -1515,14 +1494,6 @@
       "confidence": "0.900"
     },
     {
-      "from_key": "fixtures/extraction/csharp/basic/source.cs:Configure:68:4",
-      "callee_name": "nameof",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/csharp/basic/source.cs",
-      "line_number": 73,
-      "confidence": "0.700"
-    },
-    {
       "from_key": "fixtures/extraction/csharp/basic/source.cs:Scaled:81:4",
       "callee_name": "Math.Max",
       "kind": "calls",
@@ -1616,32 +1587,6 @@
         "end_column": 54,
         "start_byte": 1443,
         "end_byte": 1478
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/csharp/basic/source.cs:Configure:68:4",
-        "callee_name": "nameof",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/csharp/basic/source.cs",
-        "line_number": 73,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "nameof",
-        "terminal_name": "nameof",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/csharp/basic/source.cs:Configure:68:4",
-      "span": {
-        "start_line": 73,
-        "start_column": 20,
-        "end_line": 73,
-        "end_column": 35,
-        "start_byte": 1500,
-        "end_byte": 1515
       }
     },
     {
@@ -2079,22 +2024,6 @@
       "start_byte": 143,
       "end_byte": 145,
       "containing_key": "fixtures/extraction/csharp/basic/source.cs:Worker:10:4",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/csharp/basic/source.cs:nameof:call:73:20",
-      "name": "nameof",
-      "kind": "call",
-      "language": "csharp",
-      "file_path": "fixtures/extraction/csharp/basic/source.cs",
-      "start_line": 73,
-      "start_column": 20,
-      "end_line": 73,
-      "end_column": 26,
-      "start_byte": 1500,
-      "end_byte": 1506,
-      "containing_key": "fixtures/extraction/csharp/basic/source.cs:Configure:68:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2745,17 +2674,17 @@
       "language": "csharp",
       "file_path": "fixtures/extraction/csharp/basic/source.cs",
       "covered_lines": 1,
-      "covered_bytes": 2,
+      "covered_bytes": 10,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
       "start_line": 5,
-      "start_column": 11,
+      "start_column": 4,
       "end_line": 5,
-      "end_column": 13,
-      "start_byte": 55,
-      "end_byte": 57,
+      "end_column": 14,
+      "start_byte": 48,
+      "end_byte": 58,
       "metadata": {
         "metric_version": 1
       }

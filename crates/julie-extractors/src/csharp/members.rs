@@ -27,7 +27,7 @@ pub fn extract_method(
         .iter()
         .map(|annotation| annotation.annotation_key.clone())
         .collect();
-    let visibility = helpers::determine_visibility(&modifiers, None);
+    let visibility = helpers::determine_visibility(&modifiers, &node);
     let return_type =
         helpers::extract_return_type(base, &node).unwrap_or_else(|| "void".to_string());
     let param_list = children.iter().find(|c| c.kind() == "parameter_list");
@@ -117,7 +117,7 @@ pub fn extract_constructor(
         .iter()
         .map(|annotation| annotation.annotation_key.clone())
         .collect();
-    let visibility = helpers::determine_visibility(&modifiers, Some("constructor_declaration"));
+    let visibility = helpers::determine_visibility(&modifiers, &node);
     let param_list = node
         .children(&mut cursor)
         .find(|c| c.kind() == "parameter_list");
@@ -247,7 +247,7 @@ pub fn extract_property(
     })?;
     let name = base.get_node_text(&name_node);
     let modifiers = helpers::extract_modifiers(base, &node);
-    let visibility = helpers::determine_visibility(&modifiers, None);
+    let visibility = helpers::determine_visibility(&modifiers, &node);
     let prop_type =
         helpers::extract_property_type(base, &node).unwrap_or_else(|| "var".to_string());
     let accessor_list = node
@@ -330,7 +330,7 @@ pub fn extract_delegate(
 
     let name = base.get_node_text(name_node);
     let modifiers = helpers::extract_modifiers(base, &node);
-    let visibility = helpers::determine_visibility(&modifiers, None);
+    let visibility = helpers::determine_visibility(&modifiers, &node);
 
     let mut return_type = "void".to_string();
     for child in &children[delegate_index + 1..] {

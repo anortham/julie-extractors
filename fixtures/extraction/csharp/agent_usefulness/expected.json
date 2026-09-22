@@ -36,15 +36,8 @@
       "end_column": 32,
       "start_byte": 4,
       "end_byte": 32,
-      "body_span": {
-        "start_line": 1,
-        "start_column": 24,
-        "end_line": 1,
-        "end_column": 32,
-        "start_byte": 24,
-        "end_byte": 32
-      },
-      "body_hash": "1b1ba5c90bce70e06d801fcb253dd899",
+      "body_span": null,
+      "body_hash": null,
       "signature": "var group = app.MapGroup(\"/api\")",
       "doc_comment": null,
       "visibility": "Private",

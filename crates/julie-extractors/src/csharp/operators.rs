@@ -53,7 +53,7 @@ pub fn extract_operator(
     let operator_text = base.get_node_text(&operator_symbol);
     let name = format!("operator {}", operator_text);
     let modifiers = helpers::extract_modifiers(base, &node);
-    let visibility = helpers::determine_visibility(&modifiers, None);
+    let visibility = helpers::determine_visibility(&modifiers, &node);
 
     let children: Vec<Node> = node.children(&mut cursor).collect();
     let operator_keyword_index = children
@@ -123,7 +123,7 @@ pub fn extract_conversion_operator(
         .find(|c| base.get_node_text(c) == "implicit" || base.get_node_text(c) == "explicit")?;
     let conversion_text = base.get_node_text(&conversion_type);
     let modifiers = helpers::extract_modifiers(base, &node);
-    let visibility = helpers::determine_visibility(&modifiers, None);
+    let visibility = helpers::determine_visibility(&modifiers, &node);
 
     let children: Vec<Node> = node.children(&mut cursor).collect();
     let operator_keyword_index = children
@@ -187,7 +187,7 @@ pub fn extract_indexer(
     parent_id: Option<String>,
 ) -> Option<Symbol> {
     let modifiers = helpers::extract_modifiers(base, &node);
-    let visibility = helpers::determine_visibility(&modifiers, None);
+    let visibility = helpers::determine_visibility(&modifiers, &node);
 
     let mut cursor = node.walk();
     let return_type_node = node.child_by_field_name("type");
