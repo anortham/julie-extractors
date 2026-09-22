@@ -476,6 +476,11 @@ pub(super) fn misparsed_new_type_name(base: &BaseExtractor, outer: Node) -> Opti
 /// The dotted name of a type node: `namespace_name` text, the base of a
 /// generic type, or the element of an array or nullable type.
 pub(super) fn type_name_text(base: &BaseExtractor, node: Node) -> Option<String> {
+    type_name_text_at(base, node, 0)
+}
+
+fn type_name_text_at(base: &BaseExtractor, node: Node, depth: u32) -> Option<String> {
+    let child_depth = crate::tree_traversal::child_tree_depth(depth)?;
     match node.kind() {
         "namespace_name" => {
             let mut cursor = node.walk();
@@ -491,13 +496,13 @@ pub(super) fn type_name_text(base: &BaseExtractor, node: Node) -> Option<String>
             let name = node
                 .named_children(&mut cursor)
                 .find(|child| child.kind() == "namespace_name")?;
-            type_name_text(base, name)
+            type_name_text_at(base, name, child_depth)
         }
         "array_type" | "nullable_type" => {
             let element = node
                 .child_by_field_name("element")
                 .or_else(|| node.named_child(0))?;
-            type_name_text(base, element)
+            type_name_text_at(base, element, child_depth)
         }
         _ => None,
     }

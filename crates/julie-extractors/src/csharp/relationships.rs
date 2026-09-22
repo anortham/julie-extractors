@@ -212,6 +212,16 @@ fn collect_type_name_parts(
     node: tree_sitter::Node,
     parts: &mut Vec<String>,
 ) -> Option<()> {
+    collect_type_name_parts_at(base, node, parts, 0)
+}
+
+fn collect_type_name_parts_at(
+    base: &crate::base::BaseExtractor,
+    node: tree_sitter::Node,
+    parts: &mut Vec<String>,
+    depth: u32,
+) -> Option<()> {
+    let child_depth = crate::tree_traversal::child_tree_depth(depth)?;
     match node.kind() {
         "identifier" => parts.push(base.get_node_text(&node)),
         "generic_name" => {
@@ -222,11 +232,26 @@ fn collect_type_name_parts(
             parts.push(base.get_node_text(&name));
         }
         "qualified_name" => {
-            collect_type_name_parts(base, node.child_by_field_name("qualifier")?, parts)?;
-            collect_type_name_parts(base, node.child_by_field_name("name")?, parts)?;
+            collect_type_name_parts_at(
+                base,
+                node.child_by_field_name("qualifier")?,
+                parts,
+                child_depth,
+            )?;
+            collect_type_name_parts_at(
+                base,
+                node.child_by_field_name("name")?,
+                parts,
+                child_depth,
+            )?;
         }
         "alias_qualified_name" => {
-            collect_type_name_parts(base, node.child_by_field_name("name")?, parts)?;
+            collect_type_name_parts_at(
+                base,
+                node.child_by_field_name("name")?,
+                parts,
+                child_depth,
+            )?;
         }
         _ => return None,
     }

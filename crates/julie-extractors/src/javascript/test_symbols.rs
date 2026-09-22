@@ -392,12 +392,19 @@ fn is_non_test_package(specifier: &str) -> bool {
 }
 
 fn binds_name(base: &BaseExtractor, node: Node, word: &str) -> bool {
+    binds_name_at(base, node, word, 0)
+}
+
+fn binds_name_at(base: &BaseExtractor, node: Node, word: &str, depth: u32) -> bool {
     if node.kind() == "identifier" && base.get_node_text(&node) == word {
         return true;
     }
+    let Some(child_depth) = crate::tree_traversal::child_tree_depth(depth) else {
+        return false;
+    };
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
-        .any(|child| child.kind() != "string" && binds_name(base, child, word))
+        .any(|child| child.kind() != "string" && binds_name_at(base, child, word, child_depth))
 }
 
 /// Whether this node is a test-DSL call, without building a symbol for it.

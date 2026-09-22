@@ -339,18 +339,22 @@ fn outline_blocks(root: tree_sitter::Node) -> Vec<tree_sitter::Node> {
     fn collect<'tree>(
         container: tree_sitter::Node<'tree>,
         blocks: &mut Vec<tree_sitter::Node<'tree>>,
+        depth: u32,
     ) {
+        let Some(child_depth) = crate::tree_traversal::child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = container.walk();
         for child in container.children(&mut cursor) {
             if child.kind() == "section" {
-                collect(child, blocks);
+                collect(child, blocks, child_depth);
             } else {
                 blocks.push(child);
             }
         }
     }
     let mut blocks = Vec::new();
-    collect(root, &mut blocks);
+    collect(root, &mut blocks, 0);
     blocks
 }
 

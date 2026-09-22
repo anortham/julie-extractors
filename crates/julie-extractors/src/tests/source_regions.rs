@@ -354,9 +354,11 @@ name = "hi"
             language: "yaml",
             file_path: "config.yaml",
             source: r#"# plain
+
+# The display name.
 name: "hi"
 "#,
-            expected_kinds: &[Comment, StringLiteral],
+            expected_kinds: &[Comment, DocComment, StringLiteral],
         },
         SourceRegionFixture {
             language: "xml",

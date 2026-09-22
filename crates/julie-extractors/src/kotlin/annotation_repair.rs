@@ -260,6 +260,15 @@ fn collect_inside<'tree>(
     region: &DetachedAnnotations,
     out: &mut Vec<Node<'tree>>,
 ) {
+    collect_inside_at(node, region, out, 0);
+}
+
+fn collect_inside_at<'tree>(
+    node: Node<'tree>,
+    region: &DetachedAnnotations,
+    out: &mut Vec<Node<'tree>>,
+    depth: u32,
+) {
     if node.end_byte() <= region.start_byte || node.start_byte() >= region.end_byte {
         return;
     }
@@ -267,8 +276,11 @@ fn collect_inside<'tree>(
         out.push(node);
         return;
     }
+    let Some(child_depth) = crate::tree_traversal::child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_inside(child, region, out);
+        collect_inside_at(child, region, out, child_depth);
     }
 }

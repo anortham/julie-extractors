@@ -79,11 +79,19 @@ pub(super) fn extract_source_target(
 }
 
 fn collect_static_tail(base: &BaseExtractor, node: Node, tail: &mut String) {
+    collect_static_tail_at(base, node, tail, 0);
+}
+
+fn collect_static_tail_at(base: &BaseExtractor, node: Node, tail: &mut String, depth: u32) {
+    let Some(child_depth) = crate::tree_traversal::child_tree_depth(depth) else {
+        tail.clear();
+        return;
+    };
     match node.kind() {
         "string" | "concatenation" => {
             let mut cursor = node.walk();
             for child in node.named_children(&mut cursor) {
-                collect_static_tail(base, child, tail);
+                collect_static_tail_at(base, child, tail, child_depth);
             }
         }
         "string_content" | "word" => tail.push_str(&base.get_node_text(&node)),

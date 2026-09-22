@@ -196,18 +196,21 @@ pub(super) fn is_access_modifier(modifier: &str) -> bool {
 /// arguments: `extends munit.FunSuite with Matchers[Int]` gives
 /// `munit.FunSuite` and `Matchers`.
 pub(super) fn extends_type_names(base: &Base, node: &Node) -> Vec<String> {
-    fn collect(base: &Base, node: Node, names: &mut Vec<String>) {
+    fn collect(base: &Base, node: Node, names: &mut Vec<String>, depth: u32) {
+        let Some(child_depth) = crate::tree_traversal::child_tree_depth(depth) else {
+            return;
+        };
         match node.kind() {
             "type_identifier" | "stable_type_identifier" => names.push(base.get_node_text(&node)),
             "generic_type" => {
                 if let Some(inner) = node.child_by_field_name("type") {
-                    collect(base, inner, names);
+                    collect(base, inner, names, child_depth);
                 }
             }
             "compound_type" | "annotated_type" => {
                 let mut cursor = node.walk();
                 for child in node.named_children(&mut cursor) {
-                    collect(base, child, names);
+                    collect(base, child, names, child_depth);
                 }
             }
             _ => {}
@@ -220,7 +223,7 @@ pub(super) fn extends_type_names(base: &Base, node: &Node) -> Vec<String> {
     {
         let mut cursor = extends.walk();
         for child in extends.named_children(&mut cursor) {
-            collect(base, child, &mut names);
+            collect(base, child, &mut names, 0);
         }
     }
     names

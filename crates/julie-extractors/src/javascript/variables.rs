@@ -219,6 +219,18 @@ pub(crate) fn collect_pattern_bindings<'tree>(
     parent_kind: Option<&str>,
     bindings: &mut Vec<PatternBinding<'tree>>,
 ) {
+    collect_pattern_bindings_at(pattern, parent_kind, bindings, 0);
+}
+
+fn collect_pattern_bindings_at<'tree>(
+    pattern: Node<'tree>,
+    parent_kind: Option<&str>,
+    bindings: &mut Vec<PatternBinding<'tree>>,
+    depth: u32,
+) {
+    let Some(child_depth) = crate::tree_traversal::child_tree_depth(depth) else {
+        return;
+    };
     let top_level_object = parent_kind.is_none() && pattern.kind() == "object_pattern";
     let mut cursor = pattern.walk();
     for child in pattern.named_children(&mut cursor) {
@@ -247,7 +259,7 @@ pub(crate) fn collect_pattern_bindings<'tree>(
                         is_rest: false,
                     });
                 } else {
-                    collect_pattern_bindings(value, Some(pattern.kind()), bindings);
+                    collect_pattern_bindings_at(value, Some(pattern.kind()), bindings, child_depth);
                 }
             }
             "object_assignment_pattern" | "assignment_pattern" => {
@@ -263,7 +275,12 @@ pub(crate) fn collect_pattern_bindings<'tree>(
                             is_rest: false,
                         });
                     } else {
-                        collect_pattern_bindings(left, Some(pattern.kind()), bindings);
+                        collect_pattern_bindings_at(
+                            left,
+                            Some(pattern.kind()),
+                            bindings,
+                            child_depth,
+                        );
                     }
                 }
             }
@@ -278,12 +295,17 @@ pub(crate) fn collect_pattern_bindings<'tree>(
                             is_rest: true,
                         });
                     } else {
-                        collect_pattern_bindings(target, Some(pattern.kind()), bindings);
+                        collect_pattern_bindings_at(
+                            target,
+                            Some(pattern.kind()),
+                            bindings,
+                            child_depth,
+                        );
                     }
                 }
             }
             "object_pattern" | "array_pattern" => {
-                collect_pattern_bindings(child, Some(pattern.kind()), bindings);
+                collect_pattern_bindings_at(child, Some(pattern.kind()), bindings, child_depth);
             }
             _ => {}
         }

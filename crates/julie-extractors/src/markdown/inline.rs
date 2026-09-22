@@ -72,6 +72,13 @@ fn inline_ranges(node: Node) -> Vec<Range> {
 /// read as their description, code spans lose their backticks, escapes lose
 /// their backslash, and emphasis delimiters drop out.
 pub(crate) fn plain_text(content: &str, node: Node) -> String {
+    plain_text_at(content, node, 0)
+}
+
+fn plain_text_at(content: &str, node: Node, depth: u32) -> String {
+    let Some(child_depth) = crate::tree_traversal::child_tree_depth(depth) else {
+        return String::new();
+    };
     let mut text = String::new();
     let mut offset = node.start_byte();
     let mut cursor = node.walk();
@@ -80,25 +87,25 @@ pub(crate) fn plain_text(content: &str, node: Node) -> String {
         offset = child.end_byte();
         let raw = content.get(child.byte_range()).unwrap_or_default();
         match child.kind() {
-            "image" => push_labelled(content, child, "image_description", &mut text),
-            "inline_link" => push_labelled(content, child, "link_text", &mut text),
+            "image" => push_labelled(content, child, "image_description", &mut text, child_depth),
+            "inline_link" => push_labelled(content, child, "link_text", &mut text, child_depth),
             "code_span" => text.push_str(raw.trim_matches('`')),
             "backslash_escape" => text.push_str(raw.get(1..).unwrap_or_default()),
             "emphasis_delimiter" | "code_span_delimiter" => {}
-            _ => text.push_str(&plain_text(content, child)),
+            _ => text.push_str(&plain_text_at(content, child, child_depth)),
         }
     }
     text.push_str(content.get(offset..node.end_byte()).unwrap_or_default());
     text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-fn push_labelled(content: &str, node: Node, label_kind: &str, text: &mut String) {
+fn push_labelled(content: &str, node: Node, label_kind: &str, text: &mut String, depth: u32) {
     let mut cursor = node.walk();
     if let Some(label) = node
         .named_children(&mut cursor)
         .find(|child| child.kind() == label_kind)
     {
-        text.push_str(&plain_text(content, label));
+        text.push_str(&plain_text_at(content, label, depth));
     }
 }
 
@@ -222,6 +229,13 @@ fn nested_link_at(
 }
 
 fn collect_opaque(node: Node, ranges: &mut Vec<(usize, usize)>) {
+    collect_opaque_at(node, ranges, 0);
+}
+
+fn collect_opaque_at(node: Node, ranges: &mut Vec<(usize, usize)>, depth: u32) {
+    let Some(child_depth) = crate::tree_traversal::child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
         match child.kind() {
@@ -229,7 +243,7 @@ fn collect_opaque(node: Node, ranges: &mut Vec<(usize, usize)>) {
             | "html_tag" | "backslash_escape" | "latex_block" => {
                 ranges.push((child.start_byte(), child.end_byte()));
             }
-            _ => collect_opaque(child, ranges),
+            _ => collect_opaque_at(child, ranges, child_depth),
         }
     }
 }

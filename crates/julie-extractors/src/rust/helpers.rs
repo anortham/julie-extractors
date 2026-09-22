@@ -100,6 +100,19 @@ fn collect_use_leaves(
     prefix: &[String],
     leaves: &mut Vec<UseLeaf>,
 ) {
+    collect_use_leaves_at(base, node, prefix, leaves, 0);
+}
+
+fn collect_use_leaves_at(
+    base: &BaseExtractor,
+    node: Node,
+    prefix: &[String],
+    leaves: &mut Vec<UseLeaf>,
+    depth: u32,
+) {
+    let Some(child_depth) = crate::tree_traversal::child_tree_depth(depth) else {
+        return;
+    };
     let joined = |tail: Option<Node>| {
         let mut path = prefix.to_vec();
         if let Some(tail) = tail {
@@ -124,12 +137,12 @@ fn collect_use_leaves(
         "scoped_use_list" => {
             let path = joined(node.child_by_field_name("path"));
             if let Some(list) = node.child_by_field_name("list") {
-                collect_use_leaves(base, list, &path, leaves);
+                collect_use_leaves_at(base, list, &path, leaves, child_depth);
             }
         }
         "use_list" => {
             for item in node.named_children(&mut node.walk()) {
-                collect_use_leaves(base, item, prefix, leaves);
+                collect_use_leaves_at(base, item, prefix, leaves, child_depth);
             }
         }
         "use_wildcard" => {

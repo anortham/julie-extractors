@@ -42,11 +42,18 @@ pub(super) fn extract_assignment(
 }
 
 fn collect_list_targets<'a>(list: Node<'a>, targets: &mut Vec<Node<'a>>) {
+    collect_list_targets_at(list, targets, 0);
+}
+
+fn collect_list_targets_at<'a>(list: Node<'a>, targets: &mut Vec<Node<'a>>, depth: u32) {
+    let Some(child_depth) = crate::tree_traversal::child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = list.walk();
     for child in list.named_children(&mut cursor) {
         match child.kind() {
             "variable_name" => targets.push(child),
-            "list_literal" => collect_list_targets(child, targets),
+            "list_literal" => collect_list_targets_at(child, targets, child_depth),
             "by_ref" => {
                 targets.extend(child.named_child(0).filter(|n| n.kind() == "variable_name"))
             }

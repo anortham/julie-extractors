@@ -533,30 +533,6 @@
   ],
   "pending_relationships": [
     {
-      "from_key": "fixtures/extraction/html/test_roles/source.html:browser suite:9:4",
-      "callee_name": "context",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/html/test_roles/source.html",
-      "line_number": 10,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
-      "callee_name": "it",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/html/test_roles/source.html",
-      "line_number": 13,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
-      "callee_name": "test",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/html/test_roles/source.html",
-      "line_number": 16,
-      "confidence": "0.700"
-    },
-    {
       "from_key": "fixtures/extraction/html/test_roles/source.html:script:4:2",
       "callee_name": "https://unpkg.com/mocha/mocha.js",
       "kind": "imports",
@@ -566,84 +542,6 @@
     }
   ],
   "structured_pending_relationships": [
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/html/test_roles/source.html:browser suite:9:4",
-        "callee_name": "context",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/html/test_roles/source.html",
-        "line_number": 10,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "context",
-        "terminal_name": "context",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/html/test_roles/source.html:browser suite:9:4",
-      "span": {
-        "start_line": 10,
-        "start_column": 6,
-        "end_line": 18,
-        "end_column": 8,
-        "start_byte": 206,
-        "end_byte": 465
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
-        "callee_name": "it",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/html/test_roles/source.html",
-        "line_number": 13,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "it",
-        "terminal_name": "it",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
-      "span": {
-        "start_line": 13,
-        "start_column": 8,
-        "end_line": 13,
-        "end_column": 28,
-        "start_byte": 302,
-        "end_byte": 322
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
-        "callee_name": "test",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/html/test_roles/source.html",
-        "line_number": 16,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "test",
-        "terminal_name": "test",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
-      "span": {
-        "start_line": 16,
-        "start_column": 8,
-        "end_line": 16,
-        "end_column": 37,
-        "start_byte": 386,
-        "end_byte": 415
-      }
-    },
     {
       "pending": {
         "from_key": "fixtures/extraction/html/test_roles/source.html:script:4:2",

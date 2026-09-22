@@ -38,8 +38,13 @@ pub(super) fn record_constructor_fact(base: &mut BaseExtractor, symbol_id: &str,
 }
 
 fn plainly_named_annotation(base: &BaseExtractor, node: Node) -> Option<String> {
+    plainly_named_annotation_at(base, node, 0)
+}
+
+fn plainly_named_annotation_at(base: &BaseExtractor, node: Node, depth: u32) -> Option<String> {
+    let child_depth = crate::tree_traversal::child_tree_depth(depth)?;
     match node.kind() {
-        "type" => plainly_named_annotation(base, node.named_child(0)?),
+        "type" => plainly_named_annotation_at(base, node.named_child(0)?, child_depth),
         "identifier" | "none" => Some(base.get_node_text(&node)),
         "attribute" | "member_type" => is_plain_name(node).then(|| base.get_node_text(&node)),
         "string" => forward_reference(base, node),
@@ -47,7 +52,8 @@ fn plainly_named_annotation(base: &BaseExtractor, node: Node) -> Option<String> 
             let mut cursor = node.walk();
             let head = node.named_children(&mut cursor).next()?;
             let arguments = type_arguments(node);
-            unwrap_wrapper(base, head, &arguments).or_else(|| Some(base.get_node_text(&node)))
+            unwrap_wrapper(base, head, &arguments, child_depth)
+                .or_else(|| Some(base.get_node_text(&node)))
         }
         "subscript" => {
             let value = node.child_by_field_name("value")?;
@@ -58,7 +64,8 @@ fn plainly_named_annotation(base: &BaseExtractor, node: Node) -> Option<String> 
             let arguments: Vec<Node> = node
                 .children_by_field_name("subscript", &mut cursor)
                 .collect();
-            unwrap_wrapper(base, value, &arguments).or_else(|| Some(base.get_node_text(&node)))
+            unwrap_wrapper(base, value, &arguments, child_depth)
+                .or_else(|| Some(base.get_node_text(&node)))
         }
         "binary_operator" | "union_type" => {
             let mut members = Vec::new();
@@ -68,7 +75,7 @@ fn plainly_named_annotation(base: &BaseExtractor, node: Node) -> Option<String> 
             non_none
                 .next()
                 .is_none()
-                .then(|| plainly_named_annotation(base, only))?
+                .then(|| plainly_named_annotation_at(base, only, child_depth))?
         }
         _ => None,
     }
@@ -86,7 +93,12 @@ fn type_arguments(generic: Node) -> Vec<Node> {
         .unwrap_or_default()
 }
 
-fn unwrap_wrapper(base: &BaseExtractor, head: Node, arguments: &[Node]) -> Option<String> {
+fn unwrap_wrapper(
+    base: &BaseExtractor,
+    head: Node,
+    arguments: &[Node],
+    depth: u32,
+) -> Option<String> {
     let head_text = base.get_node_text(&head);
     let wrapper = head_text.rsplit('.').next().unwrap_or(&head_text);
     if wrapper == "Union" {
@@ -95,25 +107,33 @@ fn unwrap_wrapper(base: &BaseExtractor, head: Node, arguments: &[Node]) -> Optio
         return non_none
             .next()
             .is_none()
-            .then(|| plainly_named_annotation(base, *only))?;
+            .then(|| plainly_named_annotation_at(base, *only, depth))?;
     }
     if !TRANSPARENT_WRAPPERS.contains(&wrapper) {
         return None;
     }
-    plainly_named_annotation(base, *arguments.first()?)
+    plainly_named_annotation_at(base, *arguments.first()?, depth)
 }
 
 fn collect_union_members<'a>(node: Node<'a>, members: &mut Vec<Node<'a>>) {
+    collect_union_members_at(node, members, 0);
+}
+
+fn collect_union_members_at<'a>(node: Node<'a>, members: &mut Vec<Node<'a>>, depth: u32) {
+    let Some(child_depth) = crate::tree_traversal::child_tree_depth(depth) else {
+        members.push(node);
+        return;
+    };
     let is_pipe = node
         .child_by_field_name("operator")
         .is_none_or(|operator| operator.kind() == "|");
     if matches!(node.kind(), "binary_operator" | "union_type") && is_pipe {
         let mut cursor = node.walk();
         for child in node.named_children(&mut cursor) {
-            collect_union_members(child, members);
+            collect_union_members_at(child, members, child_depth);
         }
     } else if node.kind() == "type" && node.named_child_count() == 1 {
-        collect_union_members(node.named_child(0).unwrap_or(node), members);
+        collect_union_members_at(node.named_child(0).unwrap_or(node), members, child_depth);
     } else {
         members.push(node);
     }

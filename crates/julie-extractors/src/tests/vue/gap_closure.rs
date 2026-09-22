@@ -229,9 +229,8 @@ const store = new RowStore()
             .all(|symbol| symbol.name != "if" && symbol.name != "for")
     );
     let format_row = symbol_of_kind(&results, "formatRow", SymbolKind::Function);
-    let exported = symbol_of_kind(&results, "formatRow", SymbolKind::Export);
     assert!(
-        exported
+        format_row
             .doc_comment
             .as_deref()
             .is_some_and(|doc| doc.contains("Formats a row"))

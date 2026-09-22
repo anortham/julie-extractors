@@ -354,6 +354,13 @@ fn is_key(kind: &str) -> bool {
 }
 
 fn key_parts(key: Node<'_>, content: &str) -> Vec<String> {
+    key_parts_at(key, content, 0)
+}
+
+fn key_parts_at(key: Node<'_>, content: &str, depth: u32) -> Vec<String> {
+    let Some(child_depth) = crate::tree_traversal::child_tree_depth(depth) else {
+        return Vec::new();
+    };
     if key.kind() != "dotted_key" {
         return node_text(key, content)
             .map(|text| vec![text.trim_matches(['"', '\'']).to_string()])
@@ -361,7 +368,7 @@ fn key_parts(key: Node<'_>, content: &str) -> Vec<String> {
     }
     let mut cursor = key.walk();
     key.named_children(&mut cursor)
-        .flat_map(|part| key_parts(part, content))
+        .flat_map(|part| key_parts_at(part, content, child_depth))
         .collect()
 }
 
