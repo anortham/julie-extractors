@@ -51,6 +51,34 @@ where
     Ok(crate::language_spec::detect_language_from_extension(extension).map(|lang| (lang, None)))
 }
 
+/// C++-only spellings that decide a `.h` file when both grammars parse it
+/// equally well.
+const CPP_ONLY_SPELLINGS: &[&str] = &["::", "template <", "public:", "private:", "protected:"];
+
+/// A line-leading C++ `namespace Name` definition. tree-sitter-c accepts a
+/// namespace block without an error node, so the spelling has to decide the tie,
+/// and C code is free to name a struct or a parameter `namespace`, so only a
+/// definition at the start of a line counts.
+fn is_namespace_definition_at(code: &str, index: usize) -> bool {
+    if index > 0 && !code[..index].ends_with('\n') {
+        return false;
+    }
+    let Some(rest) = code[index..].strip_prefix("namespace") else {
+        return false;
+    };
+    let name = rest.trim_start_matches([' ', '\t']);
+    rest.len() != name.len()
+        && name
+            .chars()
+            .next()
+            .is_some_and(|character| character.is_alphabetic() || character == '_')
+}
+
+fn has_namespace_definition(code: &str) -> bool {
+    code.match_indices("namespace")
+        .any(|(at, _)| is_namespace_definition_at(code, at))
+}
+
 fn header_has_content_legacy(source: &str) -> bool {
     source.chars().any(|c| !c.is_whitespace())
 }
@@ -78,11 +106,10 @@ pub(crate) fn strict_header_probe(content: &str) -> Result<(&'static str, tree_s
         Ok(("c", c_tree))
     } else {
         let code = c_family_code_without_comments_and_strings(content);
-        if code.contains("::")
-            || code.contains("template <")
-            || code.contains("public:")
-            || code.contains("private:")
-            || code.contains("protected:")
+        if CPP_ONLY_SPELLINGS
+            .iter()
+            .any(|spelling| code.contains(spelling))
+            || has_namespace_definition(&code)
         {
             Ok(("cpp", cpp_tree))
         } else {
@@ -290,8 +317,6 @@ fn tie_break_scan_prefers_cpp_bounded(
     code: &str,
     options: &crate::syntax::SyntaxOptions<'_>,
 ) -> Result<bool, crate::syntax::SyntaxError> {
-    const PATTERNS: &[&str] = &["::", "template <", "public:", "private:", "protected:"];
-
     let mut chars_scanned: usize = 0;
     for (byte_idx, _) in code.char_indices() {
         chars_scanned += 1;
@@ -299,10 +324,13 @@ fn tie_break_scan_prefers_cpp_bounded(
             options.check()?;
         }
         let remainder = &code[byte_idx..];
-        for pattern in PATTERNS {
+        for pattern in CPP_ONLY_SPELLINGS {
             if remainder.starts_with(pattern) {
                 return Ok(true);
             }
+        }
+        if is_namespace_definition_at(code, byte_idx) {
+            return Ok(true);
         }
     }
     options.check()?;

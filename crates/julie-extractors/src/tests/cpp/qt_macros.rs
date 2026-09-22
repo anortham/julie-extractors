@@ -370,3 +370,34 @@ fn the_scan_path_emits_no_emit_variable_rows_for_a_cpp_body() {
             .is_some_and(|signature| signature.contains("Q_EMIT"))
     }));
 }
+
+#[test]
+fn a_qt_namespace_enum_header_is_still_detected_as_cpp() {
+    let source = "#pragma once\n\n#include <qobjectdefs.h>\n\nnamespace Style\n{\nQ_NAMESPACE\nQML_ELEMENT\n\nenum Mode {\n    Fixed = 0,\n    Dynamic,\n};\nQ_ENUM_NS(Mode)\n}\n";
+
+    let results = extract_canonical_at(
+        "src/controls/enums.h",
+        source,
+        Path::new("/repo"),
+        ExtractionLevel::Facts,
+    )
+    .expect("a Qt namespace header should extract");
+
+    assert!(
+        results
+            .symbols
+            .iter()
+            .all(|symbol| symbol.language == "cpp"),
+        "{:?}",
+        results
+            .symbols
+            .iter()
+            .map(|symbol| symbol.language.as_str())
+            .collect::<Vec<_>>()
+    );
+    assert!(
+        results.parse_diagnostics.is_empty(),
+        "{:?}",
+        results.parse_diagnostics
+    );
+}
