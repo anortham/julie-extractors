@@ -20,14 +20,30 @@ static BRACKET_TYPE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\[(\w+)\
 /// The bare name of a variable reference: no `$`/`@` sigil, no braces, and no
 /// scope or drive qualifier (`$script:Hits`, `$env:PATH`, `${global:x}`).
 pub(super) fn variable_name(raw: &str) -> String {
+    split_qualifier(raw).1.to_string()
+}
+
+/// The identity of a variable reference inside one scope: its effective scope
+/// or drive plus its case-insensitive name. `$x`, `$local:x`, `$private:x`,
+/// and `$variable:x` name one variable; `$script:x` and `$env:x` do not.
+pub(super) fn variable_key(raw: &str) -> String {
+    let (qualifier, name) = split_qualifier(raw);
+    let scope = qualifier
+        .map(str::to_ascii_lowercase)
+        .filter(|scope| !matches!(scope.as_str(), "local" | "private" | "variable"))
+        .unwrap_or_default();
+    format!("{scope}:{}", name.to_ascii_lowercase())
+}
+
+fn split_qualifier(raw: &str) -> (Option<&str>, &str) {
     let name = raw.trim_start_matches(['$', '@']);
     let name = name
         .strip_prefix('{')
         .and_then(|inner| inner.strip_suffix('}'))
         .unwrap_or(name);
     match name.split_once(':') {
-        Some((qualifier, rest)) if is_variable_qualifier(qualifier) => rest.to_string(),
-        _ => name.to_string(),
+        Some((qualifier, rest)) if is_variable_qualifier(qualifier) => (Some(qualifier), rest),
+        _ => (None, name),
     }
 }
 

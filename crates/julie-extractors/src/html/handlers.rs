@@ -14,6 +14,8 @@ use crate::base::{
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
+use super::helpers::HTMLHelpers;
+
 /// Rows produced by attribute-held script, in host coordinates.
 #[derive(Default)]
 pub(super) struct HandlerRows {
@@ -32,7 +34,7 @@ pub(super) fn collect_handler_rows(
     let functions = crate::embedded::unique_by_name(
         symbols
             .iter()
-            .filter(|symbol| symbol.kind == SymbolKind::Function),
+            .filter(|symbol| is_global_function(base, tree, symbol)),
     );
     let mut rows = HandlerRows::default();
     let mut attributes = Vec::new();
@@ -54,6 +56,26 @@ pub(super) fn collect_handler_rows(
         }
     }
     rows
+}
+
+/// Whether an inline handler can call the function: it is declared at the top
+/// level of a classic script. Nested functions stay local to their parent, and
+/// `<script type="module">` declarations stay module-scoped.
+fn is_global_function(base: &BaseExtractor, tree: &Tree, symbol: &Symbol) -> bool {
+    if symbol.kind != SymbolKind::Function || symbol.parent_id.is_some() {
+        return false;
+    }
+    let start = symbol.start_byte as usize;
+    let mut node = tree.root_node().descendant_for_byte_range(start, start);
+    while let Some(current) = node {
+        if current.kind() == "script_element" {
+            return HTMLHelpers::extract_attributes(base, current)
+                .get("type")
+                .is_none_or(|script_type| script_type != "module");
+        }
+        node = current.parent();
+    }
+    true
 }
 
 /// The symbol of the element whose start tag holds the attribute, or of the

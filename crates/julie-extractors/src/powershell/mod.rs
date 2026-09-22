@@ -31,11 +31,15 @@ use crate::base::{
     Symbol,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
+use std::collections::HashSet;
 use tree_sitter::Tree;
 
 /// PowerShell language extractor that handles PowerShell-specific constructs for Windows/Azure DevOps
 pub struct PowerShellExtractor {
     pub base: BaseExtractor,
+    /// Variables already declared, keyed by syntax parent and
+    /// [`helpers::variable_key`], so a reassignment adds no second symbol.
+    declared_variables: HashSet<(Option<String>, String)>,
 }
 
 impl PowerShellExtractor {
@@ -47,6 +51,7 @@ impl PowerShellExtractor {
     ) -> Self {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
+            declared_variables: HashSet::new(),
         }
     }
 
@@ -71,14 +76,13 @@ impl PowerShellExtractor {
 
         let mut current_parent_id = parent_id;
 
-        let reassigns_declared_variable = node.kind() == "assignment_expression"
-            && variables::assignment_target_name(&self.base, node).is_some_and(|name| {
-                symbols.iter().any(|symbol| {
-                    symbol.kind == crate::base::SymbolKind::Variable
-                        && symbol.parent_id == current_parent_id
-                        && symbol.name.eq_ignore_ascii_case(&name)
-                })
-            });
+        let variable_key = (node.kind() == "assignment_expression")
+            .then(|| variables::assignment_target_key(&self.base, node))
+            .flatten()
+            .map(|key| (current_parent_id.clone(), key));
+        let reassigns_declared_variable = variable_key
+            .as_ref()
+            .is_some_and(|key| self.declared_variables.contains(key));
 
         if !reassigns_declared_variable
             && let Some(symbol) = self.extract_symbol_from_node(node, current_parent_id.as_deref())
@@ -91,7 +95,16 @@ impl PowerShellExtractor {
             ) {
                 let parameters =
                     functions::extract_function_parameters(&mut self.base, node, &symbol.id);
+                for parameter in &parameters {
+                    self.declared_variables.insert((
+                        Some(symbol.id.clone()),
+                        helpers::variable_key(&parameter.name),
+                    ));
+                }
                 symbols.extend(parameters);
+            }
+            if let Some(key) = variable_key {
+                self.declared_variables.insert(key);
             }
 
             current_parent_id = Some(symbol.id.clone());

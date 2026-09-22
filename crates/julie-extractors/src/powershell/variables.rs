@@ -6,7 +6,7 @@
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use tree_sitter::Node;
 
-use super::helpers::variable_name;
+use super::helpers::{variable_key, variable_name};
 use super::type_facts;
 
 /// The declared name of a plain assignment target, if the node assigns one.
@@ -14,6 +14,14 @@ pub(super) fn assignment_target_name(base: &BaseExtractor, node: Node) -> Option
     let variable = type_facts::assignment_variable_node(node)?;
     let name = variable_name(&base.get_node_text(&variable));
     (!name.is_empty() && !name.eq_ignore_ascii_case("this")).then_some(name)
+}
+
+/// The scope-qualified identity of a plain assignment target, if the node
+/// assigns one. See [`variable_key`].
+pub(super) fn assignment_target_key(base: &BaseExtractor, node: Node) -> Option<String> {
+    assignment_target_name(base, node)?;
+    let variable = type_facts::assignment_variable_node(node)?;
+    Some(variable_key(&base.get_node_text(&variable)))
 }
 
 /// Extract a variable symbol from a plain assignment.

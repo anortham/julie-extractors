@@ -409,3 +409,35 @@ Export-ModuleMember -function Get-Setting, Set-Setting
         vec![("Get-Setting", None), ("Set-Setting", None)]
     );
 }
+
+#[test]
+fn reassignment_dedup_keeps_distinct_scopes_and_drives() {
+    let result = extract(
+        "scopes.ps1",
+        r#"function Set-Names {
+    $name = 'local'
+    $local:name = 'same local'
+    $env:name = 'environment'
+    $script:name = 'script'
+    $script:name = 'script again'
+    $global:name = 'global'
+}
+"#,
+    );
+    let signatures: Vec<&str> = result
+        .symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Variable)
+        .filter_map(|symbol| symbol.signature.as_deref())
+        .collect();
+
+    assert_eq!(
+        signatures,
+        vec![
+            "$name = 'local'",
+            "$env:name = 'environment'",
+            "$script:name = 'script'",
+            "$global:name = 'global'",
+        ]
+    );
+}

@@ -115,7 +115,9 @@ column changes.
 Embedded blocks change. HTML `<script>`/`<style>` and Vue script and style
 sections run the native JavaScript, TypeScript, TSX, JSX, or CSS pipeline and
 publish every row family remapped to host coordinates. Calls inside an embedded
-function now come from that function, not the host element or component. See
+function now come from that function, not the host element or component. An
+inline HTML handler call (`onclick`, Alpine, htmx) resolves only to a top-level
+function of a classic script; any other call stays pending. See
 [2026-09-22-embedded-blocks-use-native-pipeline.md](../decisions/2026-09-22-embedded-blocks-use-native-pipeline.md).
 
 Row families that move, by language family:
@@ -125,8 +127,9 @@ Row families that move, by language family:
   members, Go grouped types and interface methods, JS/TS enums and
   destructured bindings, Razor `@code` members, and more) and remove false
   or duplicate rows (C type references, duplicate JS function values, Lua
-  nested-local duplicates, PowerShell phantom functions and read-site
-  variables, R `self$x` names). A changed span changes the location-derived
+  nested-local duplicates, PowerShell phantom functions, read-site variables,
+  and reassignment duplicates, R `self$x` names). A PowerShell reassignment
+  adds no symbol when the same scope or drive already declares the name. A changed span changes the location-derived
   symbol id, so consumers must not carry ids across the rebuild.
 - Visibility. Java members with no modifier report `internal`; interface
   members report `public`. Swift defaults to `internal` and propagates

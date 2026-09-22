@@ -273,3 +273,40 @@ fn handler_calls_link_same_file_functions_or_stay_pending() {
         "member calls stay identifiers only"
     );
 }
+
+#[test]
+fn handler_calls_skip_nested_and_module_script_functions() {
+    let results = extract(
+        r#"<html><body>
+<script>
+  function outer() { function save() {} save(); }
+  function reset() {}
+</script>
+<script type="module">
+  function publish() {}
+</script>
+<button onclick="save()">Save</button>
+<button onclick="publish()">Publish</button>
+<button onclick="reset()">Reset</button>
+</body></html>
+"#,
+    );
+    let handler_calls: Vec<String> = results
+        .relationships
+        .iter()
+        .filter(|relationship| {
+            relationship.kind == RelationshipKind::Calls
+                && name_of(&results, &relationship.from_symbol_id) == "button"
+        })
+        .map(|relationship| name_of(&results, &relationship.to_symbol_id))
+        .collect();
+    assert_eq!(handler_calls, vec!["reset".to_string()]);
+    let pending: Vec<&str> = results
+        .structured_pending_relationships
+        .iter()
+        .filter(|pending| pending.pending.kind == RelationshipKind::Calls)
+        .map(|pending| pending.target.display_name.as_str())
+        .collect();
+    assert!(pending.contains(&"save"), "{pending:?}");
+    assert!(pending.contains(&"publish"), "{pending:?}");
+}

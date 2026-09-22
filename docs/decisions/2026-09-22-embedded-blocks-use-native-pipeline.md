@@ -29,6 +29,10 @@ diagnostics. The host then publishes the rows under its own language.
   as in a standalone file: a function, or a variable whose initializer makes
   the call. The host element or component is the caller only for code outside
   every declaration.
+- An inline HTML handler sees only global bindings, as a browser does. Its
+  calls resolve to top-level functions of classic scripts. A nested function
+  or a `<script type="module">` function is not a target, so the call stays
+  pending.
 - File-scope complexity rows of all blocks fold into one host row.
 - Vue section boundaries come from the shared tag scanner, which matches
   nested `<template>` tags and accepts one-line and multi-line section tags.
