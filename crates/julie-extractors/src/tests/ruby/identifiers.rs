@@ -133,16 +133,26 @@ end
 
     // Positive cases (rules 1/4)
     for expected in [
-        "count",              // compound-assignment target (`+=`)
-        "y",                  // compound-assignment target (`||=`)
-        "seed",               // RHS read + receiver of seed.persist
-        "total",              // `||=` RHS + ternary reads
-        "is_user_type",       // bare argument read
-        "visibility_unknown", // bare value read
+        "count", // compound-assignment target (`+=`)
+        "y",     // compound-assignment target (`||=`)
+        "seed",  // RHS read + receiver of seed.persist
+        "total", // `||=` RHS + ternary reads
     ] {
         assert!(
             var_refs.contains(&expected),
             "expected variable_ref for {expected}; got {var_refs:?}"
+        );
+    }
+
+    // A bare identifier with no earlier binding in its scope is a
+    // receiverless method call under Ruby's lexical rule.
+    for method_call in ["is_user_type", "visibility_unknown"] {
+        assert!(!var_refs.contains(&method_call), "{method_call}");
+        assert!(
+            identifiers
+                .iter()
+                .any(|id| id.name == method_call && id.kind == IdentifierKind::Call),
+            "expected a call identifier for {method_call}"
         );
     }
 

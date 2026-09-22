@@ -1448,14 +1448,44 @@ fn detect_ruby(name: &str, file_path: &str) -> bool {
 /// Base classes whose subclasses a Ruby test runner collects on sight.
 ///
 /// Minitest and Test::Unit collect `test_`-prefixed methods from a subclass;
-/// Rails layers `ActiveSupport::TestCase` and `ActionDispatch::IntegrationTest`
-/// on top of Minitest and adds the `test "name" do` macro.
-const RUBY_TEST_BASE_TYPES: [&str; 4] = [
+/// Rails layers `ActiveSupport::TestCase`, `ActionDispatch::IntegrationTest`,
+/// and the per-component test cases on top of Minitest and adds the
+/// `test "name" do` macro.
+const RUBY_TEST_BASE_TYPES: &[&str] = &[
     "Minitest::Test",
     "Test::Unit::TestCase",
     "ActiveSupport::TestCase",
     "ActionDispatch::IntegrationTest",
+    "ActionDispatch::SystemTestCase",
+    "ActionController::TestCase",
+    "ActionMailer::TestCase",
+    "ActionMailbox::TestCase",
+    "ActionView::TestCase",
+    "ActiveJob::TestCase",
+    "ActionCable::TestCase",
+    "ActionCable::Connection::TestCase",
+    "ActionCable::Channel::TestCase",
+    "Rails::Generators::TestCase",
 ];
+
+/// An application test base such as `ApplicationSystemTestCase` lives in the
+/// test tree and subclasses a Rails test case in another file, so a base named
+/// `*TestCase` or `*Test` counts inside a test path.
+fn has_ruby_application_test_base(symbol: &Symbol) -> bool {
+    symbol.kind == SymbolKind::Class
+        && is_test_path(&symbol.file_path)
+        && symbol
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("base_types"))
+            .and_then(|value| value.as_array())
+            .is_some_and(|bases| {
+                bases.iter().filter_map(|base| base.as_str()).any(|base| {
+                    let name = base.rsplit("::").next().unwrap_or(base);
+                    name.ends_with("TestCase") || name.ends_with("Test")
+                })
+            })
+}
 
 /// Mark Ruby test containers, then strip every role that sits outside one.
 ///
@@ -1470,6 +1500,12 @@ const RUBY_TEST_BASE_TYPES: [&str; 4] = [
 pub(crate) fn mark_ruby_test_containers(symbols: &mut [Symbol]) {
     for base_type in RUBY_TEST_BASE_TYPES {
         mark_base_type_test_containers(symbols, base_type);
+    }
+    for symbol in symbols
+        .iter_mut()
+        .filter(|symbol| has_ruby_application_test_base(symbol))
+    {
+        mark_class_test_container(symbol);
     }
 
     let test_container_ids: HashSet<String> = symbols

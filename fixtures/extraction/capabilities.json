@@ -3268,6 +3268,21 @@
             "fixtures/extraction/ruby/test_roles/rails_macro_test.rb",
             "fixtures/extraction/ruby/test_roles/production_roles.rb"
           ]
+        },
+        {
+          "name": "app_structure",
+          "source": "fixtures/extraction/ruby/app_structure/source.rb",
+          "expected": "fixtures/extraction/ruby/app_structure/expected.json"
+        },
+        {
+          "name": "sinatra",
+          "source": "fixtures/extraction/ruby/sinatra/source.rb",
+          "expected": "fixtures/extraction/ruby/sinatra/expected.json"
+        },
+        {
+          "name": "rails_component_tests",
+          "source": "fixtures/extraction/ruby/rails_component_tests/users_test.rb",
+          "expected": "fixtures/extraction/ruby/rails_component_tests/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3335,7 +3350,9 @@
             "ruby.block.v1",
             "ruby.mixin_call.v1",
             "ruby.require_call.v1",
-            "ruby.rescue_clause.v1"
+            "ruby.rescue_clause.v1",
+            "sinatra.filter.v1",
+            "sinatra.route.v1"
           ],
           "not_applicable": [],
           "open_gaps": [
@@ -3377,8 +3394,11 @@
         },
         "doc_comments": {
           "supported": [
+            "class",
+            "constant",
             "import",
-            "method"
+            "method",
+            "property"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -3392,6 +3412,7 @@
         },
         "source_regions": {
           "supported": [
+            "comment",
             "doc_comment",
             "string_literal"
           ],

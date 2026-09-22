@@ -23,6 +23,11 @@ pub(super) fn extract_assignment(
         .child_by_field_name("left")
         .or_else(|| node.children(&mut node.walk()).next())?;
 
+    // `obj.attr = x` and `h[k] = x` call writer methods; they define nothing.
+    if matches!(left_side.kind(), "call" | "element_reference") {
+        return None;
+    }
+
     // Handle parallel assignments (a, b, c = 1, 2, 3)
     if left_side.kind() == "left_assignment_list" {
         return handle_parallel_assignment(base, node, left_side, parent_id, context.symbol_map);

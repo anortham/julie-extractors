@@ -108,7 +108,7 @@
       "body_span": null,
       "body_hash": null,
       "signature": "require 'other'",
-      "doc_comment": "# Phase 4a fixture: cross-file module call. OtherModule.do_thing is defined\n# in another file required as 'other'. The ruby extractor must emit a\n# StructuredPendingRelationship with target.terminal_name=\"do_thing\"\n# (and ideally target.namespace_path=[\"OtherModule\"] and\n# target.import_context=\"other\"). The intra-class self.local_helper resolves.",
+      "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {},
@@ -166,7 +166,44 @@
       "content_type": null
     }
   ],
-  "relationships": [],
+  "relationships": [
+    {
+      "from_key": "fixtures/extraction/ruby/cross_file/source.rb:entry:10:2",
+      "to_key": "fixtures/extraction/ruby/cross_file/source.rb:local_helper:21:2",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
+      "line_number": 12,
+      "span": {
+        "start_line": 12,
+        "start_column": 7,
+        "end_line": 12,
+        "end_column": 19,
+        "start_byte": 414,
+        "end_byte": 426
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/ruby/cross_file/source.rb:entry:10:2",
+      "to_key": "fixtures/extraction/ruby/cross_file/source.rb:local_helper:21:2",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
+      "line_number": 18,
+      "span": {
+        "start_line": 18,
+        "start_column": 12,
+        "end_line": 18,
+        "end_column": 24,
+        "start_byte": 526,
+        "end_byte": 538
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    }
+  ],
   "pending_relationships": [
     {
       "from_key": "fixtures/extraction/ruby/cross_file/source.rb:entry:10:2",
@@ -174,14 +211,6 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
       "line_number": 17,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/ruby/cross_file/source.rb:other:7:0",
-      "callee_name": "require",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
-      "line_number": 7,
       "confidence": "0.700"
     }
   ],
@@ -210,32 +239,6 @@
         "end_column": 24,
         "start_byte": 493,
         "end_byte": 513
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/ruby/cross_file/source.rb:other:7:0",
-        "callee_name": "require",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
-        "line_number": 7,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "require",
-        "terminal_name": "require",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/ruby/cross_file/source.rb:other:7:0",
-      "span": {
-        "start_line": 7,
-        "start_column": 0,
-        "end_line": 7,
-        "end_column": 15,
-        "start_byte": 351,
-        "end_byte": 366
       }
     }
   ],
@@ -289,9 +292,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/ruby/cross_file/source.rb:local_helper:variable_ref:12:7",
+      "key": "fixtures/extraction/ruby/cross_file/source.rb:local_helper:call:12:7",
       "name": "local_helper",
-      "kind": "variable_ref",
+      "kind": "call",
       "language": "ruby",
       "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
       "start_line": 12,
@@ -305,9 +308,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/ruby/cross_file/source.rb:local_helper:variable_ref:18:12",
+      "key": "fixtures/extraction/ruby/cross_file/source.rb:local_helper:call:18:12",
       "name": "local_helper",
-      "kind": "variable_ref",
+      "kind": "call",
       "language": "ruby",
       "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
       "start_line": 18,
@@ -495,7 +498,7 @@
       "kind": "doc_comment",
       "language": "ruby",
       "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
-      "containing_key": "fixtures/extraction/ruby/cross_file/source.rb:other:7:0",
+      "containing_key": null,
       "start_line": 1,
       "start_column": 0,
       "end_line": 1,
@@ -508,7 +511,7 @@
       "kind": "doc_comment",
       "language": "ruby",
       "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
-      "containing_key": "fixtures/extraction/ruby/cross_file/source.rb:other:7:0",
+      "containing_key": null,
       "start_line": 2,
       "start_column": 0,
       "end_line": 2,
@@ -521,7 +524,7 @@
       "kind": "doc_comment",
       "language": "ruby",
       "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
-      "containing_key": "fixtures/extraction/ruby/cross_file/source.rb:other:7:0",
+      "containing_key": null,
       "start_line": 3,
       "start_column": 0,
       "end_line": 3,
@@ -534,7 +537,7 @@
       "kind": "doc_comment",
       "language": "ruby",
       "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
-      "containing_key": "fixtures/extraction/ruby/cross_file/source.rb:other:7:0",
+      "containing_key": null,
       "start_line": 4,
       "start_column": 0,
       "end_line": 4,
@@ -547,7 +550,7 @@
       "kind": "doc_comment",
       "language": "ruby",
       "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
-      "containing_key": "fixtures/extraction/ruby/cross_file/source.rb:other:7:0",
+      "containing_key": null,
       "start_line": 5,
       "start_column": 0,
       "end_line": 5,

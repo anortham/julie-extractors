@@ -28,6 +28,8 @@ pub enum DocCommentStyle {
     SqlLine,
     RHashPrime,
     HashLine,
+    /// `#` comments except Ruby magic comments, shebangs, and RuboCop directives.
+    RubyHashLine,
     RazorBlock,
     GdscriptDoubleHash,
     VbTripleApostrophe,
@@ -81,6 +83,10 @@ impl DocCommentStyle {
             Self::SqlLine => trimmed.starts_with("--"),
             Self::RHashPrime => trimmed.starts_with("#'"),
             Self::HashLine => trimmed.starts_with("#"),
+            Self::RubyHashLine => {
+                trimmed.starts_with('#')
+                    && !crate::ruby::doc_comments::is_ruby_directive_comment(trimmed)
+            }
             Self::RazorBlock => trimmed.starts_with("@*"),
             Self::GdscriptDoubleHash => trimmed.starts_with("##"),
             Self::VbTripleApostrophe => trimmed.starts_with("'''"),
@@ -207,6 +213,7 @@ const LUA_DOCS: &[DocCommentStyle] = &[
 ];
 const R_DOCS: &[DocCommentStyle] = &[DocCommentStyle::RHashPrime];
 const HASH_DOCS: &[DocCommentStyle] = &[DocCommentStyle::HashLine];
+const RUBY_DOCS: &[DocCommentStyle] = &[DocCommentStyle::RubyHashLine];
 const RAZOR_DOCS: &[DocCommentStyle] = &[DocCommentStyle::TripleSlash, DocCommentStyle::RazorBlock];
 const GDSCRIPT_DOCS: &[DocCommentStyle] = &[DocCommentStyle::GdscriptDoubleHash];
 const ZIG_DOCS: &[DocCommentStyle] = &[DocCommentStyle::TripleSlash];

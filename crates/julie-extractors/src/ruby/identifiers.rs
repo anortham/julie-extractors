@@ -1,4 +1,5 @@
 use super::helpers::{extract_method_name_from_call, is_assignment_target};
+use super::locals::LocalBindings;
 use super::type_facts;
 use crate::base::{BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -12,9 +13,9 @@ pub(super) fn extract_identifiers(
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
     let containing_symbols = base.containing_symbol_index(symbols);
+    let mut locals = LocalBindings::default();
 
-    // Walk the tree and extract identifiers
-    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
+    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, &mut locals, 0);
 
     // Return the collected identifiers
     base.identifiers.clone()
@@ -25,14 +26,14 @@ fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
+    locals: &mut LocalBindings,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
         return;
     }
 
-    // Extract identifier from this node if applicable
-    extract_identifier_from_node(base, node, containing_symbols);
+    extract_identifier_from_node(base, node, containing_symbols, locals);
 
     // Recursively walk children
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -40,7 +41,7 @@ fn walk_tree_for_identifiers(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, containing_symbols, child_depth);
+        walk_tree_for_identifiers(base, child, containing_symbols, locals, child_depth);
     }
 }
 
@@ -50,6 +51,7 @@ fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
+    locals: &mut LocalBindings,
 ) {
     match node.kind() {
         // Ruby uses "call" for both function calls and member access
@@ -140,13 +142,13 @@ fn extract_identifier_from_node(
                 "private" | "protected" | "public" | "module_function"
             ) {
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                let kind = if locals.is_method_call(&base.content, node) {
+                    IdentifierKind::Call
+                } else {
+                    IdentifierKind::VariableRef
+                };
 
-                base.create_identifier(
-                    &node,
-                    name,
-                    IdentifierKind::VariableRef,
-                    containing_symbol_id,
-                );
+                base.create_identifier(&node, name, kind, containing_symbol_id);
             }
         }
 
@@ -161,7 +163,7 @@ fn extract_identifier_from_node(
 /// TypeUsage arms)? Inclusive by default with enumerated exclusions, mirroring
 /// `is_csharp_value_read_identifier`. Node kinds and field names verified
 /// against the vendored tree-sitter-ruby 0.23.1 grammar.
-fn is_ruby_value_read_identifier(node: Node) -> bool {
+pub(super) fn is_ruby_value_read_identifier(node: Node) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
@@ -204,13 +206,24 @@ fn is_ruby_value_read_identifier(node: Node) -> bool {
 /// Example: `class Foo` or `module Bar` — the `Foo`/`Bar` constant is a declaration,
 /// not a reference. All other constant positions are type references.
 fn is_constant_declaration_name(node: &Node) -> bool {
-    if let Some(parent) = node.parent()
-        && let Some(name_node) = parent.child_by_field_name("name")
-        && name_node.id() == node.id()
-    {
-        return matches!(parent.kind(), "class" | "module");
+    let is_name_of = |parent: Node, child: Node| {
+        parent
+            .child_by_field_name("name")
+            .is_some_and(|name| name.id() == child.id())
+    };
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    if !is_name_of(parent, *node) {
+        return false;
     }
-    false
+    match parent.kind() {
+        "class" | "module" => true,
+        "scope_resolution" => parent.parent().is_some_and(|declaration| {
+            matches!(declaration.kind(), "class" | "module") && is_name_of(declaration, parent)
+        }),
+        _ => false,
+    }
 }
 
 /// Find the ID of the symbol that contains this node

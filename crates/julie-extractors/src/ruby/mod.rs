@@ -19,8 +19,10 @@ use tree_sitter::{Node, Tree};
 // Private modules - encapsulate implementation details
 mod assignments;
 mod calls;
+pub(crate) mod doc_comments;
 pub(crate) mod helpers;
 mod identifiers;
+mod locals;
 mod parameters;
 mod relationships;
 mod signatures;
@@ -242,51 +244,6 @@ impl RubyExtractor {
                 ) {
                     self.symbol_map.insert(symbol.id.clone(), symbol.clone());
                     symbols.push(symbol);
-                }
-            }
-            "global_variable" if !helpers::is_part_of_assignment(&node) => {
-                symbol_opt = Some(symbols::extract_variable(&mut self.base, node));
-            }
-            "constant" => {
-                // Skip constants that are assignment targets (assignment handler creates the symbol)
-                // and constants that are REFERENCES rather than DEFINITIONS.
-                let is_reference = node.parent().is_some_and(|p| {
-                    match p.kind() {
-                        // Class/module name field — already extracted by class/module handler
-                        "class" | "module" => p
-                            .child_by_field_name("name")
-                            .is_some_and(|n| n.id() == node.id()),
-                        // Superclass reference: class Foo < Bar
-                        "superclass" => true,
-                        // Scope resolution: Sinatra::Base
-                        "scope_resolution" => true,
-                        // Method call receiver/target: Base.new(), include Helpers
-                        "call" => true,
-                        // Method argument: method(Base)
-                        "argument_list" => true,
-                        // Element reference: hash[Base]
-                        "element_reference" => true,
-                        // Hash pair: { key: Base }
-                        "pair" => true,
-                        // Binary expression: x == Base, x < Base
-                        "binary" => true,
-                        // Ternary: Base ? x : y
-                        "conditional" => true,
-                        // Parenthesized: (Base)
-                        "parenthesized_statements" => true,
-                        // Array literal: [Base, Other]
-                        "array" => true,
-                        // Return/yield: return Base
-                        "return" | "yield" => true,
-                        _ => false,
-                    }
-                });
-                if !is_reference && !helpers::is_assignment_target(&node) {
-                    symbol_opt = Some(symbols::extract_constant(
-                        &mut self.base,
-                        node,
-                        parent_id.clone(),
-                    ));
                 }
             }
             "alias" => {
