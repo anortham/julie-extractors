@@ -616,8 +616,25 @@ fn find_git_root(start: &Path) -> Option<PathBuf> {
     }
 }
 
+/// An extensionless file is selected by its first line (a shell shebang), so
+/// only those files are opened; everything else is decided by name alone.
 fn language_for_path(path: &Path) -> Option<&'static str> {
-    detect_language_for_path(path, "")
+    let head = if path.extension().is_none() {
+        read_first_line(path)
+    } else {
+        String::new()
+    };
+    detect_language_for_path(path, &head)
+}
+
+fn read_first_line(path: &Path) -> String {
+    use std::io::Read;
+    let mut head = [0u8; 256];
+    let read = fs::File::open(path)
+        .and_then(|mut file| file.read(&mut head))
+        .unwrap_or(0);
+    let text = String::from_utf8_lossy(&head[..read]);
+    text.lines().next().unwrap_or_default().to_string()
 }
 
 fn is_hard_excluded(
@@ -903,6 +920,37 @@ mod tests {
                 reason: UnsupportedReason::UnsupportedExtension
             }
         );
+    }
+
+    #[test]
+    fn discover_selects_bats_shell_dotfiles_and_shell_shebang_scripts_as_bash() {
+        let fixture = DiscoveryFixture::new();
+        let bash = FileSelection::Supported {
+            language: "bash".to_string(),
+        };
+        let policy = fixture.policy();
+        for (path, content) in [
+            ("test/deploy.bats", "@test \"ok\" {\n}\n"),
+            ("bin/gesso", "#!/bin/bash\nset -e\n"),
+            ("bin/env-sh", "#!/usr/bin/env sh\necho hi\n"),
+            ("home/.bashrc", "alias ll='ls -l'\n"),
+        ] {
+            let target = fixture.write(path, content);
+            assert_eq!(policy.select_file(&target), bash, "{path}");
+        }
+        for (path, content) in [
+            ("bin/tool", "#!/usr/bin/env python3\nprint(1)\n"),
+            ("src/LICENSE", "MIT\n"),
+        ] {
+            let target = fixture.write(path, content);
+            assert_eq!(
+                policy.select_file(&target),
+                FileSelection::Unsupported {
+                    reason: UnsupportedReason::UnsupportedExtension
+                },
+                "{path}"
+            );
+        }
     }
 
     #[cfg(unix)]

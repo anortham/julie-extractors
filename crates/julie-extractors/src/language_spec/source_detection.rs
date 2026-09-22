@@ -48,7 +48,52 @@ where
         return Ok(Some(("c", None)));
     }
 
+    if extension.is_empty() && is_shell_script_without_extension(file_path, source) {
+        return Ok(Some(("bash", None)));
+    }
+
     Ok(crate::language_spec::detect_language_from_extension(extension).map(|lang| (lang, None)))
+}
+
+/// Shell startup files, which carry no extension and often no shebang.
+const SHELL_DOTFILES: &[&str] = &[
+    ".bashrc",
+    ".bash_profile",
+    ".bash_login",
+    ".bash_logout",
+    ".bash_aliases",
+    ".profile",
+    ".envrc",
+];
+
+/// An extensionless file is a shell script when it is a shell dotfile or its
+/// first line is a `sh`, `bash`, or `bats` shebang.
+fn is_shell_script_without_extension(file_path: &Path, source: &str) -> bool {
+    if file_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| SHELL_DOTFILES.contains(&name))
+    {
+        return true;
+    }
+    let Some(interpreter_line) = source
+        .lines()
+        .next()
+        .and_then(|line| line.strip_prefix("#!"))
+    else {
+        return false;
+    };
+    let mut words = interpreter_line.split_whitespace();
+    let Some(program) = words.next() else {
+        return false;
+    };
+    let program = program.rsplit('/').next().unwrap_or(program);
+    let interpreter = if program == "env" {
+        words.find(|word| !word.starts_with('-')).unwrap_or("")
+    } else {
+        program
+    };
+    matches!(interpreter, "sh" | "bash" | "bats")
 }
 
 /// C++-only spellings that decide a `.h` file when both grammars parse it

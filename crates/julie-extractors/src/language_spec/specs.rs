@@ -235,7 +235,7 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
     ),
     spec(
         "bash",
-        &["sh", "bash"],
+        &["sh", "bash", "bats"],
         "tree-sitter-bash",
         FULL_CAPABILITIES,
         parser_bash,

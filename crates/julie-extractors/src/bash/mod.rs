@@ -12,6 +12,7 @@
 //! Special focus on cross-language tracing since Bash scripts often orchestrate
 //! other programs (Python, Node.js, Go binaries, Docker containers, etc.).
 
+mod arithmetic;
 mod commands;
 mod functions;
 mod helpers;
@@ -30,6 +31,7 @@ use tree_sitter::Tree;
 
 pub struct BashExtractor {
     pub(super) base: BaseExtractor,
+    associative_arrays: std::collections::HashSet<String>,
 }
 
 impl BashExtractor {
@@ -41,6 +43,7 @@ impl BashExtractor {
     ) -> Self {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
+            associative_arrays: std::collections::HashSet::new(),
         }
     }
 
@@ -63,8 +66,12 @@ impl BashExtractor {
                 interpreter.rsplit('/').next().unwrap_or(interpreter)
             };
             let root = tree.root_node();
+            let shebang = root
+                .child(0)
+                .filter(|node| node.kind() == "comment" && node.start_byte() == 0)
+                .unwrap_or(root);
             let symbol = self.base.create_symbol(
-                &root,
+                &shebang,
                 name.to_string(),
                 SymbolKind::Variable,
                 crate::base::SymbolOptions {
@@ -101,13 +108,7 @@ impl BashExtractor {
 
             symbols.extend(declaration_symbols);
 
-            let Some(child_depth) = child_tree_depth(depth) else {
-                return;
-            };
-            let mut cursor = node.walk();
-            for child in node.children(&mut cursor) {
-                self.walk_tree_for_symbols(child, symbols, current_parent_id.clone(), child_depth);
-            }
+            self.walk_symbol_children(node, symbols, current_parent_id, depth);
             return;
         }
 
@@ -126,13 +127,47 @@ impl BashExtractor {
             current_parent_id = Some(sym.id.clone());
         }
 
-        // Recursively process child nodes
+        self.walk_symbol_children(node, symbols, current_parent_id, depth);
+    }
+
+    /// Walk `node`'s children. A bats or ShellSpec block opener becomes a test
+    /// symbol spanning to its closing `}` or `End`, and the siblings in between
+    /// take it as their parent.
+    fn walk_symbol_children(
+        &mut self,
+        node: tree_sitter::Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<String>,
+        depth: u32,
+    ) {
         let Some(child_depth) = child_tree_depth(depth) else {
             return;
         };
         let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            self.walk_tree_for_symbols(child, symbols, current_parent_id.clone(), child_depth);
+        let children: Vec<tree_sitter::Node> = node.children(&mut cursor).collect();
+        let mut open_blocks: Vec<(String, usize)> = Vec::new();
+        for (index, child) in children.iter().enumerate() {
+            while open_blocks.last().is_some_and(|(_, end)| *end < index) {
+                open_blocks.pop();
+            }
+            let child_parent = open_blocks
+                .last()
+                .map(|(id, _)| id.clone())
+                .or_else(|| parent_id.clone());
+            if let Some(end) = test_calls::block_end(&self.base, &children, index)
+                && let Some(block) = test_calls::extract_bash_test_block(
+                    &mut self.base,
+                    &children,
+                    index,
+                    end,
+                    child_parent.as_deref(),
+                )
+            {
+                open_blocks.push((block.id.clone(), end));
+                symbols.push(block);
+                continue;
+            }
+            self.walk_tree_for_symbols(*child, symbols, child_parent, child_depth);
         }
     }
 
@@ -220,6 +255,7 @@ impl BashExtractor {
 
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
         let containing_symbols = self.base.containing_symbol_index(symbols);
+        self.associative_arrays = arithmetic::associative_array_names(&self.base, tree.root_node());
         self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, 0);
         self.base.identifiers.clone()
     }
@@ -259,6 +295,20 @@ impl BashExtractor {
             "command" => {
                 if let Some(command_name_node) = self.find_command_name_node(node) {
                     let name = self.base.get_node_text(&command_name_node);
+                    if matches!(name.as_str(), "}" | "End") {
+                        return;
+                    }
+                    if let Some(callee) = test_calls::wrapped_callee(&self.base, node) {
+                        let containing_symbol_id =
+                            self.find_containing_symbol_id(node, containing_symbols);
+                        let callee_name = self.base.get_node_text(&callee);
+                        self.base.create_identifier(
+                            &callee,
+                            callee_name,
+                            crate::base::IdentifierKind::Call,
+                            containing_symbol_id,
+                        );
+                    }
                     let containing_symbol_id =
                         self.find_containing_symbol_id(node, containing_symbols);
                     self.base.create_identifier(
@@ -318,6 +368,18 @@ impl BashExtractor {
                         break;
                     }
                 }
+            }
+            "variable_name" | "word"
+                if arithmetic::is_arithmetic_read(&self.base, node, &self.associative_arrays) =>
+            {
+                let containing_symbol_id = self.find_containing_symbol_id(node, containing_symbols);
+                let name = self.base.get_node_text(&node);
+                self.base.create_identifier(
+                    &node,
+                    name,
+                    crate::base::IdentifierKind::VariableRef,
+                    containing_symbol_id,
+                );
             }
             _ => {}
         }

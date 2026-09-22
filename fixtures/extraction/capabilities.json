@@ -5301,7 +5301,8 @@
       "parser_crate": "tree-sitter-bash",
       "extensions": [
         "sh",
-        "bash"
+        "bash",
+        "bats"
       ],
       "dependency_status": "current",
       "capabilities": {
@@ -5326,6 +5327,16 @@
           "name": "test_roles",
           "source": "fixtures/extraction/bash/test_roles/test_source.sh",
           "expected": "fixtures/extraction/bash/test_roles/expected.json"
+        },
+        {
+          "name": "bats",
+          "source": "fixtures/extraction/bash/bats/test_source.bats",
+          "expected": "fixtures/extraction/bash/bats/expected.json"
+        },
+        {
+          "name": "scripts",
+          "source": "fixtures/extraction/bash/scripts/source.sh",
+          "expected": "fixtures/extraction/bash/scripts/expected.json"
         }
       ],
       "target_capabilities": {

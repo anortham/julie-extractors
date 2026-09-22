@@ -21,17 +21,27 @@ impl super::BashExtractor {
         let Some(command_name_node) = self.find_command_name_node(node) else {
             return;
         };
-        let command_name = self.base.get_node_text(&command_name_node);
-        let command_text = self.base.get_node_text(&node);
         let Some(caller_symbol) = function_symbols
             .find(node)
             .filter(|symbol| symbol.kind == SymbolKind::Function)
+            .filter(|symbol| symbol.start_byte != node.start_byte() as u32)
         else {
             return;
         };
+        let (command_name_node, command_name) =
+            match super::test_calls::wrapped_callee(&self.base, node) {
+                Some(callee) => (callee, self.base.get_node_text(&callee)),
+                None => (
+                    command_name_node,
+                    self.base.get_node_text(&command_name_node),
+                ),
+            };
+        if super::test_calls::DSL_KEYWORDS.contains(&command_name.as_str()) {
+            return;
+        }
 
         if is_import_command(&command_name) {
-            if let Some(target) = extract_source_target(&command_name, &command_text) {
+            if let Some(target) = extract_source_target(&self.base, &command_name, node) {
                 let pending = self.base.create_pending_relationship(
                     caller_symbol.id.clone(),
                     target,

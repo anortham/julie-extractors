@@ -38,7 +38,8 @@
 //! `classify_symbols_by_role` name-heuristic pass and do not need separate
 //! materialization here. The lifecycle slice is therefore empty.
 
-use crate::base::{BaseExtractor, Symbol};
+use crate::base::body::body_hash;
+use crate::base::{BaseExtractor, NormalizedSpan, Symbol, SymbolOptions};
 use crate::test_calls::{
     TestCallCategory, TestCallVocab, build_test_call_symbol, classify_call_exact,
 };
@@ -98,4 +99,195 @@ pub(super) fn extract_bash_test_call(
         category,
         parent_id,
     ))
+}
+
+/// ShellSpec keywords that open a block closed by `End`.
+const SHELLSPEC_BLOCK_OPENERS: &[&str] = &[
+    "Describe",
+    "Context",
+    "ExampleGroup",
+    "It",
+    "Specify",
+    "Example",
+    "Feature",
+    "Scenario",
+    "fDescribe",
+    "fContext",
+    "fExampleGroup",
+    "fIt",
+    "fSpecify",
+    "fExample",
+    "xDescribe",
+    "xContext",
+    "xExampleGroup",
+    "xIt",
+    "xSpecify",
+    "xExample",
+    "Parameters",
+    "Mock",
+];
+
+/// bats and ShellSpec words that structure a test rather than call project code.
+pub(super) const DSL_KEYWORDS: &[&str] = &[
+    "}",
+    "End",
+    "When",
+    "The",
+    "Assert",
+    "Skip",
+    "Pending",
+    "Todo",
+    "Include",
+    "Before",
+    "After",
+    "BeforeEach",
+    "AfterEach",
+    "BeforeAll",
+    "AfterAll",
+    "BeforeCall",
+    "AfterCall",
+    "BeforeRun",
+    "AfterRun",
+    "Data",
+    "Parameters",
+    "Mock",
+    "Path",
+    "File",
+    "Dir",
+    "Set",
+    "Dump",
+    "Intercept",
+];
+
+fn command_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    (node.kind() == "command")
+        .then(|| node.child_by_field_name("name"))
+        .flatten()
+        .map(|name| base.get_node_text(&name))
+}
+
+fn has_arguments(node: Node) -> bool {
+    let mut cursor = node.walk();
+    node.children_by_field_name("argument", &mut cursor)
+        .next()
+        .is_some()
+}
+
+/// The sibling index of the command that closes the DSL block opened at `index`:
+/// the `}` of a bats `@test "name" {`, or the matching ShellSpec `End`.
+pub(super) fn block_end(base: &BaseExtractor, siblings: &[Node], index: usize) -> Option<usize> {
+    let header = siblings[index];
+    let name = command_name(base, header)?;
+    if name == "@test" {
+        let mut cursor = header.walk();
+        let opens_brace = header
+            .children_by_field_name("argument", &mut cursor)
+            .last()
+            .is_some_and(|last| base.get_node_text(&last) == "{");
+        if !opens_brace {
+            return None;
+        }
+        return (index + 1..siblings.len())
+            .find(|&candidate| command_name(base, siblings[candidate]).as_deref() == Some("}"));
+    }
+    if !SHELLSPEC_BLOCK_OPENERS.contains(&name.as_str()) {
+        return None;
+    }
+    let mut depth = 0usize;
+    for (candidate, sibling) in siblings.iter().enumerate().skip(index + 1) {
+        match command_name(base, *sibling).as_deref() {
+            Some("End") if !has_arguments(*sibling) => {
+                if depth == 0 {
+                    return Some(candidate);
+                }
+                depth -= 1;
+            }
+            Some(opener) if SHELLSPEC_BLOCK_OPENERS.contains(&opener) => depth += 1,
+            _ => {}
+        }
+    }
+    None
+}
+
+/// A bats/ShellSpec test symbol that spans its header through the closing
+/// `}` or `End`, with the block contents as its body.
+pub(super) fn extract_bash_test_block(
+    base: &mut BaseExtractor,
+    siblings: &[Node],
+    index: usize,
+    end: usize,
+    parent_id: Option<&str>,
+) -> Option<Symbol> {
+    let header = siblings[index];
+    let closer = siblings[end];
+    let header_symbol = extract_bash_test_call(base, header, parent_id)?;
+    let body_start = if command_name(base, header).as_deref() == Some("@test") {
+        let mut cursor = header.walk();
+        header
+            .children_by_field_name("argument", &mut cursor)
+            .last()?
+    } else {
+        siblings[index + 1]
+    };
+    let span = span_between(&header, &closer);
+    let mut symbol = base.create_symbol_from_span(
+        &header,
+        span,
+        header_symbol.name,
+        header_symbol.kind,
+        SymbolOptions {
+            signature: header_symbol.signature,
+            visibility: header_symbol.visibility,
+            parent_id: header_symbol.parent_id,
+            metadata: header_symbol.metadata,
+            doc_comment: header_symbol.doc_comment,
+            annotations: header_symbol.annotations,
+        },
+    );
+    let body = span_between(&body_start, &closer);
+    symbol.body_span = Some(body);
+    symbol.body_hash = body_hash(&base.content, body, &base.language);
+    Some(symbol)
+}
+
+fn span_between(start: &Node, end: &Node) -> NormalizedSpan {
+    let end_span = NormalizedSpan::from_node(end);
+    NormalizedSpan {
+        end_line: end_span.end_line,
+        end_column: end_span.end_column,
+        end_byte: end_span.end_byte,
+        ..NormalizedSpan::from_node(start)
+    }
+}
+
+/// The command a test wrapper runs: `X` in bats `run X` and ShellSpec
+/// `When call X` / `When run [command|script|source] X`.
+pub(super) fn wrapped_callee<'a>(base: &BaseExtractor, command: Node<'a>) -> Option<Node<'a>> {
+    let name = command_name(base, command)?;
+    let mut cursor = command.walk();
+    let mut arguments = command
+        .children_by_field_name("argument", &mut cursor)
+        .collect::<Vec<_>>()
+        .into_iter()
+        .skip_while(|argument| base.get_node_text(argument).starts_with('-'));
+    match name.as_str() {
+        "run" => arguments.next(),
+        "When" => {
+            let mode = arguments.next()?;
+            if !matches!(base.get_node_text(&mode).as_str(), "call" | "run") {
+                return None;
+            }
+            let target = arguments.next()?;
+            if matches!(
+                base.get_node_text(&target).as_str(),
+                "command" | "script" | "source"
+            ) {
+                arguments.next()
+            } else {
+                Some(target)
+            }
+        }
+        _ => None,
+    }
+    .filter(|target| target.kind() == "word")
 }

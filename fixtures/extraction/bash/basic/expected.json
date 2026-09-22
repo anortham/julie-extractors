@@ -142,7 +142,7 @@
       "end_byte": 414,
       "body_span": null,
       "body_hash": null,
-      "signature": "export APP_ENV",
+      "signature": "export APP_ENV=\"production\"",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
@@ -190,7 +190,7 @@
       "end_byte": 429,
       "body_span": null,
       "body_hash": null,
-      "signature": "readonly MAX",
+      "signature": "readonly MAX=3",
       "doc_comment": null,
       "visibility": "Private",
       "parent_key": null,
@@ -208,19 +208,12 @@
       "file_path": "fixtures/extraction/bash/basic/source.sh",
       "start_line": 1,
       "start_column": 0,
-      "end_line": 28,
-      "end_column": 0,
+      "end_line": 1,
+      "end_column": 19,
       "start_byte": 0,
-      "end_byte": 430,
-      "body_span": {
-        "start_line": 3,
-        "start_column": 9,
-        "end_line": 24,
-        "end_column": 1,
-        "start_byte": 30,
-        "end_byte": 385
-      },
-      "body_hash": "0cacac4309269bc3b19a07bcda0c85d8",
+      "end_byte": 19,
+      "body_span": null,
+      "body_hash": null,
       "signature": "#!/usr/bin/env bash",
       "doc_comment": null,
       "visibility": null,
@@ -269,7 +262,7 @@
       "end_byte": 147,
       "body_span": null,
       "body_hash": null,
-      "signature": "local count",
+      "signature": "local count=$1",
       "doc_comment": null,
       "visibility": "Private",
       "parent_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0",
@@ -317,7 +310,7 @@
       "end_byte": 168,
       "body_span": null,
       "body_hash": null,
-      "signature": "local enabled",
+      "signature": "local enabled=$2",
       "doc_comment": null,
       "visibility": "Private",
       "parent_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0",
@@ -434,7 +427,7 @@
       "end_byte": 186,
       "body_span": null,
       "body_hash": null,
-      "signature": "local total",
+      "signature": "local total=0",
       "doc_comment": null,
       "visibility": "Private",
       "parent_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0",
@@ -537,7 +530,7 @@
       "end_byte": 52,
       "body_span": null,
       "body_hash": null,
-      "signature": "local value",
+      "signature": "local value=\"$1\"",
       "doc_comment": null,
       "visibility": "Private",
       "parent_key": "fixtures/extraction/bash/basic/source.sh:helper:3:0",
@@ -728,6 +721,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/bash/basic/source.sh:i:variable_ref:18:29",
+      "name": "i",
+      "kind": "variable_ref",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "start_line": 18,
+      "start_column": 29,
+      "end_line": 18,
+      "end_column": 30,
+      "start_byte": 292,
+      "end_byte": 293,
+      "containing_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/bash/basic/source.sh:seq:call:17:19",
       "name": "seq",
       "kind": "call",
@@ -739,6 +748,22 @@
       "end_column": 22,
       "start_byte": 243,
       "end_byte": 246,
+      "containing_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/bash/basic/source.sh:total:variable_ref:18:21",
+      "name": "total",
+      "kind": "variable_ref",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "start_line": 18,
+      "start_column": 21,
+      "end_line": 18,
+      "end_column": 26,
+      "start_byte": 284,
+      "end_byte": 289,
       "containing_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0",
       "target_key": null,
       "confidence": "1.000"
@@ -758,11 +783,27 @@
       "containing_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/bash/basic/source.sh:value:variable_ref:5:13",
+      "name": "value",
+      "kind": "variable_ref",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "start_line": 5,
+      "start_column": 13,
+      "end_line": 5,
+      "end_column": 18,
+      "start_byte": 66,
+      "end_byte": 71,
+      "containing_key": "fixtures/extraction/bash/basic/source.sh:helper:3:0",
+      "target_key": null,
+      "confidence": "1.000"
     }
   ],
   "types": [
     {
-      "symbol_key": "unresolved:$1",
+      "symbol_key": "fixtures/extraction/bash/basic/source.sh:$1:13:16",
       "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
@@ -771,7 +812,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "unresolved:$2",
+      "symbol_key": "fixtures/extraction/bash/basic/source.sh:$1:4:17",
       "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
@@ -780,7 +821,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "unresolved:APP_ENV",
+      "symbol_key": "fixtures/extraction/bash/basic/source.sh:$1:9:12",
       "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
@@ -789,7 +830,25 @@
       "metadata": null
     },
     {
-      "symbol_key": "unresolved:MAX",
+      "symbol_key": "fixtures/extraction/bash/basic/source.sh:$2:14:18",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "bash",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/bash/basic/source.sh:APP_ENV:26:7",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "bash",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/bash/basic/source.sh:MAX:27:9",
       "resolved_type": "integer",
       "generic_params": null,
       "constraints": null,
@@ -798,7 +857,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "unresolved:bash",
+      "symbol_key": "fixtures/extraction/bash/basic/source.sh:bash:1:0",
       "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
@@ -807,7 +866,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "unresolved:count",
+      "symbol_key": "fixtures/extraction/bash/basic/source.sh:count:13:10",
       "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
@@ -816,7 +875,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "unresolved:enabled",
+      "symbol_key": "fixtures/extraction/bash/basic/source.sh:enabled:14:10",
       "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
@@ -825,7 +884,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "unresolved:total",
+      "symbol_key": "fixtures/extraction/bash/basic/source.sh:total:15:10",
       "resolved_type": "integer",
       "generic_params": null,
       "constraints": null,
@@ -834,7 +893,25 @@
       "metadata": null
     },
     {
-      "symbol_key": "unresolved:value",
+      "symbol_key": "fixtures/extraction/bash/basic/source.sh:total:18:12",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "bash",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/bash/basic/source.sh:total:21:8",
+      "resolved_type": "integer",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "bash",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/bash/basic/source.sh:value:4:10",
       "resolved_type": "string",
       "generic_params": null,
       "constraints": null,

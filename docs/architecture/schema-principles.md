@@ -47,8 +47,9 @@ mapping. `language_capabilities.extensions_json` publishes the complete
 language-to-extension map for the writing binary, so a consumer can build a
 grouping without hard-coding one. Where a consumer's own extension map
 disagrees with the artifact, the artifact value wins: `qmldir` is matched by
-filename and `.h` resolves to `c` or `cpp` by content, so no extension map can
-reproduce every answer.
+filename, an extensionless shell script is matched by its shebang, and `.h`
+resolves to `c` or `cpp` by content, so no extension map can reproduce every
+answer.
 
 Adding a `LanguageSpec` is a contract-visible change even when it changes no
 DDL. See
