@@ -47,8 +47,8 @@ fn test_regex_constructs_have_distinct_symbol_kinds() {
         .filter(|s| symbol_type(s) == Some("group"))
         .collect();
     assert_eq!(captures.len(), 2, "Expected exactly 2 capture groups");
-    assert_eq!(captures[0].name, "(?<capture>[A-Z]+)");
-    assert_eq!(captures[1].name, "(?<tail>[^x]+)");
+    assert_eq!(captures[0].name, "capture");
+    assert_eq!(captures[1].name, "tail");
     assert!(captures.iter().all(|s| s.kind == SymbolKind::Function));
     assert!(
         captures

@@ -513,7 +513,7 @@ Item {
     }
 
     #[test]
-    fn test_ambiguous_duplicate_function_names_do_not_create_resolved_calls() {
+    fn test_duplicate_function_names_resolve_to_the_callers_object_scope() {
         let qml_code = r#"
 import QtQuick 2.15
 
@@ -547,28 +547,28 @@ Item {
             .find(|s| s.name == "caller" && s.kind == SymbolKind::Function)
             .expect("Should find caller function");
 
+        let root_duplicate = symbols
+            .iter()
+            .find(|s| s.name == "duplicate" && s.start_line == 5)
+            .expect("Should find the root duplicate function");
+
         let resolved_calls_from_caller: Vec<&Relationship> = relationships
             .iter()
             .filter(|r| r.kind == RelationshipKind::Calls && r.from_symbol_id == caller.id)
             .collect();
 
-        assert!(
-            resolved_calls_from_caller.is_empty(),
-            "Ambiguous duplicate targets should not produce resolved call edges, found: {:?}",
+        assert_eq!(
             resolved_calls_from_caller
                 .iter()
-                .map(|r| &r.to_symbol_id)
-                .collect::<Vec<_>>()
+                .map(|r| r.to_symbol_id.as_str())
+                .collect::<Vec<_>>(),
+            [root_duplicate.id.as_str()]
         );
-
-        let pending = extractor.get_structured_pending_relationships();
         assert!(
-            pending.iter().any(|p| {
-                p.pending.kind == RelationshipKind::Calls
-                    && p.pending.from_symbol_id == caller.id
-                    && p.target.terminal_name == "duplicate"
-            }),
-            "Ambiguous duplicate call should be recorded as a pending relationship"
+            !extractor
+                .get_structured_pending_relationships()
+                .iter()
+                .any(|p| p.target.terminal_name == "duplicate")
         );
     }
 

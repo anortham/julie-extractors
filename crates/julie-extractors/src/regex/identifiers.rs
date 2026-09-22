@@ -1,23 +1,20 @@
-use crate::base::{BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol};
+use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
 use super::flags;
-use super::groups;
+use super::{groups, helpers};
 
 /// Extract all identifier usages (backreferences and named groups)
 /// Following the Rust extractor reference implementation pattern
 pub(super) fn extract_identifiers(
     base: &mut BaseExtractor,
-    tree: &tree_sitter::Tree,
+    pattern_trees: &[tree_sitter::Tree],
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    let containing_symbols = base.containing_symbol_index(symbols);
-
-    // Walk the tree and extract identifiers
-    walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
-
-    // Return the collected identifiers
+    for tree in pattern_trees {
+        walk_tree_for_identifiers(base, tree.root_node(), symbols, 0);
+    }
     base.identifiers.clone()
 }
 
@@ -25,7 +22,7 @@ pub(super) fn extract_identifiers(
 fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &[Symbol],
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -49,7 +46,7 @@ fn walk_tree_for_identifiers(
 fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &[Symbol],
 ) {
     match node.kind() {
         // Backreferences: tree-sitter-regex uses "backreference_escape" for \k
@@ -101,14 +98,12 @@ fn extract_identifier_from_node(
 
         // Named groups: (?<name>...) (these are "member access" in regex context)
         "named_capturing_group" => {
-            let group_text = base.get_node_text(&node);
-
-            // Extract the group name using the flags module
-            if let Some(group_name) = groups::extract_group_name(&group_text) {
+            if let Some(name_node) = groups::group_name_node(node) {
+                let group_name = base.get_node_text(&name_node);
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                 base.create_identifier(
-                    &node,
+                    &name_node,
                     group_name,
                     IdentifierKind::MemberAccess,
                     containing_symbol_id,
@@ -123,9 +118,6 @@ fn extract_identifier_from_node(
 }
 
 /// Find the ID of the symbol that contains this node
-fn find_containing_symbol_id(
-    node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
-) -> Option<String> {
-    containing_symbols.find(node).map(|s| s.id.clone())
+fn find_containing_symbol_id(node: Node, containing_symbols: &[Symbol]) -> Option<String> {
+    helpers::innermost_symbol(containing_symbols, node).map(|s| s.id.clone())
 }

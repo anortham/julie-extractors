@@ -27,12 +27,14 @@ struct MetricScopeInput {
 
 pub fn collect_complexity_metrics(
     tree: &Tree,
+    content: &str,
     file_path: &str,
     symbols: &[Symbol],
 ) -> Vec<ComplexityMetric> {
     let mut metrics = Vec::new();
-    let root = tree.root_node();
-    let file_span = NormalizedSpan::from_node(&root);
+    let file_span = NormalizedSpan::from_node(&tree.root_node());
+    let pattern_trees = super::pattern_trees(content);
+    let roots: Vec<Node<'_>> = pattern_trees.iter().map(Tree::root_node).collect();
     metrics.push(metric_for_scope(
         file_path,
         MetricScopeInput {
@@ -40,7 +42,7 @@ pub fn collect_complexity_metrics(
             symbol_id: None,
             span: file_span,
         },
-        &root,
+        &roots,
     ));
 
     for symbol in symbols.iter().filter(|symbol| is_callable(&symbol.kind)) {
@@ -52,7 +54,7 @@ pub fn collect_complexity_metrics(
                 symbol_id: Some(symbol.id.clone()),
                 span,
             },
-            &root,
+            &roots,
         ));
     }
 
@@ -67,9 +69,15 @@ pub fn collect_complexity_metrics(
     metrics
 }
 
-fn metric_for_scope(file_path: &str, input: MetricScopeInput, root: &Node<'_>) -> ComplexityMetric {
+fn metric_for_scope(
+    file_path: &str,
+    input: MetricScopeInput,
+    roots: &[Node<'_>],
+) -> ComplexityMetric {
     let mut stats = RegexComplexityStats::default();
-    collect_stats(*root, input.span, 0, 0, &mut stats);
+    for root in roots {
+        collect_stats(*root, input.span, 0, 0, &mut stats);
+    }
     let identity = input.symbol_id.as_deref().unwrap_or("file");
     let metadata = HashMap::from([
         (
@@ -183,7 +191,7 @@ fn collect_stats(
 fn is_callable(kind: &SymbolKind) -> bool {
     matches!(
         kind,
-        SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
+        SymbolKind::Variable | SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
     )
 }
 

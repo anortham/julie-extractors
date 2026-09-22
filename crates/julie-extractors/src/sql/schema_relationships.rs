@@ -1,8 +1,6 @@
 //! Relationships for SQL schema objects such as views and triggers.
 
 use crate::base::{BaseExtractor, Relationship, RelationshipKind, Symbol, SymbolKind};
-use crate::sql::helpers::normalize_sql_identifier;
-use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use regex::Regex;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -29,77 +27,6 @@ static CREATE_TRIGGER_TARGET_RE: LazyLock<Regex> = LazyLock::new(|| {
     )
     .unwrap()
 });
-
-pub(super) fn extract_view_source_relationships(
-    base: &mut BaseExtractor,
-    node: Node,
-    symbols: &[Symbol],
-    relationships: &mut Vec<Relationship>,
-) {
-    let Some(view_symbol) = symbol_for_sql_object(symbols, node, SymbolKind::Interface, "isView")
-    else {
-        return;
-    };
-    let Some(query_node) = first_child_by_kind(node, "create_query") else {
-        return;
-    };
-
-    let mut relation_nodes = Vec::new();
-    collect_relation_nodes(query_node, &mut relation_nodes);
-
-    for relation_node in relation_nodes {
-        let Some((table_symbol, table_name)) =
-            table_symbol_from_relation(base, relation_node, symbols)
-        else {
-            continue;
-        };
-
-        push_table_relationship(
-            base,
-            relationships,
-            view_symbol,
-            table_symbol,
-            relation_node,
-            "view_source",
-            &table_name,
-        );
-    }
-}
-
-pub(super) fn extract_trigger_target_relationship(
-    base: &mut BaseExtractor,
-    node: Node,
-    symbols: &[Symbol],
-    relationships: &mut Vec<Relationship>,
-) {
-    let Some(trigger_symbol) =
-        symbol_for_sql_object(symbols, node, SymbolKind::Method, "isTrigger")
-    else {
-        return;
-    };
-    let Some(target_reference) = object_reference_after_keyword(node, "keyword_on") else {
-        return;
-    };
-    let Some(target_table_name) = object_reference_name(base, target_reference) else {
-        return;
-    };
-    let Some(target_symbol) = symbols
-        .iter()
-        .find(|s| s.name == target_table_name && s.kind == SymbolKind::Class)
-    else {
-        return;
-    };
-
-    push_table_relationship(
-        base,
-        relationships,
-        trigger_symbol,
-        target_symbol,
-        target_reference,
-        "trigger_target",
-        &target_table_name,
-    );
-}
 
 pub(super) fn extract_error_relationships(
     base: &mut BaseExtractor,
@@ -174,52 +101,6 @@ pub(super) fn extract_error_relationships(
     }
 }
 
-fn first_child_by_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
-    node.children(&mut node.walk())
-        .find(|&child| child.kind() == kind)
-}
-
-fn table_symbol_from_relation<'a>(
-    base: &BaseExtractor,
-    relation_node: Node,
-    symbols: &'a [Symbol],
-) -> Option<(&'a Symbol, String)> {
-    let object_reference = first_child_by_kind(relation_node, "object_reference")?;
-    let table_name = object_reference_name(base, object_reference)?;
-    let table_symbol = symbols
-        .iter()
-        .find(|s| s.name == table_name && s.kind == SymbolKind::Class)?;
-
-    Some((table_symbol, table_name))
-}
-
-fn object_reference_name(base: &BaseExtractor, object_reference: Node) -> Option<String> {
-    let name_node = object_reference
-        .child_by_field_name("name")
-        .or_else(|| first_child_by_kind(object_reference, "identifier"))?;
-
-    Some(normalize_sql_identifier(&base.get_node_text(&name_node)))
-}
-
-fn symbol_for_sql_object<'a>(
-    symbols: &'a [Symbol],
-    node: Node,
-    kind: SymbolKind,
-    metadata_key: &str,
-) -> Option<&'a Symbol> {
-    symbols.iter().find(|symbol| {
-        symbol.kind == kind
-            && symbol.start_byte == node.start_byte() as u32
-            && symbol.end_byte == node.end_byte() as u32
-            && symbol
-                .metadata
-                .as_ref()
-                .and_then(|metadata| metadata.get(metadata_key))
-                .and_then(Value::as_bool)
-                .unwrap_or(false)
-    })
-}
-
 fn symbol_by_name_and_metadata<'a>(
     symbols: &'a [Symbol],
     name: &str,
@@ -240,66 +121,6 @@ fn symbol_by_name_and_metadata<'a>(
 
 fn unqualified_name(name: &str) -> String {
     name.rsplit('.').next().unwrap_or(name).to_string()
-}
-
-fn object_reference_after_keyword<'a>(node: Node<'a>, keyword_kind: &str) -> Option<Node<'a>> {
-    let mut seen_keyword = false;
-    for child in node.children(&mut node.walk()) {
-        if child.kind() == keyword_kind {
-            seen_keyword = true;
-            continue;
-        }
-        if seen_keyword && child.kind() == "object_reference" {
-            return Some(child);
-        }
-    }
-    None
-}
-
-fn collect_relation_nodes<'a>(node: Node<'a>, relation_nodes: &mut Vec<Node<'a>>) {
-    collect_relation_nodes_at_depth(node, relation_nodes, 0);
-}
-
-fn collect_relation_nodes_at_depth<'a>(
-    node: Node<'a>,
-    relation_nodes: &mut Vec<Node<'a>>,
-    depth: u32,
-) {
-    if !should_visit_tree_depth(depth) {
-        return;
-    }
-
-    if node.kind() == "relation" {
-        relation_nodes.push(node);
-    }
-
-    let Some(child_depth) = child_tree_depth(depth) else {
-        return;
-    };
-    for child in node.children(&mut node.walk()) {
-        collect_relation_nodes_at_depth(child, relation_nodes, child_depth);
-    }
-}
-
-fn push_table_relationship(
-    base: &BaseExtractor,
-    relationships: &mut Vec<Relationship>,
-    source_symbol: &Symbol,
-    target_symbol: &Symbol,
-    relationship_node: Node,
-    relationship_type: &str,
-    target_table_name: &str,
-) {
-    push_table_relationship_at_line(
-        base,
-        relationships,
-        source_symbol,
-        target_symbol,
-        relationship_node.start_position().row as u32 + 1,
-        relationship_node.start_byte(),
-        relationship_type,
-        target_table_name,
-    );
 }
 
 fn push_table_relationship_at_byte(

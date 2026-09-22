@@ -27,3 +27,10 @@ pub(crate) fn extract_group_name(group_text: &str) -> Option<String> {
     }
     None
 }
+
+/// Returns the `group_name` child of a named capturing group.
+pub(crate) fn group_name_node(node: tree_sitter::Node) -> Option<tree_sitter::Node> {
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .find(|child| child.kind() == "group_name")
+}

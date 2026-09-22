@@ -116,7 +116,13 @@ fn direct_bindings(extractor: &QmlExtractor, node: &Node) -> HashMap<String, Val
         let Some(value_node) = child.child_by_field_name("value") else {
             continue;
         };
-        let value_text = extractor.base.get_node_text(&value_node).trim().to_string();
+        let value_text = extractor
+            .base
+            .get_node_text(&value_node)
+            .trim()
+            .trim_end_matches(';')
+            .trim_end()
+            .to_string();
         if value_text.is_empty() {
             continue;
         }

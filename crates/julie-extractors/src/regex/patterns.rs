@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use tree_sitter::Node;
 
 use super::{classes, flags, groups, helpers, signatures};
+use crate::base::body::body_hash;
 
 // NOTE: extract_quantifier, extract_anchor, extract_alternation,
 // extract_predefined_class, extract_backreference, extract_literal,
@@ -26,7 +27,12 @@ pub(super) fn extract_pattern(
 ) -> Option<Symbol> {
     let pattern_text = base.get_node_text(&node);
     let signature = signatures::build_pattern_signature(&pattern_text);
-    let symbol_kind = helpers::determine_pattern_kind(&pattern_text);
+    let name = pattern_text
+        .lines()
+        .map(str::trim)
+        .find(|line| !line.is_empty())
+        .unwrap_or_default()
+        .to_string();
 
     let metadata = create_metadata(&[
         ("type", "regex-pattern"),
@@ -39,10 +45,10 @@ pub(super) fn extract_pattern(
 
     let doc_comment = base.find_doc_comment(&node);
 
-    Some(base.create_symbol(
+    let mut symbol = base.create_symbol(
         &node,
-        pattern_text,
-        symbol_kind,
+        name,
+        SymbolKind::Variable,
         SymbolOptions {
             signature: Some(signature),
             visibility: Some(Visibility::Public),
@@ -51,7 +57,11 @@ pub(super) fn extract_pattern(
             doc_comment,
             annotations: Vec::new(),
         },
-    ))
+    );
+    // A root that is a single construct spans the same text as its child symbol;
+    // the prefix keeps the two ids distinct.
+    symbol.id = base.generate_id_for_node(&format!("pattern:{}", symbol.name), &node);
+    Some(with_node_body(base, symbol, &node))
 }
 
 /// Extract a character class symbol
@@ -74,7 +84,7 @@ pub(super) fn extract_character_class(
 
     let doc_comment = base.find_doc_comment(&node);
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
         class_text,
         SymbolKind::Class,
@@ -86,7 +96,8 @@ pub(super) fn extract_character_class(
             doc_comment,
             annotations: Vec::new(),
         },
-    ))
+    );
+    Some(without_body(symbol))
 }
 
 /// Extract a group symbol
@@ -107,15 +118,16 @@ pub(super) fn extract_group(
         ),
     ]);
 
-    if let Some(name) = groups::extract_group_name(&group_text) {
-        metadata.insert("named".to_string(), Value::String(name));
+    let group_name = groups::group_name_node(node).map(|name| base.get_node_text(&name));
+    if let Some(name) = &group_name {
+        metadata.insert("named".to_string(), Value::String(name.clone()));
     }
 
     let doc_comment = base.find_doc_comment(&node);
 
     let symbol = base.create_symbol(
         &node,
-        group_text.clone(),
+        group_name.unwrap_or_else(|| group_text.clone()),
         SymbolKind::Class,
         SymbolOptions {
             signature: Some(signature),
@@ -129,7 +141,7 @@ pub(super) fn extract_group(
 
     record_group_literal_fragment(base, &node, &group_text, parent_id);
 
-    Some(symbol)
+    Some(with_node_body(base, symbol, &node))
 }
 
 /// Record fixed literal fragments inside capturing groups, e.g. `(foo)`.
@@ -204,12 +216,14 @@ pub(super) fn extract_lookaround_text(
         annotations: Vec::new(),
     };
 
-    Some(match span {
+    let body = span.unwrap_or_else(|| NormalizedSpan::from_node(&node));
+    let symbol = match span {
         Some(span) => {
             base.create_symbol_from_span(&node, span, lookaround_text, SymbolKind::Method, options)
         }
         None => base.create_symbol(&node, lookaround_text, SymbolKind::Method, options),
-    })
+    };
+    Some(with_body(base, symbol, Some(body)))
 }
 
 /// Extract a unicode property symbol
@@ -248,12 +262,13 @@ pub(super) fn extract_unicode_property_text(
         annotations: Vec::new(),
     };
 
-    Some(match span {
+    let symbol = match span {
         Some(span) => {
             base.create_symbol_from_span(&node, span, property_text, SymbolKind::Constant, options)
         }
         None => base.create_symbol(&node, property_text, SymbolKind::Constant, options),
-    })
+    };
+    Some(without_body(symbol))
 }
 
 /// Extract a conditional symbol
@@ -274,7 +289,7 @@ pub(super) fn extract_conditional(
 
     let doc_comment = base.find_doc_comment(&node);
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
         conditional_text,
         SymbolKind::Method,
@@ -286,7 +301,8 @@ pub(super) fn extract_conditional(
             doc_comment,
             annotations: Vec::new(),
         },
-    ))
+    );
+    Some(with_node_body(base, symbol, &node))
 }
 
 // REMOVED (2025-10-31): extract_atomic_group() - Unreachable dead code
@@ -298,3 +314,19 @@ pub(super) fn extract_conditional(
 // Tree-sitter regex parser does NOT generate "comment" nodes for (?# ...) syntax
 // These are parsed as ERROR nodes + individual pattern_character nodes instead
 // See: src/tests/extractors/regex/advanced_features.rs for ERROR node handling tests
+
+fn with_node_body(base: &BaseExtractor, symbol: Symbol, node: &Node) -> Symbol {
+    with_body(base, symbol, Some(NormalizedSpan::from_node(node)))
+}
+
+fn with_body(base: &BaseExtractor, mut symbol: Symbol, body: Option<NormalizedSpan>) -> Symbol {
+    symbol.body_span = body;
+    symbol.body_hash = body.and_then(|span| body_hash(&base.content, span, &base.language));
+    symbol
+}
+
+fn without_body(mut symbol: Symbol) -> Symbol {
+    symbol.body_span = None;
+    symbol.body_hash = None;
+    symbol
+}

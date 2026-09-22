@@ -20,8 +20,12 @@ use tree_sitter::Node;
 
 static ERROR_SCHEMA_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"CREATE\s+SCHEMA\s+([a-zA-Z_][a-zA-Z0-9_]*)").unwrap());
-static ERROR_TRIGGER_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"CREATE\s+TRIGGER\s+([a-zA-Z_][a-zA-Z0-9_]*)").unwrap());
+static ERROR_TRIGGER_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"(?i)\bCREATE\s+(?:OR\s+ALTER\s+)?TRIGGER\s+(?:\[?[A-Za-z_][\w]*\]?\.)?\[?([A-Za-z_][\w]*)\]?",
+    )
+    .unwrap()
+});
 static ERROR_TRIGGER_DETAILS_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r"CREATE\s+TRIGGER\s+[a-zA-Z_][a-zA-Z0-9_]*\s+(BEFORE|AFTER)\s+(INSERT|UPDATE|DELETE)\s+ON\s+([a-zA-Z_][a-zA-Z0-9_]*)",

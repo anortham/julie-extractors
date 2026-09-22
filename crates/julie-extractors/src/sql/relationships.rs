@@ -28,22 +28,6 @@ pub(super) fn extract_relationships_internal(
     }
 
     match node.kind() {
-        "create_view" => {
-            super::schema_relationships::extract_view_source_relationships(
-                base,
-                node,
-                symbols,
-                relationships,
-            );
-        }
-        "create_trigger" => {
-            super::schema_relationships::extract_trigger_target_relationship(
-                base,
-                node,
-                symbols,
-                relationships,
-            );
-        }
         "ERROR" => {
             super::schema_relationships::extract_error_relationships(
                 base,
@@ -75,9 +59,6 @@ pub(super) fn extract_relationships_internal(
         {
             extract_foreign_key_relationship(base, node, symbols, relationships);
         }
-        // Plain SELECT/FROM table references are not emitted as top-level edges.
-        // CREATE VIEW handles its own FROM dependencies at the view symbol boundary.
-        "select_statement" | "from_clause" => {}
         "join" | "join_clause" => {
             extract_join_relationships(base, node, symbols, relationships);
         }
@@ -107,7 +88,7 @@ pub(super) fn extract_foreign_key_relationship(
 
     let object_ref_node = base.find_child_by_type(&node, "object_reference");
     let (referenced_table, referenced_table_parts) = if let Some(obj_ref) = object_ref_node {
-        let parts = object_reference_parts(base, obj_ref);
+        let parts = super::references::object_reference_parts(base, obj_ref);
         let Some(name) = parts.last().cloned() else {
             return;
         };
@@ -124,10 +105,9 @@ pub(super) fn extract_foreign_key_relationship(
     };
     let referenced_table_qualified = referenced_table_parts.join(".");
 
-    // Find the source table (parent of this foreign key)
     let mut current_node = node.parent();
     while let Some(current) = current_node {
-        if current.kind() == "create_table" {
+        if matches!(current.kind(), "create_table" | "alter_table") {
             break;
         }
         current_node = current.parent();
@@ -139,11 +119,8 @@ pub(super) fn extract_foreign_key_relationship(
     };
 
     let source_object_ref_node = base.find_child_by_type(&current_node, "object_reference");
-    let source_table = if let Some(obj_ref) = source_object_ref_node {
-        let Some(name) = object_reference_name(base, obj_ref) else {
-            return;
-        };
-        name
+    let source_parts = if let Some(obj_ref) = source_object_ref_node {
+        super::references::object_reference_parts(base, obj_ref)
     } else {
         let Some(name_node) = base
             .find_child_by_type(&current_node, "identifier")
@@ -151,16 +128,16 @@ pub(super) fn extract_foreign_key_relationship(
         else {
             return;
         };
-        normalize_sql_identifier(&base.get_node_text(&name_node))
+        vec![normalize_sql_identifier(&base.get_node_text(&name_node))]
+    };
+    let Some(source_table) = source_parts.last().cloned() else {
+        return;
     };
 
-    // Find corresponding symbols
-    let source_symbol = symbols
-        .iter()
-        .find(|s| s.name == source_table && s.kind == SymbolKind::Class);
-    let target_symbol = symbols
-        .iter()
-        .find(|s| s.name == referenced_table && s.kind == SymbolKind::Class);
+    let is_table = |symbol: &Symbol| symbol.kind == SymbolKind::Class;
+    let source_symbol = super::references::find_declared_object(symbols, &source_parts, is_table);
+    let target_symbol =
+        super::references::find_declared_object(symbols, &referenced_table_parts, is_table);
 
     let line_number = node.start_position().row as u32 + 1;
 
@@ -261,21 +238,7 @@ fn table_symbol_from_relation<'a>(
 }
 
 fn object_reference_name(base: &BaseExtractor, object_reference: Node) -> Option<String> {
-    object_reference_parts(base, object_reference).pop()
-}
-
-fn object_reference_parts(base: &BaseExtractor, object_reference: Node) -> Vec<String> {
-    let mut parts = ["database", "schema", "name"]
-        .into_iter()
-        .filter_map(|field| object_reference.child_by_field_name(field))
-        .map(|node| normalize_sql_identifier(&base.get_node_text(&node)))
-        .collect::<Vec<_>>();
-    if parts.is_empty()
-        && let Some(identifier) = first_child_by_kind(object_reference, "identifier")
-    {
-        parts.push(normalize_sql_identifier(&base.get_node_text(&identifier)));
-    }
-    parts
+    super::references::object_reference_parts(base, object_reference).pop()
 }
 
 fn enclosing_from_node(mut node: Node) -> Option<Node> {

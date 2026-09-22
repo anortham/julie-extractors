@@ -28,17 +28,14 @@ pub(super) fn extract_relationships(
         .filter(|symbol| symbol.kind == SymbolKind::Class)
         .map(|symbol| (symbol.start_byte, symbol))
         .collect::<HashMap<_, _>>();
-    let object_owners = symbols
-        .iter()
-        .filter(|symbol| matches!(symbol.kind, SymbolKind::Class | SymbolKind::Field))
-        .map(|symbol| (symbol.start_byte, symbol))
-        .collect::<HashMap<_, _>>();
+    let object_owners = object_owner_map(symbols);
     extract_call_relationships(
         extractor,
         tree.root_node(),
         symbols,
         &symbol_map,
         &class_symbols,
+        &object_owners,
         &mut relationships,
         0,
     );
@@ -95,12 +92,14 @@ fn enclosing_object_owner<'a>(
 }
 
 /// Extract function call relationships
+#[allow(clippy::too_many_arguments)]
 fn extract_call_relationships(
     extractor: &QmlExtractor,
     node: Node,
     symbols: &[Symbol],
     symbol_map: &HashMap<String, &Symbol>,
     class_symbols: &ContainingSymbolIndex<'_>,
+    object_owners: &HashMap<u32, &Symbol>,
     relationships: &mut Vec<Relationship>,
     depth: u32,
 ) {
@@ -130,17 +129,18 @@ fn extract_call_relationships(
             _ => (extractor.base.get_node_text(&function_node), None),
         };
 
-        // Find the containing function (caller)
         if let Some(caller_symbol) = find_containing_function(node, symbols, class_symbols)
-            && let Some(called_symbol) = symbol_map
-                .get(function_name.as_str())
-                .filter(|s| s.kind == SymbolKind::Function || s.kind == SymbolKind::Event)
-            && receiver_can_resolve_locally(
-                receiver.as_deref(),
-                called_symbol,
+            && let Some(called_symbol) = resolve_local_callee(
+                &LocalCall {
+                    node,
+                    function_name: &function_name,
+                    receiver: receiver.as_deref(),
+                    caller: caller_symbol,
+                },
                 symbols,
-                find_containing_component(node, class_symbols),
-                caller_symbol,
+                symbol_map,
+                class_symbols,
+                object_owners,
             )
         {
             let relationship = Relationship {
@@ -176,47 +176,87 @@ fn extract_call_relationships(
             symbols,
             symbol_map,
             class_symbols,
+            object_owners,
             relationships,
             child_depth,
         );
     }
 }
 
-/// A receiver resolves when its id and target are visible from the caller's
-/// component scope and no JavaScript local shadows the id.
-pub(super) fn receiver_can_resolve_locally(
-    receiver: Option<&str>,
-    called_symbol: &Symbol,
-    symbols: &[Symbol],
-    caller_component: Option<&Symbol>,
-    caller_symbol: &Symbol,
-) -> bool {
-    let Some(component) = caller_component else {
-        return false;
-    };
-    if !symbol_is_visible_from_component(called_symbol, component, symbols) {
-        return false;
-    }
-    let Some(receiver) = receiver else {
-        return true;
-    };
-    if symbols.iter().any(|symbol| {
-        symbol.kind == SymbolKind::Variable
-            && symbol.name == receiver
-            && symbol.parent_id.as_deref() == Some(caller_symbol.id.as_str())
-    }) {
-        return false;
-    }
-
+/// Rows that own the members declared inside a QML object, keyed by the
+/// object's start byte.
+pub(super) fn object_owner_map(symbols: &[Symbol]) -> HashMap<u32, &Symbol> {
     symbols
         .iter()
-        .filter(|symbol| declares_id(symbol, receiver))
-        .any(|symbol| {
-            let scope = id_member_scope(symbol);
-            scope.is_some()
-                && scope == called_symbol.parent_id.as_deref()
-                && symbol_is_visible_from_component(symbol, component, symbols)
-        })
+        .filter(|symbol| matches!(symbol.kind, SymbolKind::Class | SymbolKind::Field))
+        .map(|symbol| (symbol.start_byte, symbol))
+        .collect()
+}
+
+pub(super) struct LocalCall<'n, 's> {
+    pub(super) node: Node<'n>,
+    pub(super) function_name: &'s str,
+    pub(super) receiver: Option<&'s str>,
+    pub(super) caller: &'s Symbol,
+}
+
+/// The same-file function or signal a call names, resolved by QML scope.
+///
+/// An id receiver (`root.refresh()`) names the object that declares the
+/// member. A bare call looks in the enclosing objects from the nearest
+/// outward, so a same-named function in an unrelated object does not block
+/// resolution. A bare name no object scope declares falls back to the one
+/// visible same-file symbol of that name.
+pub(super) fn resolve_local_callee<'a>(
+    call: &LocalCall<'_, '_>,
+    symbols: &'a [Symbol],
+    symbol_map: &HashMap<String, &'a Symbol>,
+    class_symbols: &ContainingSymbolIndex<'a>,
+    object_owners: &HashMap<u32, &'a Symbol>,
+) -> Option<&'a Symbol> {
+    let component = find_containing_component(call.node, class_symbols)?;
+    let callable_in = |scope_id: &str| {
+        let mut matches = symbols.iter().filter(|symbol| {
+            matches!(symbol.kind, SymbolKind::Function | SymbolKind::Event)
+                && symbol.name == call.function_name
+                && symbol.parent_id.as_deref() == Some(scope_id)
+        });
+        let first = matches.next()?;
+        matches.next().is_none().then_some(first)
+    };
+
+    if let Some(receiver) = call.receiver {
+        if is_shadowed_by_local(receiver, symbols, call.caller) {
+            return None;
+        }
+        return symbols
+            .iter()
+            .filter(|symbol| declares_id(symbol, receiver))
+            .filter(|symbol| symbol_is_visible_from_component(symbol, component, symbols))
+            .find_map(|symbol| callable_in(id_member_scope(symbol)?));
+    }
+
+    let mut skip = 0;
+    while let Some(owner) = enclosing_object_owner(call.node, object_owners, skip) {
+        if let Some(callee) = callable_in(&owner.id) {
+            return Some(callee);
+        }
+        skip += 1;
+    }
+
+    symbol_map
+        .get(call.function_name)
+        .copied()
+        .filter(|symbol| matches!(symbol.kind, SymbolKind::Function | SymbolKind::Event))
+        .filter(|symbol| symbol_is_visible_from_component(symbol, component, symbols))
+}
+
+fn is_shadowed_by_local(receiver: &str, symbols: &[Symbol], caller: &Symbol) -> bool {
+    symbols.iter().any(|symbol| {
+        symbol.kind == SymbolKind::Variable
+            && symbol.name == receiver
+            && symbol.parent_id.as_deref() == Some(caller.id.as_str())
+    })
 }
 
 fn symbol_is_visible_from_component(
@@ -509,11 +549,11 @@ fn extract_property_binding_relationships(
     }
 }
 
-/// The object scope an explicit receiver names. An id declared in this file
-/// resolves in the object it names, `parent` in the scope around the enclosing
-/// object, and any other identifier receiver — a singleton, a JavaScript local —
-/// resolves nothing. Anything that is not a plain identifier keeps the
-/// enclosing-scope rule.
+/// The object scope an explicit receiver names. `this` resolves in the
+/// enclosing object, an id declared in this file in the object it names, and
+/// `parent` in the scope around the enclosing object. Any other receiver — a
+/// singleton, a JavaScript local, a chained member or call result — names an
+/// object this file does not describe and resolves nothing.
 fn property_binding_scope<'a>(
     extractor: &QmlExtractor,
     node: Node,
@@ -521,12 +561,13 @@ fn property_binding_scope<'a>(
     object_owners: &HashMap<u32, &'a Symbol>,
     container_symbol: &'a Symbol,
 ) -> Option<&'a Symbol> {
-    let Some(object) = node
-        .child_by_field_name("object")
-        .filter(|object| object.kind() == "identifier")
-    else {
+    let object = node.child_by_field_name("object")?;
+    if object.kind() == "this" {
         return Some(enclosing_object_owner(node, object_owners, 0).unwrap_or(container_symbol));
-    };
+    }
+    if object.kind() != "identifier" {
+        return None;
+    }
     let receiver = extractor.base.get_node_text(&object);
     if let Some(scope) = id_scope_symbol(&receiver, symbols) {
         return Some(scope);
@@ -551,28 +592,11 @@ fn find_property_target<'a>(
     container_symbol: &Symbol,
     symbols: &'a [Symbol],
 ) -> Option<&'a Symbol> {
-    symbols
-        .iter()
-        .find(|symbol| {
-            symbol.kind == SymbolKind::Property
-                && symbol.name == property_name
-                && symbol.parent_id.as_deref() == Some(container_symbol.id.as_str())
-        })
-        .or_else(|| {
-            let matches = symbols
-                .iter()
-                .filter(|symbol| {
-                    symbol.kind == SymbolKind::Property
-                        && symbol.name == property_name
-                        && symbol.file_path == container_symbol.file_path
-                })
-                .collect::<Vec<_>>();
-            if matches.len() == 1 {
-                Some(matches[0])
-            } else {
-                None
-            }
-        })
+    symbols.iter().find(|symbol| {
+        symbol.kind == SymbolKind::Property
+            && symbol.name == property_name
+            && symbol.parent_id.as_deref() == Some(container_symbol.id.as_str())
+    })
 }
 
 /// Find the containing function for a node
@@ -593,9 +617,7 @@ pub(super) fn find_containing_function<'a>(
                     return Some(symbol);
                 }
             }
-            "ui_script_binding" | "ui_binding" => {
-                // Signal handlers like onClicked: { ... } are represented as ui_script_binding
-                // Find the containing component instead
+            "ui_script_binding" | "ui_binding" | "ui_property" => {
                 return find_containing_component(parent, class_symbols);
             }
             _ => {}
@@ -632,31 +654,31 @@ fn find_enclosing_symbol<'a>(
     None
 }
 
+/// The type a call's self-like receiver names: `this` names the nearest
+/// enclosing object, and an id names whichever enclosing object declares it
+/// (the root object's id names the file's component).
 pub(super) fn call_receiver_type(base: &BaseExtractor, function_node: Node) -> Option<String> {
     if function_node.kind() != "member_expression" {
         return None;
     }
     let object = function_node.child_by_field_name("object")?;
-    let (type_name, object_id) = enclosing_object_type_and_id(base, function_node)?;
-    match object.kind() {
-        "this" => Some(type_name),
-        "identifier" if object_id.as_deref() == Some(base.get_node_text(&object).as_str()) => {
-            Some(type_name)
-        }
-        _ => None,
-    }
-}
-
-fn enclosing_object_type_and_id(
-    base: &BaseExtractor,
-    node: Node,
-) -> Option<(String, Option<String>)> {
-    let mut current = node.parent();
+    let receiver = match object.kind() {
+        "this" => None,
+        "identifier" => Some(base.get_node_text(&object)),
+        _ => return None,
+    };
+    let mut current = function_node.parent();
     while let Some(candidate) = current {
         if candidate.kind() == "ui_object_definition" {
-            let type_name = object_type_name(base, candidate)?;
-            let object_id = object_id_binding(base, candidate);
-            return Some((type_name, object_id));
+            let matches = match &receiver {
+                None => true,
+                Some(receiver) => {
+                    object_id_binding(base, candidate).as_deref() == Some(receiver.as_str())
+                }
+            };
+            if matches {
+                return object_type_name(base, candidate);
+            }
         }
         current = candidate.parent();
     }
@@ -665,10 +687,7 @@ fn enclosing_object_type_and_id(
 
 fn object_type_name(base: &BaseExtractor, object_node: Node) -> Option<String> {
     if is_root_object(object_node) {
-        return std::path::Path::new(&base.file_path)
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .map(|s| s.to_string());
+        return super::semantics::component_name(&base.file_path);
     }
     object_node
         .child_by_field_name("type_name")

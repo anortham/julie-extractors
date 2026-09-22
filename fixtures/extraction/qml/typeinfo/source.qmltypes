@@ -19,6 +19,12 @@ Module {
             type: "QString"
             revision: 2
         }
+        Property { name: "size"; type: "QSizeF"; isReadonly: true }
+        Method { name: "clear"; returnType: "bool" }
+        Method {
+            name: "elementSize"
+            Parameter { name: "elementId"; type: "string" }
+        }
         Signal {
             name: "changed"
             Parameter {

@@ -8,6 +8,7 @@ pub mod flags;
 pub mod groups;
 pub mod helpers;
 pub mod identifiers;
+pub mod pattern_units;
 pub mod relationships;
 pub mod signatures;
 pub mod structural_facts;
@@ -37,13 +38,7 @@ mod tests {
 
     #[test]
     fn test_extract_simple_patterns() {
-        let regex_code = r#"
-// Character classes
-[abc]
-[a-z]
-[A-Z]
-[0-9]
-"#;
+        let regex_code = r#"[abc]|[a-z]|[A-Z]|[0-9]"#;
 
         let symbols = extract_symbols(regex_code);
 
@@ -51,7 +46,9 @@ mod tests {
         // (no literals, no anchors, no quantifiers)
 
         // Character classes should be found
-        let abc_class = symbols.iter().find(|s| s.name == "[abc]");
+        let abc_class = symbols
+            .iter()
+            .find(|s| s.name == "[abc]" && s.parent_id.is_some());
         assert!(
             abc_class.is_some(),
             "Character class [abc] should be extracted"
@@ -68,12 +65,7 @@ mod tests {
     fn test_predefined_classes_not_individually_extracted() {
         // After noise reduction, individual predefined classes like \d, \w, \s
         // are NOT extracted as separate symbols (they're noise)
-        let regex_code = r#"
-\d
-\w
-\s
-.
-"#;
+        let regex_code = r#"\d\w\s."#;
 
         let symbols = extract_symbols(regex_code);
 
@@ -100,12 +92,7 @@ mod tests {
     fn test_quantifiers_not_individually_extracted() {
         // After noise reduction, quantified expressions are NOT extracted
         // as separate symbols (they're noise)
-        let regex_code = r#"
-a?
-a*
-a+
-a{3}
-"#;
+        let regex_code = r#"a?b*c+d{3}"#;
 
         let symbols = extract_symbols(regex_code);
 
@@ -115,19 +102,19 @@ a{3}
             "a? should NOT be extracted individually"
         );
 
-        let zero_or_more = symbols.iter().find(|s| s.name == "a*");
+        let zero_or_more = symbols.iter().find(|s| s.name == "b*");
         assert!(
             zero_or_more.is_none(),
             "a* should NOT be extracted individually"
         );
 
-        let one_or_more = symbols.iter().find(|s| s.name == "a+");
+        let one_or_more = symbols.iter().find(|s| s.name == "c+");
         assert!(
             one_or_more.is_none(),
             "a+ should NOT be extracted individually"
         );
 
-        let exact_count = symbols.iter().find(|s| s.name == "a{3}");
+        let exact_count = symbols.iter().find(|s| s.name == "d{3}");
         assert!(
             exact_count.is_none(),
             "a{{3}} should NOT be extracted individually"
@@ -139,10 +126,7 @@ a{3}
         // After noise reduction, unnamed capturing and non-capturing groups
         // are NOT extracted as separate symbols (they're noise).
         // Only named groups (?<name>...) are extracted.
-        let regex_code = r#"
-(abc)
-(?:def)
-"#;
+        let regex_code = r#"(abc)(?:def)"#;
 
         let symbols = extract_symbols(regex_code);
 

@@ -118,9 +118,13 @@ Rectangle {
             "formatLabel doc comment should be extracted"
         );
         assert_eq!(
-            inferred_types.get(&format_label.id).map(String::as_str),
+            extractor
+                .base
+                .type_info
+                .get(&format_label.id)
+                .map(|fact| fact.resolved_type.as_str()),
             Some("string"),
-            "formatLabel return type should be inferred from function signature"
+            "formatLabel return type should come from its return annotation"
         );
 
         let helper = symbols
@@ -136,9 +140,13 @@ Rectangle {
             "_helper doc comment should be extracted"
         );
         assert_eq!(
-            inferred_types.get(&helper.id).map(String::as_str),
+            extractor
+                .base
+                .type_info
+                .get(&helper.id)
+                .map(|fact| fact.resolved_type.as_str()),
             Some("int"),
-            "_helper return type should be inferred from function signature"
+            "_helper return type should come from its return annotation"
         );
 
         assert!(

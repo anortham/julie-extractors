@@ -1675,7 +1675,8 @@
       "end_byte": 1159,
       "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:onClicked:60:16",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "source"
     },
     {
       "key": "fixtures/extraction/qml/qt_symbols/source.qml:closeRequested:call:66:16",
@@ -2238,6 +2239,15 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/qml/qt_symbols/source.qml:badgeRow:46:8",
+      "resolved_type": "Row",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "qml",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/qml/qt_symbols/source.qml:gap:51:12",
       "resolved_type": "int",
       "generic_params": null,
@@ -2249,6 +2259,15 @@
     {
       "symbol_key": "fixtures/extraction/qml/qt_symbols/source.qml:label:22:8",
       "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "qml",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/qml/qt_symbols/source.qml:service:9:4",
+      "resolved_type": "source",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
