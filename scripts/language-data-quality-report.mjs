@@ -143,7 +143,6 @@ const DOMAIN_APPLICABILITY = {
       "css",
       "html",
       "json",
-      "lua",
       "markdown",
       "qml",
       "r",

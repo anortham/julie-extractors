@@ -1546,22 +1546,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/lua/scopes/source.lua:call:call:36:24",
-      "name": "call",
-      "kind": "call",
-      "language": "lua",
-      "file_path": "fixtures/extraction/lua/scopes/source.lua",
-      "start_line": 36,
-      "start_column": 24,
-      "end_line": 36,
-      "end_column": 28,
-      "start_byte": 596,
-      "end_byte": 600,
-      "containing_key": "fixtures/extraction/lua/scopes/source.lua:call:36:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/lua/scopes/source.lua:clamp:call:11:13",
       "name": "clamp",
       "kind": "call",
@@ -1653,22 +1637,6 @@
       "end_column": 20,
       "start_byte": 559,
       "end_byte": 563,
-      "containing_key": "fixtures/extraction/lua/scopes/source.lua:deep:32:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/lua/scopes/source.lua:deep:member_access:32:18",
-      "name": "deep",
-      "kind": "member_access",
-      "language": "lua",
-      "file_path": "fixtures/extraction/lua/scopes/source.lua",
-      "start_line": 32,
-      "start_column": 18,
-      "end_line": 32,
-      "end_column": 22,
-      "start_byte": 535,
-      "end_byte": 539,
       "containing_key": "fixtures/extraction/lua/scopes/source.lua:deep:32:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1766,6 +1734,22 @@
       "start_byte": 502,
       "end_byte": 508,
       "containing_key": "fixtures/extraction/lua/scopes/source.lua:mul:27:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/lua/scopes/source.lua:inner:member_access:36:18",
+      "name": "inner",
+      "kind": "member_access",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/scopes/source.lua",
+      "start_line": 36,
+      "start_column": 18,
+      "end_line": 36,
+      "end_column": 23,
+      "start_byte": 590,
+      "end_byte": 595,
+      "containing_key": "fixtures/extraction/lua/scopes/source.lua:call:36:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1912,7 +1896,10 @@
       "containing_key": "fixtures/extraction/lua/scopes/source.lua:call:36:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "inner"
+      "receiver_type": "inner",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/lua/scopes/source.lua:physics:variable_ref:12:4",
@@ -2039,38 +2026,6 @@
       "start_byte": 423,
       "end_byte": 430,
       "containing_key": "fixtures/extraction/lua/scopes/source.lua:timeout:25:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/lua/scopes/source.lua:update:call:10:16",
-      "name": "update",
-      "kind": "call",
-      "language": "lua",
-      "file_path": "fixtures/extraction/lua/scopes/source.lua",
-      "start_line": 10,
-      "start_column": 16,
-      "end_line": 10,
-      "end_column": 22,
-      "start_byte": 145,
-      "end_byte": 151,
-      "containing_key": "fixtures/extraction/lua/scopes/source.lua:update:10:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/lua/scopes/source.lua:update:call:18:15",
-      "name": "update",
-      "kind": "call",
-      "language": "lua",
-      "file_path": "fixtures/extraction/lua/scopes/source.lua",
-      "start_line": 18,
-      "start_column": 15,
-      "end_line": 18,
-      "end_column": 21,
-      "start_byte": 269,
-      "end_byte": 275,
-      "containing_key": "fixtures/extraction/lua/scopes/source.lua:update:18:0",
       "target_key": null,
       "confidence": "1.000"
     },

@@ -73,7 +73,9 @@ pub(super) fn extract_function_definition_statement(
 
     // Determine visibility: check if function is local (contains "local" keyword) or uses underscore prefix
     let node_text = base.get_node_text(&node);
-    let is_local = node_text.trim_start().starts_with("local function");
+    let is_local = node_text.trim_start().starts_with("local function")
+        || (declared_name.kind() == "identifier"
+            && scope::is_local_binding_in_scope(base, node, &name));
     let has_underscore = name.starts_with('_');
     let visibility = if is_local || has_underscore {
         Visibility::Private
@@ -82,7 +84,7 @@ pub(super) fn extract_function_definition_statement(
     };
 
     // Extract LuaDoc comment
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = helpers::doc_comment(base, &node);
 
     // Test detection
     let mut metadata = HashMap::new();
@@ -100,13 +102,13 @@ pub(super) fn extract_function_definition_statement(
         signature: Some(signature),
         parent_id: method_parent_id.or_else(|| parent_id.map(|s| s.to_string())),
         visibility: Some(visibility),
+        annotations: helpers::doc_annotations(doc_comment.as_deref()),
         doc_comment,
         metadata: if metadata.is_empty() {
             None
         } else {
             Some(metadata)
         },
-        ..Default::default()
     };
 
     let symbol = base.create_symbol(&node, name, kind, options);
@@ -130,13 +132,14 @@ pub(super) fn extract_local_function_definition_statement(
     let signature = build_function_signature(base, node, name_node);
 
     // Extract LuaDoc comment
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = helpers::doc_comment(base, &node);
 
     // Local functions are always private (regardless of underscore prefix)
     let options = SymbolOptions {
         signature: Some(signature),
         parent_id: parent_id.map(|s| s.to_string()),
         visibility: Some(Visibility::Private),
+        annotations: helpers::doc_annotations(doc_comment.as_deref()),
         doc_comment,
         ..Default::default()
     };

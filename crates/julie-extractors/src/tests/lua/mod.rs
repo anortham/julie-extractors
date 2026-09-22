@@ -18,6 +18,7 @@ pub mod test_detection; // busted call-style test detection
 pub mod type_facts;
 pub mod variables;
 mod wave1_gaps;
+mod wave2_gaps;
 
 use crate::base::{SymbolKind, Visibility};
 use crate::lua::LuaExtractor;

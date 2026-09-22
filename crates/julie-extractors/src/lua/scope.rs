@@ -90,7 +90,14 @@ pub(super) fn resolve_table_symbol_id(
             {
                 return resolve_table_symbol_id(base, owner_table, symbols);
             }
-            resolve_binding(&name, table.start_byte() as u32, symbols).map(|s| s.id.clone())
+            let binding = resolve_binding(&name, table.start_byte() as u32, symbols)?;
+            let instance_class = binding
+                .parent_id
+                .is_some()
+                .then(|| super::classes::instance_metatable_name(binding))
+                .flatten()
+                .and_then(|class| resolve_binding(class, binding.start_byte, symbols));
+            Some(instance_class.unwrap_or(binding).id.clone())
         }
         "dot_index_expression" => {
             let parent_id =

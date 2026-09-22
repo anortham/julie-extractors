@@ -3939,6 +3939,76 @@
     "query_family": "framework"
   },
   {
+    "description": "A Lapis `app:get/post/put/patch/delete/head/options/match` route with a static path and a handler, in a file that mentions lapis.",
+    "languages": [
+      "lua"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"dsl_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path from the route call.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Route name when the call names the route before its path.",
+        "key": "route_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Uppercase HTTP method; absent for `match`, which accepts every method.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "lapis.route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "A Laravel Route::resource/apiResource declaration.",
     "languages": [
       "php"
@@ -4116,6 +4186,98 @@
       }
     ],
     "pattern_id": "laravel.route_prefix.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A lazy.nvim plugin spec: a module-level returned table (or a table in the returned list) whose first positional value is an `owner/repo` string.",
+    "languages": [
+      "lua"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `owner/repo` plugin id.",
+        "key": "plugin",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Plugin ids named in `dependencies`.",
+        "key": "dependencies",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Static `cmd` values that lazy-load the plugin.",
+        "key": "commands",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Static `event` values that lazy-load the plugin.",
+        "key": "events",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Static `ft` values that lazy-load the plugin.",
+        "key": "filetypes",
+        "presence": "optional",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "lazy_nvim.plugin_spec.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A LÖVE engine callback defined as `function love.<callback>()` or assigned as `love.<callback> = function`.",
+    "languages": [
+      "lua"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The callback name (\"load\", \"draw\", ...).",
+        "key": "callback",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "love.callback.v1",
     "query_family": "framework"
   },
   {
@@ -4556,6 +4718,150 @@
     ],
     "pattern_id": "markdown.table.v1",
     "query_family": "document_structure"
+  },
+  {
+    "description": "A Neovim autocommand created with `vim.api.nvim_create_autocmd` and static event names.",
+    "languages": [
+      "lua"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Event names the autocommand listens to.",
+        "key": "events",
+        "presence": "always",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Static `pattern` option values.",
+        "key": "patterns",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Static `group` option.",
+        "key": "group",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Static `desc` option.",
+        "key": "desc",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "neovim.autocmd.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Neovim key mapping set with `vim.keymap.set`, `nvim_set_keymap`, or `nvim_buf_set_keymap` and static modes and left-hand side.",
+    "languages": [
+      "lua"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Mode short names (\"n\", \"v\", ...).",
+        "key": "modes",
+        "presence": "always",
+        "value_type": "string_array"
+      },
+      {
+        "description": "The mapped key sequence.",
+        "key": "lhs",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Static `desc` option.",
+        "key": "desc",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "neovim.keymap.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Neovim user command created with `vim.api.nvim_create_user_command` or `nvim_buf_create_user_command` and a static name.",
+    "languages": [
+      "lua"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The command name.",
+        "key": "command_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"global\" or \"buffer\" (the buffer-local API).",
+        "key": "scope",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Static `desc` option.",
+        "key": "desc",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "neovim.user_command.v1",
+    "query_family": "framework"
   },
   {
     "description": "A static NestJS HTTP-method decorator route joined to its @Controller class prefix.",

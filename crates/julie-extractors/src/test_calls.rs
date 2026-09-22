@@ -98,7 +98,11 @@ pub(crate) fn test_call_role(full_callee: &str, category: TestCallCategory) -> T
                 .next()
                 .unwrap_or(full_callee)
                 .to_ascii_lowercase();
-            if base.contains("after") || base.contains("teardown") || base.contains("cleanup") {
+            if base.contains("after")
+                || base.contains("teardown")
+                || base.contains("cleanup")
+                || base == "finally"
+            {
                 TestRole::FixtureTeardown
             } else {
                 TestRole::FixtureSetup

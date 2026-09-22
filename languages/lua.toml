@@ -14,5 +14,6 @@ sql = [
     "execute",
     "exec",
     "prepare",
+    "query",
 ]
 route = []

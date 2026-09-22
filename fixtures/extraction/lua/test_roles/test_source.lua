@@ -4,7 +4,31 @@ describe("lua roles", function()
 
   it("extracts a busted test case", function()
   end)
+
+  test("aliases a test case", function()
+  end)
+
+  pending("waits for a fix")
+
+  strict_teardown(function()
+  end)
+
+  insulate("isolated block", function()
+    spec("runs in isolation", function()
+    end)
+  end)
 end)
+
+TestCalc = {}
+
+function TestCalc:setUp()
+end
+
+function TestCalc:tearDown()
+end
+
+function TestCalc:testAdd()
+end
 
 function test_named_case()
 end

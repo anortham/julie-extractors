@@ -539,6 +539,7 @@ fn is_test_lifecycle(
         "go" => go_test_lifecycle_direction(name),
         "ruby" => ruby_test_lifecycle_direction(name),
         "bash" => bash_test_lifecycle_direction(name),
+        "lua" => lua_test_lifecycle_direction(name),
         "gdscript" => gdscript_test_lifecycle_direction(name),
         "qml" => qml_test_lifecycle_direction(name),
         "scala" => scala_test_lifecycle_direction(name),
@@ -1821,10 +1822,20 @@ fn scala_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
     }
 }
 
-/// Lua luaunit: test functions/methods are `testXxx` (camelCase) or `test_xxx`.
+/// Lua luaunit: test functions/methods are `testXxx` (camelCase) or `test_xxx`,
+/// and `setUp`/`tearDown` (plus the suite and class hooks) are fixtures.
 /// busted (`describe`/`it`) is call-style and handled in `test_calls`, not here.
 fn detect_lua(name: &str, file_path: &str) -> bool {
-    is_test_path(file_path) && name.starts_with("test")
+    is_test_path(file_path)
+        && (name.starts_with("test") || lua_test_lifecycle_direction(name).is_lifecycle())
+}
+
+fn lua_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
+    match name {
+        "setUp" | "setupSuite" | "setupClass" => TestLifecycleDirection::Setup,
+        "tearDown" | "teardownSuite" | "teardownClass" => TestLifecycleDirection::Teardown,
+        _ => TestLifecycleDirection::None,
+    }
 }
 
 /// R RUnit: test functions are named `test.foo` (dot convention) or `test_foo`.

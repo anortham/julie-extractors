@@ -106,53 +106,52 @@ fn extract_identifier_from_node(
             record_lua_call_arg_literals(extractor, node, containing_symbols);
         }
 
-        // Method calls with colon syntax: obj:method()
-        "method_index_expression" => {
-            // Extract the method name (rightmost identifier)
-            let mut cursor = node.walk();
-            let identifiers: Vec<Node> = node
-                .children(&mut cursor)
-                .filter(|c| c.kind() == "identifier")
-                .collect();
-
-            if let Some(method_node) = identifiers.last() {
-                let name = extractor.base().get_node_text(method_node);
+        "method_index_expression" if !is_declaration_name(node) => {
+            if let Some(method_node) = node.child_by_field_name("method") {
+                let name = extractor.base().get_node_text(&method_node);
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 let receiver_type = type_facts::call_receiver_type(extractor.base(), node);
+                let metadata = node
+                    .child_by_field_name("table")
+                    .map(|table| receiver_metadata(extractor.base(), table))
+                    .unwrap_or_default();
 
-                extractor.base_mut().create_identifier_with_receiver_type(
-                    method_node,
-                    name,
-                    IdentifierKind::Call,
-                    containing_symbol_id,
-                    receiver_type,
-                );
+                let base = extractor.base_mut();
+                if metadata.is_empty() {
+                    base.create_identifier_with_receiver_type(
+                        &method_node,
+                        name,
+                        IdentifierKind::Call,
+                        containing_symbol_id,
+                        receiver_type,
+                    );
+                } else {
+                    let identifier = base.create_identifier_with_metadata(
+                        &method_node,
+                        name,
+                        IdentifierKind::Call,
+                        containing_symbol_id,
+                        metadata,
+                    );
+                    set_receiver_type(base, &identifier.id, receiver_type);
+                }
             }
         }
 
-        // Member access with dot: obj.field, obj.field.nested
-        "dot_index_expression" => {
-            // Only extract if it's NOT part of a function_call or method_index_expression
-            // (we handle those in the cases above)
-            if let Some(parent) = node.parent()
-                && (parent.kind() == "function_call" || parent.kind() == "method_index_expression")
+        "dot_index_expression" if !is_declaration_name(node) => {
+            if node
+                .parent()
+                .is_some_and(|parent| parent.kind() == "function_call")
             {
-                return; // Skip - handled by function/method call
+                return;
             }
 
-            // Extract the rightmost identifier (the member name)
-            let mut cursor = node.walk();
-            let identifiers: Vec<Node> = node
-                .children(&mut cursor)
-                .filter(|c| c.kind() == "identifier")
-                .collect();
-
-            if let Some(member_node) = identifiers.last() {
-                let name = extractor.base().get_node_text(member_node);
+            if let Some(member_node) = node.child_by_field_name("field") {
+                let name = extractor.base().get_node_text(&member_node);
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                 extractor.base_mut().create_identifier(
-                    member_node,
+                    &member_node,
                     name,
                     IdentifierKind::MemberAccess,
                     containing_symbol_id,
@@ -183,6 +182,66 @@ fn extract_identifier_from_node(
             // Skip other node types for now
             // Future: type usage, import statements, etc.
         }
+    }
+}
+
+/// True when `node` is the `name` of a `function Obj.f()` / `function Obj:m()` declaration.
+fn is_declaration_name(node: Node) -> bool {
+    node.parent().is_some_and(|parent| {
+        parent.kind() == "function_declaration"
+            && parent.child_by_field_name("name").map(|n| n.id()) == Some(node.id())
+    })
+}
+
+/// `receiver` / `receiver_qualifier` metadata for a colon call's table, when the
+/// table is a plain identifier chain (`obj`, `a.b.c`). Other receivers
+/// (parenthesized expressions, call results, subscripts) carry none.
+fn receiver_metadata(
+    base: &BaseExtractor,
+    table: Node,
+) -> std::collections::HashMap<String, serde_json::Value> {
+    let mut metadata = std::collections::HashMap::new();
+    let Some(chain) = identifier_chain(base, table) else {
+        return metadata;
+    };
+    if let Some((receiver, qualifier)) = chain.split_last() {
+        metadata.insert("receiver".to_string(), receiver.clone().into());
+        if !qualifier.is_empty() {
+            metadata.insert("receiver_qualifier".to_string(), qualifier.join(".").into());
+        }
+    }
+    metadata
+}
+
+/// The segments of an identifier chain (`a`, `a.b.c`), or `None` for any other expression.
+pub(super) fn identifier_chain(base: &BaseExtractor, node: Node) -> Option<Vec<String>> {
+    let mut segments = Vec::new();
+    let mut current = node;
+    loop {
+        match current.kind() {
+            "identifier" => {
+                segments.push(base.get_node_text(&current));
+                segments.reverse();
+                return Some(segments);
+            }
+            "dot_index_expression" => {
+                segments.push(base.get_node_text(&current.child_by_field_name("field")?));
+                current = current.child_by_field_name("table")?;
+            }
+            _ => return None,
+        }
+    }
+}
+
+fn set_receiver_type(base: &mut BaseExtractor, identifier_id: &str, receiver_type: Option<String>) {
+    if let Some(receiver_type) = receiver_type
+        && let Some(identifier) = base
+            .identifiers
+            .iter_mut()
+            .rev()
+            .find(|identifier| identifier.id == identifier_id)
+    {
+        identifier.receiver_type = Some(receiver_type);
     }
 }
 
@@ -263,6 +322,12 @@ fn record_lua_call_arg_literals(
         return;
     };
     let carrier = lua_carrier(extractor.base(), call_node);
+    if carrier
+        .as_deref()
+        .is_some_and(|carrier| SHELL_CARRIERS.contains(&carrier))
+    {
+        return;
+    }
     let containing_symbol_id = find_containing_symbol_id(call_node, containing_symbols);
 
     let mut cursor = args_node.walk();
@@ -278,6 +343,10 @@ fn record_lua_call_arg_literals(
         }
     }
 }
+
+/// Standard-library calls whose string argument is a shell command. Their
+/// `execute` / `popen` names would otherwise match the `sql` carrier list.
+const SHELL_CARRIERS: &[&str] = &["os.execute", "io.popen"];
 
 /// Derive a Lua `function_call`'s carrier from its `name` field.
 ///
