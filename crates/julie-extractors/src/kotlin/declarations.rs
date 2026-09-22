@@ -4,7 +4,8 @@
 //! and type aliases. Split from types.rs for file size compliance.
 
 use super::helpers;
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::base::body::body_hash;
+use crate::base::{BaseExtractor, NormalizedSpan, Symbol, SymbolKind, SymbolOptions, Visibility};
 use crate::test_detection::apply_callable_test_metadata;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -41,7 +42,7 @@ pub(super) fn extract_function(
     }
 
     // Add receiver type for extension functions (e.g., String.functionName)
-    if let Some(receiver_type) = receiver_type {
+    if let Some(receiver_type) = &receiver_type {
         signature.push_str(&format!(" {}.{}", receiver_type, raw_name));
     } else {
         signature.push_str(&format!(" {}", raw_name));
@@ -99,6 +100,9 @@ pub(super) fn extract_function(
     if let Some(return_type) = return_type {
         metadata.insert("returnType".to_string(), Value::String(return_type));
     }
+    if let Some(receiver_type) = receiver_type {
+        metadata.insert("extendedType".to_string(), Value::String(receiver_type));
+    }
     super::types::record_raw_name(&name, &raw_name, &mut metadata);
 
     // Extract KDoc comment
@@ -114,7 +118,7 @@ pub(super) fn extract_function(
         &mut metadata,
     );
 
-    Some(base.create_symbol(
+    let mut symbol = base.create_symbol(
         node,
         name,
         symbol_kind,
@@ -126,7 +130,94 @@ pub(super) fn extract_function(
             doc_comment,
             annotations,
         },
-    ))
+    );
+    apply_function_body_span(base, function_body, &mut symbol);
+    Some(symbol)
+}
+
+/// A function body is its `block`, or the expression after `=`; an abstract
+/// or interface function has none. The shared text heuristic cannot tell a
+/// body brace from one inside an annotation argument or a default value.
+fn apply_function_body_span(
+    base: &BaseExtractor,
+    function_body: Option<Node>,
+    symbol: &mut Symbol,
+) {
+    let body = function_body.and_then(|function_body| first_named_non_comment(function_body));
+    apply_body_span(base, body, symbol);
+}
+
+/// Replace the heuristic body span of a class, object or property symbol
+/// with its syntactic body: the class body, or a property's initializer,
+/// delegate or getter body. A declaration without one has no body.
+pub(super) fn apply_declaration_body_span(base: &BaseExtractor, node: &Node, symbol: &mut Symbol) {
+    let child = |kinds: &[&str]| {
+        node.children(&mut node.walk())
+            .find(|child| kinds.contains(&child.kind()))
+    };
+    let body = match node.kind() {
+        "class_declaration"
+        | "object_declaration"
+        | "companion_object"
+        | "interface_declaration" => {
+            child(&["class_body", "enum_class_body"]).or_else(|| spec_constructor_lambda(node))
+        }
+        "property_declaration" => {
+            let initializer = node
+                .children(&mut node.walk())
+                .skip_while(|child| child.kind() != "=")
+                .find(|child| child.is_named() && !child.kind().contains("comment"));
+            initializer
+                .or_else(|| child(&["property_delegate"]).and_then(first_named_non_comment))
+                .or_else(|| {
+                    child(&["getter"])
+                        .and_then(|getter| {
+                            getter
+                                .children(&mut getter.walk())
+                                .find(|c| c.kind() == "function_body")
+                        })
+                        .and_then(first_named_non_comment)
+                })
+        }
+        _ => return,
+    };
+    apply_body_span(base, body, symbol);
+}
+
+/// `class LengthSpec : StringSpec({ ... })` keeps its body in the lambda it
+/// passes to the supertype constructor, as Kotest and Spek specs do.
+fn spec_constructor_lambda<'tree>(node: &Node<'tree>) -> Option<Node<'tree>> {
+    let specifiers = node
+        .children(&mut node.walk())
+        .find(|child| child.kind() == "delegation_specifiers")?;
+    let mut cursor = specifiers.walk();
+    specifiers
+        .named_children(&mut cursor)
+        .filter_map(|specifier| specifier.named_child(0))
+        .filter(|invocation| invocation.kind() == "constructor_invocation")
+        .find_map(|invocation| {
+            let arguments = invocation
+                .children(&mut invocation.walk())
+                .find(|child| child.kind() == "value_arguments")?;
+            let mut cursor = arguments.walk();
+            arguments
+                .named_children(&mut cursor)
+                .filter_map(|argument| argument.named_child(0))
+                .find(|expression| expression.kind() == "lambda_literal")
+        })
+}
+
+fn first_named_non_comment(node: Node) -> Option<Node> {
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .find(|child| !child.kind().contains("comment"))
+}
+
+fn apply_body_span(base: &BaseExtractor, body: Option<Node>, symbol: &mut Symbol) {
+    symbol.body_span = body.map(|body| NormalizedSpan::from_node(&body));
+    symbol.body_hash = symbol
+        .body_span
+        .and_then(|span| body_hash(&base.content, span, &base.language));
 }
 
 /// Extract a Kotlin secondary constructor

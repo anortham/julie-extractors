@@ -40,10 +40,13 @@ use tree_sitter::Node;
 ///   (`def`, caught by the declaration path), not calls, so the call-style
 ///   lifecycle slice is empty.
 pub(crate) const SCALA_VOCAB: TestCallVocab = TestCallVocab {
-    test: &["test", "it", "scenario"],
-    container: &["describe", "context", "feature"],
+    test: &["test", "it", "scenario", "Scenario", "ignore"],
+    container: &["describe", "context", "feature", "Feature", "suite"],
     lifecycle: &[],
 };
+
+/// WordSpec and specs2 verbs that open a group: `"subject" when { ... }`.
+const WORDSPEC_GROUP_VERBS: &[&str] = &["when", "should", "must", "can"];
 
 /// FlatSpec / WordSpec behaviour verbs introducing a test clause
 /// (`"subject" should "behaviour" in { ... }`).
@@ -66,27 +69,35 @@ pub(super) fn extract_scala_test_call(
     // `f("name")` call_expression. A call without a block body (the inner
     // `test("name")` itself, or `assert(x)`) is not a DSL test clause.
     let body = node.child_by_field_name("arguments")?;
-    if body.kind() != "block" {
-        return None;
-    }
     let inner = node.child_by_field_name("function")?;
     if inner.kind() != "call_expression" {
         return None;
     }
     let callee_node = inner.child_by_field_name("function")?;
-    let callee = base.get_node_text(&callee_node);
+    // ZIO Test passes its cases as arguments: `suite("n")(test("a") { }, ...)`.
+    let takes_argument_list = base.get_node_text(&callee_node) == "suite";
+    if body.kind() != "block" && !(takes_argument_list && body.kind() == "arguments") {
+        return None;
+    }
+    // An MUnit fixture runs its cases through `fixture.test("n") { }`.
+    let callee = match callee_node.kind() {
+        "field_expression" => callee_node
+            .child_by_field_name("field")
+            .map(|field| base.get_node_text(&field))
+            .filter(|field| field == "test")
+            .unwrap_or_else(|| base.get_node_text(&callee_node)),
+        _ => base.get_node_text(&callee_node),
+    };
     // Exact match only (#66): a curried member call (`feature.enable("x") { }`,
     // inner callee = `field_expression` "feature.enable") never equals a dotless
     // ScalaTest/MUnit clause name, so the exact-matcher rejects it without the
     // JS-only leading-segment split.
     let category = classify_call_exact(&callee, &SCALA_VOCAB)?;
 
-    // Description = first `string` in the inner call's argument list.
+    // Description = the first argument's string, also through MUnit options
+    // such as `"n".ignore` and `"n".tag(Slow)`.
     let inner_args = inner.child_by_field_name("arguments")?;
-    let mut cursor = inner_args.walk();
-    let string_node = inner_args
-        .children(&mut cursor)
-        .find(|c| c.kind() == "string")?;
+    let string_node = description_string(inner_args.named_child(0)?)?;
     let name = base.decode_string_literal(&string_node)?;
 
     Some(build_test_call_symbol(
@@ -94,12 +105,26 @@ pub(super) fn extract_scala_test_call(
     ))
 }
 
-/// Materialize a FlatSpec / WordSpec infix test clause
-/// (`"subject" should "behaviour" in { ... }`) as an `is_test` symbol named
-/// `"subject should behaviour"`. Returns `None` for every other infix
-/// expression (the arm is invoked for all `infix_expression` nodes, and Scala
-/// uses infix for arithmetic/comparison/etc., so the guards are deliberately
-/// tight: operator `in` + block body + a `<verb>` behaviour clause on the left).
+/// The string a test description argument starts from.
+fn description_string(node: Node) -> Option<Node> {
+    match node.kind() {
+        "string" => Some(node),
+        "field_expression" => description_string(node.child_by_field_name("value")?),
+        "call_expression" => description_string(node.child_by_field_name("function")?),
+        _ => None,
+    }
+}
+
+/// Materialize an infix ScalaTest / specs2 clause. Returns `None` for every
+/// other infix expression; each form needs a string on the left and a block
+/// on the right, which ordinary arithmetic and comparisons never have.
+///
+/// - FlatSpec `"subject" should "behaviour" in { }` is a case named
+///   `"subject should behaviour"`.
+/// - WordSpec, FreeSpec and specs2 `"name" in { }` is a case named `"name"`.
+/// - WordSpec and specs2 `"subject" when { }` (also `should`, `must`, `can`)
+///   is a group named `"subject when"`.
+/// - FreeSpec `"subject" - { }` is a group named `"subject"`.
 pub(super) fn extract_scala_flatspec_test(
     base: &mut BaseExtractor,
     node: &Node,
@@ -108,18 +133,32 @@ pub(super) fn extract_scala_flatspec_test(
     if node.kind() != "infix_expression" {
         return None;
     }
-    // Outer clause: `<behaviour-infix> in { ... }`
     let op = node.child_by_field_name("operator")?;
-    if base.get_node_text(&op) != "in" {
-        return None;
-    }
+    let operator = base.get_node_text(&op);
     let body = node.child_by_field_name("right")?;
     if body.kind() != "block" {
         return None;
     }
-    // Left side: `"subject" <verb> "behaviour"`
     let left = node.child_by_field_name("left")?;
-    if left.kind() != "infix_expression" {
+
+    if left.kind() == "string" {
+        let subject = base.decode_string_literal(&left)?;
+        let (callee, name, category) = match operator.as_str() {
+            "in" => ("in".to_string(), subject, TestCallCategory::Test),
+            "-" => ("minus".to_string(), subject, TestCallCategory::Container),
+            verb if WORDSPEC_GROUP_VERBS.contains(&verb) => (
+                verb.to_string(),
+                format!("{subject} {verb}"),
+                TestCallCategory::Container,
+            ),
+            _ => return None,
+        };
+        return Some(build_test_call_symbol(
+            base, node, &callee, name, category, parent_id,
+        ));
+    }
+
+    if operator != "in" || left.kind() != "infix_expression" {
         return None;
     }
     let verb_node = left.child_by_field_name("operator")?;
@@ -141,6 +180,36 @@ pub(super) fn extract_scala_flatspec_test(
         base,
         node,
         &verb,
+        name,
+        TestCallCategory::Test,
+        parent_id,
+    ))
+}
+
+/// Materialize a ScalaCheck property (`property("name") = forAll { ... }`)
+/// as a test case. Returns `None` for every other assignment.
+pub(super) fn extract_scalacheck_property(
+    base: &mut BaseExtractor,
+    node: &Node,
+    parent_id: Option<&str>,
+) -> Option<Symbol> {
+    let left = node.child_by_field_name("left")?;
+    if left.kind() != "call_expression" {
+        return None;
+    }
+    let callee = left.child_by_field_name("function")?;
+    if callee.kind() != "identifier" || base.get_node_text(&callee) != "property" {
+        return None;
+    }
+    let arguments = left.child_by_field_name("arguments")?;
+    let string_node = arguments
+        .named_child(0)
+        .filter(|argument| argument.kind() == "string")?;
+    let name = base.decode_string_literal(&string_node)?;
+    Some(build_test_call_symbol(
+        base,
+        node,
+        "property",
         name,
         TestCallCategory::Test,
         parent_id,

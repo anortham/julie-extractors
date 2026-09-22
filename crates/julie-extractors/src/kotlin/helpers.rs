@@ -362,17 +362,15 @@ pub(super) fn extract_receiver_type(
 ) -> Option<String> {
     let children: Vec<_> = node.children(&mut node.walk()).collect();
 
-    // Find the pattern: user_type followed by "."
-    for i in 0..children.len().saturating_sub(1) {
-        if children[i].kind() == "user_type"
-            && i + 1 < children.len()
-            && base.get_node_text(&children[i + 1]) == "."
-        {
-            return Some(base.get_node_text(&children[i]));
-        }
-    }
-
-    None
+    children
+        .windows(2)
+        .find(|pair| {
+            matches!(
+                pair[0].kind(),
+                "user_type" | "nullable_type" | "function_type" | "parenthesized_type"
+            ) && pair[1].kind() == "."
+        })
+        .map(|pair| base.get_node_text(&pair[0]))
 }
 
 /// Extract primary constructor signature

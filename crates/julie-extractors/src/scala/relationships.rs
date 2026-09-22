@@ -178,8 +178,20 @@ fn walk_tree_for_calls(
         return;
     }
 
-    if node.kind() == "call_expression" {
-        extract_single_call(extractor, node, symbol_index, all_symbols, relationships);
+    let call = match node.kind() {
+        "call_expression" => call_target(extractor, node),
+        "instance_expression" => instance_target(extractor, node),
+        _ => None,
+    };
+    if let Some(call) = call {
+        emit_call(
+            extractor,
+            node,
+            call,
+            symbol_index,
+            all_symbols,
+            relationships,
+        );
     }
 
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -198,70 +210,140 @@ fn walk_tree_for_calls(
     }
 }
 
-fn extract_single_call(
+enum CallSite {
+    /// A method call. `receiver_is_expression` marks a receiver that is a call
+    /// result or other expression, so the callee cannot be a same-file method
+    /// found by its bare name.
+    Method {
+        target: UnresolvedTarget,
+        receiver_is_expression: bool,
+    },
+    /// `new Type(...)` calls the constructor of `Type`.
+    Constructor(UnresolvedTarget),
+}
+
+/// The callee of `f(x)`, `a.b.f(x)` or `f[T](x)`. A call whose callee is
+/// itself a call (`f(a)(b)`, `new Box(1)(2)`) names no new method.
+fn call_target(extractor: &ScalaExtractor, node: Node) -> Option<CallSite> {
+    let base = extractor.base();
+    let mut function = node.child_by_field_name("function")?;
+    if function.kind() == "generic_function" {
+        function = function.child_by_field_name("function")?;
+    }
+    match function.kind() {
+        "identifier" => Some(CallSite::Method {
+            target: UnresolvedTarget::simple(base.get_node_text(&function)),
+            receiver_is_expression: false,
+        }),
+        "field_expression" => {
+            let terminal_name = base.get_node_text(&function.child_by_field_name("field")?);
+            if super::identifiers::field_value_keyword(base, function) == Some("this") {
+                return Some(CallSite::Method {
+                    target: UnresolvedTarget {
+                        display_name: format!("this.{terminal_name}"),
+                        terminal_name,
+                        receiver: Some("this".to_string()),
+                        namespace_path: Vec::new(),
+                        import_context: None,
+                    },
+                    receiver_is_expression: false,
+                });
+            }
+            let mut parts = vec![terminal_name.clone()];
+            let mut value = function.child_by_field_name("value");
+            let mut receiver_is_expression = false;
+            while let Some(current) = value {
+                match current.kind() {
+                    "identifier" => {
+                        parts.push(base.get_node_text(&current));
+                        break;
+                    }
+                    "field_expression" => {
+                        parts.push(base.get_node_text(&current.child_by_field_name("field")?));
+                        value = current.child_by_field_name("value");
+                    }
+                    _ => {
+                        receiver_is_expression = true;
+                        break;
+                    }
+                }
+            }
+            parts.reverse();
+            Some(CallSite::Method {
+                target: if receiver_is_expression {
+                    UnresolvedTarget::simple(terminal_name)
+                } else {
+                    UnresolvedTarget::from_chain(parts)
+                },
+                receiver_is_expression,
+            })
+        }
+        _ => None,
+    }
+}
+
+fn instance_target(extractor: &ScalaExtractor, node: Node) -> Option<CallSite> {
+    let base = extractor.base();
+    let mut type_node = node.named_children(&mut node.walk()).find(|child| {
+        matches!(
+            child.kind(),
+            "type_identifier" | "stable_type_identifier" | "generic_type"
+        )
+    })?;
+    if type_node.kind() == "generic_type" {
+        type_node = type_node.child_by_field_name("type")?;
+    }
+    let text = base.get_node_text(&type_node);
+    Some(CallSite::Constructor(
+        UnresolvedTarget::from_qualified_text(&text, &["."])
+            .unwrap_or_else(|| UnresolvedTarget::simple(text)),
+    ))
+}
+
+fn emit_call(
     extractor: &mut ScalaExtractor,
     node: Node,
+    call: CallSite,
     symbol_index: &ScopedSymbolIndex<'_>,
     all_symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
 ) {
-    let function_name = {
-        let base = extractor.base();
-        let mut result = None;
-        for child in node.children(&mut node.walk()) {
-            if child.kind() == "identifier" {
-                result = Some(base.get_node_text(&child));
-                break;
-            }
-            if child.kind() == "field_expression" {
-                // Get the rightmost identifier (the method name)
-                let mut last_id = None;
-                for fc in child.children(&mut child.walk()) {
-                    if fc.kind() == "identifier" {
-                        last_id = Some(base.get_node_text(&fc));
-                    }
-                }
-                if last_id.is_some() {
-                    result = last_id;
-                    break;
-                }
-            }
-        }
-        result
-    };
-
-    let Some(function_name) = function_name else {
+    let Some(caller) = find_caller(node, all_symbols) else {
         return;
     };
-
-    let Some(caller) = find_innermost_containing_symbol(node, all_symbols) else {
+    if is_test_clause_callee(caller, node) {
         return;
-    };
-
-    let target = unresolved_call_target(extractor, node, &function_name);
+    }
     let receiver_type = super::identifiers::self_receiver_type(extractor.base(), node);
-    let line_number = node.start_position().row as u32 + 1;
-    let file_path = extractor.base().file_path.clone();
 
-    match symbol_index.resolve_call_target(
-        function_name.as_str(),
-        Some(caller),
-        target.receiver.as_deref(),
-    ) {
-        LocalTargetResolution::Import(_) => {
-            let pending = extractor
-                .base()
-                .create_pending_relationship(
-                    caller.id.clone(),
-                    target,
-                    RelationshipKind::Calls,
-                    &node,
-                    Some(caller.id.clone()),
-                    Some(0.8),
-                )
-                .with_receiver_type(receiver_type.clone());
-            extractor.add_structured_pending_relationship(pending);
+    let (target, resolution) = match call {
+        CallSite::Method {
+            target,
+            receiver_is_expression: true,
+        } => (target, LocalTargetResolution::ReceiverQualified),
+        CallSite::Method { target, .. } => {
+            let resolution = symbol_index.resolve_call_target(
+                &target.terminal_name,
+                Some(caller),
+                target.receiver.as_deref(),
+            );
+            (target, resolution)
         }
+        CallSite::Constructor(target) => {
+            let mut classes = all_symbols.iter().filter(|symbol| {
+                target.receiver.is_none()
+                    && symbol.name == target.terminal_name
+                    && symbol.kind == SymbolKind::Class
+            });
+            let resolution = match (classes.next(), classes.next()) {
+                (Some(class), None) => LocalTargetResolution::Resolved(class),
+                _ => LocalTargetResolution::Missing,
+            };
+            (target, resolution)
+        }
+    };
+
+    let confidence = match resolution {
         LocalTargetResolution::Resolved(called_symbol) => {
             relationships.push(Relationship {
                 id: format!(
@@ -274,116 +356,67 @@ fn extract_single_call(
                 from_symbol_id: caller.id.clone(),
                 to_symbol_id: called_symbol.id.clone(),
                 kind: RelationshipKind::Calls,
-                file_path,
-                line_number,
+                file_path: extractor.base().file_path.clone(),
+                line_number: node.start_position().row as u32 + 1,
                 span: Some(crate::base::NormalizedSpan::from_node(&node)),
                 reference_site_is_exact: false,
                 confidence: 0.9,
                 metadata: None,
             });
+            return;
         }
-        LocalTargetResolution::Ambiguous
-        | LocalTargetResolution::ReceiverQualified
-        | LocalTargetResolution::Missing => {
-            let pending = extractor
-                .base()
-                .create_pending_relationship(
-                    caller.id.clone(),
-                    target,
-                    RelationshipKind::Calls,
-                    &node,
-                    Some(caller.id.clone()),
-                    Some(0.7),
-                )
-                .with_receiver_type(receiver_type);
-            extractor.add_structured_pending_relationship(pending);
-        }
-    }
-}
-
-fn find_innermost_containing_symbol<'a>(node: Node, symbols: &'a [Symbol]) -> Option<&'a Symbol> {
-    symbols
-        .iter()
-        .filter(|symbol| {
-            node.start_byte() >= symbol.start_byte as usize
-                && node.end_byte() <= symbol.end_byte as usize
-        })
-        .min_by_key(|symbol| symbol.end_byte - symbol.start_byte)
-}
-
-fn unresolved_call_target(
-    extractor: &ScalaExtractor,
-    node: Node,
-    fallback_name: &str,
-) -> UnresolvedTarget {
-    let field_expression = node
-        .children(&mut node.walk())
-        .find(|child| child.kind() == "field_expression");
-
-    if let Some(field_expression) = field_expression {
-        if super::identifiers::self_receiver_type(extractor.base(), field_expression).is_some() {
-            let terminal_name = field_expression
-                .child_by_field_name("field")
-                .map(|field| extractor.base().get_node_text(&field))
-                .unwrap_or_else(|| fallback_name.to_string());
-            return UnresolvedTarget {
-                display_name: format!("this.{terminal_name}"),
-                terminal_name,
-                receiver: Some("this".to_string()),
-                namespace_path: Vec::new(),
-                import_context: None,
-            };
-        }
-        let mut identifiers = Vec::new();
-        collect_identifiers(extractor, field_expression, &mut identifiers);
-        if identifiers.len() < 2 {
-            return UnresolvedTarget::simple(fallback_name.to_string());
-        }
-        let terminal_name = identifiers
-            .pop()
-            .unwrap_or_else(|| fallback_name.to_string());
-        let receiver = identifiers.pop();
-        let namespace_path = identifiers;
-        let mut display_parts = namespace_path.clone();
-        if let Some(receiver_name) = receiver.as_ref() {
-            display_parts.push(receiver_name.clone());
-        }
-        display_parts.push(terminal_name.clone());
-        return UnresolvedTarget {
-            display_name: display_parts.join("."),
-            terminal_name,
-            receiver,
-            namespace_path,
-            import_context: None,
-        };
-    }
-
-    UnresolvedTarget::simple(fallback_name.to_string())
-}
-
-fn collect_identifiers(extractor: &ScalaExtractor, node: Node, identifiers: &mut Vec<String>) {
-    collect_identifiers_at_depth(extractor, node, identifiers, 0);
-}
-
-fn collect_identifiers_at_depth(
-    extractor: &ScalaExtractor,
-    node: Node,
-    identifiers: &mut Vec<String>,
-    depth: u32,
-) {
-    if !should_visit_tree_depth(depth) {
-        return;
-    }
-
-    if node.kind() == "identifier" {
-        identifiers.push(extractor.base().get_node_text(&node));
-    }
-
-    let Some(child_depth) = child_tree_depth(depth) else {
-        return;
+        LocalTargetResolution::Import(_) => 0.8,
+        _ => 0.7,
     };
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        collect_identifiers_at_depth(extractor, child, identifiers, child_depth);
-    }
+    let pending = extractor
+        .base()
+        .create_pending_relationship(
+            caller.id.clone(),
+            target,
+            RelationshipKind::Calls,
+            &node,
+            Some(caller.id.clone()),
+            Some(confidence),
+        )
+        .with_receiver_type(receiver_type);
+    extractor.add_structured_pending_relationship(pending);
+}
+
+/// The innermost callable around a call, else the innermost symbol. A local
+/// `val` inside a method therefore never owns the calls in its initializer,
+/// while a class-level or top-level `val` does.
+fn find_caller<'a>(node: Node, symbols: &'a [Symbol]) -> Option<&'a Symbol> {
+    let innermost = |include: fn(&Symbol) -> bool| {
+        symbols
+            .iter()
+            .filter(|symbol| {
+                include(symbol)
+                    && node.start_byte() >= symbol.start_byte as usize
+                    && node.end_byte() <= symbol.end_byte as usize
+            })
+            .min_by_key(|symbol| symbol.end_byte - symbol.start_byte)
+    };
+    innermost(|symbol| {
+        matches!(
+            symbol.kind,
+            SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
+        )
+    })
+    .or_else(|| innermost(|_| true))
+}
+
+/// Is `node` the DSL call that produced `caller`? `test("n") { }` becomes a
+/// test symbol spanning the outer call, and its callee is the inner call
+/// `test("n")`; a call edge from the case to `test` describes nothing.
+fn is_test_clause_callee(caller: &Symbol, node: Node) -> bool {
+    let spans = |node: Node| {
+        caller.start_byte as usize == node.start_byte()
+            && caller.end_byte as usize == node.end_byte()
+    };
+    spans(node)
+        || node.parent().is_some_and(|parent| {
+            parent.kind() == "call_expression"
+                && parent.child_by_field_name("function").map(|f| f.id()) == Some(node.id())
+                && spans(parent)
+        })
 }

@@ -31,7 +31,7 @@ pub(super) fn extract_function(
     // Add modifiers
     let sig_modifiers: Vec<&String> = modifiers
         .iter()
-        .filter(|m| !matches!(m.as_str(), "private" | "protected"))
+        .filter(|m| !helpers::is_access_modifier(m))
         .collect();
     if !sig_modifiers.is_empty() {
         signature = format!(

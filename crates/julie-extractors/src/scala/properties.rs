@@ -13,7 +13,12 @@ fn val_kind_for_scope(node: &Node) -> SymbolKind {
     let mut current = node.parent();
     while let Some(ancestor) = current {
         match ancestor.kind() {
-            "function_definition" | "function_declaration" => return SymbolKind::Variable,
+            "function_definition"
+            | "function_declaration"
+            | "block"
+            | "indented_block"
+            | "lambda_expression"
+            | "case_block" => return SymbolKind::Variable,
             "class_definition" | "object_definition" => return SymbolKind::Property,
             _ => {
                 current = ancestor.parent();
@@ -41,7 +46,7 @@ pub(super) fn extract_val(
     let mut signature = "val".to_string();
     let sig_modifiers: Vec<&String> = modifiers
         .iter()
-        .filter(|m| !matches!(m.as_str(), "private" | "protected"))
+        .filter(|m| !helpers::is_access_modifier(m))
         .collect();
     if !sig_modifiers.is_empty() {
         signature = format!(
@@ -116,7 +121,7 @@ pub(super) fn extract_var(
     let mut signature = "var".to_string();
     let sig_modifiers: Vec<&String> = modifiers
         .iter()
-        .filter(|m| !matches!(m.as_str(), "private" | "protected"))
+        .filter(|m| !helpers::is_access_modifier(m))
         .collect();
     if !sig_modifiers.is_empty() {
         signature = format!(

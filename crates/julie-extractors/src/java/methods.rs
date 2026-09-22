@@ -24,7 +24,7 @@ pub(super) fn extract_method(
         .iter()
         .map(|annotation| annotation.annotation_key.clone())
         .collect();
-    let visibility = helpers::determine_visibility(&modifiers);
+    let visibility = helpers::determine_visibility(&modifiers, node);
 
     // Get return type (comes before the method name in the AST)
     let children: Vec<Node> = node.children(&mut node.walk()).collect();
@@ -130,7 +130,7 @@ pub(super) fn extract_constructor(
         .iter()
         .map(|annotation| annotation.annotation_key.clone())
         .collect();
-    let visibility = helpers::determine_visibility(&modifiers);
+    let visibility = helpers::determine_visibility(&modifiers, node);
 
     // Get parameters
     let param_list = node

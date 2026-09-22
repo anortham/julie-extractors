@@ -2517,6 +2517,11 @@
           "name": "return_types",
           "source": "fixtures/extraction/java/return_types/source.java",
           "expected": "fixtures/extraction/java/return_types/expected.json"
+        },
+        {
+          "name": "hierarchy_and_calls",
+          "source": "fixtures/extraction/java/hierarchy_and_calls/source.java",
+          "expected": "fixtures/extraction/java/hierarchy_and_calls/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2531,7 +2536,10 @@
         "symbols": {
           "supported": [
             "class",
+            "constant",
             "constructor",
+            "enum",
+            "enum_member",
             "import",
             "interface",
             "method",
@@ -3645,6 +3653,11 @@
           "name": "return_types",
           "source": "fixtures/extraction/kotlin/return_types/source.kt",
           "expected": "fixtures/extraction/kotlin/return_types/expected.json"
+        },
+        {
+          "name": "declarations_and_calls",
+          "source": "fixtures/extraction/kotlin/declarations_and_calls/source.kt",
+          "expected": "fixtures/extraction/kotlin/declarations_and_calls/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3659,6 +3672,9 @@
         "symbols": {
           "supported": [
             "class",
+            "constructor",
+            "enum",
+            "enum_member",
             "function",
             "import",
             "interface",
@@ -3693,11 +3709,14 @@
         "body_spans": {
           "supported": [
             "class",
+            "constructor",
+            "enum",
             "function",
             "interface",
             "method",
             "property",
-            "type"
+            "type",
+            "variable"
           ],
           "not_applicable": [
             "import",
@@ -3753,6 +3772,8 @@
         "annotations": {
           "supported": [
             "class",
+            "enum",
+            "function",
             "method",
             "property",
             "type"
@@ -3762,6 +3783,8 @@
         },
         "doc_comments": {
           "supported": [
+            "class",
+            "function",
             "method"
           ],
           "not_applicable": [],
@@ -3829,6 +3852,16 @@
           "name": "return_types",
           "source": "fixtures/extraction/scala/return_types/source.scala",
           "expected": "fixtures/extraction/scala/return_types/expected.json"
+        },
+        {
+          "name": "calls_and_layout",
+          "source": "fixtures/extraction/scala/calls_and_layout/source.scala",
+          "expected": "fixtures/extraction/scala/calls_and_layout/expected.json"
+        },
+        {
+          "name": "test_suites",
+          "source": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
+          "expected": "fixtures/extraction/scala/test_suites/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3850,6 +3883,7 @@
             "namespace",
             "property",
             "trait",
+            "type",
             "variable"
           ],
           "not_applicable": [],
@@ -3858,6 +3892,7 @@
         "relationships": {
           "supported": [
             "calls",
+            "extends",
             "implements"
           ],
           "not_applicable": [],
@@ -3866,6 +3901,7 @@
         "identifiers": {
           "supported": [
             "call",
+            "member_access",
             "type_usage",
             "variable_ref"
           ],
@@ -3915,6 +3951,7 @@
         },
         "doc_comments": {
           "supported": [
+            "class",
             "method"
           ],
           "not_applicable": [],

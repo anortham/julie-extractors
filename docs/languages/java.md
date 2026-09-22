@@ -126,6 +126,28 @@ previously advertised only `calls` and `implements`; `extends` was emitted but
 undeclared. The golden now carries `LedgerJUnit5Test extends AbstractLedgerTest`
 as the registered evidence.
 
+Supertype edges cover the superclass, `implements` lists, and interface
+`extends` lists. A target drops its type arguments and splits a qualified
+name: `Base<String>` targets `Base`, and `java.io.Serializable` targets
+`Serializable` with receiver `io` and namespace `java`. The symbol signature
+and the `base_types` metadata keep the full source text.
+
+Call edges come from method invocations, method references (`this::handle`,
+`User::getName`, `Type::new`), object creation, and `this(...)` / `super(...)`
+constructor chaining. The caller is the innermost method or constructor. A
+call outside any callable belongs to the field, constant, or enum constant
+whose initializer holds it, and a call in an initializer block belongs to the
+class.
+
+## Visibility
+
+A declaration without an access modifier is package-private and reports
+`internal`. Interface and annotation-type members report `public`, enum
+constructors report `private`, and local classes report `private`.
+
+The fixture `fixtures/extraction/java/hierarchy_and_calls/` carries the
+evidence for these rules.
+
 ## Grammar freshness
 
 ```bash

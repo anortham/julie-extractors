@@ -74,7 +74,7 @@ class DefaultClass {
         );
         assert_eq!(
             animal_class.unwrap().visibility.as_ref().unwrap(),
-            &Visibility::Private
+            &Visibility::Internal
         );
 
         let constants_class = symbols.iter().find(|s| s.name == "Constants");

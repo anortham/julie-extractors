@@ -536,13 +536,13 @@
       "end_byte": 363,
       "body_span": {
         "start_line": 20,
-        "start_column": 57,
+        "start_column": 48,
         "end_line": 20,
         "end_column": 59,
-        "start_byte": 361,
+        "start_byte": 352,
         "end_byte": 363
       },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_hash": "767d261974dc3a225ea37c6410251606",
       "signature": "private val index: List<Map<String, Int>> = emptyList()",
       "doc_comment": null,
       "visibility": "Private",
@@ -632,8 +632,15 @@
       "end_column": 26,
       "start_byte": 1364,
       "end_byte": 1386,
-      "body_span": null,
-      "body_hash": null,
+      "body_span": {
+        "start_line": 67,
+        "start_column": 22,
+        "end_line": 67,
+        "end_column": 26,
+        "start_byte": 1382,
+        "end_byte": 1386
+      },
+      "body_hash": "37a6259cc0c1dae299a7866489dff0bd",
       "signature": "val maybe: Job? = null",
       "doc_comment": null,
       "visibility": "Public",
@@ -805,15 +812,8 @@
       "end_column": 18,
       "start_byte": 37,
       "end_byte": 51,
-      "body_span": {
-        "start_line": 4,
-        "start_column": 11,
-        "end_line": 4,
-        "end_column": 13,
-        "start_byte": 44,
-        "end_byte": 46
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "fun run(): Int",
       "doc_comment": null,
       "visibility": "Public",
@@ -842,13 +842,13 @@
       "end_byte": 594,
       "body_span": {
         "start_line": 32,
-        "start_column": 23,
+        "start_column": 18,
         "end_line": 32,
         "end_column": 37,
-        "start_byte": 580,
+        "start_byte": 575,
         "end_byte": 594
       },
-      "body_hash": "1309a83355f670adac08d3e9d749a9e0",
+      "body_hash": "bd9780c40f048e109ec35dbe60a638fe",
       "signature": "val runner by lazy { Worker(id) }",
       "doc_comment": null,
       "visibility": "Public",
@@ -876,8 +876,15 @@
       "end_column": 32,
       "start_byte": 260,
       "end_byte": 302,
-      "body_span": null,
-      "body_hash": null,
+      "body_span": {
+        "start_line": 18,
+        "start_column": 25,
+        "end_line": 18,
+        "end_column": 32,
+        "start_byte": 295,
+        "end_byte": 302
+      },
+      "body_hash": "d44d9aec1849f8dd4003caf18da7b635",
       "signature": "@Volatile var status: String = \"ready\"",
       "doc_comment": null,
       "visibility": "Public",
@@ -912,8 +919,15 @@
       "end_column": 17,
       "start_byte": 1391,
       "end_byte": 1404,
-      "body_span": null,
-      "body_hash": null,
+      "body_span": {
+        "start_line": 68,
+        "start_column": 16,
+        "end_line": 68,
+        "end_column": 17,
+        "start_byte": 1403,
+        "end_byte": 1404
+      },
+      "body_hash": "cfcd208495d565ef66e7dff9f98764da",
       "signature": "var total = 0",
       "doc_comment": null,
       "visibility": "Public",
@@ -1148,6 +1162,14 @@
       "confidence": "0.700"
     },
     {
+      "from_key": "fixtures/extraction/kotlin/basic/source.kt:evaluate:66:0",
+      "callee_name": "until",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/basic/source.kt",
+      "line_number": 70,
+      "confidence": "0.700"
+    },
+    {
       "from_key": "fixtures/extraction/kotlin/basic/source.kt:persist:58:4",
       "callee_name": "missingWave2",
       "kind": "calls",
@@ -1215,6 +1237,32 @@
         "end_column": 37,
         "start_byte": 575,
         "end_byte": 594
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/basic/source.kt:evaluate:66:0",
+        "callee_name": "until",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/basic/source.kt",
+        "line_number": 70,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "until",
+        "terminal_name": "until",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/basic/source.kt:evaluate:66:0",
+      "span": {
+        "start_line": 70,
+        "start_column": 18,
+        "end_line": 70,
+        "end_column": 31,
+        "start_byte": 1442,
+        "end_byte": 1455
       }
     },
     {
@@ -1820,6 +1868,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/kotlin/basic/source.kt:until:call:70:20",
+      "name": "until",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/basic/source.kt",
+      "start_line": 70,
+      "start_column": 20,
+      "end_line": 70,
+      "end_column": 25,
+      "start_byte": 1444,
+      "end_byte": 1449,
+      "containing_key": "fixtures/extraction/kotlin/basic/source.kt:evaluate:66:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/kotlin/basic/source.kt:value:variable_ref:38:15",
       "name": "value",
       "kind": "variable_ref",
@@ -2407,17 +2471,17 @@
       "language": "kotlin",
       "file_path": "fixtures/extraction/kotlin/basic/source.kt",
       "covered_lines": 1,
-      "covered_bytes": 2,
+      "covered_bytes": 14,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
       "start_line": 4,
-      "start_column": 11,
+      "start_column": 4,
       "end_line": 4,
-      "end_column": 13,
-      "start_byte": 44,
-      "end_byte": 46,
+      "end_column": 18,
+      "start_byte": 37,
+      "end_byte": 51,
       "metadata": {
         "metric_version": 1
       }

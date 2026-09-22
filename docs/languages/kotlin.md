@@ -189,6 +189,56 @@ The ledger row previously advertised only `calls` and `implements`. Kotlin also
 emits `extends`, `function` and `type` symbols, and `member_access` identifiers,
 all of them already present in the goldens; those claims are now declared.
 
+### Supertypes, calls and receivers
+
+A supertype target drops its type arguments and splits a qualified name:
+`Repository<User>` targets `Repository`, `JsonAdapter.Factory` targets
+`Factory` with receiver `JsonAdapter`, and `Handler by inner` targets
+`Handler`. Inheritance edges match the declaring type by its span, so nested
+types that share a name keep their own edges.
+
+Call edges also come from infix calls (`a plusCents 5`), function references
+(`::isValid`, `Type::member`), and top-level property initializers, delegates
+and getters, whose caller is the property. A call on an expression receiver
+(`a().b()`, `list.map { }.c()`) never resolves to a same-file function by its
+bare name; it stays a structured pending call. A call on a parameter or local
+whose declared type is the receiver type of a same-file extension function
+resolves to that extension. Extension functions and properties publish the
+receiver type as `extendedType` metadata and keep it in the signature.
+
+A qualified type reference (`ApiResult.Success`, `java.io.IOException`) emits
+one `type_usage` for its last segment, with the leading segments in the
+`receiver` and `receiver_qualifier` metadata.
+
+## Declarations the grammar misreads
+
+`tree-sitter-kotlin-ng` accepts script statements at the top level of a file,
+so it often reads top-level annotations as an `annotated_expression`. The
+declaration then either follows as a detached sibling or is swallowed:
+`@Keep enum class Mode { A }` becomes an infix expression. The extractor blanks
+those annotations with spaces, which keeps every byte offset and line, parses
+the file again, and attaches the annotations to the next declaration. The
+symbol keeps its annotations, its KDoc, and a span and signature that start at
+the first annotation, as a member declaration does. Identifiers inside the
+blanked annotations still come from the original parse, and structural facts
+still use the original tree.
+
+A one-line class body that holds a function, such as
+`class Tail { fun t() = 1 }`, is still a grammar parse error. It drops the
+declarations that follow, and `julie-extract` reports a parse diagnostic.
+
+## Body spans
+
+A function body span is its `block`, or the expression after `=`. An abstract
+or interface function has no body span. A class body span is its class body,
+or the lambda that a Kotest or Spek spec passes to its supertype constructor.
+A property body span is its initializer, delegate, or getter body. The shared
+text heuristic is not used for these declarations, because it cannot tell a
+body brace from a brace in an annotation argument or a default value.
+
+The fixture `fixtures/extraction/kotlin/declarations_and_calls/` carries the
+evidence for these rules.
+
 ## Grammar freshness
 
 ```bash

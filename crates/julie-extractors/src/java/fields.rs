@@ -22,7 +22,7 @@ pub(super) fn extract_fields(
     parent_id: Option<&str>,
 ) -> Vec<Symbol> {
     let modifiers = helpers::extract_modifiers(extractor.base(), node);
-    let visibility = helpers::determine_visibility(&modifiers);
+    let visibility = helpers::determine_visibility(&modifiers, node);
     let annotations = helpers::extract_annotations(extractor.base(), node);
 
     // Get type

@@ -231,6 +231,9 @@ fn is_scala_value_read_identifier(base: &BaseExtractor, node: Node) -> bool {
         "lambda_expression" => !is_field("parameters"),
         "self_type" => false,
 
+        // Rule 3: the qualifier of `private[core]` names a scope, not a value.
+        "access_qualifier" => false,
+
         // Rule 3: a for-comprehension enumerator binds its first child; the
         // generator collection (and guards) are reads.
         "enumerator" => parent.named_child(0).map(|c| c.id()) != Some(node.id()),
@@ -428,20 +431,27 @@ pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<Str
         }
         _ => return None,
     };
-    if !field_value_is_this(base, field_expression) {
-        return None;
+    match field_value_keyword(base, field_expression)? {
+        "this" => super::helpers::enclosing_type_name(base, &field_expression),
+        _ => super::helpers::enclosing_supertype_name(base, &field_expression),
     }
-    super::helpers::enclosing_type_name(base, &field_expression)
 }
 
 /// tree-sitter-scala aliases the `this` keyword to `identifier` inside
 /// expressions, so the receiver check must read the token text.
-fn field_value_is_this(base: &BaseExtractor, field_expression: Node) -> bool {
-    field_expression
-        .child_by_field_name("value")
-        .is_some_and(|value| {
-            matches!(value.kind(), "identifier" | "this") && base.get_node_text(&value) == "this"
-        })
+pub(super) fn field_value_keyword(
+    base: &BaseExtractor,
+    field_expression: Node,
+) -> Option<&'static str> {
+    let value = field_expression.child_by_field_name("value")?;
+    if !matches!(value.kind(), "identifier" | "this" | "super") {
+        return None;
+    }
+    match base.get_node_text(&value).as_str() {
+        "this" => Some("this"),
+        "super" => Some("super"),
+        _ => None,
+    }
 }
 
 /// Record type arguments for the outermost generic use site.

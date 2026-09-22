@@ -23,7 +23,7 @@
       "body_hash": "2518a16d07ddde667f15aef56c5cf383",
       "signature": "interface Job",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {},
       "annotations": [],
@@ -54,7 +54,7 @@
       "body_hash": "3bcc1d49376e89edd9d037c476995db1",
       "signature": "Supervisor(int id)",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/basic/source.java:Supervisor:99:0",
       "metadata": null,
       "annotations": [],
@@ -85,7 +85,7 @@
       "body_hash": "565d806276aeacb38a8c4f652253a7f9",
       "signature": "class Supervisor extends Worker",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "base_types": [
@@ -120,7 +120,7 @@
       "body_hash": "84a117cba59e7433f89834bba67ee799",
       "signature": "Worker(int id)",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/basic/source.java:Worker:7:0",
       "metadata": null,
       "annotations": [],
@@ -151,7 +151,7 @@
       "body_hash": "68590c52308c5cfd84cf29bee89c931e",
       "signature": "class Worker implements Job",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "base_types": [
@@ -186,7 +186,7 @@
       "body_hash": "f6c32db1fa2c97e7417673d90c1b3ef7",
       "signature": "static void auditViaQualifiedCall()",
       "doc_comment": "/** Fully-qualified static call: the terminal receiver `Worker` must stay name-visible. */",
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/basic/source.java:Worker:7:0",
       "metadata": null,
       "annotations": [],
@@ -241,7 +241,7 @@
       "body_hash": "4cc6de3839094566197dcc38899de2c9",
       "signature": "void combine(BinaryOperator<Integer> op)",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/basic/source.java:Supervisor:99:0",
       "metadata": null,
       "annotations": [],
@@ -272,7 +272,7 @@
       "body_hash": "a3387f702617809830f70b858421637b",
       "signature": "void consume(Job[] jobs)",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/basic/source.java:Worker:7:0",
       "metadata": null,
       "annotations": [],
@@ -355,7 +355,7 @@
       "body_hash": "c584cfb2ad1aaa2d2e17beaa1c134f90",
       "signature": "static int evaluate(int count, boolean enabled)",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/basic/source.java:Worker:7:0",
       "metadata": null,
       "annotations": [],
@@ -412,7 +412,7 @@
       "body_hash": "a11bdf56c3f6c0881c2fb97b75f5dee7",
       "signature": "static void fetchStatus()",
       "doc_comment": "/** Checks the worker service health endpoint. */",
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/basic/source.java:Worker:7:0",
       "metadata": null,
       "annotations": [],
@@ -498,7 +498,7 @@
       "body_hash": "82641bf424aaf5c6e5be05a493d3d07a",
       "signature": "static void guardedFetch()",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/basic/source.java:Worker:7:0",
       "metadata": null,
       "annotations": [],
@@ -898,7 +898,7 @@
       "body_hash": "77050b40f2677fa6a347a307556087ed",
       "signature": "@SuppressWarnings(\"unchecked\") static void observeAsync(Runnable task)",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/basic/source.java:Worker:7:0",
       "metadata": null,
       "annotations": [
@@ -1023,7 +1023,7 @@
       "body_hash": "ff712f47431c3bb3c49bd35b23bc1524",
       "signature": "static void readConfig()",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/basic/source.java:Worker:7:0",
       "metadata": null,
       "annotations": [],
@@ -1185,7 +1185,7 @@
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
       "signature": "int run()",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Public",
       "parent_key": "fixtures/extraction/java/basic/source.java:Job:3:0",
       "metadata": null,
       "annotations": [],
@@ -1559,6 +1559,14 @@
   ],
   "pending_relationships": [
     {
+      "from_key": "fixtures/extraction/java/basic/source.java:Supervisor:100:4",
+      "callee_name": "Worker",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "line_number": 101,
+      "confidence": "0.700"
+    },
+    {
       "from_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
       "callee_name": "fixture.Worker.evaluate",
       "kind": "calls",
@@ -1588,6 +1596,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/java/basic/source.java",
       "line_number": 92,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/basic/source.java:lock:21:4",
+      "callee_name": "Object",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "line_number": 21,
       "confidence": "0.700"
     },
     {
@@ -1624,6 +1640,32 @@
     }
   ],
   "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/basic/source.java:Supervisor:100:4",
+        "callee_name": "Worker",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/basic/source.java",
+        "line_number": 101,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Worker",
+        "terminal_name": "Worker",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/basic/source.java:Supervisor:100:4",
+      "span": {
+        "start_line": 101,
+        "start_column": 8,
+        "end_line": 101,
+        "end_column": 18,
+        "start_byte": 2302,
+        "end_byte": 2312
+      }
+    },
     {
       "pending": {
         "from_key": "fixtures/extraction/java/basic/source.java:auditViaQualifiedCall:84:4",
@@ -1730,6 +1772,32 @@
         "end_column": 27,
         "start_byte": 2161,
         "end_byte": 2172
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/basic/source.java:lock:21:4",
+        "callee_name": "Object",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/basic/source.java",
+        "line_number": 21,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Object",
+        "terminal_name": "Object",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/basic/source.java:lock:21:4",
+      "span": {
+        "start_line": 21,
+        "start_column": 39,
+        "end_line": 21,
+        "end_column": 51,
+        "start_byte": 340,
+        "end_byte": 352
       }
     },
     {

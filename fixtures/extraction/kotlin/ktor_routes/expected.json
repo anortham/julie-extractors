@@ -130,6 +130,7 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "extendedType": "Application",
         "modifiers": "",
         "type": "function"
       },

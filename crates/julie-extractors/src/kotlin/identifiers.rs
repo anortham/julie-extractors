@@ -14,11 +14,15 @@ use tree_sitter::Node;
 pub(super) fn extract_identifiers(
     base: &mut BaseExtractor,
     tree: &tree_sitter::Tree,
+    detached_annotation_nodes: &[Node],
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
     let containing_symbols = base.containing_symbol_index(symbols);
 
     walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
+    for node in detached_annotation_nodes {
+        walk_tree_for_identifiers(base, *node, &containing_symbols, 0);
+    }
 
     base.identifiers.clone()
 }
@@ -126,14 +130,15 @@ fn extract_identifier_from_node(
         // directly (not inside `user_type`), so we don't need to filter
         // declaration names here.
         "user_type" => {
-            // Extract the first identifier child — that's the type name.
-            // Kotlin tree-sitter uses `identifier` (not `simple_identifier`)
-            // inside `user_type` nodes.
-            let name_node = node
+            // A qualified type `Outer.Inner` names its last segment; the
+            // leading segments ride along as receiver metadata.
+            let segments: Vec<Node> = node
                 .children(&mut node.walk())
-                .find(|n| n.kind() == "identifier" || n.kind() == "simple_identifier");
+                .filter(|n| n.kind() == "identifier" || n.kind() == "simple_identifier")
+                .collect();
 
-            if let Some(name_node) = name_node {
+            if let Some((name_node, qualifiers)) = segments.split_last() {
+                let name_node = *name_node;
                 let name = base.get_node_text(&name_node);
 
                 if is_kotlin_noise_type(&name) {
@@ -141,15 +146,39 @@ fn extract_identifier_from_node(
                 }
 
                 let containing = find_containing_symbol_id(node, containing_symbols);
-                let identifier =
-                    base.create_identifier(&name_node, name, IdentifierKind::TypeUsage, containing);
+                let mut metadata = std::collections::HashMap::new();
+                if let Some((receiver, outer)) = qualifiers.split_last() {
+                    metadata.insert(
+                        "receiver".to_string(),
+                        serde_json::Value::String(base.get_node_text(receiver)),
+                    );
+                    if !outer.is_empty() {
+                        let qualifier: Vec<String> =
+                            outer.iter().map(|n| base.get_node_text(n)).collect();
+                        metadata.insert(
+                            "receiver_qualifier".to_string(),
+                            serde_json::Value::String(qualifier.join(".")),
+                        );
+                    }
+                }
+                let identifier = if metadata.is_empty() {
+                    base.create_identifier(&name_node, name, IdentifierKind::TypeUsage, containing)
+                } else {
+                    base.create_identifier_with_metadata(
+                        &name_node,
+                        name,
+                        IdentifierKind::TypeUsage,
+                        containing,
+                        metadata,
+                    )
+                };
                 // If this user_type is the outermost generic use site (not nested
                 // inside another type_arguments list), record its ordered type args.
                 record_outermost_kotlin_type_arguments(base, node, &identifier);
             }
         }
 
-        // Member access: object.property
+        // Member access: object.property; `Type::member` references a function.
         "navigation_expression" => {
             // Only extract if it's NOT part of a call_expression
             if let Some(parent) = node.parent()
@@ -161,13 +190,41 @@ fn extract_identifier_from_node(
             // Extract the rightmost identifier (the member name)
             if let Some((name_node, name)) = extract_rightmost_identifier(base, &node) {
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                let is_function_reference = name != "class"
+                    && node
+                        .children(&mut node.walk())
+                        .any(|child| child.kind() == "::");
+                let kind = if is_function_reference {
+                    IdentifierKind::Call
+                } else {
+                    IdentifierKind::MemberAccess
+                };
 
-                base.create_identifier(
-                    &name_node,
-                    name,
-                    IdentifierKind::MemberAccess,
-                    containing_symbol_id,
-                );
+                base.create_identifier(&name_node, name, kind, containing_symbol_id);
+            }
+        }
+
+        // Infix call: `a plusTax 20` calls `plusTax`.
+        "infix_expression" => {
+            if let Some(operator) = node.child(1).filter(|child| child.kind() == "identifier") {
+                let name = identifier_name(base, &operator);
+                let containing = find_containing_symbol_id(node, containing_symbols);
+                base.create_identifier(&operator, name, IdentifierKind::Call, containing);
+            }
+        }
+
+        // Function reference: `::isValid`.
+        "callable_reference" => {
+            let member = node
+                .children(&mut node.walk())
+                .filter(|child| child.kind() == "identifier")
+                .last();
+            if let Some(member) = member {
+                let name = identifier_name(base, &member);
+                if name != "class" {
+                    let containing = find_containing_symbol_id(node, containing_symbols);
+                    base.create_identifier(&member, name, IdentifierKind::Call, containing);
+                }
             }
         }
 
@@ -248,6 +305,9 @@ fn is_kotlin_value_read_identifier(node: Node) -> bool {
         // (`until` in `0 until count`) is the infix FUNCTION, a callee — not a
         // value read. The operands (children 0 and 2) are reads.
         "infix_expression" => parent.child(1).map(|c| c.id()) != Some(node.id()),
+
+        // The referenced function of `::name` is owned by the Call arm.
+        "callable_reference" => false,
 
         // Rule 4: the LHS of a PLAIN assignment is write-only; a COMPOUND
         // operator (`+=`, …) reads. The RHS is always a read.

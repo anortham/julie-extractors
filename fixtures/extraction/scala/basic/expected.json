@@ -257,6 +257,9 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "base_types": [
+          "Job"
+        ],
         "modifiers": "@",
         "type": "class"
       },
@@ -704,10 +707,10 @@
       "file_path": "fixtures/extraction/scala/basic/source.scala",
       "start_line": 59,
       "start_column": 0,
-      "end_line": 62,
-      "end_column": 0,
+      "end_line": 60,
+      "end_column": 38,
       "start_byte": 1216,
-      "end_byte": 1279,
+      "end_byte": 1277,
       "body_span": {
         "start_line": 60,
         "start_column": 2,
@@ -1338,17 +1341,17 @@
       "file_path": "fixtures/extraction/scala/basic/source.scala",
       "start_line": 42,
       "start_column": 2,
-      "end_line": 47,
-      "end_column": 0,
+      "end_line": 46,
+      "end_column": 20,
       "start_byte": 964,
-      "end_byte": 1081,
+      "end_byte": 1080,
       "body_span": {
         "start_line": 43,
         "start_column": 4,
-        "end_line": 47,
-        "end_column": 0,
+        "end_line": 46,
+        "end_column": 20,
         "start_byte": 1016,
-        "end_byte": 1081
+        "end_byte": 1080
       },
       "body_hash": "9cbbd2075aa475da6210b42919677c7f",
       "signature": "def scanPositive(items: List[Int]): List[Int]",
@@ -1609,24 +1612,6 @@
       }
     },
     {
-      "from_key": "fixtures/extraction/scala/basic/source.scala:built:78:4",
-      "to_key": "fixtures/extraction/scala/basic/source.scala:build:87:0",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "line_number": 78,
-      "span": {
-        "start_line": 78,
-        "start_column": 16,
-        "end_line": 78,
-        "end_column": 23,
-        "start_byte": 1657,
-        "end_byte": 1664
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": null
-    },
-    {
       "from_key": "fixtures/extraction/scala/basic/source.scala:fetchStatus:26:2",
       "to_key": "fixtures/extraction/scala/basic/source.scala:fetchUrl:30:2",
       "kind": "calls",
@@ -1639,6 +1624,42 @@
         "end_column": 54,
         "start_byte": 637,
         "end_byte": 687
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "to_key": "fixtures/extraction/scala/basic/source.scala:Foo:65:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "line_number": 74,
+      "span": {
+        "start_line": 74,
+        "start_column": 22,
+        "end_line": 74,
+        "end_column": 31,
+        "start_byte": 1521,
+        "end_byte": 1530
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "to_key": "fixtures/extraction/scala/basic/source.scala:build:87:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "line_number": 78,
+      "span": {
+        "start_line": 78,
+        "start_column": 16,
+        "end_line": 78,
+        "end_column": 23,
+        "start_byte": 1657,
+        "end_byte": 1664
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -1727,35 +1748,19 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/scala/basic/source.scala:Widget:71:2",
-      "callee_name": "this",
+      "from_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "callee_name": "Foo",
       "kind": "calls",
       "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "line_number": 71,
+      "line_number": 75,
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/scala/basic/source.scala:imported:77:4",
-      "callee_name": "scala.collection.mutable.ListBuffer",
+      "from_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "callee_name": "Unknown",
       "kind": "calls",
       "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "line_number": 77,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/scala/basic/source.scala:imported:77:4",
-      "callee_name": "scala.collection.mutable.ListBuffer",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "line_number": 77,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/scala/basic/source.scala:imported:77:4",
-      "callee_name": "scala.collection.mutable.ListBuffer",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "line_number": 77,
+      "line_number": 76,
       "confidence": "0.700"
     },
     {
@@ -1768,10 +1773,10 @@
     },
     {
       "from_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
-      "callee_name": "other.m",
+      "callee_name": "scala.collection.mutable.ListBuffer",
       "kind": "calls",
       "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "line_number": 81,
+      "line_number": 77,
       "confidence": "0.700"
     },
     {
@@ -1780,62 +1785,6 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/scala/basic/source.scala",
       "line_number": 80,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
-      "callee_name": "this.missingWave2",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "line_number": 80,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/scala/basic/source.scala:sameFile:75:4",
-      "callee_name": "Foo",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "line_number": 75,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/scala/basic/source.scala:sameFile:75:4",
-      "callee_name": "Foo",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "line_number": 75,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/scala/basic/source.scala:sameFile:75:4",
-      "callee_name": "Foo",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "line_number": 75,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/scala/basic/source.scala:unknown:76:4",
-      "callee_name": "Unknown",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "line_number": 76,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/scala/basic/source.scala:unknown:76:4",
-      "callee_name": "Unknown",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "line_number": 76,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/scala/basic/source.scala:unknown:76:4",
-      "callee_name": "Unknown",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "line_number": 76,
       "confidence": "0.700"
     }
   ],
@@ -1868,115 +1817,54 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/scala/basic/source.scala:Widget:71:2",
-        "callee_name": "this",
+        "from_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+        "callee_name": "Foo",
         "kind": "calls",
         "file_path": "fixtures/extraction/scala/basic/source.scala",
-        "line_number": 71,
+        "line_number": 75,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "this",
-        "terminal_name": "this",
+        "display_name": "Foo",
+        "terminal_name": "Foo",
         "receiver": null,
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:Widget:71:2",
+      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
       "span": {
-        "start_line": 71,
-        "start_column": 24,
-        "end_line": 71,
-        "end_column": 30,
-        "start_byte": 1443,
-        "end_byte": 1449
+        "start_line": 75,
+        "start_column": 19,
+        "end_line": 75,
+        "end_column": 24,
+        "start_byte": 1550,
+        "end_byte": 1555
       }
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/scala/basic/source.scala:imported:77:4",
-        "callee_name": "scala.collection.mutable.ListBuffer",
+        "from_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+        "callee_name": "Unknown",
         "kind": "calls",
         "file_path": "fixtures/extraction/scala/basic/source.scala",
-        "line_number": 77,
+        "line_number": 76,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "scala.collection.mutable.ListBuffer",
-        "terminal_name": "ListBuffer",
-        "receiver": "mutable",
-        "namespace_path": [
-          "scala",
-          "collection"
-        ],
+        "display_name": "Unknown",
+        "terminal_name": "Unknown",
+        "receiver": null,
+        "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:imported:77:4",
+      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
       "span": {
-        "start_line": 77,
-        "start_column": 19,
-        "end_line": 77,
-        "end_column": 56,
-        "start_byte": 1603,
-        "end_byte": 1640
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/scala/basic/source.scala:imported:77:4",
-        "callee_name": "scala.collection.mutable.ListBuffer",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/scala/basic/source.scala",
-        "line_number": 77,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "scala.collection.mutable.ListBuffer",
-        "terminal_name": "ListBuffer",
-        "receiver": "mutable",
-        "namespace_path": [
-          "scala",
-          "collection"
-        ],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:imported:77:4",
-      "span": {
-        "start_line": 77,
-        "start_column": 19,
-        "end_line": 77,
-        "end_column": 56,
-        "start_byte": 1603,
-        "end_byte": 1640
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/scala/basic/source.scala:imported:77:4",
-        "callee_name": "scala.collection.mutable.ListBuffer",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/scala/basic/source.scala",
-        "line_number": 77,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "scala.collection.mutable.ListBuffer",
-        "terminal_name": "ListBuffer",
-        "receiver": "mutable",
-        "namespace_path": [
-          "scala",
-          "collection"
-        ],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:imported:77:4",
-      "span": {
-        "start_line": 77,
-        "start_column": 19,
-        "end_line": 77,
-        "end_column": 56,
-        "start_byte": 1603,
-        "end_byte": 1640
+        "start_line": 76,
+        "start_column": 18,
+        "end_line": 76,
+        "end_column": 27,
+        "start_byte": 1574,
+        "end_byte": 1583
       }
     },
     {
@@ -2008,27 +1896,30 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
-        "callee_name": "other.m",
+        "callee_name": "scala.collection.mutable.ListBuffer",
         "kind": "calls",
         "file_path": "fixtures/extraction/scala/basic/source.scala",
-        "line_number": 81,
+        "line_number": 77,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "other.m",
-        "terminal_name": "m",
-        "receiver": "other",
-        "namespace_path": [],
+        "display_name": "scala.collection.mutable.ListBuffer",
+        "terminal_name": "ListBuffer",
+        "receiver": "mutable",
+        "namespace_path": [
+          "scala",
+          "collection"
+        ],
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
       "span": {
-        "start_line": 81,
-        "start_column": 4,
-        "end_line": 81,
-        "end_column": 13,
-        "start_byte": 1706,
-        "end_byte": 1715
+        "start_line": 77,
+        "start_column": 19,
+        "end_line": 77,
+        "end_column": 56,
+        "start_byte": 1603,
+        "end_byte": 1640
       }
     },
     {
@@ -2057,189 +1948,6 @@
         "end_byte": 1701
       },
       "receiver_type": "Widget"
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
-        "callee_name": "this.missingWave2",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/scala/basic/source.scala",
-        "line_number": 80,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "this.missingWave2",
-        "terminal_name": "missingWave2",
-        "receiver": "this",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
-      "span": {
-        "start_line": 80,
-        "start_column": 4,
-        "end_line": 80,
-        "end_column": 23,
-        "start_byte": 1682,
-        "end_byte": 1701
-      },
-      "receiver_type": "Widget"
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/scala/basic/source.scala:sameFile:75:4",
-        "callee_name": "Foo",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/scala/basic/source.scala",
-        "line_number": 75,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Foo",
-        "terminal_name": "Foo",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:sameFile:75:4",
-      "span": {
-        "start_line": 75,
-        "start_column": 19,
-        "end_line": 75,
-        "end_column": 24,
-        "start_byte": 1550,
-        "end_byte": 1555
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/scala/basic/source.scala:sameFile:75:4",
-        "callee_name": "Foo",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/scala/basic/source.scala",
-        "line_number": 75,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Foo",
-        "terminal_name": "Foo",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:sameFile:75:4",
-      "span": {
-        "start_line": 75,
-        "start_column": 19,
-        "end_line": 75,
-        "end_column": 24,
-        "start_byte": 1550,
-        "end_byte": 1555
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/scala/basic/source.scala:sameFile:75:4",
-        "callee_name": "Foo",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/scala/basic/source.scala",
-        "line_number": 75,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Foo",
-        "terminal_name": "Foo",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:sameFile:75:4",
-      "span": {
-        "start_line": 75,
-        "start_column": 19,
-        "end_line": 75,
-        "end_column": 24,
-        "start_byte": 1550,
-        "end_byte": 1555
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/scala/basic/source.scala:unknown:76:4",
-        "callee_name": "Unknown",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/scala/basic/source.scala",
-        "line_number": 76,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Unknown",
-        "terminal_name": "Unknown",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:unknown:76:4",
-      "span": {
-        "start_line": 76,
-        "start_column": 18,
-        "end_line": 76,
-        "end_column": 27,
-        "start_byte": 1574,
-        "end_byte": 1583
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/scala/basic/source.scala:unknown:76:4",
-        "callee_name": "Unknown",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/scala/basic/source.scala",
-        "line_number": 76,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Unknown",
-        "terminal_name": "Unknown",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:unknown:76:4",
-      "span": {
-        "start_line": 76,
-        "start_column": 18,
-        "end_line": 76,
-        "end_column": 27,
-        "start_byte": 1574,
-        "end_byte": 1583
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/scala/basic/source.scala:unknown:76:4",
-        "callee_name": "Unknown",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/scala/basic/source.scala",
-        "line_number": 76,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Unknown",
-        "terminal_name": "Unknown",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/scala/basic/source.scala:unknown:76:4",
-      "span": {
-        "start_line": 76,
-        "start_column": 18,
-        "end_line": 76,
-        "end_column": 27,
-        "start_byte": 1574,
-        "end_byte": 1583
-      }
     }
   ],
   "identifiers": [
@@ -3561,7 +3269,7 @@
       "node_kind": "extension_definition",
       "language": "scala",
       "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "containing_key": "fixtures/extraction/scala/basic/source.scala:extension:59:0",
+      "containing_key": null,
       "start_line": 59,
       "start_column": 0,
       "end_line": 62,
@@ -4015,18 +3723,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "scala",
       "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "covered_lines": 5,
-      "covered_bytes": 65,
+      "covered_lines": 4,
+      "covered_bytes": 64,
       "decision_count": 1,
       "loop_count": 1,
       "max_nesting_depth": 2,
       "parameter_count": 1,
       "start_line": 43,
       "start_column": 4,
-      "end_line": 47,
-      "end_column": 0,
+      "end_line": 46,
+      "end_column": 20,
       "start_byte": 1016,
-      "end_byte": 1081,
+      "end_byte": 1080,
       "metadata": {
         "metric_version": 1
       }

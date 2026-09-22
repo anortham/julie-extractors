@@ -16,7 +16,10 @@ pub(super) fn extract_modifiers(base: &Base, node: &Node) -> Vec<String> {
             // Walk into modifiers container
             for mod_child in child.children(&mut child.walk()) {
                 let text = base.get_node_text(&mod_child);
-                if is_modifier_keyword(&text) || text.starts_with('@') {
+                if mod_child.kind() == "access_modifier" {
+                    // `private[core]` keeps its qualifier; visibility reads the prefix.
+                    modifiers.push(text.split_whitespace().collect());
+                } else if is_modifier_keyword(&text) || text.starts_with('@') {
                     modifiers.push(text);
                 }
             }
@@ -158,15 +161,67 @@ pub(super) fn get_name(base: &Base, node: &Node) -> Option<String> {
 }
 
 pub(super) fn enclosing_type_name(base: &Base, node: &Node) -> Option<String> {
-    let mut current = node.parent();
-    while let Some(candidate) = current {
-        if matches!(
+    get_name(base, &enclosing_type_definition(node)?)
+}
+
+fn enclosing_type_definition<'tree>(node: &Node<'tree>) -> Option<Node<'tree>> {
+    std::iter::successors(node.parent(), |candidate| candidate.parent()).find(|candidate| {
+        matches!(
             candidate.kind(),
             "class_definition" | "object_definition" | "trait_definition" | "enum_definition"
-        ) {
-            return get_name(base, &candidate);
-        }
-        current = candidate.parent();
+        )
+    })
+}
+
+/// The first type in the enclosing definition's `extends` clause, without
+/// type arguments: the type a `super.m()` call dispatches to.
+pub(super) fn enclosing_supertype_name(base: &Base, node: &Node) -> Option<String> {
+    let definition = enclosing_type_definition(node)?;
+    let extends = definition
+        .children(&mut definition.walk())
+        .find(|child| child.kind() == "extends_clause")?;
+    let mut supertype = extends.child_by_field_name("type")?;
+    if supertype.kind() == "generic_type" {
+        supertype = supertype.child_by_field_name("type")?;
     }
-    None
+    Some(base.get_node_text(&supertype))
+}
+
+/// `private`, `protected` and their qualified forms such as `private[core]`.
+pub(super) fn is_access_modifier(modifier: &str) -> bool {
+    modifier.starts_with("private") || modifier.starts_with("protected")
+}
+
+/// The supertypes named in a definition's `extends` clause, without type
+/// arguments: `extends munit.FunSuite with Matchers[Int]` gives
+/// `munit.FunSuite` and `Matchers`.
+pub(super) fn extends_type_names(base: &Base, node: &Node) -> Vec<String> {
+    fn collect(base: &Base, node: Node, names: &mut Vec<String>) {
+        match node.kind() {
+            "type_identifier" | "stable_type_identifier" => names.push(base.get_node_text(&node)),
+            "generic_type" => {
+                if let Some(inner) = node.child_by_field_name("type") {
+                    collect(base, inner, names);
+                }
+            }
+            "compound_type" | "annotated_type" => {
+                let mut cursor = node.walk();
+                for child in node.named_children(&mut cursor) {
+                    collect(base, child, names);
+                }
+            }
+            _ => {}
+        }
+    }
+    let mut names = Vec::new();
+    if let Some(extends) = node
+        .children(&mut node.walk())
+        .find(|n| n.kind() == "extends_clause")
+    {
+        let mut cursor = extends.walk();
+        for child in extends.named_children(&mut cursor) {
+            collect(base, child, &mut names);
+        }
+    }
+    names
 }

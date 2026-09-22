@@ -97,7 +97,26 @@
       "content_type": null
     }
   ],
-  "relationships": [],
+  "relationships": [
+    {
+      "from_key": "fixtures/extraction/scala/return_types/source.scala:make:2:17",
+      "to_key": "fixtures/extraction/scala/return_types/source.scala:Result:1:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/return_types/source.scala",
+      "line_number": 2,
+      "span": {
+        "start_line": 2,
+        "start_column": 38,
+        "end_line": 2,
+        "end_column": 48,
+        "start_byte": 51,
+        "end_byte": 61
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    }
+  ],
   "pending_relationships": [],
   "structured_pending_relationships": [],
   "identifiers": [

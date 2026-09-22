@@ -23,7 +23,7 @@
       "body_hash": "5f638ed7a906b4794416b96dfbfc2eff",
       "signature": "abstract class AbstractLedgerTest",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {},
       "annotations": [],
@@ -54,7 +54,7 @@
       "body_hash": "1e61e866e00ef9b3ead2e15fe77003d3",
       "signature": "class LedgerJUnit4Test",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "test_container": true,
@@ -88,7 +88,7 @@
       "body_hash": "a2bc8cd08eff089eab6e16a99bba6163",
       "signature": "class LedgerJUnit5Test extends AbstractLedgerTest",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "base_types": [
@@ -125,7 +125,7 @@
       "body_hash": "0c695672b8866d3385fb4fafdaa63dc5",
       "signature": "class LedgerSupport",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {},
       "annotations": [],
@@ -156,7 +156,7 @@
       "body_hash": "f2a751655a17cf93cf05d796346cbb2b",
       "signature": "class LedgerTestHelpers",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {},
       "annotations": [],
@@ -187,7 +187,7 @@
       "body_hash": "39ed2be2b38c7f3b46452f3b4d5a0df1",
       "signature": "@org.testng.annotations.Test class LedgerTestNgTest",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "test_container": true,
@@ -227,7 +227,7 @@
       "body_hash": "6b7ae149196ddbe0a57f71032e65f819",
       "signature": "class LegacyLedgerTest extends TestCase",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "base_types": [
@@ -288,7 +288,7 @@
       "body_hash": "62ffeb9f46cf05c7c602ff2986953860",
       "signature": "@org.junit.jupiter.api.Nested class WhenLedgerIsEmpty",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/test_roles/test_source.java:LedgerJUnit5Test:19:0",
       "metadata": {
         "test_container": true,
@@ -328,7 +328,7 @@
       "body_hash": "f330ed4b482af70baf11cfa4f8ebf0bf",
       "signature": "@org.junit.jupiter.params.ParameterizedTest void addsEachPair()",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/test_roles/test_source.java:LedgerJUnit5Test:19:0",
       "metadata": {
         "is_test": true,
@@ -368,7 +368,7 @@
       "body_hash": "d89e6c2c61f7e9da84f6f44790d7c557",
       "signature": "@org.junit.jupiter.api.RepeatedTest void addsRepeatedly()",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/test_roles/test_source.java:LedgerJUnit5Test:19:0",
       "metadata": {
         "is_test": true,
@@ -408,7 +408,7 @@
       "body_hash": "7b0b8ada05290707b46e02be5574f4f4",
       "signature": "@org.junit.jupiter.api.Test void addsTwoNumbers()",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/test_roles/test_source.java:LedgerJUnit5Test:19:0",
       "metadata": {
         "is_test": true,
@@ -563,7 +563,7 @@
       "body_hash": "261c152e1370c1303500fc218a5675e2",
       "signature": "@org.junit.jupiter.api.AfterAll static void afterAll()",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/test_roles/test_source.java:LedgerJUnit5Test:19:0",
       "metadata": {
         "is_test": true,
@@ -809,7 +809,7 @@
       "body_hash": "261c152e1370c1303500fc218a5675e2",
       "signature": "@org.junit.jupiter.api.BeforeAll static void beforeAll()",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/test_roles/test_source.java:LedgerJUnit5Test:19:0",
       "metadata": {
         "is_test": true,
@@ -1014,7 +1014,7 @@
       "body_hash": "d5b4749f8b4d5779b56cd458c189eb97",
       "signature": "@org.junit.jupiter.api.TestFactory void buildsDynamicCases()",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/test_roles/test_source.java:LedgerJUnit5Test:19:0",
       "metadata": {
         "is_test": true,
@@ -1166,7 +1166,7 @@
       "body_hash": "261c152e1370c1303500fc218a5675e2",
       "signature": "@org.junit.jupiter.api.Test void reportsZero()",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/test_roles/test_source.java:WhenLedgerIsEmpty:65:4",
       "metadata": {
         "is_test": true,
@@ -1230,7 +1230,7 @@
       "body_hash": "f80ce28331181beac2085ff3df7c9618",
       "signature": "@org.junit.jupiter.api.TestTemplate void runsTemplate()",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/test_roles/test_source.java:LedgerJUnit5Test:19:0",
       "metadata": {
         "is_test": true,
@@ -1327,7 +1327,7 @@
       "body_hash": "a9c31b0f02ada46bafe2bad708928b7f",
       "signature": "@org.junit.jupiter.api.BeforeEach void setUp()",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/test_roles/test_source.java:LedgerJUnit5Test:19:0",
       "metadata": {
         "is_test": true,
@@ -1368,7 +1368,7 @@
       "body_hash": "aa7d542a386bfc672c1651827aa7ee89",
       "signature": "@org.junit.jupiter.api.AfterEach void tearDown()",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/test_roles/test_source.java:LedgerJUnit5Test:19:0",
       "metadata": {
         "is_test": true,
@@ -1474,7 +1474,7 @@
       "body_hash": "8388b160b0407f407a0141dc7d7395d0",
       "signature": "static int total(int first, int second)",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/java/test_roles/test_source.java:LedgerSupport:5:0",
       "metadata": null,
       "annotations": [],

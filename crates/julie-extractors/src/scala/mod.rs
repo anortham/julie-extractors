@@ -8,6 +8,7 @@
 //! - Given instances, extension methods
 //! - Imports, packages
 
+mod braceless;
 mod declarations;
 mod helpers;
 mod identifiers;
@@ -72,6 +73,7 @@ impl ScalaExtractor {
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
+        crate::test_detection::mark_scala_test_containers(&mut symbols);
         symbols
     }
 
@@ -149,6 +151,13 @@ impl ScalaExtractor {
                     parent_id.as_deref(),
                 );
             }
+            "assignment_expression" => {
+                symbol = test_calls::extract_scalacheck_property(
+                    &mut self.base,
+                    &node,
+                    parent_id.as_deref(),
+                );
+            }
             "infix_expression" => {
                 symbol = test_calls::extract_scala_flatspec_test(
                     &mut self.base,
@@ -157,6 +166,21 @@ impl ScalaExtractor {
                 );
             }
             _ => {}
+        }
+
+        if let Some(sym) = symbol.as_mut() {
+            braceless::apply(&mut self.base, &node, sym);
+            let base_types = helpers::extends_type_names(&self.base, &node);
+            if !base_types.is_empty()
+                && matches!(
+                    node.kind(),
+                    "class_definition" | "trait_definition" | "object_definition"
+                )
+            {
+                sym.metadata
+                    .get_or_insert_with(Default::default)
+                    .insert("base_types".to_string(), serde_json::json!(base_types));
+            }
         }
 
         if let Some(ref sym) = symbol {
@@ -200,6 +224,13 @@ impl ScalaExtractor {
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
         let mut relationships = Vec::new();
         self.visit_node_for_relationships(tree.root_node(), symbols, &mut relationships, 0);
+        relationships::extract_call_relationships(
+            self,
+            tree.root_node(),
+            symbols,
+            &mut relationships,
+            0,
+        );
         dedupe_relationships(&mut relationships);
         relationships
     }
@@ -215,41 +246,11 @@ impl ScalaExtractor {
             return;
         }
 
-        match node.kind() {
-            "class_definition" | "trait_definition" | "object_definition" | "enum_definition" => {
-                relationships::extract_inheritance_relationships(
-                    self,
-                    &node,
-                    symbols,
-                    relationships,
-                );
-                relationships::extract_call_relationships(
-                    self,
-                    node,
-                    symbols,
-                    relationships,
-                    depth,
-                );
-            }
-            "function_definition" | "function_declaration" => {
-                relationships::extract_call_relationships(
-                    self,
-                    node,
-                    symbols,
-                    relationships,
-                    depth,
-                );
-            }
-            "val_definition" | "var_definition" | "given_definition" | "extension_definition" => {
-                relationships::extract_call_relationships(
-                    self,
-                    node,
-                    symbols,
-                    relationships,
-                    depth,
-                );
-            }
-            _ => {}
+        if matches!(
+            node.kind(),
+            "class_definition" | "trait_definition" | "object_definition" | "enum_definition"
+        ) {
+            relationships::extract_inheritance_relationships(self, &node, symbols, relationships);
         }
 
         let Some(child_depth) = child_tree_depth(depth) else {
