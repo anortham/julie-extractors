@@ -26,7 +26,7 @@ pub mod framework_structural_facts;
 pub mod http_boundary;
 pub mod kinds;
 pub mod marker_structural_facts;
-mod markup_scan;
+pub(crate) mod markup_scan;
 pub mod relationship_resolution;
 mod results_normalization;
 mod rust_doc_test_facts;

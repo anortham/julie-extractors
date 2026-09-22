@@ -8,9 +8,12 @@
 use std::collections::HashMap;
 use std::path::Path;
 
+use tree_sitter::Tree;
+
+use crate::base::relationship_resolution::{StructuredPendingRelationship, UnresolvedTarget};
 use crate::base::{
-    ComplexityMetric, EmbeddedSpanOffset, ExtractionLevel, ExtractionResults, NormalizedSpan,
-    Symbol,
+    ComplexityMetric, EmbeddedSpanOffset, ExtractionLevel, ExtractionResults, Identifier,
+    IdentifierKind, Literal, NormalizedSpan, Relationship, RelationshipKind, Symbol,
 };
 
 /// Extracts `source` as `language` and moves the rows to the host file, where
@@ -24,12 +27,36 @@ pub(crate) fn extract_embedded(
     workspace_root: &Path,
     level: ExtractionLevel,
 ) -> Option<ExtractionResults> {
-    let offset = EmbeddedSpanOffset::from_host_byte(host_content, host_byte_offset)?;
     let mut parser = crate::pipeline::configured_parser_for_language(language).ok()?;
     let tree = parser.parse(source, None)?;
-    let mut results = crate::registry::extract_for_language_at(
+    extract_embedded_tree(
         language,
         &tree,
+        source,
+        host_content,
+        host_byte_offset,
+        file_path,
+        workspace_root,
+        level,
+    )
+}
+
+/// [`extract_embedded`] for a block the caller already parsed.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn extract_embedded_tree(
+    language: &str,
+    tree: &Tree,
+    source: &str,
+    host_content: &str,
+    host_byte_offset: usize,
+    file_path: &str,
+    workspace_root: &Path,
+    level: ExtractionLevel,
+) -> Option<ExtractionResults> {
+    let offset = EmbeddedSpanOffset::from_host_byte(host_content, host_byte_offset)?;
+    let mut results = crate::registry::extract_for_language_at(
+        language,
+        tree,
         file_path,
         source,
         workspace_root,
@@ -38,9 +65,170 @@ pub(crate) fn extract_embedded(
     .ok()?;
     results
         .parse_diagnostics
-        .extend(crate::pipeline::parse_diagnostics_for_tree(&tree));
+        .extend(crate::pipeline::parse_diagnostics_for_tree(tree));
     remap_to_host(&mut results, offset);
     Some(results)
+}
+
+/// Identifiers and literals of JavaScript held in markup: an attribute value
+/// or an interpolation whose text starts at host byte `start`. An object
+/// literal is parsed inside parentheses laid over the byte before and after
+/// the text, so offsets still map one to one. With `handler`, a value that is
+/// only a name or member path (`save`, `app.save`) names the function the
+/// event invokes and becomes a call.
+pub(crate) fn extract_expression(
+    host_content: &str,
+    start: usize,
+    text: &str,
+    file_path: &str,
+    handler: bool,
+) -> Option<(Vec<Identifier>, Vec<Literal>)> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let (source, source_start) = if trimmed.starts_with('{') && start > 0 {
+        (format!("({text})"), start - 1)
+    } else {
+        (text.to_string(), start)
+    };
+    let results = extract_embedded(
+        "javascript",
+        &source,
+        host_content,
+        source_start,
+        file_path,
+        Path::new(""),
+        ExtractionLevel::Full,
+    )?;
+    let reference_end =
+        (handler && is_member_path(trimmed)).then(|| (start + text.trim_end().len()) as u32);
+    let mut identifiers = results.identifiers;
+    for identifier in &mut identifiers {
+        identifier.containing_symbol_id = None;
+        identifier.target_symbol_id = None;
+        if reference_end == Some(identifier.end_byte) {
+            identifier.kind = IdentifierKind::Call;
+        }
+    }
+    let mut literals = results.literals;
+    for literal in &mut literals {
+        literal.containing_symbol_id = None;
+    }
+    Some((identifiers, literals))
+}
+
+/// `name` or `a.b.c`: identifier segments joined by dots.
+pub(crate) fn is_member_path(value: &str) -> bool {
+    !value.is_empty()
+        && value.split('.').all(|segment| {
+            let mut chars = segment.chars();
+            chars
+                .next()
+                .is_some_and(|first| first.is_alphabetic() || first == '_' || first == '$')
+                && chars.all(|ch| ch.is_alphanumeric() || ch == '_' || ch == '$')
+        })
+}
+
+/// Links expression identifiers owned by `caller` to same-file symbols. A
+/// bare call to a unique local callable gives a `calls` edge; any other bare
+/// call gives a pending call. With `bindings`, a variable read of a unique
+/// local binding gives a `references` edge. Member calls (`a.b()`) stay
+/// identifiers only, as in JavaScript files.
+pub(crate) fn link_expression_identifiers(
+    host_content: &str,
+    caller: &Symbol,
+    identifiers: &[Identifier],
+    callables: &HashMap<&str, Option<&Symbol>>,
+    bindings: Option<&HashMap<&str, Option<&Symbol>>>,
+    relationships: &mut Vec<Relationship>,
+    pending: &mut Vec<StructuredPendingRelationship>,
+) {
+    for identifier in identifiers {
+        let span = identifier_span(identifier);
+        let target = match identifier.kind {
+            IdentifierKind::Call => {
+                let member_call = host_content
+                    .get(..identifier.start_byte as usize)
+                    .is_some_and(|prefix| prefix.trim_end().ends_with('.'));
+                if member_call {
+                    continue;
+                }
+                match callables.get(identifier.name.as_str()) {
+                    Some(Some(target)) => Some((*target, RelationshipKind::Calls)),
+                    _ => {
+                        let mut row = StructuredPendingRelationship::new(
+                            caller.id.clone(),
+                            UnresolvedTarget::simple(identifier.name.clone()),
+                            Some(caller.id.clone()),
+                            RelationshipKind::Calls,
+                            identifier.file_path.clone(),
+                            span.start_line,
+                            0.9,
+                        );
+                        row.span = Some(span);
+                        row.reference_site_is_exact = true;
+                        pending.push(row);
+                        None
+                    }
+                }
+            }
+            IdentifierKind::VariableRef => bindings
+                .and_then(|bindings| bindings.get(identifier.name.as_str()))
+                .and_then(|target| *target)
+                .map(|target| (target, RelationshipKind::References)),
+            _ => None,
+        };
+        let Some((target, kind)) = target else {
+            continue;
+        };
+        if target.id == caller.id {
+            continue;
+        }
+        relationships.push(Relationship {
+            id: format!(
+                "{}_{}_{:?}_{}_{}",
+                caller.id, target.id, kind, span.start_line, span.start_byte
+            ),
+            from_symbol_id: caller.id.clone(),
+            to_symbol_id: target.id.clone(),
+            kind,
+            file_path: identifier.file_path.clone(),
+            line_number: span.start_line,
+            span: Some(span),
+            reference_site_is_exact: true,
+            confidence: 1.0,
+            metadata: Some(HashMap::from([(
+                "referenceName".to_string(),
+                serde_json::Value::String(identifier.name.clone()),
+            )])),
+        });
+    }
+}
+
+/// Symbols by name, `None` when the name is not unique.
+pub(crate) fn unique_by_name<'a>(
+    symbols: impl IntoIterator<Item = &'a Symbol>,
+) -> HashMap<&'a str, Option<&'a Symbol>> {
+    let mut by_name: HashMap<&str, Option<&Symbol>> = HashMap::new();
+    for symbol in symbols {
+        by_name
+            .entry(symbol.name.as_str())
+            .and_modify(|existing| *existing = None)
+            .or_insert(Some(symbol));
+    }
+    by_name
+}
+
+fn identifier_span(identifier: &Identifier) -> NormalizedSpan {
+    NormalizedSpan {
+        start_line: identifier.start_line,
+        start_column: identifier.start_column,
+        end_line: identifier.end_line,
+        end_column: identifier.end_column,
+        start_byte: identifier.start_byte,
+        end_byte: identifier.end_byte,
+    }
 }
 
 fn remap_to_host(results: &mut ExtractionResults, offset: EmbeddedSpanOffset) {

@@ -7,10 +7,10 @@ use std::collections::HashMap;
 use serde_json::Value;
 use tree_sitter::{Node, Tree};
 
-use crate::base::relationship_resolution::{StructuredPendingRelationship, UnresolvedTarget};
+use crate::base::relationship_resolution::StructuredPendingRelationship;
 use crate::base::{
-    BaseExtractor, ExtractionLevel, Identifier, IdentifierKind, Literal, NormalizedSpan,
-    Relationship, RelationshipKind, Symbol, SymbolKind,
+    BaseExtractor, Identifier, IdentifierKind, Literal, NormalizedSpan, Relationship, Symbol,
+    SymbolKind,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
@@ -29,7 +29,11 @@ pub(super) fn collect_handler_rows(
     symbols: &[Symbol],
 ) -> HandlerRows {
     let containing = base.containing_symbol_index(symbols);
-    let functions = unique_functions_by_name(symbols);
+    let functions = crate::embedded::unique_by_name(
+        symbols
+            .iter()
+            .filter(|symbol| symbol.kind == SymbolKind::Function),
+    );
     let mut rows = HandlerRows::default();
     let mut attributes = Vec::new();
     collect_attributes(tree.root_node(), &mut attributes, 0);
@@ -115,23 +119,6 @@ fn is_script_attribute(name: &str) -> bool {
         || name.starts_with("hx-on")
 }
 
-fn unique_functions_by_name(symbols: &[Symbol]) -> HashMap<&str, Option<&Symbol>> {
-    let mut functions: HashMap<&str, Option<&Symbol>> = HashMap::new();
-    for symbol in symbols
-        .iter()
-        .filter(|symbol| symbol.kind == SymbolKind::Function)
-    {
-        functions
-            .entry(symbol.name.as_str())
-            .and_modify(|existing| *existing = None)
-            .or_insert(Some(symbol));
-    }
-    functions
-}
-
-/// Parses the attribute value as JavaScript. An object literal (Alpine
-/// `x-data="{ ... }"`) is parsed inside parentheses that sit on the quote and
-/// the byte after the value, so offsets still map one to one.
 fn script_rows(
     base: &BaseExtractor,
     value: Node<'_>,
@@ -139,110 +126,33 @@ fn script_rows(
     functions: &HashMap<&str, Option<&Symbol>>,
     rows: &mut HandlerRows,
 ) {
-    let text = base.get_node_text(&value);
-    if text.trim().is_empty() {
-        return;
-    }
-    let (source, start) = if text.trim_start().starts_with('{') && value.start_byte() > 0 {
-        (format!("({text})"), value.start_byte() - 1)
-    } else {
-        (text, value.start_byte())
-    };
-    let Some(results) = crate::embedded::extract_embedded(
-        "javascript",
-        &source,
+    let Some((mut identifiers, literals)) = crate::embedded::extract_expression(
         &base.content,
-        start,
+        value.start_byte(),
+        &base.get_node_text(&value),
         &base.file_path,
-        std::path::Path::new(""),
-        ExtractionLevel::Full,
+        true,
     ) else {
         return;
     };
-
-    let handler_reference_end = is_handler_reference(source.trim()).then(|| {
-        let trailing = source.len() - source.trim_end().len();
-        (start + source.len() - trailing) as u32
-    });
-    for mut identifier in results.identifiers {
-        if handler_reference_end == Some(identifier.end_byte) {
-            identifier.kind = IdentifierKind::Call;
-        }
+    for identifier in &mut identifiers {
         identifier.containing_symbol_id = Some(caller.id.clone());
-        identifier.target_symbol_id = None;
-        if identifier.kind == IdentifierKind::Call && !has_receiver(&base.content, &identifier) {
-            call_row(base, &identifier, caller, functions, rows);
-        }
-        rows.identifiers.push(identifier);
     }
-    for mut literal in results.literals {
-        literal.containing_symbol_id = Some(caller.id.clone());
-        rows.literals.push(literal);
-    }
-}
-
-/// A value that is only a name or member path (`handleClick`,
-/// `app.save`) names the handler the event invokes.
-fn is_handler_reference(value: &str) -> bool {
-    !value.is_empty()
-        && value.split('.').all(|segment| {
-            let mut chars = segment.chars();
-            chars
-                .next()
-                .is_some_and(|first| first.is_alphabetic() || first == '_' || first == '$')
-                && chars.all(|ch| ch.is_alphanumeric() || ch == '_' || ch == '$')
-        })
-}
-
-/// A member call (`a.b()`, `a?.b()`) has a `.` before its name.
-fn has_receiver(content: &str, identifier: &Identifier) -> bool {
-    content
-        .get(..identifier.start_byte as usize)
-        .is_some_and(|prefix| prefix.trim_end().ends_with('.'))
-}
-
-fn call_row(
-    base: &BaseExtractor,
-    identifier: &Identifier,
-    caller: &Symbol,
-    functions: &HashMap<&str, Option<&Symbol>>,
-    rows: &mut HandlerRows,
-) {
-    let span = identifier_span(identifier);
-    if let Some(Some(target)) = functions.get(identifier.name.as_str()) {
-        rows.relationships.push(Relationship {
-            id: format!(
-                "{}_{}_{:?}_{}_{}",
-                caller.id,
-                target.id,
-                RelationshipKind::Calls,
-                span.start_line,
-                span.start_byte
-            ),
-            from_symbol_id: caller.id.clone(),
-            to_symbol_id: target.id.clone(),
-            kind: RelationshipKind::Calls,
-            file_path: base.file_path.clone(),
-            line_number: span.start_line,
-            span: Some(span),
-            reference_site_is_exact: true,
-            confidence: 1.0,
-            metadata: None,
-        });
-        return;
-    }
-    let mut pending = StructuredPendingRelationship::new(
-        caller.id.clone(),
-        UnresolvedTarget::simple(identifier.name.clone()),
-        Some(caller.id.clone()),
-        RelationshipKind::Calls,
-        base.file_path.clone(),
-        span.start_line,
-        0.9,
+    crate::embedded::link_expression_identifiers(
+        &base.content,
+        caller,
+        &identifiers,
+        functions,
+        None,
+        &mut rows.relationships,
+        &mut rows.pending,
     );
-    pending.span = Some(span);
-    pending.reference_site_is_exact = true;
-    rows.pending.push(pending);
+    rows.identifiers.extend(identifiers);
+    rows.literals
+        .extend(literals.into_iter().map(|mut literal| {
+            literal.containing_symbol_id = Some(caller.id.clone());
+            literal
+        }));
 }
 
 /// `click->hello#greet:prevent` becomes a call identifier `greet` with
@@ -268,7 +178,7 @@ fn stimulus_identifiers(
         let target_start = descriptor_start + descriptor.len() - target.len();
         let (controller, method) = target.split_once('#').unwrap_or(("", target));
         let method = method.split(':').next().unwrap_or(method);
-        if method.is_empty() || !is_handler_reference(method) || method.contains('.') {
+        if !crate::embedded::is_member_path(method) || method.contains('.') {
             continue;
         }
         let method_offset = if controller.is_empty() && !target.contains('#') {
@@ -310,16 +220,5 @@ fn stimulus_identifiers(
         };
         identifier.refresh_id();
         rows.identifiers.push(identifier);
-    }
-}
-
-fn identifier_span(identifier: &Identifier) -> NormalizedSpan {
-    NormalizedSpan {
-        start_line: identifier.start_line,
-        start_column: identifier.start_column,
-        end_line: identifier.end_line,
-        end_column: identifier.end_column,
-        start_byte: identifier.start_byte,
-        end_byte: identifier.end_byte,
     }
 }

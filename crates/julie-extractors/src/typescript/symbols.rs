@@ -63,6 +63,17 @@ fn visit_node(
         }
 
         // Variable/arrow function assignment
+        "variable_declarator"
+            if node
+                .child_by_field_name("name")
+                .is_some_and(|name| matches!(name.kind(), "object_pattern" | "array_pattern")) =>
+        {
+            symbols.extend(functions::extract_destructured_variables(
+                extractor,
+                node,
+                parent_id.as_deref(),
+            ));
+        }
         "variable_declarator" => {
             symbol = functions::extract_variable(extractor, node, parent_id.as_deref());
         }

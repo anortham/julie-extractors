@@ -37,7 +37,8 @@ host-language golden proves the remapped rows.
 
 - `crates/julie-extractors/src/test_calls.rs`
 - `crates/julie-extractors/src/html/scripts.rs`
-- `crates/julie-extractors/src/vue/test_calls.rs`
+- Vue script blocks (now through `src/embedded.rs`; see
+  `2026-09-22-embedded-blocks-use-native-pipeline.md`)
 - Registered HTML or Vue test-role goldens
 
 ## Future Agents

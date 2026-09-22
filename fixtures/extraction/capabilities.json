@@ -2172,6 +2172,11 @@
           "name": "return_types",
           "source": "fixtures/extraction/vue/return_types/source.vue",
           "expected": "fixtures/extraction/vue/return_types/expected.json"
+        },
+        {
+          "name": "language_gaps",
+          "source": "fixtures/extraction/vue/language_gaps/source.vue",
+          "expected": "fixtures/extraction/vue/language_gaps/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2186,9 +2191,15 @@
         "symbols": {
           "supported": [
             "class",
+            "enum",
+            "enum_member",
+            "export",
             "function",
             "import",
+            "interface",
+            "method",
             "property",
+            "type",
             "variable"
           ],
           "not_applicable": [],
@@ -2205,6 +2216,8 @@
         "identifiers": {
           "supported": [
             "call",
+            "member_access",
+            "type_usage",
             "variable_ref"
           ],
           "not_applicable": [],
@@ -2213,13 +2226,17 @@
         "body_spans": {
           "supported": [
             "class",
+            "enum",
+            "export",
             "function",
+            "import",
+            "interface",
+            "method",
             "property",
+            "type",
             "variable"
           ],
-          "not_applicable": [
-            "import"
-          ],
+          "not_applicable": [],
           "open_gaps": []
         },
         "structural_facts": {
@@ -2265,7 +2282,8 @@
         },
         "doc_comments": {
           "supported": [
-            "class"
+            "class",
+            "export"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2279,6 +2297,8 @@
         },
         "source_regions": {
           "supported": [
+            "comment",
+            "doc_comment",
             "embedded",
             "string_literal"
           ],

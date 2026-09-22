@@ -12,6 +12,7 @@ pub mod test_detection;
 pub mod type_arguments;
 
 mod complexity;
+mod gap_closure;
 
 use crate::base::SymbolKind;
 use crate::vue::VueExtractor;
@@ -160,7 +161,7 @@ export default {
         // Should find data, computed, methods, and individual method functions
         let data_symbol = symbols.iter().find(|s| s.name == "data");
         assert!(data_symbol.is_some());
-        assert_eq!(data_symbol.unwrap().kind, SymbolKind::Function);
+        assert_eq!(data_symbol.unwrap().kind, SymbolKind::Method);
 
         let computed_symbol = symbols.iter().find(|s| s.name == "computed");
         assert!(computed_symbol.is_some());

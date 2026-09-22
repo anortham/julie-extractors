@@ -6,6 +6,7 @@
 use super::helpers;
 use crate::base::{Symbol, SymbolKind, SymbolOptions, normalize_annotations};
 use crate::javascript::test_symbols::apply_declared_test_metadata;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use crate::typescript::TypeScriptExtractor;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -208,6 +209,124 @@ pub(super) fn extract_variable(
     );
     super::type_facts::record_variable_type_facts(extractor.base_mut(), &symbol.id, node);
     Some(symbol)
+}
+
+/// One variable per name a destructuring declarator binds:
+/// `const { users, loading: busy = false, ...rest } = store` binds `users`,
+/// `busy`, and `rest`. Each symbol spans its binding name.
+pub(super) fn extract_destructured_variables(
+    extractor: &mut TypeScriptExtractor,
+    node: Node,
+    parent_id: Option<&str>,
+) -> Vec<Symbol> {
+    let Some(pattern) = node
+        .child_by_field_name("name")
+        .filter(|name| matches!(name.kind(), "object_pattern" | "array_pattern"))
+    else {
+        return Vec::new();
+    };
+    let declaration = node
+        .parent()
+        .and_then(|parent| parent.child(0))
+        .map(|keyword| extractor.base().get_node_text(&keyword))
+        .unwrap_or_else(|| "const".to_string());
+    let value = extractor
+        .base()
+        .get_field_text(&node, "value")
+        .unwrap_or_default();
+    let signature = format!(
+        "{} {} = {}",
+        declaration,
+        extractor.base().get_node_text(&pattern),
+        value
+    );
+    let doc_comment = node
+        .parent()
+        .and_then(|parent| extractor.base().find_doc_comment(&parent));
+    let destructuring_type = if pattern.kind() == "array_pattern" {
+        "array"
+    } else {
+        "object"
+    };
+
+    let mut bindings = Vec::new();
+    collect_pattern_bindings(pattern, &mut bindings);
+    bindings
+        .into_iter()
+        .map(|(binding, is_rest)| {
+            let name = extractor.base().get_node_text(&binding);
+            let mut metadata = HashMap::from([
+                ("declarationType".to_string(), declaration.clone().into()),
+                ("isDestructured".to_string(), true.into()),
+                ("destructuringType".to_string(), destructuring_type.into()),
+            ]);
+            if is_rest {
+                metadata.insert("isRestParameter".to_string(), true.into());
+            }
+            extractor.base_mut().create_symbol(
+                &binding,
+                name,
+                SymbolKind::Variable,
+                SymbolOptions {
+                    signature: Some(signature.clone()),
+                    parent_id: parent_id.map(str::to_string),
+                    doc_comment: doc_comment.clone(),
+                    metadata: Some(metadata),
+                    ..Default::default()
+                },
+            )
+        })
+        .collect()
+}
+
+/// The identifiers a destructuring pattern binds, in source order, each with
+/// whether it is a rest binding.
+fn collect_pattern_bindings<'t>(pattern: Node<'t>, bindings: &mut Vec<(Node<'t>, bool)>) {
+    let mut cursor = pattern.walk();
+    for child in pattern.named_children(&mut cursor) {
+        collect_binding_target(child, false, bindings, 0);
+    }
+}
+
+fn collect_binding_target<'t>(
+    node: Node<'t>,
+    is_rest: bool,
+    bindings: &mut Vec<(Node<'t>, bool)>,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let target = match node.kind() {
+        "identifier" | "shorthand_property_identifier_pattern" => {
+            bindings.push((node, is_rest));
+            return;
+        }
+        "pair_pattern" => node.child_by_field_name("value"),
+        "object_assignment_pattern" | "assignment_pattern" => node.child_by_field_name("left"),
+        "rest_pattern" => {
+            let mut cursor = node.walk();
+            let target = node.named_children(&mut cursor).next();
+            if let Some(target) = target {
+                collect_binding_target(target, true, bindings, child_depth);
+            }
+            return;
+        }
+        "object_pattern" | "array_pattern" => {
+            let mut cursor = node.walk();
+            for child in node.named_children(&mut cursor) {
+                collect_binding_target(child, false, bindings, child_depth);
+            }
+            return;
+        }
+        _ => None,
+    };
+    if let Some(target) = target {
+        collect_binding_target(target, false, bindings, child_depth);
+    }
 }
 
 /// Build a function signature string (e.g., "foo(x, y): string")

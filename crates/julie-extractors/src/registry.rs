@@ -750,6 +750,7 @@ fn extract_vue(
         .map(|pending| pending.into_pending_relationship())
         .collect();
     let complexity_metrics = ext.extract_complexity_metrics(&symbols);
+    let (source_regions, parse_diagnostics) = ext.take_embedded_regions_and_diagnostics();
     Ok(ExtractionResults {
         symbols,
         relationships,
@@ -758,11 +759,11 @@ fn extract_vue(
         identifiers,
         type_argument_usages: ext.base.take_type_argument_usages(),
         literals: ext.base.take_literals(),
-        source_regions: Vec::new(),
+        source_regions,
         structural_facts: Vec::new(),
         complexity_metrics,
         types: types_with_base_info(types, "vue", &ext.base),
-        parse_diagnostics: Vec::new(),
+        parse_diagnostics,
     })
 }
 

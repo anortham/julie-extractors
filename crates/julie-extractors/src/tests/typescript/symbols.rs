@@ -895,3 +895,36 @@ class UserService {
         sig
     );
 }
+
+#[test]
+fn destructuring_declarations_bind_one_variable_per_name() {
+    let code = "const { users, loading: busy = false, nested: { deep }, ...rest } = storeToRefs(store)\nlet [first, , second = 2, ...others] = pair\n";
+    let results = crate::extract_canonical("state.ts", code, std::path::Path::new("/tmp/test"))
+        .expect("TypeScript extraction");
+    let variables: Vec<(&str, u32)> = results
+        .symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Variable)
+        .map(|symbol| (symbol.name.as_str(), symbol.start_column))
+        .collect();
+    assert_eq!(
+        variables,
+        vec![
+            ("users", 8),
+            ("busy", 24),
+            ("deep", 48),
+            ("rest", 59),
+            ("first", 5),
+            ("second", 14),
+            ("others", 29),
+        ]
+    );
+    let others = results
+        .symbols
+        .iter()
+        .find(|symbol| symbol.name == "others")
+        .expect("others");
+    let metadata = others.metadata.as_ref().expect("metadata");
+    assert_eq!(metadata["destructuringType"], "array");
+    assert_eq!(metadata["isRestParameter"], true);
+}

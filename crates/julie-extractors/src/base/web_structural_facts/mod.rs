@@ -26,7 +26,7 @@ use nextjs_nuxt::{
 };
 use react::{collect_react_router_route_definitions, collect_react_router_route_references};
 use vue::{collect_vue_router_route_definitions, collect_vue_structural_facts};
-pub(crate) use vue::{vue_script_section_ranges, vue_template_section_ranges};
+pub(crate) use vue::{vue_script_section_ranges, vue_section_ranges, vue_template_section_ranges};
 
 const CSS_SELECTOR_RULE_PATTERN_ID: &str = "css.selector_rule.v1";
 const CSS_CUSTOM_PROPERTY_PATTERN_ID: &str = "css.custom_property.v1";

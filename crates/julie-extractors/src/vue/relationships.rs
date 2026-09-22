@@ -1,501 +1,336 @@
-use super::parsing::{ParsedVueSfc, VueSection};
+//! Rows the component itself owns: template bindings, component tags, and
+//! calls made at the top level of a script block.
+
+use super::parsing::ParsedVueSfc;
+use crate::base::markup_scan::scan_markup_attributes;
 use crate::base::relationship_resolution::{StructuredPendingRelationship, UnresolvedTarget};
-use crate::base::{BaseExtractor, Relationship, RelationshipKind, Symbol, SymbolKind};
-use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
+use crate::base::{
+    BaseExtractor, Identifier, Literal, NormalizedSpan, Relationship, RelationshipKind, Symbol,
+    SymbolKind,
+};
+use crate::embedded::{extract_expression, link_expression_identifiers, unique_by_name};
 use regex::Regex;
-use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
-use tree_sitter::Node;
 
-static TEMPLATE_INTERPOLATION_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\{\{\s*([^}]+?)\s*\}\}").unwrap());
-static TEMPLATE_EVENT_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"@[A-Za-z0-9:_-]+\s*=\s*"([^"]+)""#).unwrap());
 static COMPONENT_TAG_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"<([A-Za-z][A-Za-z0-9_-]*)\b").unwrap());
-static IDENTIFIER_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"[A-Za-z_$][A-Za-z0-9_$]*").unwrap());
 
-pub(super) fn extract_relationships(
+const OPTION_GROUPS: [&str; 5] = ["props", "computed", "methods", "inject", "data"];
+
+#[derive(Default)]
+pub(super) struct ComponentRows {
+    pub(super) identifiers: Vec<Identifier>,
+    pub(super) literals: Vec<Literal>,
+    pub(super) relationships: Vec<Relationship>,
+    pub(super) pending: Vec<StructuredPendingRelationship>,
+}
+
+/// `script_identifiers` are the identifiers of every script block. Code
+/// outside any function or class runs as the component's setup, so the
+/// component is its caller; identifiers with no container get the component.
+pub(super) fn collect_component_rows(
     base: &BaseExtractor,
+    sfc: &ParsedVueSfc,
     symbols: &[Symbol],
-    parsed_sfc: &ParsedVueSfc,
-) -> Vec<Relationship> {
-    let local_symbols = unique_symbols_by_name(symbols);
-    let Some(component) = component_symbol(symbols) else {
-        return Vec::new();
+    script_symbol_ids: &HashSet<String>,
+    script_identifiers: &mut [Identifier],
+) -> ComponentRows {
+    let mut rows = ComponentRows::default();
+    let Some(component) = symbols.iter().find(|symbol| is_component(symbol)) else {
+        return rows;
     };
+    let bindings = component_bindings(symbols, script_symbol_ids);
+    let binding_map = unique_by_name(bindings.iter().copied());
+    let callables = unique_by_name(bindings.iter().copied().filter(|symbol| {
+        matches!(
+            symbol.kind,
+            SymbolKind::Function | SymbolKind::Method | SymbolKind::Variable
+        )
+    }));
 
-    let mut relationships = Vec::new();
-    let mut seen = HashSet::new();
-
-    for (idx, section) in parsed_sfc.sections.iter().enumerate() {
-        match section.section_type.as_str() {
-            "script" => collect_script_relationships(
-                base,
-                section,
-                parsed_sfc.script_tree(idx),
-                component,
-                &local_symbols,
-                &mut relationships,
-                &mut seen,
-            ),
-            "template" => collect_template_relationships(
-                base,
-                section,
-                component,
-                &local_symbols,
-                &mut relationships,
-                &mut seen,
-            ),
-            _ => {}
+    let by_id: HashMap<&str, &Symbol> = symbols
+        .iter()
+        .map(|symbol| (symbol.id.as_str(), symbol))
+        .collect();
+    let mut top_level = Vec::new();
+    for identifier in script_identifiers.iter_mut() {
+        if identifier.containing_symbol_id.is_none() {
+            identifier.containing_symbol_id = Some(component.id.clone());
+            top_level.push(identifier.clone());
+        } else if !inside_callable(&by_id, identifier.containing_symbol_id.as_deref()) {
+            top_level.push(identifier.clone());
         }
     }
-
-    relationships
-}
-
-pub(super) fn extract_structured_pending_relationships(
-    base: &BaseExtractor,
-    symbols: &[Symbol],
-    parsed_sfc: &ParsedVueSfc,
-) -> Vec<StructuredPendingRelationship> {
-    let Some(component) = component_symbol(symbols) else {
-        return Vec::new();
-    };
-    let local_symbols = unique_local_callables_by_name(symbols);
-    let imported_modules = import_sources_by_name(symbols);
-    let mut pending = Vec::new();
-    let mut seen_template = HashSet::new();
-    let mut seen_script = HashSet::new();
-
-    for (idx, section) in parsed_sfc.sections.iter().enumerate() {
-        match section.section_type.as_str() {
-            "template" => {
-                for (line_index, line) in section.content.lines().enumerate() {
-                    let line_number = section.start_line as u32 + line_index as u32 + 1;
-                    for captures in COMPONENT_TAG_RE.captures_iter(line) {
-                        let Some(tag_name) = captures.get(1).map(|matched| matched.as_str()) else {
-                            continue;
-                        };
-                        if !is_component_tag(tag_name) || local_symbols.contains_key(tag_name) {
-                            continue;
-                        }
-                        if !seen_template.insert((tag_name.to_string(), line_number)) {
-                            continue;
-                        }
-                        pending.push(StructuredPendingRelationship::new(
-                            component.id.clone(),
-                            UnresolvedTarget::simple(tag_name),
-                            Some(component.id.clone()),
-                            RelationshipKind::References,
-                            base.file_path.clone(),
-                            line_number,
-                            1.0,
-                        ));
-                    }
-                }
-            }
-            "script" => {
-                let Some(tree) = parsed_sfc.script_tree(idx) else {
-                    continue;
-                };
-                visit_script_pending_node(
-                    base,
-                    tree.root_node(),
-                    &section.content,
-                    section.start_line,
-                    component,
-                    &local_symbols,
-                    &imported_modules,
-                    &mut pending,
-                    &mut seen_script,
-                    0,
-                );
-            }
-            _ => {}
-        }
-    }
-
-    pending
-}
-
-fn unique_local_callables_by_name(symbols: &[Symbol]) -> HashMap<String, &Symbol> {
-    let mut grouped: HashMap<&str, Vec<&Symbol>> = HashMap::new();
-    for symbol in symbols {
-        if symbol.kind == SymbolKind::Import {
-            continue;
-        }
-        grouped
-            .entry(symbol.name.as_str())
-            .or_default()
-            .push(symbol);
-    }
-    grouped
-        .into_iter()
-        .filter_map(|(name, symbols)| {
-            if symbols.len() == 1 {
-                Some((name.to_string(), symbols[0]))
-            } else {
-                None
-            }
-        })
-        .collect()
-}
-
-fn import_sources_by_name(symbols: &[Symbol]) -> HashMap<String, String> {
-    let mut map = HashMap::new();
-    for symbol in symbols {
-        if symbol.kind != SymbolKind::Import {
-            continue;
-        }
-        let Some(metadata) = symbol.metadata.as_ref() else {
-            continue;
-        };
-        let Some(source) = metadata.get("source").and_then(Value::as_str) else {
-            continue;
-        };
-        map.insert(symbol.name.clone(), source.to_string());
-    }
-    map
-}
-
-#[allow(clippy::too_many_arguments)]
-fn visit_script_pending_node(
-    base: &BaseExtractor,
-    node: Node,
-    script_content: &str,
-    start_line_offset: usize,
-    component: &Symbol,
-    local_symbols: &HashMap<String, &Symbol>,
-    imports: &HashMap<String, String>,
-    pending: &mut Vec<StructuredPendingRelationship>,
-    seen: &mut HashSet<(String, u32)>,
-    depth: u32,
-) {
-    if !should_visit_tree_depth(depth) {
-        return;
-    }
-
-    if node.kind() == "call_expression"
-        && let Some(function_node) = node.child_by_field_name("function")
-        && let Some(name) = call_name(function_node, script_content)
-        && !local_symbols.contains_key(&name)
-    {
-        let line_number = (function_node.start_position().row + start_line_offset + 1) as u32;
-        if seen.insert((name.clone(), line_number)) {
-            let mut target = UnresolvedTarget::simple(&name);
-            if let Some(module) = imports.get(&name) {
-                target.import_context = Some(module.clone());
-            }
-            pending.push(StructuredPendingRelationship::new(
-                component.id.clone(),
-                target,
-                Some(component.id.clone()),
-                RelationshipKind::Calls,
-                base.file_path.clone(),
-                line_number,
-                0.8,
-            ));
-        }
-    }
-
-    let Some(child_depth) = child_tree_depth(depth) else {
-        return;
-    };
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        visit_script_pending_node(
-            base,
-            child,
-            script_content,
-            start_line_offset,
-            component,
-            local_symbols,
-            imports,
-            pending,
-            seen,
-            child_depth,
-        );
-    }
-}
-
-fn collect_script_relationships(
-    base: &BaseExtractor,
-    section: &VueSection,
-    tree: Option<&tree_sitter::Tree>,
-    component: &Symbol,
-    local_symbols: &HashMap<String, &Symbol>,
-    relationships: &mut Vec<Relationship>,
-    seen: &mut HashSet<(String, String, RelationshipKind, u32, String)>,
-) {
-    let Some(tree) = tree else {
-        return;
-    };
-    visit_script_node(
-        base,
-        tree.root_node(),
-        &section.content,
-        section.start_line,
+    link_expression_identifiers(
+        &base.content,
         component,
-        local_symbols,
-        relationships,
-        seen,
-        0,
+        &top_level,
+        &callables,
+        None,
+        &mut rows.relationships,
+        &mut rows.pending,
     );
-}
 
-#[allow(clippy::too_many_arguments)]
-fn visit_script_node(
-    base: &BaseExtractor,
-    node: Node,
-    script_content: &str,
-    start_line_offset: usize,
-    component: &Symbol,
-    local_symbols: &HashMap<String, &Symbol>,
-    relationships: &mut Vec<Relationship>,
-    seen: &mut HashSet<(String, String, RelationshipKind, u32, String)>,
-    depth: u32,
-) {
-    if !should_visit_tree_depth(depth) {
-        return;
-    }
-
-    if node.kind() == "call_expression"
-        && let Some(function_node) = node.child_by_field_name("function")
-        && let Some(name) = call_name(function_node, script_content)
-        && let Some(target) = local_symbols.get(&name)
+    for section in sfc
+        .sections
+        .iter()
+        .filter(|section| section.section_type == "template")
     {
-        push_relationship(
-            base,
-            component,
-            target,
-            RelationshipKind::Calls,
-            (function_node.start_position().row + start_line_offset + 1) as u32,
-            &name,
-            None,
-            seen,
-            relationships,
-        );
-    }
-
-    let Some(child_depth) = child_tree_depth(depth) else {
-        return;
-    };
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        visit_script_node(
-            base,
-            child,
-            script_content,
-            start_line_offset,
-            component,
-            local_symbols,
-            relationships,
-            seen,
-            child_depth,
-        );
-    }
-}
-
-fn collect_template_relationships(
-    base: &BaseExtractor,
-    section: &VueSection,
-    component: &Symbol,
-    local_symbols: &HashMap<String, &Symbol>,
-    relationships: &mut Vec<Relationship>,
-    seen: &mut HashSet<(String, String, RelationshipKind, u32, String)>,
-) {
-    for (line_index, line) in section.content.lines().enumerate() {
-        let line_number = section.start_line as u32 + line_index as u32 + 1;
-        for captures in TEMPLATE_INTERPOLATION_RE.captures_iter(line) {
-            if let Some(expression) = captures.get(1) {
-                collect_template_expression_relationships(
-                    base,
-                    expression.as_str(),
-                    expression.start(),
-                    line_number,
-                    component,
-                    local_symbols,
-                    relationships,
-                    seen,
-                );
+        let start = section.content_start;
+        let end = start + section.content.len();
+        let mut expressions = template_attribute_expressions(&base.content, start, end);
+        expressions.extend(interpolations(&base.content, start, end));
+        for (value_start, text, handler) in expressions {
+            let Some((mut identifiers, literals)) =
+                extract_expression(&base.content, value_start, text, &base.file_path, handler)
+            else {
+                continue;
+            };
+            for identifier in &mut identifiers {
+                identifier.language = base.language.clone();
+                identifier.containing_symbol_id = Some(component.id.clone());
             }
-        }
-        for captures in TEMPLATE_EVENT_RE.captures_iter(line) {
-            if let Some(expression) = captures.get(1) {
-                collect_template_expression_relationships(
-                    base,
-                    expression.as_str(),
-                    expression.start(),
-                    line_number,
-                    component,
-                    local_symbols,
-                    relationships,
-                    seen,
-                );
-            }
-        }
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-fn collect_template_expression_relationships(
-    base: &BaseExtractor,
-    expression: &str,
-    expression_start_column: usize,
-    line_number: u32,
-    component: &Symbol,
-    local_symbols: &HashMap<String, &Symbol>,
-    relationships: &mut Vec<Relationship>,
-    seen: &mut HashSet<(String, String, RelationshipKind, u32, String)>,
-) {
-    for matched in IDENTIFIER_RE
-        .find_iter(expression)
-        .filter(|matched| !is_template_keyword(matched.as_str()))
-    {
-        let name = matched.as_str();
-        if let Some(target) = local_symbols.get(name) {
-            push_relationship(
-                base,
+            link_expression_identifiers(
+                &base.content,
                 component,
-                target,
-                RelationshipKind::References,
-                line_number,
-                name,
-                Some(expression_start_column + matched.start()),
-                seen,
-                relationships,
+                &identifiers,
+                &callables,
+                Some(&binding_map),
+                &mut rows.relationships,
+                &mut rows.pending,
             );
+            rows.identifiers.extend(identifiers);
+            rows.literals
+                .extend(literals.into_iter().map(|mut literal| {
+                    literal.language = base.language.clone();
+                    literal.containing_symbol_id = Some(component.id.clone());
+                    literal
+                }));
         }
+        component_tag_pending(base, component, symbols, start, end, &mut rows.pending);
     }
+    rows
 }
 
-#[allow(clippy::too_many_arguments)]
-fn push_relationship(
-    base: &BaseExtractor,
-    source: &Symbol,
-    target: &Symbol,
-    kind: RelationshipKind,
-    line_number: u32,
-    reference_name: &str,
-    reference_start_column: Option<usize>,
-    seen: &mut HashSet<(String, String, RelationshipKind, u32, String)>,
-    relationships: &mut Vec<Relationship>,
-) {
-    let key = (
-        source.id.clone(),
-        target.id.clone(),
-        kind.clone(),
-        line_number,
-        reference_name.to_string(),
-    );
-    if !seen.insert(key) {
-        return;
+fn inside_callable(by_id: &HashMap<&str, &Symbol>, id: Option<&str>) -> bool {
+    let mut current = id.and_then(|id| by_id.get(id).copied());
+    while let Some(symbol) = current {
+        if matches!(
+            symbol.kind,
+            SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor | SymbolKind::Class
+        ) {
+            return true;
+        }
+        current = symbol
+            .parent_id
+            .as_deref()
+            .and_then(|parent| by_id.get(parent).copied());
     }
-
-    let mut metadata = HashMap::new();
-    metadata.insert(
-        "referenceName".to_string(),
-        Value::String(reference_name.to_string()),
-    );
-
-    relationships.push(Relationship {
-        id: format!(
-            "{}_{}_{:?}_{}_{}",
-            source.id, target.id, kind, line_number, reference_name
-        ),
-        from_symbol_id: source.id.clone(),
-        to_symbol_id: target.id.clone(),
-        kind,
-        file_path: base.file_path.clone(),
-        line_number,
-        span: reference_start_column
-            .and_then(|column| {
-                crate::base::NormalizedSpan::from_line_match(
-                    &base.content,
-                    line_number,
-                    column,
-                    reference_name,
-                )
-            })
-            .or_else(|| {
-                crate::base::NormalizedSpan::from_line_occurrence(
-                    &base.content,
-                    line_number,
-                    reference_name,
-                )
-            }),
-        reference_site_is_exact: false,
-        confidence: 1.0,
-        metadata: Some(metadata),
-    });
+    false
 }
 
-fn unique_symbols_by_name(symbols: &[Symbol]) -> HashMap<String, &Symbol> {
-    let mut grouped: HashMap<&str, Vec<&Symbol>> = HashMap::new();
-    for symbol in symbols {
-        grouped
-            .entry(symbol.name.as_str())
-            .or_default()
-            .push(symbol);
-    }
-    grouped
+pub(super) fn is_component(symbol: &Symbol) -> bool {
+    symbol.kind == SymbolKind::Class
+        && symbol.metadata.as_ref().is_some_and(|metadata| {
+            metadata.get("type").and_then(|value| value.as_str()) == Some("vue-sfc")
+        })
+}
+
+/// Script names the template can see: top-level value declarations and the
+/// members of the Options API groups of `export default`. Type-literal members
+/// such as the fields of `defineProps<{ title: string }>()` have no parent but
+/// are not bindings.
+fn component_bindings<'a>(
+    symbols: &'a [Symbol],
+    script_symbol_ids: &HashSet<String>,
+) -> Vec<&'a Symbol> {
+    let script: Vec<&Symbol> = symbols
+        .iter()
+        .filter(|symbol| script_symbol_ids.contains(&symbol.id))
+        .collect();
+    let default_exports: HashSet<&str> = script
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Export && symbol.name == "default")
+        .map(|symbol| symbol.id.as_str())
+        .collect();
+    let groups: HashSet<&str> = script
+        .iter()
+        .filter(|symbol| {
+            OPTION_GROUPS.contains(&symbol.name.as_str())
+                && symbol
+                    .parent_id
+                    .as_deref()
+                    .is_some_and(|parent| default_exports.contains(parent))
+        })
+        .map(|symbol| symbol.id.as_str())
+        .collect();
+    script
         .into_iter()
-        .filter_map(|(name, symbols)| {
-            if symbols.len() == 1 {
-                Some((name.to_string(), symbols[0]))
-            } else {
-                None
+        .filter(|symbol| {
+            let is_parameter = symbol.metadata.as_ref().is_some_and(|metadata| {
+                metadata.get("role").and_then(|value| value.as_str()) == Some("parameter")
+            });
+            if is_parameter {
+                return false;
+            }
+            match symbol.parent_id.as_deref() {
+                Some(parent) => groups.contains(parent),
+                None => matches!(
+                    symbol.kind,
+                    SymbolKind::Variable
+                        | SymbolKind::Constant
+                        | SymbolKind::Function
+                        | SymbolKind::Class
+                        | SymbolKind::Enum
+                        | SymbolKind::Import
+                ),
             }
         })
         .collect()
 }
 
-fn component_symbol(symbols: &[Symbol]) -> Option<&Symbol> {
-    symbols.iter().find(|symbol| {
-        symbol
-            .metadata
-            .as_ref()
-            .and_then(|metadata| metadata.get("type"))
-            .and_then(Value::as_str)
-            == Some("vue-sfc")
-    })
+/// `(value start, value text, is event handler)` for directive attributes.
+/// `v-for` contributes only its source expression; slot props declare names
+/// and contribute nothing.
+fn template_attribute_expressions(
+    content: &str,
+    start: usize,
+    end: usize,
+) -> Vec<(usize, &str, bool)> {
+    let mut expressions = Vec::new();
+    for attribute in scan_markup_attributes(content, start, end) {
+        let name = attribute.name.as_str();
+        let handler = name.starts_with('@') || name.starts_with("v-on:");
+        let expression = handler
+            || name.starts_with(':')
+            || name.starts_with("v-bind")
+            || name.starts_with("v-model")
+            || matches!(
+                name,
+                "v-if" | "v-else-if" | "v-show" | "v-html" | "v-text" | "v-memo" | "v-for"
+            );
+        if !expression {
+            continue;
+        }
+        let Some((value_start, value)) =
+            attribute_value_range(content, attribute.start_byte, attribute.end_byte)
+        else {
+            continue;
+        };
+        if name == "v-for" {
+            if let Some((source_start, source)) = v_for_source(value) {
+                expressions.push((value_start + source_start, source, false));
+            }
+        } else {
+            expressions.push((value_start, value, handler));
+        }
+    }
+    expressions
 }
 
-fn call_name(function_node: Node, script_content: &str) -> Option<String> {
-    match function_node.kind() {
-        "identifier" => Some(node_text(function_node, script_content)),
-        "member_expression" => function_node
-            .child_by_field_name("property")
-            .map(|property| node_text(property, script_content)),
-        _ => None,
+fn attribute_value_range(content: &str, start: usize, end: usize) -> Option<(usize, &str)> {
+    let segment = content.get(start..end)?;
+    let equals = segment.find('=')?;
+    let after = &segment[equals + 1..];
+    let leading = after.len() - after.trim_start().len();
+    let value_start = start + equals + 1 + leading;
+    let rest = content.get(value_start..end)?;
+    match rest.chars().next()? {
+        quote @ ('"' | '\'') => {
+            let inner = &rest[1..];
+            let close = inner.find(quote).unwrap_or(inner.len());
+            Some((value_start + 1, &inner[..close]))
+        }
+        _ => Some((value_start, rest.trim_end())),
     }
 }
 
-fn node_text(node: Node, content: &str) -> String {
-    let bytes = content.as_bytes();
-    let start = node.start_byte();
-    let end = node.end_byte();
-    if start < bytes.len() && end <= bytes.len() {
-        String::from_utf8_lossy(&bytes[start..end]).to_string()
-    } else {
-        String::new()
+/// `item in items` or `(item, index) of items`: the part after `in`/`of`.
+fn v_for_source(value: &str) -> Option<(usize, &str)> {
+    [" in ", " of "]
+        .iter()
+        .filter_map(|separator| value.find(separator).map(|index| index + separator.len()))
+        .min()
+        .map(|start| (start, &value[start..]))
+}
+
+/// `{{ expression }}` text interpolations.
+fn interpolations(content: &str, start: usize, end: usize) -> Vec<(usize, &str, bool)> {
+    let mut expressions = Vec::new();
+    let mut cursor = start;
+    while let Some(open) = content.get(cursor..end).and_then(|rest| rest.find("{{")) {
+        let expression_start = cursor + open + 2;
+        let Some(close) = content
+            .get(expression_start..end)
+            .and_then(|rest| rest.find("}}"))
+        else {
+            break;
+        };
+        let expression_end = expression_start + close;
+        expressions.push((
+            expression_start,
+            &content[expression_start..expression_end],
+            false,
+        ));
+        cursor = expression_end + 2;
     }
+    expressions
 }
 
-fn is_template_keyword(name: &str) -> bool {
-    matches!(
-        name,
-        "true" | "false" | "null" | "undefined" | "if" | "else" | "return" | "typeof" | "new"
-    )
-}
-
-fn is_component_tag(tag_name: &str) -> bool {
-    tag_name
-        .chars()
-        .next()
-        .is_some_and(|ch| ch.is_ascii_uppercase())
-        || tag_name.contains('-')
+/// A PascalCase or kebab-case tag with no local definition is a pending
+/// reference to a component defined elsewhere.
+fn component_tag_pending(
+    base: &BaseExtractor,
+    component: &Symbol,
+    symbols: &[Symbol],
+    start: usize,
+    end: usize,
+    pending: &mut Vec<StructuredPendingRelationship>,
+) {
+    let local: HashMap<&str, ()> = symbols
+        .iter()
+        .filter(|symbol| symbol.kind != SymbolKind::Import)
+        .map(|symbol| (symbol.name.as_str(), ()))
+        .collect();
+    let mut seen = HashSet::new();
+    let Some(template) = base.content.get(start..end) else {
+        return;
+    };
+    for captures in COMPONENT_TAG_RE.captures_iter(template) {
+        let Some(tag) = captures.get(1) else {
+            continue;
+        };
+        let name = tag.as_str();
+        let is_component_tag = name
+            .chars()
+            .next()
+            .is_some_and(|ch| ch.is_ascii_uppercase())
+            || name.contains('-');
+        if !is_component_tag || name == "template" || local.contains_key(name) {
+            continue;
+        }
+        let Some(span) = NormalizedSpan::from_content_range(
+            &base.content,
+            start + tag.start(),
+            start + tag.end(),
+        ) else {
+            continue;
+        };
+        if !seen.insert((name.to_string(), span.start_line)) {
+            continue;
+        }
+        let mut row = StructuredPendingRelationship::new(
+            component.id.clone(),
+            UnresolvedTarget::simple(name),
+            Some(component.id.clone()),
+            RelationshipKind::References,
+            base.file_path.clone(),
+            span.start_line,
+            1.0,
+        );
+        row.span = Some(span);
+        row.reference_site_is_exact = true;
+        pending.push(row);
+    }
 }

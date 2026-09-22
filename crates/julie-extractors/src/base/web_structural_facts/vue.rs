@@ -66,7 +66,7 @@ pub(super) fn collect_vue_structural_facts(
         facts.push(fact);
     }
 
-    for section in scan_vue_sections(content) {
+    for section in scan_vue_sections(content, false) {
         facts.push(vue_section_fact(file_path, &section));
 
         if section.section_type == "template" {
@@ -516,7 +516,7 @@ fn parse_vue_static_import_line(line: &str) -> Option<(String, String)> {
 /// Content ranges of `<script>` / `<script setup>` sections, for collectors
 /// that scan script bodies only (e.g. the HTTP client-request scan).
 pub(crate) fn vue_script_section_ranges(content: &str) -> Vec<(usize, usize)> {
-    scan_vue_sections(content)
+    scan_vue_sections(content, false)
         .into_iter()
         .filter(|section| section.section_type == "script")
         .map(|section| (section.content_start, section.content_end))
@@ -528,14 +528,40 @@ pub(crate) fn vue_script_section_ranges(content: &str) -> Vec<(usize, usize)> {
 /// Restricting to template ranges keeps htmx attributes embedded in `<script>`
 /// strings silent.
 pub(crate) fn vue_template_section_ranges(content: &str) -> Vec<(usize, usize)> {
-    scan_vue_sections(content)
+    scan_vue_sections(content, false)
         .into_iter()
         .filter(|section| section.section_type == "template")
         .map(|section| (section.content_start, section.content_end))
         .collect()
 }
 
-fn scan_vue_sections(content: &str) -> Vec<VueSectionSpan> {
+/// A top-level SFC block: its type, `lang`, `setup` flag, and the byte range
+/// of its content (between the opening tag's `>` and the closing tag).
+pub(crate) struct VueSectionRange {
+    pub(crate) section_type: &'static str,
+    pub(crate) lang: Option<String>,
+    pub(crate) setup: bool,
+    pub(crate) content_start: usize,
+    pub(crate) content_end: usize,
+}
+
+/// Top-level `<template>`, `<script>`, and `<style>` blocks. A `<template>`
+/// ends at its matching `</template>`, so nested templates stay inside.
+/// An unclosed block runs to the next block's opening tag or the end of file.
+pub(crate) fn vue_section_ranges(content: &str) -> Vec<VueSectionRange> {
+    scan_vue_sections(content, true)
+        .into_iter()
+        .map(|section| VueSectionRange {
+            section_type: section.section_type,
+            lang: section.lang,
+            setup: section.setup,
+            content_start: section.content_start,
+            content_end: section.content_end,
+        })
+        .collect()
+}
+
+fn scan_vue_sections(content: &str, recover_unclosed: bool) -> Vec<VueSectionSpan> {
     let mut sections = Vec::new();
     let mut cursor = 0usize;
 
@@ -544,13 +570,20 @@ fn scan_vue_sections(content: &str) -> Vec<VueSectionSpan> {
             break;
         };
         let content_start = open_tag_end + 1;
-        let Some(content_end) = find_vue_section_content_end(content, section_type, content_start)
-        else {
-            cursor = content_start;
-            continue;
-        };
         let close_tag = format!("</{section_type}>");
-        let tag_end = content_end + close_tag.len();
+        let (content_end, tag_end) =
+            match find_vue_section_content_end(content, section_type, content_start) {
+                Some(content_end) => (content_end, content_end + close_tag.len()),
+                None if recover_unclosed => {
+                    let next = next_vue_section_start(content, content_start)
+                        .map_or(content.len(), |(start, _)| start);
+                    (next, next)
+                }
+                None => {
+                    cursor = content_start;
+                    continue;
+                }
+            };
         let Some(span) = NormalizedSpan::from_content_range(content, tag_start, tag_end) else {
             cursor = tag_end;
             continue;
