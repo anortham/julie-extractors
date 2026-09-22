@@ -289,7 +289,7 @@ pub(crate) fn parse_for_language(
     PARSE_FOR_LANGUAGE_CALL_COUNT.with(|c| c.set(c.get() + 1));
 
     let mut parser = configured_parser_for_language_at(language, file_path)?;
-    match crate::javascript::qml_directives::blanked_source(language, content) {
+    match crate::preprocess::blanked_source(language, content) {
         Some(blanked) => parse_with_parser(&mut parser, file_path, &blanked),
         None => parse_with_parser(&mut parser, file_path, content),
     }

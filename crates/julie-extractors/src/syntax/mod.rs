@@ -135,7 +135,7 @@ pub fn parse_source_with_options(
             let grammar =
                 crate::language_spec::get_tree_sitter_language_for_path(language, file_path)
                     .map_err(|source| SyntaxError::ParseFailed { source })?;
-            match crate::javascript::qml_directives::blanked_source(language, source) {
+            match crate::preprocess::blanked_source(language, source) {
                 Some(blanked) => parse_tree_with_options(&grammar, &blanked, options)?,
                 None => parse_tree_with_options(&grammar, source, options)?,
             }

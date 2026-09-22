@@ -40,7 +40,9 @@ where
         .unwrap_or("");
 
     if extension.eq_ignore_ascii_case("h") {
-        if let Some((language, tree)) = header_probe(source)? {
+        let blanked = crate::preprocess::blanked_source("cpp", source);
+        let probe_source = blanked.as_deref().unwrap_or(source);
+        if let Some((language, tree)) = header_probe(probe_source)? {
             return Ok(Some((language, Some(tree))));
         }
         return Ok(Some(("c", None)));

@@ -48,13 +48,6 @@ pub(crate) fn blank_directives(content: &str) -> Option<String> {
     String::from_utf8(bytes).ok()
 }
 
-pub(crate) fn blanked_source(language: &str, content: &str) -> Option<String> {
-    if language != LANGUAGE {
-        return None;
-    }
-    blank_directives(content)
-}
-
 pub(crate) fn import_symbols(base: &BaseExtractor) -> Vec<Symbol> {
     if base.language != LANGUAGE {
         return Vec::new();

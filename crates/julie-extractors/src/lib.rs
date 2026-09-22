@@ -52,6 +52,7 @@ pub(crate) mod language;
 pub mod language_policy;
 mod language_spec;
 pub(crate) mod pipeline;
+pub(crate) mod preprocess;
 pub(crate) mod registry;
 pub(crate) mod test_calls;
 pub(crate) mod test_detection;

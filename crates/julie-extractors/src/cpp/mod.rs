@@ -16,6 +16,7 @@ mod functions;
 mod helpers;
 mod identifiers;
 mod parameters;
+pub(crate) mod qt_macros;
 mod relationships;
 mod signatures;
 pub(crate) mod test_calls;
