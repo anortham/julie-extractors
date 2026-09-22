@@ -94,7 +94,30 @@ fn collect_node(
         "xml" => crate::xml::embedded_sql_language(file_path, content, node),
         _ => None,
     };
-    if let Some(embedded_language) = embedded_script {
+    let markdown_body = (language == "markdown")
+        .then(|| crate::markdown::blocks::embedded_body(content, node))
+        .flatten();
+    if let Some((embedded_language, start, end)) = markdown_body {
+        let metadata = HashMap::from([
+            (
+                "host_node_kind".to_string(),
+                serde_json::Value::String(node_kind.to_string()),
+            ),
+            (
+                "embedded_language".to_string(),
+                serde_json::Value::String(embedded_language.to_string()),
+            ),
+        ]);
+        if let Some(span) = NormalizedSpan::from_content_range(content, start, end) {
+            regions.push(region_for_span(
+                file_path,
+                language,
+                span,
+                SourceRegionKind::Embedded,
+                Some(metadata),
+            ));
+        }
+    } else if let Some(embedded_language) = embedded_script {
         let metadata = HashMap::from([
             (
                 "host_node_kind".to_string(),
@@ -209,7 +232,22 @@ fn region_for_node(
     kind: SourceRegionKind,
     metadata: Option<HashMap<String, serde_json::Value>>,
 ) -> SourceRegion {
-    let span = NormalizedSpan::from_node(&node);
+    region_for_span(
+        file_path,
+        language,
+        NormalizedSpan::from_node(&node),
+        kind,
+        metadata,
+    )
+}
+
+fn region_for_span(
+    file_path: &str,
+    language: &str,
+    span: NormalizedSpan,
+    kind: SourceRegionKind,
+    metadata: Option<HashMap<String, serde_json::Value>>,
+) -> SourceRegion {
     SourceRegion {
         id: stable_location_id(file_path, kind.as_str(), span),
         file_path: file_path.to_string(),
@@ -328,7 +366,7 @@ fn embedded_metadata(node: Node<'_>, content: &str) -> Option<HashMap<String, se
                     serde_json::Value::String(info.to_string()),
                 );
             }
-            if let Some(language) = fenced_code_language(node, content, info_string.as_deref()) {
+            if let Some(language) = crate::markdown::blocks::fence_language(content, node) {
                 metadata.insert(
                     "embedded_language".to_string(),
                     serde_json::Value::String(language),
@@ -476,22 +514,6 @@ fn fenced_code_info_string(node: Node<'_>, content: &str) -> Option<String> {
         .map(str::trim)
         .filter(|info| !info.is_empty())
         .map(str::to_string)
-}
-
-fn fenced_code_language(
-    node: Node<'_>,
-    content: &str,
-    info_string: Option<&str>,
-) -> Option<String> {
-    info_string
-        .and_then(|info| info.split_whitespace().next())
-        .filter(|language| !language.is_empty())
-        .map(str::to_string)
-        .or_else(|| {
-            child_text(node, content, "language")
-                .filter(|language| !language.is_empty())
-                .map(str::to_string)
-        })
 }
 
 fn child_text<'a>(node: Node<'_>, content: &'a str, child_kind: &str) -> Option<&'a str> {

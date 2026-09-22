@@ -10,8 +10,8 @@
       "start_column": 13,
       "end_line": 13,
       "end_column": 17,
-      "start_byte": 380,
-      "end_byte": 384,
+      "start_byte": 389,
+      "end_byte": 393,
       "body_span": null,
       "body_hash": null,
       "signature": "[^1]",
@@ -37,8 +37,8 @@
       "start_column": 0,
       "end_line": 16,
       "end_column": 33,
-      "start_byte": 468,
-      "end_byte": 501,
+      "start_byte": 481,
+      "end_byte": 514,
       "body_span": null,
       "body_hash": null,
       "signature": "[^1]: An intra-document footnote.",
@@ -66,11 +66,11 @@
       "end_line": 17,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 502,
+      "end_byte": 515,
       "body_span": null,
       "body_hash": null,
       "signature": null,
-      "doc_comment": "Phase 4d fixture: Markdown links and footnotes are intra-document references\nor opaque URL/path strings. There is no symbol-level forward-reference\nconstruct; structured pending is intentionally empty.\n\nSee [the other doc](./other.md) for context. See also [external][ext-ref].\n\n[Local heading](#local-heading)",
+      "doc_comment": "A link to a heading in another document is a pending reference. A link to a\nwhole document or to an external page is not.\n\nSee [the other doc](./other.md) for context. See also [external][ext-ref].\nRead [its setup section](./other.md#setup) and [the API notes](docs/api.md#rate-limits).\n\n[Local heading](#local-heading)",
       "visibility": null,
       "parent_key": null,
       "metadata": {
@@ -92,8 +92,8 @@
       "start_column": 0,
       "end_line": 17,
       "end_column": 0,
-      "start_byte": 349,
-      "end_byte": 502,
+      "start_byte": 358,
+      "end_byte": 515,
       "body_span": null,
       "body_hash": null,
       "signature": null,
@@ -119,8 +119,8 @@
       "start_column": 0,
       "end_line": 9,
       "end_column": 31,
-      "start_byte": 316,
-      "end_byte": 347,
+      "start_byte": 325,
+      "end_byte": 356,
       "body_span": null,
       "body_hash": null,
       "signature": "[Local heading](#local-heading)",
@@ -146,16 +146,16 @@
       "start_column": 0,
       "end_line": 16,
       "end_column": 0,
-      "start_byte": 417,
-      "end_byte": 468,
+      "start_byte": 426,
+      "end_byte": 481,
       "body_span": null,
       "body_hash": null,
-      "signature": "[ext-ref]: https://example.com/external \"External\"",
+      "signature": "[ext-ref]: https://example.com/external#top \"External\"",
       "doc_comment": "External",
       "visibility": null,
       "parent_key": "fixtures/extraction/markdown/cross_file/source.md:Local heading:11:0",
       "metadata": {
-        "destination": "https://example.com/external",
+        "destination": "https://example.com/external#top",
         "markdown_kind": "link_reference_definition",
         "reference_label": "ext-ref",
         "title": "External"
@@ -166,17 +166,17 @@
       "content_type": "documentation"
     },
     {
-      "key": "fixtures/extraction/markdown/cross_file/source.md:ext-ref:7:54",
+      "key": "fixtures/extraction/markdown/cross_file/source.md:ext-ref:6:54",
       "name": "ext-ref",
       "kind": "import",
       "language": "markdown",
       "file_path": "fixtures/extraction/markdown/cross_file/source.md",
-      "start_line": 7,
+      "start_line": 6,
       "start_column": 54,
-      "end_line": 7,
+      "end_line": 6,
       "end_column": 73,
-      "start_byte": 294,
-      "end_byte": 313,
+      "start_byte": 214,
+      "end_byte": 233,
       "body_span": null,
       "body_hash": null,
       "signature": "[external][ext-ref]",
@@ -185,6 +185,7 @@
       "parent_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
       "metadata": {
         "markdown_kind": "reference_link",
+        "reference_kind": "full",
         "reference_label": "ext-ref"
       },
       "annotations": [],
@@ -193,17 +194,71 @@
       "content_type": "documentation"
     },
     {
-      "key": "fixtures/extraction/markdown/cross_file/source.md:the other doc:7:4",
-      "name": "the other doc",
+      "key": "fixtures/extraction/markdown/cross_file/source.md:its setup section:7:5",
+      "name": "its setup section",
       "kind": "import",
       "language": "markdown",
       "file_path": "fixtures/extraction/markdown/cross_file/source.md",
       "start_line": 7,
-      "start_column": 4,
+      "start_column": 5,
       "end_line": 7,
+      "end_column": 42,
+      "start_byte": 240,
+      "end_byte": 277,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "[its setup section](./other.md#setup)",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+      "metadata": {
+        "destination": "./other.md#setup",
+        "markdown_kind": "inline_link"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": "documentation"
+    },
+    {
+      "key": "fixtures/extraction/markdown/cross_file/source.md:the API notes:7:47",
+      "name": "the API notes",
+      "kind": "import",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "start_line": 7,
+      "start_column": 47,
+      "end_line": 7,
+      "end_column": 87,
+      "start_byte": 282,
+      "end_byte": 322,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "[the API notes](docs/api.md#rate-limits)",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+      "metadata": {
+        "destination": "docs/api.md#rate-limits",
+        "markdown_kind": "inline_link"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": "documentation"
+    },
+    {
+      "key": "fixtures/extraction/markdown/cross_file/source.md:the other doc:6:4",
+      "name": "the other doc",
+      "kind": "import",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "start_line": 6,
+      "start_column": 4,
+      "end_line": 6,
       "end_column": 31,
-      "start_byte": 244,
-      "end_byte": 271,
+      "start_byte": 164,
+      "end_byte": 191,
       "body_span": null,
       "body_hash": null,
       "signature": "[the other doc](./other.md)",
@@ -232,22 +287,173 @@
         "start_column": 0,
         "end_line": 9,
         "end_column": 31,
-        "start_byte": 316,
-        "end_byte": 347
+        "start_byte": 325,
+        "end_byte": 356
       },
       "reference_site_is_exact": true,
       "confidence": "1.000",
       "metadata": {
         "anchor": "local-heading"
       }
+    },
+    {
+      "from_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+      "to_key": "fixtures/extraction/markdown/cross_file/source.md:ext-ref:15:0",
+      "kind": "references",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "line_number": 6,
+      "span": {
+        "start_line": 6,
+        "start_column": 54,
+        "end_line": 6,
+        "end_column": 73,
+        "start_byte": 214,
+        "end_byte": 233
+      },
+      "reference_site_is_exact": true,
+      "confidence": "1.000",
+      "metadata": {
+        "reference_label": "ext-ref"
+      }
+    },
+    {
+      "from_key": "fixtures/extraction/markdown/cross_file/source.md:Local heading:11:0",
+      "to_key": "fixtures/extraction/markdown/cross_file/source.md:1:16:0",
+      "kind": "references",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "line_number": 13,
+      "span": {
+        "start_line": 13,
+        "start_column": 13,
+        "end_line": 13,
+        "end_column": 17,
+        "start_byte": 389,
+        "end_byte": 393
+      },
+      "reference_site_is_exact": true,
+      "confidence": "1.000",
+      "metadata": {
+        "reference_label": "^1"
+      }
     }
   ],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+      "callee_name": "./other.md#setup",
+      "kind": "references",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "line_number": 7,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+      "callee_name": "docs/api.md#rate-limits",
+      "kind": "references",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "line_number": 7,
+      "confidence": "1.000"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+        "callee_name": "./other.md#setup",
+        "kind": "references",
+        "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+        "line_number": 7,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "./other.md#setup",
+        "terminal_name": "setup",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "./other.md"
+      },
+      "caller_scope_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+      "span": {
+        "start_line": 7,
+        "start_column": 5,
+        "end_line": 7,
+        "end_column": 42,
+        "start_byte": 240,
+        "end_byte": 277
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+        "callee_name": "docs/api.md#rate-limits",
+        "kind": "references",
+        "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+        "line_number": 7,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "docs/api.md#rate-limits",
+        "terminal_name": "rate-limits",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "docs/api.md"
+      },
+      "caller_scope_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+      "span": {
+        "start_line": 7,
+        "start_column": 47,
+        "end_line": 7,
+        "end_column": 87,
+        "start_byte": 282,
+        "end_byte": 322
+      }
+    }
+  ],
   "identifiers": [],
   "types": [],
   "parse_diagnostics": [],
   "structural_facts": [
+    {
+      "pattern_id": "markdown.footnote_definition.v1",
+      "capture_name": "footnote_definition",
+      "node_kind": "footnote_definition",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "containing_key": "fixtures/extraction/markdown/cross_file/source.md:1:16:0",
+      "start_line": 16,
+      "start_column": 0,
+      "end_line": 16,
+      "end_column": 33,
+      "start_byte": 481,
+      "end_byte": 514,
+      "confidence": "1.000",
+      "metadata": {
+        "label": "1",
+        "pattern_version": 1,
+        "query_family": "document_links",
+        "text": "An intra-document footnote."
+      }
+    },
+    {
+      "pattern_id": "markdown.footnote_reference.v1",
+      "capture_name": "footnote_reference",
+      "node_kind": "footnote_reference",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "containing_key": "fixtures/extraction/markdown/cross_file/source.md:1:13:13",
+      "start_line": 13,
+      "start_column": 13,
+      "end_line": 13,
+      "end_column": 17,
+      "start_byte": 389,
+      "end_byte": 393,
+      "confidence": "1.000",
+      "metadata": {
+        "label": "1",
+        "pattern_version": 1,
+        "query_family": "document_links"
+      }
+    },
     {
       "pattern_id": "markdown.heading.v1",
       "capture_name": "heading",
@@ -280,8 +486,8 @@
       "start_column": 0,
       "end_line": 12,
       "end_column": 0,
-      "start_byte": 349,
-      "end_byte": 366,
+      "start_byte": 358,
+      "end_byte": 375,
       "confidence": "1.000",
       "metadata": {
         "level": 2,
@@ -297,12 +503,12 @@
       "language": "markdown",
       "file_path": "fixtures/extraction/markdown/cross_file/source.md",
       "containing_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
-      "start_line": 7,
+      "start_line": 6,
       "start_column": 4,
-      "end_line": 7,
+      "end_line": 6,
       "end_column": 31,
-      "start_byte": 244,
-      "end_byte": 271,
+      "start_byte": 164,
+      "end_byte": 191,
       "confidence": "1.000",
       "metadata": {
         "destination": "./other.md",
@@ -318,12 +524,54 @@
       "language": "markdown",
       "file_path": "fixtures/extraction/markdown/cross_file/source.md",
       "containing_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+      "start_line": 7,
+      "start_column": 47,
+      "end_line": 7,
+      "end_column": 87,
+      "start_byte": 282,
+      "end_byte": 322,
+      "confidence": "1.000",
+      "metadata": {
+        "destination": "docs/api.md#rate-limits",
+        "label": "the API notes",
+        "pattern_version": 1,
+        "query_family": "document_links"
+      }
+    },
+    {
+      "pattern_id": "markdown.inline_link.v1",
+      "capture_name": "inline_link",
+      "node_kind": "inline_link",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "containing_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+      "start_line": 7,
+      "start_column": 5,
+      "end_line": 7,
+      "end_column": 42,
+      "start_byte": 240,
+      "end_byte": 277,
+      "confidence": "1.000",
+      "metadata": {
+        "destination": "./other.md#setup",
+        "label": "its setup section",
+        "pattern_version": 1,
+        "query_family": "document_links"
+      }
+    },
+    {
+      "pattern_id": "markdown.inline_link.v1",
+      "capture_name": "inline_link",
+      "node_kind": "inline_link",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "containing_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
       "start_line": 9,
       "start_column": 0,
       "end_line": 9,
       "end_column": 31,
-      "start_byte": 316,
-      "end_byte": 347,
+      "start_byte": 325,
+      "end_byte": 356,
       "confidence": "1.000",
       "metadata": {
         "destination": "#local-heading",
@@ -343,14 +591,36 @@
       "start_column": 0,
       "end_line": 16,
       "end_column": 0,
-      "start_byte": 417,
-      "end_byte": 468,
+      "start_byte": 426,
+      "end_byte": 481,
       "confidence": "1.000",
       "metadata": {
-        "destination": "https://example.com/external",
+        "destination": "https://example.com/external#top",
         "label": "ext-ref",
         "pattern_version": 1,
         "query_family": "document_links"
+      }
+    },
+    {
+      "pattern_id": "markdown.reference_link.v1",
+      "capture_name": "reference_link",
+      "node_kind": "reference_link",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "containing_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+      "start_line": 6,
+      "start_column": 54,
+      "end_line": 6,
+      "end_column": 73,
+      "start_byte": 214,
+      "end_byte": 233,
+      "confidence": "1.000",
+      "metadata": {
+        "destination": "https://example.com/external#top",
+        "label": "ext-ref",
+        "pattern_version": 1,
+        "query_family": "document_links",
+        "reference_kind": "full"
       }
     }
   ],
@@ -367,8 +637,8 @@
       "start_column": 16,
       "end_line": 9,
       "end_column": 30,
-      "start_byte": 332,
-      "end_byte": 346,
+      "start_byte": 341,
+      "end_byte": 355,
       "containing_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
       "confidence": "1.000"
     },
@@ -379,17 +649,49 @@
       "arg_position": 0,
       "language": "markdown",
       "file_path": "fixtures/extraction/markdown/cross_file/source.md",
-      "start_line": 7,
+      "start_line": 6,
       "start_column": 20,
-      "end_line": 7,
+      "end_line": 6,
       "end_column": 30,
-      "start_byte": 260,
-      "end_byte": 270,
+      "start_byte": 180,
+      "end_byte": 190,
       "containing_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
       "confidence": "1.000"
     },
     {
-      "literal_text": "https://example.com/external",
+      "literal_text": "./other.md#setup",
+      "kind": "other",
+      "carrier": "inline_link",
+      "arg_position": 0,
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "start_line": 7,
+      "start_column": 25,
+      "end_line": 7,
+      "end_column": 41,
+      "start_byte": 260,
+      "end_byte": 276,
+      "containing_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "docs/api.md#rate-limits",
+      "kind": "other",
+      "carrier": "inline_link",
+      "arg_position": 0,
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "start_line": 7,
+      "start_column": 63,
+      "end_line": 7,
+      "end_column": 86,
+      "start_byte": 298,
+      "end_byte": 321,
+      "containing_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "https://example.com/external#top",
       "kind": "other",
       "carrier": "link_definition",
       "arg_position": 0,
@@ -398,9 +700,9 @@
       "start_line": 15,
       "start_column": 11,
       "end_line": 15,
-      "end_column": 39,
-      "start_byte": 428,
-      "end_byte": 456,
+      "end_column": 43,
+      "start_byte": 437,
+      "end_byte": 469,
       "containing_key": "fixtures/extraction/markdown/cross_file/source.md:Local heading:11:0",
       "confidence": "1.000"
     }

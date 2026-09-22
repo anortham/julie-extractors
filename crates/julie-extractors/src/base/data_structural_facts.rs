@@ -70,6 +70,12 @@ const MARKDOWN_DATA_PATTERN_IDS: &[&str] = &[
     MARKDOWN_INLINE_LINK_PATTERN_ID,
     MARKDOWN_LINK_DEFINITION_PATTERN_ID,
     MARKDOWN_TABLE_PATTERN_ID,
+    crate::markdown::facts::AUTOLINK_PATTERN_ID,
+    crate::markdown::facts::DEFINITION_LIST_ITEM_PATTERN_ID,
+    crate::markdown::facts::FOOTNOTE_DEFINITION_PATTERN_ID,
+    crate::markdown::facts::FOOTNOTE_REFERENCE_PATTERN_ID,
+    crate::markdown::facts::REFERENCE_LINK_PATTERN_ID,
+    crate::markdown::facts::TASK_LIST_ITEM_PATTERN_ID,
 ];
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -165,6 +171,11 @@ pub fn collect_data_structural_facts(
         "regex" => collect_regex_structural_facts(file_path, content),
         _ => Vec::new(),
     };
+    if language == "markdown" {
+        facts.extend(crate::markdown::facts::markdown_facts(
+            tree, file_path, content, symbols,
+        ));
+    }
     if language == "xml" {
         facts.extend(crate::xml::build::build_facts(tree, file_path, content));
         facts.extend(crate::xml::facts::xml_facts(tree, file_path, content));
@@ -323,6 +334,10 @@ fn markdown_frontmatter_fact(
     }
 
     let key_count = count_frontmatter_keys(&body, format);
+    let keys: Vec<Value> = crate::markdown::blocks::frontmatter_keys(content, node)
+        .into_iter()
+        .map(|key| Value::String(key.name))
+        .collect();
 
     let mut metadata = base_metadata("document_metadata");
     insert_string(&mut metadata, "format", format);
@@ -330,6 +345,9 @@ fn markdown_frontmatter_fact(
         "key_count".to_string(),
         Value::Number(Number::from(key_count)),
     );
+    if !keys.is_empty() {
+        metadata.insert("keys".to_string(), Value::Array(keys));
+    }
 
     Some(fact_for_node(
         file_path,
@@ -374,26 +392,16 @@ fn toml_frontmatter_key_line(line: &str) -> bool {
 
 fn markdown_heading_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<StructuralFact> {
     let text = node_text(content, node)?;
-    let (level, heading_text) = match crate::markdown::setext_level(node) {
-        Some(level) => {
-            let heading = node_text(content, node.child_by_field_name("heading_content")?)?;
-            (
-                level,
-                heading.split_whitespace().collect::<Vec<_>>().join(" "),
-            )
-        }
-        None => (
-            text.chars().take_while(|ch| *ch == '#').count().clamp(1, 6),
-            strip_atx_heading_marker(text),
-        ),
-    };
-    if heading_text.is_empty() {
-        return None;
-    }
+    let level = crate::markdown::setext_level(node)
+        .unwrap_or_else(|| text.chars().take_while(|ch| *ch == '#').count().clamp(1, 6));
+    let (heading_text, anchor) = crate::markdown::blocks::heading_name(content, node)?;
 
     let mut metadata = base_metadata("document_structure");
     metadata.insert("level".to_string(), Value::Number(Number::from(level)));
     insert_string(&mut metadata, "text", &heading_text);
+    if let Some(anchor) = anchor {
+        insert_string(&mut metadata, "anchor", &anchor);
+    }
 
     Some(fact_for_node(
         file_path,
@@ -413,10 +421,9 @@ fn markdown_fenced_code_block_fact(
     let info = child_text(node, content, "info_string")
         .unwrap_or("")
         .trim();
-    let language = info.split_whitespace().next().unwrap_or("").trim();
     let mut metadata = base_metadata("document_structure");
-    if !language.is_empty() {
-        insert_string(&mut metadata, "language", language);
+    if let Some(language) = crate::markdown::blocks::fence_language(content, node) {
+        insert_string(&mut metadata, "language", &language);
     }
     if !info.is_empty() {
         insert_string(&mut metadata, "info_string", info);
@@ -470,6 +477,9 @@ fn markdown_link_definition_fact(
 ) -> Option<StructuralFact> {
     let text = node_text(content, node)?.trim();
     let (label, destination) = parse_link_reference_definition(text)?;
+    if label.starts_with('^') {
+        return None;
+    }
     let mut metadata = base_metadata("document_links");
     insert_string(&mut metadata, "label", &label);
     insert_string(&mut metadata, "destination", &destination);
@@ -2640,18 +2650,6 @@ fn strip_frontmatter_delimiters(text: &str) -> String {
         lines.len()
     };
     lines.get(start..end).unwrap_or(&[]).join("\n")
-}
-
-fn strip_atx_heading_marker(raw: &str) -> String {
-    let trimmed = raw.trim_start();
-    let marker_len = trimmed.chars().take_while(|ch| *ch == '#').count();
-    if marker_len == 0 {
-        return trimmed.trim().to_string();
-    }
-    trimmed[marker_len.min(6)..]
-        .trim_start()
-        .trim_end()
-        .to_string()
 }
 
 fn clean_markdown_link_destination(raw: &str) -> String {

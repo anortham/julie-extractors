@@ -4435,6 +4435,74 @@
     "query_family": "pipeline"
   },
   {
+    "description": "A Markdown autolink (`<https://...>` or `<name@example.com>`).",
+    "languages": [
+      "markdown"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Autolink target without the angle brackets.",
+        "key": "destination",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Autolink form: \"uri\" or \"email\".",
+        "key": "autolink_kind",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "markdown.autolink.v1",
+    "query_family": "document_links"
+  },
+  {
+    "description": "A definition-list item (a term line followed by `: definition`).",
+    "languages": [
+      "markdown"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Defined term.",
+        "key": "term",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Definition text.",
+        "key": "definition",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "markdown.definition_list_item.v1",
+    "query_family": "document_structure"
+  },
+  {
     "description": "A Markdown fenced code block.",
     "languages": [
       "markdown"
@@ -4453,7 +4521,7 @@
         "value_type": "string"
       },
       {
-        "description": "Fence language token (first word of the info string).",
+        "description": "Fence language from the grammar's language token, normalized (`rust,no_run` is `rust`, `{r echo=FALSE}` and `{.r}` are `r`).",
         "key": "language",
         "presence": "optional",
         "value_type": "string"
@@ -4467,6 +4535,68 @@
     ],
     "pattern_id": "markdown.fenced_code_block.v1",
     "query_family": "document_structure"
+  },
+  {
+    "description": "A Markdown footnote definition (`[^label]: text`).",
+    "languages": [
+      "markdown"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Footnote label without the `^`.",
+        "key": "label",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Footnote body text.",
+        "key": "text",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "markdown.footnote_definition.v1",
+    "query_family": "document_links"
+  },
+  {
+    "description": "A Markdown footnote reference (`[^label]`).",
+    "languages": [
+      "markdown"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Footnote label without the `^`.",
+        "key": "label",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "markdown.footnote_reference.v1",
+    "query_family": "document_links"
   },
   {
     "description": "A Markdown frontmatter block (YAML `---` or TOML `+++`).",
@@ -4497,13 +4627,19 @@
         "key": "key_count",
         "presence": "always",
         "value_type": "number"
+      },
+      {
+        "description": "Top-level frontmatter keys in source order (TOML table names included); absent when none parse.",
+        "key": "keys",
+        "presence": "optional",
+        "value_type": "string_array"
       }
     ],
     "pattern_id": "markdown.frontmatter.v1",
     "query_family": "document_metadata"
   },
   {
-    "description": "A Markdown ATX heading.",
+    "description": "A Markdown ATX or setext heading with a non-empty title.",
     "languages": [
       "markdown"
     ],
@@ -4527,9 +4663,15 @@
         "value_type": "number"
       },
       {
-        "description": "Heading title text with the ATX marker stripped.",
+        "description": "Heading title as plain text: inline markup, ATX markers, closing hashes, and the `{#id}` attribute block removed.",
         "key": "text",
         "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Explicit anchor id from a trailing `{#id}` attribute block.",
+        "key": "anchor",
+        "presence": "optional",
         "value_type": "string"
       }
     ],
@@ -4611,6 +4753,46 @@
     "query_family": "document_links"
   },
   {
+    "description": "A Markdown reference-link usage (`[text][label]`, `[label][]`, or `[label]`).",
+    "languages": [
+      "markdown"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Reference label the usage names.",
+        "key": "label",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Usage form: \"full\", \"collapsed\", or \"shortcut\".",
+        "key": "reference_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Destination of the matching link definition in the same document.",
+        "key": "destination",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "markdown.reference_link.v1",
+    "query_family": "document_links"
+  },
+  {
     "description": "A Markdown pipe table.",
     "languages": [
       "markdown"
@@ -4648,6 +4830,40 @@
       }
     ],
     "pattern_id": "markdown.table.v1",
+    "query_family": "document_structure"
+  },
+  {
+    "description": "A Markdown task-list item (`- [ ]` or `- [x]`).",
+    "languages": [
+      "markdown"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "True when the task marker is checked.",
+        "key": "checked",
+        "presence": "always",
+        "value_type": "bool"
+      },
+      {
+        "description": "Item paragraph text with whitespace runs collapsed.",
+        "key": "text",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "markdown.task_list_item.v1",
     "query_family": "document_structure"
   },
   {

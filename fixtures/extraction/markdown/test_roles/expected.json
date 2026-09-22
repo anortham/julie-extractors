@@ -96,6 +96,111 @@
       "content_type": "documentation"
     },
     {
+      "key": "fixtures/extraction/markdown/test_roles/source.md:rust code block:11:0",
+      "name": "rust code block",
+      "kind": "property",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "start_line": 11,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 0,
+      "start_byte": 127,
+      "end_byte": 169,
+      "body_span": {
+        "start_line": 12,
+        "start_column": 0,
+        "end_line": 12,
+        "end_column": 22,
+        "start_byte": 142,
+        "end_byte": 164
+      },
+      "body_hash": "0d818363d82fff4e50afb11e0833b209",
+      "signature": "```rust,no_run",
+      "doc_comment": "fn no_run_example() {}",
+      "visibility": null,
+      "parent_key": "fixtures/extraction/markdown/test_roles/source.md:Rust Documentation Examples:1:0",
+      "metadata": {
+        "info_string": "rust,no_run",
+        "language": "rust",
+        "markdown_kind": "code_block"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": "documentation"
+    },
+    {
+      "key": "fixtures/extraction/markdown/test_roles/source.md:rust code block:17:0",
+      "name": "rust code block",
+      "kind": "property",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "start_line": 17,
+      "start_column": 0,
+      "end_line": 20,
+      "end_column": 0,
+      "start_byte": 215,
+      "end_byte": 275,
+      "body_span": {
+        "start_line": 18,
+        "start_column": 0,
+        "end_line": 18,
+        "end_column": 34,
+        "start_byte": 236,
+        "end_byte": 270
+      },
+      "body_hash": "7f716575457f51a247055ec49d73bb3f",
+      "signature": "```rust,compile_fail",
+      "doc_comment": "let value: i32 = \"not an integer\";",
+      "visibility": null,
+      "parent_key": "fixtures/extraction/markdown/test_roles/source.md:Rust Documentation Examples:1:0",
+      "metadata": {
+        "info_string": "rust,compile_fail",
+        "language": "rust",
+        "markdown_kind": "code_block"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": "documentation"
+    },
+    {
+      "key": "fixtures/extraction/markdown/test_roles/source.md:rust code block:29:0",
+      "name": "rust code block",
+      "kind": "property",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
+      "start_line": 29,
+      "start_column": 0,
+      "end_line": 32,
+      "end_column": 0,
+      "start_byte": 387,
+      "end_byte": 430,
+      "body_span": {
+        "start_line": 30,
+        "start_column": 0,
+        "end_line": 30,
+        "end_column": 23,
+        "start_byte": 402,
+        "end_byte": 425
+      },
+      "body_hash": "18157e5679eb5545ccb509c36ba293ac",
+      "signature": "```rust,ignore",
+      "doc_comment": "fn ignored_example() {}",
+      "visibility": null,
+      "parent_key": "fixtures/extraction/markdown/test_roles/source.md:Rust Documentation Examples:1:0",
+      "metadata": {
+        "info_string": "rust,ignore",
+        "language": "rust",
+        "markdown_kind": "code_block"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": "documentation"
+    },
+    {
       "key": "fixtures/extraction/markdown/test_roles/source.md:rust code block:5:0",
       "name": "rust code block",
       "kind": "property",
@@ -123,111 +228,6 @@
       "metadata": {
         "info_string": "rust",
         "language": "rust",
-        "markdown_kind": "code_block"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": "documentation"
-    },
-    {
-      "key": "fixtures/extraction/markdown/test_roles/source.md:rust,compile_fail code block:17:0",
-      "name": "rust,compile_fail code block",
-      "kind": "property",
-      "language": "markdown",
-      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
-      "start_line": 17,
-      "start_column": 0,
-      "end_line": 20,
-      "end_column": 0,
-      "start_byte": 215,
-      "end_byte": 275,
-      "body_span": {
-        "start_line": 18,
-        "start_column": 0,
-        "end_line": 18,
-        "end_column": 34,
-        "start_byte": 236,
-        "end_byte": 270
-      },
-      "body_hash": "7f716575457f51a247055ec49d73bb3f",
-      "signature": "```rust,compile_fail",
-      "doc_comment": "let value: i32 = \"not an integer\";",
-      "visibility": null,
-      "parent_key": "fixtures/extraction/markdown/test_roles/source.md:Rust Documentation Examples:1:0",
-      "metadata": {
-        "info_string": "rust,compile_fail",
-        "language": "rust,compile_fail",
-        "markdown_kind": "code_block"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": "documentation"
-    },
-    {
-      "key": "fixtures/extraction/markdown/test_roles/source.md:rust,ignore code block:29:0",
-      "name": "rust,ignore code block",
-      "kind": "property",
-      "language": "markdown",
-      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
-      "start_line": 29,
-      "start_column": 0,
-      "end_line": 32,
-      "end_column": 0,
-      "start_byte": 387,
-      "end_byte": 430,
-      "body_span": {
-        "start_line": 30,
-        "start_column": 0,
-        "end_line": 30,
-        "end_column": 23,
-        "start_byte": 402,
-        "end_byte": 425
-      },
-      "body_hash": "18157e5679eb5545ccb509c36ba293ac",
-      "signature": "```rust,ignore",
-      "doc_comment": "fn ignored_example() {}",
-      "visibility": null,
-      "parent_key": "fixtures/extraction/markdown/test_roles/source.md:Rust Documentation Examples:1:0",
-      "metadata": {
-        "info_string": "rust,ignore",
-        "language": "rust,ignore",
-        "markdown_kind": "code_block"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": "documentation"
-    },
-    {
-      "key": "fixtures/extraction/markdown/test_roles/source.md:rust,no_run code block:11:0",
-      "name": "rust,no_run code block",
-      "kind": "property",
-      "language": "markdown",
-      "file_path": "fixtures/extraction/markdown/test_roles/source.md",
-      "start_line": 11,
-      "start_column": 0,
-      "end_line": 14,
-      "end_column": 0,
-      "start_byte": 127,
-      "end_byte": 169,
-      "body_span": {
-        "start_line": 12,
-        "start_column": 0,
-        "end_line": 12,
-        "end_column": 22,
-        "start_byte": 142,
-        "end_byte": 164
-      },
-      "body_hash": "0d818363d82fff4e50afb11e0833b209",
-      "signature": "```rust,no_run",
-      "doc_comment": "fn no_run_example() {}",
-      "visibility": null,
-      "parent_key": "fixtures/extraction/markdown/test_roles/source.md:Rust Documentation Examples:1:0",
-      "metadata": {
-        "info_string": "rust,no_run",
-        "language": "rust,no_run",
         "markdown_kind": "code_block"
       },
       "annotations": [],
@@ -289,16 +289,16 @@
       "node_kind": "fenced_code_block",
       "language": "markdown",
       "file_path": "fixtures/extraction/markdown/test_roles/source.md",
-      "containing_key": "fixtures/extraction/markdown/test_roles/source.md:rust code block:5:0",
-      "start_line": 5,
+      "containing_key": "fixtures/extraction/markdown/test_roles/source.md:rust code block:11:0",
+      "start_line": 11,
       "start_column": 0,
-      "end_line": 8,
+      "end_line": 14,
       "end_column": 0,
-      "start_byte": 60,
-      "end_byte": 97,
+      "start_byte": 127,
+      "end_byte": 169,
       "confidence": "1.000",
       "metadata": {
-        "info_string": "rust",
+        "info_string": "rust,no_run",
         "language": "rust",
         "pattern_version": 1,
         "query_family": "document_structure"
@@ -310,7 +310,7 @@
       "node_kind": "fenced_code_block",
       "language": "markdown",
       "file_path": "fixtures/extraction/markdown/test_roles/source.md",
-      "containing_key": "fixtures/extraction/markdown/test_roles/source.md:rust,compile_fail code block:17:0",
+      "containing_key": "fixtures/extraction/markdown/test_roles/source.md:rust code block:17:0",
       "start_line": 17,
       "start_column": 0,
       "end_line": 20,
@@ -320,7 +320,7 @@
       "confidence": "1.000",
       "metadata": {
         "info_string": "rust,compile_fail",
-        "language": "rust,compile_fail",
+        "language": "rust",
         "pattern_version": 1,
         "query_family": "document_structure"
       }
@@ -331,7 +331,7 @@
       "node_kind": "fenced_code_block",
       "language": "markdown",
       "file_path": "fixtures/extraction/markdown/test_roles/source.md",
-      "containing_key": "fixtures/extraction/markdown/test_roles/source.md:rust,ignore code block:29:0",
+      "containing_key": "fixtures/extraction/markdown/test_roles/source.md:rust code block:29:0",
       "start_line": 29,
       "start_column": 0,
       "end_line": 32,
@@ -341,7 +341,7 @@
       "confidence": "1.000",
       "metadata": {
         "info_string": "rust,ignore",
-        "language": "rust,ignore",
+        "language": "rust",
         "pattern_version": 1,
         "query_family": "document_structure"
       }
@@ -352,17 +352,17 @@
       "node_kind": "fenced_code_block",
       "language": "markdown",
       "file_path": "fixtures/extraction/markdown/test_roles/source.md",
-      "containing_key": "fixtures/extraction/markdown/test_roles/source.md:rust,no_run code block:11:0",
-      "start_line": 11,
+      "containing_key": "fixtures/extraction/markdown/test_roles/source.md:rust code block:5:0",
+      "start_line": 5,
       "start_column": 0,
-      "end_line": 14,
+      "end_line": 8,
       "end_column": 0,
-      "start_byte": 127,
-      "end_byte": 169,
+      "start_byte": 60,
+      "end_byte": 97,
       "confidence": "1.000",
       "metadata": {
-        "info_string": "rust,no_run",
-        "language": "rust,no_run",
+        "info_string": "rust",
+        "language": "rust",
         "pattern_version": 1,
         "query_family": "document_structure"
       }
@@ -404,7 +404,7 @@
       "start_byte": 127,
       "end_byte": 169,
       "metadata": {
-        "embedded_language": "rust,no_run",
+        "embedded_language": "rust",
         "host_node_kind": "fenced_code_block",
         "info_string": "rust,no_run"
       }
@@ -421,7 +421,7 @@
       "start_byte": 215,
       "end_byte": 275,
       "metadata": {
-        "embedded_language": "rust,compile_fail",
+        "embedded_language": "rust",
         "host_node_kind": "fenced_code_block",
         "info_string": "rust,compile_fail"
       }
@@ -453,7 +453,7 @@
       "start_byte": 387,
       "end_byte": 430,
       "metadata": {
-        "embedded_language": "rust,ignore",
+        "embedded_language": "rust",
         "host_node_kind": "fenced_code_block",
         "info_string": "rust,ignore"
       }

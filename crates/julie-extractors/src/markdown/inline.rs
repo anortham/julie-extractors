@@ -47,6 +47,16 @@ fn collect(node: Node, content: &str, parser: &mut Parser, trees: &mut Vec<Tree>
     }
 }
 
+/// The inline tree of one `inline` node.
+pub(crate) fn parse_inline_node(node: Node, content: &str) -> Option<Tree> {
+    let mut parser = Parser::new();
+    parser
+        .set_language(&tree_sitter_md::INLINE_LANGUAGE.into())
+        .ok()?;
+    parser.set_included_ranges(&inline_ranges(node)).ok()?;
+    parser.parse(content, None)
+}
+
 /// The node's range minus its named children (block continuation markers
 /// such as a `> ` quote prefix inside a multi-line paragraph).
 fn inline_ranges(node: Node) -> Vec<Range> {

@@ -156,12 +156,6 @@ pub const RELATIONSHIP_DATA_CAPABILITIES: LanguageCapabilities = LanguageCapabil
     types: false,
 };
 
-pub const RELATIONSHIP_DATA_NO_IDENTIFIERS_CAPABILITIES: LanguageCapabilities =
-    LanguageCapabilities {
-        identifiers: false,
-        ..RELATIONSHIP_DATA_CAPABILITIES
-    };
-
 const EMPTY: &[DocCommentStyle] = &[];
 const RUST_DOCS: &[DocCommentStyle] = &[
     DocCommentStyle::SlashStarDocBlock,

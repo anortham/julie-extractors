@@ -6624,7 +6624,7 @@
       "capabilities": {
         "symbols": true,
         "relationships": true,
-        "pending_relationships": false,
+        "pending_relationships": true,
         "identifiers": false,
         "types": false
       },
@@ -6643,27 +6643,26 @@
           "name": "test_roles",
           "source": "fixtures/extraction/markdown/test_roles/source.md",
           "expected": "fixtures/extraction/markdown/test_roles/expected.json"
+        },
+        {
+          "name": "extended",
+          "source": "fixtures/extraction/markdown/extended/source.md",
+          "expected": "fixtures/extraction/markdown/extended/expected.json"
+        },
+        {
+          "name": "toml_frontmatter",
+          "source": "fixtures/extraction/markdown/toml_frontmatter/source.md",
+          "expected": "fixtures/extraction/markdown/toml_frontmatter/expected.json"
         }
       ],
       "target_capabilities": {
         "symbols": true,
         "relationships": true,
-        "pending_relationships": false,
+        "pending_relationships": true,
         "identifiers": false,
         "types": false
       },
       "capability_gaps": [
-        {
-          "capability": "pending_relationships",
-          "status": "exception",
-          "reason": "Markdown links and footnote references are within-document. Cross-file links are URL/path strings, not symbol references.",
-          "required_closure": "N/A — domain limitation.",
-          "evidence": {
-            "kind": "test",
-            "value": "markdown_pending_relationships_intra_document_only",
-            "command": "cargo nextest run -p julie-extractors --lib tests::markdown::cross_file_pending::markdown_pending_relationships_intra_document_only"
-          }
-        },
         {
           "capability": "types",
           "status": "exception",
@@ -6726,22 +6725,21 @@
         },
         "structural_facts": {
           "supported": [
+            "markdown.autolink.v1",
+            "markdown.definition_list_item.v1",
             "markdown.fenced_code_block.v1",
+            "markdown.footnote_definition.v1",
+            "markdown.footnote_reference.v1",
             "markdown.frontmatter.v1",
             "markdown.heading.v1",
             "markdown.inline_link.v1",
             "markdown.link_definition.v1",
-            "markdown.table.v1"
+            "markdown.reference_link.v1",
+            "markdown.table.v1",
+            "markdown.task_list_item.v1"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "markdown.extended_markdown_blocks_and_references",
-              "reason": "Markdown structural facts cover headings, frontmatter, fenced code, inline links, link definitions, and tables, but do not yet emit first-class facts for footnotes, reference-link usages, task-list items, definition lists, or autolinks.",
-              "required_closure": "add parser- or scanner-backed facts plus fixtures for footnotes, reference-link usages, task lists, definition lists, and autolinks",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: Markdown extended structural facts"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [],
@@ -6778,6 +6776,7 @@
         },
         "source_regions": {
           "supported": [
+            "comment",
             "embedded"
           ],
           "not_applicable": [],

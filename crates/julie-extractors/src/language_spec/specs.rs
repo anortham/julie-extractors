@@ -285,7 +285,7 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
         "markdown",
         &["md", "markdown"],
         "tree-sitter-md",
-        RELATIONSHIP_DATA_NO_IDENTIFIERS_CAPABILITIES,
+        PENDING_NO_TYPES_NO_IDENTIFIERS_CAPABILITIES,
         parser_markdown,
         EMPTY,
     ),

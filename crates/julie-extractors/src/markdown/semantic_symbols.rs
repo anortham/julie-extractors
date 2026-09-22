@@ -163,11 +163,7 @@ fn extract_fenced_code_block(
     let info_string = first_child_text(base, node, "info_string")
         .map(|text| text.trim().to_string())
         .filter(|text| !text.is_empty());
-    let language = info_string
-        .as_deref()
-        .and_then(|info| info.split_whitespace().next())
-        .filter(|language| !language.is_empty())
-        .map(str::to_string);
+    let language = super::blocks::fence_language(&base.content, node);
     let code = child_texts(base, node, "code_fence_content").join("\n");
 
     let mut metadata = HashMap::new();
@@ -282,6 +278,14 @@ fn extract_autolink(
     let mut metadata = HashMap::new();
     metadata.insert("markdown_kind".to_string(), json!("autolink"));
     metadata.insert("destination".to_string(), json!(destination));
+    metadata.insert(
+        "autolink_kind".to_string(),
+        json!(if node.kind() == "email_autolink" {
+            "email"
+        } else {
+            "uri"
+        }),
+    );
     Some(base.create_symbol(
         &node,
         destination,
@@ -317,6 +321,14 @@ fn extract_reference_link(
         },
     );
     metadata.insert("reference_label".to_string(), json!(label));
+    if !is_footnote {
+        let reference_kind = match node.kind() {
+            "full_reference_link" => "full",
+            "collapsed_reference_link" => "collapsed",
+            _ => "shortcut",
+        };
+        metadata.insert("reference_kind".to_string(), json!(reference_kind));
+    }
 
     Some(base.create_symbol(
         &node,
@@ -444,6 +456,58 @@ fn extract_link_reference_definition(
             annotations: Vec::new(),
         },
     ))
+}
+
+/// `<a href>` and `<img src>` inside an HTML block, as inline link and image
+/// symbols marked `html`.
+pub(super) fn extract_html_links(
+    base: &mut BaseExtractor,
+    node: Node,
+    parent_id: Option<&str>,
+) -> Vec<Symbol> {
+    let content = base.content.clone();
+    super::blocks::html_links(&content, node)
+        .into_iter()
+        .filter_map(|link| {
+            let span = base.span_for_byte_range(link.start, link.end)?;
+            let markdown_kind = if link.image { "image" } else { "inline_link" };
+            if let Some(destination_span) = base.span_for_byte_range(
+                link.destination_start,
+                link.destination_start + link.destination.len(),
+            ) {
+                base.record_literal_at_span(
+                    destination_span,
+                    link.destination.clone(),
+                    Some(markdown_kind.to_string()),
+                    0,
+                    parent_id.map(str::to_string),
+                );
+            }
+            let mut metadata = HashMap::new();
+            metadata.insert("markdown_kind".to_string(), json!(markdown_kind));
+            metadata.insert("destination".to_string(), json!(link.destination));
+            metadata.insert("html".to_string(), json!(true));
+            let name = if link.text.is_empty() {
+                link.destination.clone()
+            } else {
+                link.text.clone()
+            };
+            let mut symbol = base.create_symbol_from_span(
+                &node,
+                span,
+                name,
+                SymbolKind::Import,
+                SymbolOptions {
+                    signature: Some(content[link.start..link.end].to_string()),
+                    parent_id: parent_id.map(str::to_string),
+                    metadata: Some(metadata),
+                    ..Default::default()
+                },
+            );
+            base.set_body_span(&mut symbol, None);
+            Some(symbol)
+        })
+        .collect()
 }
 
 fn first_child_node<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
