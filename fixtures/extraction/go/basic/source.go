@@ -1,6 +1,10 @@
 package fixture
 
-import "net/http"
+import (
+	"net/http"
+
+	"gopkg.in/yaml.v3"
+)
 
 type List[T any] struct{}
 
@@ -60,4 +64,30 @@ func Evaluate(count int, enabled bool) int {
 		}
 	}
 	return total
+}
+
+type (
+	// Store persists workers.
+	Store interface {
+		// Load reads one worker.
+		Load(id int) (Worker, error)
+	}
+	// memStore keeps workers in memory.
+	memStore struct {
+		items map[int]Worker
+	}
+)
+
+// Decode parses a worker document.
+func Decode(data []byte) (w Worker, err error) {
+	err = yaml.Unmarshal(data, &w)
+	return
+}
+
+func (s memStore) Load(id int) (Worker, error) {
+	return s.items[id], nil
+}
+
+func (w Worker) Restart() {
+	NewWorker(w.ID).Run()
 }

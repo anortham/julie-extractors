@@ -34,23 +34,6 @@ impl super::GoExtractor {
         None
     }
 
-    pub(super) fn extract_type_declaration(
-        &mut self,
-        node: Node,
-        parent_id: Option<&str>,
-    ) -> Option<Symbol> {
-        // Find type_spec or type_alias node which contains the actual type definition
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            if child.kind() == "type_spec" {
-                return self.extract_type_spec(child, parent_id);
-            } else if child.kind() == "type_alias" {
-                return self.extract_type_alias(child, parent_id);
-            }
-        }
-        None
-    }
-
     pub(super) fn extract_type_spec(
         &mut self,
         node: Node,
@@ -150,7 +133,7 @@ impl super::GoExtractor {
                     }
 
                     Some(self.base.create_symbol(
-                        &type_id,
+                        &node,
                         name,
                         SymbolKind::Interface,
                         SymbolOptions {

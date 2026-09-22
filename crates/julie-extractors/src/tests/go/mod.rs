@@ -14,6 +14,7 @@ mod test_detection;
 mod type_arguments;
 mod type_assertions;
 mod type_facts;
+mod wave1_gaps;
 
 #[cfg(test)]
 mod go_extractor_tests {
@@ -1607,7 +1608,9 @@ func handleUsers(w http.ResponseWriter, r *http.Request) {
         assert!(user_service.is_some());
         assert_eq!(user_service.unwrap().kind, SymbolKind::Interface);
 
-        let get_user = symbols.iter().find(|s| s.name == "GetUser");
+        let get_user = symbols
+            .iter()
+            .find(|s| s.name == "GetUser" && s.parent_id.is_none());
         assert!(get_user.is_some());
         assert_eq!(get_user.unwrap().kind, SymbolKind::Method);
         assert!(

@@ -623,6 +623,7 @@
             "field",
             "function",
             "import",
+            "interface",
             "method",
             "module",
             "struct",
@@ -652,6 +653,7 @@
         "body_spans": {
           "supported": [
             "function",
+            "interface",
             "method",
             "struct"
           ],
@@ -707,7 +709,10 @@
         "doc_comments": {
           "supported": [
             "function",
-            "module"
+            "interface",
+            "method",
+            "module",
+            "struct"
           ],
           "not_applicable": [],
           "open_gaps": []

@@ -31,6 +31,24 @@ func routes() {
 	e.Any("/anything", anyEcho)
 }
 
+type server struct {
+	mux *http.ServeMux
+}
+
+func registerGin(router *gin.Engine, group *gin.RouterGroup) {
+	v2 := router.Group("/v2")
+	v2.GET("/orders/:id", showOrder)
+	group.DELETE("/orders/:id", deleteOrder)
+}
+
+func registerEcho(app *echo.Echo) {
+	app.GET("/health", health)
+}
+
+func (s *server) register() {
+	s.mux.HandleFunc("GET /metrics", metrics)
+}
+
 func clients() {
 	http.Get("https://api.example.com/users")
 	http.NewRequest("PATCH", "/users/1", nil)

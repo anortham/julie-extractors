@@ -7,7 +7,17 @@ use tree_sitter::Node;
 
 /// Function and method extraction for Go
 impl super::GoExtractor {
-    pub(super) fn recover_function_symbols_from_source(&mut self, symbols: &mut Vec<Symbol>) {
+    /// Recover `func name(` declarations the parser lost inside error regions.
+    /// A clean tree needs no recovery, and a match inside a string literal or
+    /// comment is text, not a declaration.
+    pub(super) fn recover_function_symbols_from_source(
+        &mut self,
+        root: Node,
+        symbols: &mut Vec<Symbol>,
+    ) {
+        if !root.has_error() {
+            return;
+        }
         static GO_FUNCTION_SIGNATURE_RE: LazyLock<Regex> = LazyLock::new(|| {
             Regex::new(r"(?m)^(?P<indent>[ \t]*)func\s+(?P<name>[A-Za-z_]\w*)\s*(?P<params>\([^)\n]*\))(?:\s+(?P<return_type>[^{\n]+))?(?:\s*\{)?")
                 .expect("Go function recovery regex should compile")
@@ -18,6 +28,9 @@ impl super::GoExtractor {
             let Some(name_match) = captures.name("name") else {
                 continue;
             };
+            if is_inside_string_or_comment(root, name_match.start(), name_match.end()) {
+                continue;
+            }
             let name = name_match.as_str().to_string();
             let (start_line, start_column) = line_column_for_byte(&content, name_match.start());
 
@@ -97,33 +110,7 @@ impl super::GoExtractor {
         node: Node,
         parent_id: Option<&str>,
     ) -> Option<Symbol> {
-        let mut cursor = node.walk();
-        let mut func_name = None;
-        let mut type_parameters = None;
-        let mut parameters = Vec::new();
-        let mut return_type = None;
-        let mut param_list_found = false;
-
-        for child in node.children(&mut cursor) {
-            match child.kind() {
-                "identifier" => func_name = Some(self.get_node_text(child)),
-                "type_parameter_list" => type_parameters = Some(self.get_node_text(child)),
-                "parameter_list" => {
-                    parameters = self.extract_parameter_list(child);
-                    param_list_found = true;
-                }
-                "type_identifier" | "primitive_type" | "pointer_type" | "slice_type"
-                | "channel_type" | "interface_type" | "function_type" | "map_type"
-                | "array_type" | "qualified_type" | "generic_type"
-                    // Only treat as return type if we've seen parameters already
-                    if param_list_found => {
-                        return_type = Some(self.extract_type_from_node(child));
-                    }
-                _ => {}
-            }
-        }
-
-        let name = func_name?;
+        let name = self.get_node_text(node.child_by_field_name("name")?);
         let visibility = if name == "main" || name == "init" {
             Some(Visibility::Private) // Special Go functions
         } else if self.is_public(&name) {
@@ -132,13 +119,13 @@ impl super::GoExtractor {
             Some(Visibility::Private)
         };
 
-        let type_params = type_parameters.unwrap_or_default();
-        let signature = self.build_function_signature_with_generics(
-            "func",
-            &name,
-            &type_params,
-            &parameters,
-            return_type.as_deref(),
+        let type_params = node
+            .child_by_field_name("type_parameters")
+            .map(|type_params| self.get_node_text(type_params))
+            .unwrap_or_default();
+        let signature = format!(
+            "func {name}{type_params}{}",
+            self.callable_signature_tail(node)
         );
 
         let doc_comment = self.find_function_doc_comment(&node);
@@ -179,73 +166,30 @@ impl super::GoExtractor {
     }
 
     pub(super) fn extract_method(&mut self, node: Node, parent_id: Option<&str>) -> Option<Symbol> {
-        let mut cursor = node.walk();
-        let mut receiver = None;
-        let mut func_name = None;
-        let mut type_parameters = None;
-        let mut parameters = Vec::new();
-        let mut return_types = Vec::new();
-        let mut param_lists_found = 0;
-
-        for child in node.children(&mut cursor) {
-            match child.kind() {
-                "parameter_list" => {
-                    param_lists_found += 1;
-                    if param_lists_found == 1 {
-                        // First parameter list is the receiver
-                        let receiver_params = self.extract_parameter_list(child);
-                        if !receiver_params.is_empty() {
-                            receiver = Some(receiver_params[0].clone());
-                        }
-                    } else if param_lists_found == 2 {
-                        // Second parameter list is the actual parameters
-                        parameters = self.extract_parameter_list(child);
-                    } else if param_lists_found == 3 {
-                        // Third parameter list is the return types (Go methods can have 3 parameter lists)
-                        return_types = self.extract_parameter_list(child);
-                    }
-                }
-                "field_identifier" => func_name = Some(self.get_node_text(child)), // Uses field_identifier for method names
-                "type_parameter_list" => type_parameters = Some(self.get_node_text(child)),
-                "type_identifier" | "primitive_type" | "pointer_type" | "slice_type"
-                | "channel_type" | "interface_type" | "function_type" | "map_type"
-                | "array_type" | "qualified_type" | "generic_type"
-                    // Only treat as return type if we've seen parameters already
-                    if param_lists_found >= 2 => {
-                        return_types.push(self.extract_type_from_node(child));
-                    }
-                _ => {}
-            }
-        }
-
-        let name = func_name?;
+        let name = self.get_node_text(node.child_by_field_name("name")?);
         let visibility = if self.is_public(&name) {
             Some(Visibility::Public)
         } else {
             Some(Visibility::Private)
         };
 
-        let type_params = type_parameters.unwrap_or_default();
-
-        let signature = if let Some(recv) = receiver {
-            format!(
-                "func ({}) {}{}",
-                recv,
-                name,
-                self.build_method_signature_with_return_types(
-                    &type_params,
-                    &parameters,
-                    &return_types
-                )
-            )
-        } else {
-            self.build_function_signature_with_return_types(
-                "func",
-                &name,
-                &parameters,
-                &return_types,
-            )
+        let receiver_decl = node.child_by_field_name("receiver").and_then(|receiver| {
+            receiver
+                .named_children(&mut receiver.walk())
+                .find(|child| child.kind() == "parameter_declaration")
+        });
+        let receiver = receiver_decl.map(|decl| self.extract_parameter_declaration(decl));
+        let tail = self.callable_signature_tail(node);
+        let signature = match receiver {
+            Some(receiver) => format!("func ({receiver}) {name}{tail}"),
+            None => format!("func {name}{tail}"),
         };
+        let receiver_type = receiver_decl.map(|decl| {
+            let is_pointer = decl
+                .child_by_field_name("type")
+                .is_some_and(|type_node| type_node.kind() == "pointer_type");
+            (self.extract_receiver_type_from_param(decl), is_pointer)
+        });
 
         let doc_comment = self.find_function_doc_comment(&node);
         let annotations = self.annotations_from_compiler_directives(&node);
@@ -260,6 +204,18 @@ impl super::GoExtractor {
             doc_comment.as_deref(),
             &mut metadata,
         );
+        if let Some((receiver_type, is_pointer)) = receiver_type
+            && !receiver_type.is_empty()
+        {
+            metadata.insert(
+                "receiver_type".to_string(),
+                serde_json::Value::String(receiver_type),
+            );
+            metadata.insert(
+                "receiver_pointer".to_string(),
+                serde_json::Value::Bool(is_pointer),
+            );
+        }
 
         let symbol = self.base.create_symbol(
             &node,
@@ -281,6 +237,60 @@ impl super::GoExtractor {
         Some(super::helpers::finalize_function_symbol(
             symbol,
             doc_comment,
+        ))
+    }
+
+    /// `(params) results` for a function, method, or interface method element,
+    /// read from the grammar's `parameters` and `result` fields.
+    fn callable_signature_tail(&self, node: Node) -> String {
+        let parameters = node
+            .child_by_field_name("parameters")
+            .map(|parameters| self.extract_parameter_list(parameters))
+            .unwrap_or_default();
+        let result = match node.child_by_field_name("result") {
+            None => String::new(),
+            Some(result) if result.kind() == "parameter_list" => {
+                let results = self.extract_parameter_list(result);
+                let named = result
+                    .named_children(&mut result.walk())
+                    .any(|decl| decl.child_by_field_name("name").is_some());
+                match results.as_slice() {
+                    [single] if !named => format!(" {single}"),
+                    _ => format!(" ({})", results.join(", ")),
+                }
+            }
+            Some(result) => format!(" {}", self.extract_type_from_node(result)),
+        };
+        format!("({}){result}", parameters.join(", "))
+    }
+
+    /// An interface method element (`Get(id string) error`) as a method of the
+    /// enclosing interface.
+    pub(super) fn extract_method_elem(
+        &mut self,
+        node: Node,
+        parent_id: Option<&str>,
+    ) -> Option<Symbol> {
+        let name = self.get_node_text(node.child_by_field_name("name")?);
+        let visibility = if self.is_public(&name) {
+            Visibility::Public
+        } else {
+            Visibility::Private
+        };
+        let signature = format!("{name}{}", self.callable_signature_tail(node));
+        let doc_comment = self.base.find_doc_comment(&node);
+        Some(self.base.create_symbol(
+            &node,
+            name,
+            SymbolKind::Method,
+            SymbolOptions {
+                signature: Some(signature),
+                visibility: Some(visibility),
+                parent_id: parent_id.map(str::to_string),
+                metadata: None,
+                doc_comment,
+                annotations: Vec::new(),
+            },
         ))
     }
 
@@ -396,6 +406,20 @@ impl super::GoExtractor {
 
         None
     }
+}
+
+fn is_inside_string_or_comment(root: Node, start: usize, end: usize) -> bool {
+    let mut node = root.descendant_for_byte_range(start, end);
+    while let Some(current) = node {
+        if matches!(
+            current.kind(),
+            "comment" | "raw_string_literal" | "interpreted_string_literal"
+        ) {
+            return true;
+        }
+        node = current.parent();
+    }
+    false
 }
 
 fn line_column_for_byte(content: &str, byte: usize) -> (u32, u32) {
