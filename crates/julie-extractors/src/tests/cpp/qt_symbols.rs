@@ -367,3 +367,16 @@ fn two_runs_give_the_same_property_symbol_and_fact_ids() {
     assert_eq!(symbol(&first, "index").id, symbol(&second, "index").id);
     assert_eq!(property_facts(&first)[0].id, property_facts(&second)[0].id);
 }
+
+#[test]
+fn a_nested_class_body_does_not_end_the_outer_signals_section() {
+    let source = in_class(
+        "Q_SIGNALS:\n    void a();\n\n    class Inner\n    {\n    public:\n        void b();\n    };\n\n    void c();\n",
+    );
+
+    let results = extract(&source);
+
+    assert_eq!(symbol(&results, "a").kind, SymbolKind::Event);
+    assert_eq!(symbol(&results, "b").kind, SymbolKind::Method);
+    assert_eq!(symbol(&results, "c").kind, SymbolKind::Event);
+}

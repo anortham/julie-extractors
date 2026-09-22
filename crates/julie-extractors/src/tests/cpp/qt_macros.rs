@@ -401,3 +401,175 @@ fn a_qt_namespace_enum_header_is_still_detected_as_cpp() {
         results.parse_diagnostics
     );
 }
+
+const ENUMERATOR_PROBE: &str = r#"enum Mode { MODE_EXPORT, MODE_IMPORT };
+
+int f(int flags)
+{
+    return flags | MODE_EXPORT;
+}
+"#;
+
+const SPECIFIER_PROBE: &str = r#"class Foo
+{
+public:
+    virtual Q_INVOKABLE QIcon icon(const QString &name) const;
+    static Q_INVOKABLE int count();
+    inline Q_NOREPLY void go();
+};
+"#;
+
+const VENDOR_PROBE: &str = r#"QT_BEGIN_NAMESPACE
+
+class Foo
+{
+public:
+    KIRIGAMIPLATFORM_DEPRECATED_VERSION(5, 80, "use y") void old();
+    QT_DEPRECATED_VERSION_X_6_0("use z") void older();
+};
+
+K_PLUGIN_FACTORY_WITH_JSON(FooFactory, "foo.json", registerPlugin<Foo>();)
+QUICK_TEST_MAIN(Kirigami)
+"#;
+
+#[cfg(feature = "syntax-api")]
+fn check_diagnostics(name: &str, source: &str) -> Vec<String> {
+    crate::syntax::parse_source(&Path::new("/repo/src").join(name), source)
+        .expect("a C++ source should parse")
+        .diagnostics
+        .iter()
+        .map(|diagnostic| format!("{diagnostic:?}"))
+        .collect()
+}
+
+#[test]
+fn an_export_suffixed_enumerator_outside_a_declaration_position_is_untouched() {
+    assert_eq!(blank_macros(ENUMERATOR_PROBE), None);
+    assert!(scan(ENUMERATOR_PROBE).is_empty());
+}
+
+#[test]
+fn an_export_macro_after_a_declaration_specifier_becomes_spaces() {
+    let source = "class Foo\n{\n    static KIRIGAMI2_EXPORT int count();\n};\n";
+
+    let blanked = blank_macros(source).expect("an export macro should be blanked");
+    let sites = scan(source);
+
+    assert_eq!(
+        blanked,
+        format!(
+            "class Foo\n{{\n    static{}int count();\n}};\n",
+            " ".repeat(18)
+        )
+    );
+    assert_eq!(sites.len(), 1);
+    assert_eq!(sites[0].kind, MacroKind::Export);
+    assert_eq!(sites[0].name, "KIRIGAMI2_EXPORT");
+}
+
+#[test]
+fn a_prefix_macro_after_declaration_specifiers_becomes_spaces() {
+    let blanked = blank_macros(SPECIFIER_PROBE).expect("prefix macros should be blanked");
+    let sites = scan(SPECIFIER_PROBE);
+
+    assert_eq!(
+        blanked,
+        format!(
+            "class Foo\n{{\npublic:\n    virtual{}QIcon icon(const QString &name) const;\n    static{}int count();\n    inline{}void go();\n}};\n",
+            " ".repeat(13),
+            " ".repeat(13),
+            " ".repeat(11)
+        )
+    );
+    assert_eq!(sites.len(), 3);
+    assert!(sites.iter().all(|site| site.kind == MacroKind::Prefix));
+    assert_eq!(sites[2].name, "Q_NOREPLY");
+}
+
+#[test]
+fn a_vendor_statement_macro_and_its_arguments_become_spaces() {
+    let source = "QUICK_TEST_MAIN(Kirigami)\n";
+
+    let blanked = blank_macros(source).expect("a vendor statement macro should be blanked");
+    let sites = scan(source);
+
+    assert_eq!(blanked, format!("{}\n", " ".repeat(25)));
+    assert_eq!(sites.len(), 1);
+    assert_eq!(sites[0].kind, MacroKind::Statement);
+    assert_eq!(sites[0].name, "QUICK_TEST_MAIN");
+    assert_eq!(sites[0].arguments.as_deref(), Some("Kirigami"));
+}
+
+#[test]
+fn a_qt_prefixed_statement_macro_becomes_spaces() {
+    let source = "QT_BEGIN_NAMESPACE\nclass Foo;\nQT_END_NAMESPACE\n";
+
+    let blanked = blank_macros(source).expect("a QT_ macro should be blanked");
+    let sites = scan(source);
+
+    assert_eq!(
+        blanked,
+        format!("{}\nclass Foo;\n{}\n", " ".repeat(18), " ".repeat(16))
+    );
+    assert_eq!(sites.len(), 2);
+    assert_eq!(sites[0].name, "QT_BEGIN_NAMESPACE");
+    assert_eq!(sites[1].name, "QT_END_NAMESPACE");
+}
+
+#[test]
+fn a_deprecated_vendor_macro_and_its_arguments_become_spaces() {
+    let source =
+        "class Foo\n{\n    KIRIGAMIPLATFORM_DEPRECATED_VERSION(5, 80, \"use y\") void old();\n};\n";
+
+    let blanked = blank_macros(source).expect("a deprecation macro should be blanked");
+    let sites = scan(source);
+
+    assert_eq!(
+        blanked,
+        format!("class Foo\n{{\n    {}void old();\n}};\n", " ".repeat(52))
+    );
+    assert_eq!(sites.len(), 1);
+    assert_eq!(sites[0].kind, MacroKind::Prefix);
+    assert_eq!(sites[0].name, "KIRIGAMIPLATFORM_DEPRECATED_VERSION");
+    assert_eq!(sites[0].arguments.as_deref(), Some("5, 80, \"use y\""));
+}
+
+#[test]
+fn a_test_declaration_macro_is_untouched() {
+    let source = "TEST(Suite, Name)\n{\n}\n\nTEST_CASE(\"a name\")\n{\n}\n";
+
+    assert_eq!(blank_macros(source), None);
+}
+
+#[test]
+fn an_enumerator_ending_in_deprecated_is_untouched() {
+    let source = "enum Mode {\n    MODE_DEPRECATED = 1,\n    MODE_CURRENT = 2,\n};\n";
+
+    assert_eq!(blank_macros(source), None);
+}
+
+#[test]
+#[cfg(feature = "syntax-api")]
+fn the_check_path_accepts_an_export_suffixed_enumerator() {
+    let diagnostics = check_diagnostics("modes.cpp", ENUMERATOR_PROBE);
+
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}
+
+#[test]
+#[cfg(feature = "syntax-api")]
+fn the_check_path_accepts_a_prefix_macro_after_declaration_specifiers() {
+    let diagnostics = check_diagnostics("platformtheme.h", SPECIFIER_PROBE);
+
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    assert!(raw_cpp_parse_has_errors(SPECIFIER_PROBE));
+}
+
+#[test]
+#[cfg(feature = "syntax-api")]
+fn the_check_path_accepts_vendor_and_deprecation_macros() {
+    let diagnostics = check_diagnostics("factory.cpp", VENDOR_PROBE);
+
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    assert!(raw_cpp_parse_has_errors(VENDOR_PROBE));
+}

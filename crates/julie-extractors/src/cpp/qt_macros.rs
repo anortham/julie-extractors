@@ -11,6 +11,41 @@ pub(crate) const SLOTS: &str = "slots";
 
 const PUBLIC_LABEL: &[u8] = b"public:";
 
+/// A macro in a declaration prefix position may follow a run of these, so
+/// `virtual Q_INVOKABLE QIcon icon() const;` is rewritten like a line-leading one.
+const DECLARATION_SPECIFIERS: &[&str] = &[
+    "virtual",
+    "static",
+    "inline",
+    "explicit",
+    "constexpr",
+    "extern",
+    "friend",
+    "const",
+    "volatile",
+    "mutable",
+    "template",
+];
+
+const TYPE_INTRODUCERS: &[&str] = &["class", "struct", "union", "enum"];
+
+/// Vendor macros outside the Qt vocabulary are rewritten only by name, because a
+/// line-leading all-caps identifier is also how Catch2 and gtest declare a test.
+const VENDOR_STATEMENT_MACROS: &[&str] = &[
+    "DBUS_QML_TYPE",
+    "K_PLUGIN_CLASS",
+    "K_PLUGIN_CLASS_WITH_JSON",
+    "K_PLUGIN_FACTORY",
+    "K_PLUGIN_FACTORY_WITH_JSON",
+    "QTEST_APPLESS_MAIN",
+    "QTEST_GUILESS_MAIN",
+    "QTEST_MAIN",
+    "QUICK_TEST_MAIN",
+    "QUICK_TEST_MAIN_WITH_SETUP",
+];
+
+const DEPRECATION_MARKER: &str = "_DEPRECATED";
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum MacroKind {
     Statement,
@@ -139,26 +174,35 @@ fn identifier(
         return (end, None);
     }
 
-    if prefix.is_empty() && is_qt_macro_name(word) {
-        let (end_byte, arguments) = match argument_list_start(bytes, end)
-            .and_then(|open| matching_paren(bytes, open).map(|close| (open, close)))
-        {
-            Some((open, close)) => (close + 1, Some(content[open + 1..close].to_string())),
-            None => (end, None),
-        };
-        let kind = if line_tail_is_terminal(bytes, end_byte) {
-            MacroKind::Statement
-        } else {
-            MacroKind::Prefix
-        };
+    if is_specifier_prefix(prefix) && is_qt_macro_name(word) {
+        let (end_byte, arguments, kind) = macro_extent(content, bytes, end);
         return (end_byte, site(kind, word, arguments, end_byte));
+    }
+
+    if is_specifier_prefix(prefix) && VENDOR_STATEMENT_MACROS.contains(&word) {
+        let (end_byte, arguments, kind) = macro_extent(content, bytes, end);
+        if kind == MacroKind::Statement {
+            return (end_byte, site(kind, word, arguments, end_byte));
+        }
+        return (end, None);
+    }
+
+    if is_specifier_prefix(prefix) && is_deprecation_macro_name(word) {
+        let (end_byte, arguments, kind) = macro_extent(content, bytes, end);
+        if declaration_follows(bytes, end_byte) {
+            return (end_byte, site(kind, word, arguments, end_byte));
+        }
+        return (end, None);
     }
 
     if prefix.is_empty() && word == "emit" && precedes_identifier(bytes, end) {
         return (end, site(MacroKind::Prefix, word, None, end));
     }
 
-    if is_export_macro_name(word) {
+    if is_declaration_prefix(prefix)
+        && is_export_macro_name(word)
+        && precedes_identifier(bytes, end)
+    {
         return (end, site(MacroKind::Export, word, None, end));
     }
 
@@ -181,8 +225,31 @@ fn section_colon(bytes: &[u8], from: usize) -> Option<usize> {
 
 fn is_qt_macro_name(word: &str) -> bool {
     word.strip_prefix("QML_")
+        .or_else(|| word.strip_prefix("QT_"))
         .or_else(|| word.strip_prefix("Q_"))
         .is_some_and(|rest| !rest.is_empty() && rest.bytes().all(is_macro_body_byte))
+}
+
+fn is_deprecation_macro_name(word: &str) -> bool {
+    word.contains(DEPRECATION_MARKER)
+        && word.as_bytes().first().is_some_and(u8::is_ascii_uppercase)
+        && word.bytes().all(is_macro_body_byte)
+}
+
+/// The line prefix a `Prefix` or `Statement` macro may carry: nothing, or a run
+/// of declaration specifiers.
+fn is_specifier_prefix(prefix: &str) -> bool {
+    prefix
+        .split_whitespace()
+        .all(|word| DECLARATION_SPECIFIERS.contains(&word))
+}
+
+/// The line prefix an export macro may carry: a specifier run, optionally ending
+/// in the `class`, `struct`, `union` or `enum class` that introduces the type.
+fn is_declaration_prefix(prefix: &str) -> bool {
+    prefix
+        .split_whitespace()
+        .all(|word| DECLARATION_SPECIFIERS.contains(&word) || TYPE_INTRODUCERS.contains(&word))
 }
 
 fn is_export_macro_name(word: &str) -> bool {
@@ -199,6 +266,21 @@ fn is_export_macro_name(word: &str) -> bool {
 
 fn is_macro_body_byte(byte: u8) -> bool {
     byte.is_ascii_uppercase() || byte.is_ascii_digit() || byte == b'_'
+}
+
+fn macro_extent(content: &str, bytes: &[u8], end: usize) -> (usize, Option<String>, MacroKind) {
+    let (end_byte, arguments) = match argument_list_start(bytes, end)
+        .and_then(|open| matching_paren(bytes, open).map(|close| (open, close)))
+    {
+        Some((open, close)) => (close + 1, Some(content[open + 1..close].to_string())),
+        None => (end, None),
+    };
+    let kind = if line_tail_is_terminal(bytes, end_byte) {
+        MacroKind::Statement
+    } else {
+        MacroKind::Prefix
+    };
+    (end_byte, arguments, kind)
 }
 
 fn argument_list_start(bytes: &[u8], from: usize) -> Option<usize> {
@@ -244,6 +326,16 @@ fn line_tail_is_terminal(bytes: &[u8], from: usize) -> bool {
         Some(b'/') => matches!(bytes.get(cursor + 1), Some(b'/' | b'*')),
         _ => false,
     }
+}
+
+/// A vendor deprecation macro prefixes a declaration; an enumerator that ends in
+/// `_DEPRECATED` is followed by `=`, `,` or `}` instead.
+fn declaration_follows(bytes: &[u8], from: usize) -> bool {
+    line_tail_is_terminal(bytes, from)
+        || bytes
+            .get(skip_blanks(bytes, from))
+            .copied()
+            .is_some_and(is_identifier_start)
 }
 
 fn precedes_identifier(bytes: &[u8], from: usize) -> bool {

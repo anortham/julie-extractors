@@ -152,7 +152,7 @@ fn apply_member_sections(sites: &[MacroSite], tree: &Tree, symbols: &mut [Symbol
         }
         let start = symbol.start_byte as usize;
         match innermost_range(&class_ranges, start)
-            .and_then(|(class_start, _)| section_at(&boundaries, class_start, start))
+            .and_then(|class| section_at(&boundaries, &class_ranges, class, start))
         {
             Some(Section::Signals) => symbol.kind = SymbolKind::Event,
             Some(Section::Slots) => insert_flag(symbol, "qt_slot"),
@@ -183,15 +183,21 @@ fn section_of(site: &MacroSite) -> Section {
     }
 }
 
+/// A boundary inside a nested class body belongs to that class, so it never ends
+/// the section the outer class is in.
 fn section_at(
     boundaries: &[(usize, u8, Section)],
-    class_start: usize,
+    class_ranges: &[(usize, usize)],
+    class: (usize, usize),
     member_start: usize,
 ) -> Option<Section> {
     boundaries
         .iter()
         .rev()
-        .find(|(at, _, _)| (class_start..=member_start).contains(at))
+        .find(|(at, _, _)| {
+            (class.0..=member_start).contains(at)
+                && innermost_range(class_ranges, *at) == Some(class)
+        })
         .map(|(_, _, section)| *section)
 }
 
