@@ -117,28 +117,31 @@ impl RustExtractor {
             return;
         }
 
-        if let Some(symbol) = self.extract_symbol(node, parent_id.clone()) {
-            let symbol_id = symbol.id.clone();
-            symbols.push(symbol);
-
-            // Continue traversing with new parent_id for nested symbols
-            let Some(child_depth) = child_tree_depth(depth) else {
-                return;
-            };
-            let mut cursor = node.walk();
-            for child in node.children(&mut cursor) {
-                self.walk_tree(child, symbols, Some(symbol_id.clone()), child_depth);
-            }
-        } else {
-            // No symbol extracted, continue with current parent_id
-            let Some(child_depth) = child_tree_depth(depth) else {
-                return;
-            };
-            let mut cursor = node.walk();
-            for child in node.children(&mut cursor) {
-                self.walk_tree(child, symbols, parent_id.clone(), child_depth);
-            }
+        let scope_id = self
+            .push_symbol(node, parent_id.clone(), symbols)
+            .or(parent_id);
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            self.walk_tree(child, symbols, scope_id.clone(), child_depth);
         }
+    }
+
+    // Kept out of line: the extracted `Symbol` is large, and `walk_tree` recurses
+    // to the traversal depth budget, so the value must not live in its frame.
+    #[inline(never)]
+    fn push_symbol(
+        &mut self,
+        node: Node,
+        parent_id: Option<String>,
+        symbols: &mut Vec<Symbol>,
+    ) -> Option<String> {
+        let symbol = self.extract_symbol(node, parent_id)?;
+        let symbol_id = symbol.id.clone();
+        symbols.push(symbol);
+        Some(symbol_id)
     }
 
     // Kept out of line: `walk_tree` recurses to the traversal depth budget, so its

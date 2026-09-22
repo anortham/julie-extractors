@@ -439,14 +439,22 @@ impl SymbolDatabase {
             let tree = parser.parse(&rust_code, None).unwrap();
 
             let workspace_root = test_workspace_root();
-            let mut extractor = RustExtractor::new(
-                "rust".to_string(),
-                "test.rs".to_string(),
-                rust_code,
-                &workspace_root,
-            );
-
-            let symbols = extractor.extract_symbols(&tree);
+            // Below the 2 MiB test-thread default, so frame growth fails here before it
+            // overflows the larger MSVC debug frames on Windows.
+            let symbols = std::thread::Builder::new()
+                .stack_size(1536 * 1024)
+                .spawn(move || {
+                    let mut extractor = RustExtractor::new(
+                        "rust".to_string(),
+                        "test.rs".to_string(),
+                        rust_code,
+                        &workspace_root,
+                    );
+                    extractor.extract_symbols(&tree)
+                })
+                .unwrap()
+                .join()
+                .unwrap();
 
             assert!(
                 symbols.iter().any(|s| s.name == "main"),
