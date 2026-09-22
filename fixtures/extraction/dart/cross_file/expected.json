@@ -131,9 +131,9 @@
         "start_line": 14,
         "start_column": 9,
         "end_line": 14,
-        "end_column": 21,
+        "end_column": 23,
         "start_byte": 376,
-        "end_byte": 388
+        "end_byte": 390
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -148,43 +148,9 @@
       "file_path": "fixtures/extraction/dart/cross_file/source.dart",
       "line_number": 13,
       "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/dart/cross_file/source.dart:entry:12:0",
-      "callee_name": "Other",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/dart/cross_file/source.dart",
-      "line_number": 13,
-      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/dart/cross_file/source.dart:entry:12:0",
-        "callee_name": "Other",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/dart/cross_file/source.dart",
-        "line_number": 13,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Other",
-        "terminal_name": "Other",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/dart/cross_file/source.dart:entry:12:0",
-      "span": {
-        "start_line": 13,
-        "start_column": 10,
-        "end_line": 13,
-        "end_column": 15,
-        "start_byte": 358,
-        "end_byte": 363
-      }
-    },
     {
       "pending": {
         "from_key": "fixtures/extraction/dart/cross_file/source.dart:entry:12:0",
@@ -284,7 +250,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "dart",
       "metadata": null
     },
@@ -293,7 +259,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "dart",
       "metadata": null
     }

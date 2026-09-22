@@ -3,7 +3,7 @@
 // Methods for extracting identifier usages (function calls, member access, etc.)
 
 use super::helpers::{find_child_by_type, get_node_text};
-use crate::base::{BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind};
+use crate::base::{BaseExtractor, Identifier, IdentifierKind, OwnerIndex};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
@@ -11,7 +11,7 @@ use tree_sitter::Node;
 pub(super) fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &OwnerIndex<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -34,11 +34,12 @@ pub(super) fn walk_tree_for_identifiers(
 fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &OwnerIndex<'_>,
 ) {
     match node.kind() {
         "call_expression" => {
-            if let Some(target_node) = call_target_name_node(node.child_by_field_name("function")) {
+            if let Some(callee) = node.child_by_field_name("function").and_then(call_callee) {
+                let target_node = callee.name;
                 let name = get_node_text(&target_node);
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 let receiver_type = self_receiver_type(base, node);
@@ -53,6 +54,19 @@ fn extract_identifier_from_node(
             // Phase 3b: capture string-literal call-arguments (config-free;
             // carrier classification + gate run later in the artifact language-policy pass).
             record_dart_call_arg_literals(base, node, containing_symbols);
+        }
+
+        "const_object_expression" | "new_expression" | "constructor_invocation" => {
+            if let Some(constructor) = node.child_by_field_name("constructor") {
+                let name = get_node_text(&constructor);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                base.create_identifier(
+                    &constructor,
+                    name,
+                    IdentifierKind::Call,
+                    containing_symbol_id,
+                );
+            }
         }
 
         "member_expression" | "null_aware_member_expression" => {
@@ -110,13 +124,13 @@ fn extract_identifier_from_node(
                 return;
             }
 
+            let kind = if is_instantiation_callee(node) {
+                IdentifierKind::Call
+            } else {
+                IdentifierKind::TypeUsage
+            };
             let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
-            let identifier = base.create_identifier(
-                &node,
-                name,
-                IdentifierKind::TypeUsage,
-                containing_symbol_id,
-            );
+            let identifier = base.create_identifier(&node, name, kind, containing_symbol_id);
             record_outermost_dart_type_arguments(base, node, &identifier);
         }
 
@@ -188,6 +202,15 @@ fn is_dart_value_read_identifier(node: Node) -> bool {
     match parent.kind() {
         // Rule 2: the callee `function` of a call is owned by the Call arm.
         "call_expression" => !is_field("function"),
+
+        // Rule 2: `() => f()` parses as a call of `() => f`; its callee is
+        // owned by the Call arm.
+        "function_expression_body" => !parent
+            .parent()
+            .is_some_and(|closure| is_call_function_node(closure)),
+
+        // Rule 2: a named constructor (`new Box.named()`) is owned by the Call arm.
+        "const_object_expression" | "new_expression" | "constructor_invocation" => false,
 
         // Rule 1/2: only the `object` receiver of a member access is a read;
         // the accessed `property` is owned by the MemberAccess/Call arms.
@@ -390,18 +413,125 @@ fn is_type_declaration_name(node: &Node) -> bool {
     false
 }
 
-pub(super) fn call_target_name_node(function_node: Option<Node>) -> Option<Node> {
-    let function_node = function_node?;
-    match function_node.kind() {
-        "identifier" => Some(function_node),
+/// The called name of a call and the byte range of its receiver.
+pub(super) struct Callee<'tree> {
+    pub(super) name: Node<'tree>,
+    pub(super) receiver: Option<(usize, usize)>,
+}
+
+/// Reads the callee of a `call_expression` `function` field. The grammar
+/// parses `() => f()` as a call of `() => f`, and `(e) => A.b(e)` as a call
+/// whose receiver chain starts with `(e) => A`; both read as the call inside
+/// the closure body.
+pub(super) fn call_callee(function: Node) -> Option<Callee> {
+    match function.kind() {
+        "identifier" => Some(Callee {
+            name: function,
+            receiver: None,
+        }),
         "member_expression" | "null_aware_member_expression" => {
-            function_node.child_by_field_name("property")
+            let object = function.child_by_field_name("object")?;
+            let start = arrow_body_start(object).unwrap_or(object.start_byte());
+            Some(Callee {
+                name: function.child_by_field_name("property")?,
+                receiver: Some((start, object.end_byte())),
+            })
         }
-        "instantiation_expression" => {
-            call_target_name_node(function_node.child_by_field_name("function"))
-        }
+        "instantiation_expression" => call_callee(function.child_by_field_name("function")?),
+        "function_expression" => call_callee(arrow_body(function)?),
         _ => None,
     }
+}
+
+fn arrow_body(closure: Node) -> Option<Node> {
+    let body = closure.child_by_field_name("body")?;
+    (body.kind() == "function_expression_body")
+        .then(|| body.named_child(0))
+        .flatten()
+}
+
+fn arrow_body_start(receiver: Node) -> Option<usize> {
+    let mut current = receiver;
+    loop {
+        current = match current.kind() {
+            "function_expression" => return arrow_body(current).map(|body| body.start_byte()),
+            "member_expression" | "null_aware_member_expression" => {
+                current.child_by_field_name("object")?
+            }
+            "call_expression" | "instantiation_expression" => {
+                current.child_by_field_name("function")?
+            }
+            _ => return None,
+        };
+    }
+}
+
+/// The class and optional named constructor of `const T(...)`,
+/// `new T.named(...)` or `T.named(...)` as a `constructor_invocation`.
+pub(super) fn instantiation_target(
+    base: &BaseExtractor,
+    node: Node,
+) -> Option<(String, Option<String>)> {
+    let type_node = node.child_by_field_name("type")?;
+    let names = instantiated_type_names(type_node);
+    let constructor = node
+        .child_by_field_name("constructor")
+        .map(|constructor| base.get_node_text(&constructor));
+    match (names.as_slice(), constructor) {
+        ([.., last], Some(constructor)) => Some((base.get_node_text(last), Some(constructor))),
+        ([type_name, constructor], None) if is_uppercase_identifier(*type_name) => Some((
+            base.get_node_text(type_name),
+            Some(base.get_node_text(constructor)),
+        )),
+        ([.., last], None) => Some((base.get_node_text(last), None)),
+        ([], _) => None,
+    }
+}
+
+fn instantiated_type_names(type_node: Node) -> Vec<Node> {
+    if type_node.kind() == "type_identifier" {
+        return vec![type_node];
+    }
+    let mut cursor = type_node.walk();
+    type_node
+        .named_children(&mut cursor)
+        .filter(|child| child.kind() == "type_identifier")
+        .collect()
+}
+
+/// Is this `type_identifier` the called name of an instantiation: the class
+/// in `const T()`, or the constructor in `const T.named()`?
+fn is_instantiation_callee(node: Node) -> bool {
+    let Some(type_node) = node.parent().filter(|parent| parent.kind() == "type") else {
+        return false;
+    };
+    let Some(expression) = type_node.parent().filter(|parent| {
+        matches!(
+            parent.kind(),
+            "const_object_expression" | "new_expression" | "constructor_invocation"
+        )
+    }) else {
+        return false;
+    };
+    if expression.child_by_field_name("type").map(|t| t.id()) != Some(type_node.id())
+        || expression.child_by_field_name("constructor").is_some()
+    {
+        return false;
+    }
+    let names = instantiated_type_names(type_node);
+    let is_named_constructor = names.len() == 2 && is_uppercase_identifier(names[0]);
+    match names.as_slice() {
+        [_, constructor] if is_named_constructor => constructor.id() == node.id(),
+        [.., last] => last.id() == node.id(),
+        [] => false,
+    }
+}
+
+fn is_uppercase_identifier(node: Node) -> bool {
+    get_node_text(&node)
+        .chars()
+        .next()
+        .is_some_and(|c| c.is_ascii_uppercase())
 }
 
 pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
@@ -450,10 +580,7 @@ fn is_call_function_node(node: Node) -> bool {
         .is_some_and(|function_node| function_node.id() == node.id())
 }
 
-fn find_containing_symbol_id(
-    node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
-) -> Option<String> {
+fn find_containing_symbol_id(node: Node, containing_symbols: &OwnerIndex<'_>) -> Option<String> {
     containing_symbols.find(node).map(|s| s.id.clone())
 }
 
@@ -478,7 +605,7 @@ fn find_containing_symbol_id(
 fn record_dart_call_arg_literals(
     base: &mut BaseExtractor,
     call_node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &OwnerIndex<'_>,
 ) {
     let Some(function_node) = call_node.child_by_field_name("function") else {
         return;

@@ -2,7 +2,7 @@ use crate::base::{AnnotationMarker, Symbol, SymbolKind, SymbolOptions, Visibilit
 use std::collections::HashMap;
 use tree_sitter::Node;
 
-use super::SwiftExtractor;
+use super::{SwiftExtractor, clear_body};
 
 /// Extracts Swift extensions, imports, and type aliases
 impl SwiftExtractor {
@@ -144,10 +144,11 @@ impl SwiftExtractor {
             annotations,
         );
 
-        Some(
-            self.base
-                .create_symbol(&node, name, SymbolKind::Type, options),
-        )
+        let mut symbol = self
+            .base
+            .create_symbol(&node, name, SymbolKind::Type, options);
+        clear_body(&mut symbol);
+        Some(symbol)
     }
 
     /// Helper method to create SymbolOptions with proper serde_json::Value metadata

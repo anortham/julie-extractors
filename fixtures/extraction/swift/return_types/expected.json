@@ -23,7 +23,7 @@
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "class Result",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
@@ -57,7 +57,7 @@
       "body_hash": "e7952d8cb830dd26e2976c2900a8299d",
       "signature": "func make() -> Result",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
@@ -146,20 +146,11 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/swift/return_types/source.swift:Result:1:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/swift/return_types/source.swift:make:2:0",
       "resolved_type": "Result",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "swift",
       "metadata": null
     }

@@ -352,3 +352,21 @@ pub(super) fn is_flutter_lifecycle_method(method_name: &str) -> bool {
     ];
     lifecycle_methods.contains(&method_name)
 }
+
+/// Drop the body span a signature-only declaration (`int load();`,
+/// `const A.b() : x = 1;`) would otherwise infer from its parameter list.
+pub(super) fn clear_bodyless_span(symbol: &mut crate::base::Symbol, anchor: &Node) {
+    if matches!(
+        anchor.kind(),
+        "function_signature"
+            | "declaration"
+            | "getter_signature"
+            | "setter_signature"
+            | "constructor_signature"
+            | "factory_constructor_signature"
+            | "constant_constructor_signature"
+    ) {
+        symbol.body_span = None;
+        symbol.body_hash = None;
+    }
+}

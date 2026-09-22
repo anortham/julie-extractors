@@ -43,6 +43,8 @@ const SIGNATURE_MODIFIERS: &[&str] = &[
     "external",
     "covariant",
     "required",
+    "get",
+    "set",
 ];
 
 fn is_variable_like(kind: &SymbolKind) -> bool {
@@ -52,7 +54,12 @@ fn is_variable_like(kind: &SymbolKind) -> bool {
     )
 }
 
+/// The declared type in a variable-like signature (`final int status`).
+/// Callables record their return types during extraction instead.
 fn legacy_signature_type(signature: &str, kind: &SymbolKind) -> Option<String> {
+    if !is_variable_like(kind) {
+        return None;
+    }
     let mut rest = signature.trim_start();
     while let Some(word) = rest.split_whitespace().next()
         && SIGNATURE_MODIFIERS.contains(&word)
@@ -60,7 +67,7 @@ fn legacy_signature_type(signature: &str, kind: &SymbolKind) -> Option<String> {
         rest = rest[word.len()..].trim_start();
     }
     let type_text = TYPE_SIGNATURE_RE.captures(rest)?.get(1)?.as_str();
-    if SIGNATURE_MODIFIERS.contains(&type_text) || (is_variable_like(kind) && type_text == "void") {
+    if SIGNATURE_MODIFIERS.contains(&type_text) || type_text == "void" {
         return None;
     }
     Some(type_text.to_string())
@@ -92,6 +99,23 @@ fn is_dart_callable(kind: &str) -> bool {
             | "factory_constructor_signature"
             | "constant_constructor_signature"
     )
+}
+
+fn is_in_method_declaration(node: Node) -> bool {
+    node.parent().is_some_and(|parent| {
+        matches!(parent.kind(), "getter_declaration" | "setter_declaration")
+            || (parent.kind() == "method_signature"
+                && parent
+                    .parent()
+                    .is_some_and(|grandparent| grandparent.kind() == "method_declaration"))
+    })
+}
+
+/// A bodyless accessor (`int get count;`) spans its whole `declaration`.
+fn accessor_anchor(node: Node) -> Node {
+    node.parent()
+        .filter(|parent| parent.kind() == "declaration")
+        .unwrap_or(node)
 }
 
 fn wrapped_constructor_signature(node: Node) -> bool {
@@ -189,12 +213,33 @@ impl DartExtractor {
                 }
             }
             "method_declaration" => {
+                let accessor = node.child_by_field_name("signature").and_then(|signature| {
+                    find_child_by_type(&signature, "getter_signature")
+                        .or_else(|| find_child_by_type(&signature, "setter_signature"))
+                });
                 symbol = if let Some(constructor) = functions::nested_constructor_signature(&node) {
                     functions::extract_constructor(
                         &mut self.base,
                         &constructor,
+                        &node,
                         current_parent_id.as_deref(),
                     )
+                } else if let Some(accessor) = accessor {
+                    if accessor.kind() == "getter_signature" {
+                        members::extract_getter(
+                            &mut self.base,
+                            &accessor,
+                            &node,
+                            current_parent_id.as_deref(),
+                        )
+                    } else {
+                        members::extract_setter(
+                            &mut self.base,
+                            &accessor,
+                            &node,
+                            current_parent_id.as_deref(),
+                        )
+                    }
                 } else {
                     functions::extract_method(&mut self.base, &node, current_parent_id.as_deref())
                 };
@@ -220,9 +265,14 @@ impl DartExtractor {
             | "constant_constructor_signature"
                 if !wrapped_constructor_signature(node) =>
             {
+                let anchor = node
+                    .parent()
+                    .filter(|parent| parent.kind() == "declaration")
+                    .unwrap_or(node);
                 symbol = functions::extract_constructor(
                     &mut self.base,
                     &node,
+                    &anchor,
                     current_parent_id.as_deref(),
                 );
             }
@@ -332,17 +382,50 @@ impl DartExtractor {
                 symbol =
                     types::extract_extension(&mut self.base, &node, current_parent_id.as_deref());
             }
-            "getter_signature" => {
-                symbol =
-                    members::extract_getter(&mut self.base, &node, current_parent_id.as_deref());
+            "getter_declaration" | "setter_declaration" => {
+                if let Some(signature) = node.child_by_field_name("signature") {
+                    symbol = if node.kind() == "getter_declaration" {
+                        members::extract_getter(
+                            &mut self.base,
+                            &signature,
+                            &node,
+                            current_parent_id.as_deref(),
+                        )
+                    } else {
+                        members::extract_setter(
+                            &mut self.base,
+                            &signature,
+                            &node,
+                            current_parent_id.as_deref(),
+                        )
+                    };
+                }
             }
-            "setter_signature" => {
-                symbol =
-                    members::extract_setter(&mut self.base, &node, current_parent_id.as_deref());
+            "getter_signature" if !is_in_method_declaration(node) => {
+                let anchor = accessor_anchor(node);
+                symbol = members::extract_getter(
+                    &mut self.base,
+                    &node,
+                    &anchor,
+                    current_parent_id.as_deref(),
+                );
+            }
+            "setter_signature" if !is_in_method_declaration(node) => {
+                let anchor = accessor_anchor(node);
+                symbol = members::extract_setter(
+                    &mut self.base,
+                    &node,
+                    &anchor,
+                    current_parent_id.as_deref(),
+                );
             }
             "declaration" => {
-                symbol =
-                    members::extract_field(&mut self.base, &node, current_parent_id.as_deref());
+                symbols.extend(members::extract_fields(
+                    &mut self.base,
+                    &node,
+                    current_parent_id.as_deref(),
+                    &self.same_file_type_names,
+                ));
             }
             "local_variable_declaration" => {
                 symbols.extend(locals::extract_locals(
@@ -352,11 +435,12 @@ impl DartExtractor {
                 ));
             }
             "top_level_variable_declaration" => {
-                symbol = functions::extract_variable(
+                symbols.extend(members::extract_top_level_variables(
                     &mut self.base,
                     &node,
                     current_parent_id.as_deref(),
-                );
+                    &self.same_file_type_names,
+                ));
             }
             "initialized_variable_definition"
                 if !node
@@ -468,7 +552,7 @@ impl DartExtractor {
         let mut rels =
             relationships::extract_relationships(&mut self.base, tree.root_node(), symbols);
         self.same_file_calls.clear();
-        self.extract_pending_relationships(tree, symbols);
+        self.extract_call_relationships(tree.root_node(), symbols);
 
         for (caller_id, callee_id, line_number, span) in self.same_file_calls.drain(..) {
             rels.push(crate::base::Relationship {
@@ -494,12 +578,6 @@ impl DartExtractor {
         rels
     }
 
-    fn extract_pending_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) {
-        let symbol_map: HashMap<String, &Symbol> =
-            crate::base::ScopedSymbolIndex::unique_symbol_map(symbols);
-        self.walk_for_pending_calls(tree.root_node(), &symbol_map, 0);
-    }
-
     pub fn infer_types(&self, symbols: &[Symbol]) -> HashMap<String, String> {
         let mut types = HashMap::new();
         for symbol in symbols {
@@ -517,7 +595,7 @@ impl DartExtractor {
     }
 
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
-        let containing_symbols = self.base.containing_symbol_index(symbols);
+        let containing_symbols = crate::base::OwnerIndex::new(&self.base, symbols);
         identifiers::walk_tree_for_identifiers(
             &mut self.base,
             tree.root_node(),

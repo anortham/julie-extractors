@@ -1,105 +1,86 @@
 //! Enum extraction for GDScript
 
-use crate::base::{
-    BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility, find_child_by_type,
-};
-use regex::Regex;
-use std::sync::LazyLock;
+use super::helpers::doc_comment;
+use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use tree_sitter::Node;
 
-// Static regex compiled once for performance
-static ENUM_NAME_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"enum\s+(\w+)\s*\{").unwrap());
-
-/// Extract enum definition
-pub(super) fn extract_enum_definition(
+/// Extract an enum and its members. A named enum owns its members; the
+/// members of an anonymous `enum { A, B }` belong to the enclosing class.
+pub(super) fn extract_enum(
     base: &mut BaseExtractor,
     node: Node,
     parent_id: Option<&String>,
-) -> Option<Symbol> {
-    // For enum_definition nodes, find the identifier child directly
-    let name = if let Some(name_node) = find_child_by_type(&node, "identifier") {
-        base.get_node_text(&name_node)
-    } else {
-        // Try to extract name from the text pattern: "enum Name { ... }"
-        let text = base.get_node_text(&node);
-        let captures = ENUM_NAME_RE.captures(&text)?;
-        captures.get(1)?.as_str().to_string()
+) -> Vec<Symbol> {
+    let mut symbols = Vec::new();
+    let member_parent = match node.child_by_field_name("name") {
+        Some(name_node) => {
+            let name = base.get_node_text(&name_node);
+            let enum_symbol = create(
+                base,
+                node,
+                name,
+                SymbolKind::Enum,
+                base.get_node_text(&node),
+                parent_id,
+            );
+            let id = enum_symbol.id.clone();
+            symbols.push(enum_symbol);
+            Some(id)
+        }
+        None => parent_id.cloned(),
     };
 
-    let signature = base.get_node_text(&node);
+    let Some(body) = node.child_by_field_name("body") else {
+        return symbols;
+    };
+    let mut cursor = body.walk();
+    for enumerator in body.named_children(&mut cursor) {
+        if enumerator.kind() != "enumerator" {
+            continue;
+        }
+        let Some(left) = enumerator.child_by_field_name("left") else {
+            continue;
+        };
+        let name = base.get_node_text(&left);
+        let signature = base.get_node_text(&enumerator);
+        symbols.push(create(
+            base,
+            enumerator,
+            name,
+            SymbolKind::EnumMember,
+            signature,
+            member_parent.as_ref(),
+        ));
+    }
+    symbols
+}
 
-    // Extract doc comment
-    let doc_comment = base.find_doc_comment(&node);
-
-    let enum_symbol = base.create_symbol(
+fn create(
+    base: &mut BaseExtractor,
+    node: Node,
+    name: String,
+    kind: SymbolKind,
+    signature: String,
+    parent_id: Option<&String>,
+) -> Symbol {
+    let doc = doc_comment(base, node);
+    let mut symbol = base.create_symbol(
         &node,
         name,
-        SymbolKind::Enum,
+        kind,
         SymbolOptions {
             signature: Some(signature),
             visibility: Some(Visibility::Public),
             parent_id: parent_id.cloned(),
             metadata: None,
-            doc_comment,
+            doc_comment: None,
             annotations: Vec::new(),
         },
     );
-
-    // Note: Enum members would be extracted in the traversal as children
-    Some(enum_symbol)
-}
-
-/// Extract enum member from an identifier within an enum
-pub(super) fn extract_enum_member(
-    base: &mut BaseExtractor,
-    node: Node,
-    _parent_id: Option<&String>,
-    symbols: &[Symbol],
-) -> Option<Symbol> {
-    // Check if this identifier is inside an enum by checking the parent chain
-    let enum_parent = find_enum_parent(node, symbols)?;
-
-    let name = base.get_node_text(&node);
-
-    // Skip if this is a type annotation or other non-member identifier
-    if name.is_empty() || name.chars().next()?.is_lowercase() {
-        return None;
+    symbol.doc_comment = doc;
+    if symbol.kind == SymbolKind::EnumMember {
+        symbol.body_span = None;
+        symbol.body_hash = None;
     }
-
-    // Extract doc comment
-    let doc_comment = base.find_doc_comment(&node);
-
-    Some(base.create_symbol(
-        &node,
-        name,
-        SymbolKind::EnumMember,
-        SymbolOptions {
-            signature: Some(base.get_node_text(&node)),
-            visibility: Some(Visibility::Public),
-            parent_id: Some(enum_parent.id.clone()),
-            metadata: None,
-            doc_comment,
-            annotations: Vec::new(),
-        },
-    ))
-}
-
-/// Find the enum parent of a node by walking up the AST
-fn find_enum_parent<'a>(node: Node, symbols: &'a [Symbol]) -> Option<&'a Symbol> {
-    // Walk up the AST to find if we're inside an enum definition
-    let mut current = node.parent()?;
-
-    while let Some(parent) = current.parent() {
-        if current.kind() == "enum_definition" {
-            // Find the corresponding enum symbol
-            let enum_position = current.start_position();
-            return symbols.iter().find(|s| {
-                s.kind == SymbolKind::Enum
-                    && s.start_line == (enum_position.row + 1) as u32
-                    && s.start_column == enum_position.column as u32
-            });
-        }
-        current = parent;
-    }
-    None
+    symbol
 }

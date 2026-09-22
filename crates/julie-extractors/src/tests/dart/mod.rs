@@ -14,6 +14,7 @@ mod task14;
 mod test_detection; // package:test call-style + @isTest
 mod type_arguments;
 mod type_facts;
+mod wave1_gaps;
 
 use crate::base::SymbolKind;
 use crate::dart::DartExtractor;

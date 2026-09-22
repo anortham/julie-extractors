@@ -110,7 +110,7 @@ fn record_type_node(base: &mut BaseExtractor, symbol_id: &str, type_node: Node, 
 }
 
 /// The base type name a type node states, with namespace qualifiers kept and
-/// generic arguments and optional wrappers dropped. Shapes without a single
+/// generic arguments, optional wrappers, and `some`/`any` dropped. Shapes without a single
 /// base name (arrays, dictionaries, tuples, function types, compositions)
 /// yield `None`.
 pub(super) fn base_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
@@ -122,6 +122,9 @@ pub(super) fn base_type_name(base: &BaseExtractor, node: Node) -> Option<String>
             }
             "optional_type" => {
                 node = node.child_by_field_name("wrapped")?;
+            }
+            "opaque_type" | "existential_type" => {
+                node = node.named_child(0)?;
             }
             "type_annotation" => {
                 node = node

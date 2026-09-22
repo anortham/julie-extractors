@@ -48,9 +48,16 @@ pub(super) fn is_external_call_target(
             && is_swift_test_framework_call(name))
 }
 
+/// The receiver's leading identifier: `api` in `api.client()`, `expect` in
+/// `expect(total)`.
 fn is_external_receiver(receiver: &str, imports: &SwiftImportContext) -> bool {
-    let root = receiver.split('.').next().unwrap_or(receiver);
+    let root = receiver
+        .split(|c: char| !(c.is_alphanumeric() || c == '_'))
+        .next()
+        .unwrap_or(receiver);
     is_swift_standard_receiver(root)
+        || (imports.imports_any(&["XCTest", "Testing", "Quick", "Nimble"])
+            && is_swift_test_framework_call(root))
         || (imports.imports("Foundation") && is_foundation_receiver(root))
         || (imports.imports("SwiftUI") && is_swiftui_receiver(root))
         || (imports.imports_any(&["AppKit", "UIKit"]) && is_cocoa_receiver(root))
@@ -236,10 +243,22 @@ fn is_swift_test_framework_call(name: &str) -> bool {
             "expect"
                 | "fail"
                 | "it"
+                | "fit"
+                | "xit"
                 | "describe"
+                | "fdescribe"
+                | "xdescribe"
                 | "context"
+                | "fcontext"
+                | "xcontext"
                 | "beforeEach"
                 | "afterEach"
+                | "justBeforeEach"
+                | "aroundEach"
+                | "beforeSuite"
+                | "afterSuite"
+                | "sharedExamples"
+                | "itBehavesLike"
                 | "waitUntil"
         )
 }

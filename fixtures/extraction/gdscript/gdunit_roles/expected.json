@@ -1,0 +1,797 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:after:12:0",
+      "name": "after",
+      "kind": "method",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "start_line": 12,
+      "start_column": 0,
+      "end_line": 13,
+      "end_column": 5,
+      "start_byte": 124,
+      "end_byte": 151,
+      "body_span": {
+        "start_line": 12,
+        "start_column": 21,
+        "end_line": 13,
+        "end_column": 5,
+        "start_byte": 145,
+        "end_byte": 151
+      },
+      "body_hash": "1a1dc91c907325c69271ddf0c944bc72",
+      "signature": "func after() -> void:",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:player_test:1:0",
+      "metadata": {
+        "is_test": true,
+        "test_lifecycle": true,
+        "test_role": "fixture_teardown"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:after_test:9:0",
+      "name": "after_test",
+      "kind": "method",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "start_line": 9,
+      "start_column": 0,
+      "end_line": 10,
+      "end_column": 5,
+      "start_byte": 90,
+      "end_byte": 122,
+      "body_span": {
+        "start_line": 9,
+        "start_column": 26,
+        "end_line": 10,
+        "end_column": 5,
+        "start_byte": 116,
+        "end_byte": 122
+      },
+      "body_hash": "1a1dc91c907325c69271ddf0c944bc72",
+      "signature": "func after_test() -> void:",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:player_test:1:0",
+      "metadata": {
+        "is_test": true,
+        "test_lifecycle": true,
+        "test_role": "fixture_teardown"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:before:3:0",
+      "name": "before",
+      "kind": "method",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 5,
+      "start_byte": 25,
+      "end_byte": 53,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 22,
+        "end_line": 4,
+        "end_column": 5,
+        "start_byte": 47,
+        "end_byte": 53
+      },
+      "body_hash": "1a1dc91c907325c69271ddf0c944bc72",
+      "signature": "func before() -> void:",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:player_test:1:0",
+      "metadata": {
+        "is_test": true,
+        "test_lifecycle": true,
+        "test_role": "fixture_setup"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:before_test:6:0",
+      "name": "before_test",
+      "kind": "method",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 5,
+      "start_byte": 55,
+      "end_byte": 88,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 27,
+        "end_line": 7,
+        "end_column": 5,
+        "start_byte": 82,
+        "end_byte": 88
+      },
+      "body_hash": "1a1dc91c907325c69271ddf0c944bc72",
+      "signature": "func before_test() -> void:",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:player_test:1:0",
+      "metadata": {
+        "is_test": true,
+        "test_lifecycle": true,
+        "test_role": "fixture_setup"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:make_player:18:0",
+      "name": "make_player",
+      "kind": "method",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "start_line": 18,
+      "start_column": 0,
+      "end_line": 19,
+      "end_column": 18,
+      "start_byte": 217,
+      "end_byte": 263,
+      "body_span": {
+        "start_line": 18,
+        "start_column": 27,
+        "end_line": 19,
+        "end_column": 18,
+        "start_byte": 244,
+        "end_byte": 263
+      },
+      "body_hash": "c01037d1b679c1be3a05cce9fbe3c452",
+      "signature": "func make_player() -> Node:",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:player_test:1:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:player_test:1:0",
+      "name": "player_test",
+      "kind": "class",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 23,
+      "start_byte": 0,
+      "end_byte": 23,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "extends GdUnitTestSuite",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "baseClass": "GdUnitTestSuite",
+        "base_types": [
+          "GdUnitTestSuite"
+        ],
+        "test_container": true,
+        "test_role": "test_container"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:test_player_moves:15:0",
+      "name": "test_player_moves",
+      "kind": "method",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "start_line": 15,
+      "start_column": 0,
+      "end_line": 16,
+      "end_column": 28,
+      "start_byte": 153,
+      "end_byte": 215,
+      "body_span": {
+        "start_line": 15,
+        "start_column": 33,
+        "end_line": 16,
+        "end_column": 28,
+        "start_byte": 186,
+        "end_byte": 215
+      },
+      "body_hash": "930c53de3e96744fccd5c35451a0bc10",
+      "signature": "func test_player_moves() -> void:",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:player_test:1:0",
+      "metadata": {
+        "is_test": true,
+        "test_role": "test_case"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:make_player:18:0",
+      "callee_name": "Node.new()",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "line_number": 19,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:player_test:1:0",
+      "callee_name": "GdUnitTestSuite",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "line_number": 1,
+      "confidence": "0.800"
+    },
+    {
+      "from_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:test_player_moves:15:0",
+      "callee_name": "assert_bool",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "line_number": 16,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:test_player_moves:15:0",
+      "callee_name": "assert_bool(true).is_true()",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "line_number": 16,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:make_player:18:0",
+        "callee_name": "Node.new()",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+        "line_number": 19,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Node.new()",
+        "terminal_name": "new",
+        "receiver": "Node",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:make_player:18:0",
+      "span": {
+        "start_line": 19,
+        "start_column": 13,
+        "end_line": 19,
+        "end_column": 18,
+        "start_byte": 258,
+        "end_byte": 263
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:player_test:1:0",
+        "callee_name": "GdUnitTestSuite",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+        "line_number": 1,
+        "confidence": "0.800"
+      },
+      "target": {
+        "display_name": "GdUnitTestSuite",
+        "terminal_name": "GdUnitTestSuite",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:player_test:1:0",
+      "span": {
+        "start_line": 1,
+        "start_column": 8,
+        "end_line": 1,
+        "end_column": 23,
+        "start_byte": 8,
+        "end_byte": 23
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:test_player_moves:15:0",
+        "callee_name": "assert_bool",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+        "line_number": 16,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "assert_bool",
+        "terminal_name": "assert_bool",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:test_player_moves:15:0",
+      "span": {
+        "start_line": 16,
+        "start_column": 1,
+        "end_line": 16,
+        "end_column": 18,
+        "start_byte": 188,
+        "end_byte": 205
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:test_player_moves:15:0",
+        "callee_name": "assert_bool(true).is_true()",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+        "line_number": 16,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "assert_bool(true).is_true()",
+        "terminal_name": "is_true",
+        "receiver": "assert_bool(true)",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:test_player_moves:15:0",
+      "span": {
+        "start_line": 16,
+        "start_column": 19,
+        "end_line": 16,
+        "end_column": 28,
+        "start_byte": 206,
+        "end_byte": 215
+      }
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:GdUnitTestSuite:type_usage:1:8",
+      "name": "GdUnitTestSuite",
+      "kind": "type_usage",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "start_line": 1,
+      "start_column": 8,
+      "end_line": 1,
+      "end_column": 23,
+      "start_byte": 8,
+      "end_byte": 23,
+      "containing_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:player_test:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:Node:type_usage:18:22",
+      "name": "Node",
+      "kind": "type_usage",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "start_line": 18,
+      "start_column": 22,
+      "end_line": 18,
+      "end_column": 26,
+      "start_byte": 239,
+      "end_byte": 243,
+      "containing_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:make_player:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:Node:variable_ref:19:8",
+      "name": "Node",
+      "kind": "variable_ref",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "start_line": 19,
+      "start_column": 8,
+      "end_line": 19,
+      "end_column": 12,
+      "start_byte": 253,
+      "end_byte": 257,
+      "containing_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:make_player:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:assert_bool:call:16:1",
+      "name": "assert_bool",
+      "kind": "call",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "start_line": 16,
+      "start_column": 1,
+      "end_line": 16,
+      "end_column": 12,
+      "start_byte": 188,
+      "end_byte": 199,
+      "containing_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:test_player_moves:15:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:is_true:call:16:19",
+      "name": "is_true",
+      "kind": "call",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "start_line": 16,
+      "start_column": 19,
+      "end_line": 16,
+      "end_column": 26,
+      "start_byte": 206,
+      "end_byte": 213,
+      "containing_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:test_player_moves:15:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:new:call:19:13",
+      "name": "new",
+      "kind": "call",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "start_line": 19,
+      "start_column": 13,
+      "end_line": 19,
+      "end_column": 16,
+      "start_byte": 258,
+      "end_byte": 261,
+      "containing_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:make_player:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:void:type_usage:12:16",
+      "name": "void",
+      "kind": "type_usage",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "start_line": 12,
+      "start_column": 16,
+      "end_line": 12,
+      "end_column": 20,
+      "start_byte": 140,
+      "end_byte": 144,
+      "containing_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:after:12:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:void:type_usage:15:28",
+      "name": "void",
+      "kind": "type_usage",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "start_line": 15,
+      "start_column": 28,
+      "end_line": 15,
+      "end_column": 32,
+      "start_byte": 181,
+      "end_byte": 185,
+      "containing_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:test_player_moves:15:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:void:type_usage:3:17",
+      "name": "void",
+      "kind": "type_usage",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "start_line": 3,
+      "start_column": 17,
+      "end_line": 3,
+      "end_column": 21,
+      "start_byte": 42,
+      "end_byte": 46,
+      "containing_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:before:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:void:type_usage:6:22",
+      "name": "void",
+      "kind": "type_usage",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "start_line": 6,
+      "start_column": 22,
+      "end_line": 6,
+      "end_column": 26,
+      "start_byte": 77,
+      "end_byte": 81,
+      "containing_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:before_test:6:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:void:type_usage:9:21",
+      "name": "void",
+      "kind": "type_usage",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "start_line": 9,
+      "start_column": 21,
+      "end_line": 9,
+      "end_column": 25,
+      "start_byte": 111,
+      "end_byte": 115,
+      "containing_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:after_test:9:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:after:12:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "gdscript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:after_test:9:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "gdscript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:before:3:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "gdscript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:before_test:6:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "gdscript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:make_player:18:0",
+      "resolved_type": "Node",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "gdscript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:test_player_moves:15:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "gdscript",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "gdscript.extends_declaration.v1",
+      "capture_name": "extends_declaration",
+      "node_kind": "extends_statement",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "containing_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:player_test:1:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 23,
+      "start_byte": 0,
+      "end_byte": 23,
+      "confidence": "1.000",
+      "metadata": {
+        "base_type": "GdUnitTestSuite",
+        "pattern_version": 1,
+        "query_family": "inheritance"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "covered_lines": 20,
+      "covered_bytes": 264,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 20,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 264,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:after:12:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "covered_lines": 2,
+      "covered_bytes": 6,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 12,
+      "start_column": 21,
+      "end_line": 13,
+      "end_column": 5,
+      "start_byte": 145,
+      "end_byte": 151,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:after_test:9:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "covered_lines": 2,
+      "covered_bytes": 6,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 9,
+      "start_column": 26,
+      "end_line": 10,
+      "end_column": 5,
+      "start_byte": 116,
+      "end_byte": 122,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:before:3:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "covered_lines": 2,
+      "covered_bytes": 6,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 3,
+      "start_column": 22,
+      "end_line": 4,
+      "end_column": 5,
+      "start_byte": 47,
+      "end_byte": 53,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:before_test:6:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "covered_lines": 2,
+      "covered_bytes": 6,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 6,
+      "start_column": 27,
+      "end_line": 7,
+      "end_column": 5,
+      "start_byte": 82,
+      "end_byte": 88,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:make_player:18:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "covered_lines": 2,
+      "covered_bytes": 19,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 18,
+      "start_column": 27,
+      "end_line": 19,
+      "end_column": 18,
+      "start_byte": 244,
+      "end_byte": 263,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:test_player_moves:15:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
+      "covered_lines": 2,
+      "covered_bytes": 29,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 15,
+      "start_column": 33,
+      "end_line": 16,
+      "end_column": 28,
+      "start_byte": 186,
+      "end_byte": 215,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

@@ -2,7 +2,8 @@ use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
-use super::SwiftExtractor;
+use super::signatures::return_type_node;
+use super::{SwiftExtractor, clear_body, type_facts};
 
 /// Extracts protocol-specific members and requirements
 impl SwiftExtractor {
@@ -21,16 +22,17 @@ impl SwiftExtractor {
         let return_type = self.extract_return_type(node);
 
         let params_str = parameters.unwrap_or_else(|| "()".to_string());
-        let return_str = return_type.unwrap_or_else(|| "Void".to_string());
 
         let mut signature = format!("func {}", name);
         signature.push_str(&params_str);
-
-        if !return_str.is_empty() && return_str != "Void" {
-            signature.push_str(&format!(" -> {}", return_str));
+        if let Some(effects) = self.extract_effects(node) {
+            signature.push_str(&format!(" {effects}"));
+        }
+        if let Some(ref return_type) = return_type {
+            signature.push_str(&format!(" -> {return_type}"));
         }
 
-        let metadata = HashMap::from([
+        let mut metadata = HashMap::from([
             (
                 "type".to_string(),
                 serde_json::Value::String("protocol-requirement".to_string()),
@@ -39,25 +41,32 @@ impl SwiftExtractor {
                 "parameters".to_string(),
                 serde_json::Value::String(params_str),
             ),
-            (
-                "returnType".to_string(),
-                serde_json::Value::String(return_str),
-            ),
         ]);
+        if let Some(return_type) = return_type {
+            metadata.insert(
+                "returnType".to_string(),
+                serde_json::Value::String(return_type),
+            );
+        }
 
-        Some(self.base.create_symbol(
+        let mut symbol = self.base.create_symbol(
             &node,
             name,
             SymbolKind::Method,
             SymbolOptions {
                 signature: Some(signature),
-                visibility: Some(Visibility::Public),
+                visibility: Some(Visibility::Internal),
                 parent_id: parent_id.map(|s| s.to_string()),
                 metadata: Some(metadata),
                 doc_comment: None,
                 annotations: Vec::new(),
             },
-        ))
+        );
+        clear_body(&mut symbol);
+        if let Some(type_node) = return_type_node(node) {
+            type_facts::record_declared_type(&mut self.base, &symbol.id, type_node);
+        }
+        Some(symbol)
     }
 
     /// Implementation of extractProtocolProperty method
@@ -112,14 +121,10 @@ impl SwiftExtractor {
             signature.push_str(&accessors);
         }
 
-        let metadata = HashMap::from([
+        let mut metadata = HashMap::from([
             (
                 "type".to_string(),
                 serde_json::Value::String("protocol-requirement".to_string()),
-            ),
-            (
-                "propertyType".to_string(),
-                serde_json::Value::String(property_type.unwrap_or_else(|| "Any".to_string())),
             ),
             (
                 "accessors".to_string(),
@@ -131,19 +136,31 @@ impl SwiftExtractor {
             ),
         ]);
 
-        Some(self.base.create_symbol(
+        if let Some(property_type) = property_type {
+            metadata.insert(
+                "propertyType".to_string(),
+                serde_json::Value::String(property_type),
+            );
+        }
+
+        let mut symbol = self.base.create_symbol(
             &node,
             name,
             SymbolKind::Property,
             SymbolOptions {
                 signature: Some(signature),
-                visibility: Some(Visibility::Public),
+                visibility: Some(Visibility::Internal),
                 parent_id: parent_id.map(|s| s.to_string()),
                 metadata: Some(metadata),
                 doc_comment: None,
                 annotations: Vec::new(),
             },
-        ))
+        );
+        clear_body(&mut symbol);
+        if let Some(type_node) = type_facts::property_type_node(node) {
+            type_facts::record_declared_type(&mut self.base, &symbol.id, type_node);
+        }
+        Some(symbol)
     }
 
     /// Implementation of extractAssociatedType method
@@ -169,18 +186,20 @@ impl SwiftExtractor {
             serde_json::Value::String("associatedtype".to_string()),
         )]);
 
-        Some(self.base.create_symbol(
+        let mut symbol = self.base.create_symbol(
             &node,
             name,
             SymbolKind::Type,
             SymbolOptions {
                 signature: Some(signature),
-                visibility: Some(Visibility::Public),
+                visibility: Some(Visibility::Internal),
                 parent_id: parent_id.map(|s| s.to_string()),
                 metadata: Some(metadata),
                 doc_comment: None,
                 annotations: Vec::new(),
             },
-        ))
+        );
+        clear_body(&mut symbol);
+        Some(symbol)
     }
 }

@@ -8,12 +8,19 @@
       "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
       "start_line": 1,
       "start_column": 0,
-      "end_line": 1,
+      "end_line": 2,
       "end_column": 5,
       "start_byte": 0,
-      "end_byte": 5,
-      "body_span": null,
-      "body_hash": null,
+      "end_byte": 19,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 13,
+        "end_line": 2,
+        "end_column": 5,
+        "start_byte": 13,
+        "end_byte": 19
+      },
+      "body_hash": "1a1dc91c907325c69271ddf0c944bc72",
       "signature": "class Result:",
       "doc_comment": null,
       "visibility": "Public",
@@ -87,10 +94,10 @@
       "caller_scope_key": "fixtures/extraction/gdscript/return_types/source.gd:make:3:0",
       "span": {
         "start_line": 4,
-        "start_column": 8,
+        "start_column": 15,
         "end_line": 4,
         "end_column": 20,
-        "start_byte": 51,
+        "start_byte": 58,
         "end_byte": 63
       }
     }

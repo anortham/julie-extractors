@@ -23,7 +23,7 @@
       "body_hash": "214a531ad523616fb2b62188e76b73a7",
       "signature": "class Counter",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
@@ -57,7 +57,7 @@
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "class Foo",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
@@ -91,7 +91,7 @@
       "body_hash": "f98affef156ab9b423763eb9712232d0",
       "signature": "protocol Job",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
@@ -114,18 +114,11 @@
       "end_column": 36,
       "start_byte": 488,
       "end_byte": 580,
-      "body_span": {
-        "start_line": 32,
-        "start_column": 10,
-        "end_line": 33,
-        "end_column": 28,
-        "start_byte": 498,
-        "end_byte": 572
-      },
-      "body_hash": "ab0f81f2c77dbf11d4c2567d8dfd9bb0",
+      "body_span": null,
+      "body_hash": null,
       "signature": "@available(*, deprecated, message: \"use ModernHandler\") typealias LegacyHandler = () -> Void",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "aliasedType": "() -> Void",
@@ -167,7 +160,7 @@
       "body_hash": "4854ab2ef872d3721ec0aa8649f6e518",
       "signature": "extension ReceiverBox",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "extendedType": "ReceiverBox",
@@ -203,7 +196,7 @@
       "body_hash": "6b8838adeab852e366ff8de9af2b584c",
       "signature": "class ReceiverBox: ServiceBase",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "base_types": [
@@ -240,7 +233,7 @@
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "class ServiceBase",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
@@ -274,7 +267,7 @@
       "body_hash": "764b8ec989e9292bea10a45e3448c4ed",
       "signature": "@available(iOS 17.0, *) extension Worker",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "annotationKeys": "available",
@@ -317,7 +310,7 @@
       "body_hash": "f8508c916ac5c394bb94748a75124a49",
       "signature": "@MainActor struct Worker: Job",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "annotationKeys": "mainactor",
@@ -361,7 +354,7 @@
       "body_hash": "2a02d1b8e4f574ada8a0ad5b74f70d75",
       "signature": "enum WorkerStatus",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
@@ -393,7 +386,7 @@
         "end_byte": 394
       },
       "body_hash": "313f6019b3fa21418082d1c2cb10208a",
-      "signature": "private func computeNext() -> Int",
+      "signature": "private func computeNext() async -> Int",
       "doc_comment": null,
       "visibility": "Private",
       "parent_key": "fixtures/extraction/swift/basic/source.swift:Counter:16:0",
@@ -420,23 +413,15 @@
       "end_column": 31,
       "start_byte": 1518,
       "end_byte": 1541,
-      "body_span": {
-        "start_line": 81,
-        "start_column": 29,
-        "end_line": 81,
-        "end_column": 31,
-        "start_byte": 1539,
-        "end_byte": 1541
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "let constructed",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
       "metadata": {
         "keyword": "let",
         "modifiers": "",
-        "propertyType": "Any",
         "type": "property"
       },
       "annotations": [],
@@ -486,7 +471,7 @@
       "body_hash": null,
       "signature": "current",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/basic/source.swift:WorkerStatus:35:0",
       "metadata": {
         "type": "enum-case"
@@ -545,7 +530,7 @@
       "body_hash": "6860aa093bbfd09093cb87362307225e",
       "signature": "func evaluate(_ count: Int, enabled: Bool) -> Int",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
@@ -607,12 +592,11 @@
       "body_hash": "2432a996f0939894688ddcc5a8e7a187",
       "signature": "func extra()",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/basic/source.swift:ReceiverBox:105:0",
       "metadata": {
         "modifiers": "",
         "parameters": "()",
-        "returnType": "Void",
         "type": "function"
       },
       "annotations": [],
@@ -643,12 +627,11 @@
       "body_hash": "2ef9a06b132268ceca2e42a3b0410bca",
       "signature": "@available(iOS 13.0, *) func fetchStatus()",
       "doc_comment": "/// Checks the worker service health endpoint.",
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "@available(iOS 13.0, *)",
         "parameters": "()",
-        "returnType": "Void",
         "type": "function"
       },
       "annotations": [
@@ -685,12 +668,11 @@
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "func fetchUrl(_ url: String)",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
         "parameters": "(_ url: String)",
-        "returnType": "Void",
         "type": "function"
       },
       "annotations": [],
@@ -721,7 +703,7 @@
       "body_hash": "363bdca7cbcfaef7ecfdbc1ef28d0e2b",
       "signature": "func helper(_ value: Int) -> Int",
       "doc_comment": "/// Increments a worker id.",
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
@@ -746,23 +728,15 @@
       "end_column": 32,
       "start_byte": 1620,
       "end_byte": 1644,
-      "body_span": {
-        "start_line": 84,
-        "start_column": 30,
-        "end_line": 84,
-        "end_column": 32,
-        "start_byte": 1642,
-        "end_byte": 1644
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "let helpered",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
       "metadata": {
         "keyword": "let",
         "modifiers": "",
-        "propertyType": "Any",
         "type": "property"
       },
       "annotations": [],
@@ -838,7 +812,7 @@
       "body_hash": null,
       "signature": "let id: Int",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/basic/source.swift:Worker:5:0",
       "metadata": {
         "keyword": "let",
@@ -863,23 +837,15 @@
       "end_column": 37,
       "start_byte": 1582,
       "end_byte": 1611,
-      "body_span": {
-        "start_line": 83,
-        "start_column": 35,
-        "end_line": 83,
-        "end_column": 37,
-        "start_byte": 1609,
-        "end_byte": 1611
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "let imported",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
       "metadata": {
         "keyword": "let",
         "modifiers": "",
-        "propertyType": "Any",
         "type": "property"
       },
       "annotations": [],
@@ -908,14 +874,13 @@
         "end_byte": 324
       },
       "body_hash": "f254a178ad594cb6c9087494d1b6414d",
-      "signature": "func increment()",
+      "signature": "func increment() async",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/basic/source.swift:Counter:16:0",
       "metadata": {
         "modifiers": "",
         "parameters": "()",
-        "returnType": "Void",
         "type": "function"
       },
       "annotations": [],
@@ -946,7 +911,7 @@
       "body_hash": "bc02504015ff45171f38e1002e65cd93",
       "signature": "init(seed: Bar)",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/basic/source.swift:ReceiverBox:74:0",
       "metadata": {
         "modifiers": "",
@@ -974,7 +939,7 @@
       "body_hash": null,
       "signature": "var items: [Foo]",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
       "metadata": {
         "keyword": "var",
@@ -999,18 +964,11 @@
       "end_column": 15,
       "start_byte": 606,
       "end_byte": 647,
-      "body_span": {
-        "start_line": 36,
-        "start_column": 14,
-        "end_line": 36,
-        "end_column": 29,
-        "start_byte": 616,
-        "end_byte": 631
-      },
-      "body_hash": "1a7f1aeae16f9b9e3cbd6b96c937c706",
+      "body_span": null,
+      "body_hash": null,
       "signature": "legacy",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/basic/source.swift:WorkerStatus:35:0",
       "metadata": {
         "annotationKeys": "available",
@@ -1050,7 +1008,7 @@
       "body_hash": "f0716788c3f350528ccc13b39d7ca4ec",
       "signature": "func makeFoo() -> Foo",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
@@ -1079,7 +1037,7 @@
       "body_hash": null,
       "signature": "let mapping: Array<Dictionary<String, Int>>",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/basic/source.swift:Worker:5:0",
       "metadata": {
         "keyword": "let",
@@ -1104,23 +1062,15 @@
       "end_column": 38,
       "start_byte": 271,
       "end_byte": 301,
-      "body_span": {
-        "start_line": 18,
-        "start_column": 36,
-        "end_line": 18,
-        "end_column": 38,
-        "start_byte": 299,
-        "end_byte": 301
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "let next",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/swift/basic/source.swift:increment:17:4",
       "metadata": {
         "keyword": "let",
         "modifiers": "",
-        "propertyType": "Any",
         "type": "property"
       },
       "annotations": [],
@@ -1151,12 +1101,11 @@
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "func observeRun(_ event: String, id: Int)",
       "doc_comment": "/// Records a named worker event for downstream hooks.",
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
         "parameters": "(_ event: String, id: Int)",
-        "returnType": "Void",
         "type": "function"
       },
       "annotations": [],
@@ -1180,7 +1129,7 @@
       "body_hash": null,
       "signature": "let optional: Foo?",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
       "metadata": {
         "keyword": "let",
@@ -1216,12 +1165,11 @@
       "body_hash": "28844240b7b865bc988ffbcdb510281d",
       "signature": "func recordRun(_ id: Int)",
       "doc_comment": "/// Emits a worker-run marker for observability hooks.",
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
         "parameters": "(_ id: Int)",
-        "returnType": "Void",
         "type": "function"
       },
       "annotations": [],
@@ -1252,7 +1200,7 @@
       "body_hash": "9ec3a81a5006f34f5bd4513c70b84870",
       "signature": "func run() -> Int",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/basic/source.swift:Worker:5:0",
       "metadata": {
         "modifiers": "",
@@ -1277,18 +1225,11 @@
       "end_column": 21,
       "start_byte": 19,
       "end_byte": 36,
-      "body_span": {
-        "start_line": 2,
-        "start_column": 12,
-        "end_line": 2,
-        "end_column": 14,
-        "start_byte": 27,
-        "end_byte": 29
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "func run() -> Int",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/basic/source.swift:Job:1:0",
       "metadata": {
         "parameters": "()",
@@ -1342,7 +1283,7 @@
       "body_hash": null,
       "signature": "@Published var status: String",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/basic/source.swift:Worker:27:0",
       "metadata": {
         "annotationKeys": "published",
@@ -1378,7 +1319,7 @@
       "body_hash": null,
       "signature": "let stored: Foo",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/basic/source.swift:ReceiverBox:74:0",
       "metadata": {
         "keyword": "let",
@@ -1407,12 +1348,11 @@
       "body_hash": null,
       "signature": "var total",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/swift/basic/source.swift:evaluate:64:0",
       "metadata": {
         "keyword": "var",
         "modifiers": "",
-        "propertyType": "Any",
         "type": "property"
       },
       "annotations": [],
@@ -1432,23 +1372,15 @@
       "end_column": 31,
       "start_byte": 1550,
       "end_byte": 1573,
-      "body_span": {
-        "start_line": 82,
-        "start_column": 29,
-        "end_line": 82,
-        "end_column": 31,
-        "start_byte": 1571,
-        "end_byte": 1573
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "let unknown",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
       "metadata": {
         "keyword": "let",
         "modifiers": "",
-        "propertyType": "Any",
         "type": "property"
       },
       "annotations": [],
@@ -1505,12 +1437,11 @@
       "body_hash": "ff3c544e74e341b0648acf86494093f6",
       "signature": "func use(x: Foo, y: inout Bar)",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Internal",
       "parent_key": "fixtures/extraction/swift/basic/source.swift:ReceiverBox:74:0",
       "metadata": {
         "modifiers": "",
         "parameters": "(x: Foo, y: inout Bar)",
-        "returnType": "Void",
         "type": "function"
       },
       "annotations": [],
@@ -2005,7 +1936,7 @@
       "end_column": 22,
       "start_byte": 105,
       "end_byte": 110,
-      "containing_key": "fixtures/extraction/swift/basic/source.swift:Worker:5:0",
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:mapping:8:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2053,7 +1984,7 @@
       "end_column": 33,
       "start_byte": 111,
       "end_byte": 121,
-      "containing_key": "fixtures/extraction/swift/basic/source.swift:Worker:5:0",
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:mapping:8:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2117,7 +2048,7 @@
       "end_column": 19,
       "start_byte": 1381,
       "end_byte": 1384,
-      "containing_key": "fixtures/extraction/swift/basic/source.swift:ReceiverBox:74:0",
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:stored:75:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2213,7 +2144,7 @@
       "end_column": 14,
       "start_byte": 446,
       "end_byte": 455,
-      "containing_key": "fixtures/extraction/swift/basic/source.swift:Worker:27:0",
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:status:29:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2847,101 +2778,11 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:Counter:16:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:Foo:100:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:Job:1:0",
-      "resolved_type": "protocol",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:LegacyHandler:32:0",
-      "resolved_type": "typealias",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:ReceiverBox:105:0",
-      "resolved_type": "extension",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:ReceiverBox:74:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:ServiceBase:99:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:Worker:27:0",
-      "resolved_type": "extension",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:Worker:5:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:WorkerStatus:35:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:computeNext:22:4",
       "resolved_type": "Int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "swift",
       "metadata": null
     },
@@ -2977,7 +2818,7 @@
       "resolved_type": "Int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "swift",
       "metadata": null
     },
@@ -2991,47 +2832,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:extra:106:4",
-      "resolved_type": "Void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:fetchStatus:56:0",
-      "resolved_type": "Void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:fetchUrl:61:0",
-      "resolved_type": "Void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:helper:42:0",
       "resolved_type": "Int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:helpered:84:8",
-      "resolved_type": "Any",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "swift",
       "metadata": null
     },
@@ -3063,38 +2868,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:imported:83:8",
-      "resolved_type": "Any",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:increment:17:4",
-      "resolved_type": "Void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:init:76:4",
-      "resolved_type": "initializer",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:makeFoo:101:0",
       "resolved_type": "Foo",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "swift",
       "metadata": null
     },
@@ -3110,24 +2888,6 @@
       }
     },
     {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:next:18:8",
-      "resolved_type": "Any",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:observeRun:52:0",
-      "resolved_type": "Void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:optional:80:8",
       "resolved_type": "Foo",
       "generic_params": null,
@@ -3139,20 +2899,11 @@
       }
     },
     {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:recordRun:47:0",
-      "resolved_type": "Void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:run:10:4",
       "resolved_type": "Int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "swift",
       "metadata": null
     },
@@ -3161,7 +2912,7 @@
       "resolved_type": "Int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "swift",
       "metadata": null
     },
@@ -3193,38 +2944,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:total:65:4",
-      "resolved_type": "Any",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:unknown:82:8",
-      "resolved_type": "Any",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "swift",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:url:61:14",
       "resolved_type": "String",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
-      "language": "swift",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
-      "resolved_type": "Void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
       "language": "swift",
       "metadata": null
     },
@@ -3714,17 +3438,17 @@
       "language": "swift",
       "file_path": "fixtures/extraction/swift/basic/source.swift",
       "covered_lines": 1,
-      "covered_bytes": 2,
+      "covered_bytes": 17,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
       "start_line": 2,
-      "start_column": 12,
+      "start_column": 4,
       "end_line": 2,
-      "end_column": 14,
-      "start_byte": 27,
-      "end_byte": 29,
+      "end_column": 21,
+      "start_byte": 19,
+      "end_byte": 36,
       "metadata": {
         "metric_version": 1
       }

@@ -12,15 +12,8 @@
       "end_column": 13,
       "start_byte": 268,
       "end_byte": 279,
-      "body_span": {
-        "start_line": 23,
-        "start_column": 11,
-        "end_line": 23,
-        "end_column": 13,
-        "start_byte": 277,
-        "end_byte": 279
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "Foo()",
       "doc_comment": null,
       "visibility": "Public",
@@ -77,15 +70,8 @@
       "end_column": 7,
       "start_byte": 259,
       "end_byte": 264,
-      "body_span": {
-        "start_line": 22,
-        "start_column": 5,
-        "end_line": 22,
-        "end_column": 7,
-        "start_byte": 262,
-        "end_byte": 264
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "Foo()",
       "doc_comment": null,
       "visibility": "Public",
@@ -235,15 +221,8 @@
       "end_column": 17,
       "start_byte": 83,
       "end_byte": 98,
-      "body_span": {
-        "start_line": 8,
-        "start_column": 8,
-        "end_line": 8,
-        "end_column": 17,
-        "start_byte": 89,
-        "end_byte": 98
-      },
-      "body_hash": "f6ad0503976dcdcae09c7908d6ea1ef5",
+      "body_span": null,
+      "body_hash": null,
       "signature": "Worker()",
       "doc_comment": null,
       "visibility": "Public",
@@ -479,7 +458,7 @@
       "body_span": null,
       "body_hash": null,
       "signature": "String event",
-      "doc_comment": "/// Records a named worker event for downstream hooks.",
+      "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/dart/basic/source.dart:observeRun:55:0",
       "metadata": {
@@ -622,7 +601,7 @@
       "body_span": null,
       "body_hash": null,
       "signature": "int id",
-      "doc_comment": "/// Emits a worker-run marker for observability hooks.",
+      "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/dart/basic/source.dart:recordRun:50:0",
       "metadata": {
@@ -648,7 +627,7 @@
       "body_span": null,
       "body_hash": null,
       "signature": "int id",
-      "doc_comment": "/// Records a named worker event for downstream hooks.",
+      "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/dart/basic/source.dart:observeRun:55:0",
       "metadata": {
@@ -1013,15 +992,8 @@
       "end_column": 11,
       "start_byte": 23,
       "end_byte": 32,
-      "body_span": {
-        "start_line": 2,
-        "start_column": 9,
-        "end_line": 2,
-        "end_column": 11,
-        "start_byte": 30,
-        "end_byte": 32
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "int run()",
       "doc_comment": null,
       "visibility": "Public",
@@ -1133,7 +1105,7 @@
       "body_span": null,
       "body_hash": null,
       "signature": "int value",
-      "doc_comment": "/// Increments a worker id.",
+      "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/dart/basic/source.dart:helper:45:0",
       "metadata": {
@@ -1244,9 +1216,9 @@
         "start_line": 60,
         "start_column": 2,
         "end_line": 60,
-        "end_column": 10,
+        "end_column": 52,
         "start_byte": 1039,
-        "end_byte": 1047
+        "end_byte": 1089
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -1262,9 +1234,81 @@
         "start_line": 17,
         "start_column": 17,
         "end_line": 17,
-        "end_column": 23,
+        "end_column": 27,
         "start_byte": 226,
-        "end_byte": 232
+        "end_byte": 236
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
+      "to_key": "fixtures/extraction/dart/basic/source.dart:Foo.named:23:2",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/dart/basic/source.dart",
+      "line_number": 36,
+      "span": {
+        "start_line": 36,
+        "start_column": 18,
+        "end_line": 36,
+        "end_column": 29,
+        "start_byte": 565,
+        "end_byte": 576
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
+      "to_key": "fixtures/extraction/dart/basic/source.dart:Foo:22:2",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/dart/basic/source.dart",
+      "line_number": 33,
+      "span": {
+        "start_line": 33,
+        "start_column": 22,
+        "end_line": 33,
+        "end_column": 27,
+        "start_byte": 479,
+        "end_byte": 484
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
+      "to_key": "fixtures/extraction/dart/basic/source.dart:Foo:22:2",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/dart/basic/source.dart",
+      "line_number": 34,
+      "span": {
+        "start_line": 34,
+        "start_column": 21,
+        "end_line": 34,
+        "end_column": 26,
+        "start_byte": 507,
+        "end_byte": 512
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
+      "to_key": "fixtures/extraction/dart/basic/source.dart:Foo:22:2",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/dart/basic/source.dart",
+      "line_number": 35,
+      "span": {
+        "start_line": 35,
+        "start_column": 22,
+        "end_line": 35,
+        "end_column": 31,
+        "start_byte": 536,
+        "end_byte": 545
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -1280,9 +1324,45 @@
         "start_line": 51,
         "start_column": 2,
         "end_line": 51,
-        "end_column": 12,
+        "end_column": 30,
         "start_byte": 838,
-        "end_byte": 848
+        "end_byte": 866
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/dart/basic/source.dart:run:10:2",
+      "to_key": "fixtures/extraction/dart/basic/source.dart:helper:45:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/dart/basic/source.dart",
+      "line_number": 13,
+      "span": {
+        "start_line": 13,
+        "start_column": 11,
+        "end_line": 13,
+        "end_column": 21,
+        "start_byte": 157,
+        "end_byte": 167
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/dart/basic/source.dart:run:10:2",
+      "to_key": "fixtures/extraction/dart/basic/source.dart:recordRun:50:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/dart/basic/source.dart",
+      "line_number": 12,
+      "span": {
+        "start_line": 12,
+        "start_column": 4,
+        "end_line": 12,
+        "end_column": 17,
+        "start_byte": 131,
+        "end_byte": 144
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -1292,58 +1372,10 @@
   "pending_relationships": [
     {
       "from_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
-      "callee_name": "Foo",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/dart/basic/source.dart",
-      "line_number": 33,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
-      "callee_name": "Foo",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/dart/basic/source.dart",
-      "line_number": 33,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
-      "callee_name": "Foo",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/dart/basic/source.dart",
-      "line_number": 34,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
-      "callee_name": "Foo",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/dart/basic/source.dart",
-      "line_number": 34,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
       "callee_name": "Unknown",
       "kind": "calls",
       "file_path": "fixtures/extraction/dart/basic/source.dart",
       "line_number": 38,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
-      "callee_name": "Unknown",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/dart/basic/source.dart",
-      "line_number": 38,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
-      "callee_name": "build",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/dart/basic/source.dart",
-      "line_number": 40,
       "confidence": "0.700"
     },
     {
@@ -1391,136 +1423,6 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
-        "callee_name": "Foo",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/dart/basic/source.dart",
-        "line_number": 33,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Foo",
-        "terminal_name": "Foo",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
-      "span": {
-        "start_line": 33,
-        "start_column": 22,
-        "end_line": 33,
-        "end_column": 25,
-        "start_byte": 479,
-        "end_byte": 482
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
-        "callee_name": "Foo",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/dart/basic/source.dart",
-        "line_number": 33,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Foo",
-        "terminal_name": "Foo",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
-      "span": {
-        "start_line": 33,
-        "start_column": 22,
-        "end_line": 33,
-        "end_column": 27,
-        "start_byte": 479,
-        "end_byte": 484
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
-        "callee_name": "Foo",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/dart/basic/source.dart",
-        "line_number": 34,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Foo",
-        "terminal_name": "Foo",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
-      "span": {
-        "start_line": 34,
-        "start_column": 21,
-        "end_line": 34,
-        "end_column": 24,
-        "start_byte": 507,
-        "end_byte": 510
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
-        "callee_name": "Foo",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/dart/basic/source.dart",
-        "line_number": 34,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Foo",
-        "terminal_name": "Foo",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
-      "span": {
-        "start_line": 34,
-        "start_column": 21,
-        "end_line": 34,
-        "end_column": 26,
-        "start_byte": 507,
-        "end_byte": 512
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
-        "callee_name": "Unknown",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/dart/basic/source.dart",
-        "line_number": 38,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Unknown",
-        "terminal_name": "Unknown",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
-      "span": {
-        "start_line": 38,
-        "start_column": 14,
-        "end_line": 38,
-        "end_column": 21,
-        "start_byte": 611,
-        "end_byte": 618
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
         "callee_name": "Unknown",
         "kind": "calls",
         "file_path": "fixtures/extraction/dart/basic/source.dart",
@@ -1542,32 +1444,6 @@
         "end_column": 23,
         "start_byte": 611,
         "end_byte": 620
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
-        "callee_name": "build",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/dart/basic/source.dart",
-        "line_number": 40,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "build",
-        "terminal_name": "build",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
-      "span": {
-        "start_line": 40,
-        "start_column": 14,
-        "end_line": 40,
-        "end_column": 19,
-        "start_byte": 665,
-        "end_byte": 670
       }
     },
     {
@@ -1753,6 +1629,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/dart/basic/source.dart:Foo:call:35:26",
+      "name": "Foo",
+      "kind": "call",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/basic/source.dart",
+      "start_line": 35,
+      "start_column": 26,
+      "end_line": 35,
+      "end_column": 29,
+      "start_byte": 540,
+      "end_byte": 543,
+      "containing_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/dart/basic/source.dart:Foo:type_usage:29:15",
       "name": "Foo",
       "kind": "type_usage",
@@ -1796,22 +1688,6 @@
       "end_column": 13,
       "start_byte": 467,
       "end_byte": 470,
-      "containing_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/dart/basic/source.dart:Foo:type_usage:35:26",
-      "name": "Foo",
-      "kind": "type_usage",
-      "language": "dart",
-      "file_path": "fixtures/extraction/dart/basic/source.dart",
-      "start_line": 35,
-      "start_column": 26,
-      "end_line": 35,
-      "end_column": 29,
-      "start_byte": 540,
-      "end_byte": 543,
       "containing_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
       "target_key": null,
       "confidence": "1.000"
@@ -2372,7 +2248,7 @@
       "end_column": 11,
       "start_byte": 72,
       "end_byte": 75,
-      "containing_key": "fixtures/extraction/dart/basic/source.dart:Worker:5:0",
+      "containing_key": "fixtures/extraction/dart/basic/source.dart:id:6:2",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2541,51 +2417,6 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/dart/basic/source.dart:Foo:21:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "dart",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/dart/basic/source.dart:Job:1:0",
-      "resolved_type": "abstract",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "dart",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/dart/basic/source.dart:OrderService:28:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "dart",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/dart/basic/source.dart:ServiceBase:26:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "dart",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/dart/basic/source.dart:Worker:5:0",
-      "resolved_type": "class",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "dart",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/dart/basic/source.dart:constructed:35:4",
       "resolved_type": "Foo",
       "generic_params": null,
@@ -2617,7 +2448,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "dart",
       "metadata": null
     },
@@ -2635,7 +2466,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "dart",
       "metadata": null
     },
@@ -2644,7 +2475,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "dart",
       "metadata": null
     },
@@ -2653,7 +2484,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "dart",
       "metadata": null
     },
@@ -2703,6 +2534,17 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/dart/basic/source.dart:loadRemote:16:2",
+      "resolved_type": "Future",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "dart",
+      "metadata": {
+        "declared": "Future<int>"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/dart/basic/source.dart:named:36:4",
       "resolved_type": "Foo",
       "generic_params": null,
@@ -2727,7 +2569,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "dart",
       "metadata": null
     },
@@ -2745,7 +2587,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "dart",
       "metadata": null
     },
@@ -2754,7 +2596,16 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
+      "language": "dart",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/dart/basic/source.dart:run:10:2",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "dart",
       "metadata": null
     },
@@ -2763,7 +2614,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "dart",
       "metadata": null
     },
@@ -2906,16 +2757,16 @@
       "language": "dart",
       "file_path": "fixtures/extraction/dart/basic/source.dart",
       "covered_lines": 1,
-      "covered_bytes": 2,
+      "covered_bytes": 11,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
       "start_line": 23,
-      "start_column": 11,
+      "start_column": 2,
       "end_line": 23,
       "end_column": 13,
-      "start_byte": 277,
+      "start_byte": 268,
       "end_byte": 279,
       "metadata": {
         "metric_version": 1
@@ -2928,16 +2779,16 @@
       "language": "dart",
       "file_path": "fixtures/extraction/dart/basic/source.dart",
       "covered_lines": 1,
-      "covered_bytes": 2,
+      "covered_bytes": 5,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
       "start_line": 22,
-      "start_column": 5,
+      "start_column": 2,
       "end_line": 22,
       "end_column": 7,
-      "start_byte": 262,
+      "start_byte": 259,
       "end_byte": 264,
       "metadata": {
         "metric_version": 1
@@ -2950,16 +2801,16 @@
       "language": "dart",
       "file_path": "fixtures/extraction/dart/basic/source.dart",
       "covered_lines": 1,
-      "covered_bytes": 9,
+      "covered_bytes": 15,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 1,
       "start_line": 8,
-      "start_column": 8,
+      "start_column": 2,
       "end_line": 8,
       "end_column": 17,
-      "start_byte": 89,
+      "start_byte": 83,
       "end_byte": 98,
       "metadata": {
         "metric_version": 1
@@ -3170,16 +3021,16 @@
       "language": "dart",
       "file_path": "fixtures/extraction/dart/basic/source.dart",
       "covered_lines": 1,
-      "covered_bytes": 2,
+      "covered_bytes": 9,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
       "start_line": 2,
-      "start_column": 9,
+      "start_column": 2,
       "end_line": 2,
       "end_column": 11,
-      "start_byte": 30,
+      "start_byte": 23,
       "end_byte": 32,
       "metadata": {
         "metric_version": 1

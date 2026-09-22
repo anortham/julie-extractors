@@ -36,6 +36,7 @@ fn base_type_name(base: &BaseExtractor, type_node: Node) -> Option<String> {
     for child in container.named_children(&mut cursor) {
         match child.kind() {
             "type_identifier" => segments.push(base.get_node_text(&child)),
+            "void_type" => segments.push("void".to_string()),
             "type_arguments" => {}
             _ => return None,
         }
