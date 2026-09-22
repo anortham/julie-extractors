@@ -1686,7 +1686,8 @@
       "end_byte": 1296,
       "containing_key": "fixtures/extraction/qml/basic/source.qml:Text:65:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "source"
     },
     {
       "key": "fixtures/extraction/qml/basic/source.qml:graph:variable_ref:50:12",
@@ -2176,7 +2177,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "qml",
       "metadata": null
     },
@@ -2208,8 +2209,28 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/qml/basic/source.qml:m:20:24",
+      "resolved_type": "Map",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "qml",
+      "metadata": {
+        "declared": "Map<string, Array<User>>"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/qml/basic/source.qml:payload:9:4",
       "resolved_type": "var",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "qml",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/qml/basic/source.qml:root:4:4",
+      "resolved_type": "source",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,

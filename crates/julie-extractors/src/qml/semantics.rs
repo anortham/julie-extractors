@@ -128,10 +128,6 @@ pub(super) fn infer_types(symbols: &[Symbol]) -> HashMap<String, String> {
                 .signature
                 .as_deref()
                 .and_then(infer_property_type_from_signature),
-            SymbolKind::Function => symbol
-                .signature
-                .as_deref()
-                .and_then(infer_function_return_type_from_signature),
             _ => None,
         };
 
@@ -324,12 +320,9 @@ fn infer_property_type_from_signature(signature: &str) -> Option<String> {
     Some(property_type.trim_end_matches(':').to_string())
 }
 
-fn infer_function_return_type_from_signature(signature: &str) -> Option<String> {
-    let trimmed = signature.trim();
-    if !trimmed.starts_with("function") {
-        return None;
-    }
-
-    let (_, return_type) = trimmed.rsplit_once(':')?;
-    Some(return_type.trim().trim_end_matches('{').to_string())
+/// The component a `.qml` file defines: its file name without the extension.
+/// A Qt Quick UI Form (`Screen01.ui.qml`) defines `Screen01`.
+pub(super) fn component_name(file_path: &str) -> Option<String> {
+    let stem = std::path::Path::new(file_path).file_stem()?.to_str()?;
+    Some(stem.strip_suffix(".ui").unwrap_or(stem).to_string())
 }

@@ -4834,6 +4834,16 @@
           "name": "return_types",
           "source": "fixtures/extraction/qml/return_types/source.qml",
           "expected": "fixtures/extraction/qml/return_types/expected.json"
+        },
+        {
+          "name": "nested_test_case",
+          "source": "fixtures/extraction/qml/nested_test_case/tst_nested.qml",
+          "expected": "fixtures/extraction/qml/nested_test_case/expected.json"
+        },
+        {
+          "name": "ui_form",
+          "source": "fixtures/extraction/qml/ui_form/Screen01.ui.qml",
+          "expected": "fixtures/extraction/qml/ui_form/expected.json"
         }
       ],
       "target_capabilities": {

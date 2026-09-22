@@ -9,8 +9,9 @@ Julie registers two QML-family languages:
 ## The object model in symbols
 
 A `.qml` file's root object is a `class` symbol: the file names the component.
-Its base type is not a symbol; it is an `extends` relationship (see *The
-reference contract* below).
+A Qt Quick UI Form (`Screen01.ui.qml`) names the component `Screen01`, because
+QML code uses it as `Screen01 {}`. Its base type is not a symbol; it is an
+`extends` relationship (see *The reference contract* below).
 
 Inline components (`component Badge: Rectangle { ... }`) are `class` symbols
 too, with the signature `component Badge: Rectangle`.
@@ -42,6 +43,45 @@ line exports a type rather than declaring one.
 - A file that opens with `pragma Singleton` marks its root symbol
   `singleton: true`. The pragma line itself is also a structural fact,
   `qml.pragma.v1`, with the metadata keys `name` and `value`.
+
+## Type facts
+
+- A property records its declared type.
+- A function records the type its return annotation states
+  (`function build(): Item`). A function with no return annotation records no
+  type.
+- A typed parameter (`function save(doc: Backend.DocumentModel)`) records its
+  annotation.
+- A nested object with an `id` records its object type, so `docModel.flush()`
+  can resolve through the `docModel` row. The root object's `id` records the
+  file's component.
+
+A module qualifier stays in the type name (`Backend.DocumentModel`).
+
+## Test roles
+
+A `TestCase` object is a test container when it is the root object or a
+nested object (`Item { TestCase { when: windowShown } }`), bare or
+module-qualified (`QtTest.TestCase`). Functions inside a container get the Qt
+Quick Test roles: `test_*` and `benchmark_*` are test cases, `init*` is fixture
+setup, and `cleanup*` is fixture teardown.
+
+## Call and property resolution
+
+- A call with an id receiver (`root.refresh()`) resolves to the function the
+  object with that id declares. A bare call resolves in the enclosing objects,
+  from the nearest outward. A same-named function in an unrelated object does
+  not block either rule.
+- Calls inside property initializers (`readonly property real size:
+  Math.max(...)`) are attributed to the enclosing component, like calls in
+  plain bindings.
+- A pending call's `receiver_type` is set when the receiver is `this` or the
+  `id` of any enclosing object. Other ids get no `receiver_type`; their
+  declared type fact is the resolution path.
+- A `uses` edge to a property needs a receiver this file describes: `this`,
+  `parent`, or a same-file id whose object declares the property. A chained
+  receiver (`Color.tooltip.background`, `model.item.x`) or an id whose object
+  does not declare the property records no edge.
 
 ## The reference contract
 

@@ -85,11 +85,7 @@ impl QmlExtractor {
                 {
                     let base_type = self.base.get_node_text(&type_name);
 
-                    // Derive the component name from the file path stem
-                    let component_name = std::path::Path::new(&self.base.file_path)
-                        .file_stem()
-                        .and_then(|s| s.to_str())
-                        .map(|s| s.to_string())
+                    let component_name = semantics::component_name(&self.base.file_path)
                         .unwrap_or_else(|| base_type.clone());
 
                     let singleton = semantics::file_declares_singleton(&self.base, node);
@@ -202,6 +198,16 @@ impl QmlExtractor {
                                 SymbolKind::Property,
                                 options,
                             );
+                            if let Some(component) = parent_id.as_deref().and_then(|id| {
+                                self.symbols.iter().find(|candidate| candidate.id == id)
+                            }) {
+                                let component_name = component.name.clone();
+                                type_facts::record_named_type(
+                                    &mut self.base,
+                                    &symbol.id,
+                                    &component_name,
+                                );
+                            }
                             self.symbols.push(symbol);
                         }
                     } else if semantics::is_signal_handler_binding_name(&binding_name) {
@@ -397,15 +403,27 @@ impl QmlExtractor {
                         self.base
                             .create_symbol(&node, name, SymbolKind::Function, options);
                     let function_id = symbol.id.clone();
-                    self.symbols.extend(
+                    type_facts::record_annotation_type(
+                        &mut self.base,
+                        &function_id,
+                        node,
+                        "return_type",
+                    );
+                    for (param, param_node) in
                         crate::javascript::parameters::extract_parameter_symbols(
                             &mut self.base,
                             node,
                             &function_id,
                         )
-                        .into_iter()
-                        .map(|(param, _)| param),
-                    );
+                    {
+                        type_facts::record_annotation_type(
+                            &mut self.base,
+                            &param.id,
+                            param_node,
+                            "type",
+                        );
+                        self.symbols.push(param);
+                    }
                     self.symbols.extend(locals::extract_function_locals(
                         &mut self.base,
                         node,
@@ -472,12 +490,16 @@ impl QmlExtractor {
             doc_comment: semantics::extract_qml_doc_comment(self, &node),
             ..Default::default()
         };
+        let has_id = object_id.is_some();
         let symbol = self.base.create_symbol(
             &node,
-            object_id.unwrap_or(object_type),
+            object_id.unwrap_or_else(|| object_type.clone()),
             SymbolKind::Field,
             options,
         );
+        if has_id {
+            type_facts::record_named_type(&mut self.base, &symbol.id, &object_type);
+        }
         self.symbols.push(symbol.clone());
         Some(symbol)
     }
@@ -500,7 +522,15 @@ impl QmlExtractor {
                 .filter(|symbol| symbol.kind == SymbolKind::Class),
         );
 
-        self.walk_for_pending_calls(tree.root_node(), symbols, &symbol_map, &class_symbols, 0);
+        let object_owners = relationships::object_owner_map(symbols);
+        self.walk_for_pending_calls(
+            tree.root_node(),
+            symbols,
+            &symbol_map,
+            &class_symbols,
+            &object_owners,
+            0,
+        );
     }
 
     /// Walk the tree for calls that cannot resolve in their lexical component scope
@@ -510,6 +540,7 @@ impl QmlExtractor {
         symbols: &[Symbol],
         symbol_map: &std::collections::HashMap<String, &Symbol>,
         class_symbols: &ContainingSymbolIndex<'_>,
+        object_owners: &std::collections::HashMap<u32, &Symbol>,
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
@@ -538,20 +569,19 @@ impl QmlExtractor {
                 let receiver = function_node
                     .child_by_field_name("object")
                     .map(|object| self.base.get_node_text(&object));
-                let resolves_locally = symbol_map
-                    .get(function_name.as_str())
-                    .filter(|symbol| {
-                        matches!(symbol.kind, SymbolKind::Function | SymbolKind::Event)
-                    })
-                    .is_some_and(|called_symbol| {
-                        relationships::receiver_can_resolve_locally(
-                            receiver.as_deref(),
-                            called_symbol,
-                            symbols,
-                            relationships::find_containing_component(node, class_symbols),
-                            caller_symbol,
-                        )
-                    });
+                let resolves_locally = relationships::resolve_local_callee(
+                    &relationships::LocalCall {
+                        node,
+                        function_name: &function_name,
+                        receiver: receiver.as_deref(),
+                        caller: caller_symbol,
+                    },
+                    symbols,
+                    symbol_map,
+                    class_symbols,
+                    object_owners,
+                )
+                .is_some();
                 if !resolves_locally {
                     let pending = self
                         .base
@@ -582,7 +612,14 @@ impl QmlExtractor {
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_for_pending_calls(child, symbols, symbol_map, class_symbols, child_depth);
+            self.walk_for_pending_calls(
+                child,
+                symbols,
+                symbol_map,
+                class_symbols,
+                object_owners,
+                child_depth,
+            );
         }
     }
 

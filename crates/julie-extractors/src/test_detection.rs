@@ -584,14 +584,18 @@ pub(crate) fn apply_callable_test_metadata(
 pub(crate) fn mark_base_type_test_containers(symbols: &mut [Symbol], base_type: &str) {
     let test_container_ids: HashSet<String> = symbols
         .iter()
-        .filter(|symbol| symbol.kind == SymbolKind::Class)
-        .filter(|symbol| metadata_string_list_contains(symbol, "base_types", base_type))
+        .filter(|symbol| {
+            (symbol.kind == SymbolKind::Class
+                && metadata_string_list_contains(symbol, "base_types", base_type))
+                || is_qml_object_of_type(symbol, base_type)
+        })
         .map(|symbol| symbol.id.clone())
         .collect();
 
-    for symbol in symbols.iter_mut().filter(|symbol| {
-        symbol.kind == SymbolKind::Class && test_container_ids.contains(&symbol.id)
-    }) {
+    for symbol in symbols
+        .iter_mut()
+        .filter(|symbol| test_container_ids.contains(&symbol.id))
+    {
         mark_class_test_container(symbol);
     }
 
@@ -599,6 +603,24 @@ pub(crate) fn mark_base_type_test_containers(symbols: &mut [Symbol], base_type: 
         normalize_scoped_test_roles(symbols, &test_container_ids);
         apply_qml_test_roles(symbols, &test_container_ids);
     }
+}
+
+/// A nested QML object (`Item { TestCase { ... } }`) is a `field` row whose
+/// `object_type` metadata names its type, bare or module-qualified.
+fn is_qml_object_of_type(symbol: &Symbol, base_type: &str) -> bool {
+    symbol.language == "qml"
+        && symbol.kind == SymbolKind::Field
+        && symbol
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("object_type"))
+            .and_then(|value| value.as_str())
+            .is_some_and(|object_type| {
+                object_type == base_type
+                    || object_type
+                        .strip_suffix(base_type)
+                        .is_some_and(|qualifier| qualifier.ends_with('.'))
+            })
 }
 
 fn parent_index(symbols: &[Symbol]) -> HashMap<String, Option<String>> {
