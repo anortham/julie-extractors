@@ -9,6 +9,7 @@ mod core;
 mod erlang;
 mod extra;
 mod jvm_native;
+mod qml;
 mod scripting;
 
 pub(super) fn specs() -> Vec<StructuralFactPatternSpec> {
@@ -18,6 +19,7 @@ pub(super) fn specs() -> Vec<StructuralFactPatternSpec> {
         scripting::SPECS,
         erlang::SPECS,
         extra::SPECS,
+        qml::SPECS,
     ]
     .concat()
 }

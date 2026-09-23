@@ -335,6 +335,29 @@
       "language": "qmldir",
       "file_path": "fixtures/extraction/qmldir/basic/qmldir",
       "containing_key": null,
+      "start_line": 19,
+      "start_column": 0,
+      "end_line": 20,
+      "end_column": 0,
+      "start_byte": 497,
+      "end_byte": 517,
+      "confidence": "1.000",
+      "metadata": {
+        "directive": "javascript_resource",
+        "file": "Utils.mjs",
+        "pattern_version": 1,
+        "query_family": "qmldir",
+        "resource_name": "Utils",
+        "version": "1.0"
+      }
+    },
+    {
+      "pattern_id": "qmldir.javascript_resource.v1",
+      "capture_name": "javascript_resource",
+      "node_kind": "command",
+      "language": "qmldir",
+      "file_path": "fixtures/extraction/qmldir/basic/qmldir",
+      "containing_key": null,
       "start_line": 5,
       "start_column": 0,
       "end_line": 6,
@@ -507,6 +530,46 @@
       }
     },
     {
+      "pattern_id": "qmldir.static.v1",
+      "capture_name": "static",
+      "node_kind": "command",
+      "language": "qmldir",
+      "file_path": "fixtures/extraction/qmldir/basic/qmldir",
+      "containing_key": null,
+      "start_line": 20,
+      "start_column": 0,
+      "end_line": 21,
+      "end_column": 0,
+      "start_byte": 517,
+      "end_byte": 524,
+      "confidence": "1.000",
+      "metadata": {
+        "directive": "static",
+        "pattern_version": 1,
+        "query_family": "qmldir"
+      }
+    },
+    {
+      "pattern_id": "qmldir.system.v1",
+      "capture_name": "system",
+      "node_kind": "command",
+      "language": "qmldir",
+      "file_path": "fixtures/extraction/qmldir/basic/qmldir",
+      "containing_key": null,
+      "start_line": 21,
+      "start_column": 0,
+      "end_line": 22,
+      "end_column": 0,
+      "start_byte": 524,
+      "end_byte": 531,
+      "confidence": "1.000",
+      "metadata": {
+        "directive": "system",
+        "pattern_version": 1,
+        "query_family": "qmldir"
+      }
+    },
+    {
       "pattern_id": "qmldir.typeinfo.v1",
       "capture_name": "typeinfo",
       "node_kind": "command",
@@ -530,6 +593,20 @@
   ],
   "complexity_metrics": [],
   "literals": [],
-  "source_regions": [],
+  "source_regions": [
+    {
+      "kind": "comment",
+      "language": "qmldir",
+      "file_path": "fixtures/extraction/qmldir/basic/qmldir",
+      "containing_key": null,
+      "start_line": 18,
+      "start_column": 0,
+      "end_line": 18,
+      "end_column": 33,
+      "start_byte": 463,
+      "end_byte": 496,
+      "metadata": null
+    }
+  ],
   "type_argument_usages": []
 }

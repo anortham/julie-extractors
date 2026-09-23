@@ -5096,6 +5096,11 @@
           "name": "ui_form",
           "source": "fixtures/extraction/qml/ui_form/Screen01.ui.qml",
           "expected": "fixtures/extraction/qml/ui_form/expected.json"
+        },
+        {
+          "name": "semantics",
+          "source": "fixtures/extraction/qml/semantics/Dashboard.qml",
+          "expected": "fixtures/extraction/qml/semantics/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5113,6 +5118,7 @@
             "enum",
             "enum_member",
             "event",
+            "export",
             "field",
             "function",
             "import",
@@ -5165,7 +5171,8 @@
             "qml.binding.v1",
             "qml.object_instantiation.v1",
             "qml.typeinfo_declaration.v1",
-            "qml.pragma.v1"
+            "qml.pragma.v1",
+            "qml.component_url.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -5179,24 +5186,28 @@
           "open_gaps": []
         },
         "annotations": {
-          "supported": [],
-          "not_applicable": [
+          "supported": [
             "class",
             "event",
             "field",
             "function",
-            "import",
             "property"
+          ],
+          "not_applicable": [
+            "import"
           ],
           "open_gaps": []
         },
         "doc_comments": {
           "supported": [
-            "function"
+            "class",
+            "enum",
+            "event",
+            "field",
+            "function",
+            "property"
           ],
-          "not_applicable": [
-            "field"
-          ],
+          "not_applicable": [],
           "open_gaps": []
         },
         "literals": {
@@ -5347,6 +5358,8 @@
             "qmldir.plugin.v1",
             "qmldir.prefer.v1",
             "qmldir.singleton_type.v1",
+            "qmldir.static.v1",
+            "qmldir.system.v1",
             "qmldir.typeinfo.v1"
           ],
           "not_applicable": [],
@@ -5384,9 +5397,10 @@
           "open_gaps": []
         },
         "source_regions": {
-          "supported": [],
+          "supported": [
+            "comment"
+          ],
           "not_applicable": [
-            "comment",
             "string_literal"
           ],
           "open_gaps": []

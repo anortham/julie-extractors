@@ -79,13 +79,21 @@ Item {
         .iter()
         .find(|symbol| symbol.name == "First")
         .expect("first inline component");
+    let first_handler = result
+        .symbols
+        .iter()
+        .find(|symbol| {
+            symbol.name == "Component.onCompleted"
+                && symbol.parent_id.as_deref() == Some(first.id.as_str())
+        })
+        .expect("first inline component handler");
     assert!(
         result
             .structured_pending_relationships
             .iter()
             .any(|pending| {
                 pending.target.terminal_name == "secondOnly"
-                    && pending.pending.from_symbol_id == first.id
+                    && pending.pending.from_symbol_id == first_handler.id
             })
     );
 }

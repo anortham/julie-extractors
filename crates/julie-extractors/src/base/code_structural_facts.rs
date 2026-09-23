@@ -393,7 +393,13 @@ const QML_PATTERNS: &[CodeStructuralPattern] = &[
     CodeStructuralPattern {
         pattern_id: "qml.object_instantiation.v1",
         capture_name: "object_instantiation",
-        node_kinds: &["ui_object_definition"],
+        node_kinds: &["ui_object_definition", "ui_object_definition_binding"],
+        query_family: "objects",
+    },
+    CodeStructuralPattern {
+        pattern_id: "qml.component_url.v1",
+        capture_name: "component_url",
+        node_kinds: &["string"],
         query_family: "objects",
     },
     CodeStructuralPattern {
@@ -913,6 +919,21 @@ fn enrich_metadata(
             if let Some(property_type) = qml_field_name(content, node, "type") {
                 insert_string(metadata, "property_type", &property_type);
             }
+            let mut cursor = node.walk();
+            for modifier in node
+                .named_children(&mut cursor)
+                .filter(|child| child.kind() == "ui_property_modifier")
+            {
+                metadata.insert(node_text(content, modifier), Value::Bool(true));
+            }
+        }
+        "qml.component_url.v1" => {
+            if let Some(url) = qml_string_value(content, node) {
+                insert_string(metadata, "url", &url);
+            }
+            if let Some(carrier) = qml_component_url_carrier(content, node) {
+                insert_string(metadata, "carrier", &carrier);
+            }
         }
         "qml.pragma.v1" => {
             if let Some(name) = qml_field_name(content, node, "name") {
@@ -929,7 +950,11 @@ fn enrich_metadata(
         }
         "qml.binding.v1" => {
             if let Some(name) = qml_field_name(content, node, "name") {
-                insert_string(metadata, "property_name", &name);
+                insert_string(
+                    metadata,
+                    "property_name",
+                    &qml_grouped_name(content, node, name),
+                );
             }
         }
         "qml.object_instantiation.v1" => {
@@ -1221,10 +1246,19 @@ fn matches_pattern(
                     .child_by_field_name("source")
                     .is_some_and(|source| crate::qml::import_source_kind(&source).is_some())
         }
-        ("qml", "qml.binding.v1") => qml_is_semantic_property_binding(content, node),
+        ("qml", "qml.binding.v1") => {
+            qml_is_semantic_property_binding(content, node) && !qml_is_annotation_binding(node)
+        }
         ("qml", "qml.object_instantiation.v1") => {
             !crate::qml::is_typeinfo_path(file_path)
-                && qml_field_name(content, node, "type_name").is_some()
+                && qml_field_name(content, node, "type_name")
+                    .is_some_and(|type_name| !qml_is_grouped_block_type(&type_name))
+        }
+        ("qml", "qml.component_url.v1") => {
+            !crate::qml::is_typeinfo_path(file_path)
+                && qml_string_value(content, node)
+                    .is_some_and(|url| url.to_ascii_lowercase().ends_with(".qml"))
+                && qml_component_url_carrier(content, node).is_some()
         }
         ("qml", "qml.typeinfo_declaration.v1") => {
             crate::qml::is_typeinfo_path(file_path)
@@ -1673,6 +1707,72 @@ fn qml_import_source(content: &str, node: Node<'_>) -> Option<String> {
             }
         })
         .filter(|source| !source.is_empty())
+}
+
+/// `font { bold: true }` binds a group of properties; its terminal type segment
+/// starts lowercase.
+fn qml_is_grouped_block_type(type_name: &str) -> bool {
+    type_name
+        .rsplit('.')
+        .next()
+        .is_some_and(|terminal| terminal.starts_with(|c: char| c.is_ascii_lowercase()))
+}
+
+/// `bold` inside `font { bold: true }` binds `font.bold`.
+fn qml_grouped_name(content: &str, binding: Node<'_>, name: String) -> String {
+    let mut qualified = name;
+    let mut current = binding;
+    while let Some(initializer) = current
+        .parent()
+        .filter(|p| p.kind() == "ui_object_initializer")
+        && let Some(block) = initializer
+            .parent()
+            .filter(|p| p.kind() == "ui_object_definition")
+        && let Some(block_type) = qml_field_name(content, block, "type_name")
+        && qml_is_grouped_block_type(&block_type)
+    {
+        qualified = format!("{block_type}.{qualified}");
+        current = block;
+    }
+    qualified
+}
+
+/// Bindings inside `@Annotation { key: value }` are annotation arguments.
+fn qml_is_annotation_binding(binding: Node<'_>) -> bool {
+    binding
+        .parent()
+        .and_then(|initializer| initializer.parent())
+        .is_some_and(|owner| owner.kind() == "ui_annotation")
+}
+
+fn qml_string_value(content: &str, node: Node<'_>) -> Option<String> {
+    let text = node_text(content, node);
+    let inner = text
+        .strip_prefix(['"', '\''])
+        .and_then(|rest| rest.strip_suffix(['"', '\'']))?;
+    (!inner.is_empty()).then(|| inner.to_string())
+}
+
+/// What carries a component URL string: the callee of the call it is an
+/// argument of (`Qt.resolvedUrl`), or the property whose whole value it is
+/// (`initialItem`).
+fn qml_component_url_carrier(content: &str, node: Node<'_>) -> Option<String> {
+    let parent = node.parent()?;
+    match parent.kind() {
+        "arguments" => {
+            let call = parent
+                .parent()
+                .filter(|call| call.kind() == "call_expression")?;
+            qml_field_name(content, call, "function")
+        }
+        "expression_statement" => {
+            let binding = parent
+                .parent()
+                .filter(|binding| binding.kind() == "ui_binding")?;
+            qml_field_name(content, binding, "name")
+        }
+        _ => None,
+    }
 }
 
 fn qml_typeinfo_kind(type_name: &str) -> &'static str {

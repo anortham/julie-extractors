@@ -110,12 +110,17 @@ Rectangle {
             .iter()
             .find(|symbol| symbol.name == "handleClick" && symbol.kind == SymbolKind::Function)
             .expect("Should extract handleClick function");
+        let on_clicked = symbols
+            .iter()
+            .find(|symbol| symbol.name == "onClicked" && symbol.kind == SymbolKind::Function)
+            .expect("Should extract the onClicked handler");
+        assert_ne!(on_clicked.id, component_id);
 
         let call_relationships: Vec<&Relationship> = relationships
             .iter()
             .filter(|r| {
                 r.kind == RelationshipKind::Calls
-                    && r.from_symbol_id == component_id
+                    && r.from_symbol_id == on_clicked.id
                     && r.to_symbol_id == handle_click.id
             })
             .collect();
@@ -573,7 +578,7 @@ Item {
     }
 
     #[test]
-    fn call_inside_a_nested_object_keeps_the_class_as_from_symbol() {
+    fn call_inside_a_nested_object_handler_comes_from_the_handler() {
         let qml_code = r#"
 import QtQuick 2.15
 
@@ -592,10 +597,10 @@ Item {
 "#;
 
         let (symbols, relationships) = extract_symbols_and_relationships(qml_code);
-        let root_class = symbols
+        let handler = symbols
             .iter()
-            .find(|symbol| symbol.kind == SymbolKind::Class)
-            .expect("root class");
+            .find(|symbol| symbol.name == "onTriggered" && symbol.kind == SymbolKind::Function)
+            .expect("onTriggered handler");
         let poll = symbols
             .iter()
             .find(|symbol| symbol.name == "poll" && symbol.kind == SymbolKind::Field)
@@ -608,7 +613,7 @@ Item {
         assert!(
             relationships.iter().any(|relationship| {
                 relationship.kind == RelationshipKind::Calls
-                    && relationship.from_symbol_id == root_class.id
+                    && relationship.from_symbol_id == handler.id
                     && relationship.to_symbol_id == refresh.id
             }),
             "the call should be anchored to the class, got: {:?}",
@@ -859,9 +864,14 @@ Item {
             .find(|symbol| symbol.name == "helper" && symbol.kind == SymbolKind::Function)
             .expect("inline helper");
 
+        let handler = symbols
+            .iter()
+            .find(|symbol| symbol.name == "Component.onCompleted")
+            .expect("inline handler");
+        assert_eq!(handler.parent_id.as_deref(), Some(detail.id.as_str()));
         assert!(relationships.iter().any(|relationship| {
             relationship.kind == RelationshipKind::Calls
-                && relationship.from_symbol_id == detail.id
+                && relationship.from_symbol_id == handler.id
                 && relationship.to_symbol_id == helper.id
         }));
     }
@@ -883,9 +893,14 @@ Item { component Detail: Item { function helper() {} Component.onCompleted: help
             .find(|symbol| symbol.name == "helper" && symbol.kind == SymbolKind::Function)
             .expect("inline helper");
 
+        let handler = symbols
+            .iter()
+            .find(|symbol| symbol.name == "Component.onCompleted")
+            .expect("inline handler");
+        assert_eq!(handler.parent_id.as_deref(), Some(detail.id.as_str()));
         assert!(relationships.iter().any(|relationship| {
             relationship.kind == RelationshipKind::Calls
-                && relationship.from_symbol_id == detail.id
+                && relationship.from_symbol_id == handler.id
                 && relationship.to_symbol_id == helper.id
         }));
     }

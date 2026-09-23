@@ -50,4 +50,15 @@ Module {
             }
         }
     }
+    Component {
+        name: "Plasma::Svg"
+        prototype: "QObject"
+        exports: ["org.kde.plasma.core/Svg 2.0", "org.kde.plasma.core/Svg 2.1"]
+        Enum {
+            name: "Status"
+            values: { "Normal": 0, "Selected": 1 }
+        }
+        Property { name: "imagePath"; type: "string" }
+        Method { name: "elementRect"; type: "QRectF" }
+    }
 }

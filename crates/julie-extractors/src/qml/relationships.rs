@@ -331,14 +331,19 @@ fn extract_instantiation_relationships(
     depth: u32,
 ) {
     if super::is_typeinfo_path(&extractor.base.file_path) {
+        if depth == 0 {
+            super::typeinfo::extract_prototype_relationships(extractor, node, symbols, 0);
+        }
         return;
     }
     if !should_visit_tree_depth(depth) {
         return;
     }
 
-    if node.kind() == "ui_object_definition"
-        && !super::semantics::is_grouped_property_block(&extractor.base, node)
+    if matches!(
+        node.kind(),
+        "ui_object_definition" | "ui_object_definition_binding"
+    ) && !super::semantics::is_grouped_property_block(&extractor.base, node)
         && let Some(type_name_node) = node.child_by_field_name("type_name")
     {
         let component_type = extractor
@@ -348,7 +353,9 @@ fn extract_instantiation_relationships(
             .to_string();
         // The root object names the base type the file's component extends;
         // every other object instantiates its type.
-        let (kind, from_symbol) = if super::semantics::object_has_class_row(node) {
+        let (kind, from_symbol) = if node.kind() == "ui_object_definition"
+            && super::semantics::object_has_class_row(node)
+        {
             (
                 RelationshipKind::Extends,
                 declaring_class_symbol(node, class_owners),
@@ -448,6 +455,21 @@ fn qml_component_target(component_type: &str, symbols: &[Symbol]) -> UnresolvedT
         namespace_path: Vec::new(),
         import_context,
     }
+}
+
+/// The source of the import whose alias is the first segment of `receiver`:
+/// `utils.js` for `Utils.clamp()` after `import "utils.js" as Utils`.
+pub(super) fn alias_import_source(receiver: &str, symbols: &[Symbol]) -> Option<String> {
+    let head = receiver.split('.').next()?;
+    symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Import)
+        .find_map(|import| {
+            let metadata = import.metadata.as_ref()?;
+            (metadata_string(metadata, "alias").as_deref() == Some(head))
+                .then(|| metadata_string(metadata, "source"))
+                .flatten()
+        })
 }
 
 fn qml_import_context(
@@ -617,7 +639,14 @@ pub(super) fn find_containing_function<'a>(
                     return Some(symbol);
                 }
             }
-            "ui_script_binding" | "ui_binding" | "ui_property" => {
+            "ui_script_binding" | "ui_binding" => {
+                let handler = symbols.iter().find(|symbol| {
+                    symbol.kind == SymbolKind::Function
+                        && symbol.start_byte == parent.start_byte() as u32
+                });
+                return handler.or_else(|| find_containing_component(parent, class_symbols));
+            }
+            "ui_property" => {
                 return find_containing_component(parent, class_symbols);
             }
             _ => {}

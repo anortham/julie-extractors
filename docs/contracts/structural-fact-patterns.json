@@ -5709,7 +5709,7 @@
         "value_type": "string"
       },
       {
-        "description": "The bound property's name.",
+        "description": "The bound property's name, qualified by any grouped property blocks around it (`font.bold`).",
         "key": "property_name",
         "presence": "always",
         "value_type": "string"
@@ -5717,6 +5717,40 @@
     ],
     "pattern_id": "qml.binding.v1",
     "query_family": "bindings"
+  },
+  {
+    "description": "A string literal naming a `.qml` component file, passed to a call (`Qt.resolvedUrl`, `Qt.createComponent`, `push`) or bound directly to a property (`source`, `initialItem`).",
+    "languages": [
+      "qml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The component URL text.",
+        "key": "url",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The callee the URL is an argument of, or the property it is bound to.",
+        "key": "carrier",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "qml.component_url.v1",
+    "query_family": "objects"
   },
   {
     "description": "A QML `import` statement.",
@@ -5885,6 +5919,24 @@
         "key": "property_type",
         "presence": "optional",
         "value_type": "string"
+      },
+      {
+        "description": "True for a `required property`; absent otherwise.",
+        "key": "required",
+        "presence": "optional",
+        "value_type": "bool"
+      },
+      {
+        "description": "True for a `readonly property`; absent otherwise.",
+        "key": "readonly",
+        "presence": "optional",
+        "value_type": "bool"
+      },
+      {
+        "description": "True for a `default property`; absent otherwise.",
+        "key": "default",
+        "presence": "optional",
+        "value_type": "bool"
       }
     ],
     "pattern_id": "qml.property_declaration.v1",
@@ -6448,6 +6500,62 @@
       }
     ],
     "pattern_id": "qmldir.singleton_type.v1",
+    "query_family": "qmldir"
+  },
+  {
+    "description": "A `static` directive: the module is available only as a static library.",
+    "languages": [
+      "qmldir"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The manifest directive name.",
+        "key": "directive",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "qmldir.static.v1",
+    "query_family": "qmldir"
+  },
+  {
+    "description": "A `system` directive: the module is a system module.",
+    "languages": [
+      "qmldir"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The manifest directive name.",
+        "key": "directive",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "qmldir.system.v1",
     "query_family": "qmldir"
   },
   {

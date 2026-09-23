@@ -145,7 +145,6 @@ const DOMAIN_APPLICABILITY = {
       "json",
       "lua",
       "markdown",
-      "qml",
       "r",
       "regex",
       "ruby",

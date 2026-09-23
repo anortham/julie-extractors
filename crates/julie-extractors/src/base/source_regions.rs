@@ -733,6 +733,13 @@ fn config_for_language(language: &str) -> Option<RegionLanguageConfig> {
             html_comment_node_kinds: &[],
             embedded_node_kinds: &[],
         }),
+        "qmldir" => Some(RegionLanguageConfig {
+            comment_node_kinds: &["comment"],
+            string_literal_node_kinds: &[],
+            quoted_string_literal_node_kinds: &[],
+            html_comment_node_kinds: &[],
+            embedded_node_kinds: &[],
+        }),
         "markdown" => Some(RegionLanguageConfig {
             comment_node_kinds: &[],
             string_literal_node_kinds: &[],

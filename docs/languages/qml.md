@@ -33,13 +33,32 @@ table, not from the symbol table.
 qmldir type rows use the symbol kind `export`, not `class`, because a qmldir
 line exports a type rather than declaring one.
 
+A qmldir `#` comment is a `comment` source region. A `.mjs` resource line is a
+`qmldir.javascript_resource.v1` fact, like `.js`. The `static` and `system`
+directives are `qmldir.static.v1` and `qmldir.system.v1` facts.
+
 ## Other symbol rows
 
 - A signal is an `event` symbol. Its signature is the declaration
   (`signal activated(int index, string name)`) and its metadata carries a
   `parameters` list of `{name, type}` objects.
-- A `required property` with no initializer is a `property` symbol with
-  `required: true` in its metadata.
+- A signal is `public` and takes the doc comment above it.
+- A property modifier is a metadata key: `required: true`, `readonly: true`,
+  or `default: true`. The `qml.property_declaration.v1` fact carries the same
+  keys. A property body span covers the value, not the declaration. A
+  property whose value is a literal has no body span.
+- A property whose value is an object (`property QtObject wifi: QtObject
+  {}`) owns that object. The object is a `field` with `bound_property` set to
+  the property name. An object bound to a plain property
+  (`background: Rectangle {}`) carries `bound_property` too.
+- An enum member records its initializer in the metadata key `value`: an
+  integer when the initializer is a number, else the source text.
+- A signal handler binding (`onClicked: ...`) is a `function` symbol. Its
+  signature is the header only (`onClicked`, or `onPressed: (mouse) =>`). Its
+  body span covers the handler value. The metadata key `handled_signal` names
+  the signal (`clicked`).
+- A function that `signal.connect(fn)` connects also gets `handled_signal`.
+- A function nested in another function is `private`.
 - A file that opens with `pragma Singleton` marks its root symbol
   `singleton: true`. The pragma line itself is also a structural fact,
   `qml.pragma.v1`, with the metadata keys `name` and `value`.
@@ -58,6 +77,26 @@ line exports a type rather than declaring one.
 
 A module qualifier stays in the type name (`Backend.DocumentModel`).
 
+## Annotations, doc comments, and component URLs
+
+- A Qt annotation (`@Deprecated { reason: "old" }`) goes into the
+  `annotations` of the object, property, signal, or function it precedes. The
+  annotation name is also a `type_usage` identifier with `role: annotation`.
+  The annotation's own bindings are not `qml.binding.v1` facts.
+- A doc comment is a `/** */`, `/*! */`, or `///` comment directly above the
+  declaration or above its annotations.
+- A string that names a `.qml` file is a `qml.component_url.v1` fact when it
+  is a call argument (`Qt.resolvedUrl("pages/Home.qml")`,
+  `Qt.createComponent("Dialog.qml")`) or a direct binding value
+  (`initialItem: "pages/Home.qml"`). The metadata keys are `url` and
+  `carrier`, which holds the callee or the binding name.
+- A grouped binding (`font { bold: true }`) is not an object. Its bindings
+  are `qml.binding.v1` facts with the qualified name `font.bold`.
+- `qml.object_instantiation.v1` also covers value sources
+  (`Behavior on opacity {}`).
+- An `import "lib.mjs" as Lib` line has `import_kind: javascript`, like
+  `.js`.
+
 ## Test roles
 
 A `TestCase` object is a test container when it is the root object or a
@@ -72,9 +111,12 @@ setup, and `cleanup*` is fixture teardown.
   object with that id declares. A bare call resolves in the enclosing objects,
   from the nearest outward. A same-named function in an unrelated object does
   not block either rule.
-- Calls inside property initializers (`readonly property real size:
-  Math.max(...)`) are attributed to the enclosing component, like calls in
-  plain bindings.
+- A call inside a signal handler belongs to the handler `function` symbol.
+  A call inside a function belongs to that function, also when the function
+  is nested. Calls inside property initializers (`readonly property real
+  size: Math.max(...)`) and plain bindings belong to the enclosing object.
+- A pending call through an import alias (`Utils.clamp()` with
+  `import "utils.js" as Utils`) sets `import_context` to the import source.
 - A pending call's `receiver_type` is set when the receiver is `this` or the
   `id` of any enclosing object. Other ids get no `receiver_type`; their
   declared type fact is the resolution path.
@@ -101,6 +143,12 @@ The metadata key `role` says what the reference is:
   `member_access` identifier with the handler's target in `receiver`. A dotted
   handler name carries its qualifier instead, so `Keys.onPressed` gives `Keys`.
   An `onXChanged` handler also carries `change_handler: true`.
+  The signal segment of `root.refreshed.connect(fn)` also has this role,
+  with `receiver` set to `root`.
+- `annotation` — a Qt annotation name (`@Designer`).
+- `value_source_target` — the property a value source targets
+  (`Behavior on opacity` gives `opacity`). The `receiver` is the enclosing
+  object type.
 
 A reference with no `role` is an ordinary type usage or member access.
 
@@ -110,6 +158,17 @@ A `.qmltypes` file's root is `Module { ... }`, a descriptor of a module rather
 than a component that extends something. Its root emits no `base_type`
 identifier and no `extends` relationship. Nested rows (`Component`,
 `AttachedType`, and the rest) keep their ordinary type usages.
+
+Inside the module descriptor:
+
+- A `Component` with a `prototype` emits a pending `extends` relationship to
+  the prototype.
+- Each name in `exports` is an `export` symbol. The metadata keys are
+  `module` and `versions`.
+- A `Property` or `Parameter` records its `type` as a type fact. A `Method`
+  records its `returnType`, or its `type` when there is no `returnType`.
+- An `Enum` takes its values from the Qt 6 list form and the Qt 5 object
+  form.
 
 ## Continuous testing
 

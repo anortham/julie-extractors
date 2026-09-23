@@ -3,10 +3,21 @@ use crate::base::{BaseExtractor, Symbol, SymbolKind, UnresolvedTarget, Visibilit
 use std::collections::HashMap;
 use tree_sitter::Node;
 
+/// The comment above a declaration documents it; an annotated declaration
+/// takes the comment above its annotations.
 pub(super) fn extract_qml_doc_comment(extractor: &QmlExtractor, node: &Node) -> Option<String> {
-    extractor.base.extract_documentation(node).or_else(|| {
+    let anchor = node
+        .parent()
+        .filter(|parent| {
+            matches!(
+                parent.kind(),
+                "ui_annotated_object" | "ui_annotated_object_member"
+            )
+        })
+        .unwrap_or(*node);
+    extractor.base.extract_documentation(&anchor).or_else(|| {
         let mut comments = Vec::new();
-        let mut current = node.prev_named_sibling();
+        let mut current = anchor.prev_named_sibling();
         while let Some(sibling) = current {
             if sibling.kind().contains("comment") {
                 let text = extractor.base.get_node_text(&sibling);
@@ -67,6 +78,132 @@ pub(super) fn property_signature(base: &BaseExtractor, node: Node) -> String {
         .trim_end_matches(':')
         .trim_end()
         .to_string()
+}
+
+/// The `required`, `readonly` and `default` keywords before `property`.
+pub(super) fn property_modifiers(base: &BaseExtractor, node: Node) -> Vec<String> {
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .filter(|child| child.kind() == "ui_property_modifier")
+        .map(|modifier| base.get_node_text(&modifier))
+        .collect()
+}
+
+/// The expression inside an `expression_statement` wrapper, or the node itself.
+pub(super) fn unwrap_expression_statement(node: Node) -> Node {
+    if node.kind() == "expression_statement" {
+        node.named_child(0).unwrap_or(node)
+    } else {
+        node
+    }
+}
+
+/// A property's body is its initializer; a literal initializer has no body.
+pub(super) fn property_body(value: Node) -> Option<Node> {
+    let value = unwrap_expression_statement(value);
+    (!matches!(
+        value.kind(),
+        "number" | "string" | "true" | "false" | "null" | "undefined"
+    ))
+    .then_some(value)
+}
+
+/// A handler's header: `onPressed: (mouse) =>` for a function value, the
+/// binding name otherwise.
+pub(super) fn handler_signature(base: &BaseExtractor, node: Node, name: &str) -> String {
+    let function_body = node
+        .child_by_field_name("value")
+        .map(unwrap_expression_statement)
+        .filter(|value| {
+            matches!(
+                value.kind(),
+                "arrow_function" | "function_expression" | "function"
+            )
+        })
+        .and_then(|function| function.child_by_field_name("body"));
+    match function_body {
+        Some(body) => base
+            .content
+            .get(node.start_byte()..body.start_byte())
+            .map(|header| header.trim_end().to_string())
+            .unwrap_or_else(|| name.to_string()),
+        None => name.to_string(),
+    }
+}
+
+/// The property an object value is bound to: `background` in
+/// `background: Rectangle {}` or `wifi` in `property QtObject wifi: QtObject {}`.
+pub(super) fn bound_property(base: &BaseExtractor, object: Node) -> Option<String> {
+    let parent = object.parent()?;
+    if !matches!(parent.kind(), "ui_binding" | "ui_property") {
+        return None;
+    }
+    parent
+        .child_by_field_name("value")
+        .filter(|value| value.id() == object.id())?;
+    parent
+        .child_by_field_name("name")
+        .map(|name| base.get_node_text(&name))
+}
+
+/// Maps each handler that `<receiver>.<signal>.connect(handler)` names to its signal.
+pub(super) fn connected_handlers(base: &BaseExtractor, root: Node) -> HashMap<String, String> {
+    let mut handlers = HashMap::new();
+    collect_connected_handlers(base, root, &mut handlers, 0);
+    handlers
+}
+
+fn collect_connected_handlers(
+    base: &BaseExtractor,
+    node: Node,
+    handlers: &mut HashMap<String, String>,
+    depth: u32,
+) {
+    if !crate::tree_traversal::should_visit_tree_depth(depth) {
+        return;
+    }
+    if let Some((signal, handler)) = connect_call(base, node) {
+        handlers.entry(handler).or_insert(signal);
+    }
+    let Some(child_depth) = crate::tree_traversal::child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_connected_handlers(base, child, handlers, child_depth);
+    }
+}
+
+/// `(signal, handler)` for a `signal.connect(handler)` call with a named handler.
+fn connect_call(base: &BaseExtractor, node: Node) -> Option<(String, String)> {
+    if node.kind() != "call_expression" {
+        return None;
+    }
+    let signal = connected_signal_node(base, node.child_by_field_name("function")?)?;
+    let arguments = node.child_by_field_name("arguments")?;
+    let handler = arguments.named_child(0)?;
+    (handler.kind() == "identifier")
+        .then(|| (base.get_node_text(&signal), base.get_node_text(&handler)))
+}
+
+/// The signal name node of a `<receiver>.<signal>.connect` callee.
+pub(super) fn connected_signal_node<'a>(
+    base: &BaseExtractor,
+    callee: Node<'a>,
+) -> Option<Node<'a>> {
+    if callee.kind() != "member_expression" {
+        return None;
+    }
+    let property = callee.child_by_field_name("property")?;
+    if base.get_node_text(&property) != "connect" {
+        return None;
+    }
+    let object = callee.child_by_field_name("object")?;
+    match object.kind() {
+        "member_expression" => object.child_by_field_name("property"),
+        "identifier" => Some(object),
+        _ => None,
+    }
 }
 
 pub(super) fn signal_parameters(base: &BaseExtractor, node: Node) -> Vec<serde_json::Value> {
@@ -298,8 +435,9 @@ pub(super) fn build_unresolved_target(
     UnresolvedTarget::simple(fallback_name.to_string())
 }
 
+/// `/** */` and `///` are the JSDoc forms; `/*! */` is QDoc, Qt's own format.
 fn is_qml_doc_comment(trimmed: &str) -> bool {
-    trimmed.starts_with("/**") || trimmed.starts_with("///")
+    trimmed.starts_with("/**") || trimmed.starts_with("///") || trimmed.starts_with("/*!")
 }
 
 fn lowercase_first(value: &str) -> Option<String> {

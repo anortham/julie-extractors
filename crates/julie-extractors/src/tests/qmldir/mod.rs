@@ -102,6 +102,8 @@ fn qmldir_directive_matrix_emits_typed_facts_and_negative_controls() {
         "designersupported\n",
         "prefer :/qt/qml/Example/Module\n",
         "linktarget ExampleModule\n",
+        "static\n",
+        "system\n",
         "not_a_directive not-a-version not-a-file\n",
     );
     let result = extract_canonical("qmldir", source, Path::new("."))
@@ -283,4 +285,28 @@ fn qmldir_import_forms_emit_optional_and_default_metadata() {
             .expect("versionless qmldir import should have metadata")
             .contains_key("version")
     );
+}
+
+#[test]
+fn qmldir_mjs_resources_static_system_and_comments_are_extracted() {
+    let source = "# Shared widgets\nmodule org.example.app\nUtils 1.0 Utils.mjs\nstatic\nsystem\n";
+    let result = extract_canonical("/project/qmldir", source, Path::new("/project"))
+        .expect("qmldir extraction should succeed");
+
+    let patterns: BTreeSet<_> = result
+        .structural_facts
+        .iter()
+        .map(|fact| fact.pattern_id.as_str())
+        .collect();
+    assert!(patterns.contains("qmldir.javascript_resource.v1"));
+    assert!(patterns.contains("qmldir.static.v1"));
+    assert!(patterns.contains("qmldir.system.v1"));
+
+    let comments: Vec<_> = result
+        .source_regions
+        .iter()
+        .filter(|region| region.kind == crate::base::SourceRegionKind::Comment)
+        .map(|region| &source[region.start_byte as usize..region.end_byte as usize])
+        .collect();
+    assert_eq!(comments, vec!["# Shared widgets"]);
 }
