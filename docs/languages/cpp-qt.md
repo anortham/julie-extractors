@@ -238,7 +238,15 @@ never parsed before, and they apply to every C++ file.
 - A visibility macro between the class key and the class name, such as
   `class ENGINE_API Renderer : Base {`, is blanked like an `*_EXPORT` macro.
 - A Catch2 `TEST_CASE` or `SECTION` row spans its block and owns it, so locals,
-  nested sections, and calls in the block belong to the test.
+  nested sections, and calls in the block belong to the test. doctest
+  `TEST_SUITE`, `SUBCASE`, and `TEST_CASE_FIXTURE` follow the same rule.
+- In a file with `QTEST_MAIN`, `QTEST_GUILESS_MAIN`, or `QTEST_APPLESS_MAIN`,
+  the named class is a test container. Its private slots, and their out-of-line
+  definitions, are tests: `initTestCase` and `init` are fixture setup,
+  `cleanupTestCase` and `cleanup` are fixture teardown, a `name_data` slot has
+  no role, and a slot with a `name_data` partner is a parameterized test.
+- `BOOST_AUTO_TEST_CASE(name)` and `BOOST_FIXTURE_TEST_CASE(name, Fixture)` are
+  test rows named `name`. `BOOST_AUTO_TEST_SUITE(name)` is a container row.
 
 ## Continuous testing
 

@@ -18,7 +18,7 @@ pub(super) use super::function_signature_parts::{
 use super::function_signature_parts::{
     extract_const_qualifier, extract_method_modifiers, extract_trailing_return_type,
 };
-use super::{declarations, function_declarators, helpers};
+use super::{declarations, function_declarators, helpers, type_facts};
 
 /// Extract function (definition or declaration)
 pub(super) fn extract_function(
@@ -54,6 +54,9 @@ pub(super) fn extract_function(
     if let Some(conversion) = out_of_line_conversion(base, node, func_node, parent_id) {
         return Some(conversion);
     }
+    if func_node.kind() == "operator_cast" {
+        return declarations::extract_conversion_operator(base, node, parent_id);
+    }
 
     let name_node = extract_function_name(func_node)?;
     let name = base.get_node_text(&name_node);
@@ -80,12 +83,9 @@ pub(super) fn extract_function(
     // Structural `is_test` remains the artifact-visible test marker here. No
     // detect_cpp arm needed.
     let googletest_macro: Option<(String, String)> =
-        if function_declarators::GTEST_MACROS.contains(&name.as_str()) {
-            function_declarators::googletest_suite_dot_name(base, func_node, &name)
-                .map(|suite_dot_name| (name.clone(), suite_dot_name))
-        } else {
-            None
-        };
+        function_declarators::googletest_suite_dot_name(base, func_node, &name)
+            .or_else(|| function_declarators::boost_test_case_name(base, func_node, &name))
+            .map(|test_name| (name.clone(), test_name));
     let name = match &googletest_macro {
         Some((_, suite_dot_name)) => suite_dot_name.clone(),
         None => name,
@@ -107,7 +107,7 @@ pub(super) fn extract_function(
         SymbolKind::Destructor
     } else if is_operator {
         SymbolKind::Operator
-    } else if scope.is_some() {
+    } else if scope.is_some() || is_class_member(node) {
         SymbolKind::Method
     } else {
         SymbolKind::Function
@@ -232,7 +232,7 @@ pub(super) fn extract_function(
         );
     }
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
         name,
         kind,
@@ -248,7 +248,29 @@ pub(super) fn extract_function(
             doc_comment,
             annotations,
         },
-    ))
+    );
+    type_facts::record_return_fact(base, &symbol.id, func_node);
+    Some(symbol)
+}
+
+/// Whether a callable is declared in a class body, directly or under
+/// `template <...>`. Member templates name themselves with `identifier`, not
+/// `field_identifier`, so the name alone does not show it.
+fn is_class_member(node: Node) -> bool {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        match parent.kind() {
+            "field_declaration_list" => return true,
+            "pointer_declarator"
+            | "reference_declarator"
+            | "declaration"
+            | "field_declaration"
+            | "function_definition"
+            | "template_declaration" => current = parent,
+            _ => return false,
+        }
+    }
+    false
 }
 
 /// `Counter::operator bool() const { ... }`: an out-of-line conversion operator,
@@ -385,7 +407,7 @@ fn extract_method(
         );
     }
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
         name.to_string(),
         kind,
@@ -401,10 +423,19 @@ fn extract_method(
             doc_comment,
             annotations,
         },
-    ))
+    );
+    type_facts::record_return_fact(base, &symbol.id, func_node);
+    Some(symbol)
 }
 
-fn extract_standard_attributes(base: &mut BaseExtractor, node: Node) -> Vec<String> {
+/// The `[[...]]` attributes written on a declaration: on a prototype they sit on
+/// the declaration that owns the function declarator.
+pub(super) fn extract_standard_attributes(base: &BaseExtractor, node: Node) -> Vec<String> {
+    let node = if node.kind() == "function_declarator" {
+        function_declarators::enclosing_declaration(node).unwrap_or(node)
+    } else {
+        node
+    };
     let mut attributes = Vec::new();
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {

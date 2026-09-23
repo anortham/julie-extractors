@@ -140,15 +140,8 @@ pub(super) fn extract_template(
         | "union_specifier"
         | "function_definition"
         | "template_declaration" => return None,
-        "declaration" => {
-            // Function declarations also handled via walk_children
-            let has_func = inner
-                .children(&mut inner.walk())
-                .any(|c| c.kind() == "function_declarator");
-            if has_func {
-                return None;
-            }
-        }
+        "declaration" if declarators::function_declarator_of(inner).is_some() => return None,
+        "declaration" => {}
         _ => return None,
     }
 
@@ -332,7 +325,9 @@ pub(super) fn extract_friend_declaration(
 // Private helpers for special declaration types
 // ========================================================================
 
-fn extract_conversion_operator(
+/// A conversion operator (`operator bool() const`), declared or defined in a
+/// class body.
+pub(super) fn extract_conversion_operator(
     base: &mut BaseExtractor,
     node: Node,
     parent_id: Option<&str>,
@@ -358,7 +353,10 @@ fn extract_conversion_operator(
         }
     }
 
-    let signature = base.get_node_text(&node);
+    let head_end = node
+        .child_by_field_name("body")
+        .map_or(node.end_byte(), |body| body.start_byte());
+    let signature = base.content[node.start_byte()..head_end].trim().to_string();
 
     let doc_comment = base.find_doc_comment(&node);
 
@@ -368,7 +366,7 @@ fn extract_conversion_operator(
         SymbolKind::Operator,
         SymbolOptions {
             signature: Some(signature),
-            visibility: Some(Visibility::Public),
+            visibility: Some(extract_cpp_visibility(base, node)),
             parent_id: parent_id.map(String::from),
             metadata: None,
             doc_comment,

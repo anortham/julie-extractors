@@ -144,11 +144,19 @@ impl<'a> ContainingSymbolIndex<'a> {
     }
 
     pub(crate) fn from_iter(symbols: impl IntoIterator<Item = &'a Symbol>) -> Self {
+        Self::from_iter_ranked(symbols, symbol_priority)
+    }
+
+    /// Build the index with a language's own container ranking.
+    pub(crate) fn from_iter_ranked(
+        symbols: impl IntoIterator<Item = &'a Symbol>,
+        priority: fn(&SymbolKind) -> u32,
+    ) -> Self {
         let mut symbols: Vec<IndexedSymbol<'a>> = symbols
             .into_iter()
             .map(|symbol| IndexedSymbol {
                 symbol,
-                priority: symbol_priority(&symbol.kind),
+                priority: priority(&symbol.kind),
                 size: symbol.end_byte.saturating_sub(symbol.start_byte),
             })
             .collect();
@@ -218,7 +226,11 @@ pub(crate) fn is_better_containing_symbol(
 
 pub(crate) fn symbol_priority(kind: &SymbolKind) -> u32 {
     match kind {
-        SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor => 1,
+        SymbolKind::Function
+        | SymbolKind::Method
+        | SymbolKind::Constructor
+        | SymbolKind::Destructor
+        | SymbolKind::Operator => 1,
         SymbolKind::Class | SymbolKind::Interface => 2,
         SymbolKind::Namespace => 3,
         SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Property => 10,
@@ -498,7 +510,11 @@ mod tests {
 
         let get_priority = |kind: &SymbolKind| -> u32 {
             match kind {
-                SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor => 1,
+                SymbolKind::Function
+                | SymbolKind::Method
+                | SymbolKind::Constructor
+                | SymbolKind::Destructor
+                | SymbolKind::Operator => 1,
                 SymbolKind::Class | SymbolKind::Interface => 2,
                 SymbolKind::Namespace => 3,
                 SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Property => 10,

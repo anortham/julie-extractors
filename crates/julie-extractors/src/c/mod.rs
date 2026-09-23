@@ -22,6 +22,8 @@ use tree_sitter::{Node, Tree};
 
 // Internal modules
 mod declarations;
+pub(crate) use declarations::{extract_include, extract_macro};
+pub(crate) use relationships::include_relationship;
 mod helpers;
 mod identifiers;
 mod parameters;
@@ -170,10 +172,10 @@ impl CExtractor {
 
         match node.kind() {
             "preproc_include" => {
-                symbol = declarations::extract_include(self, node, parent_id.as_deref());
+                symbol = declarations::extract_include(&mut self.base, node, parent_id.as_deref());
             }
             "preproc_def" | "preproc_function_def" => {
-                symbol = declarations::extract_macro(self, node, parent_id.as_deref());
+                symbol = declarations::extract_macro(&mut self.base, node, parent_id.as_deref());
             }
             "declaration" => {
                 let declaration_symbols =

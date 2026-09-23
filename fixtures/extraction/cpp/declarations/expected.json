@@ -43,15 +43,8 @@
       "end_column": 41,
       "start_byte": 157,
       "end_byte": 198,
-      "body_span": {
-        "start_line": 10,
-        "start_column": 34,
-        "end_line": 10,
-        "end_column": 39,
-        "start_byte": 191,
-        "end_byte": 196
-      },
-      "body_hash": "3e5f8a97c233da1c2a2a778940124efa",
+      "body_span": null,
+      "body_hash": null,
       "signature": "using Handler = std::function<void(int)>",
       "doc_comment": "/// Handler invoked per request.",
       "visibility": "Public",
@@ -225,15 +218,8 @@
       "end_column": 11,
       "start_byte": 327,
       "end_byte": 334,
-      "body_span": {
-        "start_line": 17,
-        "start_column": 8,
-        "end_line": 17,
-        "end_column": 10,
-        "start_byte": 331,
-        "end_byte": 333
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "Repo()",
       "doc_comment": null,
       "visibility": "Public",
@@ -495,15 +481,8 @@
       "end_column": 27,
       "start_byte": 651,
       "end_byte": 674,
-      "body_span": {
-        "start_line": 29,
-        "start_column": 9,
-        "end_line": 29,
-        "end_column": 26,
-        "start_byte": 656,
-        "end_byte": 673
-      },
-      "body_hash": "37b01561026b033e3f0aaf980bf3c577",
+      "body_span": null,
+      "body_hash": null,
       "signature": "void callback_",
       "doc_comment": null,
       "visibility": "Private",
@@ -557,15 +536,8 @@
       "end_column": 23,
       "start_byte": 579,
       "end_byte": 594,
-      "body_span": {
-        "start_line": 26,
-        "start_column": 15,
-        "end_line": 26,
-        "end_column": 17,
-        "start_byte": 586,
-        "end_byte": 588
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "int compute() const",
       "doc_comment": null,
       "visibility": "Private",
@@ -619,15 +591,8 @@
       "end_column": 41,
       "start_byte": 371,
       "end_byte": 389,
-      "body_span": {
-        "start_line": 19,
-        "start_column": 27,
-        "end_line": 19,
-        "end_column": 35,
-        "start_byte": 375,
-        "end_byte": 383
-      },
-      "body_hash": "b0266ba64403d899f6cafd4428a66b0c",
+      "body_span": null,
+      "body_hash": null,
       "signature": "std::optional<int> find(int id) const",
       "doc_comment": null,
       "visibility": "Public",
@@ -722,15 +687,8 @@
       "end_column": 33,
       "start_byte": 1160,
       "end_byte": 1193,
-      "body_span": {
-        "start_line": 46,
-        "start_column": 5,
-        "end_line": 46,
-        "end_column": 22,
-        "start_byte": 1165,
-        "end_byte": 1182
-      },
-      "body_hash": "1e6836bc6c731f232c4e49b0d72aa179",
+      "body_span": null,
+      "body_hash": null,
       "signature": "void g_handler",
       "doc_comment": null,
       "visibility": "Public",
@@ -832,15 +790,8 @@
       "end_column": 36,
       "start_byte": 1275,
       "end_byte": 1307,
-      "body_span": {
-        "start_line": 50,
-        "start_column": 29,
-        "end_line": 50,
-        "end_column": 35,
-        "start_byte": 1300,
-        "end_byte": 1306
-      },
-      "body_hash": "f04aec6f1d0d2d1b4e61aef04f7332c6",
+      "body_span": null,
+      "body_hash": null,
       "signature": "key",
       "doc_comment": null,
       "visibility": "Public",
@@ -863,15 +814,8 @@
       "end_column": 45,
       "start_byte": 1312,
       "end_byte": 1353,
-      "body_span": {
-        "start_line": 51,
-        "start_column": 36,
-        "end_line": 51,
-        "end_column": 44,
-        "start_byte": 1344,
-        "end_byte": 1352
-      },
-      "body_hash": "4071a596846fb1ed52142dfae24a8d64",
+      "body_span": null,
+      "body_hash": null,
       "signature": "std::lock_guard<std::mutex> lock",
       "doc_comment": null,
       "visibility": "Public",
@@ -894,15 +838,8 @@
       "end_column": 47,
       "start_byte": 424,
       "end_byte": 438,
-      "body_span": {
-        "start_line": 20,
-        "start_column": 37,
-        "end_line": 20,
-        "end_column": 47,
-        "start_byte": 428,
-        "end_byte": 438
-      },
-      "body_hash": "2f208aa79f0de3a65f9c8d23b6b8b4a6",
+      "body_span": null,
+      "body_hash": null,
       "signature": "static std::unique_ptr<Repo> make(double r)",
       "doc_comment": null,
       "visibility": "Public",
@@ -980,15 +917,8 @@
       "end_column": 26,
       "start_byte": 490,
       "end_byte": 512,
-      "body_span": {
-        "start_line": 22,
-        "start_column": 17,
-        "end_line": 22,
-        "end_column": 19,
-        "start_byte": 503,
-        "end_byte": 505
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "operator bool() const;",
       "doc_comment": null,
       "visibility": "Public",
@@ -1011,15 +941,8 @@
       "end_column": 79,
       "start_byte": 1027,
       "end_byte": 1067,
-      "body_span": {
-        "start_line": 41,
-        "start_column": 47,
-        "end_line": 41,
-        "end_column": 64,
-        "start_byte": 1035,
-        "end_byte": 1052
-      },
-      "body_hash": "d12c07c15592553d62a69ac379e02da3",
+      "body_span": null,
+      "body_hash": null,
       "signature": "template<>\nsize_t operator()(const Repo& r) const noexcept",
       "doc_comment": null,
       "visibility": "Public",
@@ -1042,15 +965,8 @@
       "end_column": 44,
       "start_byte": 449,
       "end_byte": 484,
-      "body_span": {
-        "start_line": 21,
-        "start_column": 19,
-        "end_line": 21,
-        "end_column": 38,
-        "start_byte": 459,
-        "end_byte": 478
-      },
-      "body_hash": "c575ee812090bea9b243f08d342d0c83",
+      "body_span": null,
+      "body_hash": null,
       "signature": "bool operator==(const Repo& other) const",
       "doc_comment": null,
       "visibility": "Public",
@@ -1125,15 +1041,8 @@
       "end_column": 28,
       "start_byte": 1358,
       "end_byte": 1382,
-      "body_span": {
-        "start_line": 52,
-        "start_column": 21,
-        "end_line": 52,
-        "end_column": 27,
-        "start_byte": 1375,
-        "end_byte": 1381
-      },
-      "body_hash": "f04aec6f1d0d2d1b4e61aef04f7332c6",
+      "body_span": null,
+      "body_hash": null,
       "signature": "std::ofstream out",
       "doc_comment": null,
       "visibility": "Public",
@@ -1164,6 +1073,34 @@
       "parent_key": "fixtures/extraction/cpp/declarations/source.cpp:save:48:0",
       "metadata": {
         "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/declarations/source.cpp:remote_base.h:1:0",
+      "name": "remote_base.h",
+      "kind": "import",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 24,
+      "start_byte": 0,
+      "end_byte": 24,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "#include \"remote_base.h\"\n",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "isSystemHeader": "false",
+        "path": "remote_base.h",
+        "type": "include"
       },
       "annotations": [],
       "semantic_group": null,
@@ -1213,15 +1150,8 @@
       "end_column": 36,
       "start_byte": 1275,
       "end_byte": 1307,
-      "body_span": {
-        "start_line": 50,
-        "start_column": 29,
-        "end_line": 50,
-        "end_column": 35,
-        "start_byte": 1300,
-        "end_byte": 1306
-      },
-      "body_hash": "f04aec6f1d0d2d1b4e61aef04f7332c6",
+      "body_span": null,
+      "body_hash": null,
       "signature": "value",
       "doc_comment": null,
       "visibility": "Public",
@@ -1244,15 +1174,8 @@
       "end_column": 54,
       "start_byte": 977,
       "end_byte": 983,
-      "body_span": {
-        "start_line": 40,
-        "start_column": 52,
-        "end_line": 40,
-        "end_column": 54,
-        "start_byte": 981,
-        "end_byte": 983
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "void work()",
       "doc_comment": null,
       "visibility": "Public",
@@ -1275,15 +1198,8 @@
       "end_column": 30,
       "start_byte": 1387,
       "end_byte": 1413,
-      "body_span": {
-        "start_line": 53,
-        "start_column": 17,
-        "end_line": 53,
-        "end_column": 29,
-        "start_byte": 1400,
-        "end_byte": 1412
-      },
-      "body_hash": "e266b7e63666992270758911752a9264",
+      "body_span": null,
+      "body_hash": null,
       "signature": "Writer writer",
       "doc_comment": null,
       "visibility": "Public",
@@ -1330,15 +1246,8 @@
       "end_column": 12,
       "start_byte": 339,
       "end_byte": 347,
-      "body_span": {
-        "start_line": 18,
-        "start_column": 9,
-        "end_line": 18,
-        "end_column": 11,
-        "start_byte": 344,
-        "end_byte": 346
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "~Repo()",
       "doc_comment": null,
       "visibility": "Public",
@@ -1385,6 +1294,24 @@
       },
       "reference_site_is_exact": false,
       "confidence": "0.800",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/cpp/declarations/source.cpp:Repo::~Repo:33:0",
+      "to_key": "fixtures/extraction/cpp/declarations/source.cpp:compute:26:8",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
+      "line_number": 33,
+      "span": {
+        "start_line": 33,
+        "start_column": 16,
+        "end_line": 33,
+        "end_column": 25,
+        "start_byte": 711,
+        "end_byte": 720
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
       "metadata": null
     },
     {
@@ -1530,12 +1457,32 @@
       "reference_site_is_exact": false,
       "confidence": "0.800",
       "metadata": null
+    },
+    {
+      "from_key": "unresolved:file:fixtures/extraction/cpp/declarations/source.cpp",
+      "to_key": "unresolved:header:remote_base.h",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
+      "line_number": 1,
+      "span": {
+        "start_line": 1,
+        "start_column": 0,
+        "end_line": 2,
+        "end_column": 0,
+        "start_byte": 0,
+        "end_byte": 25
+      },
+      "reference_site_is_exact": false,
+      "confidence": "1.000",
+      "metadata": {
+        "includePath": "remote_base.h"
+      }
     }
   ],
   "pending_relationships": [
     {
       "from_key": "fixtures/extraction/cpp/declarations/source.cpp:Handler:10:0",
-      "callee_name": "function",
+      "callee_name": "std::function",
       "kind": "uses",
       "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
       "line_number": 10,
@@ -1543,7 +1490,7 @@
     },
     {
       "from_key": "fixtures/extraction/cpp/declarations/source.cpp:List:12:0",
-      "callee_name": "vector",
+      "callee_name": "std::vector",
       "kind": "uses",
       "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
       "line_number": 12,
@@ -1567,7 +1514,7 @@
     },
     {
       "from_key": "fixtures/extraction/cpp/declarations/source.cpp:Repo:15:0",
-      "callee_name": "optional",
+      "callee_name": "std::optional",
       "kind": "uses",
       "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
       "line_number": 19,
@@ -1575,7 +1522,7 @@
     },
     {
       "from_key": "fixtures/extraction/cpp/declarations/source.cpp:Repo:15:0",
-      "callee_name": "unique_ptr",
+      "callee_name": "std::unique_ptr",
       "kind": "uses",
       "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
       "line_number": 20,
@@ -1583,7 +1530,7 @@
     },
     {
       "from_key": "fixtures/extraction/cpp/declarations/source.cpp:g_second:45:0",
-      "callee_name": "string",
+      "callee_name": "std::string",
       "kind": "uses",
       "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
       "line_number": 45,
@@ -1591,7 +1538,7 @@
     },
     {
       "from_key": "fixtures/extraction/cpp/declarations/source.cpp:lock:51:4",
-      "callee_name": "lock_guard",
+      "callee_name": "std::lock_guard",
       "kind": "uses",
       "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
       "line_number": 51,
@@ -1599,7 +1546,7 @@
     },
     {
       "from_key": "fixtures/extraction/cpp/declarations/source.cpp:lock:51:4",
-      "callee_name": "mutex",
+      "callee_name": "std::mutex",
       "kind": "uses",
       "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
       "line_number": 51,
@@ -1607,7 +1554,7 @@
     },
     {
       "from_key": "fixtures/extraction/cpp/declarations/source.cpp:name_:27:4",
-      "callee_name": "string",
+      "callee_name": "std::string",
       "kind": "uses",
       "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
       "line_number": 27,
@@ -1615,7 +1562,7 @@
     },
     {
       "from_key": "fixtures/extraction/cpp/declarations/source.cpp:out:52:4",
-      "callee_name": "ofstream",
+      "callee_name": "std::ofstream",
       "kind": "uses",
       "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
       "line_number": 52,
@@ -1623,7 +1570,7 @@
     },
     {
       "from_key": "fixtures/extraction/cpp/declarations/source.cpp:path:48:23",
-      "callee_name": "string",
+      "callee_name": "std::string",
       "kind": "uses",
       "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
       "line_number": 48,
@@ -1658,17 +1605,19 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/cpp/declarations/source.cpp:Handler:10:0",
-        "callee_name": "function",
+        "callee_name": "std::function",
         "kind": "uses",
         "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
         "line_number": 10,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "function",
+        "display_name": "std::function",
         "terminal_name": "function",
         "receiver": null,
-        "namespace_path": [],
+        "namespace_path": [
+          "std"
+        ],
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/cpp/declarations/source.cpp:Handler:10:0",
@@ -1684,17 +1633,19 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/cpp/declarations/source.cpp:List:12:0",
-        "callee_name": "vector",
+        "callee_name": "std::vector",
         "kind": "uses",
         "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
         "line_number": 12,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "vector",
+        "display_name": "std::vector",
         "terminal_name": "vector",
         "receiver": null,
-        "namespace_path": [],
+        "namespace_path": [
+          "std"
+        ],
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/cpp/declarations/source.cpp:List:12:0",
@@ -1764,17 +1715,19 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/cpp/declarations/source.cpp:Repo:15:0",
-        "callee_name": "optional",
+        "callee_name": "std::optional",
         "kind": "uses",
         "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
         "line_number": 19,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "optional",
+        "display_name": "std::optional",
         "terminal_name": "optional",
         "receiver": null,
-        "namespace_path": [],
+        "namespace_path": [
+          "std"
+        ],
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/cpp/declarations/source.cpp:Repo:15:0",
@@ -1790,17 +1743,19 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/cpp/declarations/source.cpp:Repo:15:0",
-        "callee_name": "unique_ptr",
+        "callee_name": "std::unique_ptr",
         "kind": "uses",
         "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
         "line_number": 20,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "unique_ptr",
+        "display_name": "std::unique_ptr",
         "terminal_name": "unique_ptr",
         "receiver": null,
-        "namespace_path": [],
+        "namespace_path": [
+          "std"
+        ],
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/cpp/declarations/source.cpp:Repo:15:0",
@@ -1816,17 +1771,19 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/cpp/declarations/source.cpp:g_second:45:0",
-        "callee_name": "string",
+        "callee_name": "std::string",
         "kind": "uses",
         "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
         "line_number": 45,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "string",
+        "display_name": "std::string",
         "terminal_name": "string",
         "receiver": null,
-        "namespace_path": [],
+        "namespace_path": [
+          "std"
+        ],
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/cpp/declarations/source.cpp:g_second:45:0",
@@ -1842,17 +1799,19 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/cpp/declarations/source.cpp:lock:51:4",
-        "callee_name": "lock_guard",
+        "callee_name": "std::lock_guard",
         "kind": "uses",
         "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
         "line_number": 51,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "lock_guard",
+        "display_name": "std::lock_guard",
         "terminal_name": "lock_guard",
         "receiver": null,
-        "namespace_path": [],
+        "namespace_path": [
+          "std"
+        ],
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/cpp/declarations/source.cpp:lock:51:4",
@@ -1868,17 +1827,19 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/cpp/declarations/source.cpp:lock:51:4",
-        "callee_name": "mutex",
+        "callee_name": "std::mutex",
         "kind": "uses",
         "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
         "line_number": 51,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "mutex",
+        "display_name": "std::mutex",
         "terminal_name": "mutex",
         "receiver": null,
-        "namespace_path": [],
+        "namespace_path": [
+          "std"
+        ],
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/cpp/declarations/source.cpp:lock:51:4",
@@ -1894,17 +1855,19 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/cpp/declarations/source.cpp:name_:27:4",
-        "callee_name": "string",
+        "callee_name": "std::string",
         "kind": "uses",
         "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
         "line_number": 27,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "string",
+        "display_name": "std::string",
         "terminal_name": "string",
         "receiver": null,
-        "namespace_path": [],
+        "namespace_path": [
+          "std"
+        ],
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/cpp/declarations/source.cpp:name_:27:4",
@@ -1920,17 +1883,19 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/cpp/declarations/source.cpp:out:52:4",
-        "callee_name": "ofstream",
+        "callee_name": "std::ofstream",
         "kind": "uses",
         "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
         "line_number": 52,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "ofstream",
+        "display_name": "std::ofstream",
         "terminal_name": "ofstream",
         "receiver": null,
-        "namespace_path": [],
+        "namespace_path": [
+          "std"
+        ],
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/cpp/declarations/source.cpp:out:52:4",
@@ -1946,17 +1911,19 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/cpp/declarations/source.cpp:path:48:23",
-        "callee_name": "string",
+        "callee_name": "std::string",
         "kind": "uses",
         "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
         "line_number": 48,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "string",
+        "display_name": "std::string",
         "terminal_name": "string",
         "receiver": null,
-        "namespace_path": [],
+        "namespace_path": [
+          "std"
+        ],
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/cpp/declarations/source.cpp:path:48:23",
@@ -2125,7 +2092,7 @@
       "end_column": 30,
       "start_byte": 466,
       "end_byte": 470,
-      "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:Repo:15:0",
+      "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:operator==:21:9",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2285,7 +2252,7 @@
       "end_column": 9,
       "start_byte": 340,
       "end_byte": 344,
-      "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:Repo:15:0",
+      "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:~Repo:18:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2648,7 +2615,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "cpp",
       "metadata": null
     },
@@ -2666,7 +2633,7 @@
       "resolved_type": "bool",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "cpp",
       "metadata": null
     },
@@ -2704,7 +2671,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "cpp",
       "metadata": null
     },
@@ -2713,18 +2680,20 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "cpp",
       "metadata": null
     },
     {
       "symbol_key": "fixtures/extraction/cpp/declarations/source.cpp:find:19:23",
-      "resolved_type": "std::optional<int>",
+      "resolved_type": "std::optional",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "cpp",
-      "metadata": null
+      "metadata": {
+        "declared": "std::optional<int>"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/cpp/declarations/source.cpp:g_current:44:0",
@@ -2797,12 +2766,14 @@
     },
     {
       "symbol_key": "fixtures/extraction/cpp/declarations/source.cpp:make:20:33",
-      "resolved_type": "std::unique_ptr<Repo>",
+      "resolved_type": "std::unique_ptr",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "cpp",
-      "metadata": null
+      "metadata": {
+        "declared": "std::unique_ptr<Repo>"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/cpp/declarations/source.cpp:name_:27:4",
@@ -2820,7 +2791,7 @@
       "resolved_type": "size_t",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "cpp",
       "metadata": null
     },
@@ -2829,7 +2800,7 @@
       "resolved_type": "bool",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "cpp",
       "metadata": null
     },
@@ -2880,7 +2851,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "cpp",
       "metadata": null
     },
@@ -2889,7 +2860,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "cpp",
       "metadata": null
     },
@@ -2944,17 +2915,17 @@
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
       "covered_lines": 1,
-      "covered_bytes": 2,
+      "covered_bytes": 7,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
       "start_line": 17,
-      "start_column": 8,
+      "start_column": 4,
       "end_line": 17,
-      "end_column": 10,
-      "start_byte": 331,
-      "end_byte": 333,
+      "end_column": 11,
+      "start_byte": 327,
+      "end_byte": 334,
       "metadata": {
         "metric_version": 1
       }
@@ -3076,17 +3047,17 @@
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
       "covered_lines": 1,
-      "covered_bytes": 2,
+      "covered_bytes": 15,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
       "start_line": 26,
-      "start_column": 15,
+      "start_column": 8,
       "end_line": 26,
-      "end_column": 17,
-      "start_byte": 586,
-      "end_byte": 588,
+      "end_column": 23,
+      "start_byte": 579,
+      "end_byte": 594,
       "metadata": {
         "metric_version": 1
       }
@@ -3120,17 +3091,17 @@
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
       "covered_lines": 1,
-      "covered_bytes": 8,
+      "covered_bytes": 18,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 1,
       "start_line": 19,
-      "start_column": 27,
+      "start_column": 23,
       "end_line": 19,
-      "end_column": 35,
-      "start_byte": 375,
-      "end_byte": 383,
+      "end_column": 41,
+      "start_byte": 371,
+      "end_byte": 389,
       "metadata": {
         "metric_version": 1
       }
@@ -3142,16 +3113,16 @@
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
       "covered_lines": 1,
-      "covered_bytes": 10,
+      "covered_bytes": 14,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 1,
       "start_line": 20,
-      "start_column": 37,
+      "start_column": 33,
       "end_line": 20,
       "end_column": 47,
-      "start_byte": 428,
+      "start_byte": 424,
       "end_byte": 438,
       "metadata": {
         "metric_version": 1
@@ -3164,17 +3135,17 @@
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
       "covered_lines": 1,
-      "covered_bytes": 2,
+      "covered_bytes": 22,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
       "start_line": 22,
-      "start_column": 17,
+      "start_column": 4,
       "end_line": 22,
-      "end_column": 19,
-      "start_byte": 503,
-      "end_byte": 505,
+      "end_column": 26,
+      "start_byte": 490,
+      "end_byte": 512,
       "metadata": {
         "metric_version": 1
       }
@@ -3186,17 +3157,17 @@
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
       "covered_lines": 1,
-      "covered_bytes": 17,
+      "covered_bytes": 40,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 1,
       "start_line": 41,
-      "start_column": 47,
+      "start_column": 39,
       "end_line": 41,
-      "end_column": 64,
-      "start_byte": 1035,
-      "end_byte": 1052,
+      "end_column": 79,
+      "start_byte": 1027,
+      "end_byte": 1067,
       "metadata": {
         "metric_version": 1
       }
@@ -3208,17 +3179,17 @@
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
       "covered_lines": 1,
-      "covered_bytes": 19,
+      "covered_bytes": 35,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 1,
       "start_line": 21,
-      "start_column": 19,
+      "start_column": 9,
       "end_line": 21,
-      "end_column": 38,
-      "start_byte": 459,
-      "end_byte": 478,
+      "end_column": 44,
+      "start_byte": 449,
+      "end_byte": 484,
       "metadata": {
         "metric_version": 1
       }
@@ -3252,16 +3223,16 @@
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
       "covered_lines": 1,
-      "covered_bytes": 2,
+      "covered_bytes": 6,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
       "start_line": 40,
-      "start_column": 52,
+      "start_column": 48,
       "end_line": 40,
       "end_column": 54,
-      "start_byte": 981,
+      "start_byte": 977,
       "end_byte": 983,
       "metadata": {
         "metric_version": 1
@@ -3274,17 +3245,17 @@
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
       "covered_lines": 1,
-      "covered_bytes": 2,
+      "covered_bytes": 8,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
       "start_line": 18,
-      "start_column": 9,
+      "start_column": 4,
       "end_line": 18,
-      "end_column": 11,
-      "start_byte": 344,
-      "end_byte": 346,
+      "end_column": 12,
+      "start_byte": 339,
+      "end_byte": 347,
       "metadata": {
         "metric_version": 1
       }
@@ -3309,7 +3280,7 @@
       "kind": "string_literal",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:remote_base.h:1:0",
       "start_line": 1,
       "start_column": 9,
       "end_line": 1,

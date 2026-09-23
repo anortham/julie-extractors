@@ -4,8 +4,8 @@
 //! and header file imports.
 
 use crate::base::{
-    LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex, Symbol, SymbolKind,
-    UnresolvedTarget,
+    BaseExtractor, LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex,
+    Symbol, SymbolKind, UnresolvedTarget,
 };
 use crate::c::CExtractor;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -50,7 +50,7 @@ fn walk_relationships(
             );
         }
         "preproc_include" => {
-            extract_include_relationships(extractor, node, relationships);
+            relationships.extend(include_relationship(&extractor.base, node));
         }
         "type_identifier" => {
             extract_type_use_relationship(extractor, node, symbols, scoped_index, relationships);
@@ -260,19 +260,15 @@ fn extract_type_use_relationship(
     }
 }
 
-/// Extract include file relationships
-fn extract_include_relationships(
-    extractor: &mut CExtractor,
+/// The file-to-header import an include directive declares; C++ shares it.
+pub(crate) fn include_relationship(
+    base: &BaseExtractor,
     node: tree_sitter::Node,
-    relationships: &mut Vec<Relationship>,
-) {
-    let Some(include_path) = helpers::extract_include_path(&extractor.base.get_node_text(&node))
-    else {
-        return;
-    };
-    let from_id = format!("file:{}", extractor.base.file_path);
+) -> Option<Relationship> {
+    let include_path = helpers::extract_include_path(&base.get_node_text(&node))?;
+    let from_id = format!("file:{}", base.file_path);
     let to_id = format!("header:{}", include_path);
-    relationships.push(Relationship {
+    Some(Relationship {
         id: format!(
             "{}_{}_{:?}_{}",
             from_id,
@@ -283,7 +279,7 @@ fn extract_include_relationships(
         from_symbol_id: from_id,
         to_symbol_id: to_id,
         kind: RelationshipKind::Imports,
-        file_path: extractor.base.file_path.clone(),
+        file_path: base.file_path.clone(),
         line_number: (node.start_position().row + 1) as u32,
         span: Some(crate::base::NormalizedSpan::from_node(&node)),
         reference_site_is_exact: false,
@@ -292,7 +288,7 @@ fn extract_include_relationships(
             "includePath".to_string(),
             serde_json::Value::String(include_path),
         )])),
-    });
+    })
 }
 
 /// Find the symbol that contains this node

@@ -269,9 +269,15 @@ pub(super) fn is_type_declaration_name(node: &Node) -> bool {
                     | "union_specifier"
                     | "enum_specifier"
                     | "type_definition"
-                    | "template_type_parameter"
+                    | "optional_type_parameter_declaration"
                     | "alias_declaration"
             );
+        }
+        if matches!(
+            parent.kind(),
+            "type_parameter_declaration" | "variadic_type_parameter_declaration"
+        ) {
+            return true;
         }
         if parent.kind() == "type_definition"
             && let Some(declarator) = parent.child_by_field_name("declarator")
@@ -279,6 +285,38 @@ pub(super) fn is_type_declaration_name(node: &Node) -> bool {
         {
             return true;
         }
+    }
+    false
+}
+
+/// Whether a type name is a type parameter of an enclosing `template <...>`,
+/// which shadows any class of the same name.
+pub(super) fn is_template_parameter_name(base: &BaseExtractor, node: &Node) -> bool {
+    let name = base.get_node_text(node);
+    let mut ancestor = node.parent();
+    while let Some(current) = ancestor {
+        if current.kind() == "template_declaration"
+            && let Some(parameters) = current.child_by_field_name("parameters")
+        {
+            let mut cursor = parameters.walk();
+            let binds_name = parameters.named_children(&mut cursor).any(|parameter| {
+                let bound = match parameter.kind() {
+                    "optional_type_parameter_declaration" => parameter.child_by_field_name("name"),
+                    "type_parameter_declaration" | "variadic_type_parameter_declaration" => {
+                        let mut inner = parameter.walk();
+                        parameter
+                            .named_children(&mut inner)
+                            .find(|child| child.kind() == "type_identifier")
+                    }
+                    _ => None,
+                };
+                bound.is_some_and(|bound| base.get_node_text(&bound) == name)
+            });
+            if binds_name {
+                return true;
+            }
+        }
+        ancestor = current.parent();
     }
     false
 }

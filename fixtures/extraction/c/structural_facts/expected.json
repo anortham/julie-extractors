@@ -198,6 +198,8 @@
       "end_byte": 16,
       "confidence": "1.000",
       "metadata": {
+        "function_like": false,
+        "name": "LIMIT",
         "pattern_version": 1,
         "query_family": "preprocessor"
       }
@@ -217,6 +219,8 @@
       "end_byte": 44,
       "confidence": "1.000",
       "metadata": {
+        "function_like": true,
+        "name": "DOUBLE",
         "pattern_version": 1,
         "query_family": "preprocessor"
       }

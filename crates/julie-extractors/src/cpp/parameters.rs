@@ -5,7 +5,7 @@ use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
-use super::function_declarators::{self, GTEST_MACROS};
+use super::function_declarators::{self, BOOST_TEST_CASE_MACROS, GTEST_MACROS};
 use super::type_facts;
 
 pub(super) fn extract_parameter_symbols(
@@ -29,7 +29,9 @@ pub(super) fn extract_parameter_symbols(
             .filter(|child| {
                 matches!(
                     child.kind(),
-                    "parameter_declaration" | "optional_parameter_declaration"
+                    "parameter_declaration"
+                        | "optional_parameter_declaration"
+                        | "variadic_parameter_declaration"
                 )
             })
             .collect()
@@ -74,7 +76,7 @@ fn is_googletest_macro(base: &BaseExtractor, callable_node: Node) -> bool {
         return false;
     };
     let name = base.get_node_text(&name_node);
-    GTEST_MACROS.contains(&name.as_str())
+    GTEST_MACROS.contains(&name.as_str()) || BOOST_TEST_CASE_MACROS.contains(&name.as_str())
 }
 
 fn callable_parameter_list(callable_node: Node) -> Option<Node> {
@@ -116,6 +118,7 @@ fn declarator_name(node: Node, depth: u32) -> Option<Node> {
         | "array_declarator"
         | "parenthesized_declarator"
         | "function_declarator"
+        | "variadic_declarator"
         | "init_declarator" => {
             let child_depth = child_tree_depth(depth)?;
             if let Some(inner) = node.child_by_field_name("declarator") {

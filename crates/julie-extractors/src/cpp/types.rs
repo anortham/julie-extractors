@@ -1,10 +1,12 @@
 //! Type extraction for C++ symbols
 //! Handles extraction of classes, structs, unions, enums, and their members
 
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::base::{
+    BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations,
+};
 use tree_sitter::Node;
 
-use super::helpers;
+use super::{functions, helpers};
 
 /// Extract class declaration
 pub(super) fn extract_class(
@@ -40,6 +42,8 @@ pub(super) fn extract_class(
 
     let metadata = head.metadata(base_types_metadata(base_type_names));
 
+    let annotations =
+        normalize_annotations(&functions::extract_standard_attributes(base, node), "cpp");
     Some(base.create_symbol(
         &node,
         name,
@@ -50,7 +54,7 @@ pub(super) fn extract_class(
             parent_id: parent_id.map(String::from),
             metadata,
             doc_comment,
-            annotations: Vec::new(),
+            annotations,
         },
     ))
 }
@@ -148,6 +152,8 @@ pub(super) fn extract_struct(
 
     let metadata = head.metadata(base_types_metadata(base_type_names));
 
+    let annotations =
+        normalize_annotations(&functions::extract_standard_attributes(base, node), "cpp");
     Some(base.create_symbol(
         &node,
         name,
@@ -158,7 +164,7 @@ pub(super) fn extract_struct(
             parent_id: parent_id.map(String::from),
             metadata,
             doc_comment,
-            annotations: Vec::new(),
+            annotations,
         },
     ))
 }
@@ -189,6 +195,8 @@ pub(super) fn extract_union(
 
     let doc_comment = base.find_doc_comment(&node);
 
+    let annotations =
+        normalize_annotations(&functions::extract_standard_attributes(base, node), "cpp");
     Some(base.create_symbol(
         &node,
         name,
@@ -199,7 +207,7 @@ pub(super) fn extract_union(
             parent_id: parent_id.map(String::from),
             metadata: None,
             doc_comment,
-            annotations: Vec::new(),
+            annotations,
         },
     ))
 }
@@ -239,6 +247,8 @@ pub(super) fn extract_enum(
 
     let doc_comment = base.find_doc_comment(&node);
 
+    let annotations =
+        normalize_annotations(&functions::extract_standard_attributes(base, node), "cpp");
     Some(base.create_symbol(
         &node,
         name,
@@ -249,7 +259,7 @@ pub(super) fn extract_enum(
             parent_id: parent_id.map(String::from),
             metadata: None,
             doc_comment,
-            annotations: Vec::new(),
+            annotations,
         },
     ))
 }

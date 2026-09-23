@@ -41,6 +41,7 @@ pub mod declarations_and_scopes;
 pub mod doxygen_comments;
 pub mod exceptions;
 pub mod functions;
+pub mod gap_closure;
 pub mod identifier_extraction;
 pub mod literals;
 pub mod modern;

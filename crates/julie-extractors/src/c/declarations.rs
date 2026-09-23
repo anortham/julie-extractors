@@ -5,7 +5,8 @@
 //! `structs.rs` and typedef handling is in `typedefs.rs`.
 
 use crate::base::{
-    NormalizedSpan, Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations,
+    BaseExtractor, NormalizedSpan, Symbol, SymbolKind, SymbolOptions, Visibility,
+    normalize_annotations,
 };
 use crate::c::CExtractor;
 use crate::test_detection::apply_callable_test_metadata;
@@ -17,13 +18,13 @@ use super::signatures;
 use super::type_facts;
 use super::types;
 
-/// Extract an include directive as a symbol
-pub(super) fn extract_include(
-    extractor: &mut CExtractor,
+/// Extract an include directive as a symbol; C++ shares this builder.
+pub(crate) fn extract_include(
+    base: &mut BaseExtractor,
     node: tree_sitter::Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let signature = extractor.base.get_node_text(&node);
+    let signature = base.get_node_text(&node);
     let include_path = helpers::extract_include_path(&signature)?;
 
     let metadata = create_metadata_map(HashMap::from([
@@ -35,10 +36,10 @@ pub(super) fn extract_include(
         ),
     ]));
 
-    let doc_comment = extractor.base.find_doc_comment(&node);
-    let span = directive_span(extractor, node);
+    let doc_comment = base.find_doc_comment(&node);
+    let span = directive_span(base, node);
 
-    Some(extractor.base.create_symbol_from_span(
+    Some(base.create_symbol_from_span(
         &node,
         span,
         include_path.clone(),
@@ -54,14 +55,14 @@ pub(super) fn extract_include(
     ))
 }
 
-/// Extract a macro directive as a symbol
-pub(super) fn extract_macro(
-    extractor: &mut CExtractor,
+/// Extract a macro directive as a symbol; C++ shares this builder.
+pub(crate) fn extract_macro(
+    base: &mut BaseExtractor,
     node: tree_sitter::Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let signature = extractor.base.get_node_text(&node);
-    let macro_name = helpers::extract_macro_name(&extractor.base, node)?;
+    let signature = base.get_node_text(&node);
+    let macro_name = helpers::extract_macro_name(base, node)?;
 
     let metadata = create_metadata_map(HashMap::from([
         ("type".to_string(), "macro".to_string()),
@@ -73,10 +74,10 @@ pub(super) fn extract_macro(
         ("definition".to_string(), signature.clone()),
     ]));
 
-    let doc_comment = extractor.base.find_doc_comment(&node);
-    let span = directive_span(extractor, node);
+    let doc_comment = base.find_doc_comment(&node);
+    let span = directive_span(base, node);
 
-    Some(extractor.base.create_symbol_from_span(
+    Some(base.create_symbol_from_span(
         &node,
         span,
         macro_name.clone(),
@@ -94,12 +95,10 @@ pub(super) fn extract_macro(
 
 /// A directive's span without the line break the grammar folds into it, so the
 /// directive never contains the code on the next line.
-fn directive_span(extractor: &CExtractor, node: tree_sitter::Node) -> NormalizedSpan {
-    let text = extractor.base.get_node_text(&node);
+fn directive_span(base: &BaseExtractor, node: tree_sitter::Node) -> NormalizedSpan {
+    let text = base.get_node_text(&node);
     let end = node.start_byte() + text.trim_end().len();
-    extractor
-        .base
-        .span_for_byte_range(node.start_byte(), end)
+    base.span_for_byte_range(node.start_byte(), end)
         .unwrap_or_else(|| NormalizedSpan::from_node(&node))
 }
 

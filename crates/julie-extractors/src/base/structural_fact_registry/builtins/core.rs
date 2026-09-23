@@ -20,6 +20,18 @@ const RUST_DOC_TEST_KEYS: &[MetadataKeySpec] = &[
     ),
 ];
 
+const PREPROCESSOR_DEFINITION_KEYS: &[MetadataKeySpec] = &[
+    BASE_KEYS[0],
+    BASE_KEYS[1],
+    key("name", STR, ALWAYS, "The macro name."),
+    key(
+        "function_like",
+        BOOL,
+        ALWAYS,
+        "Whether the macro takes parameters.",
+    ),
+];
+
 pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     StructuralFactPatternSpec {
         pattern_id: "rust.unsafe_block.v1",
@@ -89,14 +101,14 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
         languages: &["c"],
         query_family: "preprocessor",
         description: "A C `#define` object-like or function-like macro.",
-        metadata_keys: BASE_KEYS,
+        metadata_keys: PREPROCESSOR_DEFINITION_KEYS,
     },
     StructuralFactPatternSpec {
         pattern_id: "cpp.preprocessor_definition.v1",
         languages: &["cpp"],
         query_family: "preprocessor",
         description: "A C++ `#define` object-like or function-like macro.",
-        metadata_keys: BASE_KEYS,
+        metadata_keys: PREPROCESSOR_DEFINITION_KEYS,
     },
     StructuralFactPatternSpec {
         pattern_id: "cpp.qt_property.v1",

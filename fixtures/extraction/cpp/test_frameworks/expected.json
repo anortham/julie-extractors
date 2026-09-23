@@ -1,0 +1,1532 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:append:6:9",
+      "name": "append",
+      "kind": "method",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 6,
+      "start_column": 9,
+      "end_line": 6,
+      "end_column": 17,
+      "start_byte": 99,
+      "end_byte": 107,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "void append()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString:1:0",
+      "metadata": {
+        "is_test": true,
+        "qt_slot": true,
+        "test_role": "parameterized_test"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:append_data:7:9",
+      "name": "append_data",
+      "kind": "method",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 7,
+      "start_column": 9,
+      "end_line": 7,
+      "end_column": 22,
+      "start_byte": 118,
+      "end_byte": 131,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "void append_data()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString:1:0",
+      "metadata": {
+        "qt_slot": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:chop:8:9",
+      "name": "chop",
+      "kind": "method",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 8,
+      "start_column": 9,
+      "end_line": 8,
+      "end_column": 15,
+      "start_byte": 142,
+      "end_byte": 148,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "void chop()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString:1:0",
+      "metadata": {
+        "is_test": true,
+        "qt_slot": true,
+        "test_role": "test_case"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:cleanupTestCase:9:9",
+      "name": "cleanupTestCase",
+      "kind": "method",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 9,
+      "start_column": 9,
+      "end_line": 9,
+      "end_column": 26,
+      "start_byte": 159,
+      "end_byte": 176,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "void cleanupTestCase()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString:1:0",
+      "metadata": {
+        "is_test": true,
+        "qt_slot": true,
+        "test_lifecycle": true,
+        "test_role": "fixture_teardown"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:fixture case:25:0",
+      "name": "fixture case",
+      "kind": "function",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 25,
+      "start_column": 0,
+      "end_line": 25,
+      "end_column": 59,
+      "start_byte": 411,
+      "end_byte": 470,
+      "body_span": {
+        "start_line": 25,
+        "start_column": 43,
+        "end_line": 25,
+        "end_column": 59,
+        "start_byte": 454,
+        "end_byte": 470
+      },
+      "body_hash": "ccbfcfa25dfe8b65b42c3d4538718f09",
+      "signature": "TEST_CASE_FIXTURE(\"fixture case\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "is_test": true,
+        "test_role": "test_case"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:helper:11:9",
+      "name": "helper",
+      "kind": "method",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 11,
+      "start_column": 9,
+      "end_line": 11,
+      "end_column": 17,
+      "start_byte": 201,
+      "end_byte": 209,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "void helper()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString:1:0",
+      "metadata": {
+        "qt_slot": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:initTestCase:5:9",
+      "name": "initTestCase",
+      "kind": "method",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 5,
+      "start_column": 9,
+      "end_line": 5,
+      "end_column": 23,
+      "start_byte": 74,
+      "end_byte": 88,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "void initTestCase()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString:1:0",
+      "metadata": {
+        "is_test": true,
+        "qt_slot": true,
+        "test_lifecycle": true,
+        "test_role": "fixture_setup"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:math:19:0",
+      "name": "math",
+      "kind": "function",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 19,
+      "start_column": 0,
+      "end_line": 23,
+      "end_column": 1,
+      "start_byte": 316,
+      "end_byte": 409,
+      "body_span": {
+        "start_line": 19,
+        "start_column": 19,
+        "end_line": 23,
+        "end_column": 1,
+        "start_byte": 335,
+        "end_byte": 409
+      },
+      "body_hash": "61631ef26d0b8c1ed593d827a281e9d1",
+      "signature": "TEST_SUITE(\"math\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "test_container": true,
+        "test_role": "test_container"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:math_suite:27:0",
+      "name": "math_suite",
+      "kind": "function",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 27,
+      "start_column": 0,
+      "end_line": 27,
+      "end_column": 33,
+      "start_byte": 472,
+      "end_byte": 505,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "BOOST_AUTO_TEST_SUITE(\"math_suite\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "test_container": true,
+        "test_role": "test_container"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:mult:20:4",
+      "name": "mult",
+      "kind": "function",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 20,
+      "start_column": 4,
+      "end_line": 22,
+      "end_column": 5,
+      "start_byte": 341,
+      "end_byte": 407,
+      "body_span": {
+        "start_line": 20,
+        "start_column": 22,
+        "end_line": 22,
+        "end_column": 5,
+        "start_byte": 359,
+        "end_byte": 407
+      },
+      "body_hash": "73f9e738c3d1ccde031310d63fc50210",
+      "signature": "TEST_CASE(\"mult\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:math:19:0",
+      "metadata": {
+        "is_test": true,
+        "test_role": "test_case"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_add:28:0",
+      "name": "test_add",
+      "kind": "function",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 28,
+      "start_column": 0,
+      "end_line": 28,
+      "end_column": 67,
+      "start_byte": 506,
+      "end_byte": 573,
+      "body_span": {
+        "start_line": 28,
+        "start_column": 31,
+        "end_line": 28,
+        "end_column": 67,
+        "start_byte": 537,
+        "end_byte": 573
+      },
+      "body_hash": "87714e968fb637401280c4cf0ffeac2b",
+      "signature": "test_add(test_add)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "is_test": true,
+        "test_role": "test_case"
+      },
+      "annotations": [
+        {
+          "annotation": "BOOST_AUTO_TEST_CASE",
+          "annotation_key": "boost_auto_test_case"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_fix:29:0",
+      "name": "test_fix",
+      "kind": "function",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 29,
+      "start_column": 0,
+      "end_line": 29,
+      "end_column": 65,
+      "start_byte": 574,
+      "end_byte": 639,
+      "body_span": {
+        "start_line": 29,
+        "start_column": 43,
+        "end_line": 29,
+        "end_column": 65,
+        "start_byte": 617,
+        "end_byte": 639
+      },
+      "body_hash": "edff682479029ff675b392b7730d718f",
+      "signature": "test_fix(test_fix, Fixture)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "is_test": true,
+        "test_role": "test_case"
+      },
+      "annotations": [
+        {
+          "annotation": "BOOST_FIXTURE_TEST_CASE",
+          "annotation_key": "boost_fixture_test_case"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString:1:0",
+      "name": "tst_QString",
+      "kind": "class",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 12,
+      "end_column": 1,
+      "start_byte": 0,
+      "end_byte": 212,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 0,
+        "end_line": 12,
+        "end_column": 1,
+        "start_byte": 35,
+        "end_byte": 212
+      },
+      "body_hash": "822b420928587dab93c55f6a6697fc50",
+      "signature": "class tst_QString : public QObject",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "base_types": [
+          "QObject"
+        ],
+        "qt_object": true,
+        "test_container": true,
+        "test_role": "test_container"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString::append:14:0",
+      "name": "tst_QString::append",
+      "kind": "method",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 14,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 46,
+      "start_byte": 215,
+      "end_byte": 261,
+      "body_span": {
+        "start_line": 14,
+        "start_column": 27,
+        "end_line": 14,
+        "end_column": 46,
+        "start_byte": 242,
+        "end_byte": 261
+      },
+      "body_hash": "978dd700477c02b0d2bb1859bbf8e16b",
+      "signature": "void tst_QString::append()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString:1:0",
+      "metadata": {
+        "is_test": true,
+        "scope": "tst_QString",
+        "test_role": "parameterized_test"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString::chop:15:0",
+      "name": "tst_QString::chop",
+      "kind": "method",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 15,
+      "start_column": 0,
+      "end_line": 15,
+      "end_column": 27,
+      "start_byte": 262,
+      "end_byte": 289,
+      "body_span": {
+        "start_line": 15,
+        "start_column": 25,
+        "end_line": 15,
+        "end_column": 27,
+        "start_byte": 287,
+        "end_byte": 289
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "void tst_QString::chop()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString:1:0",
+      "metadata": {
+        "is_test": true,
+        "scope": "tst_QString",
+        "test_role": "test_case"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:zero:21:8",
+      "name": "zero",
+      "kind": "function",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 21,
+      "start_column": 8,
+      "end_line": 21,
+      "end_column": 40,
+      "start_byte": 369,
+      "end_byte": 401,
+      "body_span": {
+        "start_line": 21,
+        "start_column": 24,
+        "end_line": 21,
+        "end_column": 40,
+        "start_byte": 385,
+        "end_byte": 401
+      },
+      "body_hash": "ccbfcfa25dfe8b65b42c3d4538718f09",
+      "signature": "SUBCASE(\"zero\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:mult:20:4",
+      "metadata": {
+        "test_container": true,
+        "test_role": "test_container"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:fixture case:25:0",
+      "callee_name": "CHECK",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "line_number": 25,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_add:28:0",
+      "callee_name": "BOOST_CHECK_EQUAL",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "line_number": 28,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_add:28:0",
+      "callee_name": "add",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "line_number": 28,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_fix:29:0",
+      "callee_name": "BOOST_CHECK",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "line_number": 29,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_fix:29:0",
+      "callee_name": "Fixture",
+      "kind": "uses",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "line_number": 29,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString:1:0",
+      "callee_name": "QObject",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "line_number": 1,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString::append:14:0",
+      "callee_name": "QCOMPARE",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "line_number": 14,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:zero:21:8",
+      "callee_name": "CHECK",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "line_number": 21,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:fixture case:25:0",
+        "callee_name": "CHECK",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+        "line_number": 25,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "CHECK",
+        "terminal_name": "CHECK",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:fixture case:25:0",
+      "span": {
+        "start_line": 25,
+        "start_column": 45,
+        "end_line": 25,
+        "end_column": 56,
+        "start_byte": 456,
+        "end_byte": 467
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_add:28:0",
+        "callee_name": "BOOST_CHECK_EQUAL",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+        "line_number": 28,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "BOOST_CHECK_EQUAL",
+        "terminal_name": "BOOST_CHECK_EQUAL",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_add:28:0",
+      "span": {
+        "start_line": 28,
+        "start_column": 33,
+        "end_line": 28,
+        "end_column": 64,
+        "start_byte": 539,
+        "end_byte": 570
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_add:28:0",
+        "callee_name": "add",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+        "line_number": 28,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "add",
+        "terminal_name": "add",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_add:28:0",
+      "span": {
+        "start_line": 28,
+        "start_column": 51,
+        "end_line": 28,
+        "end_column": 60,
+        "start_byte": 557,
+        "end_byte": 566
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_fix:29:0",
+        "callee_name": "BOOST_CHECK",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+        "line_number": 29,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "BOOST_CHECK",
+        "terminal_name": "BOOST_CHECK",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_fix:29:0",
+      "span": {
+        "start_line": 29,
+        "start_column": 45,
+        "end_line": 29,
+        "end_column": 62,
+        "start_byte": 619,
+        "end_byte": 636
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_fix:29:0",
+        "callee_name": "Fixture",
+        "kind": "uses",
+        "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+        "line_number": 29,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Fixture",
+        "terminal_name": "Fixture",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_fix:29:0",
+      "span": {
+        "start_line": 29,
+        "start_column": 34,
+        "end_line": 29,
+        "end_column": 41,
+        "start_byte": 608,
+        "end_byte": 615
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString:1:0",
+        "callee_name": "QObject",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+        "line_number": 1,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "QObject",
+        "terminal_name": "QObject",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString:1:0",
+      "span": {
+        "start_line": 1,
+        "start_column": 27,
+        "end_line": 1,
+        "end_column": 34,
+        "start_byte": 27,
+        "end_byte": 34
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString::append:14:0",
+        "callee_name": "QCOMPARE",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+        "line_number": 14,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "QCOMPARE",
+        "terminal_name": "QCOMPARE",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString::append:14:0",
+      "span": {
+        "start_line": 14,
+        "start_column": 29,
+        "end_line": 14,
+        "end_column": 43,
+        "start_byte": 244,
+        "end_byte": 258
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:zero:21:8",
+        "callee_name": "CHECK",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+        "line_number": 21,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "CHECK",
+        "terminal_name": "CHECK",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:zero:21:8",
+      "span": {
+        "start_line": 21,
+        "start_column": 26,
+        "end_line": 21,
+        "end_column": 37,
+        "start_byte": 387,
+        "end_byte": 398
+      }
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:BOOST_CHECK:call:29:45",
+      "name": "BOOST_CHECK",
+      "kind": "call",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 29,
+      "start_column": 45,
+      "end_line": 29,
+      "end_column": 56,
+      "start_byte": 619,
+      "end_byte": 630,
+      "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_fix:29:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:BOOST_CHECK_EQUAL:call:28:33",
+      "name": "BOOST_CHECK_EQUAL",
+      "kind": "call",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 28,
+      "start_column": 33,
+      "end_line": 28,
+      "end_column": 50,
+      "start_byte": 539,
+      "end_byte": 556,
+      "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_add:28:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:CHECK:call:21:26",
+      "name": "CHECK",
+      "kind": "call",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 21,
+      "start_column": 26,
+      "end_line": 21,
+      "end_column": 31,
+      "start_byte": 387,
+      "end_byte": 392,
+      "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:zero:21:8",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:CHECK:call:25:45",
+      "name": "CHECK",
+      "kind": "call",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 25,
+      "start_column": 45,
+      "end_line": 25,
+      "end_column": 50,
+      "start_byte": 456,
+      "end_byte": 461,
+      "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:fixture case:25:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:Fixture:type_usage:29:34",
+      "name": "Fixture",
+      "kind": "type_usage",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 29,
+      "start_column": 34,
+      "end_line": 29,
+      "end_column": 41,
+      "start_byte": 608,
+      "end_byte": 615,
+      "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_fix:29:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:QCOMPARE:call:14:29",
+      "name": "QCOMPARE",
+      "kind": "call",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 14,
+      "start_column": 29,
+      "end_line": 14,
+      "end_column": 37,
+      "start_byte": 244,
+      "end_byte": 252,
+      "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString::append:14:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:QObject:type_usage:1:27",
+      "name": "QObject",
+      "kind": "type_usage",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 1,
+      "start_column": 27,
+      "end_line": 1,
+      "end_column": 34,
+      "start_byte": 27,
+      "end_byte": 34,
+      "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:add:call:28:51",
+      "name": "add",
+      "kind": "call",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 28,
+      "start_column": 51,
+      "end_line": 28,
+      "end_column": 54,
+      "start_byte": 557,
+      "end_byte": 560,
+      "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_add:28:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:append:6:9",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:append_data:7:9",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:chop:8:9",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:cleanupTestCase:9:9",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:helper:11:9",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:initTestCase:5:9",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString::append:14:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "cpp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString::chop:15:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "cpp",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [
+    {
+      "kind": "Missing",
+      "start_line": 19,
+      "start_column": 18,
+      "end_line": 19,
+      "end_column": 18,
+      "start_byte": 334,
+      "end_byte": 334
+    },
+    {
+      "kind": "Missing",
+      "start_line": 20,
+      "start_column": 21,
+      "end_line": 20,
+      "end_column": 21,
+      "start_byte": 358,
+      "end_byte": 358
+    },
+    {
+      "kind": "Missing",
+      "start_line": 21,
+      "start_column": 23,
+      "end_line": 21,
+      "end_column": 23,
+      "start_byte": 384,
+      "end_byte": 384
+    },
+    {
+      "kind": "Missing",
+      "start_line": 25,
+      "start_column": 42,
+      "end_line": 25,
+      "end_column": 42,
+      "start_byte": 453,
+      "end_byte": 453
+    },
+    {
+      "kind": "Missing",
+      "start_line": 27,
+      "start_column": 33,
+      "end_line": 27,
+      "end_column": 33,
+      "start_byte": 505,
+      "end_byte": 505
+    },
+    {
+      "kind": "Missing",
+      "start_line": 30,
+      "start_column": 27,
+      "end_line": 30,
+      "end_column": 27,
+      "start_byte": 667,
+      "end_byte": 667
+    }
+  ],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "covered_lines": 31,
+      "covered_bytes": 668,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 31,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 668,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:append:6:9",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "covered_lines": 1,
+      "covered_bytes": 8,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 6,
+      "start_column": 9,
+      "end_line": 6,
+      "end_column": 17,
+      "start_byte": 99,
+      "end_byte": 107,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:append_data:7:9",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "covered_lines": 1,
+      "covered_bytes": 13,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 7,
+      "start_column": 9,
+      "end_line": 7,
+      "end_column": 22,
+      "start_byte": 118,
+      "end_byte": 131,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:chop:8:9",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "covered_lines": 1,
+      "covered_bytes": 6,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 8,
+      "start_column": 9,
+      "end_line": 8,
+      "end_column": 15,
+      "start_byte": 142,
+      "end_byte": 148,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:cleanupTestCase:9:9",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "covered_lines": 1,
+      "covered_bytes": 17,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 9,
+      "start_column": 9,
+      "end_line": 9,
+      "end_column": 26,
+      "start_byte": 159,
+      "end_byte": 176,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:fixture case:25:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "covered_lines": 1,
+      "covered_bytes": 16,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 25,
+      "start_column": 43,
+      "end_line": 25,
+      "end_column": 59,
+      "start_byte": 454,
+      "end_byte": 470,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:helper:11:9",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "covered_lines": 1,
+      "covered_bytes": 8,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 11,
+      "start_column": 9,
+      "end_line": 11,
+      "end_column": 17,
+      "start_byte": 201,
+      "end_byte": 209,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:initTestCase:5:9",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "covered_lines": 1,
+      "covered_bytes": 14,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 5,
+      "start_column": 9,
+      "end_line": 5,
+      "end_column": 23,
+      "start_byte": 74,
+      "end_byte": 88,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:math:19:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "covered_lines": 5,
+      "covered_bytes": 74,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 19,
+      "start_column": 19,
+      "end_line": 23,
+      "end_column": 1,
+      "start_byte": 335,
+      "end_byte": 409,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:math_suite:27:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "covered_lines": 1,
+      "covered_bytes": 33,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 27,
+      "start_column": 0,
+      "end_line": 27,
+      "end_column": 33,
+      "start_byte": 472,
+      "end_byte": 505,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:mult:20:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "covered_lines": 3,
+      "covered_bytes": 48,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 20,
+      "start_column": 22,
+      "end_line": 22,
+      "end_column": 5,
+      "start_byte": 359,
+      "end_byte": 407,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_add:28:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "covered_lines": 1,
+      "covered_bytes": 36,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 28,
+      "start_column": 31,
+      "end_line": 28,
+      "end_column": 67,
+      "start_byte": 537,
+      "end_byte": 573,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_fix:29:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "covered_lines": 1,
+      "covered_bytes": 22,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 2,
+      "start_line": 29,
+      "start_column": 43,
+      "end_line": 29,
+      "end_column": 65,
+      "start_byte": 617,
+      "end_byte": 639,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString::append:14:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "covered_lines": 1,
+      "covered_bytes": 19,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 14,
+      "start_column": 27,
+      "end_line": 14,
+      "end_column": 46,
+      "start_byte": 242,
+      "end_byte": 261,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString::chop:15:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 15,
+      "start_column": 25,
+      "end_line": 15,
+      "end_column": 27,
+      "start_byte": 287,
+      "end_byte": 289,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:zero:21:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "covered_lines": 1,
+      "covered_bytes": 16,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 21,
+      "start_column": 24,
+      "end_line": 21,
+      "end_column": 40,
+      "start_byte": 385,
+      "end_byte": 401,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "fixture case",
+      "kind": "other",
+      "carrier": "TEST_CASE_FIXTURE",
+      "arg_position": 1,
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 25,
+      "start_column": 27,
+      "end_line": 25,
+      "end_column": 41,
+      "start_byte": 438,
+      "end_byte": 452,
+      "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:fixture case:25:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "math",
+      "kind": "other",
+      "carrier": "TEST_SUITE",
+      "arg_position": 0,
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 19,
+      "start_column": 11,
+      "end_line": 19,
+      "end_column": 17,
+      "start_byte": 327,
+      "end_byte": 333,
+      "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:math:19:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "mult",
+      "kind": "other",
+      "carrier": "TEST_CASE",
+      "arg_position": 0,
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 20,
+      "start_column": 14,
+      "end_line": 20,
+      "end_column": 20,
+      "start_byte": 351,
+      "end_byte": 357,
+      "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:mult:20:4",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "zero",
+      "kind": "other",
+      "carrier": "SUBCASE",
+      "arg_position": 0,
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "start_line": 21,
+      "start_column": 16,
+      "end_line": 21,
+      "end_column": 22,
+      "start_byte": 377,
+      "end_byte": 383,
+      "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:zero:21:8",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:fixture case:25:0",
+      "start_line": 25,
+      "start_column": 27,
+      "end_line": 25,
+      "end_column": 41,
+      "start_byte": 438,
+      "end_byte": 452,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:math:19:0",
+      "start_line": 19,
+      "start_column": 11,
+      "end_line": 19,
+      "end_column": 17,
+      "start_byte": 327,
+      "end_byte": 333,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:mult:20:4",
+      "start_line": 20,
+      "start_column": 14,
+      "end_line": 20,
+      "end_column": 20,
+      "start_byte": 351,
+      "end_byte": 357,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+      "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:zero:21:8",
+      "start_line": 21,
+      "start_column": 16,
+      "end_line": 21,
+      "end_column": 22,
+      "start_byte": 377,
+      "end_byte": 383,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

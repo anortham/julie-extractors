@@ -53,7 +53,7 @@ pub use body::BodySpan;
 pub use code_structural_facts::collect_code_structural_facts;
 pub use complexity_metrics::collect_complexity_metrics;
 pub(crate) use containing_symbol::attach_containing_symbols;
-pub(crate) use containing_symbol_index::ContainingSymbolIndex;
+pub(crate) use containing_symbol_index::{ContainingSymbolIndex, symbol_priority};
 pub use data_structural_facts::collect_data_structural_facts;
 pub use embedded_span::EmbeddedSpanOffset;
 pub use extractor::BaseExtractor;

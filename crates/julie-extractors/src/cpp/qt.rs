@@ -82,6 +82,7 @@ pub(crate) fn apply(base: &BaseExtractor, tree: &Tree, symbols: &mut Vec<Symbol>
     apply_class_metadata(&sites, symbols);
     apply_member_sections(&sites, tree, symbols);
     apply_member_prefixes(&base.content, &sites, symbols);
+    apply_qtest_roles(&sites, symbols);
     let properties = property_symbols(base, &sites, symbols);
     symbols.extend(properties);
 }
@@ -95,6 +96,81 @@ pub(crate) fn property_facts(
         .iter()
         .filter_map(|site| property_fact(file_path, content, site, symbols))
         .collect()
+}
+
+const QTEST_MAIN_MACROS: &[&str] = &["QTEST_MAIN", "QTEST_GUILESS_MAIN", "QTEST_APPLESS_MAIN"];
+
+/// QtTest runs every private slot of the class a `QTEST_MAIN` names:
+/// `initTestCase`/`init` and `cleanupTestCase`/`cleanup` are fixture hooks, a
+/// `name_data` slot supplies rows to `name`, and every other slot is a test.
+fn apply_qtest_roles(sites: &[MacroSite], symbols: &mut [Symbol]) {
+    let test_classes = sites
+        .iter()
+        .filter(|site| QTEST_MAIN_MACROS.contains(&site.name.as_str()))
+        .filter_map(|site| site.arguments.as_deref())
+        .map(|class_name| class_name.trim().to_string())
+        .collect::<Vec<_>>();
+    let class_ids = symbols
+        .iter()
+        .filter(|symbol| is_class_like(symbol) && test_classes.contains(&symbol.name))
+        .map(|symbol| symbol.id.clone())
+        .collect::<Vec<_>>();
+    if class_ids.is_empty() {
+        return;
+    }
+    let private_slots = symbols
+        .iter()
+        .filter(|symbol| {
+            symbol.visibility == Some(Visibility::Private)
+                && has_flag(symbol, "qt_slot")
+                && symbol
+                    .parent_id
+                    .as_ref()
+                    .is_some_and(|parent| class_ids.contains(parent))
+        })
+        .map(|symbol| (symbol.parent_id.clone(), symbol.name.clone()))
+        .collect::<std::collections::HashSet<_>>();
+
+    for symbol in symbols.iter_mut() {
+        if class_ids.contains(&symbol.id) {
+            crate::test_detection::apply_test_role(
+                symbol.metadata.get_or_insert_with(HashMap::new),
+                crate::base::TestRole::TestContainer,
+            );
+            continue;
+        }
+        let member = symbol
+            .name
+            .rsplit("::")
+            .next()
+            .unwrap_or(&symbol.name)
+            .to_string();
+        if symbol.kind != SymbolKind::Method
+            || !private_slots.contains(&(symbol.parent_id.clone(), member.clone()))
+        {
+            continue;
+        }
+        let has_rows =
+            private_slots.contains(&(symbol.parent_id.clone(), format!("{member}_data")));
+        let metadata = symbol.metadata.get_or_insert_with(HashMap::new);
+        crate::test_detection::clear_test_role(metadata);
+        let role = match member.as_str() {
+            "initTestCase" | "init" => crate::base::TestRole::FixtureSetup,
+            "cleanupTestCase" | "cleanup" => crate::base::TestRole::FixtureTeardown,
+            _ if member.ends_with("_data") => continue,
+            _ if has_rows => crate::base::TestRole::ParameterizedTest,
+            _ => crate::base::TestRole::TestCase,
+        };
+        crate::test_detection::apply_test_role(metadata, role);
+    }
+}
+
+fn has_flag(symbol: &Symbol, key: &str) -> bool {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get(key))
+        .is_some_and(|value| value == &json!(true))
 }
 
 fn apply_class_metadata(sites: &[MacroSite], symbols: &mut [Symbol]) {

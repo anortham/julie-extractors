@@ -473,6 +473,16 @@
           "name": "declarations",
           "source": "fixtures/extraction/cpp/declarations/source.cpp",
           "expected": "fixtures/extraction/cpp/declarations/expected.json"
+        },
+        {
+          "name": "members",
+          "source": "fixtures/extraction/cpp/members/source.cpp",
+          "expected": "fixtures/extraction/cpp/members/expected.json"
+        },
+        {
+          "name": "test_frameworks",
+          "source": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+          "expected": "fixtures/extraction/cpp/test_frameworks/expected.json"
         }
       ],
       "target_capabilities": {
@@ -493,6 +503,7 @@
             "event",
             "field",
             "function",
+            "import",
             "method",
             "namespace",
             "operator",
@@ -508,6 +519,7 @@
           "supported": [
             "calls",
             "extends",
+            "imports",
             "uses"
           ],
           "not_applicable": [],
@@ -554,6 +566,7 @@
         },
         "annotations": {
           "supported": [
+            "class",
             "function",
             "method"
           ],
@@ -563,8 +576,11 @@
         "doc_comments": {
           "supported": [
             "class",
+            "enum_member",
+            "field",
             "function",
             "method",
+            "namespace",
             "type"
           ],
           "not_applicable": [],

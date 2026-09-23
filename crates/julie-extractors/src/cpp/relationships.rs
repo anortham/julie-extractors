@@ -51,12 +51,18 @@ fn walk_tree_for_relationships(
             relationships.extend(inheritance);
         }
         "call_expression" | "function_call"
-            if !super::test_calls::is_catch2_macro_call(extractor.get_base_mut(), &node) =>
+            if !super::test_calls::is_test_macro_call(extractor.get_base_mut(), &node) =>
         {
             extract_call_relationships(extractor, node, symbols, scoped_index, relationships);
         }
         "type_identifier" => {
             extract_type_use_relationship(extractor, node, symbols, scoped_index, relationships);
+        }
+        "preproc_include" => {
+            relationships.extend(crate::c::include_relationship(
+                extractor.get_base_mut(),
+                node,
+            ));
         }
         _ => {}
     }
@@ -334,7 +340,11 @@ fn extract_type_use_relationship(
     scoped_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
-    if helpers::is_type_declaration_name(&node) || is_base_class_name(node) {
+    if helpers::is_type_declaration_name(&node)
+        || is_base_class_name(node)
+        || helpers::is_template_parameter_name(extractor.get_base_mut(), &node)
+        || super::function_declarators::is_test_macro_name(extractor.get_base_mut(), node)
+    {
         return;
     }
 
@@ -365,9 +375,10 @@ fn extract_type_use_relationship(
             ),
         );
     } else {
+        let target = type_use_target(base, node, type_name);
         let pending = base.create_pending_relationship(
             source_symbol_id.clone(),
-            UnresolvedTarget::simple(type_name),
+            target,
             RelationshipKind::Uses,
             &node,
             Some(source_symbol_id),
@@ -400,7 +411,11 @@ fn symbol_span_matches_node(symbol: &Symbol, node: Node) -> bool {
 fn is_callable(kind: &SymbolKind) -> bool {
     matches!(
         kind,
-        SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor | SymbolKind::Operator
+        SymbolKind::Function
+            | SymbolKind::Method
+            | SymbolKind::Constructor
+            | SymbolKind::Destructor
+            | SymbolKind::Operator
     )
 }
 
@@ -483,6 +498,32 @@ fn is_type_use_symbol(kind: &SymbolKind) -> bool {
             | SymbolKind::Interface
             | SymbolKind::Trait
     )
+}
+
+/// The target of a type use, keeping the namespace a qualified name writes:
+/// `ns::Widget` targets `Widget` in `ns`.
+fn type_use_target(base: &BaseExtractor, node: Node, type_name: String) -> UnresolvedTarget {
+    let mut outer = node;
+    while let Some(parent) = outer.parent().filter(|parent| {
+        matches!(parent.kind(), "qualified_identifier" | "template_type")
+            && parent
+                .child_by_field_name("name")
+                .is_some_and(|name| name.id() == outer.id())
+    }) {
+        outer = parent;
+    }
+    let mut parts = Vec::new();
+    collect_scope_chain(base, outer, &mut parts);
+    let Some(terminal_name) = parts.pop().filter(|_| !parts.is_empty()) else {
+        return UnresolvedTarget::simple(type_name);
+    };
+    UnresolvedTarget {
+        display_name: format!("{}::{terminal_name}", parts.join("::")),
+        terminal_name,
+        receiver: None,
+        namespace_path: parts,
+        import_context: None,
+    }
 }
 
 fn collect_scope_chain(base: &BaseExtractor, node: Node, parts: &mut Vec<String>) {

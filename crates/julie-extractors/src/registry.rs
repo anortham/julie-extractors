@@ -880,7 +880,7 @@ pub fn extract_for_language_at(
         results.source_regions =
             collect_source_regions(language, tree, file_path, content, &results.symbols);
         results.structural_facts =
-            collect_structural_facts(language, tree, file_path, &results.symbols);
+            collect_structural_facts(language, tree, file_path, content, &results.symbols);
         results.structural_facts.extend(collect_rust_doc_test_facts(
             language,
             tree,
