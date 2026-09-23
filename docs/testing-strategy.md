@@ -79,7 +79,9 @@ check. See [the QML support record](languages/qml.md) for the fixture and
 real-world evidence.
 
 For Go module manifests, `cargo xtask test language gomod` is the target. See
-[the Go module manifest support record](languages/gomod.md).
+[the Go module manifest support record](languages/gomod.md). For `go.sum`
+checksum files, `cargo xtask test language gosum` is the target. See
+[the Go checksum support record](languages/gosum.md).
 
 For Qt C++, `cargo xtask test language cpp` is the target. See
 [the Qt C++ support record](languages/cpp-qt.md) for the macro pre-pass, the

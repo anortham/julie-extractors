@@ -33,6 +33,9 @@ where
     if file_name.is_some_and(|name| name.eq_ignore_ascii_case("go.mod")) {
         return Ok(Some(("gomod", None)));
     }
+    if file_name.is_some_and(|name| name.eq_ignore_ascii_case("go.sum")) {
+        return Ok(Some(("gosum", None)));
+    }
     if file_name.is_some_and(|name| RUBY_FILE_NAMES.contains(&name)) {
         return Ok(Some(("ruby", None)));
     }

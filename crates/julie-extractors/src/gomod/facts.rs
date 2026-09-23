@@ -16,6 +16,7 @@ pub(crate) const PATTERN_IDS: &[&str] = &[
     MANIFEST_DEPENDENCY_PATTERN_ID,
     "gomod.exclude.v1",
     "gomod.go.v1",
+    "gomod.godebug.v1",
     "gomod.ignore.v1",
     "gomod.module.v1",
     "gomod.replace.v1",
@@ -106,6 +107,10 @@ fn fact(entry: &Entry<'_>, file_path: &str, content: &str) -> Option<StructuralF
         Directive::Ignore => {
             copy(&mut metadata, &["path"]);
             ("gomod.ignore.v1", "ignore")
+        }
+        Directive::Godebug => {
+            copy(&mut metadata, &["key", "value"]);
+            ("gomod.godebug.v1", "godebug")
         }
     };
     let span =

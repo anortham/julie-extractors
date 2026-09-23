@@ -304,6 +304,83 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
             ),
         ],
     },
+    StructuralFactPatternSpec {
+        pattern_id: "gomod.godebug.v1",
+        languages: &["gomod"],
+        query_family: "dependencies",
+        description: "A `godebug` setting of a go.mod manifest: the default GODEBUG value for the main module's builds.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "key",
+                STR,
+                ALWAYS,
+                "The setting name, such as `panicnil` or `default`.",
+            ),
+            key("value", STR, ALWAYS, "The setting value as written."),
+        ],
+    },
+    // Go checksum files (go.sum)
+    StructuralFactPatternSpec {
+        pattern_id: "gosum.checksum.v1",
+        languages: &["gosum"],
+        query_family: "dependencies",
+        description: "One line of a go.sum file: the hash the go command verified for a module version or for its go.mod file.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key("module_path", STR, ALWAYS, "The module path."),
+            key(
+                "version",
+                STR,
+                ALWAYS,
+                "The module version, without the `/go.mod` suffix.",
+            ),
+            key(
+                "go_mod",
+                BOOL,
+                ALWAYS,
+                "True when the hash covers only the module's go.mod file (`<version>/go.mod`); false when it covers the module content.",
+            ),
+            key(
+                "hash_algorithm",
+                STR,
+                ALWAYS,
+                "The hash algorithm prefix, such as `h1`.",
+            ),
+            key(
+                "hash",
+                STR,
+                ALWAYS,
+                "The base64 hash after the algorithm prefix.",
+            ),
+            key(
+                "incompatible",
+                BOOL,
+                ALWAYS,
+                "True when the version ends in `+incompatible`.",
+            ),
+            key(
+                "pseudo_version",
+                BOOL,
+                ALWAYS,
+                "True when the version is a pseudo-version, as `module.IsPseudoVersion` decides.",
+            ),
+            key(
+                "timestamp",
+                STR,
+                OPT,
+                "The UTC commit time of a pseudo-version, `yyyymmddhhmmss`.",
+            ),
+            key(
+                "revision",
+                STR,
+                OPT,
+                "The commit hash prefix of a pseudo-version.",
+            ),
+        ],
+    },
     // Deployment and automation documents (YAML)
     StructuralFactPatternSpec {
         pattern_id: "yaml.compose_service.v1",

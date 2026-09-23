@@ -42,6 +42,14 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
         EMPTY,
     ),
     spec(
+        "gosum",
+        &[],
+        "tree-sitter-gosum",
+        FACTS_ONLY_CAPABILITIES,
+        parser_gosum,
+        EMPTY,
+    ),
+    spec(
         "zig",
         &["zig"],
         "tree-sitter-zig",

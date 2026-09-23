@@ -4192,6 +4192,40 @@
     "query_family": "dependencies"
   },
   {
+    "description": "A `godebug` setting of a go.mod manifest: the default GODEBUG value for the main module's builds.",
+    "languages": [
+      "gomod"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The setting name, such as `panicnil` or `default`.",
+        "key": "key",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The setting value as written.",
+        "key": "value",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "gomod.godebug.v1",
+    "query_family": "dependencies"
+  },
+  {
     "description": "An `ignore` line of a go.mod manifest: a directory the go command skips when it matches package patterns.",
     "languages": [
       "gomod"
@@ -4482,6 +4516,82 @@
     ],
     "pattern_id": "gorilla_mux.route.v1",
     "query_family": "framework"
+  },
+  {
+    "description": "One line of a go.sum file: the hash the go command verified for a module version or for its go.mod file.",
+    "languages": [
+      "gosum"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The module path.",
+        "key": "module_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The module version, without the `/go.mod` suffix.",
+        "key": "version",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "True when the hash covers only the module's go.mod file (`<version>/go.mod`); false when it covers the module content.",
+        "key": "go_mod",
+        "presence": "always",
+        "value_type": "bool"
+      },
+      {
+        "description": "The hash algorithm prefix, such as `h1`.",
+        "key": "hash_algorithm",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The base64 hash after the algorithm prefix.",
+        "key": "hash",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "True when the version ends in `+incompatible`.",
+        "key": "incompatible",
+        "presence": "always",
+        "value_type": "bool"
+      },
+      {
+        "description": "True when the version is a pseudo-version, as `module.IsPseudoVersion` decides.",
+        "key": "pseudo_version",
+        "presence": "always",
+        "value_type": "bool"
+      },
+      {
+        "description": "The UTC commit time of a pseudo-version, `yyyymmddhhmmss`.",
+        "key": "timestamp",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The commit hash prefix of a pseudo-version.",
+        "key": "revision",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "gosum.checksum.v1",
+    "query_family": "dependencies"
   },
   {
     "description": "A static Hapi `server.route` object-form route on a server built by `Hapi.server` or `new Hapi.Server`.",

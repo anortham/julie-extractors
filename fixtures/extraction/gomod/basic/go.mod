@@ -24,6 +24,7 @@ replace (
 	// Develop against the local checkout.
 	example.com/lib => ../lib
 	example.com/tools v0.2.0 => ./tools
+	example.com/abs => /src/abs
 )
 
 exclude example.com/broken v0.9.0
@@ -53,4 +54,15 @@ ignore ./node_modules
 ignore (
 	./third_party/js
 	static
+	x
 )
+
+// Keep the Go 1.20 behavior for these settings.
+godebug (
+	panicnil=1
+	// Timers keep the old channel semantics.
+	asynctimerchan=0
+)
+
+// Opt in to the Go 1.21 defaults.
+godebug default=go1.21

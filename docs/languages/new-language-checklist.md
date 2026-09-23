@@ -49,7 +49,7 @@ that fail for any new language until they are updated:
   `test_capability_snapshot_loads_all_languages`, and the module list in
   `tests/api_surface.rs`.
 - For a language selected by exact basename with no extension (`qmldir`,
-  `gomod`), add it to the empty-extension check in
+  `gomod`, `gosum`), add it to the empty-extension check in
   `crates/julie-extract-cli/tests/operations_contract.rs`, and name its
   fixture sources with that basename.
 - For a data language (no language-native test constructs), add it to

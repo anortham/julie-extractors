@@ -121,6 +121,7 @@ fn syntax_api_selects_source_sensitive_grammars() {
         ("widget.H", "class C { public: int x; };\n", "cpp"),
         ("qmldir", "module MyModule\n", "qmldir"),
         ("go.mod", "module example.com/app\n", "gomod"),
+        ("go.sum", "example.com/a v1.0.0 h1:abc=\n", "gosum"),
         ("code.fs", "module M\nlet x = 1\n", "fsharp"),
         ("script.fsx", "let y = 2\n", "fsharp"),
         (

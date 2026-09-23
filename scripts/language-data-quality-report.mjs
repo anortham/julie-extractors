@@ -63,6 +63,7 @@ const DOMAIN_LANGUAGE_EXPECTATIONS = new Set([
 const DOMAIN_LANGUAGES = new Set([
   "css",
   "gomod",
+  "gosum",
   "html",
   "json",
   "markdown",

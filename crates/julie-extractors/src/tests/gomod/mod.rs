@@ -1,8 +1,7 @@
 use std::path::Path;
 
 use crate::base::{
-    ExtractionResults, ParseDiagnosticKind, RelationshipKind, SourceRegionKind, StructuralFact,
-    Symbol, SymbolKind,
+    ExtractionResults, RelationshipKind, SourceRegionKind, StructuralFact, Symbol, SymbolKind,
 };
 use crate::extract_canonical;
 use crate::tests::helpers::{facts_with_pattern, metadata_str};
@@ -414,53 +413,78 @@ fn quoted_values_are_unquoted_names_literals_and_string_regions() {
 }
 
 #[test]
-fn godebug_lines_report_a_parse_diagnostic_and_other_directives_still_extract() {
-    let source = "module example.com/app\n\ngo 1.21\n\ngodebug default=go1.21\n\ngodebug (\n\tpanicnil=1\n)\n\nrequire example.com/a v1.0.0\n";
+fn godebug_settings_are_property_symbols_and_facts() {
+    let source = "module example.com/app\n\ngodebug default=go1.21\n\ngodebug (\n\tpanicnil=1\n\t// Timers keep the old channel semantics.\n\tasynctimerchan=0\n)\n";
     let results = extract(source);
 
     assert!(
-        results
-            .parse_diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.kind == ParseDiagnosticKind::Error),
+        results.parse_diagnostics.is_empty(),
         "{:#?}",
         results.parse_diagnostics
     );
+    let settings: Vec<(&str, &str)> = facts_with_pattern(&results, "gomod.godebug.v1")
+        .iter()
+        .map(|fact| {
+            (
+                metadata_str(fact, "key").unwrap(),
+                metadata_str(fact, "value").unwrap(),
+            )
+        })
+        .collect();
     assert_eq!(
-        metadata_str(fact(&results, "gomod.go.v1"), "version"),
-        Some("1.21")
+        settings,
+        vec![
+            ("default", "go1.21"),
+            ("panicnil", "1"),
+            ("asynctimerchan", "0")
+        ]
+    );
+
+    let default = symbol(&results, "default");
+    assert_eq!(default.kind, SymbolKind::Property);
+    assert_eq!(default.signature.as_deref(), Some("godebug default=go1.21"));
+    assert_eq!(
+        &source[default.start_byte as usize..default.end_byte as usize],
+        "godebug default=go1.21"
+    );
+    let timers = symbol(&results, "asynctimerchan");
+    assert_eq!(
+        timers.signature.as_deref(),
+        Some("godebug asynctimerchan=0")
     );
     assert_eq!(
-        metadata_str(fact(&results, "manifest.dependency.v1"), "name"),
-        Some("example.com/a")
+        timers.doc_comment.as_deref(),
+        Some("// Timers keep the old channel semantics.")
     );
-    assert_eq!(
-        metadata_str(fact(&results, "gomod.module.v1"), "module_path"),
-        Some("example.com/app")
-    );
-    assert!(
-        results.symbols.iter().all(|symbol| !symbol
-            .signature
-            .as_deref()
-            .unwrap_or("")
-            .contains("debug"))
-    );
+    assert_eq!(symbol(&results, "panicnil").doc_comment, None);
 }
 
 #[test]
-fn grammar_path_limits_drop_absolute_replacements_and_one_character_paths() {
+fn absolute_replacements_and_one_character_paths_extract() {
     let results = extract(
         "module example.com/app\n\nreplace example.com/a => /src/a\n\nignore x\n\nrequire example.com/b v1.0.0\n",
     );
 
     assert!(
-        results
-            .parse_diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.kind == ParseDiagnosticKind::Error)
+        results.parse_diagnostics.is_empty(),
+        "{:#?}",
+        results.parse_diagnostics
     );
-    assert!(facts_with_pattern(&results, "gomod.replace.v1").is_empty());
-    assert!(facts_with_pattern(&results, "gomod.ignore.v1").is_empty());
+    let replace = fact(&results, "gomod.replace.v1");
+    assert_eq!(metadata_str(replace, "replacement"), Some("/src/a"));
+    assert_eq!(metadata_bool(replace, "local"), Some(true));
+    assert_eq!(
+        results
+            .structured_pending_relationships
+            .iter()
+            .map(|pending| pending.target.display_name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["/src/a/go.mod"]
+    );
+    assert_eq!(
+        metadata_str(fact(&results, "gomod.ignore.v1"), "path"),
+        Some("x")
+    );
     assert_eq!(
         metadata_str(fact(&results, "manifest.dependency.v1"), "name"),
         Some("example.com/b")
@@ -468,21 +492,40 @@ fn grammar_path_limits_drop_absolute_replacements_and_one_character_paths() {
 }
 
 #[test]
-fn a_last_line_without_a_newline_still_extracts_with_a_missing_diagnostic() {
-    let results = extract("module example.com/app\n\ngo 1.22");
+fn a_last_line_without_a_newline_extracts_without_diagnostics() {
+    for (source, pattern_id, key, value) in [
+        (
+            "module example.com/app\n\ngo 1.22",
+            "gomod.go.v1",
+            "version",
+            "1.22",
+        ),
+        (
+            "module example.com/app\n\ngodebug panicnil=1",
+            "gomod.godebug.v1",
+            "value",
+            "1",
+        ),
+        (
+            "module example.com/app\n\nrequire (\n\texample.com/a v1.0.0\n)",
+            "manifest.dependency.v1",
+            "version",
+            "v1.0.0",
+        ),
+    ] {
+        let results = extract(source);
 
-    assert_eq!(
-        metadata_str(fact(&results, "gomod.go.v1"), "version"),
-        Some("1.22")
-    );
-    assert_eq!(
-        results
-            .parse_diagnostics
-            .iter()
-            .map(|diagnostic| diagnostic.kind)
-            .collect::<Vec<_>>(),
-        vec![ParseDiagnosticKind::Missing]
-    );
+        assert!(
+            results.parse_diagnostics.is_empty(),
+            "{source:?}: {:#?}",
+            results.parse_diagnostics
+        );
+        assert_eq!(
+            metadata_str(fact(&results, pattern_id), key),
+            Some(value),
+            "{source:?}"
+        );
+    }
 }
 
 #[test]

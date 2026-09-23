@@ -1,8 +1,9 @@
 //! Go module manifest (`go.mod`) extractor.
 //!
-//! - `module` is a `module` symbol; `go` and `toolchain` are `property`
-//!   symbols; each `require` line and each `tool` package is an `import`
-//!   symbol. Every symbol carries its leading `//` comment as its doc comment.
+//! - `module` is a `module` symbol; `go`, `toolchain`, and each `godebug`
+//!   key are `property` symbols; each `require` line and each `tool` package
+//!   is an `import` symbol. Every symbol carries its leading `//` comment as
+//!   its doc comment.
 //! - Each required module and tool is an `Imports` edge from the module symbol.
 //! - A `replace` whose target is a file path is a structured pending `Imports`
 //!   row to `<path>/go.mod`, the file that declares the replacement module.
@@ -99,7 +100,7 @@ impl GoModExtractor {
             .span_for_byte_range(entry.start_byte, entry.end_byte)?;
         let kind = match entry.directive {
             Directive::Module => SymbolKind::Module,
-            Directive::Go | Directive::Toolchain => SymbolKind::Property,
+            Directive::Go | Directive::Toolchain | Directive::Godebug => SymbolKind::Property,
             _ => SymbolKind::Import,
         };
         let indirect =

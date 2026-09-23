@@ -753,6 +753,18 @@ fn extract_gomod(
     })
 }
 
+/// go.sum extractor: a checksum file declares nothing, so every row is a
+/// structural fact from the data collector.
+fn extract_gosum(
+    _tree: &Tree,
+    _file_path: &str,
+    _content: &str,
+    _workspace_root: &Path,
+    _level: ExtractionLevel,
+) -> Result<ExtractionResults, anyhow::Error> {
+    Ok(ExtractionResults::empty())
+}
+
 fn extract_vue(
     tree: &Tree,
     file_path: &str,
@@ -805,6 +817,7 @@ const EXTRACTORS: &[(&str, ExtractFn)] = &[
     ("cpp", extract_cpp),
     ("go", extract_go),
     ("gomod", extract_gomod),
+    ("gosum", extract_gosum),
     ("zig", extract_zig),
     ("typescript", extract_typescript),
     ("tsx", extract_tsx),
@@ -1053,7 +1066,7 @@ mod registry_tests {
 
     #[test]
     fn registry_matches_supported_language_count() {
-        assert_eq!(supported_languages().len(), 41);
+        assert_eq!(supported_languages().len(), 42);
         assert!(
             capabilities_for_language("rust")
                 .unwrap()

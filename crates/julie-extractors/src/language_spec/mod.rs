@@ -189,6 +189,16 @@ pub const SYMBOLS_ONLY_CAPABILITIES: LanguageCapabilities = LanguageCapabilities
     types: false,
 };
 
+/// A language whose rows are structural facts only: it declares nothing, so it
+/// has no symbols, edges, identifiers, or types.
+pub const FACTS_ONLY_CAPABILITIES: LanguageCapabilities = LanguageCapabilities {
+    symbols: false,
+    relationships: false,
+    pending_relationships: false,
+    identifiers: false,
+    types: false,
+};
+
 pub const RELATIONSHIP_DATA_CAPABILITIES: LanguageCapabilities = LanguageCapabilities {
     symbols: true,
     relationships: true,
@@ -266,6 +276,7 @@ parser!(parser_c, tree_sitter_c::LANGUAGE);
 parser!(parser_cpp, tree_sitter_cpp::LANGUAGE);
 parser!(parser_go, tree_sitter_go::LANGUAGE);
 parser!(parser_gomod, tree_sitter_gomod::LANGUAGE);
+parser!(parser_gosum, tree_sitter_gosum::LANGUAGE);
 parser!(parser_zig, tree_sitter_zig::LANGUAGE);
 parser!(
     parser_typescript,

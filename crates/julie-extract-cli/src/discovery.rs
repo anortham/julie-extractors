@@ -941,8 +941,34 @@ mod tests {
                 "{path}"
             );
         }
-        for path in ["go.sum", "go.work", "deps.mod"] {
+        for path in ["go.work", "deps.mod"] {
             let target = fixture.write(path, "module example.com/app\n");
+            assert_eq!(
+                policy.select_file(&target),
+                FileSelection::Unsupported {
+                    reason: UnsupportedReason::UnsupportedExtension
+                },
+                "{path}"
+            );
+        }
+    }
+
+    #[test]
+    fn discover_selects_go_sum_by_exact_basename_only() {
+        let fixture = DiscoveryFixture::new();
+        let policy = fixture.policy();
+        for path in ["go.sum", "tools/go.sum", "GO.SUM"] {
+            let target = fixture.write(path, "example.com/a v1.0.0 h1:x=\n");
+            assert_eq!(
+                policy.select_file(&target),
+                FileSelection::Supported {
+                    language: "gosum".to_string()
+                },
+                "{path}"
+            );
+        }
+        for path in ["go.work.sum", "deps.sum"] {
+            let target = fixture.write(path, "example.com/a v1.0.0 h1:x=\n");
             assert_eq!(
                 policy.select_file(&target),
                 FileSelection::Unsupported {

@@ -176,6 +176,7 @@ pub fn collect_data_structural_facts(
         "xml" => collect_xml_structural_facts(tree, file_path, content),
         "regex" => collect_regex_structural_facts(file_path, content),
         "gomod" => crate::gomod::facts::structural_facts(tree, file_path, content),
+        "gosum" => crate::gosum::structural_facts(tree, file_path, content),
         _ => Vec::new(),
     };
     if language == "markdown" {
@@ -242,6 +243,7 @@ pub(crate) fn data_structural_fact_pattern_ids_for_language(
         "regex" => REGEX_DATA_PATTERN_IDS,
         "erlang" => &[crate::toml::dependencies::MANIFEST_DEPENDENCY_PATTERN_ID],
         "gomod" => crate::gomod::facts::PATTERN_IDS,
+        "gosum" => &[crate::gosum::CHECKSUM_PATTERN_ID],
         _ => &[],
     }
 }

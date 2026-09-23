@@ -25,6 +25,7 @@ pub(crate) enum Directive {
     Retract,
     Tool,
     Ignore,
+    Godebug,
 }
 
 impl Directive {
@@ -39,6 +40,7 @@ impl Directive {
             Self::Retract => "retract",
             Self::Tool => "tool",
             Self::Ignore => "ignore",
+            Self::Godebug => "godebug",
         }
     }
 
@@ -53,6 +55,7 @@ impl Directive {
             "retract_directive" => Self::Retract,
             "tool_directive" => Self::Tool,
             "ignore_directive" => Self::Ignore,
+            "godebug_directive" => Self::Godebug,
             _ => return None,
         })
     }
@@ -60,7 +63,7 @@ impl Directive {
 
 /// One value of a directive line, unquoted, with its role in the directive:
 /// `module_path`, `version`, `replacement`, `replacement_version`, `low`,
-/// `high`, `toolchain`, `package_path`, or `path`.
+/// `high`, `toolchain`, `package_path`, `path`, `key`, or `value`.
 pub(crate) struct Value<'tree> {
     pub node: Node<'tree>,
     pub text: String,
@@ -90,21 +93,23 @@ impl Entry<'_> {
     }
 
     /// The symbol name of a line that declares something: the module path,
-    /// a required module, a tool package, or the `go` and `toolchain`
-    /// settings. Replace, exclude, retract, and ignore lines are facts only.
+    /// a required module, a tool package, the `go` and `toolchain`
+    /// settings, or a `godebug` key. Replace, exclude, retract, and ignore
+    /// lines are facts only.
     pub(crate) fn symbol_name(&self) -> Option<&str> {
         match self.directive {
             Directive::Module | Directive::Require => self.value("module_path"),
             Directive::Tool => self.value("package_path"),
             Directive::Go | Directive::Toolchain => Some(self.directive.keyword()),
+            Directive::Godebug => self.value("key"),
             _ => None,
         }
     }
 }
 
 /// Every directive line that parsed cleanly. A line whose node holds a syntax
-/// error yields nothing, so a directive the grammar does not know (such as
-/// `godebug`) never surfaces as a misread neighbour.
+/// error yields nothing, so a directive the grammar does not know never
+/// surfaces as a misread neighbour.
 pub(crate) fn entries<'tree>(root: Node<'tree>, content: &str) -> Vec<Entry<'tree>> {
     let mut entries = Vec::new();
     let mut cursor = root.walk();
@@ -200,6 +205,8 @@ fn role(
         Directive::Toolchain => "toolchain",
         Directive::Tool => "package_path",
         Directive::Ignore => "path",
+        Directive::Godebug if value.kind() == "godebug_key" => "key",
+        Directive::Godebug => "value",
         Directive::Retract if range => {
             if index == 0 {
                 "low"

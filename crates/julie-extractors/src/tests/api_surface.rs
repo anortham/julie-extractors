@@ -46,6 +46,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "language-gap-closure-v1",
         "step-definition-role-v1",
         "go-module-manifest-v1",
+        "go-sum-checksums-v1",
     ] {
         assert!(
             version.contains(marker),
@@ -434,6 +435,7 @@ fn test_public_api_surface_exports_exact_symbols() {
         "gdscript",
         "go",
         "gomod",
+        "gosum",
         "html",
         "java",
         "javascript",
@@ -462,7 +464,7 @@ fn test_public_api_surface_exports_exact_symbols() {
         "yaml",
         "zig",
     ];
-    assert_eq!(languages.len(), 39);
+    assert_eq!(languages.len(), 40);
     for lang in languages {
         assert!(
             lib_rs.contains(&format!("pub(crate) mod {lang};")),

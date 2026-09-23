@@ -508,6 +508,7 @@ dependencies = [
  "tree-sitter-gdscript",
  "tree-sitter-go",
  "tree-sitter-gomod",
+ "tree-sitter-gosum",
  "tree-sitter-html",
  "tree-sitter-java",
  "tree-sitter-javascript",
@@ -1127,7 +1128,16 @@ dependencies = [
 [[package]]
 name = "tree-sitter-gomod"
 version = "1.1.1"
-source = "git+https://github.com/camdencheek/tree-sitter-go-mod?rev=2e886870578eeba1927a2dc4bd2e2b3f598c5f9a#2e886870578eeba1927a2dc4bd2e2b3f598c5f9a"
+source = "git+https://github.com/anortham/tree-sitter-go-mod?rev=655fba88f326a7c8588d118c716428d038296189#655fba88f326a7c8588d118c716428d038296189"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
+name = "tree-sitter-gosum"
+version = "1.0.0"
+source = "git+https://github.com/anortham/tree-sitter-go-sum?rev=b1727178d527bf4171dc4772afca3d220def49cd#b1727178d527bf4171dc4772afca3d220def49cd"
 dependencies = [
  "cc",
  "tree-sitter-language",

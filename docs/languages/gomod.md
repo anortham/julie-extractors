@@ -3,11 +3,14 @@
 `gomod` handles Go module manifests. It has no extension mapping: a file is
 selected when its basename is exactly `go.mod`, compared case-insensitively
 like `qmldir`, so `GO.MOD` on a case-insensitive Windows volume selects it too.
-`go.sum` and `go.work` are not selected.
+`go.sum` selects the separate [`gosum`](gosum.md) language. `go.work` is not
+selected.
 
-The parser is `tree-sitter-gomod`, pinned to
-`camdencheek/tree-sitter-go-mod` at `2e886870578eeba1927a2dc4bd2e2b3f598c5f9a`
+The parser is `tree-sitter-gomod`, pinned to the owned fork
+`anortham/tree-sitter-go-mod` at `655fba88f326a7c8588d118c716428d038296189`
 (see the [grammar dependency policy](../architecture/grammar-dependency-policy.md)).
+The fork adds the `godebug` directive, accepts absolute and one-character file
+paths, and accepts a last line with no final newline.
 
 ## Rows
 
@@ -21,6 +24,7 @@ outside it.
 | `module` | `module`, public, named by the module path | module path | `gomod.module.v1` |
 | `go` | `property` named `go` | version | `gomod.go.v1` |
 | `toolchain` | `property` named `toolchain` | toolchain name | `gomod.toolchain.v1` |
+| `godebug` | `property` named by the key | value | `gomod.godebug.v1` |
 | `require` | `import` named by the module path | version | `manifest.dependency.v1`, `Imports` edge |
 | `tool` | `import` named by the package path | package path | `gomod.tool.v1`, `Imports` edge |
 | `replace` | none | none | `gomod.replace.v1`; pending row for a file path |
@@ -64,26 +68,14 @@ Every fact has `query_family` `dependencies`.
   `range`, and `rationale`. The rationale is the line's leading and suffix
   comments, else those of its block, as `modfile` reads it.
 - `gomod.tool.v1`: `package_path`. `gomod.ignore.v1`: `path`.
+- `gomod.godebug.v1`: `key` and `value` of one `key=value` setting.
 
 Identifiers and types are typed exceptions: a manifest has no calls,
 variables, member access, or type system.
 
 ## Known gaps
 
-These are `open_gaps` on the `gomod` row, closed by
-`docs/plans/2026-09-23-gap-followups.md`:
-
-- `gomod.godebug_directive`: the grammar has no `godebug` directive. The line
-  and the block parse as ERROR, the file reports a parse diagnostic, and the
-  other directives still extract. A line with a syntax error never publishes
-  rows, so the misparse of `godebug default=go1.21` as a `go` line is dropped.
-- `gomod.go_sum_checksums`: `go.sum` is not selected. The upstream
-  tree-sitter-go-sum grammar rejects empty files and pre-release identifiers
-  outside its fixed list, so 11 of 70 local `go.sum` files fail to parse.
-- `gomod.grammar_path_tokens`: the grammar's path token cannot start with `/`
-  and needs two characters, so `replace m => /abs/path` and `ignore x` parse as
-  ERROR and publish no rows. A last line with no final newline still extracts
-  but reports a MISSING diagnostic.
+The `gomod` row has no open gaps.
 
 ## Continuous testing
 
@@ -93,7 +85,8 @@ cargo xtask test language gomod
 
 The command runs `tests::gomod::` and the golden check with
 `JULIE_GOLDEN_LANGUAGE=gomod`. The fixtures are `fixtures/extraction/gomod/basic`
-(every directive in single-line and block form) and
+(every directive in single-line and block form, an absolute-path replacement, a
+one-character ignore path, and a last line with no final newline) and
 `fixtures/extraction/gomod/negative` (no comments, no pending rows for a
 module replacement, and no edges from `replace` or `exclude`).
 
@@ -105,8 +98,10 @@ On 2026-09-23 the release CLI scanned a temporary tree that held copies of the
 123 `property`, 503 `import`), 503 `Imports` edges, 762 structural facts (503
 `manifest.dependency.v1` with 253 indirect, 128 `gomod.module.v1`, 121
 `gomod.go.v1`, 8 `gomod.retract.v1`, 2 `gomod.toolchain.v1`), 274 source
-regions, and 2 literals from the quoted paths in `gopkg.in/yaml.v3`.
+regions, and 2 literals from the quoted paths in `gopkg.in/yaml.v3`. A rescan
+with the forked grammar gave the same counts. None of those files has a
+`godebug` line.
 
 A scan of `~/source/cobra` selected its `go.mod` as `gomod` with 6 symbols, 4
-`Imports` edges, 6 structural facts, and 0 parse diagnostics. `go.sum` stayed
-unsupported.
+`Imports` edges, 6 structural facts, and 0 parse diagnostics, and its `go.sum`
+as `gosum`.

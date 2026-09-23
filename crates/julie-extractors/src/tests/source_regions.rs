@@ -388,7 +388,9 @@ name: "hi"
         .iter()
         .map(|fixture| fixture.language)
         .collect::<BTreeSet<_>>();
-    let domain_limited_languages = ["qmldir", "regex"].into_iter().collect::<BTreeSet<_>>();
+    let domain_limited_languages = ["gosum", "qmldir", "regex"]
+        .into_iter()
+        .collect::<BTreeSet<_>>();
     let missing_languages = crate::language::supported_languages()
         .iter()
         .copied()

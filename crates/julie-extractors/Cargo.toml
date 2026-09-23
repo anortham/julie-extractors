@@ -55,7 +55,8 @@ tree-sitter-scala = "0.26.0"
 tree-sitter-gdscript = "6.1.0"
 tree-sitter-qmljs = { git = "https://github.com/yuja/tree-sitter-qmljs", rev = "606a66b96a13ef30ed5c7ec7e5adc20a9a40157a" }
 tree-sitter-qmldir = { git = "https://github.com/tree-sitter-grammars/tree-sitter-qmldir", rev = "c57e00865a1a6f1cca83340d6dad91f13df55479" }
-tree-sitter-gomod = { git = "https://github.com/camdencheek/tree-sitter-go-mod", rev = "2e886870578eeba1927a2dc4bd2e2b3f598c5f9a" }
+tree-sitter-gomod = { git = "https://github.com/anortham/tree-sitter-go-mod", rev = "655fba88f326a7c8588d118c716428d038296189" }
+tree-sitter-gosum = { git = "https://github.com/anortham/tree-sitter-go-sum", rev = "b1727178d527bf4171dc4772afca3d220def49cd" }
 tree-sitter-regex = "0.25.0"
 tree-sitter-razor = { git = "https://github.com/anortham/tree-sitter-razor", rev = "fba8571f06c06aa5acca01e3d762f5a5e78dc50f" }
 tree-sitter-powershell = { git = "https://github.com/airbus-cert/tree-sitter-powershell", rev = "d398441825243b00e317e87e1829b9d6a3e54ce0" }

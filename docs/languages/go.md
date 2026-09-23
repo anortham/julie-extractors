@@ -1,8 +1,8 @@
 # Go support
 
 `go` handles `.go` files. A `go.mod` manifest selects the separate `gomod`
-language; see [Go module manifest support](gomod.md). `go.sum` is not selected
-yet; that gap is recorded on the `gomod` row as `gomod.go_sum_checksums`.
+language; see [Go module manifest support](gomod.md). A `go.sum` checksum file
+selects the separate `gosum` language; see [Go checksum support](gosum.md).
 
 ## Continuous testing
 
@@ -251,7 +251,7 @@ Representative rows prove each framework arm:
   itself uses.
 - go-redis indexes 58 `go.mod` and `go.sum` files with status `unsupported`.
   That was the evidence behind the former `go.module_manifest_language` gap;
-  `go.mod` now selects `gomod`.
+  `go.mod` now selects `gomod` and `go.sum` selects `gosum`.
 
 The temporary checkouts and SQLite artifacts were removed after recording this
 evidence.
