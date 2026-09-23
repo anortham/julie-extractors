@@ -37,6 +37,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
             "powershell",
             "swift",
             "dart",
+            "zig",
         ],
         query_family: "web.http_client",
         description: "An outbound HTTP client request with a static URL literal.",
@@ -48,7 +49,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "client",
                 STR,
                 ALWAYS,
-                "HTTP client label (for example fetch, axios, ofetch (`$fetch`), nuxt (`useFetch`, `useLazyFetch`), requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, invoke-restmethod, invoke-webrequest, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, spring_restclient, openfeign, requests_scala, sttp, play_ws, req, tesla, httpoison, finch, httpc, wget, urlsession, alamofire, dart_http, dio, hackney, gun).",
+                "HTTP client label (for example fetch, axios, ofetch (`$fetch`), nuxt (`useFetch`, `useLazyFetch`), requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, invoke-restmethod, invoke-webrequest, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, spring_restclient, openfeign, requests_scala, sttp, play_ws, req, tesla, httpoison, finch, httpc, wget, urlsession, alamofire, dart_http, dio, hackney, gun, std.http).",
             ),
             key(
                 "target_path",

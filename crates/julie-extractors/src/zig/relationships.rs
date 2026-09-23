@@ -62,6 +62,7 @@ fn traverse_for_relationships(
             extract_function_call_relationships(
                 extractor,
                 node,
+                symbols,
                 containing_symbols,
                 scoped_index,
                 relationships,
@@ -98,21 +99,15 @@ fn extract_struct_relationships(
         return;
     }
 
-    // Find a symbol that matches this struct_declaration by position
-    let struct_symbol = symbols
-        .iter()
-        .find(|s| {
-            s.kind == SymbolKind::Struct
-                && s.start_line == (node.start_position().row + 1) as u32
-                && s.start_column == node.start_position().column as u32
-        })
-        .or_else(|| {
-            // Try finding by nearby position (within a few lines)
-            symbols.iter().find(|s| {
-                s.kind == SymbolKind::Struct
-                    && (s.start_line as i32 - (node.start_position().row + 1) as i32).abs() <= 2
-            })
-        });
+    let Some(declaration) = node
+        .parent()
+        .filter(|parent| parent.kind() == "variable_declaration")
+    else {
+        return;
+    };
+    let struct_symbol = symbols.iter().find(|s| {
+        s.kind == SymbolKind::Struct && s.start_byte as usize == declaration.start_byte()
+    });
 
     if let Some(target_symbol) = struct_symbol {
         traverse_struct_fields(base, node, symbols, relationships, target_symbol);
@@ -254,6 +249,7 @@ fn call_target(base: &BaseExtractor, call: Node) -> Option<UnresolvedTarget> {
 fn extract_function_call_relationships(
     extractor: &mut ZigExtractor,
     node: Node,
+    symbols: &[Symbol],
     containing_symbols: &ContainingSymbolIndex<'_>,
     scoped_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
@@ -274,11 +270,21 @@ fn extract_function_call_relationships(
             let line_number = (node.start_position().row + 1) as u32;
             let file_path = base.file_path.clone();
 
-            match scoped_index.resolve_call_target(
-                &unresolved_target.terminal_name,
-                Some(caller_symbol),
-                unresolved_target.receiver.as_deref(),
+            let resolution = match file_struct_self_call(
+                &extractor.base,
+                node,
+                caller_symbol,
+                &unresolved_target,
+                symbols,
             ) {
+                Some(called_symbol) => LocalTargetResolution::Resolved(called_symbol),
+                None => scoped_index.resolve_call_target(
+                    &unresolved_target.terminal_name,
+                    Some(caller_symbol),
+                    unresolved_target.receiver.as_deref(),
+                ),
+            };
+            match resolution {
                 LocalTargetResolution::Resolved(called_symbol) => {
                     if caller_symbol.id != called_symbol.id {
                         relationships.push(Relationship {
@@ -332,4 +338,27 @@ fn is_test_declaration(symbol: &Symbol) -> bool {
         .signature
         .as_deref()
         .is_some_and(|signature| signature == "test" || signature.starts_with("test "))
+}
+
+/// `self.peek()` in a top-level function of a file-as-struct
+/// (`const Tokenizer = @This();`): the file's own top-level `peek`.
+fn file_struct_self_call<'a>(
+    base: &BaseExtractor,
+    call: Node,
+    caller: &Symbol,
+    target: &UnresolvedTarget,
+    symbols: &'a [Symbol],
+) -> Option<&'a Symbol> {
+    if caller.parent_id.is_some() || target.receiver.is_none() {
+        return None;
+    }
+    super::type_facts::self_receiver_type(base, call)?;
+    let mut candidates = symbols.iter().filter(|symbol| {
+        symbol.parent_id.is_none()
+            && symbol.name == target.terminal_name
+            && matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
+            && !is_test_declaration(symbol)
+    });
+    let called = candidates.next()?;
+    candidates.next().is_none().then_some(called)
 }

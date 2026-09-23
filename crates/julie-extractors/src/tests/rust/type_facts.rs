@@ -365,7 +365,7 @@ trait Walker {
 }
 "#;
     let (symbols, extractor) = extract(source);
-    let method = symbol(&symbols, "walk", SymbolKind::Function);
+    let method = symbol(&symbols, "walk", SymbolKind::Method);
     let self_param = symbol(&symbols, "self", SymbolKind::Variable);
     assert_eq!(self_param.parent_id.as_deref(), Some(method.id.as_str()));
     assert!(!extractor.base.type_info.contains_key(&self_param.id));

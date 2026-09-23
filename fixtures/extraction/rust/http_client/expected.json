@@ -16,7 +16,7 @@
       "body_hash": null,
       "signature": "use reqwest::Client;",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "importedName": "Client"
@@ -727,6 +727,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/rust/http_client/source.rs:format:call:17:17",
+      "name": "format",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client/source.rs",
+      "start_line": 17,
+      "start_column": 17,
+      "end_line": 17,
+      "end_column": 23,
+      "start_byte": 722,
+      "end_byte": 728,
+      "containing_key": "fixtures/extraction/rust/http_client/source.rs:dynamic:16:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/rust/http_client/source.rs:get:call:17:13",
       "name": "get",
       "kind": "call",
@@ -914,6 +930,17 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/rust/http_client/source.rs:dynamic:16:0",
+      "resolved_type": "Result",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "Result<(), reqwest::Error>"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/rust/http_client/source.rs:id:16:21",
       "resolved_type": "u32",
       "generic_params": null,
@@ -921,6 +948,17 @@
       "is_inferred": false,
       "language": "rust",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0",
+      "resolved_type": "Result",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "Result<(), reqwest::Error>"
+      }
     }
   ],
   "parse_diagnostics": [],

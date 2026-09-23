@@ -16,7 +16,7 @@
       "body_hash": null,
       "signature": "use hyper::{Method, Request};",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "importedName": "Method"
@@ -90,7 +90,7 @@
       "body_hash": null,
       "signature": "use hyper::{Method, Request};",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "importedName": "Request"
@@ -324,7 +324,7 @@
       "body_hash": null,
       "signature": "use ureq;",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "importedName": "ureq"
@@ -1862,19 +1862,21 @@
   "types": [
     {
       "symbol_key": "fixtures/extraction/rust/http_client_deferred/source.rs:body:39:4",
-      "resolved_type": "Self",
+      "resolved_type": "OtherBuilder",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "rust",
-      "metadata": null
+      "metadata": {
+        "declared": "Self"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/rust/http_client_deferred/source.rs:builder:29:4",
       "resolved_type": "OtherBuilder",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "rust",
       "metadata": null
     },
@@ -1909,12 +1911,14 @@
     },
     {
       "symbol_key": "fixtures/extraction/rust/http_client_deferred/source.rs:uri:36:4",
-      "resolved_type": "Self",
+      "resolved_type": "OtherBuilder",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "rust",
-      "metadata": null
+      "metadata": {
+        "declared": "Self"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/rust/http_client_deferred/source.rs:url:18:14",

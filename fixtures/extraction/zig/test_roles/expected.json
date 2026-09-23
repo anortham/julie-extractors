@@ -79,13 +79,13 @@
       "end_byte": 27,
       "body_span": {
         "start_line": 1,
-        "start_column": 19,
+        "start_column": 12,
         "end_line": 1,
         "end_column": 26,
-        "start_byte": 19,
+        "start_byte": 12,
         "end_byte": 26
       },
-      "body_hash": "f74aa1e8b0f059a91c743c72f040fea4",
+      "body_hash": "62127929aeba1e436cf9a19b16a4ed76",
       "signature": "const std = @import(\"std\")",
       "doc_comment": null,
       "visibility": "Private",

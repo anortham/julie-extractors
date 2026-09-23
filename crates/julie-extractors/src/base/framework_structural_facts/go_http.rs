@@ -273,7 +273,7 @@ fn collect_grouped_receivers(
     receivers
 }
 
-fn collect_assignment_names(
+pub(super) fn collect_assignment_names(
     content: &str,
     mask: &SourceMask,
     needle: &str,

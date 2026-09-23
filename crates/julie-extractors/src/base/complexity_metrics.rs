@@ -200,6 +200,15 @@ fn collect_stats(
     let fsharp_guard = language == "fsharp"
         && node.kind() == "rule"
         && node.child_by_field_name("guard").is_some();
+    // A Rust match-arm guard and a `let .. else` branch are decisions with no
+    // node kind of their own: they are fields of `match_pattern` and
+    // `let_declaration`.
+    let rust_branch = language == "rust"
+        && match node.kind() {
+            "match_pattern" => node.child_by_field_name("condition").is_some(),
+            "let_declaration" => node.child_by_field_name("alternative").is_some(),
+            _ => false,
+        };
     // tree-sitter-ruby nests duplicate `if`/`for` wrappers around the same
     // construct; count only the outer node when parent and child share a kind.
     let decision = contains(span, node)
@@ -221,7 +230,7 @@ fn collect_stats(
     } else {
         nesting
     };
-    if language == "fsharp" && fsharp_guard && contains(span, node) {
+    if (fsharp_guard || rust_branch) && contains(span, node) {
         stats.decision_count += 1;
     }
 
@@ -518,7 +527,10 @@ fn find_first_parameter_container_at_depth<'tree>(
     if !overlaps(node, span) {
         return None;
     }
-    if contains(span, node) && config.parameter_container_node_kinds.contains(&node.kind()) {
+    if contains(span, node)
+        && config.parameter_container_node_kinds.contains(&node.kind())
+        && !is_method_receiver_list(node)
+    {
         return Some(node);
     }
     let child_depth = child_tree_depth(depth);
@@ -532,6 +544,14 @@ fn find_first_parameter_container_at_depth<'tree>(
         }
     }
     None
+}
+
+/// A Go method's receiver list is a parameter list, but not the method's
+/// parameters.
+fn is_method_receiver_list(node: Node<'_>) -> bool {
+    node.parent()
+        .and_then(|parent| parent.child_by_field_name("receiver"))
+        .is_some_and(|receiver| receiver.id() == node.id())
 }
 
 fn parameter_arity(node: Node<'_>) -> u32 {
@@ -652,7 +672,7 @@ const DEFAULT_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
 };
 
 const RUST_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
-    decision_node_kinds: &["if_expression", "match_expression"],
+    decision_node_kinds: &["if_expression", "match_arm"],
     loop_node_kinds: &["for_expression", "while_expression", "loop_expression"],
     parameter_container_node_kinds: &["parameters"],
     parameter_node_kinds: &["parameter", "self_parameter"],
@@ -675,9 +695,12 @@ const FSHARP_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
 const GO_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
     decision_node_kinds: &[
         "if_statement",
-        "switch_statement",
+        "expression_switch_statement",
         "type_switch_statement",
         "select_statement",
+        "expression_case",
+        "type_case",
+        "communication_case",
     ],
     loop_node_kinds: &["for_statement"],
     parameter_container_node_kinds: &["parameter_list"],

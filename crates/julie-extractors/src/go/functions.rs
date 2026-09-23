@@ -128,7 +128,7 @@ impl super::GoExtractor {
             self.callable_signature_tail(node)
         );
 
-        let doc_comment = self.find_function_doc_comment(&node);
+        let doc_comment = self.go_doc_comment(&node);
         let annotations = self.annotations_from_compiler_directives(&node);
 
         let mut metadata = HashMap::new();
@@ -159,6 +159,7 @@ impl super::GoExtractor {
                 annotations,
             },
         );
+        super::type_facts::record_return_type(&mut self.base, &symbol.id, node);
         Some(super::helpers::finalize_function_symbol(
             symbol,
             doc_comment,
@@ -191,7 +192,7 @@ impl super::GoExtractor {
             (self.extract_receiver_type_from_param(decl), is_pointer)
         });
 
-        let doc_comment = self.find_function_doc_comment(&node);
+        let doc_comment = self.go_doc_comment(&node);
         let annotations = self.annotations_from_compiler_directives(&node);
 
         let mut metadata = HashMap::new();
@@ -234,6 +235,7 @@ impl super::GoExtractor {
                 annotations,
             },
         );
+        super::type_facts::record_return_type(&mut self.base, &symbol.id, node);
         Some(super::helpers::finalize_function_symbol(
             symbol,
             doc_comment,
@@ -278,8 +280,8 @@ impl super::GoExtractor {
             Visibility::Private
         };
         let signature = format!("{name}{}", self.callable_signature_tail(node));
-        let doc_comment = self.base.find_doc_comment(&node);
-        Some(self.base.create_symbol(
+        let doc_comment = self.go_doc_comment(&node);
+        let symbol = self.base.create_symbol(
             &node,
             name,
             SymbolKind::Method,
@@ -288,9 +290,14 @@ impl super::GoExtractor {
                 visibility: Some(visibility),
                 parent_id: parent_id.map(str::to_string),
                 metadata: None,
-                doc_comment,
+                doc_comment: doc_comment.clone(),
                 annotations: Vec::new(),
             },
+        );
+        super::type_facts::record_return_type(&mut self.base, &symbol.id, node);
+        Some(super::helpers::finalize_function_symbol(
+            symbol,
+            doc_comment,
         ))
     }
 
@@ -379,7 +386,7 @@ impl super::GoExtractor {
             // This looks like a function signature trapped in an ERROR node
             let signature = format!("func {}{}", name, params);
 
-            let doc_comment = self.find_function_doc_comment(&node);
+            let doc_comment = self.go_doc_comment(&node);
 
             let symbol = self.base.create_symbol(
                 &node,

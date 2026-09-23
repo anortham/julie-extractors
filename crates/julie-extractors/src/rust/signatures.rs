@@ -2,9 +2,12 @@
 /// - Function signatures (extern functions)
 /// - Associated types
 /// - Return type extraction
-/// - Macro invocations
 /// - Use declarations
-use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
+use super::helpers::{
+    associated_item_owner, effective_visibility, extract_visibility, find_doc_comment,
+    item_annotations,
+};
+use crate::base::{Symbol, SymbolKind, SymbolOptions};
 use crate::rust::RustExtractor;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -58,21 +61,34 @@ pub(super) fn extract_function_signature(
         String::new()
     };
 
-    let signature = format!("fn {}{}{}", name, params, return_type);
+    let signature = format!(
+        "{}fn {}{}{}",
+        extract_visibility(base, node),
+        name,
+        params,
+        return_type
+    );
+    let kind = if associated_item_owner(node).is_some() {
+        SymbolKind::Method
+    } else {
+        SymbolKind::Function
+    };
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
         name,
-        SymbolKind::Function,
+        kind,
         SymbolOptions {
             signature: Some(signature),
-            visibility: Some(Visibility::Public), // extern functions are typically public
+            visibility: Some(effective_visibility(base, node)),
             parent_id,
-            doc_comment: None,
+            doc_comment: find_doc_comment(base, node),
             metadata: Some(HashMap::new()),
-            annotations: Vec::new(),
+            annotations: item_annotations(base, node),
         },
-    ))
+    );
+    super::type_facts::record_return_type(base, &symbol.id, node, None);
+    Some(symbol)
 }
 
 /// Extract associated type in a trait
@@ -102,111 +118,11 @@ pub(super) fn extract_associated_type(
         SymbolKind::Type,
         SymbolOptions {
             signature: Some(signature),
-            visibility: Some(Visibility::Public), // associated types in traits are public
+            visibility: Some(effective_visibility(base, node)),
             parent_id,
-            doc_comment: None,
+            doc_comment: find_doc_comment(base, node),
             metadata: Some(HashMap::new()),
-            annotations: Vec::new(),
-        },
-    ))
-}
-
-/// Known expression/utility macros that should NOT be extracted as symbols.
-///
-/// These are standard library, tracing, and common crate macros that appear
-/// inside function bodies as expressions/statements. Extracting them pollutes
-/// the symbol index, wastes embedding budget, and degrades search quality.
-const NOISE_MACROS: &[&str] = &[
-    // std — constructors and formatting
-    "vec",
-    "format",
-    "println",
-    "print",
-    "eprintln",
-    "eprint",
-    "write",
-    "writeln",
-    // std — assertions, debugging, and control flow
-    "dbg",
-    "matches",
-    "assert",
-    "assert_eq",
-    "assert_ne",
-    "debug_assert",
-    "debug_assert_eq",
-    "debug_assert_ne",
-    "panic",
-    "todo",
-    "unimplemented",
-    "unreachable",
-    // std — compile-time and env
-    "cfg",
-    "env",
-    "concat",
-    "stringify",
-    "include",
-    "include_str",
-    "include_bytes",
-    // tracing / log
-    "info",
-    "warn",
-    "error",
-    "debug",
-    "trace",
-    // anyhow
-    "bail",
-    "anyhow",
-    "ensure",
-];
-
-/// Extract macro invocation — only item-position macros that define named things.
-///
-/// Filters out expression macros (vec!, format!, matches!, etc.) which are just
-/// calls inside function bodies. Only extracts macros at item position: top-level
-/// (`source_file`) or inside declaration lists (mod, impl, extern blocks).
-pub(super) fn extract_macro_invocation(
-    extractor: &mut RustExtractor,
-    node: Node,
-    parent_id: Option<String>,
-) -> Option<Symbol> {
-    let base = extractor.get_base_mut();
-    let macro_name_node = node
-        .children(&mut node.walk())
-        .find(|c| c.kind() == "identifier");
-    let macro_name = macro_name_node.map(|n| base.get_node_text(&n))?;
-
-    if macro_name.is_empty() {
-        return None;
-    }
-
-    // Skip known expression/utility macros — these are never definitions
-    if NOISE_MACROS.contains(&macro_name.as_str()) {
-        return None;
-    }
-
-    // Only extract macros at item position (top-level or inside mod/impl/extern).
-    // Expression-position macros (inside function bodies, match arms, let bindings)
-    // are just calls, not definitions worth indexing.
-    if let Some(parent) = node.parent() {
-        let parent_kind = parent.kind();
-        if parent_kind != "source_file" && parent_kind != "declaration_list" {
-            return None;
-        }
-    }
-
-    let signature = format!("{}!(..)", macro_name);
-
-    Some(base.create_symbol(
-        &node,
-        macro_name,
-        SymbolKind::Function,
-        SymbolOptions {
-            signature: Some(signature),
-            visibility: Some(Visibility::Public),
-            parent_id,
-            doc_comment: None,
-            metadata: Some(HashMap::new()),
-            annotations: Vec::new(),
+            annotations: item_annotations(base, node),
         },
     ))
 }
@@ -221,6 +137,7 @@ pub(super) fn extract_use_symbols(
 ) -> Vec<Symbol> {
     let base = extractor.get_base_mut();
     let use_text = base.get_node_text(&node);
+    let visibility = effective_visibility(base, node);
     super::helpers::use_leaves(base, node)
         .into_iter()
         .map(|leaf| {
@@ -234,19 +151,21 @@ pub(super) fn extract_use_symbols(
             if let Some(alias) = leaf.alias {
                 metadata.insert("alias".to_string(), serde_json::Value::String(alias));
             }
-            base.create_symbol(
+            let mut symbol = base.create_symbol(
                 &node,
                 leaf.name,
                 SymbolKind::Import,
                 SymbolOptions {
                     signature: Some(use_text.clone()),
-                    visibility: Some(Visibility::Public),
+                    visibility: Some(visibility.clone()),
                     parent_id: parent_id.clone(),
                     doc_comment: None,
                     metadata: Some(metadata),
                     annotations: Vec::new(),
                 },
-            )
+            );
+            symbol.doc_comment = find_doc_comment(base, node);
+            symbol
         })
         .collect()
 }

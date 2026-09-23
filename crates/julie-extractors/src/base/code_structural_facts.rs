@@ -2046,9 +2046,10 @@ fn zig_has_keyword(content: &str, node: Node<'_>, keyword: &str) -> bool {
 
 fn zig_is_builtin_call(content: &str, node: Node<'_>) -> bool {
     match node.kind() {
-        "builtin_function" => node
-            .parent()
-            .is_none_or(|parent| parent.kind() != "call_expression"),
+        "builtin_function" => node.parent().is_none_or(|parent| {
+            parent.kind() != "call_expression"
+                || parent.child_by_field_name("function").map(|f| f.id()) != Some(node.id())
+        }),
         "call_expression" => node
             .child_by_field_name("function")
             .is_some_and(|function| {

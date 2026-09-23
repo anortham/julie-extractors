@@ -16,7 +16,7 @@
       "body_hash": null,
       "signature": "use std::sync::{Arc, Mutex as Lock};",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "importedName": "Arc"
@@ -42,7 +42,7 @@
       "body_hash": null,
       "signature": "use std::collections::HashMap;",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "importedName": "HashMap"
@@ -68,7 +68,7 @@
       "body_hash": null,
       "signature": "use std::sync::{Arc, Mutex as Lock};",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "alias": "Lock",
@@ -1321,6 +1321,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/rust/basic/source.rs:assert_eq:call:53:8",
+      "name": "assert_eq",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/basic/source.rs",
+      "start_line": 53,
+      "start_column": 8,
+      "end_line": 53,
+      "end_column": 17,
+      "start_byte": 1200,
+      "end_byte": 1209,
+      "containing_key": "fixtures/extraction/rust/basic/source.rs:count_doubled:52:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/rust/basic/source.rs:collections:type_usage:1:9",
       "name": "collections",
       "kind": "type_usage",
@@ -1789,6 +1805,17 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/rust/basic/source.rs:build_index:47:4",
+      "resolved_type": "HashMap",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "HashMap<String, Vec<u8>>"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/rust/basic/source.rs:count:57:20",
       "resolved_type": "i32",
       "generic_params": null,
@@ -1802,7 +1829,7 @@
       "resolved_type": "usize",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "rust",
       "metadata": null
     },
@@ -1811,7 +1838,7 @@
       "resolved_type": "i32",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "rust",
       "metadata": null
     },
@@ -1829,7 +1856,7 @@
       "resolved_type": "i32",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "rust",
       "metadata": null
     },
@@ -1849,7 +1876,7 @@
       "resolved_type": "i32",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "rust",
       "metadata": null
     },
@@ -1894,7 +1921,7 @@
       "resolved_type": "i32",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "rust",
       "metadata": null
     },

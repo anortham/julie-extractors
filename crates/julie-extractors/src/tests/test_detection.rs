@@ -1213,9 +1213,9 @@ fn generic_test_underscore_prefix_in_test_path() {
 #[test]
 fn generic_test_capital_prefix_in_test_path() {
     assert!(check(
-        "zig",
+        "c",
         "TestAllocator",
-        "tests/allocator_test.zig",
+        "tests/allocator_test.c",
         &SymbolKind::Function,
         &[],
         None,
@@ -2154,13 +2154,22 @@ fn test_is_test_symbol_dispatch_across_languages() {
             true,
         ),
         (
+            "c",
+            "TestAllocator",
+            "tests/allocator_test.c",
+            SymbolKind::Function,
+            vec![],
+            None,
+            true,
+        ),
+        (
             "zig",
             "TestAllocator",
             "tests/allocator_test.zig",
             SymbolKind::Function,
             vec![],
             None,
-            true,
+            false,
         ),
         // Generic: test_ prefix but NOT in test path → false
         (
@@ -2731,7 +2740,7 @@ TestCase {
 
 fn path_reads_as_test(file_path: &str) -> bool {
     check(
-        "zig",
+        "c",
         "test_thing",
         file_path,
         &SymbolKind::Function,

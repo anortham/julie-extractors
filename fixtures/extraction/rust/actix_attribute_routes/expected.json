@@ -40,7 +40,7 @@
       "body_hash": null,
       "signature": "use actix_web::{delete, get, post, route, web, HttpResponse, Responder};",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "importedName": "HttpResponse"
@@ -66,7 +66,7 @@
       "body_hash": null,
       "signature": "use actix_web::{delete, get, post, route, web, HttpResponse, Responder};",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "importedName": "Responder"
@@ -153,7 +153,7 @@
       "body_hash": null,
       "signature": "use actix_web::{delete, get, post, route, web, HttpResponse, Responder};",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "importedName": "delete"
@@ -221,7 +221,7 @@
       "body_hash": null,
       "signature": "use actix_web::{delete, get, post, route, web, HttpResponse, Responder};",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "importedName": "get"
@@ -376,7 +376,7 @@
       "body_hash": null,
       "signature": "use actix_web::{delete, get, post, route, web, HttpResponse, Responder};",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "importedName": "post"
@@ -402,7 +402,7 @@
       "body_hash": null,
       "signature": "use actix_web::{delete, get, post, route, web, HttpResponse, Responder};",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "importedName": "route"
@@ -528,7 +528,7 @@
       "body_hash": null,
       "signature": "use actix_web::{delete, get, post, route, web, HttpResponse, Responder};",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "importedName": "web"
@@ -1750,6 +1750,61 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:USERS:43:0",
+      "resolved_type": "str",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "&str"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:create:14:0",
+      "resolved_type": "Responder",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "impl Responder"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:destroy:22:0",
+      "resolved_type": "Responder",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "impl Responder"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:health:37:4",
+      "resolved_type": "Responder",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "impl Responder"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:list:46:0",
+      "resolved_type": "Responder",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "impl Responder"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:path:22:17",
       "resolved_type": "Path",
       "generic_params": null,
@@ -1779,6 +1834,28 @@
       "is_inferred": false,
       "language": "rust",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:show:8:0",
+      "resolved_type": "Responder",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "impl Responder"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:thing:28:0",
+      "resolved_type": "Responder",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "impl Responder"
+      }
     }
   ],
   "parse_diagnostics": [],

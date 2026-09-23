@@ -6,15 +6,12 @@ pub(super) fn infer_types(symbols: &[Symbol]) -> HashMap<String, String> {
     let mut types = HashMap::new();
 
     for symbol in symbols {
-        if metadata_flag(symbol, "isErrorType") {
-            types.insert(symbol.id.clone(), "error".to_string());
-        }
         if metadata_flag(symbol, "isTypeAlias") {
             types.insert(symbol.id.clone(), "type".to_string());
         }
 
         match symbol.kind {
-            SymbolKind::Struct if !metadata_flag(symbol, "isErrorType") => {
+            SymbolKind::Struct => {
                 types.insert(symbol.id.clone(), "struct".to_string());
             }
             SymbolKind::Enum => {

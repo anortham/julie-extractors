@@ -217,7 +217,26 @@
       "content_type": null
     }
   ],
-  "relationships": [],
+  "relationships": [
+    {
+      "from_key": "fixtures/extraction/go/malformed_recovery/source.go:EmbeddedStruct:5:5",
+      "to_key": "fixtures/extraction/go/malformed_recovery/source.go:Empty:3:5",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/go/malformed_recovery/source.go",
+      "line_number": 6,
+      "span": {
+        "start_line": 6,
+        "start_column": 4,
+        "end_line": 6,
+        "end_column": 9,
+        "start_byte": 68,
+        "end_byte": 73
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    }
+  ],
   "pending_relationships": [],
   "structured_pending_relationships": [],
   "identifiers": [

@@ -19,6 +19,7 @@ pub mod type_arguments;
 pub mod type_facts;
 pub mod types;
 pub mod wave1_gaps;
+pub mod wave2_gaps;
 // This isImplementation of most comprehensive extractors with 2000+ lines of tests
 // covering everything from basic structs to unsafe FFI code and procedural macros.
 
@@ -2389,8 +2390,7 @@ pub enum Status {
         }
 
         #[test]
-        fn test_private_enum_variants_are_public() {
-            // Even in a private enum, variants are "public" (inherit enum's visibility)
+        fn test_private_enum_variants_inherit_enum_visibility() {
             let rust_code = r#"
 enum InternalState {
     Idle,
@@ -2417,12 +2417,7 @@ enum InternalState {
                 .find(|s| s.name == "Idle" && s.kind == SymbolKind::EnumMember)
                 .expect("Should extract 'Idle' variant");
 
-            // Variants are always Public (they inherit from the enum's own accessibility)
-            assert_eq!(
-                idle.visibility.as_ref().unwrap(),
-                &Visibility::Public,
-                "Enum variants should always be Public"
-            );
+            assert_eq!(idle.visibility.as_ref().unwrap(), &Visibility::Private);
         }
 
         #[test]

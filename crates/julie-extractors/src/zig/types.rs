@@ -116,25 +116,71 @@ pub(super) fn extract_enum(
     ))
 }
 
-/// Extract enum variant/field declarations
+/// An enum tag (`identifier`, `debug = 0`), parented to its enum.
 pub(super) fn extract_enum_variant(
     base: &mut BaseExtractor,
     node: Node,
     parent_id: Option<&String>,
 ) -> Option<Symbol> {
-    let name_node = base.find_child_by_type(&node, "identifier")?;
-    let variant_name = base.get_node_text(&name_node);
-
+    let name_node = node
+        .child_by_field_name("name")
+        .filter(|name| !name.byte_range().is_empty())?;
+    let name = base.get_node_text(&name_node);
+    let signature = base
+        .get_node_text(&node)
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    let doc_comment = base.extract_documentation(&node);
     Some(base.create_symbol(
         &node,
-        variant_name.clone(),
+        name,
         SymbolKind::EnumMember,
         SymbolOptions {
-            signature: Some(variant_name),
+            signature: Some(signature),
             visibility: Some(Visibility::Public),
             parent_id: parent_id.cloned(),
             metadata: None,
-            doc_comment: None,
+            doc_comment,
+            annotations: Vec::new(),
+        },
+    ))
+}
+
+/// A member of a named error set (`const E = error{ A, B };`, also inside an
+/// `error{..} || Other` merge). Inline error sets in return types declare no
+/// named set, so their members are not symbols.
+pub(super) fn is_named_error_set_member(node: Node) -> bool {
+    let Some(set) = node
+        .parent()
+        .filter(|parent| parent.kind() == "error_set_declaration")
+    else {
+        return false;
+    };
+    let mut owner = set.parent();
+    while let Some(parent) = owner.filter(|parent| parent.kind() == "binary_expression") {
+        owner = parent.parent();
+    }
+    owner.is_some_and(|owner| owner.kind() == "variable_declaration")
+}
+
+pub(super) fn extract_error_set_member(
+    base: &mut BaseExtractor,
+    node: Node,
+    parent_id: Option<&String>,
+) -> Option<Symbol> {
+    let name = base.get_node_text(&node);
+    let doc_comment = base.extract_documentation(&node);
+    Some(base.create_symbol(
+        &node,
+        name.clone(),
+        SymbolKind::EnumMember,
+        SymbolOptions {
+            signature: Some(format!("error.{name}")),
+            visibility: Some(Visibility::Public),
+            parent_id: parent_id.cloned(),
+            metadata: None,
+            doc_comment,
             annotations: Vec::new(),
         },
     ))
@@ -146,10 +192,11 @@ pub(super) fn extract_struct_field(
     node: Node,
     parent_id: Option<&String>,
 ) -> Option<Symbol> {
-    let name_node = base.find_child_by_type(&node, "identifier")?;
+    let name_node = base
+        .find_child_by_type(&node, "identifier")
+        .filter(|name| !name.byte_range().is_empty())?;
     let field_name = base.get_node_text(&name_node);
 
-    // Look for type information in various forms
     let type_node = base
         .find_child_by_type(&node, "type_expression")
         .or_else(|| base.find_child_by_type(&node, "builtin_type"))
@@ -187,37 +234,6 @@ pub(super) fn extract_struct_field(
         type_facts::record_declared_type(base, &symbol.id, declared_type);
     }
     Some(symbol)
-}
-
-/// Extract error type declarations (error_declaration)
-pub(super) fn extract_error_type(
-    base: &mut BaseExtractor,
-    node: Node,
-    parent_id: Option<&String>,
-) -> Option<Symbol> {
-    let name_node = base.find_child_by_type(&node, "identifier")?;
-    let name = base.get_node_text(&name_node);
-
-    let signature = format!("error {}", name);
-    let metadata = Some({
-        let mut meta = HashMap::new();
-        meta.insert("isErrorType".to_string(), serde_json::Value::Bool(true));
-        meta
-    });
-
-    Some(base.create_symbol(
-        &node,
-        name,
-        SymbolKind::Enum,
-        SymbolOptions {
-            signature: Some(signature),
-            visibility: Some(Visibility::Public),
-            parent_id: parent_id.cloned(),
-            metadata,
-            doc_comment: base.extract_documentation(&node),
-            annotations: Vec::new(),
-        },
-    ))
 }
 
 /// Extract type alias declarations

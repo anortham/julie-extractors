@@ -159,7 +159,8 @@ fn normalize_angle_template(input: &str) -> NormalizedTemplate {
             .map(|(_, name)| name)
             .unwrap_or(inner)
             .trim()
-            .trim_end_matches('?');
+            .trim_end_matches('?')
+            .trim_end_matches("..");
         (!name.is_empty()).then(|| name.to_string())
     })
 }

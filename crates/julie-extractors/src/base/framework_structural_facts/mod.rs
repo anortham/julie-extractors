@@ -10,6 +10,7 @@ mod efcore;
 mod gdscript;
 mod giraffe;
 mod go_http;
+mod go_routers;
 mod helpers;
 mod htmx_templates;
 mod http_clients;
@@ -28,6 +29,7 @@ mod r;
 mod rails;
 mod razor;
 mod razor_mvc;
+mod rocket;
 mod scala_routes;
 mod scan;
 mod sinatra;
@@ -35,6 +37,7 @@ mod spring;
 mod static_arg;
 mod swift;
 mod symfony;
+mod zig;
 
 use tree_sitter::Tree;
 
@@ -47,6 +50,7 @@ use self::cowboy::collect_cowboy_routes;
 use self::efcore::collect_efcore_facts;
 use self::giraffe::collect_giraffe_routes;
 use self::go_http::collect_go_http_boundary_facts;
+use self::go_routers::collect_go_router_facts;
 use self::http_clients::{
     collect_backend_http_client_requests, collect_razor_http_client_requests,
 };
@@ -67,10 +71,12 @@ use self::python_web::collect_python_web_facts;
 use self::r::collect_r_framework_facts;
 use self::rails::collect_rails_routes;
 use self::razor::collect_razor_structural_facts;
+use self::rocket::collect_rocket_routes;
 use self::scala_routes::collect_scala_routes;
 use self::sinatra::collect_sinatra_routes;
 use self::spring::collect_spring_request_mappings;
 use self::symfony::collect_symfony_routes;
+use self::zig::collect_zig_facts;
 use super::attach_containing_symbols;
 use super::structural_facts::sort_structural_facts;
 use super::types::{StructuralFact, Symbol};
@@ -107,9 +113,21 @@ pub(super) const AXUM_NEST_PATTERN_ID: &str = "axum.nest.v1";
 pub(super) const ACTIX_ATTRIBUTE_ROUTE_PATTERN_ID: &str = "actix.attribute_route.v1";
 pub(super) const ACTIX_SCOPE_ROUTE_PATTERN_ID: &str = "actix.scope_route.v1";
 pub(super) const ACTIX_MOUNT_PATTERN_ID: &str = "actix.mount.v1";
+pub(super) const ROCKET_ROUTE_PATTERN_ID: &str = "rocket.route.v1";
+pub(super) const ROCKET_MOUNT_PATTERN_ID: &str = "rocket.mount.v1";
+pub(super) const HTTPZ_ROUTE_PATTERN_ID: &str = "httpz.route.v1";
+pub(super) const ZIG_BUILD_ARTIFACT_PATTERN_ID: &str = "zig.build_artifact.v1";
+pub(super) const ZIG_BUILD_DEPENDENCY_PATTERN_ID: &str = "zig.build_dependency.v1";
+pub(super) const ZIG_BUILD_MODULE_PATTERN_ID: &str = "zig.build_module.v1";
+pub(super) const ZIG_BUILD_MODULE_IMPORT_PATTERN_ID: &str = "zig.build_module_import.v1";
+pub(super) const ZIG_BUILD_STEP_PATTERN_ID: &str = "zig.build_step.v1";
 pub(super) const GO_NET_HTTP_ROUTE_PATTERN_ID: &str = "go.net_http.route.v1";
 pub(super) const GIN_ROUTE_PATTERN_ID: &str = "gin.route.v1";
 pub(super) const ECHO_ROUTE_PATTERN_ID: &str = "echo.route.v1";
+pub(super) const CHI_ROUTE_PATTERN_ID: &str = "chi.route.v1";
+pub(super) const CHI_MOUNT_PATTERN_ID: &str = "chi.mount.v1";
+pub(super) const GORILLA_MUX_ROUTE_PATTERN_ID: &str = "gorilla_mux.route.v1";
+pub(super) const FIBER_ROUTE_PATTERN_ID: &str = "fiber.route.v1";
 pub(super) const RAILS_ROUTE_PATTERN_ID: &str = "rails.route.v1";
 pub(super) const RAILS_RESOURCE_ROUTE_PATTERN_ID: &str = "rails.resource_route.v1";
 pub(super) const RAILS_MOUNT_PATTERN_ID: &str = "rails.mount.v1";
@@ -222,6 +240,10 @@ const GO_HTTP_PATTERN_IDS: &[&str] = &[
     GO_NET_HTTP_ROUTE_PATTERN_ID,
     GIN_ROUTE_PATTERN_ID,
     ECHO_ROUTE_PATTERN_ID,
+    CHI_ROUTE_PATTERN_ID,
+    CHI_MOUNT_PATTERN_ID,
+    GORILLA_MUX_ROUTE_PATTERN_ID,
+    FIBER_ROUTE_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -263,6 +285,15 @@ const ELIXIR_PATTERN_IDS: &[&str] = &[
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const ERLANG_PATTERN_IDS: &[&str] = &[COWBOY_ROUTE_PATTERN_ID, HTTP_CLIENT_REQUEST_PATTERN_ID];
+const ZIG_PATTERN_IDS: &[&str] = &[
+    HTTPZ_ROUTE_PATTERN_ID,
+    ZIG_BUILD_ARTIFACT_PATTERN_ID,
+    ZIG_BUILD_DEPENDENCY_PATTERN_ID,
+    ZIG_BUILD_MODULE_PATTERN_ID,
+    ZIG_BUILD_MODULE_IMPORT_PATTERN_ID,
+    ZIG_BUILD_STEP_PATTERN_ID,
+    HTTP_CLIENT_REQUEST_PATTERN_ID,
+];
 // The shared `rust` server arm. Task 5 declares axum + the rust client; Task 6
 // extends this with the actix pattern ids on the same language.
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -272,6 +303,8 @@ const RUST_PATTERN_IDS: &[&str] = &[
     ACTIX_ATTRIBUTE_ROUTE_PATTERN_ID,
     ACTIX_SCOPE_ROUTE_PATTERN_ID,
     ACTIX_MOUNT_PATTERN_ID,
+    ROCKET_ROUTE_PATTERN_ID,
+    ROCKET_MOUNT_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -439,6 +472,7 @@ pub fn collect_framework_structural_facts(
         }
         "go" => {
             let mut go_facts = collect_go_http_boundary_facts(language, tree, file_path, content);
+            go_facts.extend(collect_go_router_facts(language, tree, file_path, content));
             go_facts.extend(collect_backend_http_client_requests(
                 language, tree, file_path, content,
             ));
@@ -480,6 +514,7 @@ pub fn collect_framework_structural_facts(
         "rust" => {
             let mut rust_facts = collect_axum_routes(language, tree, file_path, content);
             rust_facts.extend(collect_actix_routes(language, tree, file_path, content));
+            rust_facts.extend(collect_rocket_routes(language, tree, file_path, content));
             rust_facts.extend(collect_backend_http_client_requests(
                 language, tree, file_path, content,
             ));
@@ -503,6 +538,13 @@ pub fn collect_framework_structural_facts(
         }
         "gdscript" => {
             gdscript::collect_gdscript_framework_facts(language, tree, file_path, content)
+        }
+        "zig" => {
+            let mut zig_facts = collect_zig_facts(language, tree, file_path, content);
+            zig_facts.extend(collect_backend_http_client_requests(
+                language, tree, file_path, content,
+            ));
+            zig_facts
         }
         "vue" => collect_vue_template_htmx_attributes(language, tree, file_path, content),
         "lua" => collect_lua_framework_facts(language, tree, file_path, content),
@@ -580,6 +622,7 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
             "godot.node_path.v1",
             "godot.rpc_annotation.v1",
         ],
+        "zig" => ZIG_PATTERN_IDS,
         "vue" => COMPONENT_MARKUP_FRAMEWORK_PATTERN_IDS,
         "lua" => LUA_PATTERN_IDS,
         "r" => R_PATTERN_IDS,

@@ -8,7 +8,7 @@ use tree_sitter::{Node, Tree};
 // Sub-modules
 mod error_handling;
 mod functions;
-mod helpers;
+pub(crate) mod helpers;
 mod identifiers;
 mod imports;
 mod parameters;
@@ -165,18 +165,24 @@ impl ZigExtractor {
                 parent_id,
                 helpers::is_public_declaration,
             ),
-            "error_declaration" => types::extract_error_type(&mut self.base, node, parent_id),
             "type_declaration" => types::extract_type_alias(
                 &mut self.base,
                 node,
                 parent_id,
                 helpers::is_public_declaration,
             ),
+            "container_field"
+                if node
+                    .parent()
+                    .is_some_and(|parent| parent.kind() == "enum_declaration") =>
+            {
+                types::extract_enum_variant(&mut self.base, node, parent_id)
+            }
             "field_declaration" | "struct_field" | "container_field" => {
                 types::extract_struct_field(&mut self.base, node, parent_id)
             }
-            "enum_field" | "enum_variant" => {
-                types::extract_enum_variant(&mut self.base, node, parent_id)
+            "identifier" if types::is_named_error_set_member(node) => {
+                types::extract_error_set_member(&mut self.base, node, parent_id)
             }
             "ERROR" => error_handling::extract_from_error_node(&mut self.base, node, parent_id),
             _ => None,

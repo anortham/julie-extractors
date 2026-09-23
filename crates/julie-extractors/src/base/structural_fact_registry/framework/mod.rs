@@ -17,6 +17,7 @@ mod python;
 mod r;
 mod rust;
 mod swift;
+mod zig;
 
 #[cfg(test)]
 pub(super) fn frontend_specs() -> &'static [StructuralFactPatternSpec] {
@@ -36,6 +37,7 @@ pub(super) fn specs() -> Vec<StructuralFactPatternSpec> {
         swift::SPECS,
         dart::SPECS,
         godot::SPECS,
+        zig::SPECS,
         frontend::SPECS,
     ]
     .concat()

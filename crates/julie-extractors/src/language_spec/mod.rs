@@ -231,7 +231,8 @@ const HASH_DOCS: &[DocCommentStyle] = &[DocCommentStyle::HashLine];
 const RUBY_DOCS: &[DocCommentStyle] = &[DocCommentStyle::RubyHashLine];
 const RAZOR_DOCS: &[DocCommentStyle] = &[DocCommentStyle::TripleSlash, DocCommentStyle::RazorBlock];
 const GDSCRIPT_DOCS: &[DocCommentStyle] = &[DocCommentStyle::GdscriptDoubleHash];
-const ZIG_DOCS: &[DocCommentStyle] = &[DocCommentStyle::TripleSlash];
+const ZIG_DOCS: &[DocCommentStyle] =
+    &[DocCommentStyle::TripleSlash, DocCommentStyle::RustInnerLine];
 const ERLANG_DOCS: &[DocCommentStyle] = &[DocCommentStyle::ErlangPercentBlock];
 const FSHARP_DOCS: &[DocCommentStyle] = &[DocCommentStyle::TripleSlash];
 

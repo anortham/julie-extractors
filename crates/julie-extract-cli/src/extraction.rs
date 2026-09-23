@@ -725,6 +725,13 @@ fn map_identifiers(
             for (key, value) in identifier.metadata.iter().flatten() {
                 metadata.insert(key.clone(), value.clone());
             }
+            if metadata
+                .get("receiver")
+                .is_some_and(serde_json::Value::is_null)
+            {
+                metadata.remove("receiver");
+                metadata.remove("receiver_qualifier");
+            }
             Ok(ArtifactIdentifier {
                 identifier_id: identifier.id.clone(),
                 reference_site_id: exact_reference_site_id(
@@ -809,7 +816,12 @@ fn receiver_token_before(source: &str, at: usize, language: &str) -> Option<(Str
             cursor += 1;
         }
     }
-    (cursor < end).then(|| (source[cursor..end].to_string(), cursor))
+    let token = &source[cursor..end];
+    // Rust `.await` is a postfix keyword, so `x.await.unwrap()` has no named receiver.
+    if cursor == end || (language == "rust" && token == "await") {
+        return None;
+    }
+    Some((token.to_string(), cursor))
 }
 
 fn receiver_before_identifier(source: &str, start_byte: u32, language: &str) -> Option<String> {
@@ -1563,6 +1575,16 @@ mod tests {
     }
 
     #[test]
+    fn rust_await_is_not_a_receiver() {
+        let source = "client.fetch().await.unwrap()";
+        let start = source.find("unwrap").unwrap() as u32;
+        assert_eq!(receiver_before_identifier(source, start, "rust"), None);
+        let source = "handle.await.len()";
+        let start = source.find("len").unwrap() as u32;
+        assert_eq!(receiver_before_identifier(source, start, "rust"), None);
+    }
+
+    #[test]
     fn arrow_is_a_receiver_separator_only_for_pointer_member_languages() {
         let source = "| Some value -> log value";
         let start = source.rfind("log").unwrap() as u32;
@@ -1875,6 +1897,14 @@ mod tests {
 
         assert_eq!(metadata["qml_binding"], Value::String("width".to_string()));
         assert_eq!(metadata["receiver"], Value::String("Rectangle".to_string()));
+    }
+
+    #[test]
+    fn extractor_null_receiver_suppresses_the_mapper_receiver_detection() {
+        let mut identifier = call_identifier("info", 13);
+        identifier.metadata = Some(HashMap::from([("receiver".to_string(), Value::Null)]));
+
+        assert_eq!(mapped_metadata_json(identifier, "else a else .info"), None);
     }
 
     #[test]

@@ -717,7 +717,7 @@ fn scoped_path_is_web(scoped: Node, content: &str) -> bool {
 /// The macro name of an `attribute` node (`#[get(...)]` → `get`,
 /// `#[actix_web::get(...)]` → `get`): the last path segment of the attribute's
 /// leading identifier / scoped-identifier.
-fn attribute_macro_name<'a>(attribute: Node, content: &'a str) -> Option<&'a str> {
+pub(super) fn attribute_macro_name<'a>(attribute: Node, content: &'a str) -> Option<&'a str> {
     let mut cursor = attribute.walk();
     for child in attribute.children(&mut cursor) {
         match child.kind() {
@@ -737,7 +737,7 @@ fn attribute_macro_name<'a>(attribute: Node, content: &'a str) -> Option<&'a str
 /// sibling that is a `function_item`, skipping intervening `attribute_item`s
 /// (a handler may carry several attributes). Returns `None` if a non-attribute,
 /// non-function sibling intervenes (so a macro on a non-fn item emits nothing).
-fn following_function_item(attr_item: Node) -> Option<Node> {
+pub(super) fn following_function_item(attr_item: Node) -> Option<Node> {
     let mut sibling = attr_item.next_sibling();
     while let Some(node) = sibling {
         match node.kind() {
@@ -751,7 +751,10 @@ fn following_function_item(attr_item: Node) -> Option<Node> {
 
 /// The `(receiver, method_name)` of a `receiver.method(...)` call, or `None` when
 /// the call's function is not a `field_expression` method callee.
-fn method_call_parts<'a, 't>(call: Node<'t>, content: &'a str) -> Option<(Node<'t>, &'a str)> {
+pub(super) fn method_call_parts<'a, 't>(
+    call: Node<'t>,
+    content: &'a str,
+) -> Option<(Node<'t>, &'a str)> {
     let function = call.child_by_field_name("function")?;
     if function.kind() != "field_expression" {
         return None;
@@ -762,7 +765,7 @@ fn method_call_parts<'a, 't>(call: Node<'t>, content: &'a str) -> Option<(Node<'
 }
 
 /// The positional argument value nodes of a `call_expression`, in order.
-fn call_arguments(call: Node) -> Vec<Node> {
+pub(super) fn call_arguments(call: Node) -> Vec<Node> {
     let Some(arguments) = ({
         let mut cursor = call.walk();
         call.children(&mut cursor)

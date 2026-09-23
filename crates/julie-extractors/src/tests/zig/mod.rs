@@ -2042,3 +2042,4 @@ pub mod test_detection;
 mod type_arguments;
 mod types; // Phase 4: Type extraction verification tests
 mod wave1_gaps;
+mod wave2_gaps;

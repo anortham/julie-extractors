@@ -206,6 +206,7 @@ pub fn is_test_symbol(
             detect_generic(name, file_path)
                 || (c_test_lifecycle_direction(name).is_lifecycle() && is_test_path(file_path))
         }
+        "zig" => false,
         _ => detect_generic(name, file_path),
     }
 }

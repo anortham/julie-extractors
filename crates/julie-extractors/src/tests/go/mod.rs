@@ -15,6 +15,7 @@ mod type_arguments;
 mod type_assertions;
 mod type_facts;
 mod wave1_gaps;
+mod wave2_gaps;
 
 #[cfg(test)]
 mod go_extractor_tests {
@@ -670,15 +671,16 @@ var Message string = "hello"
         let symbols = extractor.extract_symbols(&tree);
         let types = extractor.infer_types(&symbols);
 
-        let get_name = symbols.iter().find(|s| s.name == "GetName");
-        assert!(get_name.is_some());
-        let get_name = get_name.unwrap();
-        assert_eq!(types.get(&get_name.id), Some(&"string".to_string()));
-
-        let calculate = symbols.iter().find(|s| s.name == "Calculate");
-        assert!(calculate.is_some());
-        let calculate = calculate.unwrap();
-        assert_eq!(types.get(&calculate.id), Some(&"float64".to_string()));
+        let return_type = |name: &str| {
+            let symbol = symbols.iter().find(|s| s.name == name).unwrap();
+            extractor
+                .base
+                .type_info
+                .get(&symbol.id)
+                .map(|fact| fact.resolved_type.clone())
+        };
+        assert_eq!(return_type("GetName").as_deref(), Some("string"));
+        assert_eq!(return_type("Calculate").as_deref(), Some("float64"));
 
         let count = symbols.iter().find(|s| s.name == "Count");
         assert!(count.is_some());

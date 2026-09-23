@@ -69,6 +69,16 @@
           "name": "return_types",
           "source": "fixtures/extraction/rust/return_types/source.rs",
           "expected": "fixtures/extraction/rust/return_types/expected.json"
+        },
+        {
+          "name": "items_and_macros",
+          "source": "fixtures/extraction/rust/items_and_macros/source.rs",
+          "expected": "fixtures/extraction/rust/items_and_macros/expected.json"
+        },
+        {
+          "name": "rocket_routes",
+          "source": "fixtures/extraction/rust/rocket_routes/source.rs",
+          "expected": "fixtures/extraction/rust/rocket_routes/expected.json"
         }
       ],
       "target_capabilities": {
@@ -83,6 +93,8 @@
         "symbols": {
           "supported": [
             "constant",
+            "enum",
+            "enum_member",
             "field",
             "function",
             "import",
@@ -90,6 +102,7 @@
             "method",
             "namespace",
             "struct",
+            "type",
             "variable"
           ],
           "not_applicable": [],
@@ -138,6 +151,8 @@
             "axum.nest.v1",
             "axum.route.v1",
             "http.client_request.v1",
+            "rocket.mount.v1",
+            "rocket.route.v1",
             "rust.doc_test.v1",
             "rust.unsafe_block.v1"
           ],
@@ -197,7 +212,12 @@
         },
         "annotations": {
           "supported": [
+            "constant",
+            "enum",
+            "enum_member",
+            "field",
             "function",
+            "interface",
             "method",
             "namespace",
             "struct"
@@ -207,9 +227,12 @@
         },
         "doc_comments": {
           "supported": [
+            "constant",
             "function",
             "interface",
-            "struct"
+            "method",
+            "struct",
+            "type"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -662,6 +685,21 @@
           "name": "return_types",
           "source": "fixtures/extraction/go/return_types/source.go",
           "expected": "fixtures/extraction/go/return_types/expected.json"
+        },
+        {
+          "name": "types_and_relations",
+          "source": "fixtures/extraction/go/types_and_relations/source.go",
+          "expected": "fixtures/extraction/go/types_and_relations/expected.json"
+        },
+        {
+          "name": "router_frameworks",
+          "source": "fixtures/extraction/go/router_frameworks/source.go",
+          "expected": "fixtures/extraction/go/router_frameworks/expected.json"
+        },
+        {
+          "name": "gocheck_ginkgo",
+          "source": "fixtures/extraction/go/gocheck_ginkgo/source_test.go",
+          "expected": "fixtures/extraction/go/gocheck_ginkgo/expected.json"
         }
       ],
       "target_capabilities": {
@@ -675,6 +713,7 @@
       "kind_coverage": {
         "symbols": {
           "supported": [
+            "constant",
             "field",
             "function",
             "import",
@@ -682,6 +721,7 @@
             "method",
             "module",
             "struct",
+            "type",
             "variable"
           ],
           "not_applicable": [],
@@ -690,6 +730,8 @@
         "relationships": {
           "supported": [
             "calls",
+            "extends",
+            "implements",
             "uses"
           ],
           "not_applicable": [],
@@ -721,11 +763,15 @@
         },
         "structural_facts": {
           "supported": [
+            "chi.mount.v1",
+            "chi.route.v1",
             "echo.route.v1",
+            "fiber.route.v1",
             "gin.route.v1",
             "go.defer_statement.v1",
             "go.goroutine_launch.v1",
             "go.net_http.route.v1",
+            "gorilla_mux.route.v1",
             "http.client_request.v1"
           ],
           "not_applicable": [],
@@ -735,12 +781,6 @@
               "reason": "`go.mod` and `go.sum` carry the module path, the Go toolchain version, the require/replace/exclude graph, and the dependency checksums. Neither file has an extension, and no registered language claims an exact basename for them, so both are scanned as unsupported and publish no symbols or structural facts.",
               "required_closure": "register a Go module-manifest language keyed on the exact basenames `go.mod` and `go.sum`, the way `qmldir` is keyed on its exact basename, and register a golden fixture covering module, go, toolchain, require, replace, exclude, and checksum lines",
               "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 9 follow-up: Go module manifest language row"
-            },
-            {
-              "kind": "gocheck.suite_registration",
-              "reason": "gocheck binds a suite with `var _ = check.Suite(&MySuite{})` and embeds nothing, so a gocheck suite struct carries no syntactic marker. The container pass keys on an embedded `Suite` field, so gocheck suite methods publish their lifecycle and case roles while the suite struct itself stays unclassified.",
-              "required_closure": "recognise the `Suite(&T{})` registration call as a container declaration for the struct it names, and register a golden fixture with a same-named non-registration call as the control",
-              "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 9 follow-up: gocheck suite registration containers"
             }
           ]
         },
@@ -754,20 +794,24 @@
         },
         "annotations": {
           "supported": [
-            "struct",
+            "constant",
             "field",
-            "function"
+            "function",
+            "struct"
           ],
           "not_applicable": [],
           "open_gaps": []
         },
         "doc_comments": {
           "supported": [
+            "constant",
             "function",
             "interface",
             "method",
             "module",
-            "struct"
+            "struct",
+            "type",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -832,6 +876,26 @@
           "name": "return_types",
           "source": "fixtures/extraction/zig/return_types/source.zig",
           "expected": "fixtures/extraction/zig/return_types/expected.json"
+        },
+        {
+          "name": "declarations",
+          "source": "fixtures/extraction/zig/declarations/source.zig",
+          "expected": "fixtures/extraction/zig/declarations/expected.json"
+        },
+        {
+          "name": "file_struct",
+          "source": "fixtures/extraction/zig/file_struct/Tokenizer.zig",
+          "expected": "fixtures/extraction/zig/file_struct/expected.json"
+        },
+        {
+          "name": "build_graph",
+          "source": "fixtures/extraction/zig/build_graph/build.zig",
+          "expected": "fixtures/extraction/zig/build_graph/expected.json"
+        },
+        {
+          "name": "web",
+          "source": "fixtures/extraction/zig/web/source.zig",
+          "expected": "fixtures/extraction/zig/web/expected.json"
         }
       ],
       "target_capabilities": {
@@ -846,11 +910,14 @@
         "symbols": {
           "supported": [
             "constant",
+            "enum",
+            "enum_member",
             "field",
             "function",
             "import",
             "method",
             "struct",
+            "type",
             "variable"
           ],
           "not_applicable": [],
@@ -858,7 +925,8 @@
         },
         "relationships": {
           "supported": [
-            "calls"
+            "calls",
+            "composition"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -875,6 +943,8 @@
         },
         "body_spans": {
           "supported": [
+            "constant",
+            "enum",
             "function",
             "import",
             "method",
@@ -888,11 +958,18 @@
         },
         "structural_facts": {
           "supported": [
+            "http.client_request.v1",
+            "httpz.route.v1",
+            "zig.build_artifact.v1",
+            "zig.build_dependency.v1",
+            "zig.build_module.v1",
+            "zig.build_module_import.v1",
+            "zig.build_step.v1",
             "zig.builtin_call.v1",
-            "zig.threadlocal_variable.v1",
-            "zig.inline_function.v1",
+            "zig.comptime_parameter.v1",
             "zig.exported_function.v1",
-            "zig.comptime_parameter.v1"
+            "zig.inline_function.v1",
+            "zig.threadlocal_variable.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -907,6 +984,7 @@
         },
         "annotations": {
           "supported": [
+            "constant",
             "function",
             "variable"
           ],
@@ -915,7 +993,11 @@
         },
         "doc_comments": {
           "supported": [
-            "function"
+            "constant",
+            "enum",
+            "enum_member",
+            "function",
+            "struct"
           ],
           "not_applicable": [],
           "open_gaps": []

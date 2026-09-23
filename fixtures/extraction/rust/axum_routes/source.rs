@@ -43,3 +43,10 @@ async fn c() {}
 fn api_routes() -> Router {
     Router::new().route("/status", get(show))
 }
+
+/// Method routers named through the `routing` module path.
+pub fn qualified() -> Router {
+    Router::new()
+        .route("/q/a", axum::routing::post(a))
+        .route("/q/b", routing::get(b))
+}

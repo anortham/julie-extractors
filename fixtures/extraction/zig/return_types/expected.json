@@ -14,13 +14,13 @@
       "end_byte": 37,
       "body_span": {
         "start_line": 1,
-        "start_column": 22,
+        "start_column": 15,
         "end_line": 1,
         "end_column": 36,
-        "start_byte": 22,
+        "start_byte": 15,
         "end_byte": 36
       },
-      "body_hash": "66abcce0a470fb9f45492b146849d689",
+      "body_hash": "5a0d9d755f5b173ea7f0cd8f757caa48",
       "signature": "const Result = struct",
       "doc_comment": null,
       "visibility": "Private",
@@ -121,7 +121,10 @@
       "end_byte": 79,
       "containing_key": "fixtures/extraction/zig/return_types/source.zig:makeResult:2:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": null
+      }
     }
   ],
   "types": [

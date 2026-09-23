@@ -923,6 +923,128 @@
     "query_family": "preprocessor"
   },
   {
+    "description": "A go-chi `r.Mount(\"/lit\", handler)` sub-router mount at its registration site.",
+    "languages": [
+      "go"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Static mount path, joined with the same-file router prefix.",
+        "key": "mount_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Normalized mount path (`{id}` captures as `:id`).",
+        "key": "normalized_mount_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Source text of the mounted handler (no route join is guessed).",
+        "key": "mount_target",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "chi.mount.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A go-chi route registration on a traced router, with the same-file `Route` prefix.",
+    "languages": [
+      "go"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"call_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template; `{id}` captures normalize to `:id`.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Same-file router prefix.",
+        "key": "route_group_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Router prefix joined with route template.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Uppercase HTTP method; omitted for any-method registrations.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "chi.route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "An actionable TODO, FIXME, HACK, XXX, or RAZORBACK at the start of a comment line.",
     "languages": [
       "rust",
@@ -2857,6 +2979,82 @@
     "query_family": "framework"
   },
   {
+    "description": "A gofiber route registration on a traced app or `Group` receiver.",
+    "languages": [
+      "go"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"call_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template; `:id` params stay `:id`.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Same-file router prefix.",
+        "key": "route_group_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Router prefix joined with route template.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Uppercase HTTP method; omitted for any-method registrations.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "fiber.route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "A Flask register_blueprint mount call.",
     "languages": [
       "python"
@@ -3843,6 +4041,82 @@
     "query_family": "signals"
   },
   {
+    "description": "A gorilla/mux `HandleFunc`/`Handle` registration, one fact per `.Methods(...)` verb, with the same-file `PathPrefix(..).Subrouter()` prefix.",
+    "languages": [
+      "go"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"call_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template; `{id}` captures normalize to `:id`.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Same-file router prefix.",
+        "key": "route_group_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Router prefix joined with route template.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Uppercase HTTP method; omitted for any-method registrations.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "gorilla_mux.route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "An HTML image-map area link (`<area href>`).",
     "languages": [
       "html"
@@ -4571,7 +4845,8 @@
       "fsharp",
       "powershell",
       "swift",
-      "dart"
+      "dart",
+      "zig"
     ],
     "metadata_keys": [
       {
@@ -4593,7 +4868,7 @@
         "value_type": "string"
       },
       {
-        "description": "HTTP client label (for example fetch, axios, ofetch (`$fetch`), nuxt (`useFetch`, `useLazyFetch`), requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, invoke-restmethod, invoke-webrequest, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, spring_restclient, openfeign, requests_scala, sttp, play_ws, req, tesla, httpoison, finch, httpc, wget, urlsession, alamofire, dart_http, dio, hackney, gun).",
+        "description": "HTTP client label (for example fetch, axios, ofetch (`$fetch`), nuxt (`useFetch`, `useLazyFetch`), requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, invoke-restmethod, invoke-webrequest, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, spring_restclient, openfeign, requests_scala, sttp, play_ws, req, tesla, httpoison, finch, httpc, wget, urlsession, alamofire, dart_http, dio, hackney, gun, std.http).",
         "key": "client",
         "presence": "always",
         "value_type": "string"
@@ -4694,6 +4969,88 @@
       }
     ],
     "pattern_id": "http4s.route.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "An http.zig route registration (`router.get(\"/p\", handler, .{})`) on a router from `server.router(..)` or a `group(\"/prefix\", ..)` of one.",
+    "languages": [
+      "zig"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"call_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template; `:id` params stay `:id`.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Same-file `group` prefix.",
+        "key": "route_group_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Group prefix joined with route template.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Uppercase HTTP method; omitted for `all` registrations.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Source text of the handler argument.",
+        "key": "handler_name",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "httpz.route.v1",
     "query_family": "framework"
   },
   {
@@ -10222,6 +10579,122 @@
     "query_family": "pattern_structure"
   },
   {
+    "description": "A static Rocket `.mount(\"/lit\", routes![a, b])` registration, the prefix and handler names recorded at the mount site.",
+    "languages": [
+      "rust"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static mount path literal.",
+        "key": "mount_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Normalized mount path (Rocket angle captures as `:param`).",
+        "key": "normalized_mount_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Source text of the `routes![..]` argument.",
+        "key": "mount_target",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Handler names the `routes!` list registers (last path segment of each entry); the handlers' own route facts may live in other files.",
+        "key": "handler_names",
+        "presence": "always",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "rocket.mount.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A static Rocket attribute-macro route (`#[get(\"/x\")]` / `#[route(GET, uri = \"/x\")]`) on a handler fn.",
+    "languages": [
+      "rust"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"attribute\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path from the attribute macro.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key; Rocket `<id>` / `<path..>` captures normalize to `:id` / `:path` segments.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Uppercase HTTP method from the macro name (`#[get]`→GET) or the first `#[route]` argument.",
+        "key": "verb",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested (\"attested\"; route macros always name the verb).",
+        "key": "verb_source",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "rocket.route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "A Ruby block (`do…end` or `{…}`).",
     "languages": [
       "ruby"
@@ -14515,6 +14988,206 @@
     ],
     "pattern_id": "yaml.sequence.v1",
     "query_family": "config_structure"
+  },
+  {
+    "description": "A `build.zig` compile artifact (`b.addExecutable`, `addLibrary`, `addStaticLibrary`, `addSharedLibrary`, `addObject`, `addTest`).",
+    "languages": [
+      "zig"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "executable, library, static_library, shared_library, object, or test.",
+        "key": "artifact_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The static `.name` option.",
+        "key": "artifact_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The static root source path, direct or through `.root_module = b.createModule(..)`.",
+        "key": "root_source_file",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "zig.build_artifact.v1",
+    "query_family": "build"
+  },
+  {
+    "description": "A `build.zig` package dependency (`b.dependency(\"name\", ..)`).",
+    "languages": [
+      "zig"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The dependency name from `build.zig.zon`.",
+        "key": "dependency_name",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "zig.build_dependency.v1",
+    "query_family": "build"
+  },
+  {
+    "description": "A `build.zig` module definition (`b.addModule(\"name\", .{ .root_source_file = .. })` or `b.createModule(..)`).",
+    "languages": [
+      "zig"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The public module name (`addModule` only).",
+        "key": "module_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The static root source path.",
+        "key": "root_source_file",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "zig.build_module.v1",
+    "query_family": "build"
+  },
+  {
+    "description": "A `build.zig` module import (`module.addImport(\"name\", dep.module(\"name\"))`).",
+    "languages": [
+      "zig"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The name the module is imported under (`@import(\"name\")`).",
+        "key": "import_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Source text of the imported module expression.",
+        "key": "module_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "zig.build_module_import.v1",
+    "query_family": "build"
+  },
+  {
+    "description": "A named `build.zig` step (`b.step(\"run\", \"description\")`).",
+    "languages": [
+      "zig"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The step name (`zig build <name>`).",
+        "key": "step_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The step description.",
+        "key": "step_description",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "zig.build_step.v1",
+    "query_family": "build"
   },
   {
     "description": "A Zig builtin function call (`@name(...)`).",

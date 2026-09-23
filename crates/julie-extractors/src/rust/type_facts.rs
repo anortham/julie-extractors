@@ -95,3 +95,33 @@ pub(super) fn base_type_name_node(node: Node) -> Option<Node> {
         }
     }
 }
+
+/// Record a function's declared return type (`is_inferred=false`). `Self`
+/// resolves to the implemented type inside an impl block; the declared text
+/// stays in `metadata.declared`.
+pub(super) fn record_return_type(
+    base: &mut BaseExtractor,
+    symbol_id: &str,
+    function: Node,
+    impl_type_name: Option<&str>,
+) {
+    let Some(return_type) = function.child_by_field_name("return_type") else {
+        return;
+    };
+    let Some(name_node) = base_type_name_node(return_type) else {
+        return;
+    };
+    let base_name = base.get_node_text(&name_node);
+    let base_name = match impl_type_name {
+        Some(impl_type_name) if base_name == "Self" => impl_type_name.to_string(),
+        _ => base_name,
+    };
+    let declared = base.get_node_text(&return_type);
+    base.record_declared_type_fact_with_declared(
+        symbol_id,
+        &base_name,
+        &declared,
+        &RUST_TYPE_NAME_RULES,
+        false,
+    );
+}

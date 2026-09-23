@@ -6,7 +6,6 @@ use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
 use crate::rust::RustExtractor;
 use serde_json::Value;
 use std::collections::HashMap;
-use std::collections::VecDeque;
 use tree_sitter::Node;
 
 /// True when a `parameter`/`self_parameter` node belongs to a function or
@@ -122,53 +121,6 @@ pub(super) fn extract_let_local(
         type_facts::record_initializer_type(base, &symbol.id, value);
     }
     Some(symbol)
-}
-
-/// Phase-2 walk of one impl-block method body: parameters and `let` bindings
-/// become symbols parented to the method. Nested `function_item` subtrees are
-/// skipped, matching phase 2's method-only symbol extraction.
-pub(super) fn extract_callable_locals(
-    extractor: &mut RustExtractor,
-    fn_node: Node,
-    parent_id: Option<String>,
-    impl_type_name: Option<&str>,
-    symbols: &mut Vec<Symbol>,
-) {
-    let mut pending = VecDeque::from([fn_node]);
-    while let Some(node) = pending.pop_front() {
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            match child.kind() {
-                "function_item" => {}
-                "parameter" => {
-                    if is_callable_parameter(child)
-                        && let Some(symbol) = extract_parameter(extractor, child, parent_id.clone())
-                    {
-                        symbols.push(symbol);
-                    }
-                }
-                "self_parameter" => {
-                    if is_callable_parameter(child)
-                        && let Some(symbol) = extract_self_parameter(
-                            extractor,
-                            child,
-                            parent_id.clone(),
-                            impl_type_name,
-                        )
-                    {
-                        symbols.push(symbol);
-                    }
-                }
-                "let_declaration" => {
-                    if let Some(symbol) = extract_let_local(extractor, child, parent_id.clone()) {
-                        symbols.push(symbol);
-                    }
-                    pending.push_back(child);
-                }
-                _ => pending.push_back(child),
-            }
-        }
-    }
 }
 
 fn binding_identifier(pattern: Node) -> Option<Node> {

@@ -499,7 +499,7 @@ type Registry struct {
     }
 
     #[test]
-    fn mismatched_short_var_targets_become_symbols_without_facts() {
+    fn multi_value_short_var_targets_take_same_file_result_types() {
         let (symbols, extractor) = extract(
             r#"
 package main
@@ -522,7 +522,12 @@ func Use(m map[string]int) {
         for name in ["s", "err", "val", "ok", "skip"] {
             let local = variable(&symbols, name);
             assert_eq!(local.parent_id.as_deref(), Some(callable.id.as_str()));
-            no_fact(&extractor, local);
+        }
+        let store = fact(&extractor, variable(&symbols, "s"));
+        assert_eq!(store.resolved_type, "Store");
+        assert!(store.is_inferred);
+        for name in ["err", "val", "ok", "skip"] {
+            no_fact(&extractor, variable(&symbols, name));
         }
         assert!(symbols.iter().all(|s| s.name != "_"));
     }

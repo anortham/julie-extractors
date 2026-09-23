@@ -2355,11 +2355,20 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/go/basic/source.go:Decode:82:0",
+      "resolved_type": "Worker",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/go/basic/source.go:Evaluate:59:0",
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "go",
       "metadata": null
     },
@@ -2368,7 +2377,7 @@
       "resolved_type": "error",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "go",
       "metadata": null
     },
@@ -2382,11 +2391,29 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/go/basic/source.go:Load:73:2",
+      "resolved_type": "Worker",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/go/basic/source.go:Load:87:0",
+      "resolved_type": "Worker",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "go",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/go/basic/source.go:NewWorker:19:0",
       "resolved_type": "Worker",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "go",
       "metadata": null
     },
@@ -2395,7 +2422,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "go",
       "metadata": null
     },
@@ -2431,7 +2458,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "go",
       "metadata": null
     },
@@ -2741,7 +2768,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": 1,
+      "parameter_count": 0,
       "start_line": 91,
       "start_column": 26,
       "end_line": 93,
@@ -2763,7 +2790,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": 1,
+      "parameter_count": 0,
       "start_line": 23,
       "start_column": 26,
       "end_line": 26,
@@ -2785,7 +2812,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": 1,
+      "parameter_count": 0,
       "start_line": 28,
       "start_column": 24,
       "end_line": 34,

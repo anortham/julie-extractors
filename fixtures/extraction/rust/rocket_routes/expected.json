@@ -1,0 +1,1444 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:Json:4:0",
+      "name": "Json",
+      "kind": "import",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 30,
+      "start_byte": 35,
+      "end_byte": 65,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "use rocket::serde::json::Json;",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {
+        "importedName": "Json"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:age:7:21",
+      "name": "age",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 7,
+      "start_column": 21,
+      "end_line": 7,
+      "end_column": 28,
+      "start_byte": 118,
+      "end_byte": 125,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "age: u8",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/rocket_routes/source.rs:hello:7:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:create:12:0",
+      "name": "create",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 12,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 1,
+      "start_byte": 209,
+      "end_byte": 270,
+      "body_span": {
+        "start_line": 12,
+        "start_column": 38,
+        "end_line": 14,
+        "end_column": 1,
+        "start_byte": 247,
+        "end_byte": 270
+      },
+      "body_hash": "02802b77cb6555af5711f51c755c1e28",
+      "signature": "fn create(user: Json<User>) -> Status",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "post",
+          "annotation_key": "post",
+          "raw_text": "post(\"/users\", data = \"<user>\")"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:hello:7:0",
+      "name": "hello",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 1,
+      "start_byte": 97,
+      "end_byte": 172,
+      "body_span": {
+        "start_line": 7,
+        "start_column": 40,
+        "end_line": 9,
+        "end_column": 1,
+        "start_byte": 137,
+        "end_byte": 172
+      },
+      "body_hash": "cb6cd2a22e093b1b6a2a976de384fa6d",
+      "signature": "fn hello(name: &str, age: u8) -> String",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "get",
+          "annotation_key": "get",
+          "raw_text": "get(\"/hello/<name>/<age>\")"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:name:7:9",
+      "name": "name",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 7,
+      "start_column": 9,
+      "end_line": 7,
+      "end_column": 19,
+      "start_byte": 106,
+      "end_byte": 116,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "name: &str",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/rocket_routes/source.rs:hello:7:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:path:17:10",
+      "name": "path",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 17,
+      "start_column": 10,
+      "end_line": 17,
+      "end_column": 23,
+      "start_byte": 324,
+      "end_byte": 337,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "path: PathBuf",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/rocket_routes/source.rs:remove:17:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:remove:17:0",
+      "name": "remove",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 17,
+      "start_column": 0,
+      "end_line": 19,
+      "end_column": 1,
+      "start_byte": 314,
+      "end_byte": 374,
+      "body_span": {
+        "start_line": 17,
+        "start_column": 35,
+        "end_line": 19,
+        "end_column": 1,
+        "start_byte": 349,
+        "end_byte": 374
+      },
+      "body_hash": "bb29bff77ab32ff6d4ae4a8240cc447a",
+      "signature": "fn remove(path: PathBuf) -> Status",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "route",
+          "annotation_key": "route",
+          "raw_text": "route(DELETE, uri = \"/files/<path..>\")"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "name": "rocket",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 22,
+      "start_column": 0,
+      "end_line": 26,
+      "end_column": 1,
+      "start_byte": 386,
+      "end_byte": 515,
+      "body_span": {
+        "start_line": 22,
+        "start_column": 17,
+        "end_line": 26,
+        "end_column": 1,
+        "start_byte": 403,
+        "end_byte": 515
+      },
+      "body_hash": "4933c7451eef4bcbef35f9794e6a5940",
+      "signature": "fn rocket() -> _",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "launch",
+          "annotation_key": "launch",
+          "raw_text": "launch"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:2:0",
+      "name": "rocket",
+      "kind": "import",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 20,
+      "start_byte": 13,
+      "end_byte": 33,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "extern crate rocket;",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {
+        "importedName": "rocket"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:user:12:10",
+      "name": "user",
+      "kind": "variable",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 12,
+      "start_column": 10,
+      "end_line": 12,
+      "end_column": 26,
+      "start_byte": 219,
+      "end_byte": 235,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "user: Json<User>",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/rocket_routes/source.rs:create:12:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/rust/rocket_routes/source.rs:Json:4:0",
+      "callee_name": "rocket::serde::json::Json",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "line_number": 4,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "callee_name": "build",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "line_number": 23,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "callee_name": "mount",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "line_number": 23,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "callee_name": "mount",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "line_number": 23,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "callee_name": "routes",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "line_number": 24,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "callee_name": "routes",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "line_number": 25,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:2:0",
+      "callee_name": "rocket",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "line_number": 2,
+      "confidence": "1.000"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/rocket_routes/source.rs:Json:4:0",
+        "callee_name": "rocket::serde::json::Json",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+        "line_number": 4,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "rocket::serde::json::Json",
+        "terminal_name": "Json",
+        "receiver": null,
+        "namespace_path": [
+          "rocket",
+          "serde",
+          "json"
+        ],
+        "import_context": "use rocket::serde::json::Json;"
+      },
+      "caller_scope_key": "fixtures/extraction/rust/rocket_routes/source.rs:Json:4:0",
+      "span": {
+        "start_line": 4,
+        "start_column": 0,
+        "end_line": 4,
+        "end_column": 30,
+        "start_byte": 35,
+        "end_byte": 65
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+        "callee_name": "build",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+        "line_number": 23,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "rocket::build",
+        "terminal_name": "build",
+        "receiver": null,
+        "namespace_path": [
+          "rocket"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "span": {
+        "start_line": 23,
+        "start_column": 4,
+        "end_line": 23,
+        "end_column": 19,
+        "start_byte": 409,
+        "end_byte": 424
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+        "callee_name": "mount",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+        "line_number": 23,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "rocket::build().mount",
+        "terminal_name": "mount",
+        "receiver": "rocket::build()",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "span": {
+        "start_line": 23,
+        "start_column": 4,
+        "end_line": 24,
+        "end_column": 46,
+        "start_byte": 409,
+        "end_byte": 471
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+        "callee_name": "mount",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+        "line_number": 23,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "rocket::build()\n        .mount(\"/api\", routes![hello, create]).mount",
+        "terminal_name": "mount",
+        "receiver": "rocket::build()\n        .mount(\"/api\", routes![hello, create])",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "span": {
+        "start_line": 23,
+        "start_column": 4,
+        "end_line": 25,
+        "end_column": 41,
+        "start_byte": 409,
+        "end_byte": 513
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+        "callee_name": "routes",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+        "line_number": 24,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "routes",
+        "terminal_name": "routes",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "span": {
+        "start_line": 24,
+        "start_column": 23,
+        "end_line": 24,
+        "end_column": 45,
+        "start_byte": 448,
+        "end_byte": 470
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+        "callee_name": "routes",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+        "line_number": 25,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "routes",
+        "terminal_name": "routes",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "span": {
+        "start_line": 25,
+        "start_column": 25,
+        "end_line": 25,
+        "end_column": 40,
+        "start_byte": 497,
+        "end_byte": 512
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:2:0",
+        "callee_name": "rocket",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+        "line_number": 2,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "rocket",
+        "terminal_name": "rocket",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "extern crate rocket;"
+      },
+      "caller_scope_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:2:0",
+      "span": {
+        "start_line": 2,
+        "start_column": 0,
+        "end_line": 2,
+        "end_column": 20,
+        "start_byte": 13,
+        "end_byte": 33
+      }
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:Created:type_usage:13:12",
+      "name": "Created",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 13,
+      "start_column": 12,
+      "end_line": 13,
+      "end_column": 19,
+      "start_byte": 261,
+      "end_byte": 268,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:create:12:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:Json:type_usage:12:16",
+      "name": "Json",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 12,
+      "start_column": 16,
+      "end_line": 12,
+      "end_column": 20,
+      "start_byte": 225,
+      "end_byte": 229,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:create:12:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:Json:type_usage:4:25",
+      "name": "Json",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 4,
+      "start_column": 25,
+      "end_line": 4,
+      "end_column": 29,
+      "start_byte": 60,
+      "end_byte": 64,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:Json:4:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:NoContent:type_usage:18:12",
+      "name": "NoContent",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 18,
+      "start_column": 12,
+      "end_line": 18,
+      "end_column": 21,
+      "start_byte": 363,
+      "end_byte": 372,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:remove:17:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:PathBuf:type_usage:17:16",
+      "name": "PathBuf",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 17,
+      "start_column": 16,
+      "end_line": 17,
+      "end_column": 23,
+      "start_byte": 330,
+      "end_byte": 337,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:remove:17:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:Status:type_usage:12:31",
+      "name": "Status",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 12,
+      "start_column": 31,
+      "end_line": 12,
+      "end_column": 37,
+      "start_byte": 240,
+      "end_byte": 246,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:create:12:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:Status:type_usage:17:28",
+      "name": "Status",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 17,
+      "start_column": 28,
+      "end_line": 17,
+      "end_column": 34,
+      "start_byte": 342,
+      "end_byte": 348,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:remove:17:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:Status:variable_ref:13:4",
+      "name": "Status",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 13,
+      "start_column": 4,
+      "end_line": 13,
+      "end_column": 10,
+      "start_byte": 253,
+      "end_byte": 259,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:create:12:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:Status:variable_ref:18:4",
+      "name": "Status",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 18,
+      "start_column": 4,
+      "end_line": 18,
+      "end_column": 10,
+      "start_byte": 355,
+      "end_byte": 361,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:remove:17:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:String:type_usage:7:33",
+      "name": "String",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 7,
+      "start_column": 33,
+      "end_line": 7,
+      "end_column": 39,
+      "start_byte": 130,
+      "end_byte": 136,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:hello:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:User:type_usage:12:21",
+      "name": "User",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 12,
+      "start_column": 21,
+      "end_line": 12,
+      "end_column": 25,
+      "start_byte": 230,
+      "end_byte": 234,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:create:12:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:age:variable_ref:8:27",
+      "name": "age",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 8,
+      "start_column": 27,
+      "end_line": 8,
+      "end_column": 30,
+      "start_byte": 166,
+      "end_byte": 169,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:hello:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:build:call:23:12",
+      "name": "build",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 23,
+      "start_column": 12,
+      "end_line": 23,
+      "end_column": 17,
+      "start_byte": 417,
+      "end_byte": 422,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:create:variable_ref:24:38",
+      "name": "create",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 24,
+      "start_column": 38,
+      "end_line": 24,
+      "end_column": 44,
+      "start_byte": 463,
+      "end_byte": 469,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:format:call:8:4",
+      "name": "format",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 8,
+      "start_column": 4,
+      "end_line": 8,
+      "end_column": 10,
+      "start_byte": 143,
+      "end_byte": 149,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:hello:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:hello:variable_ref:24:31",
+      "name": "hello",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 24,
+      "start_column": 31,
+      "end_line": 24,
+      "end_column": 36,
+      "start_byte": 456,
+      "end_byte": 461,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:json:type_usage:4:19",
+      "name": "json",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 4,
+      "start_column": 19,
+      "end_line": 4,
+      "end_column": 23,
+      "start_byte": 54,
+      "end_byte": 58,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:Json:4:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:mount:call:24:9",
+      "name": "mount",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 24,
+      "start_column": 9,
+      "end_line": 24,
+      "end_column": 14,
+      "start_byte": 434,
+      "end_byte": 439,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:mount:call:25:9",
+      "name": "mount",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 25,
+      "start_column": 9,
+      "end_line": 25,
+      "end_column": 14,
+      "start_byte": 481,
+      "end_byte": 486,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:name:variable_ref:8:21",
+      "name": "name",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 8,
+      "start_column": 21,
+      "end_line": 8,
+      "end_column": 25,
+      "start_byte": 160,
+      "end_byte": 164,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:hello:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:remove:variable_ref:25:33",
+      "name": "remove",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 25,
+      "start_column": 33,
+      "end_line": 25,
+      "end_column": 39,
+      "start_byte": 505,
+      "end_byte": 511,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:variable_ref:23:4",
+      "name": "rocket",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 23,
+      "start_column": 4,
+      "end_line": 23,
+      "end_column": 10,
+      "start_byte": 409,
+      "end_byte": 415,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:routes:call:24:23",
+      "name": "routes",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 24,
+      "start_column": 23,
+      "end_line": 24,
+      "end_column": 29,
+      "start_byte": 448,
+      "end_byte": 454,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:routes:call:25:25",
+      "name": "routes",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 25,
+      "start_column": 25,
+      "end_line": 25,
+      "end_column": 31,
+      "start_byte": 497,
+      "end_byte": 503,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/rocket_routes/source.rs:serde:type_usage:4:12",
+      "name": "serde",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 4,
+      "start_column": 12,
+      "end_line": 4,
+      "end_column": 17,
+      "start_byte": 47,
+      "end_byte": 52,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:Json:4:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/rust/rocket_routes/source.rs:age:7:21",
+      "resolved_type": "u8",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/rocket_routes/source.rs:create:12:0",
+      "resolved_type": "Status",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/rocket_routes/source.rs:hello:7:0",
+      "resolved_type": "String",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/rocket_routes/source.rs:name:7:9",
+      "resolved_type": "str",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "&str"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/rocket_routes/source.rs:path:17:10",
+      "resolved_type": "PathBuf",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/rocket_routes/source.rs:remove:17:0",
+      "resolved_type": "Status",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "resolved_type": "_",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/rocket_routes/source.rs:user:12:10",
+      "resolved_type": "Json",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "rust",
+      "metadata": {
+        "declared": "Json<User>"
+      }
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "rocket.mount.v1",
+      "capture_name": "mount",
+      "node_kind": "call_expression",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "start_line": 23,
+      "start_column": 4,
+      "end_line": 24,
+      "end_column": 46,
+      "start_byte": 409,
+      "end_byte": 471,
+      "confidence": "1.000",
+      "metadata": {
+        "framework": "rocket",
+        "handler_names": [
+          "hello",
+          "create"
+        ],
+        "mount_path": "/api",
+        "mount_target": "routes![hello, create]",
+        "normalized_mount_path": "/api",
+        "pattern_version": 1,
+        "query_family": "framework"
+      }
+    },
+    {
+      "pattern_id": "rocket.mount.v1",
+      "capture_name": "mount",
+      "node_kind": "call_expression",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "start_line": 23,
+      "start_column": 4,
+      "end_line": 25,
+      "end_column": 41,
+      "start_byte": 409,
+      "end_byte": 513,
+      "confidence": "1.000",
+      "metadata": {
+        "framework": "rocket",
+        "handler_names": [
+          "remove"
+        ],
+        "mount_path": "/admin",
+        "mount_target": "routes![remove]",
+        "normalized_mount_path": "/admin",
+        "pattern_version": 1,
+        "query_family": "framework"
+      }
+    },
+    {
+      "pattern_id": "rocket.route.v1",
+      "capture_name": "route",
+      "node_kind": "function_item",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:create:12:0",
+      "start_line": 12,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 1,
+      "start_byte": 209,
+      "end_byte": 270,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "attribute",
+        "framework": "rocket",
+        "normalized_route_template": "/users",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/users",
+        "verb": "POST",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "rocket.route.v1",
+      "capture_name": "route",
+      "node_kind": "function_item",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:hello:7:0",
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 1,
+      "start_byte": 97,
+      "end_byte": 172,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "attribute",
+        "dynamic_segments": [
+          "name",
+          "age"
+        ],
+        "framework": "rocket",
+        "normalized_route_template": "/hello/:name/:age",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/hello/<name>/<age>",
+        "verb": "GET",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "rocket.route.v1",
+      "capture_name": "route",
+      "node_kind": "function_item",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:remove:17:0",
+      "start_line": 17,
+      "start_column": 0,
+      "end_line": 19,
+      "end_column": 1,
+      "start_byte": 314,
+      "end_byte": 374,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "attribute",
+        "dynamic_segments": [
+          "path"
+        ],
+        "framework": "rocket",
+        "normalized_route_template": "/files/:path",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/files/<path..>",
+        "verb": "DELETE",
+        "verb_source": "attested"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "covered_lines": 27,
+      "covered_bytes": 516,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 27,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 516,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/rocket_routes/source.rs:create:12:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 23,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 12,
+      "start_column": 38,
+      "end_line": 14,
+      "end_column": 1,
+      "start_byte": 247,
+      "end_byte": 270,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/rocket_routes/source.rs:hello:7:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 35,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 2,
+      "start_line": 7,
+      "start_column": 40,
+      "end_line": 9,
+      "end_column": 1,
+      "start_byte": 137,
+      "end_byte": 172,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/rocket_routes/source.rs:remove:17:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 25,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 17,
+      "start_column": 35,
+      "end_line": 19,
+      "end_column": 1,
+      "start_byte": 349,
+      "end_byte": 374,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "covered_lines": 5,
+      "covered_bytes": 112,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 22,
+      "start_column": 17,
+      "end_line": 26,
+      "end_column": 1,
+      "start_byte": 403,
+      "end_byte": 515,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "/admin",
+      "kind": "other",
+      "carrier": "rocket::build()\n        .mount(\"/api\", routes![hello, create]).mount",
+      "arg_position": 0,
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 25,
+      "start_column": 15,
+      "end_line": 25,
+      "end_column": 23,
+      "start_byte": 487,
+      "end_byte": 495,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/api",
+      "kind": "other",
+      "carrier": "rocket::build().mount",
+      "arg_position": 0,
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 24,
+      "start_column": 15,
+      "end_line": 24,
+      "end_column": 21,
+      "start_byte": 440,
+      "end_byte": 446,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "{} {}",
+      "kind": "other",
+      "carrier": "format",
+      "arg_position": 0,
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "start_line": 8,
+      "start_column": 12,
+      "end_line": 8,
+      "end_column": 19,
+      "start_byte": 151,
+      "end_byte": 158,
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:hello:7:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:hello:7:0",
+      "start_line": 8,
+      "start_column": 12,
+      "end_line": 8,
+      "end_column": 19,
+      "start_byte": 151,
+      "end_byte": 158,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "start_line": 24,
+      "start_column": 15,
+      "end_line": 24,
+      "end_column": 21,
+      "start_byte": 440,
+      "end_byte": 446,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
+      "start_line": 25,
+      "start_column": 15,
+      "end_line": 25,
+      "end_column": 23,
+      "start_byte": 487,
+      "end_byte": 495,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "containing_key": null,
+      "start_line": 11,
+      "start_column": 24,
+      "end_line": 11,
+      "end_column": 32,
+      "start_byte": 198,
+      "end_byte": 206,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "containing_key": null,
+      "start_line": 11,
+      "start_column": 7,
+      "end_line": 11,
+      "end_column": 15,
+      "start_byte": 181,
+      "end_byte": 189,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "containing_key": null,
+      "start_line": 16,
+      "start_column": 22,
+      "end_line": 16,
+      "end_column": 39,
+      "start_byte": 294,
+      "end_byte": 311,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "containing_key": null,
+      "start_line": 6,
+      "start_column": 6,
+      "end_line": 6,
+      "end_column": 27,
+      "start_byte": 73,
+      "end_byte": 94,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": [
+    {
+      "identifier_key": "fixtures/extraction/rust/rocket_routes/source.rs:Json:type_usage:12:16",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/rocket_routes/source.rs",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "User",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

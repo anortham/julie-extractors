@@ -275,6 +275,9 @@ impl BaseExtractor {
         if self.language == "bash" {
             return crate::bash::helpers::doc_comment(self, node);
         }
+        if self.language == "zig" {
+            return crate::zig::helpers::find_zig_doc_comment(self, *node);
+        }
         // First try to find comments as siblings of this node
         let comments = self.previous_comment_texts(node.prev_named_sibling());
         if let Some(doc_comment) = select_doc_comment_block(&self.language, &comments) {
