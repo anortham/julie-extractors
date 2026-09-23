@@ -906,7 +906,7 @@ fn mark_test_interface_implementers(symbols: &mut [Symbol]) {
 
 /// Kotest and Spek spec base classes. A class extending one of them is a spec
 /// even when its body is empty, because the base class is what the engine runs.
-const KOTLIN_SPEC_BASE_TYPES: &[&str] = &[
+pub(crate) const KOTLIN_SPEC_BASE_TYPES: &[&str] = &[
     "AnnotationSpec",
     "BehaviorSpec",
     "DescribeSpec",

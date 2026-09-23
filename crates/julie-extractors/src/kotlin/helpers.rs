@@ -95,6 +95,7 @@ pub(super) fn extract_modifiers(
                     | "visibility_modifier"
                     | "inheritance_modifier"
                     | "member_modifier"
+                    | "platform_modifier"
                     | "annotation"
                     | "public"
                     | "private"
@@ -271,7 +272,7 @@ pub(super) fn extract_property_type(
         let user_type = var_decl.children(&mut var_decl.walk()).find(|n| {
             matches!(
                 n.kind(),
-                "user_type" | "type" | "nullable_type" | "type_reference"
+                "user_type" | "type" | "nullable_type" | "type_reference" | "function_type"
             )
         });
         if let Some(user_type) = user_type {
@@ -283,7 +284,7 @@ pub(super) fn extract_property_type(
     let property_type = node.children(&mut node.walk()).find(|n| {
         matches!(
             n.kind(),
-            "type" | "user_type" | "nullable_type" | "type_reference"
+            "type" | "user_type" | "nullable_type" | "type_reference" | "function_type"
         )
     });
     property_type.map(|n| base.get_node_text(&n))
@@ -418,11 +419,17 @@ pub(super) fn determine_class_kind(
     SymbolKind::Class
 }
 
-/// Determine visibility from modifiers
+/// Determine visibility from modifiers. Kotlin `internal` (module-visible)
+/// maps to `Visibility::Internal`; no modifier means public.
 pub(super) fn determine_visibility(modifiers: &[String]) -> Visibility {
-    if modifiers.iter().any(|m| m == "internal") {
-        Visibility::Private
-    } else {
-        crate::base::visibility::visibility_from_modifiers(modifiers)
-    }
+    crate::base::visibility::visibility_from_modifiers(modifiers)
+}
+
+/// Functions, methods, operators and constructors: a declaration inside one of
+/// them is local.
+pub(super) fn is_callable_kind(kind: &SymbolKind) -> bool {
+    matches!(
+        kind,
+        SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor | SymbolKind::Operator
+    )
 }

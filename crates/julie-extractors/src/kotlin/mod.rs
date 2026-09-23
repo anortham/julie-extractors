@@ -42,6 +42,8 @@ pub struct KotlinExtractor {
     dsl_call_symbol_ids: HashSet<String>,
     same_file_type_names: HashSet<String>,
     annotation_repair: Option<annotation_repair::AnnotationRepair>,
+    /// Whether the file may hold Kotest / Spek DSL calls at all.
+    test_dsl_active: bool,
 }
 
 impl KotlinExtractor {
@@ -56,6 +58,7 @@ impl KotlinExtractor {
             dsl_call_symbol_ids: HashSet::new(),
             same_file_type_names: HashSet::new(),
             annotation_repair: None,
+            test_dsl_active: false,
         }
     }
 
@@ -90,6 +93,7 @@ impl KotlinExtractor {
         self.annotation_repair = annotation_repair::repair(&self.base.content, tree);
         let tree = self.working_tree(tree);
         self.same_file_type_names = type_facts::collect_type_names(&self.base, tree.root_node());
+        self.test_dsl_active = test_calls::test_dsl_is_active(&self.base);
         let mut symbols = Vec::new();
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
         crate::test_detection::mark_kotlin_test_containers(&mut symbols);
@@ -109,162 +113,13 @@ impl KotlinExtractor {
         }
 
         if !node.is_named() {
-            return; // Skip unnamed nodes
+            return;
         }
 
-        let mut symbol: Option<Symbol> = None;
-        let mut new_parent_id = parent_id.clone();
+        let new_parent_id = self
+            .extract_node_symbol(node, symbols, parent_id.as_deref())
+            .or(parent_id);
 
-        match node.kind() {
-            "class_declaration" | "enum_declaration" => {
-                symbol = types::extract_class(&mut self.base, &node, parent_id.as_deref());
-            }
-            "interface_declaration" => {
-                symbol = types::extract_interface(&mut self.base, &node, parent_id.as_deref());
-            }
-            "object_declaration" => {
-                symbol = types::extract_object(&mut self.base, &node, parent_id.as_deref());
-            }
-            "companion_object" => {
-                symbol = Some(types::extract_companion_object(
-                    &mut self.base,
-                    &node,
-                    parent_id.as_deref(),
-                ));
-            }
-            "function_declaration" => {
-                symbol =
-                    declarations::extract_function(&mut self.base, &node, parent_id.as_deref());
-            }
-            "property_declaration" | "property_signature" => {
-                let parent_kind = parent_id
-                    .as_deref()
-                    .and_then(|pid| symbols.iter().find(|s| s.id == pid).map(|s| s.kind.clone()));
-                let type_names = self.same_file_type_names.clone();
-                symbol = properties::extract_property(
-                    &mut self.base,
-                    &node,
-                    parent_id.as_deref(),
-                    parent_kind,
-                    &type_names,
-                );
-            }
-            "enum_class_body" => {
-                types::extract_enum_members(&mut self.base, &node, symbols, parent_id.as_deref());
-            }
-            "primary_constructor" => {
-                properties::extract_constructor_parameters(
-                    &mut self.base,
-                    &node,
-                    symbols,
-                    parent_id.as_deref(),
-                );
-            }
-            "secondary_constructor" => {
-                // Look up the parent class name from already-extracted symbols
-                let class_name = parent_id
-                    .as_deref()
-                    .and_then(|pid| symbols.iter().find(|s| s.id == pid))
-                    .map(|s| s.name.clone())
-                    .unwrap_or_else(|| "constructor".to_string());
-                symbol = declarations::extract_secondary_constructor(
-                    &mut self.base,
-                    &node,
-                    parent_id.as_deref(),
-                    &class_name,
-                );
-            }
-            "package_header" => {
-                symbol = declarations::extract_package(&mut self.base, &node, parent_id.as_deref());
-            }
-            "import" => {
-                symbol = declarations::extract_import(&mut self.base, &node, parent_id.as_deref());
-            }
-            "type_alias" => {
-                symbol =
-                    declarations::extract_type_alias(&mut self.base, &node, parent_id.as_deref());
-            }
-            // Kotest / Spek call-style tests.
-            // `describe("name") { it("name") { } }`, `test("n") { }`,
-            // `beforeEach { }`, etc. Returns None for non-DSL calls (no vocab
-            // match or no trailing lambda body), so ordinary call_expressions
-            // fall through untouched.
-            "call_expression" => {
-                symbol = test_calls::extract_kotlin_test_call(
-                    &mut self.base,
-                    &node,
-                    parent_id.as_deref(),
-                );
-                self.record_dsl_call_symbol(symbol.as_ref());
-            }
-            // Kotest WordSpec (`"subject" should { }`) and FreeSpec
-            // (`"subject" - { }`) open a group with an infix or operator call
-            // instead of a named one. Returns None for every other infix and
-            // binary expression.
-            "infix_expression" => {
-                symbol = test_calls::extract_kotlin_wordspec_group(
-                    &mut self.base,
-                    &node,
-                    parent_id.as_deref(),
-                );
-                self.record_dsl_call_symbol(symbol.as_ref());
-            }
-            "binary_expression" => {
-                symbol = test_calls::extract_kotlin_freespec_group(
-                    &mut self.base,
-                    &node,
-                    parent_id.as_deref(),
-                );
-                self.record_dsl_call_symbol(symbol.as_ref());
-            }
-            // ERROR recovery: when tree-sitter can't fully parse a class declaration
-            // (e.g., due to unsupported syntax like `class Foo\nprivate constructor(...)`),
-            // it wraps the entire class in an ERROR node. The ERROR node's children still
-            // contain the class structure (modifiers, "class" keyword, identifier, body),
-            // so we can pass it to the same extraction functions.
-            "ERROR" => {
-                let has_class_keyword = node
-                    .children(&mut node.walk())
-                    .any(|n| !n.is_named() && self.base.get_node_text(&n) == "class");
-                let has_interface_keyword = node
-                    .children(&mut node.walk())
-                    .any(|n| !n.is_named() && self.base.get_node_text(&n) == "interface");
-                let has_identifier = node
-                    .children(&mut node.walk())
-                    .any(|n| n.kind() == "identifier");
-
-                if has_class_keyword && has_identifier {
-                    symbol = types::extract_class(&mut self.base, &node, parent_id.as_deref());
-                } else if has_interface_keyword && has_identifier {
-                    symbol = types::extract_interface(&mut self.base, &node, parent_id.as_deref());
-                }
-            }
-            _ => {}
-        }
-
-        if let Some(sym) = symbol.as_mut() {
-            declarations::apply_declaration_body_span(&self.base, &node, sym);
-            if let Some(repair) = &self.annotation_repair {
-                repair.attach(&mut self.base, &node, sym);
-            }
-        }
-
-        if let Some(sym) = &symbol {
-            symbols.push(sym.clone());
-            new_parent_id = Some(sym.id.clone());
-            if matches!(
-                node.kind(),
-                "function_declaration" | "secondary_constructor"
-            ) {
-                symbols.extend(parameters::extract_parameter_symbols(
-                    &mut self.base,
-                    node,
-                    &sym.id,
-                ));
-            }
-        }
-
-        // Recursively visit children
         let Some(child_depth) = child_tree_depth(depth) else {
             return;
         };
@@ -272,6 +127,153 @@ impl KotlinExtractor {
         for child in node.children(&mut cursor) {
             self.visit_node(child, symbols, new_parent_id.clone(), child_depth);
         }
+    }
+
+    /// Extract the symbol `node` declares, push it with its parameters, and
+    /// return the id its children take as parent. Kept out of `visit_node` so
+    /// the recursive frame never holds a `Symbol`.
+    #[inline(never)]
+    fn extract_node_symbol(
+        &mut self,
+        node: Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<&str>,
+    ) -> Option<String> {
+        let parent_kind = || {
+            parent_id.and_then(|pid| symbols.iter().find(|s| s.id == pid).map(|s| s.kind.clone()))
+        };
+        let symbol: Option<Symbol> = match node.kind() {
+            "class_declaration" | "enum_declaration" => {
+                types::extract_class(&mut self.base, &node, parent_id)
+            }
+            "interface_declaration" => types::extract_interface(&mut self.base, &node, parent_id),
+            "object_declaration" => types::extract_object(&mut self.base, &node, parent_id),
+            "companion_object" => Some(types::extract_companion_object(
+                &mut self.base,
+                &node,
+                parent_id,
+            )),
+            "function_declaration" => {
+                let parent_kind = parent_kind();
+                declarations::extract_function(&mut self.base, &node, parent_id, parent_kind)
+            }
+            "property_declaration" | "property_signature" => {
+                let parent_kind = parent_kind();
+                let type_names = self.same_file_type_names.clone();
+                properties::extract_property(
+                    &mut self.base,
+                    &node,
+                    parent_id,
+                    parent_kind,
+                    &type_names,
+                )
+            }
+            // An accessor is named `get`/`set`, never a call target.
+            "getter" | "setter" => {
+                let symbol = properties::extract_accessor(&mut self.base, &node, parent_id);
+                self.record_dsl_call_symbol(symbol.as_ref());
+                symbol
+            }
+            "enum_class_body" => {
+                types::extract_enum_members(&mut self.base, &node, symbols, parent_id);
+                None
+            }
+            // An enum entry with a body (`ADD { override fun apply() … }`)
+            // owns the members declared in that body.
+            "enum_entry" => {
+                return symbols
+                    .iter()
+                    .find(|symbol| {
+                        symbol.start_byte == node.start_byte() as u32
+                            && symbol.kind == crate::base::SymbolKind::EnumMember
+                    })
+                    .map(|symbol| symbol.id.clone());
+            }
+            "primary_constructor" => {
+                properties::extract_constructor_parameters(
+                    &mut self.base,
+                    &node,
+                    symbols,
+                    parent_id,
+                );
+                None
+            }
+            "secondary_constructor" => {
+                let class_name = parent_id
+                    .and_then(|pid| symbols.iter().find(|s| s.id == pid))
+                    .map(|s| s.name.clone())
+                    .unwrap_or_else(|| "constructor".to_string());
+                declarations::extract_secondary_constructor(
+                    &mut self.base,
+                    &node,
+                    parent_id,
+                    &class_name,
+                )
+            }
+            "package_header" => declarations::extract_package(&mut self.base, &node, parent_id),
+            "import" => declarations::extract_import(&mut self.base, &node, parent_id),
+            "type_alias" => declarations::extract_type_alias(&mut self.base, &node, parent_id),
+            // Kotest / Spek call-style tests: `describe("name") { it("name") { } }`,
+            // `test("n") { }`, `beforeEach { }`. Non-DSL calls return None.
+            "call_expression" if self.test_dsl_active => {
+                let symbol = test_calls::extract_kotlin_test_call(&mut self.base, &node, parent_id);
+                self.record_dsl_call_symbol(symbol.as_ref());
+                symbol
+            }
+            // Kotest WordSpec (`"subject" should { }`) and FreeSpec
+            // (`"subject" - { }`) open a group with an infix or operator call.
+            "infix_expression" if self.test_dsl_active => {
+                let symbol =
+                    test_calls::extract_kotlin_wordspec_group(&mut self.base, &node, parent_id);
+                self.record_dsl_call_symbol(symbol.as_ref());
+                symbol
+            }
+            "binary_expression" if self.test_dsl_active => {
+                let symbol =
+                    test_calls::extract_kotlin_freespec_group(&mut self.base, &node, parent_id);
+                self.record_dsl_call_symbol(symbol.as_ref());
+                symbol
+            }
+            // ERROR recovery: tree-sitter wraps a class it cannot fully parse
+            // (`class Foo\nprivate constructor(...)`) in an ERROR node whose
+            // children still hold the class structure.
+            "ERROR" => {
+                let has_keyword = |keyword: &str| {
+                    node.children(&mut node.walk())
+                        .any(|n| !n.is_named() && self.base.get_node_text(&n) == keyword)
+                };
+                let has_identifier = node
+                    .children(&mut node.walk())
+                    .any(|n| n.kind() == "identifier");
+                if has_keyword("class") && has_identifier {
+                    types::extract_class(&mut self.base, &node, parent_id)
+                } else if has_keyword("interface") && has_identifier {
+                    types::extract_interface(&mut self.base, &node, parent_id)
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        };
+
+        let mut symbol = symbol?;
+        declarations::apply_declaration_body_span(&self.base, &node, &mut symbol);
+        if let Some(repair) = &self.annotation_repair {
+            repair.attach(&mut self.base, &node, &mut symbol);
+        }
+        let symbol_id = symbol.id.clone();
+        symbols.push(symbol);
+        if matches!(
+            node.kind(),
+            "function_declaration" | "secondary_constructor"
+        ) {
+            symbols.extend(parameters::extract_parameter_symbols(
+                &mut self.base,
+                node,
+                &symbol_id,
+            ));
+        }
+        Some(symbol_id)
     }
 
     pub fn infer_types(&self, symbols: &[Symbol]) -> HashMap<String, String> {

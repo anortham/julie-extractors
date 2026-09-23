@@ -9,6 +9,7 @@ mod htmx_templates;
 mod http_clients;
 mod jaxrs;
 mod kotlin_spring;
+mod kotlin_spring_functional;
 mod ktor;
 mod laravel;
 mod markup;
@@ -36,6 +37,7 @@ use self::http_clients::{
 };
 use self::jaxrs::collect_jaxrs_routes;
 use self::kotlin_spring::collect_kotlin_spring_routes;
+use self::kotlin_spring_functional::collect_kotlin_spring_functional_routes;
 use self::ktor::collect_ktor_routes;
 use self::laravel::collect_laravel_routes;
 use self::markup::{
@@ -71,6 +73,7 @@ pub(super) const DJANGO_URL_PATTERN_ID: &str = "django.url_pattern.v1";
 pub(super) const DJANGO_URL_INCLUDE_PATTERN_ID: &str = "django.url_include.v1";
 pub(super) const SPRING_REQUEST_MAPPING_PATTERN_ID: &str = "spring.request_mapping.v1";
 pub(super) const JAXRS_ROUTE_PATTERN_ID: &str = "jaxrs.route.v1";
+pub(super) const SPRING_FUNCTIONAL_ROUTE_PATTERN_ID: &str = "spring.functional_route.v1";
 pub(super) const AXUM_ROUTE_PATTERN_ID: &str = "axum.route.v1";
 pub(super) const AXUM_NEST_PATTERN_ID: &str = "axum.nest.v1";
 pub(super) const ACTIX_ATTRIBUTE_ROUTE_PATTERN_ID: &str = "actix.attribute_route.v1";
@@ -170,6 +173,7 @@ const LARAVEL_PATTERN_IDS: &[&str] = &[
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const KOTLIN_PATTERN_IDS: &[&str] = &[
     SPRING_REQUEST_MAPPING_PATTERN_ID,
+    SPRING_FUNCTIONAL_ROUTE_PATTERN_ID,
     KTOR_ROUTE_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
@@ -285,6 +289,9 @@ pub fn collect_framework_structural_facts(
         }
         "kotlin" => {
             let mut kotlin_facts = collect_kotlin_spring_routes(language, tree, file_path, content);
+            kotlin_facts.extend(collect_kotlin_spring_functional_routes(
+                language, tree, file_path, content,
+            ));
             kotlin_facts.extend(collect_ktor_routes(language, tree, file_path, content));
             kotlin_facts.extend(collect_backend_http_client_requests(
                 language, tree, file_path, content,

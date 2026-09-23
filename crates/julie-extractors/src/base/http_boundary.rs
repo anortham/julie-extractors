@@ -50,6 +50,9 @@ pub(crate) fn classify_url(literal: &str) -> &'static str {
 }
 
 pub(crate) fn join_route_templates(prefix: &str, route_template: &str) -> String {
+    if route_template.is_empty() {
+        return prefix.to_string();
+    }
     match (prefix.ends_with('/'), route_template.starts_with('/')) {
         (true, true) => format!("{}{}", prefix.trim_end_matches('/'), route_template),
         (false, false) => format!("{prefix}/{route_template}"),
@@ -327,5 +330,6 @@ mod tests {
         assert_eq!(join_route_templates("/api/", "/users"), "/api/users");
         assert_eq!(join_route_templates("/api", "users"), "/api/users");
         assert_eq!(join_route_templates("/api/", "users"), "/api/users");
+        assert_eq!(join_route_templates("/api", ""), "/api");
     }
 }

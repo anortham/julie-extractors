@@ -20,6 +20,15 @@ fun Application.module() {
             get("/status") {
                 call.respondText("up")
             }
+            // A pathless verb inherits the route("/api") prefix.
+            get {
+                call.respondText("index")
+            }
+        }
+
+        // A pathless verb with no route prefix names no path: silent.
+        put {
+            call.respondText("nope")
         }
 
         // Silent (M2): interpolated / concatenated paths emit nothing.

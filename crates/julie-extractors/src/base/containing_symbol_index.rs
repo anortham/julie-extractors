@@ -218,7 +218,10 @@ pub(crate) fn is_better_containing_symbol(
 
 pub(crate) fn symbol_priority(kind: &SymbolKind) -> u32 {
     match kind {
-        SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor => 1,
+        SymbolKind::Function
+        | SymbolKind::Method
+        | SymbolKind::Constructor
+        | SymbolKind::Operator => 1,
         SymbolKind::Class | SymbolKind::Interface => 2,
         SymbolKind::Namespace => 3,
         SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Property => 10,
@@ -498,7 +501,10 @@ mod tests {
 
         let get_priority = |kind: &SymbolKind| -> u32 {
             match kind {
-                SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor => 1,
+                SymbolKind::Function
+                | SymbolKind::Method
+                | SymbolKind::Constructor
+                | SymbolKind::Operator => 1,
                 SymbolKind::Class | SymbolKind::Interface => 2,
                 SymbolKind::Namespace => 3,
                 SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Property => 10,

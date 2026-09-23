@@ -65,10 +65,20 @@ is identical to every other call-style language.
 
 | Role | DSL words |
 | --- | --- |
-| `test_case` | `test`, `it`, `should`, `then`, `scenario`, `expect`, `xit`, `xtest` |
-| `test_container` | `describe`, `context`, `given`, `When`, `and`, `feature`, `xdescribe`, `xcontext` |
-| `fixture_setup` | `beforeEach`, `beforeAll`, `beforeTest`, `beforeEachTest`, `beforeGroup` |
-| `fixture_teardown` | `afterEach`, `afterAll`, `afterTest`, `afterEachTest`, `afterGroup` |
+| `test_case` | `test`, `it`, `should`, `then`, `Then`, `scenario`, `expect`, and their `x`-prefixed disabled spellings |
+| `test_container` | `describe`, `context`, `given`/`Given`, `when`/`When`, `and`/`And`, `feature`, Spek Gherkin `Feature`/`Scenario`, and their `x`-prefixed disabled spellings |
+| `fixture_setup` | `beforeEach`, `beforeAll`, `beforeTest`, `beforeSpec`, `beforeContainer`, `beforeAny`, `beforeEachTest`, `beforeGroup`, `beforeEachGroup` |
+| `fixture_teardown` | the matching `after…` hooks |
+| `parameterized_test` | Kotest `withData(rows) { … }`, which reports one test per row |
+
+`when` and `and` are Kotlin keywords, so Kotest code writes them backticked; the
+backticks are stripped before the word is matched.
+
+The call DSL is active only in a test source path, in a file that imports
+`io.kotest` or `org.spekframework`, or in a file that calls a named spec base
+type constructor such as `DescribeSpec({ … })`. Elsewhere `context("admin") { }`
+or `feature("billing") { }` is an ordinary builder call: it makes no symbol, and
+the calls inside it belong to the enclosing declaration.
 
 A disabled step keeps the role of its enabled spelling, because the runner
 reports it as skipped rather than dropping it.
@@ -209,6 +219,48 @@ receiver type as `extendedType` metadata and keep it in the signature.
 A qualified type reference (`ApiResult.Success`, `java.io.IOException`) emits
 one `type_usage` for its last segment, with the leading segments in the
 `receiver` and `receiver_qualifier` metadata.
+
+## Declarations and members
+
+- An enum class with modifiers or annotations (`private enum class Mode`) is
+  kind `enum`. Members declared in an enum entry body belong to that entry.
+- A function declared inside a callable is kind `function` with no visibility.
+  Locals have no visibility either.
+- `internal` maps to visibility `internal`, on classes, properties,
+  constructor properties, and companions.
+- An `operator fun` is kind `operator` and owns the calls in its body.
+- A property `get()` or `set(value)` accessor is a `method` named `get` or
+  `set`, parented to its property, with `accessor` metadata. It owns the calls
+  and references in its body.
+- `this.m()` inside an extension function records the extension receiver type
+  as `receiver_type`.
+- A primary-constructor parameter without `val` or `var` stays a class
+  `property`, as the receiver-type-facts decision requires, but its signature
+  has no invented `val` and its `binding` metadata is `none`.
+- Import symbols keep an `as` alias (`alias`, `importedName` metadata) and a
+  wildcard (`isWildcard`). Signatures keep `expect`/`actual`, extension-property
+  receivers, and function types.
+- `null`, `true`, and `false` are not `variable_ref` identifiers. `Foo::class`
+  is a `type_usage` of `Foo`, not a `class` member access.
+
+The fixture `fixtures/extraction/kotlin/members_and_literals/` carries the
+evidence.
+
+## Frameworks and literals
+
+- Spring functional routing: a verb call inside `coRouter { }` or `router { }`
+  emits `spring.functional_route.v1`. Static `"/prefix".nest { }` and
+  `path("/prefix").nest { }` prefixes join into `effective_route_template`; a
+  dynamic prefix silences the routes under it. Evidence:
+  `fixtures/extraction/kotlin/spring_functional_routes/`.
+- Ktor: a pathless verb (`get { }`) inside a static `route("/x") { }` emits a
+  route for the prefix. A pathless verb with no prefix stays silent.
+- HTTP clients: a typed class-body property proves a Ktor, RestTemplate, or
+  WebClient receiver. Retrofit `@HTTP(method = "…", path = "…")` with a static
+  standard verb is a client request.
+- Literals: the JVM JDBC, Spring `JdbcTemplate`, Android SQLite, and JPA
+  carriers classify SQL strings; `@Query` values are SQL; `RestTemplate`,
+  `HttpRequest.newBuilder`, and `URI.create` arguments are URLs.
 
 ## Declarations the grammar misreads
 

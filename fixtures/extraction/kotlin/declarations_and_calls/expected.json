@@ -766,7 +766,7 @@
       "body_hash": "c77ee9c83916e7c62577562fcd6ceb2c",
       "signature": "val c = a plusCents 5",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:render:67:0",
       "metadata": {
         "isVal": "true",
@@ -966,7 +966,7 @@
       "body_hash": "37a6259cc0c1dae299a7866489dff0bd",
       "signature": "val entry: Map.Entry<String, Int>? = null",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:render:67:0",
       "metadata": {
         "isVal": "true",
@@ -1037,6 +1037,74 @@
         "modifiers": "override",
         "returnType": "User?",
         "type": "method"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:get:48:4",
+      "name": "get",
+      "kind": "method",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/declarations_and_calls/source.kt",
+      "start_line": 48,
+      "start_column": 4,
+      "end_line": 48,
+      "end_column": 27,
+      "start_byte": 901,
+      "end_byte": 924,
+      "body_span": {
+        "start_line": 48,
+        "start_column": 12,
+        "end_line": 48,
+        "end_column": 27,
+        "start_byte": 909,
+        "end_byte": 924
+      },
+      "body_hash": "f7827175178458c27c49292ac2a58168",
+      "signature": "get() = buildGreeting()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:greeting:47:0",
+      "metadata": {
+        "accessor": "getter",
+        "type": "accessor"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:get:61:29",
+      "name": "get",
+      "kind": "method",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/declarations_and_calls/source.kt",
+      "start_line": 61,
+      "start_column": 29,
+      "end_line": 61,
+      "end_column": 47,
+      "start_byte": 1303,
+      "end_byte": 1321,
+      "body_span": {
+        "start_line": 61,
+        "start_column": 37,
+        "end_line": 61,
+        "end_column": 47,
+        "start_byte": 1311,
+        "end_byte": 1321
+      },
+      "body_hash": "15e59392a619e61c914f45392d0701c3",
+      "signature": "get() = simpleName",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:display:61:0",
+      "metadata": {
+        "accessor": "getter",
+        "type": "accessor"
       },
       "annotations": [],
       "semantic_group": null,
@@ -1501,7 +1569,7 @@
       "body_hash": "ef915c70ee0122b29053850c8da16e30",
       "signature": "val server = embeddedServer(Netty).start(wait = true)",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:render:67:0",
       "metadata": {
         "isVal": "true",
@@ -1628,7 +1696,7 @@
       "body_hash": "9d42f5aabca27da4cb71349ab4be1fea",
       "signature": "val valid = items.filter(::isValid)",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:render:67:0",
       "metadata": {
         "isVal": "true",
@@ -1760,7 +1828,7 @@
       "metadata": null
     },
     {
-      "from_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:greeting:47:0",
+      "from_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:get:48:4",
       "to_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:buildGreeting:52:0",
       "kind": "calls",
       "file_path": "fixtures/extraction/kotlin/declarations_and_calls/source.kt",
@@ -3046,7 +3114,7 @@
       "end_column": 25,
       "start_byte": 909,
       "end_byte": 922,
-      "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:greeting:47:0",
+      "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:get:48:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -3275,38 +3343,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:null:variable_ref:30:40",
-      "name": "null",
-      "kind": "variable_ref",
-      "language": "kotlin",
-      "file_path": "fixtures/extraction/kotlin/declarations_and_calls/source.kt",
-      "start_line": 30,
-      "start_column": 40,
-      "end_line": 30,
-      "end_column": 44,
-      "start_byte": 492,
-      "end_byte": 496,
-      "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:find:30:4",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:null:variable_ref:71:41",
-      "name": "null",
-      "kind": "variable_ref",
-      "language": "kotlin",
-      "file_path": "fixtures/extraction/kotlin/declarations_and_calls/source.kt",
-      "start_line": 71,
-      "start_column": 41,
-      "end_line": 71,
-      "end_column": 45,
-      "start_byte": 1672,
-      "end_byte": 1676,
-      "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:render:67:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:orBlank:call:77:58",
       "name": "orBlank",
       "kind": "call",
@@ -3430,7 +3466,7 @@
       "end_column": 47,
       "start_byte": 1311,
       "end_byte": 1321,
-      "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:display:61:0",
+      "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:get:61:29",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -3478,22 +3514,6 @@
       "end_column": 51,
       "start_byte": 1815,
       "end_byte": 1829,
-      "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:render:67:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:true:variable_ref:70:52",
-      "name": "true",
-      "kind": "variable_ref",
-      "language": "kotlin",
-      "file_path": "fixtures/extraction/kotlin/declarations_and_calls/source.kt",
-      "start_line": 70,
-      "start_column": 52,
-      "end_line": 70,
-      "end_column": 56,
-      "start_byte": 1625,
-      "end_byte": 1629,
       "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:render:67:0",
       "target_key": null,
       "confidence": "1.000"
@@ -4042,6 +4062,50 @@
       "end_column": 44,
       "start_byte": 492,
       "end_byte": 496,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:get:48:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/declarations_and_calls/source.kt",
+      "covered_lines": 1,
+      "covered_bytes": 15,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 48,
+      "start_column": 12,
+      "end_line": 48,
+      "end_column": 27,
+      "start_byte": 909,
+      "end_byte": 924,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:get:61:29",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/declarations_and_calls/source.kt",
+      "covered_lines": 1,
+      "covered_bytes": 10,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 61,
+      "start_column": 37,
+      "end_line": 61,
+      "end_column": 47,
+      "start_byte": 1311,
+      "end_byte": 1321,
       "metadata": {
         "metric_version": 1
       }
