@@ -318,7 +318,7 @@
       "body_hash": null,
       "signature": "val a",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/scala/calls_and_layout/source.scala:f:45:2",
       "metadata": {
         "binding": "val",
@@ -548,7 +548,7 @@
       "body_hash": "0c7c2d20bbb0375274152b0d531437ef",
       "signature": "lazy val extra",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
       "metadata": {
         "binding": "val",
@@ -724,7 +724,7 @@
       "body_hash": "c37dd57118f93e6f225f752d1f7db71c",
       "signature": "val h",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
       "metadata": {
         "binding": "val",
@@ -759,7 +759,7 @@
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "val json",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
       "metadata": {
         "binding": "val",
@@ -794,7 +794,7 @@
       "body_hash": "f04aec6f1d0d2d1b4e61aef04f7332c6",
       "signature": "val lines",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
       "metadata": {
         "binding": "val",
@@ -864,7 +864,7 @@
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
       "signature": "val m",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
       "metadata": {
         "binding": "val",
@@ -899,7 +899,7 @@
       "body_hash": "563952fe80f2a0e4f2b9dad8c31c4e7a",
       "signature": "val parsed",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
       "metadata": {
         "binding": "val",
@@ -986,7 +986,7 @@
       "body_hash": "d836fd349270ef73f963c8d2b415551f",
       "signature": "val positive",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
       "metadata": {
         "binding": "val",
@@ -1187,9 +1187,10 @@
       "body_hash": "f04aec6f1d0d2d1b4e61aef04f7332c6",
       "signature": "var total",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
       "metadata": {
+        "binding": "var",
         "modifiers": "",
         "type": "var"
       },
@@ -1221,7 +1222,7 @@
       "body_hash": "40a641d8d5acd5c62b1384636c9e6b4d",
       "signature": "val url",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
       "metadata": {
         "binding": "val",
@@ -1308,12 +1309,12 @@
       "end_byte": 199,
       "body_span": null,
       "body_hash": null,
-      "signature": "val x: Int",
+      "signature": "x: Int",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": "fixtures/extraction/scala/calls_and_layout/source.scala:Helper:9:0",
       "metadata": {
-        "binding": "val",
+        "binding": "none",
         "modifiers": "",
         "propertyType": "Int",
         "type": "property"
@@ -1974,22 +1975,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/scala/calls_and_layout/source.scala:collection:variable_ref:31:22",
-      "name": "collection",
-      "kind": "variable_ref",
-      "language": "scala",
-      "file_path": "fixtures/extraction/scala/calls_and_layout/source.scala",
-      "start_line": 31,
-      "start_column": 22,
-      "end_line": 31,
-      "end_column": 32,
-      "start_byte": 763,
-      "end_byte": 773,
-      "containing_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/scala/calls_and_layout/source.scala:compute:call:20:14",
       "name": "compute",
       "kind": "call",
@@ -2199,22 +2184,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/scala/calls_and_layout/source.scala:mutable:variable_ref:31:33",
-      "name": "mutable",
-      "kind": "variable_ref",
-      "language": "scala",
-      "file_path": "fixtures/extraction/scala/calls_and_layout/source.scala",
-      "start_line": 31,
-      "start_column": 33,
-      "end_line": 31,
-      "end_column": 40,
-      "start_byte": 774,
-      "end_byte": 781,
-      "containing_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/scala/calls_and_layout/source.scala:parse:call:29:20",
       "name": "parse",
       "kind": "call",
@@ -2306,22 +2275,6 @@
       "end_column": 22,
       "start_byte": 624,
       "end_byte": 630,
-      "containing_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/scala/calls_and_layout/source.scala:scala:variable_ref:31:16",
-      "name": "scala",
-      "kind": "variable_ref",
-      "language": "scala",
-      "file_path": "fixtures/extraction/scala/calls_and_layout/source.scala",
-      "start_line": 31,
-      "start_column": 16,
-      "end_line": 31,
-      "end_column": 21,
-      "start_byte": 757,
-      "end_byte": 762,
       "containing_key": "fixtures/extraction/scala/calls_and_layout/source.scala:run:24:2",
       "target_key": null,
       "confidence": "1.000"
@@ -3125,6 +3078,23 @@
     }
   ],
   "type_argument_usages": [
+    {
+      "identifier_key": "fixtures/extraction/scala/calls_and_layout/source.scala:HashMap:type_usage:31:41",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/calls_and_layout/source.scala",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "String",
+          "children": []
+        },
+        {
+          "ordinal": 1,
+          "type_name": "Int",
+          "children": []
+        }
+      ]
+    },
     {
       "identifier_key": "fixtures/extraction/scala/calls_and_layout/source.scala:List:type_usage:21:26",
       "language": "scala",

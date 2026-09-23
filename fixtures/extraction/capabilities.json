@@ -4024,7 +4024,8 @@
       "parser_crate": "tree-sitter-scala",
       "extensions": [
         "scala",
-        "sc"
+        "sc",
+        "sbt"
       ],
       "dependency_status": "current",
       "capabilities": {
@@ -4064,6 +4065,21 @@
           "name": "test_suites",
           "source": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
           "expected": "fixtures/extraction/scala/test_suites/expected.json"
+        },
+        {
+          "name": "members_and_literals",
+          "source": "fixtures/extraction/scala/members_and_literals/source.scala",
+          "expected": "fixtures/extraction/scala/members_and_literals/expected.json"
+        },
+        {
+          "name": "web_routes",
+          "source": "fixtures/extraction/scala/web_routes/source.scala",
+          "expected": "fixtures/extraction/scala/web_routes/expected.json"
+        },
+        {
+          "name": "sbt_build",
+          "source": "fixtures/extraction/scala/sbt_build/build.sbt",
+          "expected": "fixtures/extraction/scala/sbt_build/expected.json"
         }
       ],
       "target_capabilities": {
@@ -4078,10 +4094,14 @@
         "symbols": {
           "supported": [
             "class",
+            "constant",
             "constructor",
+            "enum",
+            "enum_member",
             "function",
             "import",
             "method",
+            "module",
             "namespace",
             "property",
             "trait",
@@ -4113,12 +4133,20 @@
         "body_spans": {
           "supported": [
             "class",
+            "constant",
+            "constructor",
+            "enum",
+            "enum_member",
+            "function",
             "method",
-            "trait"
+            "module",
+            "namespace",
+            "property",
+            "trait",
+            "variable"
           ],
           "not_applicable": [
-            "import",
-            "namespace"
+            "import"
           ],
           "open_gaps": []
         },
@@ -4127,7 +4155,10 @@
             "scala.extension_definition.v1",
             "scala.given_definition.v1",
             "scala.for_expression.v1",
-            "scala.annotation.v1"
+            "scala.annotation.v1",
+            "akka_http.route.v1",
+            "http4s.route.v1",
+            "http.client_request.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -4143,9 +4174,12 @@
         "annotations": {
           "supported": [
             "class",
+            "enum",
+            "enum_member",
             "function",
             "method",
             "property",
+            "trait",
             "type"
           ],
           "not_applicable": [],
@@ -4154,6 +4188,8 @@
         "doc_comments": {
           "supported": [
             "class",
+            "enum",
+            "enum_member",
             "method"
           ],
           "not_applicable": [],

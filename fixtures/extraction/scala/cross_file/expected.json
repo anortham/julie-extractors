@@ -172,9 +172,10 @@
       "body_hash": null,
       "signature": "var total",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
       "metadata": {
+        "binding": "var",
         "modifiers": "",
         "type": "var"
       },
@@ -230,6 +231,14 @@
       "file_path": "fixtures/extraction/scala/cross_file/source.scala",
       "line_number": 16,
       "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
+      "callee_name": "until",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/cross_file/source.scala",
+      "line_number": 14,
+      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
@@ -257,6 +266,32 @@
         "end_column": 17,
         "start_byte": 442,
         "end_byte": 455
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
+        "callee_name": "until",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/scala/cross_file/source.scala",
+        "line_number": 14,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "until",
+        "terminal_name": "until",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
+      "span": {
+        "start_line": 14,
+        "start_column": 16,
+        "end_line": 14,
+        "end_column": 25,
+        "start_byte": 410,
+        "end_byte": 419
       }
     }
   ],
@@ -369,6 +404,22 @@
       "end_column": 9,
       "start_byte": 460,
       "end_byte": 465,
+      "containing_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/cross_file/source.scala:until:call:14:18",
+      "name": "until",
+      "kind": "call",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/cross_file/source.scala",
+      "start_line": 14,
+      "start_column": 18,
+      "end_line": 14,
+      "end_column": 23,
+      "start_byte": 412,
+      "end_byte": 417,
       "containing_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
       "target_key": null,
       "confidence": "1.000"

@@ -1201,7 +1201,7 @@
       "body_hash": null,
       "signature": "label: String",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:Button:13:0",
       "metadata": {
         "binding": "none",

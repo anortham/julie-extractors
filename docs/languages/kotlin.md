@@ -235,8 +235,10 @@ one `type_usage` for its last segment, with the leading segments in the
 - `this.m()` inside an extension function records the extension receiver type
   as `receiver_type`.
 - A primary-constructor parameter without `val` or `var` stays a class
-  `property`, as the receiver-type-facts decision requires, but its signature
-  has no invented `val` and its `binding` metadata is `none`.
+  `property`, as the receiver-type-facts decision requires, but it is not a
+  public member: its visibility is `private`, its signature has no invented
+  `val`, and its `binding` metadata is `none`. Scala models its plain class
+  parameters the same way.
 - Import symbols keep an `as` alias (`alias`, `importedName` metadata) and a
   wildcard (`isWildcard`). Signatures keep `expect`/`actual`, extension-property
   receivers, and function types.

@@ -163,7 +163,7 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
     ),
     spec(
         "scala",
-        &["scala", "sc"],
+        &["scala", "sc", "sbt"],
         "tree-sitter-scala",
         FULL_CAPABILITIES,
         parser_scala,

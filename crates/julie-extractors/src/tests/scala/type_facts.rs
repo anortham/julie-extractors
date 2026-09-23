@@ -232,10 +232,10 @@ class Keep {
         .iter()
         .find(|symbol| {
             symbol.name == "mutable"
-                && symbol.kind == SymbolKind::Variable
+                && symbol.kind == SymbolKind::Property
                 && symbol.parent_id.as_deref() == Some(keep.id.as_str())
         })
-        .expect("class var lost variable kind");
+        .expect("class var is not a property");
     assert_eq!(
         extractor
             .base

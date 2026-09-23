@@ -186,6 +186,70 @@
     "query_family": "framework"
   },
   {
+    "description": "An Akka HTTP or Apache Pekko HTTP method directive (`get { }`) inside static `path`/`pathPrefix` directives.",
+    "languages": [
+      "scala"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"directive_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The joined static path directives around the method directive; a path matcher such as `LongNumber` is a `{LongNumber}` segment.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Uppercase HTTP method of the route.",
+        "key": "verb",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "akka_http.route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "An Alpine.js directive (x-*, @, or :).",
     "languages": [
       "html",
@@ -3332,6 +3396,7 @@
       "go",
       "java",
       "kotlin",
+      "scala",
       "php",
       "ruby",
       "elixir",
@@ -3357,7 +3422,7 @@
         "value_type": "string"
       },
       {
-        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, spring_restclient, openfeign, req, tesla, httpoison, finch, httpc).",
+        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, spring_restclient, openfeign, requests_scala, sttp, play_ws, req, tesla, httpoison, finch, httpc).",
         "key": "client",
         "presence": "always",
         "value_type": "string"
@@ -3395,6 +3460,70 @@
     ],
     "pattern_id": "http.client_request.v1",
     "query_family": "web.http_client"
+  },
+  {
+    "description": "An http4s route pattern such as `case GET -> Root / \"users\" / id =>`.",
+    "languages": [
+      "scala"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"pattern_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The static path of the pattern; a bound name or extractor argument is a `{name}` segment.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Uppercase HTTP method of the route.",
+        "key": "verb",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "http4s.route.v1",
+    "query_family": "framework"
   },
   {
     "description": "A Java annotation with arguments.",
@@ -7745,7 +7874,7 @@
         "value_type": "string"
       },
       {
-        "description": "The declared type of the given instance, used when anonymous.",
+        "description": "The declared type of the given instance.",
         "key": "given_type",
         "presence": "optional",
         "value_type": "string"

@@ -319,6 +319,7 @@ val listener: (String) -> Unit = {}
         meta(label, "binding").and_then(|v| v.as_str()),
         Some("none")
     );
+    assert_eq!(label.visibility, Some(Visibility::Private));
     assert_eq!(
         symbol(&result, "listener").signature.as_deref(),
         Some("val listener: (String) -> Unit = {}")

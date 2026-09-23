@@ -25,6 +25,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
             "go",
             "java",
             "kotlin",
+            "scala",
             "php",
             "ruby",
             "elixir",
@@ -40,7 +41,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "client",
                 STR,
                 ALWAYS,
-                "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, spring_restclient, openfeign, req, tesla, httpoison, finch, httpc).",
+                "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, spring_restclient, openfeign, requests_scala, sttp, play_ws, req, tesla, httpoison, finch, httpc).",
             ),
             key(
                 "target_path",

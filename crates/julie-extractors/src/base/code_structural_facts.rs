@@ -688,10 +688,14 @@ fn enrich_metadata(
     metadata: &mut HashMap<String, Value>,
 ) {
     match pattern_id {
+        "scala.annotation.v1" => {
+            if let Some(name) = scala_annotation_name(content, node) {
+                insert_string(metadata, "annotation_name", &name);
+            }
+        }
         "java.marker_annotation.v1"
         | "java.annotation.v1"
         | "kotlin.annotation.v1"
-        | "scala.annotation.v1"
         | "dart.annotation.v1" => {
             if let Some(name) = annotation_name(content, node) {
                 insert_string(metadata, "annotation_name", &name);
@@ -773,7 +777,8 @@ fn enrich_metadata(
         "scala.given_definition.v1" => {
             if let Some(name) = scala_given_name(content, node) {
                 insert_string(metadata, "given_name", &name);
-            } else if let Some(given_type) = scala_given_type(content, node) {
+            }
+            if let Some(given_type) = scala_given_type(content, node) {
                 insert_string(metadata, "given_type", &given_type);
             }
         }
@@ -1096,6 +1101,21 @@ fn implements_target(content: &str, node: Node<'_>) -> Option<String> {
         .or_else(|| text.trim().strip_prefix("implements"))
         .map(str::trim)
         .filter(|part| !part.is_empty())
+        .map(str::to_string)
+}
+
+/// The last segment of a Scala annotation name, without type arguments:
+/// `@scala.annotation.tailrec` is `tailrec`, `@throws[E]` is `throws`.
+fn scala_annotation_name(content: &str, node: Node<'_>) -> Option<String> {
+    let mut name = node.child_by_field_name("name")?;
+    if name.kind() == "generic_type" {
+        name = name.child_by_field_name("type")?;
+    }
+    let text = node_text(content, name);
+    text.rsplit('.')
+        .next()
+        .map(str::trim)
+        .filter(|segment| !segment.is_empty())
         .map(str::to_string)
 }
 

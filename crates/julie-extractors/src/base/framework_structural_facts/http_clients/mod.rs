@@ -7,6 +7,7 @@ mod php;
 mod python;
 mod ruby;
 mod rust;
+mod scala;
 
 use std::ops::Range;
 
@@ -35,6 +36,7 @@ pub(super) fn collect_backend_http_client_requests(
         "ruby" => ruby::collect_ruby_http_client_requests(language, tree, file_path, content),
         "elixir" => elixir::collect_elixir_http_client_requests(language, tree, file_path, content),
         "rust" => rust::collect_rust_http_client_requests(language, tree, file_path, content),
+        "scala" => scala::collect_scala_http_client_requests(language, tree, file_path, content),
         _ => Vec::new(),
     }
 }

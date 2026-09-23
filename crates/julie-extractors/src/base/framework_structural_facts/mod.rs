@@ -19,6 +19,7 @@ mod phoenix;
 mod python_web;
 mod rails;
 mod razor;
+mod scala_routes;
 mod scan;
 mod sinatra;
 mod spring;
@@ -50,6 +51,7 @@ use self::phoenix::collect_phoenix_routes;
 use self::python_web::collect_python_web_facts;
 use self::rails::collect_rails_routes;
 use self::razor::collect_razor_structural_facts;
+use self::scala_routes::collect_scala_routes;
 use self::sinatra::collect_sinatra_routes;
 use self::spring::collect_spring_request_mappings;
 use self::symfony::collect_symfony_routes;
@@ -74,6 +76,8 @@ pub(super) const DJANGO_URL_INCLUDE_PATTERN_ID: &str = "django.url_include.v1";
 pub(super) const SPRING_REQUEST_MAPPING_PATTERN_ID: &str = "spring.request_mapping.v1";
 pub(super) const JAXRS_ROUTE_PATTERN_ID: &str = "jaxrs.route.v1";
 pub(super) const SPRING_FUNCTIONAL_ROUTE_PATTERN_ID: &str = "spring.functional_route.v1";
+pub(super) const AKKA_HTTP_ROUTE_PATTERN_ID: &str = "akka_http.route.v1";
+pub(super) const HTTP4S_ROUTE_PATTERN_ID: &str = "http4s.route.v1";
 pub(super) const AXUM_ROUTE_PATTERN_ID: &str = "axum.route.v1";
 pub(super) const AXUM_NEST_PATTERN_ID: &str = "axum.nest.v1";
 pub(super) const ACTIX_ATTRIBUTE_ROUTE_PATTERN_ID: &str = "actix.attribute_route.v1";
@@ -175,6 +179,12 @@ const KOTLIN_PATTERN_IDS: &[&str] = &[
     SPRING_REQUEST_MAPPING_PATTERN_ID,
     SPRING_FUNCTIONAL_ROUTE_PATTERN_ID,
     KTOR_ROUTE_PATTERN_ID,
+    HTTP_CLIENT_REQUEST_PATTERN_ID,
+];
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const SCALA_PATTERN_IDS: &[&str] = &[
+    AKKA_HTTP_ROUTE_PATTERN_ID,
+    HTTP4S_ROUTE_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -298,6 +308,13 @@ pub fn collect_framework_structural_facts(
             ));
             kotlin_facts
         }
+        "scala" => {
+            let mut scala_facts = collect_scala_routes(language, tree, file_path, content);
+            scala_facts.extend(collect_backend_http_client_requests(
+                language, tree, file_path, content,
+            ));
+            scala_facts
+        }
         "go" => {
             let mut go_facts = collect_go_http_boundary_facts(language, tree, file_path, content);
             go_facts.extend(collect_backend_http_client_requests(
@@ -374,6 +391,7 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
             HTTP_CLIENT_REQUEST_PATTERN_ID,
         ],
         "kotlin" => KOTLIN_PATTERN_IDS,
+        "scala" => SCALA_PATTERN_IDS,
         "go" => GO_HTTP_PATTERN_IDS,
         "ruby" => RAILS_PATTERN_IDS,
         "php" => LARAVEL_PATTERN_IDS,

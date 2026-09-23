@@ -176,7 +176,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "given_type",
                 STR,
                 OPT,
-                "The declared type of the given instance, used when anonymous.",
+                "The declared type of the given instance.",
             ),
         ],
     },

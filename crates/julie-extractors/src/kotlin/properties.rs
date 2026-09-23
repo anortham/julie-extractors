@@ -237,7 +237,11 @@ pub(super) fn extract_constructor_parameters(
                     }
                 };
 
-                let visibility = helpers::determine_visibility(&modifier_list);
+                let visibility = if binding.is_some() {
+                    helpers::determine_visibility(&modifier_list)
+                } else {
+                    crate::base::Visibility::Private
+                };
 
                 // Extract KDoc comment
                 let doc_comment = base.find_doc_comment(&child);

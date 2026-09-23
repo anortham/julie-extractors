@@ -32,7 +32,8 @@ fn declared_type_metadata(symbol: &Symbol) -> Option<&str> {
         .find_map(|key| metadata.get(*key).and_then(serde_json::Value::as_str))
 }
 
-fn base_type_name_from_text(declared: &str) -> Option<String> {
+/// The base type name of declared type text: `List[Int]` gives `List`.
+pub(super) fn base_type_name_from_text(declared: &str) -> Option<String> {
     let name = strip_type_decorations(declared, &SCALA_TYPE_NAME_RULES);
     let is_qualified_name = !name.is_empty() && name.split('.').all(is_type_name_segment);
     is_qualified_name.then_some(name)
