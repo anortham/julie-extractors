@@ -57,14 +57,129 @@ fn generic_rules(generic_node: Node) -> Option<&'static TypeNameRules> {
     (base_node.kind() == "type_identifier").then_some(&GENERIC_INSTANTIATION_RULES)
 }
 
-/// The type node of a `Foo{...}` or `&Foo{...}` initializer, or of a same-file
-/// `NewFoo(...)` call whose result is a single named type or pointer to one.
-pub(super) fn inferred_rhs_type_node<'a>(
-    base: &BaseExtractor,
-    value_node: Node<'a>,
-) -> Option<Node<'a>> {
-    composite_literal_type_node(value_node)
-        .or_else(|| constructor_result_type_node(base, value_node))
+/// Record the type a value initializes a variable with (`is_inferred=true`):
+/// a `Foo{...}` / `&Foo{...}` literal, `new(Foo)`, or result `result_index` of
+/// a same-file function call (`u, err := LoadUser(1)`, `s := NewSet[string]()`).
+/// Predeclared and unnamed result types record nothing.
+pub(super) fn record_inferred_value_type(
+    base: &mut BaseExtractor,
+    symbol_id: &str,
+    value: Node,
+    result_index: usize,
+) {
+    if result_index == 0
+        && let Some(literal_type) = composite_literal_type_node(value)
+    {
+        record_type_node_fact(base, symbol_id, literal_type, true);
+        return;
+    }
+    let function = match value.kind() {
+        "call_expression" => value.child_by_field_name("function"),
+        "type_conversion_expression" => value.child_by_field_name("type"),
+        _ => None,
+    };
+    let Some(function) = function else {
+        return;
+    };
+    if result_index == 0
+        && function.kind() == "identifier"
+        && base.get_node_text(&function) == "new"
+    {
+        record_new_argument_type(base, symbol_id, value);
+        return;
+    }
+    let callee = match function.kind() {
+        "identifier" => function,
+        "generic_type" => match function.child_by_field_name("type") {
+            Some(name) if name.kind() == "type_identifier" => name,
+            _ => return,
+        },
+        _ => return,
+    };
+    let name = base.get_node_text(&callee);
+    let Some(result_type) = same_file_function_declaration(value, &name, base)
+        .and_then(|declaration| declaration.child_by_field_name("result"))
+        .and_then(|result| nth_result_type(result, result_index))
+    else {
+        return;
+    };
+    if names_declared_type(base, result_type) {
+        record_type_node_fact(base, symbol_id, result_type, true);
+    }
+}
+
+/// Record a function's first declared result type (`is_inferred=false`).
+/// Function-typed and other unnamed result types record nothing.
+pub(super) fn record_return_type(base: &mut BaseExtractor, symbol_id: &str, function: Node) {
+    if let Some(result_type) = function
+        .child_by_field_name("result")
+        .and_then(|result| nth_result_type(result, 0))
+    {
+        record_type_node_fact(base, symbol_id, result_type, false);
+    }
+}
+
+/// The type of result `index` of a result list, counting each name of a
+/// grouped declaration (`(a, b int, err error)`).
+fn nth_result_type(result: Node, index: usize) -> Option<Node> {
+    if result.kind() != "parameter_list" {
+        return (index == 0).then_some(result);
+    }
+    let mut position = 0;
+    for declaration in result.named_children(&mut result.walk()) {
+        if declaration.kind() != "parameter_declaration" {
+            continue;
+        }
+        let names = declaration
+            .children_by_field_name("name", &mut declaration.walk())
+            .count()
+            .max(1);
+        if index < position + names {
+            return declaration.child_by_field_name("type");
+        }
+        position += names;
+    }
+    None
+}
+
+/// A named, non-predeclared type (or a pointer to one) the consumer can bind.
+fn names_declared_type(base: &BaseExtractor, type_node: Node) -> bool {
+    let named = match type_node.kind() {
+        "pointer_type" => type_node.named_child(0),
+        _ => Some(type_node),
+    };
+    let base_name = named.and_then(|named| match named.kind() {
+        "type_identifier" => Some(named),
+        "generic_type" => named.child_by_field_name("type"),
+        "qualified_type" => named.child_by_field_name("name"),
+        _ => None,
+    });
+    base_name.is_some_and(|name| !is_predeclared_type(&base.get_node_text(&name)))
+        && binds_base_type(type_node)
+}
+
+/// `new(User)` / `new(models.User)`: the argument is the allocated type.
+fn record_new_argument_type(base: &mut BaseExtractor, symbol_id: &str, call: Node) {
+    let Some(argument) = call
+        .child_by_field_name("arguments")
+        .and_then(|arguments| arguments.named_child(0))
+    else {
+        return;
+    };
+    match argument.kind() {
+        "type_identifier" | "qualified_type" | "generic_type" => {
+            if names_declared_type(base, argument) {
+                record_type_node_fact(base, symbol_id, argument, true);
+            }
+        }
+        "identifier" | "selector_expression" => {
+            let text = base.get_node_text(&argument);
+            if !is_predeclared_type(&text) {
+                base.record_declared_type_fact(symbol_id, &text, &TYPE_NAME_RULES, true);
+            }
+        }
+        _ => {}
+    }
 }
 
 /// The type node of a `Foo{...}` or `&Foo{...}` initializer, when present.
@@ -81,43 +196,45 @@ pub(super) fn composite_literal_type_node(value_node: Node) -> Option<Node> {
     literal.child_by_field_name("type")
 }
 
-fn constructor_result_type_node<'a>(
+/// The name node of `F` in an explicit instantiation `F[T](x)`, which the
+/// grammar reads as a type conversion, when the file declares no type `F`.
+pub(super) fn instantiated_function_name<'a>(
     base: &BaseExtractor,
-    value_node: Node<'a>,
+    conversion: Node<'a>,
 ) -> Option<Node<'a>> {
-    if value_node.kind() != "call_expression" {
+    if conversion.kind() != "type_conversion_expression" {
         return None;
     }
-    let function = value_node.child_by_field_name("function")?;
-    if function.kind() != "identifier" {
+    let generic = conversion
+        .child_by_field_name("type")
+        .filter(|node| node.kind() == "generic_type")?;
+    let base_type = generic.child_by_field_name("type")?;
+    let name = match base_type.kind() {
+        "type_identifier" => base_type,
+        "qualified_type" => base_type.child_by_field_name("name")?,
+        _ => return None,
+    };
+    if base_type.kind() == "type_identifier"
+        && same_file_type_declaration(conversion, &base.get_node_text(&name), base)
+    {
         return None;
     }
-    let name = base.get_node_text(&function);
-    let declaration = same_file_function_declaration(value_node, &name, base)?;
-    let result = declaration.child_by_field_name("result")?;
-    match result.kind() {
-        "type_identifier" => named_constructor_result(base, result, result),
-        "pointer_type" => {
-            let inner = result.named_child(0)?;
-            named_constructor_result(base, inner, result)
-        }
-        _ => None,
-    }
+    Some(name)
 }
 
-fn named_constructor_result<'a>(
-    base: &BaseExtractor,
-    type_id: Node,
-    result: Node<'a>,
-) -> Option<Node<'a>> {
-    if type_id.kind() != "type_identifier" {
-        return None;
-    }
-    let name = base.get_node_text(&type_id);
-    if is_predeclared_type(&name) {
-        return None;
-    }
-    Some(result)
+fn same_file_type_declaration(node: Node, name: &str, base: &BaseExtractor) -> bool {
+    let root = file_root(node);
+    let mut cursor = root.walk();
+    root.children(&mut cursor)
+        .filter(|child| child.kind() == "type_declaration")
+        .any(|declaration| {
+            declaration
+                .named_children(&mut declaration.walk())
+                .any(|spec| {
+                    spec.child_by_field_name("name")
+                        .is_some_and(|spec_name| base.get_node_text(&spec_name) == name)
+                })
+        })
 }
 
 fn same_file_function_declaration<'a>(

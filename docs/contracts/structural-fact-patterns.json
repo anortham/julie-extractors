@@ -759,6 +759,128 @@
     "query_family": "preprocessor"
   },
   {
+    "description": "A go-chi `r.Mount(\"/lit\", handler)` sub-router mount at its registration site.",
+    "languages": [
+      "go"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Static mount path, joined with the same-file router prefix.",
+        "key": "mount_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Normalized mount path (`{id}` captures as `:id`).",
+        "key": "normalized_mount_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Source text of the mounted handler (no route join is guessed).",
+        "key": "mount_target",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "chi.mount.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A go-chi route registration on a traced router, with the same-file `Route` prefix.",
+    "languages": [
+      "go"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"call_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template; `{id}` captures normalize to `:id`.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Same-file router prefix.",
+        "key": "route_group_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Router prefix joined with route template.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Uppercase HTTP method; omitted for any-method registrations.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "chi.route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "An actionable TODO, FIXME, HACK, XXX, or RAZORBACK at the start of a comment line.",
     "languages": [
       "rust",
@@ -2221,6 +2343,82 @@
     "query_family": "framework"
   },
   {
+    "description": "A gofiber route registration on a traced app or `Group` receiver.",
+    "languages": [
+      "go"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"call_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template; `:id` params stay `:id`.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Same-file router prefix.",
+        "key": "route_group_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Router prefix joined with route template.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Uppercase HTTP method; omitted for any-method registrations.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "fiber.route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "A Flask register_blueprint mount call.",
     "languages": [
       "python"
@@ -2704,6 +2902,82 @@
       }
     ],
     "pattern_id": "go.net_http.route.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A gorilla/mux `HandleFunc`/`Handle` registration, one fact per `.Methods(...)` verb, with the same-file `PathPrefix(..).Subrouter()` prefix.",
+    "languages": [
+      "go"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"call_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template; `{id}` captures normalize to `:id`.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Same-file router prefix.",
+        "key": "route_group_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Router prefix joined with route template.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Uppercase HTTP method; omitted for any-method registrations.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "gorilla_mux.route.v1",
     "query_family": "framework"
   },
   {

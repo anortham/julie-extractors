@@ -39,18 +39,8 @@ impl super::GoExtractor {
         node: Node,
         parent_id: Option<&str>,
     ) -> Option<Symbol> {
-        // Try to find doc comment - look for it on the node first, then on the parent
-        let doc_comment_from_spec = self.base.find_doc_comment(&node);
-        let doc_comment = if doc_comment_from_spec.is_none() {
-            // If not found on spec, try to find it on the parent type_declaration
-            if let Some(parent) = node.parent() {
-                self.base.find_doc_comment(&parent)
-            } else {
-                None
-            }
-        } else {
-            doc_comment_from_spec
-        };
+        let doc_comment = self.go_doc_comment(&node);
+        let directives = self.annotations_from_compiler_directives(&node);
 
         let mut cursor = node.walk();
         let mut type_identifier = None;
@@ -105,10 +95,11 @@ impl super::GoExtractor {
                 Some(Visibility::Private)
             };
 
-            match type_kind {
+            let symbol = match type_kind {
                 "struct" => {
                     let signature = format!("type {}{} struct", name, type_params);
-                    let annotations = self.annotations_from_struct_field_tags(type_node);
+                    let mut annotations = directives;
+                    annotations.extend(self.annotations_from_struct_field_tags(type_node));
                     Some(self.base.create_symbol(
                         &node,
                         name,
@@ -142,7 +133,7 @@ impl super::GoExtractor {
                             parent_id: parent_id.map(|s| s.to_string()),
                             metadata: None,
                             doc_comment: doc_comment.clone(),
-                            annotations: Vec::new(),
+                            annotations: directives,
                         },
                     ))
                 }
@@ -151,7 +142,7 @@ impl super::GoExtractor {
                     let aliased_type = self.extract_type_from_node(type_node);
                     let signature = format!("type {}{} = {}", name, type_params, aliased_type);
                     Some(self.base.create_symbol(
-                        &type_id,
+                        &node,
                         name,
                         SymbolKind::Type,
                         SymbolOptions {
@@ -160,7 +151,7 @@ impl super::GoExtractor {
                             parent_id: parent_id.map(|s| s.to_string()),
                             metadata: None,
                             doc_comment: doc_comment.clone(),
-                            annotations: Vec::new(),
+                            annotations: directives,
                         },
                     ))
                 }
@@ -169,7 +160,7 @@ impl super::GoExtractor {
                     let aliased_type = self.extract_type_from_node(type_node);
                     let signature = format!("type {}{} {}", name, type_params, aliased_type);
                     Some(self.base.create_symbol(
-                        &type_id,
+                        &node,
                         name,
                         SymbolKind::Type,
                         SymbolOptions {
@@ -178,12 +169,13 @@ impl super::GoExtractor {
                             parent_id: parent_id.map(|s| s.to_string()),
                             metadata: None,
                             doc_comment: doc_comment.clone(),
-                            annotations: Vec::new(),
+                            annotations: directives,
                         },
                     ))
                 }
                 _ => None,
-            }
+            };
+            symbol.map(|symbol| super::helpers::finalize_function_symbol(symbol, doc_comment))
         } else {
             None
         }
@@ -194,65 +186,42 @@ impl super::GoExtractor {
         node: Node,
         parent_id: Option<&str>,
     ) -> Option<Symbol> {
-        // Try to find doc comment - look for it on the node first, then on the parent
-        let doc_comment_from_alias = self.base.find_doc_comment(&node);
-        let doc_comment = if doc_comment_from_alias.is_none() {
-            // If not found on alias, try to find it on the parent type_declaration
-            if let Some(parent) = node.parent() {
-                self.base.find_doc_comment(&parent)
-            } else {
-                None
-            }
+        let doc_comment = self.go_doc_comment(&node);
+        let annotations = self.annotations_from_compiler_directives(&node);
+        let name = self.get_node_text(node.child_by_field_name("name")?);
+        let target_type_text = self.extract_type_from_node(node.child_by_field_name("type")?);
+        let type_params = node
+            .child_by_field_name("type_parameters")
+            .map(|type_params| self.get_node_text(type_params))
+            .unwrap_or_default();
+        let signature = format!("type {name}{type_params} = {target_type_text}");
+        let visibility = if self.is_public(&name) {
+            Visibility::Public
         } else {
-            doc_comment_from_alias
+            Visibility::Private
         };
+        let metadata = HashMap::from([(
+            "alias_target".to_string(),
+            serde_json::Value::String(target_type_text),
+        )]);
 
-        // Parse type_alias node: "TypeAlias = string"
-        let mut cursor = node.walk();
-        let mut alias_name = None;
-        let mut target_type = None;
-
-        for child in node.children(&mut cursor) {
-            match child.kind() {
-                "type_identifier" if alias_name.is_none() => alias_name = Some(child),
-                "type_identifier" | "primitive_type" | "pointer_type" | "slice_type"
-                | "map_type" | "array_type" | "channel_type" | "function_type"
-                | "qualified_type" | "generic_type"
-                    if alias_name.is_some() =>
-                {
-                    target_type = Some(child);
-                }
-                _ => {}
-            }
-        }
-
-        if let (Some(alias_node), Some(target_node)) = (alias_name, target_type) {
-            let name = self.get_node_text(alias_node);
-            let target_type_text = self.extract_type_from_node(target_node);
-            let signature = format!("type {} = {}", name, target_type_text);
-
-            let mut metadata = HashMap::new();
-            metadata.insert(
-                "alias_target".to_string(),
-                serde_json::Value::String(target_type_text),
-            );
-
-            return Some(self.base.create_symbol(
-                &node,
-                name,
-                SymbolKind::Type,
-                SymbolOptions {
-                    signature: Some(signature),
-                    visibility: Some(Visibility::Public),
-                    parent_id: parent_id.map(|s| s.to_string()),
-                    metadata: Some(metadata),
-                    doc_comment,
-                    annotations: Vec::new(),
-                },
-            ));
-        }
-
-        None
+        let symbol = self.base.create_symbol(
+            &node,
+            name,
+            SymbolKind::Type,
+            SymbolOptions {
+                signature: Some(signature),
+                visibility: Some(visibility),
+                parent_id: parent_id.map(|s| s.to_string()),
+                metadata: Some(metadata),
+                doc_comment: doc_comment.clone(),
+                annotations,
+            },
+        );
+        Some(super::helpers::finalize_function_symbol(
+            symbol,
+            doc_comment,
+        ))
     }
 
     pub(super) fn extract_field(&mut self, node: Node, parent_id: Option<&str>) -> Vec<Symbol> {

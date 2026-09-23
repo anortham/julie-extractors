@@ -653,6 +653,21 @@
           "name": "return_types",
           "source": "fixtures/extraction/go/return_types/source.go",
           "expected": "fixtures/extraction/go/return_types/expected.json"
+        },
+        {
+          "name": "types_and_relations",
+          "source": "fixtures/extraction/go/types_and_relations/source.go",
+          "expected": "fixtures/extraction/go/types_and_relations/expected.json"
+        },
+        {
+          "name": "router_frameworks",
+          "source": "fixtures/extraction/go/router_frameworks/source.go",
+          "expected": "fixtures/extraction/go/router_frameworks/expected.json"
+        },
+        {
+          "name": "gocheck_ginkgo",
+          "source": "fixtures/extraction/go/gocheck_ginkgo/source_test.go",
+          "expected": "fixtures/extraction/go/gocheck_ginkgo/expected.json"
         }
       ],
       "target_capabilities": {
@@ -666,6 +681,7 @@
       "kind_coverage": {
         "symbols": {
           "supported": [
+            "constant",
             "field",
             "function",
             "import",
@@ -673,6 +689,7 @@
             "method",
             "module",
             "struct",
+            "type",
             "variable"
           ],
           "not_applicable": [],
@@ -681,6 +698,8 @@
         "relationships": {
           "supported": [
             "calls",
+            "extends",
+            "implements",
             "uses"
           ],
           "not_applicable": [],
@@ -712,11 +731,15 @@
         },
         "structural_facts": {
           "supported": [
+            "chi.mount.v1",
+            "chi.route.v1",
             "echo.route.v1",
+            "fiber.route.v1",
             "gin.route.v1",
             "go.defer_statement.v1",
             "go.goroutine_launch.v1",
             "go.net_http.route.v1",
+            "gorilla_mux.route.v1",
             "http.client_request.v1"
           ],
           "not_applicable": [],
@@ -726,12 +749,6 @@
               "reason": "`go.mod` and `go.sum` carry the module path, the Go toolchain version, the require/replace/exclude graph, and the dependency checksums. Neither file has an extension, and no registered language claims an exact basename for them, so both are scanned as unsupported and publish no symbols or structural facts.",
               "required_closure": "register a Go module-manifest language keyed on the exact basenames `go.mod` and `go.sum`, the way `qmldir` is keyed on its exact basename, and register a golden fixture covering module, go, toolchain, require, replace, exclude, and checksum lines",
               "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 9 follow-up: Go module manifest language row"
-            },
-            {
-              "kind": "gocheck.suite_registration",
-              "reason": "gocheck binds a suite with `var _ = check.Suite(&MySuite{})` and embeds nothing, so a gocheck suite struct carries no syntactic marker. The container pass keys on an embedded `Suite` field, so gocheck suite methods publish their lifecycle and case roles while the suite struct itself stays unclassified.",
-              "required_closure": "recognise the `Suite(&T{})` registration call as a container declaration for the struct it names, and register a golden fixture with a same-named non-registration call as the control",
-              "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 9 follow-up: gocheck suite registration containers"
             }
           ]
         },
@@ -745,20 +762,24 @@
         },
         "annotations": {
           "supported": [
-            "struct",
+            "constant",
             "field",
-            "function"
+            "function",
+            "struct"
           ],
           "not_applicable": [],
           "open_gaps": []
         },
         "doc_comments": {
           "supported": [
+            "constant",
             "function",
             "interface",
             "method",
             "module",
-            "struct"
+            "struct",
+            "type",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []

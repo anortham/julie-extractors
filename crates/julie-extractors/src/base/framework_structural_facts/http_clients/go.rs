@@ -1,6 +1,8 @@
 use tree_sitter::Tree;
 
-use super::super::go_http::collect_go_imports;
+use std::collections::HashSet;
+
+use super::super::go_http::{collect_assignment_names, collect_go_imports};
 use super::super::helpers::{is_identifier_boundary, skip_ascii_whitespace_until};
 use super::super::scan::{
     MaskLanguage, SourceMask, find_matching_paren, find_top_level_comma_or_end,
@@ -20,14 +22,8 @@ pub(super) fn collect_go_http_client_requests(
     };
     let mask = SourceMask::new(content, MaskLanguage::Go);
     let mut facts = Vec::new();
-    for (method, verb, url_arg) in [
-        ("Get", "GET", 0usize),
-        ("Head", "HEAD", 0),
-        ("Post", "POST", 0),
-        ("PostForm", "POST", 0),
-        ("NewRequest", "", 1),
-        ("NewRequestWithContext", "", 2),
-    ] {
+    let package_calls = [("NewRequest", "", 1), ("NewRequestWithContext", "", 2)];
+    for (method, verb, url_arg) in CLIENT_CALLS.iter().chain(package_calls.iter()) {
         let needle = format!("{http_alias}.{method}");
         collect_calls(
             language,
@@ -37,12 +33,71 @@ pub(super) fn collect_go_http_client_requests(
             &mask,
             &http_alias,
             &needle,
+            &http_alias,
             verb,
-            url_arg,
+            *url_arg,
             &mut facts,
         );
     }
+    let mut clients = HashSet::from([format!("{http_alias}.DefaultClient")]);
+    for literal in [
+        format!("&{http_alias}.Client{{"),
+        format!("{http_alias}.Client{{"),
+    ] {
+        collect_assignment_names(content, &mask, &literal, &mut clients);
+    }
+    for client in clients {
+        for (method, verb, url_arg) in CLIENT_CALLS {
+            let needle = format!("{client}.{method}");
+            collect_calls(
+                language,
+                tree,
+                file_path,
+                content,
+                &mask,
+                &client,
+                &needle,
+                &http_alias,
+                verb,
+                *url_arg,
+                &mut facts,
+            );
+        }
+    }
     facts
+}
+
+/// Request methods on the `net/http` package and on an `*http.Client`: the
+/// verb they send and the index of their URL argument.
+const CLIENT_CALLS: &[(&str, &str, usize)] = &[
+    ("Get", "GET", 0),
+    ("Head", "HEAD", 0),
+    ("Post", "POST", 0),
+    ("PostForm", "POST", 0),
+];
+
+/// The verb a `NewRequest` method argument names: a string literal, or a
+/// `net/http` method constant (`http.MethodPost`).
+fn request_method_verb(
+    content: &str,
+    http_alias: &str,
+    start: usize,
+    end: usize,
+) -> Option<String> {
+    if let Some((method, literal_end)) = parse_go_string_literal(content, start) {
+        return (skip_ascii_whitespace_until(content, literal_end, end) == end)
+            .then(|| method.to_uppercase());
+    }
+    let constant = content.get(start..end)?.trim();
+    let verb = constant
+        .strip_prefix(http_alias)?
+        .strip_prefix(".Method")?
+        .to_uppercase();
+    matches!(
+        verb.as_str(),
+        "GET" | "HEAD" | "POST" | "PUT" | "PATCH" | "DELETE" | "CONNECT" | "OPTIONS" | "TRACE"
+    )
+    .then_some(verb)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -54,6 +109,7 @@ fn collect_calls(
     mask: &SourceMask,
     receiver: &str,
     needle: &str,
+    http_alias: &str,
     fixed_verb: &str,
     url_arg_index: usize,
     facts: &mut Vec<StructuralFact>,
@@ -88,14 +144,11 @@ fn collect_calls(
             let Some((method_start, method_end)) = args.get(url_arg_index - 1).copied() else {
                 continue;
             };
-            let Some((method, method_literal_end)) = parse_go_string_literal(content, method_start)
+            let Some(verb) = request_method_verb(content, http_alias, method_start, method_end)
             else {
                 continue;
             };
-            if skip_ascii_whitespace_until(content, method_literal_end, method_end) != method_end {
-                continue;
-            }
-            method.to_uppercase()
+            verb
         } else {
             fixed_verb.to_string()
         };

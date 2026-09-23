@@ -69,13 +69,16 @@ roles therefore come from the name plus the `_test.go` gate, and the container
 row records the suite itself.
 
 gocheck registers a suite with `var _ = check.Suite(&MySuite{})` and embeds
-nothing, so a gocheck suite struct carries no syntactic marker. Its methods
-publish their roles; the struct does not. That is recorded as
-`gocheck.suite_registration`.
+nothing. In a `_test.go` file that imports `gopkg.in/check.v1`, the struct
+named in a top-level `Suite(&T{})` registration is a `test_container`. The
+registration must go through the gocheck import alias (or a bare `Suite` under
+a dot import), so an unrelated `registry.Suite(&T{})` call stays unclassified.
 
 ### Ginkgo
 
-Ginkgo declares specs as call expressions whose callee is a bare identifier:
+Ginkgo declares specs as call expressions whose callee is a bare identifier
+under the usual dot import, or `alias.Describe` when the file imports Ginkgo
+under a name (`g "github.com/onsi/ginkgo/v2"`, or the default `ginkgo`):
 `Describe`, `Context`, `When`, `It`, `BeforeEach`, and their focused and
 pending variants. Those are ordinary Go identifiers, so two guards apply.
 
@@ -110,6 +113,45 @@ subtest are captured as nested `test_case` symbols. The receiver must be an
 identifier bound to an active `*testing.T` parameter, and the callback must be
 a function literal. Dynamic names, unrelated `Run` methods, and calls outside
 an enclosing test symbol remain unclassified.
+
+## Symbols, types, and relations
+
+- Type definitions, aliases, and interfaces span the whole type spec, so the
+  body hash covers the type. An alias is a `type` symbol whose visibility
+  follows the case of its name.
+- Doc comments follow go/doc: the comment group directly above the
+  declaration, with no blank line between. `//go:` directives are removed from
+  the doc and become annotations. A single-spec `var`, `const`, or `type`
+  takes the comment above its keyword.
+- Declared return types are declared type facts. A `var`/`:=` binding from a
+  composite literal, `new(T)`, or a same-file call records an inferred type
+  fact, per result position for multi-value calls.
+- `for k, v := range x` and `switch v := x.(type)` bindings are local
+  variables. A range binding over a typed parameter or local records the key or
+  element type as an inferred fact.
+- An embedded struct field or a single-type interface element is an `extends`
+  edge. `var _ I = T{}` and `var _ I = (*T)(nil)` are `implements` edges from
+  `T` to `I`. Unresolved embedded types become pending rows that keep their
+  import path. Embedded fields in a struct whose field list failed to parse
+  publish no edge.
+- Builtins (`len`, `make`, `append`, ...) and conversions to predeclared types
+  publish no call edge. A conversion to a same-file type is a `uses` edge.
+  `F[T](x)` is a call to `F` with type arguments.
+- Complexity counts `if`, each switch, select, and case clause. The method
+  receiver is not a parameter.
+
+## HTTP routers and clients
+
+- `chi.route.v1`: chi verb methods, `Handle`/`HandleFunc`, `Method`/
+  `MethodFunc`, and routes inside `Route("/prefix", func(r chi.Router))`,
+  `Group`, and `With(...)` chains. `chi.mount.v1` records `Mount` prefixes.
+- `gorilla_mux.route.v1`: `Handle`/`HandleFunc` with the verb from
+  `.Methods(...)`, and `PathPrefix(...).Subrouter()` prefixes.
+- `fiber.route.v1`: fiber verb methods, `All`, and `Group` prefixes.
+- A receiver must be proven in the same file: a router constructor
+  assignment, a `chi.Router` closure parameter, or a typed parameter.
+- `http.client_request.v1` also covers `http.DefaultClient`, locals assigned
+  from `http.Client{...}`, and `http.MethodX` verb constants.
 
 ## Grammar freshness
 

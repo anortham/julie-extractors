@@ -525,7 +525,10 @@ fn find_first_parameter_container_at_depth<'tree>(
     if !overlaps(node, span) {
         return None;
     }
-    if contains(span, node) && config.parameter_container_node_kinds.contains(&node.kind()) {
+    if contains(span, node)
+        && config.parameter_container_node_kinds.contains(&node.kind())
+        && !is_method_receiver_list(node)
+    {
         return Some(node);
     }
     let child_depth = child_tree_depth(depth);
@@ -539,6 +542,14 @@ fn find_first_parameter_container_at_depth<'tree>(
         }
     }
     None
+}
+
+/// A Go method's receiver list is a parameter list, but not the method's
+/// parameters.
+fn is_method_receiver_list(node: Node<'_>) -> bool {
+    node.parent()
+        .and_then(|parent| parent.child_by_field_name("receiver"))
+        .is_some_and(|receiver| receiver.id() == node.id())
 }
 
 fn parameter_arity(node: Node<'_>) -> u32 {
@@ -681,9 +692,12 @@ const FSHARP_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
 const GO_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
     decision_node_kinds: &[
         "if_statement",
-        "switch_statement",
+        "expression_switch_statement",
         "type_switch_statement",
         "select_statement",
+        "expression_case",
+        "type_case",
+        "communication_case",
     ],
     loop_node_kinds: &["for_statement"],
     parameter_container_node_kinds: &["parameter_list"],

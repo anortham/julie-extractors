@@ -92,8 +92,13 @@ impl super::GoExtractor {
             self.extract_method_relationships_from_node(node, scope, relationships);
         }
 
-        if node.kind() == "call_expression" {
-            self.extract_call_relationships(node, scope, relationships);
+        match node.kind() {
+            "call_expression" | "type_conversion_expression" => {
+                self.extract_call_relationships(node, scope, relationships);
+            }
+            "type_spec" => self.extract_embedding_relationships(node, scope, relationships),
+            "var_spec" => self.extract_interface_assertion(node, scope, relationships),
+            _ => {}
         }
 
         let Some(child_depth) = crate::tree_traversal::child_tree_depth(depth) else {
@@ -157,18 +162,35 @@ impl super::GoExtractor {
         relationships: &mut Vec<Relationship>,
     ) {
         let symbol_map = &scope.symbol_map;
-        let Some(func_node) = node.child_by_field_name("function") else {
+        let Some(func_node) = callee_node(node) else {
             return;
         };
         let mut target = match func_node.kind() {
-            "identifier" => UnresolvedTarget::simple(self.base.get_node_text(&func_node)),
+            "identifier" | "type_identifier" => {
+                UnresolvedTarget::simple(self.base.get_node_text(&func_node))
+            }
             "selector_expression" => match self.selector_call_target(func_node) {
                 Some(target) => target,
                 None => return,
             },
+            "qualified_type" => {
+                let (Some(package), Some(name)) = (
+                    func_node.child_by_field_name("package"),
+                    func_node.child_by_field_name("name"),
+                ) else {
+                    return;
+                };
+                UnresolvedTarget::from_chain(vec![
+                    self.base.get_node_text(&package),
+                    self.base.get_node_text(&name),
+                ])
+            }
             _ => return,
         };
         let callee_name = target.terminal_name.clone();
+        if target.receiver.is_none() && is_predeclared_callee(&callee_name) {
+            return;
+        }
 
         let Some(caller) = self.find_caller(scope, node) else {
             return;
@@ -222,10 +244,15 @@ impl super::GoExtractor {
                 self.add_structured_pending_relationship(pending);
             }
             Some(called_symbol) => {
+                let kind = if is_type_symbol(called_symbol) {
+                    RelationshipKind::Uses
+                } else {
+                    RelationshipKind::Calls
+                };
                 relationships.push(self.base.create_relationship(
                     caller.id.clone(),
                     called_symbol.id.clone(),
-                    RelationshipKind::Calls,
+                    kind,
                     &node,
                     Some(0.9),
                     None,
@@ -243,6 +270,193 @@ impl super::GoExtractor {
                 self.add_structured_pending_relationship(pending);
             }
         }
+    }
+
+    /// `type T struct { Base; *pkg.Mixin }` and `type I interface { Reader;
+    /// io.Closer }`: each embedded type is an `extends` edge from `T`, resolved
+    /// to a same-file type or left pending with its package qualifier.
+    fn extract_embedding_relationships(
+        &mut self,
+        type_spec: Node,
+        scope: &RelationshipScope<'_>,
+        relationships: &mut Vec<Relationship>,
+    ) {
+        let (Some(name), Some(body)) = (
+            type_spec.child_by_field_name("name"),
+            type_spec.child_by_field_name("type"),
+        ) else {
+            return;
+        };
+        let Some(owner) = self.type_symbol_at(scope, type_spec, name) else {
+            return;
+        };
+        let embedded: Vec<Node> = match body.kind() {
+            "struct_type" => body
+                .named_children(&mut body.walk())
+                .filter(|list| list.kind() == "field_declaration_list" && !list.has_error())
+                .flat_map(|list| list.named_children(&mut list.walk()).collect::<Vec<_>>())
+                .filter(|field| {
+                    field.kind() == "field_declaration"
+                        && field.child_by_field_name("name").is_none()
+                })
+                .filter_map(|field| field.child_by_field_name("type"))
+                .collect(),
+            "interface_type" => body
+                .named_children(&mut body.walk())
+                .filter(|element| element.kind() == "type_elem" && element.named_child_count() == 1)
+                .filter_map(|element| element.named_child(0))
+                .collect(),
+            _ => return,
+        };
+        for type_node in embedded {
+            self.emit_type_edge(
+                owner,
+                type_node,
+                RelationshipKind::Extends,
+                scope,
+                relationships,
+            );
+        }
+    }
+
+    /// `var _ Iface = T{}` / `var _ Iface = (*T)(nil)`: the compile-time proof
+    /// that `T` implements `Iface`.
+    fn extract_interface_assertion(
+        &mut self,
+        var_spec: Node,
+        scope: &RelationshipScope<'_>,
+        relationships: &mut Vec<Relationship>,
+    ) {
+        let is_blank = var_spec
+            .child_by_field_name("name")
+            .is_some_and(|name| self.base.get_node_text(&name) == "_");
+        let (Some(interface), Some(value)) = (
+            var_spec.child_by_field_name("type"),
+            var_spec
+                .child_by_field_name("value")
+                .and_then(|values| values.named_child(0)),
+        ) else {
+            return;
+        };
+        if !is_blank {
+            return;
+        }
+        let Some(implementer) = asserted_type_name(value) else {
+            return;
+        };
+        let implementer = self.base.get_node_text(&implementer);
+        let Some(owner) = scope.symbols.iter().find(|symbol| {
+            symbol.name == implementer
+                && matches!(symbol.kind, SymbolKind::Struct | SymbolKind::Type)
+        }) else {
+            return;
+        };
+        self.emit_type_edge(
+            owner,
+            interface,
+            RelationshipKind::Implements,
+            scope,
+            relationships,
+        );
+    }
+
+    fn type_symbol_at<'a>(
+        &self,
+        scope: &RelationshipScope<'a>,
+        type_spec: Node,
+        name: Node,
+    ) -> Option<&'a Symbol> {
+        let name = self.base.get_node_text(&name);
+        scope.symbols.iter().find(|symbol| {
+            symbol.name == name
+                && symbol.start_byte == type_spec.start_byte() as u32
+                && matches!(
+                    symbol.kind,
+                    SymbolKind::Struct | SymbolKind::Interface | SymbolKind::Type
+                )
+        })
+    }
+
+    /// A resolved edge to a same-file type named by `type_node`, or a pending
+    /// edge that keeps its package qualifier.
+    fn emit_type_edge(
+        &mut self,
+        from: &Symbol,
+        type_node: Node,
+        kind: RelationshipKind,
+        scope: &RelationshipScope<'_>,
+        relationships: &mut Vec<Relationship>,
+    ) {
+        let mut named = type_node;
+        loop {
+            match named.kind() {
+                "pointer_type" => match named.named_child(0) {
+                    Some(inner) => named = inner,
+                    None => return,
+                },
+                "generic_type" => match named.child_by_field_name("type") {
+                    Some(inner) => named = inner,
+                    None => return,
+                },
+                _ => break,
+            }
+        }
+        let target = match named.kind() {
+            "type_identifier" => {
+                let name = self.base.get_node_text(&named);
+                let local = scope.symbols.iter().find(|symbol| {
+                    symbol.name == name
+                        && symbol.id != from.id
+                        && matches!(
+                            symbol.kind,
+                            SymbolKind::Struct | SymbolKind::Interface | SymbolKind::Type
+                        )
+                });
+                if let Some(local) = local {
+                    relationships.push(self.base.create_relationship(
+                        from.id.clone(),
+                        local.id.clone(),
+                        kind,
+                        &type_node,
+                        Some(0.9),
+                        None,
+                    ));
+                    return;
+                }
+                UnresolvedTarget::simple(name)
+            }
+            "qualified_type" => {
+                let (Some(package), Some(name)) = (
+                    named.child_by_field_name("package"),
+                    named.child_by_field_name("name"),
+                ) else {
+                    return;
+                };
+                let package = self.base.get_node_text(&package);
+                let mut target = UnresolvedTarget::from_chain(vec![
+                    package.clone(),
+                    self.base.get_node_text(&name),
+                ]);
+                target.import_context = scope
+                    .symbol_map
+                    .get(&package)
+                    .filter(|symbol| symbol.kind == SymbolKind::Import)
+                    .and_then(|symbol| symbol.signature.as_deref())
+                    .and_then(import_path_from_signature)
+                    .map(str::to_owned);
+                target
+            }
+            _ => return,
+        };
+        let pending = self.base.create_pending_relationship(
+            from.id.clone(),
+            target,
+            kind,
+            &type_node,
+            Some(from.id.clone()),
+            Some(0.8),
+        );
+        self.add_structured_pending_relationship(pending);
     }
 
     /// `a.b.F()` becomes the chain target `a.b.F`. A call on an expression
@@ -299,5 +513,97 @@ impl super::GoExtractor {
                 .iter()
                 .filter(|symbol| symbol.id != found.id && symbol.file_path == found.file_path),
         )
+    }
+}
+
+/// The callee of a call: `F(x)`, `pkg.F(x)`, or the base of an explicit
+/// instantiation `F[T](x)` (which the grammar reads as a type conversion).
+fn callee_node(node: Node) -> Option<Node> {
+    let function = match node.kind() {
+        "call_expression" => node.child_by_field_name("function")?,
+        "type_conversion_expression" => node.child_by_field_name("type")?,
+        _ => return None,
+    };
+    match function.kind() {
+        "generic_type" => function.child_by_field_name("type"),
+        "index_expression" => function.child_by_field_name("operand"),
+        _ => Some(function),
+    }
+}
+
+/// Go's predeclared functions and conversion types: a call to one is never a
+/// workspace edge unless the file shadows the name.
+fn is_predeclared_callee(name: &str) -> bool {
+    matches!(
+        name,
+        "append"
+            | "cap"
+            | "clear"
+            | "close"
+            | "complex"
+            | "copy"
+            | "delete"
+            | "imag"
+            | "len"
+            | "make"
+            | "max"
+            | "min"
+            | "new"
+            | "panic"
+            | "print"
+            | "println"
+            | "real"
+            | "recover"
+            | "any"
+            | "bool"
+            | "byte"
+            | "complex64"
+            | "complex128"
+            | "error"
+            | "float32"
+            | "float64"
+            | "int"
+            | "int8"
+            | "int16"
+            | "int32"
+            | "int64"
+            | "rune"
+            | "string"
+            | "uint"
+            | "uint8"
+            | "uint16"
+            | "uint32"
+            | "uint64"
+            | "uintptr"
+    )
+}
+
+fn is_type_symbol(symbol: &Symbol) -> bool {
+    matches!(
+        symbol.kind,
+        SymbolKind::Struct | SymbolKind::Interface | SymbolKind::Type
+    )
+}
+
+/// The implementing type named by an assertion value: `T{}`, `&T{}`,
+/// `(*T)(nil)`, or `T(nil)`.
+fn asserted_type_name(value: Node) -> Option<Node> {
+    if let Some(literal_type) = super::type_facts::composite_literal_type_node(value) {
+        return (literal_type.kind() == "type_identifier").then_some(literal_type);
+    }
+    if value.kind() != "call_expression" {
+        return None;
+    }
+    let mut function = value.child_by_field_name("function")?;
+    loop {
+        match function.kind() {
+            "parenthesized_expression" | "parenthesized_type" => {
+                function = function.named_child(0)?;
+            }
+            "unary_expression" => function = function.child_by_field_name("operand")?,
+            "pointer_type" => function = function.named_child(0)?,
+            "identifier" | "type_identifier" => return Some(function),
+            _ => return None,
+        }
     }
 }

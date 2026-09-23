@@ -125,23 +125,6 @@ impl super::GoExtractor {
             .unwrap_or_default()
     }
 
-    /// Extract return type from function signatures like "func getName() string"
-    pub(super) fn extract_return_type_from_signature(&self, signature: &str) -> Option<String> {
-        if let Some(paren_end) = signature.rfind(')') {
-            let after_paren = signature[paren_end + 1..].trim();
-            if !after_paren.is_empty() && after_paren != "{" {
-                return Some(
-                    after_paren
-                        .split_whitespace()
-                        .next()
-                        .unwrap_or("")
-                        .to_string(),
-                );
-            }
-        }
-        None
-    }
-
     /// Extract type from variable signatures like "var name string = value" or "const name string = value"
     pub(super) fn extract_variable_type_from_signature(&self, signature: &str) -> Option<String> {
         if signature.starts_with("var ") || signature.starts_with("const ") {
@@ -187,21 +170,25 @@ impl super::GoExtractor {
             .collect()
     }
 
-    pub(super) fn find_function_doc_comment(&self, node: &Node) -> Option<String> {
+    /// The Go doc comment of a declaration: the comment group directly above it
+    /// with no blank line between, `//go:` directives removed. An ungrouped
+    /// `var`, `const`, or `type` spec reads the comment above its declaration.
+    pub(super) fn go_doc_comment(&self, node: &Node) -> Option<String> {
         let comments: Vec<String> = self
-            .base
-            .previous_comment_texts(node.prev_named_sibling())
+            .adjacent_comments(doc_anchor(*node))
             .into_iter()
             .filter(|comment| parse_go_compiler_directive(comment).is_none())
+            .skip_while(|comment| comment.trim() == "//")
             .collect();
         crate::base::extractor::select_doc_comment_block("go", &comments)
     }
 
+    /// `//go:` directives in the comment group directly above a declaration.
     pub(super) fn annotations_from_compiler_directives(
         &self,
         node: &Node,
     ) -> Vec<AnnotationMarker> {
-        let comments = self.base.previous_comment_texts(node.prev_named_sibling());
+        let comments = self.adjacent_comments(doc_anchor(*node));
         let mut seen = HashSet::new();
         let mut markers = Vec::new();
 
@@ -214,6 +201,47 @@ impl super::GoExtractor {
         }
 
         markers
+    }
+
+    /// Comments directly above `anchor`, nearest first, stopping at a blank
+    /// line or at a trailing comment of the previous line's code.
+    fn adjacent_comments(&self, anchor: Node) -> Vec<String> {
+        let mut comments = Vec::new();
+        let mut next_row = anchor.start_position().row;
+        let mut current = anchor.prev_sibling();
+        while let Some(comment) = current {
+            if comment.kind() != "comment" || comment.end_position().row + 1 != next_row {
+                break;
+            }
+            let previous = comment.prev_sibling();
+            if previous.is_some_and(|code| code.end_position().row == comment.start_position().row)
+            {
+                break;
+            }
+            comments.push(self.base.get_node_text(&comment));
+            next_row = comment.start_position().row;
+            current = previous;
+        }
+        comments
+    }
+}
+
+/// The node whose leading comments document `node`: a spec that is the only
+/// spec of an unparenthesized declaration is documented above the declaration.
+fn doc_anchor(node: Node) -> Node {
+    let Some(parent) = node.parent() else {
+        return node;
+    };
+    let is_single_spec_declaration = matches!(
+        parent.kind(),
+        "type_declaration" | "var_declaration" | "const_declaration"
+    ) && !parent
+        .children(&mut parent.walk())
+        .any(|child| child.kind() == "(");
+    if is_single_spec_declaration {
+        parent
+    } else {
+        node
     }
 }
 
@@ -313,10 +341,10 @@ fn parse_go_struct_tag_pairs(tag_text: &str) -> Vec<(String, String)> {
         .collect()
 }
 
+/// Go decides doc attachment itself; the shared fallback would read
+/// detached comments and `//go:` directives as docs.
 pub(super) fn finalize_function_symbol(mut symbol: Symbol, doc_comment: Option<String>) -> Symbol {
-    if doc_comment.is_none() && !symbol.annotations.is_empty() {
-        symbol.doc_comment = None;
-    }
+    symbol.doc_comment = doc_comment;
     symbol
 }
 

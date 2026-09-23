@@ -73,6 +73,114 @@ fn imports_ginkgo(base: &BaseExtractor, root: Node) -> bool {
         })
 }
 
+/// The package name a non-dot Ginkgo import binds (`ginkgo`, or its alias), so
+/// `ginkgo.Describe(...)` reads like a dot-imported `Describe(...)`.
+pub(super) fn ginkgo_package_alias(base: &BaseExtractor, root: Node) -> Option<String> {
+    import_specs(root)
+        .into_iter()
+        .filter(|spec| base.get_node_text(spec).contains(GINKGO_MODULE_PATH))
+        .find_map(|spec| match spec.child_by_field_name("name") {
+            Some(name) if name.kind() == "package_identifier" => Some(base.get_node_text(&name)),
+            Some(_) => None,
+            None => Some("ginkgo".to_string()),
+        })
+}
+
+/// The suite types a gocheck test file registers with `var _ =
+/// check.Suite(&T{})` (or a dot-imported `Suite(&T{})`).
+pub(super) fn gocheck_suite_names(base: &BaseExtractor, root: Node) -> Vec<String> {
+    if !is_go_test_file(&base.file_path) {
+        return Vec::new();
+    }
+    let Some(alias) = import_specs(root)
+        .into_iter()
+        .filter(|spec| base.get_node_text(spec).contains("gopkg.in/check.v1"))
+        .find_map(|spec| match spec.child_by_field_name("name") {
+            Some(name) if name.kind() == "dot" => Some(None),
+            Some(name) if name.kind() == "package_identifier" => {
+                Some(Some(base.get_node_text(&name)))
+            }
+            Some(_) => None,
+            None => Some(Some("check".to_string())),
+        })
+    else {
+        return Vec::new();
+    };
+    let mut names = Vec::new();
+    for declaration in root.children(&mut root.walk()) {
+        if declaration.kind() != "var_declaration" {
+            continue;
+        }
+        let Some(value) = declaration
+            .named_child(0)
+            .filter(|spec| spec.kind() == "var_spec")
+            .and_then(|spec| spec.child_by_field_name("value"))
+            .and_then(|values| values.named_child(0))
+            .filter(|value| value.kind() == "call_expression")
+        else {
+            continue;
+        };
+        let Some(function) = value.child_by_field_name("function") else {
+            continue;
+        };
+        let is_suite_call = match (function.kind(), alias.as_deref()) {
+            ("identifier", None) => base.get_node_text(&function) == "Suite",
+            ("selector_expression", Some(alias)) => {
+                function
+                    .child_by_field_name("operand")
+                    .is_some_and(|operand| base.get_node_text(&operand) == alias)
+                    && function
+                        .child_by_field_name("field")
+                        .is_some_and(|field| base.get_node_text(&field) == "Suite")
+            }
+            _ => false,
+        };
+        if !is_suite_call {
+            continue;
+        }
+        let suite_type = value
+            .child_by_field_name("arguments")
+            .and_then(|arguments| arguments.named_child(0))
+            .and_then(|argument| {
+                super::type_facts::composite_literal_type_node(argument).or_else(|| {
+                    (argument.kind() == "call_expression"
+                        && argument
+                            .child_by_field_name("function")
+                            .is_some_and(|callee| base.get_node_text(&callee) == "new"))
+                    .then(|| argument.child_by_field_name("arguments"))
+                    .flatten()
+                    .and_then(|arguments| arguments.named_child(0))
+                })
+            })
+            .filter(|type_node| matches!(type_node.kind(), "type_identifier" | "identifier"));
+        if let Some(suite_type) = suite_type {
+            names.push(base.get_node_text(&suite_type));
+        }
+    }
+    names
+}
+
+fn import_specs(root: Node) -> Vec<Node> {
+    let mut specs = Vec::new();
+    for declaration in root.children(&mut root.walk()) {
+        if declaration.kind() != "import_declaration" {
+            continue;
+        }
+        for child in declaration.children(&mut declaration.walk()) {
+            match child.kind() {
+                "import_spec" => specs.push(child),
+                "import_spec_list" => specs.extend(
+                    child
+                        .children(&mut child.walk())
+                        .filter(|spec| spec.kind() == "import_spec"),
+                ),
+                _ => {}
+            }
+        }
+    }
+    specs
+}
+
 fn declares_ginkgo_import(base: &BaseExtractor, node: Node) -> bool {
     match node.kind() {
         "import_spec" => base.get_node_text(&node).contains(GINKGO_MODULE_PATH),
@@ -135,18 +243,28 @@ pub(super) fn extract_ginkgo_test_call(
     base: &mut BaseExtractor,
     node: Node,
     parent_id: Option<&str>,
+    package_alias: Option<&str>,
 ) -> Option<GinkgoTestCall> {
     if node.kind() != "call_expression" {
         return None;
     }
 
-    // Callee lives in the `function` field of the `call_expression`.
-    // Ginkgo DSL calls are bare identifiers (`Describe`, `It`, …), not selectors.
+    // A dot-imported DSL call is a bare identifier (`Describe`); a qualified
+    // one selects through the Ginkgo package alias (`ginkgo.Describe`).
     let function_node = node.child_by_field_name("function")?;
-    if function_node.kind() != "identifier" {
-        return None; // skip selector_expression (e.g. `g.Describe(…)`)
-    }
-    let full_callee = base.get_node_text(&function_node);
+    let full_callee = match function_node.kind() {
+        "identifier" => base.get_node_text(&function_node),
+        "selector_expression" => {
+            let operand = function_node.child_by_field_name("operand")?;
+            if operand.kind() != "identifier"
+                || Some(base.get_node_text(&operand).as_str()) != package_alias
+            {
+                return None;
+            }
+            base.get_node_text(&function_node.child_by_field_name("field")?)
+        }
+        _ => return None,
+    };
     // Exact match only (#66): the `function.kind() != "identifier"` guard above
     // already rejects `selector_expression` callees — use the exact-matcher
     // uniformly so the JS-only `.`-split never applies.

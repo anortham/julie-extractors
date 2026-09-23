@@ -4,6 +4,7 @@ mod axum;
 mod blazor_navigation;
 mod consumed_attributes;
 mod go_http;
+mod go_routers;
 mod helpers;
 mod htmx_templates;
 mod http_clients;
@@ -31,6 +32,7 @@ use self::aspnet::{collect_aspnet_attribute_routes, collect_aspnet_minimal_api_r
 use self::axum::collect_axum_routes;
 use self::blazor_navigation::collect_blazor_navigation_facts;
 use self::go_http::collect_go_http_boundary_facts;
+use self::go_routers::collect_go_router_facts;
 use self::http_clients::{
     collect_backend_http_client_requests, collect_razor_http_client_requests,
 };
@@ -80,6 +82,10 @@ pub(super) const ROCKET_MOUNT_PATTERN_ID: &str = "rocket.mount.v1";
 pub(super) const GO_NET_HTTP_ROUTE_PATTERN_ID: &str = "go.net_http.route.v1";
 pub(super) const GIN_ROUTE_PATTERN_ID: &str = "gin.route.v1";
 pub(super) const ECHO_ROUTE_PATTERN_ID: &str = "echo.route.v1";
+pub(super) const CHI_ROUTE_PATTERN_ID: &str = "chi.route.v1";
+pub(super) const CHI_MOUNT_PATTERN_ID: &str = "chi.mount.v1";
+pub(super) const GORILLA_MUX_ROUTE_PATTERN_ID: &str = "gorilla_mux.route.v1";
+pub(super) const FIBER_ROUTE_PATTERN_ID: &str = "fiber.route.v1";
 pub(super) const RAILS_ROUTE_PATTERN_ID: &str = "rails.route.v1";
 pub(super) const RAILS_RESOURCE_ROUTE_PATTERN_ID: &str = "rails.resource_route.v1";
 pub(super) const RAILS_MOUNT_PATTERN_ID: &str = "rails.mount.v1";
@@ -149,6 +155,10 @@ const GO_HTTP_PATTERN_IDS: &[&str] = &[
     GO_NET_HTTP_ROUTE_PATTERN_ID,
     GIN_ROUTE_PATTERN_ID,
     ECHO_ROUTE_PATTERN_ID,
+    CHI_ROUTE_PATTERN_ID,
+    CHI_MOUNT_PATTERN_ID,
+    GORILLA_MUX_ROUTE_PATTERN_ID,
+    FIBER_ROUTE_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -295,6 +305,7 @@ pub fn collect_framework_structural_facts(
         }
         "go" => {
             let mut go_facts = collect_go_http_boundary_facts(language, tree, file_path, content);
+            go_facts.extend(collect_go_router_facts(language, tree, file_path, content));
             go_facts.extend(collect_backend_http_client_requests(
                 language, tree, file_path, content,
             ));

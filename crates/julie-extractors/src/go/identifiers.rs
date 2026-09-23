@@ -95,6 +95,33 @@ impl super::GoExtractor {
                 self.record_call_arg_literals(node, containing_symbols);
             }
 
+            "type_conversion_expression" => {
+                if let Some(name_node) =
+                    super::type_facts::instantiated_function_name(&self.base, node)
+                {
+                    let name = self.base.get_node_text(&name_node);
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
+                    let identifier = self.base.create_identifier(
+                        &name_node,
+                        name,
+                        IdentifierKind::Call,
+                        containing_symbol_id,
+                    );
+                    if let Some(type_arguments) = node
+                        .child_by_field_name("type")
+                        .and_then(|generic| generic.child_by_field_name("type_arguments"))
+                    {
+                        let arguments = crate::base::extract_type_arguments(
+                            &self.base,
+                            type_arguments,
+                            decompose_go_type_arg,
+                        );
+                        self.base.record_type_arguments(&identifier, arguments);
+                    }
+                }
+            }
+
             // Member access: object.Field
             "selector_expression" => {
                 // Only extract if it's NOT part of a call_expression
@@ -122,7 +149,10 @@ impl super::GoExtractor {
 
             "type_identifier" => {
                 let name = self.base.get_node_text(&node);
-                if is_go_type_usage_identifier(&self.base, node) && !is_go_builtin_type(&name) {
+                if is_go_type_usage_identifier(&self.base, node)
+                    && !is_go_builtin_type(&name)
+                    && !is_instantiated_callee(&self.base, node)
+                {
                     let containing_symbol_id =
                         self.find_containing_symbol_id(node, containing_symbols);
                     let identifier = self.base.create_identifier(
@@ -587,4 +617,16 @@ fn is_go_builtin_type(name: &str) -> bool {
             | "uint64"
             | "uintptr"
     )
+}
+
+/// The base name of an explicit instantiation `F[T](x)` that is a call.
+fn is_instantiated_callee(base: &BaseExtractor, node: Node) -> bool {
+    let conversion = node
+        .parent()
+        .filter(|parent| parent.kind() == "generic_type")
+        .and_then(|generic| generic.parent());
+    conversion.is_some_and(|conversion| {
+        super::type_facts::instantiated_function_name(base, conversion)
+            .is_some_and(|name| name.id() == node.id())
+    })
 }

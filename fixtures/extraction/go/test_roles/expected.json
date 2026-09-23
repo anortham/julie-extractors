@@ -964,37 +964,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/go/test_roles/source_test.go:_:73:4",
-      "name": "_",
-      "kind": "variable",
-      "language": "go",
-      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
-      "start_line": 73,
-      "start_column": 4,
-      "end_line": 79,
-      "end_column": 2,
-      "start_byte": 1336,
-      "end_byte": 1491,
-      "body_span": {
-        "start_line": 73,
-        "start_column": 38,
-        "end_line": 79,
-        "end_column": 1,
-        "start_byte": 1370,
-        "end_byte": 1490
-      },
-      "body_hash": "66c6fbcbdf4bac0a12cb43b2f69eb843",
-      "signature": "var _ = Describe(\"calculator\", func() {\n\tContext(\"addition\", func() {\n\t\tBeforeEach(func() {})\n\t\tAfterEach(func() {})\n\t\tIt(\"adds two numbers\", func() {})\n\t})\n})",
-      "doc_comment": null,
-      "visibility": "Private",
-      "parent_key": null,
-      "metadata": {},
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/go/test_roles/source_test.go:addition:74:1",
       "name": "addition",
       "kind": "function",
@@ -2698,6 +2667,14 @@
   ],
   "pending_relationships": [
     {
+      "from_key": "fixtures/extraction/go/test_roles/source_test.go:CalculatorSuite:33:5",
+      "callee_name": "suite.Suite",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "line_number": 34,
+      "confidence": "0.800"
+    },
+    {
       "from_key": "fixtures/extraction/go/test_roles/source_test.go:TestDynamicSubtest:91:0",
       "callee_name": "testHandle.Run",
       "kind": "calls",
@@ -2719,14 +2696,6 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/go/test_roles/source_test.go",
       "line_number": 86,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/go/test_roles/source_test.go:_:73:4",
-      "callee_name": "Describe",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
-      "line_number": 73,
       "confidence": "0.700"
     },
     {
@@ -2784,9 +2753,43 @@
       "file_path": "fixtures/extraction/go/test_roles/source_test.go",
       "line_number": 82,
       "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/go/test_roles/source_test.go:recordingClock:66:5",
+      "callee_name": "sync.Mutex",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+      "line_number": 67,
+      "confidence": "0.800"
     }
   ],
   "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/go/test_roles/source_test.go:CalculatorSuite:33:5",
+        "callee_name": "suite.Suite",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+        "line_number": 34,
+        "confidence": "0.800"
+      },
+      "target": {
+        "display_name": "suite.Suite",
+        "terminal_name": "Suite",
+        "receiver": "suite",
+        "namespace_path": [],
+        "import_context": "github.com/stretchr/testify/suite"
+      },
+      "caller_scope_key": "fixtures/extraction/go/test_roles/source_test.go:CalculatorSuite:33:5",
+      "span": {
+        "start_line": 34,
+        "start_column": 1,
+        "end_line": 34,
+        "end_column": 12,
+        "start_byte": 587,
+        "end_byte": 598
+      }
+    },
     {
       "pending": {
         "from_key": "fixtures/extraction/go/test_roles/source_test.go:TestDynamicSubtest:91:0",
@@ -2863,32 +2866,6 @@
         "end_column": 3,
         "start_byte": 1617,
         "end_byte": 1737
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/go/test_roles/source_test.go:_:73:4",
-        "callee_name": "Describe",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/go/test_roles/source_test.go",
-        "line_number": 73,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Describe",
-        "terminal_name": "Describe",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/go/test_roles/source_test.go:_:73:4",
-      "span": {
-        "start_line": 73,
-        "start_column": 8,
-        "end_line": 79,
-        "end_column": 2,
-        "start_byte": 1340,
-        "end_byte": 1491
       }
     },
     {
@@ -3071,6 +3048,32 @@
         "end_column": 48,
         "start_byte": 1522,
         "end_byte": 1569
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/go/test_roles/source_test.go:recordingClock:66:5",
+        "callee_name": "sync.Mutex",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/go/test_roles/source_test.go",
+        "line_number": 67,
+        "confidence": "0.800"
+      },
+      "target": {
+        "display_name": "sync.Mutex",
+        "terminal_name": "Mutex",
+        "receiver": "sync",
+        "namespace_path": [],
+        "import_context": "sync"
+      },
+      "caller_scope_key": "fixtures/extraction/go/test_roles/source_test.go:recordingClock:66:5",
+      "span": {
+        "start_line": 67,
+        "start_column": 1,
+        "end_line": 67,
+        "end_column": 11,
+        "start_byte": 1257,
+        "end_byte": 1267
       }
     }
   ],
@@ -3876,7 +3879,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "go",
       "metadata": null
     },
@@ -4293,7 +4296,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": 1,
+      "parameter_count": 2,
       "start_line": 46,
       "start_column": 71,
       "end_line": 46,
@@ -4337,7 +4340,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": 1,
+      "parameter_count": 2,
       "start_line": 42,
       "start_column": 72,
       "end_line": 42,
@@ -4425,7 +4428,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": 1,
+      "parameter_count": 2,
       "start_line": 98,
       "start_column": 59,
       "end_line": 98,
@@ -4447,7 +4450,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": 1,
+      "parameter_count": 0,
       "start_line": 58,
       "start_column": 36,
       "end_line": 58,
@@ -4469,7 +4472,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": 1,
+      "parameter_count": 0,
       "start_line": 60,
       "start_column": 35,
       "end_line": 60,
@@ -4491,7 +4494,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": 1,
+      "parameter_count": 0,
       "start_line": 38,
       "start_column": 39,
       "end_line": 38,
@@ -4513,7 +4516,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": 1,
+      "parameter_count": 0,
       "start_line": 40,
       "start_column": 38,
       "end_line": 40,
@@ -4535,7 +4538,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": 1,
+      "parameter_count": 0,
       "start_line": 50,
       "start_column": 42,
       "end_line": 50,
@@ -4557,7 +4560,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": 1,
+      "parameter_count": 0,
       "start_line": 64,
       "start_column": 39,
       "end_line": 64,
@@ -4579,7 +4582,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": 1,
+      "parameter_count": 0,
       "start_line": 48,
       "start_column": 41,
       "end_line": 48,
@@ -4601,7 +4604,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": 1,
+      "parameter_count": 0,
       "start_line": 44,
       "start_column": 41,
       "end_line": 44,
@@ -4645,7 +4648,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": 1,
+      "parameter_count": 0,
       "start_line": 62,
       "start_column": 37,
       "end_line": 62,
@@ -4953,7 +4956,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": 1,
+      "parameter_count": 0,
       "start_line": 52,
       "start_column": 34,
       "end_line": 52,

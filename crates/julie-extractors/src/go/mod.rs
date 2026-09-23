@@ -29,6 +29,7 @@ use tree_sitter::{Node, Tree};
 pub struct GoExtractor {
     pub(crate) base: BaseExtractor,
     ginkgo_enabled: bool,
+    ginkgo_alias: Option<String>,
     ginkgo_node_ids: HashSet<String>,
     ginkgo_scoped_ids: HashSet<String>,
     test_role_ids: HashSet<String>,
@@ -44,6 +45,7 @@ impl GoExtractor {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
             ginkgo_enabled: false,
+            ginkgo_alias: None,
             ginkgo_node_ids: HashSet::new(),
             ginkgo_scoped_ids: HashSet::new(),
             test_role_ids: HashSet::new(),
@@ -80,6 +82,7 @@ impl GoExtractor {
     /// Extract symbols from Go source code - direct port from reference logic
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         self.ginkgo_enabled = test_calls::file_enables_ginkgo(&self.base, tree.root_node());
+        self.ginkgo_alias = test_calls::ginkgo_package_alias(&self.base, tree.root_node());
         self.test_role_ids.clear();
 
         let mut symbols = Vec::new();
@@ -90,6 +93,16 @@ impl GoExtractor {
         let mut symbols = self.prioritize_functions_over_fields(symbols);
         self.scope_ginkgo_test_roles(&mut symbols);
         mark_go_test_containers(&mut symbols);
+        let suites = test_calls::gocheck_suite_names(&self.base, tree.root_node());
+        for symbol in symbols
+            .iter_mut()
+            .filter(|symbol| symbol.kind == SymbolKind::Struct && suites.contains(&symbol.name))
+        {
+            crate::test_detection::apply_test_role(
+                symbol.metadata.get_or_insert_with(Default::default),
+                crate::base::TestRole::TestContainer,
+            );
+        }
         symbols
     }
 
@@ -128,7 +141,12 @@ impl GoExtractor {
             return None;
         }
 
-        let call = test_calls::extract_ginkgo_test_call(&mut self.base, node, parent_id)?;
+        let call = test_calls::extract_ginkgo_test_call(
+            &mut self.base,
+            node,
+            parent_id,
+            self.ginkgo_alias.as_deref(),
+        )?;
         self.ginkgo_node_ids.insert(call.symbol.id.clone());
         let nested_leaf = parent_id.is_some()
             && matches!(
@@ -174,13 +192,6 @@ impl GoExtractor {
             if let Some(signature) = &symbol.signature {
                 // Extract type information from signatures
                 match symbol.kind {
-                    SymbolKind::Function | SymbolKind::Method => {
-                        if let Some(return_type) =
-                            self.extract_return_type_from_signature(signature)
-                        {
-                            types.insert(symbol.id.clone(), return_type);
-                        }
-                    }
                     SymbolKind::Variable | SymbolKind::Constant => {
                         if let Some(var_type) = self.extract_variable_type_from_signature(signature)
                         {
@@ -263,6 +274,10 @@ impl GoExtractor {
                 let local_symbols = self.extract_short_var_symbols(node, parent_id.as_deref());
                 symbols.extend(local_symbols);
             }
+            "range_clause" | "type_switch_statement" => {
+                let bindings = self.extract_binding_symbols(node, parent_id.as_deref());
+                symbols.extend(bindings);
+            }
             "const_declaration" => {
                 let const_symbols = self.extract_const_symbols(node, parent_id.as_deref());
                 symbols.extend(const_symbols);
@@ -272,10 +287,11 @@ impl GoExtractor {
                 return;
             }
             "field_declaration" => {
-                // Fields can have multiple names on same line (X, Y float64)
-                let field_symbols = self.extract_field(node, parent_id.as_deref());
-                symbols.extend(field_symbols);
-                return; // Don't walk children - fields are leaf nodes
+                if !is_anonymous_struct_in_body(node) {
+                    let field_symbols = self.extract_field(node, parent_id.as_deref());
+                    symbols.extend(field_symbols);
+                }
+                return;
             }
             _ => {
                 if let Some(symbol) = self.extract_symbol(node, parent_id.as_deref()) {
@@ -451,4 +467,18 @@ fn single_callable_with_module_duplicate<'a>(symbols: &[&'a Symbol]) -> Option<&
         }
         _ => None,
     }
+}
+
+/// A field of an anonymous struct type written inside a function body (a
+/// table-driven test's `[]struct{ name string }`) declares no named member.
+fn is_anonymous_struct_in_body(field: Node) -> bool {
+    let mut current = field.parent();
+    while let Some(node) = current {
+        match node.kind() {
+            "type_spec" | "type_alias" | "source_file" => return false,
+            "block" => return true,
+            _ => current = node.parent(),
+        }
+    }
+    false
 }
