@@ -139,6 +139,7 @@ impl ExtractionResults {
             }
             .with_offset(offset);
             symbol.apply_normalized_span(span);
+            symbol.body_span = symbol.body_span.map(|body| body.with_offset(offset));
         }
 
         for identifier in &mut self.identifiers {

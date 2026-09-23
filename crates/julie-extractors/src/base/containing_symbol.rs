@@ -57,6 +57,31 @@ pub(crate) fn attach_containing_symbols(facts: &mut [StructuralFact], symbols: &
     }
 }
 
+/// Bind each fact by byte containment only. Data documents nest every value
+/// inside its key's span, so a fact outside every symbol is top-level; the line
+/// fallback would bind it to an unrelated sibling on the same line (minified
+/// JSON, JSON Lines records).
+pub(crate) fn attach_byte_containing_symbols(facts: &mut [StructuralFact], symbols: &[Symbol]) {
+    for fact in facts {
+        fact.containing_symbol_id =
+            byte_containing_symbol(fact, symbols).map(|symbol| symbol.id.clone());
+    }
+}
+
+/// Bind each fact to the symbol whose span it shares, of any kind, else to its
+/// containing scope-bearing symbol. A markup fact that describes a declaration
+/// anchors on that declaration's element, so the declaration owns it even when
+/// the declaration is a value holder (an XML config entry or bean).
+pub(crate) fn attach_declaring_symbols(facts: &mut [StructuralFact], symbols: &[Symbol]) {
+    for fact in facts {
+        fact.containing_symbol_id = symbols
+            .iter()
+            .find(|symbol| symbol.start_byte == fact.start_byte && symbol.end_byte == fact.end_byte)
+            .map(|symbol| symbol.id.clone())
+            .or_else(|| containing_symbol_id(fact, symbols));
+    }
+}
+
 fn containing_symbol_id(fact: &StructuralFact, symbols: &[Symbol]) -> Option<String> {
     byte_containing_symbol(fact, symbols)
         .or_else(|| line_containing_symbol(fact, symbols))

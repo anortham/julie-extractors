@@ -1,0 +1,13 @@
+[versions]
+coreKtx = "1.13.1"
+kotlin = "2.0.0"
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+junit = { module = "junit:junit", version = "4.13.2" }
+
+[bundles]
+testing = ["junit", "androidx-core-ktx"]
+
+[plugins]
+kotlin-android = { id = "org.jetbrains.kotlin.android", version = { ref = "kotlin" } }

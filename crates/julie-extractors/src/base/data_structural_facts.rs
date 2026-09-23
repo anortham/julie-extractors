@@ -23,6 +23,7 @@ const JSON_ARRAY_PATTERN_ID: &str = "json.array.v1";
 const JSON_PROPERTY_PATTERN_ID: &str = "json.property.v1";
 const JSON_SCHEMA_PATTERN_ID: &str = "json.schema.v1";
 const JSON_REF_PATTERN_ID: &str = "json.ref.v1";
+const JSON_SCHEMA_DEFINITION_PATTERN_ID: &str = "json.schema_definition.v1";
 
 // TOML
 const TOML_TABLE_PATTERN_ID: &str = "toml.table.v1";
@@ -45,6 +46,7 @@ const XML_NAMESPACE_DECLARATION_PATTERN_ID: &str = "xml.namespace_declaration.v1
 const XML_XSD_TYPE_PATTERN_ID: &str = "xml.xsd.type.v1";
 const XML_XSD_ELEMENT_PATTERN_ID: &str = "xml.xsd.element.v1";
 const XML_XSD_IMPORT_PATTERN_ID: &str = "xml.xsd.import.v1";
+const XML_XSD_SCHEMA_PATTERN_ID: &str = "xml.xsd.schema.v1";
 const XML_WSDL_SERVICE_PATTERN_ID: &str = "xml.wsdl.service.v1";
 const XML_WSDL_PORT_PATTERN_ID: &str = "xml.wsdl.port.v1";
 const XML_WSDL_BINDING_PATTERN_ID: &str = "xml.wsdl.binding.v1";
@@ -68,6 +70,12 @@ const MARKDOWN_DATA_PATTERN_IDS: &[&str] = &[
     MARKDOWN_INLINE_LINK_PATTERN_ID,
     MARKDOWN_LINK_DEFINITION_PATTERN_ID,
     MARKDOWN_TABLE_PATTERN_ID,
+    crate::markdown::facts::AUTOLINK_PATTERN_ID,
+    crate::markdown::facts::DEFINITION_LIST_ITEM_PATTERN_ID,
+    crate::markdown::facts::FOOTNOTE_DEFINITION_PATTERN_ID,
+    crate::markdown::facts::FOOTNOTE_REFERENCE_PATTERN_ID,
+    crate::markdown::facts::REFERENCE_LINK_PATTERN_ID,
+    crate::markdown::facts::TASK_LIST_ITEM_PATTERN_ID,
 ];
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -76,8 +84,11 @@ const JSON_DATA_PATTERN_IDS: &[&str] = &[
     JSON_OBJECT_PATTERN_ID,
     JSON_PROPERTY_PATTERN_ID,
     JSON_REF_PATTERN_ID,
+    JSON_SCHEMA_DEFINITION_PATTERN_ID,
     JSON_SCHEMA_PATTERN_ID,
     super::openapi_route_facts::OPENAPI_ROUTE_PATTERN_ID,
+    crate::json::manifest::MANIFEST_SCRIPT_PATTERN_ID,
+    crate::toml::dependencies::MANIFEST_DEPENDENCY_PATTERN_ID,
 ];
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -102,6 +113,9 @@ const YAML_DATA_PATTERN_IDS: &[&str] = &[
     crate::yaml::ci::CI_JOB_PATTERN_ID,
     crate::yaml::ci::CI_TRIGGER_PATTERN_ID,
     crate::yaml::ci::CI_USES_PATTERN_ID,
+    crate::yaml::ansible::ANSIBLE_TASK_PATTERN_ID,
+    crate::yaml::compose::COMPOSE_SERVICE_PATTERN_ID,
+    crate::yaml::kubernetes::K8S_RESOURCE_PATTERN_ID,
 ];
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -115,8 +129,18 @@ const XML_DATA_PATTERN_IDS: &[&str] = &[
     XML_WSDL_SERVICE_PATTERN_ID,
     XML_XSD_ELEMENT_PATTERN_ID,
     XML_XSD_IMPORT_PATTERN_ID,
+    XML_XSD_SCHEMA_PATTERN_ID,
     XML_XSD_TYPE_PATTERN_ID,
     crate::xml::build::MSBUILD_PROPERTY_PATTERN_ID,
+    crate::xml::facts::ANDROID_COMPONENT_PATTERN_ID,
+    crate::xml::facts::ANDROID_PERMISSION_PATTERN_ID,
+    crate::xml::facts::CONFIG_ENTRY_PATTERN_ID,
+    crate::xml::facts::DOCUMENT_LINK_PATTERN_ID,
+    crate::xml::facts::MYBATIS_STATEMENT_PATTERN_ID,
+    crate::xml::facts::SERVLET_ROUTE_PATTERN_ID,
+    crate::xml::facts::SPRING_BEAN_PATTERN_ID,
+    crate::xml::facts::SPRING_COMPONENT_SCAN_PATTERN_ID,
+    crate::xml::facts::TEST_SELECTION_PATTERN_ID,
     crate::toml::dependencies::MANIFEST_DEPENDENCY_PATTERN_ID,
 ];
 
@@ -147,11 +171,25 @@ pub fn collect_data_structural_facts(
         "regex" => collect_regex_structural_facts(file_path, content),
         _ => Vec::new(),
     };
+    if language == "markdown" {
+        facts.extend(crate::markdown::facts::markdown_facts(
+            tree, file_path, content, symbols,
+        ));
+    }
     if language == "xml" {
         facts.extend(crate::xml::build::build_facts(tree, file_path, content));
+        facts.extend(crate::xml::facts::xml_facts(tree, file_path, content));
     }
     if language == "yaml" {
         facts.extend(crate::yaml::ci::ci_facts(tree, file_path, content, symbols));
+        facts.extend(crate::yaml::domain_facts(tree, file_path, content));
+    }
+    if language == "json" {
+        facts.extend(crate::json::manifest::manifest_facts(
+            tree.root_node(),
+            file_path,
+            content,
+        ));
     }
     if language == "toml" {
         facts.extend(crate::toml::dependencies::dependency_facts(
@@ -168,6 +206,10 @@ pub fn collect_data_structural_facts(
 
     if language == "regex" {
         crate::regex::attach_fact_symbols(&mut facts, symbols);
+    } else if language == "json" {
+        super::containing_symbol::attach_byte_containing_symbols(&mut facts, symbols);
+    } else if language == "xml" {
+        super::containing_symbol::attach_declaring_symbols(&mut facts, symbols);
     } else {
         attach_containing_symbols(&mut facts, symbols);
     }
@@ -292,6 +334,10 @@ fn markdown_frontmatter_fact(
     }
 
     let key_count = count_frontmatter_keys(&body, format);
+    let keys: Vec<Value> = crate::markdown::blocks::frontmatter_keys(content, node)
+        .into_iter()
+        .map(|key| Value::String(key.name))
+        .collect();
 
     let mut metadata = base_metadata("document_metadata");
     insert_string(&mut metadata, "format", format);
@@ -299,6 +345,9 @@ fn markdown_frontmatter_fact(
         "key_count".to_string(),
         Value::Number(Number::from(key_count)),
     );
+    if !keys.is_empty() {
+        metadata.insert("keys".to_string(), Value::Array(keys));
+    }
 
     Some(fact_for_node(
         file_path,
@@ -343,26 +392,16 @@ fn toml_frontmatter_key_line(line: &str) -> bool {
 
 fn markdown_heading_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<StructuralFact> {
     let text = node_text(content, node)?;
-    let (level, heading_text) = match crate::markdown::setext_level(node) {
-        Some(level) => {
-            let heading = node_text(content, node.child_by_field_name("heading_content")?)?;
-            (
-                level,
-                heading.split_whitespace().collect::<Vec<_>>().join(" "),
-            )
-        }
-        None => (
-            text.chars().take_while(|ch| *ch == '#').count().clamp(1, 6),
-            strip_atx_heading_marker(text),
-        ),
-    };
-    if heading_text.is_empty() {
-        return None;
-    }
+    let level = crate::markdown::setext_level(node)
+        .unwrap_or_else(|| text.chars().take_while(|ch| *ch == '#').count().clamp(1, 6));
+    let (heading_text, anchor) = crate::markdown::blocks::heading_name(content, node)?;
 
     let mut metadata = base_metadata("document_structure");
     metadata.insert("level".to_string(), Value::Number(Number::from(level)));
     insert_string(&mut metadata, "text", &heading_text);
+    if let Some(anchor) = anchor {
+        insert_string(&mut metadata, "anchor", &anchor);
+    }
 
     Some(fact_for_node(
         file_path,
@@ -382,10 +421,9 @@ fn markdown_fenced_code_block_fact(
     let info = child_text(node, content, "info_string")
         .unwrap_or("")
         .trim();
-    let language = info.split_whitespace().next().unwrap_or("").trim();
     let mut metadata = base_metadata("document_structure");
-    if !language.is_empty() {
-        insert_string(&mut metadata, "language", language);
+    if let Some(language) = crate::markdown::blocks::fence_language(content, node) {
+        insert_string(&mut metadata, "language", &language);
     }
     if !info.is_empty() {
         insert_string(&mut metadata, "info_string", info);
@@ -439,6 +477,9 @@ fn markdown_link_definition_fact(
 ) -> Option<StructuralFact> {
     let text = node_text(content, node)?.trim();
     let (label, destination) = parse_link_reference_definition(text)?;
+    if label.starts_with('^') {
+        return None;
+    }
     let mut metadata = base_metadata("document_links");
     insert_string(&mut metadata, "label", &label);
     insert_string(&mut metadata, "destination", &destination);
@@ -491,7 +532,165 @@ fn collect_json_structural_facts(
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
     collect_json_node(tree.root_node(), file_path, content, &[], 0, &mut facts, 0);
+    let declares_schema = facts
+        .iter()
+        .any(|fact| fact.pattern_id == JSON_SCHEMA_PATTERN_ID);
+    collect_json_schema_definitions(
+        tree.root_node(),
+        file_path,
+        content,
+        &[],
+        declares_schema,
+        &mut facts,
+        0,
+    );
     facts
+}
+
+/// One `json.schema_definition.v1` fact per object entry under `$defs` (at any
+/// depth), `definitions` (at the root, or at any depth in a document that
+/// declares `$schema`), and the root `components.schemas` of OpenAPI.
+fn collect_json_schema_definitions(
+    node: Node<'_>,
+    file_path: &str,
+    content: &str,
+    path: &[String],
+    declares_schema: bool,
+    facts: &mut Vec<StructuralFact>,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let container = match path {
+        [.., last] if last == "$defs" => Some("$defs"),
+        [only] if only == "definitions" => Some("definitions"),
+        [.., last] if last == "definitions" && declares_schema => Some("definitions"),
+        [first, second] if first == "components" && second == "schemas" => {
+            Some("components.schemas")
+        }
+        _ => None,
+    };
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        let (child_path, value) = match child.kind() {
+            "pair" => {
+                let (Some(key), Some(value)) =
+                    (json_pair_key(content, child), json_pair_value(child))
+                else {
+                    continue;
+                };
+                if let Some(container) = container
+                    && value.kind() == "object"
+                {
+                    facts.push(json_schema_definition_fact(
+                        file_path, content, child, &key, container, path, value,
+                    ));
+                }
+                let mut child_path = path.to_vec();
+                child_path.push(key);
+                (child_path, value)
+            }
+            "object" | "document" => (path.to_vec(), child),
+            "array" => {
+                let mut element_cursor = child.walk();
+                for (index, element) in child
+                    .named_children(&mut element_cursor)
+                    .filter(|element| is_json_value_node_kind(element.kind()))
+                    .enumerate()
+                {
+                    let mut element_path = path.to_vec();
+                    element_path.push(format!("[{index}]"));
+                    collect_json_schema_definitions(
+                        element,
+                        file_path,
+                        content,
+                        &element_path,
+                        declares_schema,
+                        facts,
+                        child_depth,
+                    );
+                }
+                continue;
+            }
+            _ => continue,
+        };
+        collect_json_schema_definitions(
+            value,
+            file_path,
+            content,
+            &child_path,
+            declares_schema,
+            facts,
+            child_depth,
+        );
+    }
+}
+
+#[inline(never)]
+fn json_schema_definition_fact(
+    file_path: &str,
+    content: &str,
+    pair: Node<'_>,
+    name: &str,
+    container: &str,
+    container_path: &[String],
+    definition: Node<'_>,
+) -> StructuralFact {
+    let mut metadata = base_metadata("schema_structure");
+    insert_string(&mut metadata, "name", name);
+    insert_string(&mut metadata, "container", container);
+    insert_string(&mut metadata, "path", &json_path(container_path));
+    let mut cursor = definition.walk();
+    for field in definition
+        .named_children(&mut cursor)
+        .filter(|child| child.kind() == "pair")
+    {
+        let (Some(key), Some(value)) = (json_pair_key(content, field), json_pair_value(field))
+        else {
+            continue;
+        };
+        match key.as_str() {
+            "type" => {
+                let declared = match value.kind() {
+                    "array" => {
+                        let mut type_cursor = value.walk();
+                        value
+                            .named_children(&mut type_cursor)
+                            .filter_map(|item| json_string_value(content, item))
+                            .collect::<Vec<_>>()
+                            .join("|")
+                    }
+                    _ => json_string_value(content, value).unwrap_or_default(),
+                };
+                if !declared.is_empty() {
+                    insert_string(&mut metadata, "declared_type", &declared);
+                }
+            }
+            "allOf" | "oneOf" | "anyOf" if !metadata.contains_key("composition") => {
+                insert_string(&mut metadata, "composition", &key);
+            }
+            _ => {}
+        }
+    }
+    fact_for_node(
+        file_path,
+        "json",
+        JSON_SCHEMA_DEFINITION_PATTERN_ID,
+        "definition",
+        pair,
+        metadata,
+    )
+}
+
+fn json_string_value(content: &str, node: Node<'_>) -> Option<String> {
+    (node.kind() == "string")
+        .then(|| node_text(content, node))
+        .flatten()
+        .map(crate::json::decode_json_string)
 }
 
 fn collect_json_node(
@@ -679,8 +878,53 @@ fn collect_toml_structural_facts(
     content: &str,
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
-    collect_toml_node(tree.root_node(), file_path, content, &[], &mut facts, 0);
+    let table_paths = toml_table_paths(tree.root_node(), content);
+    collect_toml_node(
+        tree.root_node(),
+        file_path,
+        content,
+        &[],
+        &table_paths,
+        &mut facts,
+        0,
+    );
     facts
+}
+
+/// The key path of each table header, by start byte. An array-of-tables
+/// element and every table under it carry the element index:
+/// `[[products]]` twice, then `[products.dims]` -> `products[1].dims`.
+fn toml_table_paths(
+    root: Node<'_>,
+    content: &str,
+) -> std::collections::HashMap<usize, Vec<String>> {
+    let mut array_index: std::collections::HashMap<Vec<String>, usize> =
+        std::collections::HashMap::new();
+    let mut paths = std::collections::HashMap::new();
+    let mut cursor = root.walk();
+    for table in root
+        .named_children(&mut cursor)
+        .filter(|node| matches!(node.kind(), "table" | "table_array_element"))
+    {
+        let Some(parts) = crate::toml::dependencies::header_parts(table, content) else {
+            continue;
+        };
+        if table.kind() == "table_array_element" {
+            array_index
+                .retain(|header, _| !(header.len() > parts.len() && header.starts_with(&parts)));
+            let next = array_index.get(&parts).map_or(0, |index| index + 1);
+            array_index.insert(parts.clone(), next);
+        }
+        let mut path = Vec::new();
+        for end in 1..=parts.len() {
+            path.push(parts[end - 1].clone());
+            if let Some(index) = array_index.get(&parts[..end]) {
+                path.push(format!("[{index}]"));
+            }
+        }
+        paths.insert(table.start_byte(), path);
+    }
+    paths
 }
 
 fn collect_toml_node(
@@ -688,6 +932,7 @@ fn collect_toml_node(
     file_path: &str,
     content: &str,
     table_path: &[String],
+    table_paths: &std::collections::HashMap<usize, Vec<String>>,
     facts: &mut Vec<StructuralFact>,
     depth: u32,
 ) {
@@ -697,13 +942,17 @@ fn collect_toml_node(
 
     match node.kind() {
         "table" => {
-            if let Some(table_name) = toml_table_name(content, node) {
+            if let Some(table_name) = crate::toml::header_name(node, content) {
+                let own_path = table_paths
+                    .get(&node.start_byte())
+                    .cloned()
+                    .unwrap_or_else(|| vec![table_name.clone()]);
                 let mut metadata = base_metadata("config_structure");
                 insert_string(&mut metadata, "table_name", &table_name);
                 insert_string(
                     &mut metadata,
                     "key_path",
-                    &toml_key_path(table_path, &table_name),
+                    &toml_key_path_parts(table_path, &own_path),
                 );
                 metadata.insert("is_array_table".to_string(), Value::Bool(false));
                 if let Some(span) = NormalizedSpan::from_content_range_with_line_starts(
@@ -724,19 +973,31 @@ fn collect_toml_node(
                 }
 
                 let mut child_path = table_path.to_vec();
-                child_path.push(table_name);
-                walk_toml_children(node, file_path, content, &child_path, facts, depth);
+                child_path.extend(own_path);
+                walk_toml_children(
+                    node,
+                    file_path,
+                    content,
+                    &child_path,
+                    table_paths,
+                    facts,
+                    depth,
+                );
                 return;
             }
         }
         "table_array_element" => {
-            if let Some(table_name) = toml_table_name(content, node) {
+            if let Some(table_name) = crate::toml::header_name(node, content) {
+                let own_path = table_paths
+                    .get(&node.start_byte())
+                    .cloned()
+                    .unwrap_or_else(|| vec![table_name.clone()]);
                 let mut metadata = base_metadata("config_structure");
                 insert_string(&mut metadata, "table_name", &table_name);
                 insert_string(
                     &mut metadata,
                     "key_path",
-                    &toml_key_path(table_path, &table_name),
+                    &toml_key_path_parts(table_path, &own_path),
                 );
                 metadata.insert("is_array_table".to_string(), Value::Bool(true));
                 if let Some(span) = NormalizedSpan::from_content_range_with_line_starts(
@@ -757,8 +1018,16 @@ fn collect_toml_node(
                 }
 
                 let mut child_path = table_path.to_vec();
-                child_path.push(table_name);
-                walk_toml_children(node, file_path, content, &child_path, facts, depth);
+                child_path.extend(own_path);
+                walk_toml_children(
+                    node,
+                    file_path,
+                    content,
+                    &child_path,
+                    table_paths,
+                    facts,
+                    depth,
+                );
                 return;
             }
         }
@@ -780,6 +1049,7 @@ fn collect_toml_node(
                                 file_path,
                                 content,
                                 &inline_path,
+                                table_paths,
                                 facts,
                                 depth,
                             );
@@ -796,6 +1066,7 @@ fn collect_toml_node(
                             file_path,
                             content,
                             &array_path,
+                            table_paths,
                             facts,
                             depth,
                         );
@@ -822,18 +1093,42 @@ fn collect_toml_node(
                     node,
                     inline_metadata,
                 ));
-                walk_toml_children(node, file_path, content, &inline_path, facts, depth);
+                walk_toml_children(
+                    node,
+                    file_path,
+                    content,
+                    &inline_path,
+                    table_paths,
+                    facts,
+                    depth,
+                );
                 return;
             }
         }
         "array" => {
-            collect_toml_array_children(node, file_path, content, table_path, facts, depth);
+            collect_toml_array_children(
+                node,
+                file_path,
+                content,
+                table_path,
+                table_paths,
+                facts,
+                depth,
+            );
             return;
         }
         _ => {}
     }
 
-    walk_toml_children(node, file_path, content, table_path, facts, depth);
+    walk_toml_children(
+        node,
+        file_path,
+        content,
+        table_path,
+        table_paths,
+        facts,
+        depth,
+    );
 }
 
 fn walk_toml_children(
@@ -841,6 +1136,7 @@ fn walk_toml_children(
     file_path: &str,
     content: &str,
     table_path: &[String],
+    table_paths: &std::collections::HashMap<usize, Vec<String>>,
     facts: &mut Vec<StructuralFact>,
     depth: u32,
 ) {
@@ -849,7 +1145,15 @@ fn walk_toml_children(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_toml_node(child, file_path, content, table_path, facts, child_depth);
+        collect_toml_node(
+            child,
+            file_path,
+            content,
+            table_path,
+            table_paths,
+            facts,
+            child_depth,
+        );
     }
 }
 
@@ -858,6 +1162,7 @@ fn collect_toml_array_children(
     file_path: &str,
     content: &str,
     table_path: &[String],
+    table_paths: &std::collections::HashMap<usize, Vec<String>>,
     facts: &mut Vec<StructuralFact>,
     depth: u32,
 ) {
@@ -888,7 +1193,15 @@ fn collect_toml_array_children(
             child,
             inline_metadata,
         ));
-        walk_toml_children(child, file_path, content, &indexed_path, facts, child_depth);
+        walk_toml_children(
+            child,
+            file_path,
+            content,
+            &indexed_path,
+            table_paths,
+            facts,
+            child_depth,
+        );
         index += 1;
     }
 }
@@ -987,6 +1300,12 @@ fn toml_key_value_facts(
         "value_kind",
         toml_value_kind(value_node.kind()),
     );
+    if value_node.kind() == "string"
+        && let Some((_, style)) =
+            node_text(content, value_node).and_then(crate::toml::text::decode_toml_string)
+    {
+        insert_string(&mut metadata, "string_style", style);
+    }
     metadata.insert("is_array_table".to_string(), Value::Bool(false));
 
     let key_value = fact_for_node(
@@ -1025,8 +1344,38 @@ fn collect_yaml_structural_facts(
     content: &str,
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
-    collect_yaml_node(tree.root_node(), file_path, content, &[], &mut facts, 0);
+    let root = tree.root_node();
+    let mut cursor = root.walk();
+    let documents: Vec<Node<'_>> = root
+        .named_children(&mut cursor)
+        .filter(|child| child.kind() == "document")
+        .collect();
+    let multi = documents.len() > 1;
+    for (index, document) in documents.into_iter().enumerate() {
+        let doc = YamlDocument { index, multi };
+        collect_yaml_node(document, file_path, content, &[], doc, &mut facts, 0);
+    }
     facts
+}
+
+/// The position of a document in a YAML stream. Facts in a stream of more
+/// than one document carry `document_index`, so `(document_index, key_path)`
+/// names one location.
+#[derive(Clone, Copy)]
+struct YamlDocument {
+    index: usize,
+    multi: bool,
+}
+
+impl YamlDocument {
+    fn tag(self, metadata: &mut std::collections::HashMap<String, Value>) {
+        if self.multi {
+            metadata.insert(
+                "document_index".to_string(),
+                Value::Number(Number::from(self.index)),
+            );
+        }
+    }
 }
 
 fn collect_yaml_node(
@@ -1034,12 +1383,16 @@ fn collect_yaml_node(
     file_path: &str,
     content: &str,
     path: &[String],
+    doc: YamlDocument,
     facts: &mut Vec<StructuralFact>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
         return;
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
 
     match node.kind() {
         "document" => {
@@ -1047,6 +1400,10 @@ fn collect_yaml_node(
             metadata.insert(
                 "has_directives".to_string(),
                 Value::Bool(has_child_kind(node, "directive")),
+            );
+            metadata.insert(
+                "document_index".to_string(),
+                Value::Number(Number::from(doc.index)),
             );
             facts.push(fact_for_node(
                 file_path,
@@ -1059,11 +1416,12 @@ fn collect_yaml_node(
         }
         "block_mapping" | "flow_mapping" => {
             let mut metadata = base_metadata("config_structure");
-            insert_string(&mut metadata, "key_path", &yaml_key_path(path));
+            insert_string(&mut metadata, "key_path", &json_path(path));
             metadata.insert(
                 "pair_count".to_string(),
                 Value::Number(Number::from(yaml_pair_count(node))),
             );
+            doc.tag(&mut metadata);
             facts.push(fact_for_node(
                 file_path,
                 "yaml",
@@ -1073,31 +1431,21 @@ fn collect_yaml_node(
                 metadata,
             ));
         }
-        "block_mapping_pair" | "flow_pair" | "flow_mapping_pair" => {
-            if let Some((key, value_node)) = yaml_pair_key_and_value(content, node) {
-                let key_path = yaml_property_path(path, &key);
-                let mut metadata = base_metadata("config_structure");
-                insert_string(&mut metadata, "key", &key);
-                insert_string(&mut metadata, "key_path", &key_path);
-                insert_string(
-                    &mut metadata,
-                    "value_kind",
-                    yaml_value_kind(value_node, content),
-                );
-                facts.push(fact_for_node(
-                    file_path,
-                    "yaml",
-                    YAML_KEY_VALUE_PATTERN_ID,
-                    "key_value",
-                    node,
-                    metadata,
+        "block_mapping_pair" | "flow_pair" => {
+            if let (Some(key), Some(value_node)) = (
+                crate::yaml::mapping_key(content, node),
+                node.child_by_field_name("value"),
+            ) {
+                facts.push(yaml_key_value_fact(
+                    file_path, content, node, path, &key, value_node, doc,
                 ));
                 if key == "$ref"
                     && let Some(target) = yaml_node_scalar_text(content, value_node)
                 {
                     let mut metadata = base_metadata("schema_structure");
                     insert_string(&mut metadata, "ref", &target);
-                    insert_string(&mut metadata, "key_path", &yaml_key_path(path));
+                    insert_string(&mut metadata, "key_path", &json_path(path));
+                    doc.tag(&mut metadata);
                     facts.push(fact_for_node(
                         file_path,
                         "yaml",
@@ -1110,26 +1458,26 @@ fn collect_yaml_node(
 
                 let mut child_path = path.to_vec();
                 child_path.push(key);
-                if let Some(child_depth) = child_tree_depth(depth) {
-                    collect_yaml_node(
-                        value_node,
-                        file_path,
-                        content,
-                        &child_path,
-                        facts,
-                        child_depth,
-                    );
-                }
+                collect_yaml_node(
+                    value_node,
+                    file_path,
+                    content,
+                    &child_path,
+                    doc,
+                    facts,
+                    child_depth,
+                );
                 return;
             }
         }
         "block_sequence" | "flow_sequence" => {
             let mut metadata = base_metadata("config_structure");
-            insert_string(&mut metadata, "key_path", &yaml_key_path(path));
+            insert_string(&mut metadata, "key_path", &json_path(path));
             metadata.insert(
                 "sequence_length".to_string(),
                 Value::Number(Number::from(yaml_sequence_length(node))),
             );
+            doc.tag(&mut metadata);
             facts.push(fact_for_node(
                 file_path,
                 "yaml",
@@ -1138,6 +1486,30 @@ fn collect_yaml_node(
                 node,
                 metadata,
             ));
+            let mut cursor = node.walk();
+            let mut index = 0usize;
+            for child in node.children(&mut cursor) {
+                if !matches!(
+                    child.kind(),
+                    "block_sequence_item" | "flow_node" | "flow_pair"
+                ) {
+                    collect_yaml_node(child, file_path, content, path, doc, facts, child_depth);
+                    continue;
+                }
+                let mut item_path = path.to_vec();
+                item_path.push(format!("[{index}]"));
+                collect_yaml_node(
+                    child,
+                    file_path,
+                    content,
+                    &item_path,
+                    doc,
+                    facts,
+                    child_depth,
+                );
+                index += 1;
+            }
+            return;
         }
         "anchor" => {
             if let Some(name) = first_child_text(node, content, "anchor_name") {
@@ -1170,12 +1542,103 @@ fn collect_yaml_node(
         _ => {}
     }
 
-    let Some(child_depth) = child_tree_depth(depth) else {
-        return;
-    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_yaml_node(child, file_path, content, path, facts, child_depth);
+        collect_yaml_node(child, file_path, content, path, doc, facts, child_depth);
+    }
+}
+
+#[inline(never)]
+fn yaml_key_value_fact(
+    file_path: &str,
+    content: &str,
+    pair: Node<'_>,
+    path: &[String],
+    key: &str,
+    value: Node<'_>,
+    doc: YamlDocument,
+) -> StructuralFact {
+    let mut property_path = path.to_vec();
+    property_path.push(key.to_string());
+    let mut metadata = base_metadata("config_structure");
+    insert_string(&mut metadata, "key", key);
+    insert_string(&mut metadata, "key_path", &json_path(&property_path));
+    let mut cursor = value.walk();
+    let children: Vec<Node<'_>> = value.named_children(&mut cursor).collect();
+    let mut value_kind = "other";
+    for child in &children {
+        match child.kind() {
+            "anchor" => {
+                if let Some(name) = first_child_text(*child, content, "anchor_name") {
+                    insert_string(&mut metadata, "anchor", name.trim());
+                }
+            }
+            "tag" => {
+                if let Some(tag) = node_text(content, *child) {
+                    insert_string(&mut metadata, "tag", tag.trim());
+                }
+            }
+            kind => {
+                value_kind = yaml_content_kind(kind);
+                if let Some(style) = yaml_scalar_style(kind, node_text(content, *child)) {
+                    insert_string(&mut metadata, "scalar_style", style.0);
+                    if let Some(chomping) = style.1 {
+                        insert_string(&mut metadata, "chomping", chomping);
+                    }
+                }
+            }
+        }
+    }
+    insert_string(&mut metadata, "value_kind", value_kind);
+    doc.tag(&mut metadata);
+    fact_for_node(
+        file_path,
+        "yaml",
+        YAML_KEY_VALUE_PATTERN_ID,
+        "key_value",
+        pair,
+        metadata,
+    )
+}
+
+fn yaml_content_kind(kind: &str) -> &'static str {
+    match kind {
+        "block_mapping" | "flow_mapping" => "mapping",
+        "block_sequence" | "flow_sequence" => "sequence",
+        "plain_scalar" | "double_quote_scalar" | "single_quote_scalar" => "scalar",
+        "block_scalar" => "block_scalar",
+        "alias" => "alias",
+        _ => "other",
+    }
+}
+
+/// `(scalar_style, chomping)` of a scalar value node. Block scalars read the
+/// indicator after `|` or `>`: `-` strips, `+` keeps, neither clips.
+fn yaml_scalar_style(
+    kind: &str,
+    text: Option<&str>,
+) -> Option<(&'static str, Option<&'static str>)> {
+    match kind {
+        "plain_scalar" => Some(("plain", None)),
+        "single_quote_scalar" => Some(("single_quoted", None)),
+        "double_quote_scalar" => Some(("double_quoted", None)),
+        "block_scalar" => {
+            let header = text?.lines().next()?.trim();
+            let style = if header.starts_with('>') {
+                "folded"
+            } else {
+                "literal"
+            };
+            let chomping = if header.contains('-') {
+                "strip"
+            } else if header.contains('+') {
+                "keep"
+            } else {
+                "clip"
+            };
+            Some((style, Some(chomping)))
+        }
+        _ => None,
     }
 }
 
@@ -1574,6 +2037,7 @@ struct XmlDocument<'a> {
 #[derive(Default)]
 struct XmlDocumentStats {
     root_element: Option<String>,
+    target_namespace: Option<String>,
     has_xml_declaration: bool,
     element_count: u64,
     max_depth: u64,
@@ -1610,6 +2074,9 @@ fn collect_xml_structural_facts(
         let mut metadata = base_metadata("document_structure");
         insert_string(&mut metadata, "dialect", document.dialect.label());
         insert_string(&mut metadata, "root_element", root_element);
+        if let Some(target_namespace) = &stats.target_namespace {
+            insert_string(&mut metadata, "target_namespace", target_namespace);
+        }
         metadata.insert(
             "has_xml_declaration".to_string(),
             Value::Bool(stats.has_xml_declaration),
@@ -1662,6 +2129,8 @@ fn collect_xml_node(
                 && let Some(name) = xml_element_tag_name(node, document.content)
             {
                 stats.root_element = Some(name.to_string());
+                stats.target_namespace =
+                    xml_element_attribute(node, document.content, "targetNamespace");
             }
             collect_xml_element_facts(node, document, facts);
         }
@@ -1702,9 +2171,38 @@ fn collect_xml_element_facts(
         return;
     };
 
+    let in_inline_schema = dialect == XmlDialect::Service
+        && std::iter::successors(Some(element), |node| xml_parent_element(*node))
+            .any(|node| xml_element_tag_name(node, content).map(xml_local_name) == Some("schema"));
+    let dialect = if in_inline_schema {
+        XmlDialect::Schema
+    } else {
+        dialect
+    };
     match dialect {
         XmlDialect::Document => {}
         XmlDialect::Schema => match local_name {
+            "schema" => {
+                let mut metadata = base_metadata("schema_structure");
+                for (key, attribute) in [
+                    ("target_namespace", "targetNamespace"),
+                    ("element_form_default", "elementFormDefault"),
+                    ("attribute_form_default", "attributeFormDefault"),
+                    ("version", "version"),
+                ] {
+                    if let Some(value) = xml_element_attribute(element, content, attribute) {
+                        insert_string(&mut metadata, key, &value);
+                    }
+                }
+                facts.push(fact_for_node(
+                    file_path,
+                    "xml",
+                    XML_XSD_SCHEMA_PATTERN_ID,
+                    "schema",
+                    element,
+                    metadata,
+                ));
+            }
             "complexType" | "simpleType" => {
                 let type_kind = if local_name == "simpleType" {
                     "simple"
@@ -1794,12 +2292,25 @@ fn collect_xml_element_facts(
                     ));
                 }
             }
-            "port" => {
+            "port" | "endpoint" => {
                 if let Some(port_name) = xml_element_attribute(element, content, "name") {
                     let mut metadata = base_metadata("service_structure");
                     insert_string(&mut metadata, "port_name", &port_name);
                     if let Some(binding) = xml_element_attribute(element, content, "binding") {
                         insert_string(&mut metadata, "binding", &binding);
+                    }
+                    let address =
+                        xml_element_attribute(element, content, "address").or_else(|| {
+                            xml_child_elements(element)
+                                .into_iter()
+                                .filter(|child| {
+                                    xml_element_tag_name(*child, content).map(xml_local_name)
+                                        == Some("address")
+                                })
+                                .find_map(|child| xml_element_attribute(child, content, "location"))
+                        });
+                    if let Some(address) = address {
+                        insert_string(&mut metadata, "address_location", &address);
                     }
                     facts.push(fact_for_node(
                         file_path,
@@ -2141,18 +2652,6 @@ fn strip_frontmatter_delimiters(text: &str) -> String {
     lines.get(start..end).unwrap_or(&[]).join("\n")
 }
 
-fn strip_atx_heading_marker(raw: &str) -> String {
-    let trimmed = raw.trim_start();
-    let marker_len = trimmed.chars().take_while(|ch| *ch == '#').count();
-    if marker_len == 0 {
-        return trimmed.trim().to_string();
-    }
-    trimmed[marker_len.min(6)..]
-        .trim_start()
-        .trim_end()
-        .to_string()
-}
-
 fn clean_markdown_link_destination(raw: &str) -> String {
     let raw = raw.trim();
     raw.strip_prefix('<')
@@ -2166,40 +2665,6 @@ fn clean_markdown_link_title(raw: &str) -> String {
     raw.trim_matches(|ch| ch == '"' || ch == '\'' || ch == '(' || ch == ')')
         .trim()
         .to_string()
-}
-
-fn yaml_key_path(path: &[String]) -> String {
-    if path.is_empty() {
-        "$".to_string()
-    } else {
-        format!("$.{}", path.join("."))
-    }
-}
-
-fn yaml_property_path(path: &[String], key: &str) -> String {
-    if path.is_empty() {
-        format!("$.{key}")
-    } else {
-        format!("$.{}.{}", path.join("."), key)
-    }
-}
-
-fn yaml_pair_key_and_value<'a>(content: &str, node: Node<'a>) -> Option<(String, Node<'a>)> {
-    let mut cursor = node.walk();
-    let mut key = None;
-    for child in node.children(&mut cursor) {
-        match child.kind() {
-            "flow_node" | "block_node" => {
-                if key.is_none() {
-                    key = yaml_node_scalar_text(content, child);
-                } else {
-                    return Some((key?, child));
-                }
-            }
-            _ => {}
-        }
-    }
-    None
 }
 
 fn yaml_pair_count(node: Node<'_>) -> usize {
@@ -2249,43 +2714,6 @@ fn yaml_node_scalar_text_at_depth(content: &str, node: Node<'_>, depth: u32) -> 
     None
 }
 
-fn yaml_value_kind(value_node: Node<'_>, content: &str) -> &'static str {
-    match value_node.kind() {
-        "block_node" => {
-            let mut cursor = value_node.walk();
-            if let Some(child) = value_node.children(&mut cursor).next() {
-                match child.kind() {
-                    "block_mapping" => "mapping",
-                    "block_sequence" => "sequence",
-                    "alias" => "alias",
-                    "anchor" => "anchor",
-                    _ => "other",
-                }
-            } else {
-                "other"
-            }
-        }
-        "flow_node" => {
-            let mut cursor = value_node.walk();
-            if let Some(child) = value_node.children(&mut cursor).next() {
-                match child.kind() {
-                    "plain_scalar" | "double_quote_scalar" | "single_quote_scalar" => "scalar",
-                    "flow_mapping" => "mapping",
-                    "flow_sequence" => "sequence",
-                    "alias" => "alias",
-                    "anchor" => "anchor",
-                    _ => "other",
-                }
-            } else {
-                yaml_node_scalar_text(content, value_node)
-                    .map(|_| "scalar")
-                    .unwrap_or("other")
-            }
-        }
-        _ => "other",
-    }
-}
-
 fn parse_link_reference_definition(text: &str) -> Option<(String, String)> {
     let trimmed = text.trim();
     let (label_part, rest) = trimmed.split_once("]:")?;
@@ -2294,23 +2722,43 @@ fn parse_link_reference_definition(text: &str) -> Option<(String, String)> {
     (!label.is_empty() && !destination.is_empty()).then_some((label, destination))
 }
 
+/// JSONPath of a key chain: `$.a.b[0]`. A key that is not a plain name is
+/// bracket-quoted (`$['files.exclude']`), so each path names one location.
 fn json_path(path: &[String]) -> String {
     let mut rendered = "$".to_string();
     for segment in path {
-        if segment.starts_with('[') {
+        if is_json_index_segment(segment) {
             rendered.push_str(segment);
-        } else {
+        } else if is_plain_json_path_name(segment) {
             rendered.push('.');
             rendered.push_str(segment);
+        } else {
+            rendered.push_str("['");
+            rendered.push_str(&segment.replace('\\', "\\\\").replace('\'', "\\'"));
+            rendered.push_str("']");
         }
     }
     rendered
 }
 
+fn is_json_index_segment(segment: &str) -> bool {
+    segment
+        .strip_prefix('[')
+        .and_then(|rest| rest.strip_suffix(']'))
+        .is_some_and(|index| !index.is_empty() && index.bytes().all(|b| b.is_ascii_digit()))
+}
+
+fn is_plain_json_path_name(segment: &str) -> bool {
+    !segment.is_empty()
+        && segment
+            .chars()
+            .all(|ch| !matches!(ch, '.' | '[' | ']' | '\'' | '"' | '\\') && !ch.is_whitespace())
+}
+
 fn json_pair_key(content: &str, node: Node<'_>) -> Option<String> {
     let key_node = node.child(0)?;
     let text = node_text(content, key_node)?;
-    Some(text.trim_matches('"').to_string())
+    Some(crate::json::decode_json_string(text))
 }
 
 fn json_pair_value(node: Node<'_>) -> Option<Node<'_>> {
@@ -2348,72 +2796,8 @@ fn count_json_array_elements(node: Node<'_>) -> usize {
     count
 }
 
-fn toml_table_name(content: &str, node: Node<'_>) -> Option<String> {
-    toml_table_name_at_depth(content, node, 0)
-}
-
-fn toml_table_name_at_depth(content: &str, node: Node<'_>, depth: u32) -> Option<String> {
-    if !should_visit_tree_depth(depth) {
-        return None;
-    }
-    let child_depth = child_tree_depth(depth)?;
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        match child.kind() {
-            "bare_key" | "quoted_key" | "dotted_key" => {
-                let name = node_text(content, child)?;
-                return Some(name.trim_matches('"').trim_matches('\'').to_string());
-            }
-            _ => {
-                if let Some(name) = toml_table_name_at_depth(content, child, child_depth) {
-                    return Some(name);
-                }
-            }
-        }
-    }
-    None
-}
-
 fn toml_pair_key_parts(content: &str, node: Node<'_>) -> Option<Vec<String>> {
-    let pair_text = node_text(content, node)?;
-    let left = pair_text.split_once('=')?.0.trim();
-    parse_toml_key_parts(left)
-}
-
-fn parse_toml_key_parts(source: &str) -> Option<Vec<String>> {
-    let mut parts = Vec::new();
-    let mut part_start = 0usize;
-    let mut quote = None;
-    let mut escaped = false;
-    for (index, ch) in source.char_indices() {
-        if escaped {
-            escaped = false;
-            continue;
-        }
-        match (quote, ch) {
-            (Some(_), '\\') => escaped = true,
-            (Some(active), _) if ch == active => quote = None,
-            (None, '"' | '\'') => quote = Some(ch),
-            (None, '.') => {
-                push_toml_key_part(source, part_start, index, &mut parts);
-                part_start = index + ch.len_utf8();
-            }
-            _ => {}
-        }
-    }
-    push_toml_key_part(source, part_start, source.len(), &mut parts);
-    (!parts.is_empty()).then_some(parts)
-}
-
-fn push_toml_key_part(source: &str, start: usize, end: usize, parts: &mut Vec<String>) {
-    let part = source[start..end]
-        .trim()
-        .trim_matches('"')
-        .trim_matches('\'')
-        .trim();
-    if !part.is_empty() {
-        parts.push(part.to_string());
-    }
+    crate::toml::dependencies::pair_key_parts(node, content)
 }
 
 fn toml_pair_value(node: Node<'_>) -> Option<Node<'_>> {
@@ -2433,10 +2817,6 @@ fn toml_value_kind(kind: &str) -> &'static str {
         }
         _ => "other",
     }
-}
-
-fn toml_key_path(table_path: &[String], key: &str) -> String {
-    toml_key_path_parts(table_path, &[key.to_string()])
 }
 
 fn toml_key_path_parts(table_path: &[String], key_parts: &[String]) -> String {

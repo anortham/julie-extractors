@@ -17,6 +17,9 @@ use tree_sitter::Tree;
 pub(crate) mod dependencies;
 mod relationships;
 mod test_detection;
+pub(crate) mod text;
+
+pub(crate) use text::comment_documents_following_item;
 
 pub struct TomlExtractor {
     pub(crate) base: BaseExtractor,
@@ -35,7 +38,11 @@ impl TomlExtractor {
 
     pub fn extract_symbols(&mut self, tree: &tree_sitter::Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        let test_context = test_detection::TomlTestContext::from_tree(tree, &self.base.content);
+        let test_context = test_detection::TomlTestContext::from_tree(
+            tree,
+            &self.base.content,
+            &self.base.file_path,
+        );
         self.walk_tree_for_symbols(tree.root_node(), &mut symbols, None, 0, None, &test_context);
         symbols
     }
@@ -72,9 +79,7 @@ impl TomlExtractor {
             return;
         };
         let child_table_name = if matches!(node.kind(), "table" | "table_array_element") {
-            let mut cursor = node.walk();
-            let children: Vec<_> = node.children(&mut cursor).collect();
-            self.extract_table_name(&children)
+            header_name(node, &self.base.content)
         } else {
             table_name
         };
@@ -118,18 +123,13 @@ impl TomlExtractor {
     ) -> Option<Symbol> {
         use crate::base::SymbolOptions;
 
-        // Find the table name (looking for identifier or dotted key)
-        let mut cursor = node.walk();
-        let children: Vec<_> = node.children(&mut cursor).collect();
-
-        // Look for the table header (the part between [ ] or [[ ]])
-        let table_name = self.extract_table_name(&children)?;
+        let table_name = header_name(node, &self.base.content)?;
 
         let options = SymbolOptions {
             signature: None,
             visibility: None,
             parent_id: parent_id.map(|s| s.to_string()),
-            doc_comment: None,
+            doc_comment: text::leading_comment_doc(&self.base.content, node.start_byte()),
             metadata: test_detection::role_metadata(test_context.table_role(&table_name)),
             ..Default::default()
         };
@@ -171,31 +171,14 @@ impl TomlExtractor {
             return None;
         }
 
-        // Extract key name from first child (bare_key, quoted_key, or dotted_key)
         let key_node = children[0];
-        let key_name = match key_node.kind() {
-            "bare_key" => self.base.get_node_text(&key_node),
-            "quoted_key" => {
-                let text = self.base.get_node_text(&key_node);
-                text.trim_matches('"').trim_matches('\'').to_string()
-            }
-            "dotted_key" => {
-                // dotted_key has children: bare_key . bare_key . bare_key
-                self.base.get_node_text(&key_node)
-            }
-            _ => return None,
-        };
-
-        if key_name.is_empty() {
-            return None;
-        }
-
+        let key_name = dependencies::pair_key_parts(node, &self.base.content)?.join(".");
         let value_node = pair_value(node)?;
         let value_text = self.base.get_node_text(&value_node);
 
         // Build signature as "key = value", truncating long values
         let max_sig_len = 80;
-        let prefix = format!("{} = ", key_name);
+        let prefix = format!("{} = ", self.base.get_node_text(&key_node));
         let signature = if prefix.len() + value_text.len() > max_sig_len {
             let available = max_sig_len.saturating_sub(prefix.len() + 3); // 3 for "..."
             // Find a safe char boundary for truncation
@@ -205,22 +188,13 @@ impl TomlExtractor {
             format!("{}{}", prefix, value_text)
         };
 
-        // Extract string values into doc_comment for semantic search
-        let doc_comment = if value_node.kind() == "string" {
-            let trimmed = value_text.trim_matches('"').trim_matches('\'');
-            if !trimmed.is_empty() {
-                Some(if trimmed.len() <= 2000 {
-                    trimmed.to_string()
-                } else {
-                    // Truncate at char boundary to avoid panic on multi-byte UTF-8
-                    trimmed.chars().take(2000).collect()
-                })
-            } else {
-                None
-            }
-        } else {
-            None
-        };
+        let decoded_string = (value_node.kind() == "string")
+            .then(|| text::decode_toml_string(&value_text))
+            .flatten()
+            .map(|(value, _)| value);
+        let doc_comment = text::leading_comment_doc(&self.base.content, node.start_byte())
+            .or_else(|| decoded_string.clone().filter(|value| !value.is_empty()))
+            .map(|doc| doc.chars().take(2000).collect());
 
         let options = SymbolOptions {
             signature: Some(signature),
@@ -237,58 +211,20 @@ impl TomlExtractor {
         self.base
             .set_body_span(&mut symbol, Some(NormalizedSpan::from_node(&value_node)));
 
-        if value_node.kind() == "string" {
+        if let Some(literal_text) = decoded_string.filter(|value| !value.is_empty()) {
             let carrier = crate::base::config_literals::build_config_key_carrier(
                 symbols, parent_id, &key_name,
             );
-            crate::base::config_literals::record_config_string_literal(
-                &mut self.base,
+            self.base.record_literal(
                 &value_node,
-                &carrier,
+                literal_text,
+                Some(carrier),
+                0,
                 Some(symbol.id.clone()),
             );
         }
 
         Some(symbol)
-    }
-
-    /// Extract the table name from children nodes
-    fn extract_table_name(&self, children: &[tree_sitter::Node]) -> Option<String> {
-        self.extract_table_name_at_depth(children, 0)
-    }
-
-    fn extract_table_name_at_depth(
-        &self,
-        children: &[tree_sitter::Node],
-        depth: u32,
-    ) -> Option<String> {
-        if !should_visit_tree_depth(depth) {
-            return None;
-        }
-
-        let child_depth = child_tree_depth(depth);
-        for child in children {
-            match child.kind() {
-                "bare_key" | "quoted_key" | "dotted_key" => {
-                    let name = self.base.get_node_text(child);
-                    // Remove quotes if present
-                    let name = name.trim_matches('"').trim_matches('\'');
-                    return Some(name.to_string());
-                }
-                _ => {
-                    // Recursively check children
-                    let mut cursor = child.walk();
-                    let nested_children: Vec<_> = child.children(&mut cursor).collect();
-                    if let Some(child_depth) = child_depth
-                        && let Some(name) =
-                            self.extract_table_name_at_depth(&nested_children, child_depth)
-                    {
-                        return Some(name);
-                    }
-                }
-            }
-        }
-        None
     }
 
     pub fn extract_identifiers(
@@ -335,6 +271,12 @@ impl TomlExtractor {
     pub fn get_structured_pending_relationships(&self) -> Vec<StructuredPendingRelationship> {
         self.base.get_structured_pending_relationships()
     }
+}
+
+/// The dotted name of a table header, each segment unquoted:
+/// `[project.entry-points."pytest11"]` -> `project.entry-points.pytest11`.
+pub(crate) fn header_name(table: tree_sitter::Node, content: &str) -> Option<String> {
+    dependencies::header_parts(table, content).map(|parts| parts.join("."))
 }
 
 /// The value node of a TOML `pair`: the first named child after the key.

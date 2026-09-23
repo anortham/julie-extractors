@@ -3835,7 +3835,7 @@
         "value_type": "string"
       },
       {
-        "description": "Dotted/indexed JSON path to the property's parent.",
+        "description": "JSONPath to the property's parent (`$.a.b[0]`); a key that is not a plain name is bracket-quoted (`$['files.exclude']`).",
         "key": "path",
         "presence": "always",
         "value_type": "string"
@@ -3881,7 +3881,7 @@
         "value_type": "string"
       },
       {
-        "description": "Dotted/indexed JSON path to the property's parent.",
+        "description": "JSONPath to the property's parent (`$.a.b[0]`); a key that is not a plain name is bracket-quoted (`$['files.exclude']`).",
         "key": "path",
         "presence": "always",
         "value_type": "string"
@@ -3915,13 +3915,65 @@
         "value_type": "string"
       },
       {
-        "description": "Dotted/indexed JSON path to the property's parent.",
+        "description": "JSONPath to the property's parent (`$.a.b[0]`); a key that is not a plain name is bracket-quoted (`$['files.exclude']`).",
         "key": "path",
         "presence": "always",
         "value_type": "string"
       }
     ],
     "pattern_id": "json.schema.v1",
+    "query_family": "schema_structure"
+  },
+  {
+    "description": "A named JSON Schema or OpenAPI definition: an object under `$defs`, `definitions`, or `components.schemas`.",
+    "languages": [
+      "json"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Definition name (the decoded key).",
+        "key": "name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Keyword that holds the definition: \"$defs\", \"definitions\", or \"components.schemas\".",
+        "key": "container",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "JSONPath to the container object.",
+        "key": "path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The definition's `type`; a type list is joined with `|`.",
+        "key": "declared_type",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "First composition keyword the definition uses (\"allOf\", \"oneOf\", or \"anyOf\").",
+        "key": "composition",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "json.schema_definition.v1",
     "query_family": "schema_structure"
   },
   {
@@ -4433,8 +4485,9 @@
     "query_family": "data"
   },
   {
-    "description": "A package dependency declared in a Cargo.toml, pyproject.toml, MSBuild, NuGet, or Maven manifest.",
+    "description": "A package dependency declared in a Cargo.toml, pyproject.toml, Pipfile, package.json, composer.json, MSBuild, NuGet, or Maven manifest.",
     "languages": [
+      "json",
       "toml",
       "xml"
     ],
@@ -4452,19 +4505,19 @@
         "value_type": "string"
       },
       {
-        "description": "Package ecosystem (\"cargo\", \"pypi\", \"nuget\", or \"maven\").",
+        "description": "Package ecosystem (\"cargo\", \"pypi\", \"npm\", \"composer\", \"nuget\", or \"maven\").",
         "key": "ecosystem",
         "presence": "always",
         "value_type": "string"
       },
       {
-        "description": "Dependency name: the Cargo key, the PEP 503-normalized distribution name, the NuGet package id, or the Maven `groupId:artifactId`.",
+        "description": "Dependency name: the Cargo key, the PEP 503-normalized distribution name, the npm or Composer package name, the NuGet package id, or the Maven `groupId:artifactId`.",
         "key": "name",
         "presence": "always",
         "value_type": "string"
       },
       {
-        "description": "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`; Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`; NuGet `PackageReference`/`PackageVersion`/`GlobalPackageReference`/`dependency`; Maven scope, `managed`, `plugin`, or `managed-plugin`.",
+        "description": "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`; Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`, `pipenv:packages`/`pipenv:dev-packages`; npm `dependencies`/`devDependencies`/`peerDependencies`/`optionalDependencies`; Composer `require`/`require-dev`; NuGet `PackageReference`/`PackageVersion`/`GlobalPackageReference`/`dependency`; Maven scope, `managed`, `plugin`, or `managed-plugin`.",
         "key": "group",
         "presence": "always",
         "value_type": "string"
@@ -4488,7 +4541,7 @@
         "value_type": "string"
       },
       {
-        "description": "True when the Cargo dependency inherits from `[workspace.dependencies]`.",
+        "description": "True when the Cargo dependency inherits from `[workspace.dependencies]`, or the npm version uses the `workspace:` protocol.",
         "key": "workspace",
         "presence": "optional",
         "value_type": "bool"
@@ -4510,6 +4563,114 @@
     "query_family": "dependencies"
   },
   {
+    "description": "A named script in a package.json or composer.json `scripts` object.",
+    "languages": [
+      "json"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Package ecosystem (\"npm\" or \"composer\").",
+        "key": "ecosystem",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Script name.",
+        "key": "name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Command as written; a Composer command list is joined with ` && `.",
+        "key": "command",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "manifest.script.v1",
+    "query_family": "pipeline"
+  },
+  {
+    "description": "A Markdown autolink (`<https://...>` or `<name@example.com>`).",
+    "languages": [
+      "markdown"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Autolink target without the angle brackets.",
+        "key": "destination",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Autolink form: \"uri\" or \"email\".",
+        "key": "autolink_kind",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "markdown.autolink.v1",
+    "query_family": "document_links"
+  },
+  {
+    "description": "A definition-list item (a term line followed by `: definition`).",
+    "languages": [
+      "markdown"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Defined term.",
+        "key": "term",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Definition text.",
+        "key": "definition",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "markdown.definition_list_item.v1",
+    "query_family": "document_structure"
+  },
+  {
     "description": "A Markdown fenced code block.",
     "languages": [
       "markdown"
@@ -4528,7 +4689,7 @@
         "value_type": "string"
       },
       {
-        "description": "Fence language token (first word of the info string).",
+        "description": "Fence language from the grammar's language token, normalized (`rust,no_run` is `rust`, `{r echo=FALSE}` and `{.r}` are `r`).",
         "key": "language",
         "presence": "optional",
         "value_type": "string"
@@ -4542,6 +4703,68 @@
     ],
     "pattern_id": "markdown.fenced_code_block.v1",
     "query_family": "document_structure"
+  },
+  {
+    "description": "A Markdown footnote definition (`[^label]: text`).",
+    "languages": [
+      "markdown"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Footnote label without the `^`.",
+        "key": "label",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Footnote body text.",
+        "key": "text",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "markdown.footnote_definition.v1",
+    "query_family": "document_links"
+  },
+  {
+    "description": "A Markdown footnote reference (`[^label]`).",
+    "languages": [
+      "markdown"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Footnote label without the `^`.",
+        "key": "label",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "markdown.footnote_reference.v1",
+    "query_family": "document_links"
   },
   {
     "description": "A Markdown frontmatter block (YAML `---` or TOML `+++`).",
@@ -4572,13 +4795,19 @@
         "key": "key_count",
         "presence": "always",
         "value_type": "number"
+      },
+      {
+        "description": "Top-level frontmatter keys in source order (TOML table names included); absent when none parse.",
+        "key": "keys",
+        "presence": "optional",
+        "value_type": "string_array"
       }
     ],
     "pattern_id": "markdown.frontmatter.v1",
     "query_family": "document_metadata"
   },
   {
-    "description": "A Markdown ATX heading.",
+    "description": "A Markdown ATX or setext heading with a non-empty title.",
     "languages": [
       "markdown"
     ],
@@ -4602,9 +4831,15 @@
         "value_type": "number"
       },
       {
-        "description": "Heading title text with the ATX marker stripped.",
+        "description": "Heading title as plain text: inline markup, ATX markers, closing hashes, and the `{#id}` attribute block removed.",
         "key": "text",
         "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Explicit anchor id from a trailing `{#id}` attribute block.",
+        "key": "anchor",
+        "presence": "optional",
         "value_type": "string"
       }
     ],
@@ -4686,6 +4921,46 @@
     "query_family": "document_links"
   },
   {
+    "description": "A Markdown reference-link usage (`[text][label]`, `[label][]`, or `[label]`).",
+    "languages": [
+      "markdown"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Reference label the usage names.",
+        "key": "label",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Usage form: \"full\", \"collapsed\", or \"shortcut\".",
+        "key": "reference_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Destination of the matching link definition in the same document.",
+        "key": "destination",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "markdown.reference_link.v1",
+    "query_family": "document_links"
+  },
+  {
     "description": "A Markdown pipe table.",
     "languages": [
       "markdown"
@@ -4723,6 +4998,40 @@
       }
     ],
     "pattern_id": "markdown.table.v1",
+    "query_family": "document_structure"
+  },
+  {
+    "description": "A Markdown task-list item (`- [ ]` or `- [x]`).",
+    "languages": [
+      "markdown"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "True when the task marker is checked.",
+        "key": "checked",
+        "presence": "always",
+        "value_type": "bool"
+      },
+      {
+        "description": "Item paragraph text with whitespace runs collapsed.",
+        "key": "text",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "markdown.task_list_item.v1",
     "query_family": "document_structure"
   },
   {
@@ -9004,7 +9313,7 @@
         "value_type": "string"
       },
       {
-        "description": "Full dotted key path to the array table including ancestors.",
+        "description": "Full dotted key path to the array table including ancestors, ending in the element index (`products[1]`).",
         "key": "key_path",
         "presence": "always",
         "value_type": "string"
@@ -9096,6 +9405,12 @@
         "value_type": "string"
       },
       {
+        "description": "TOML string form of a string value: \"basic\", \"literal\", \"multiline_basic\", or \"multiline_literal\". The fact span covers every line of a multi-line value.",
+        "key": "string_style",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
         "description": "Always false for key/value pairs.",
         "key": "is_array_table",
         "presence": "always",
@@ -9130,7 +9445,7 @@
         "value_type": "string"
       },
       {
-        "description": "Full dotted key path to the table including ancestors.",
+        "description": "Full dotted key path to the table including ancestors; quoted key segments are unquoted and an array-of-tables ancestor carries its element index (`products[1].dims`).",
         "key": "key_path",
         "presence": "always",
         "value_type": "string"
@@ -9538,6 +9853,144 @@
     "query_family": "component_template"
   },
   {
+    "description": "An Android manifest component: application, activity, activity alias, service, receiver, or provider.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Component element name.",
+        "key": "component",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Component class, qualified against the manifest `package` when written relative.",
+        "key": "class",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `android:exported`.",
+        "key": "exported",
+        "presence": "optional",
+        "value_type": "bool"
+      },
+      {
+        "description": "Actions of the component's intent filters.",
+        "key": "intent_actions",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Categories of the component's intent filters.",
+        "key": "intent_categories",
+        "presence": "optional",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "xml.android_component.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "An Android manifest permission the app uses or declares.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Permission name.",
+        "key": "permission",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"uses\" for `uses-permission`, \"declares\" for `permission`.",
+        "key": "usage",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.android_permission.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A `<add key=\"…\" value=\"…\"/>` configuration entry (.NET `appSettings` and similar sections).",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The entry's `key`.",
+        "key": "key",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The entry's `value`.",
+        "key": "value",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Local name of the enclosing section element.",
+        "key": "section",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.config_entry.v1",
+    "query_family": "config_structure"
+  },
+  {
     "description": "An XML document with a root element.",
     "languages": [
       "xml"
@@ -9568,6 +10021,12 @@
         "value_type": "string"
       },
       {
+        "description": "The root element's `targetNamespace`, for schema and service documents.",
+        "key": "target_namespace",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
         "description": "Whether the document opens with an `<?xml …?>` declaration.",
         "key": "has_xml_declaration",
         "presence": "always",
@@ -9594,6 +10053,46 @@
     ],
     "pattern_id": "xml.document.v1",
     "query_family": "document_structure"
+  },
+  {
+    "description": "A link to another file: a stylesheet or xml-model processing instruction, the DOCTYPE system id, an external entity, an XInclude, an `xsi` schema location, or an XSLT import or include.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Linked location as written.",
+        "key": "href",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"stylesheet\", \"xml_model\", \"dtd\", \"external_entity\", \"xinclude\", \"schema_location\", \"no_namespace_schema_location\", \"xsl_import\", or \"xsl_include\".",
+        "key": "link_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Namespace paired with the location in `xsi:schemaLocation`.",
+        "key": "namespace",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.document_link.v1",
+    "query_family": "document_links"
   },
   {
     "description": "An MSBuild property: a child element of `<PropertyGroup>`.",
@@ -9636,6 +10135,76 @@
     "query_family": "config_structure"
   },
   {
+    "description": "A MyBatis mapper statement or SQL fragment.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The mapper `namespace`: the Java interface the statements implement.",
+        "key": "namespace",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared statement `id`.",
+        "key": "statement_id",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"select\", \"insert\", \"update\", \"delete\", or \"sql\".",
+        "key": "operation",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Statement text, CDATA and dynamic-tag text included, whitespace collapsed.",
+        "key": "sql",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `parameterType`.",
+        "key": "parameter_type",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `resultType`.",
+        "key": "result_type",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `resultMap`.",
+        "key": "result_map",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.mybatis_statement.v1",
+    "query_family": "query_structure"
+  },
+  {
     "description": "An `xmlns` namespace declaration attribute.",
     "languages": [
       "xml"
@@ -9674,6 +10243,232 @@
     ],
     "pattern_id": "xml.namespace_declaration.v1",
     "query_family": "document_metadata"
+  },
+  {
+    "description": "A `web.xml` servlet or filter mapping: one fact per `url-pattern`.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"servlet\" or \"filter\".",
+        "key": "mapping_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `url-pattern` as written.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The mapped `servlet-name` or `filter-name`.",
+        "key": "target_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Class of the named servlet or filter, when it is declared in the same file.",
+        "key": "target_class",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.servlet_route.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Spring `<bean>` definition in a `<beans>` document.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `id`; absent on an inner bean.",
+        "key": "bean_id",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Qualified bean class.",
+        "key": "class",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `scope`.",
+        "key": "scope",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `init-method`.",
+        "key": "init_method",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `destroy-method`.",
+        "key": "destroy_method",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `factory-method`.",
+        "key": "factory_method",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `factory-bean`.",
+        "key": "factory_bean",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `parent` bean.",
+        "key": "parent",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.spring_bean.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Spring `<context:component-scan>` declaration.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Scanned `base-package` as written.",
+        "key": "base_package",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.spring_component_scan.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A TestNG suite `<class>` entry: the test class a suite runs and its method selection.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Qualified test class.",
+        "key": "class",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Name of the enclosing `<test>`.",
+        "key": "test",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Name of the enclosing `<suite>`.",
+        "key": "suite",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Methods named by `<include>`.",
+        "key": "included_methods",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Methods named by `<exclude>`.",
+        "key": "excluded_methods",
+        "presence": "optional",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "xml.test_selection.v1",
+    "query_family": "testing"
   },
   {
     "description": "A WSDL `binding` declaration.",
@@ -9796,7 +10591,7 @@
     "query_family": "service_structure"
   },
   {
-    "description": "A WSDL `port` declaration inside a service.",
+    "description": "A WSDL 1.1 `port` or WSDL 2.0 `endpoint` declaration inside a service.",
     "languages": [
       "xml"
     ],
@@ -9822,6 +10617,12 @@
       {
         "description": "Raw QName of the binding the port exposes.",
         "key": "binding",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Endpoint URL: the `location` of a SOAP or HTTP `address` child, or a WSDL 2.0 `address`.",
+        "key": "address_location",
         "presence": "optional",
         "value_type": "string"
       }
@@ -9938,6 +10739,52 @@
     "query_family": "schema_structure"
   },
   {
+    "description": "An XSD `schema` element, in a `.xsd` file or inline in a WSDL `types` section.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `targetNamespace`, which `tns:`-style QNames resolve against.",
+        "key": "target_namespace",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `elementFormDefault`.",
+        "key": "element_form_default",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `attributeFormDefault`.",
+        "key": "attribute_form_default",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared schema `version`.",
+        "key": "version",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.xsd.schema.v1",
+    "query_family": "schema_structure"
+  },
+  {
     "description": "A named XSD `complexType` or `simpleType` declaration.",
     "languages": [
       "xml"
@@ -10032,6 +10879,46 @@
     ],
     "pattern_id": "yaml.anchor.v1",
     "query_family": "config_structure"
+  },
+  {
+    "description": "A task or handler in an Ansible playbook or task file.",
+    "languages": [
+      "yaml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Module key as written (`ansible.builtin.apt`): the first key that is not a task keyword.",
+        "key": "module",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The task `name`.",
+        "key": "name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "True for a task under `handlers` or in a handlers file.",
+        "key": "handler",
+        "presence": "always",
+        "value_type": "bool"
+      }
+    ],
+    "pattern_id": "yaml.ansible_task.v1",
+    "query_family": "pipeline"
   },
   {
     "description": "A GitHub Actions or GitLab CI job.",
@@ -10172,6 +11059,52 @@
     "query_family": "pipeline"
   },
   {
+    "description": "A service under `services` in a Docker Compose file (`compose.yaml`, `docker-compose*.yml`).",
+    "languages": [
+      "yaml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Service name.",
+        "key": "name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `image` value.",
+        "key": "image",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The `build` path, or `build.context`.",
+        "key": "build_context",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The `ports` entries as written.",
+        "key": "ports",
+        "presence": "optional",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "yaml.compose_service.v1",
+    "query_family": "service_structure"
+  },
+  {
     "description": "A YAML document node.",
     "languages": [
       "yaml"
@@ -10194,10 +11127,68 @@
         "key": "has_directives",
         "presence": "always",
         "value_type": "bool"
+      },
+      {
+        "description": "0-based index of the document in the stream.",
+        "key": "document_index",
+        "presence": "always",
+        "value_type": "number"
       }
     ],
     "pattern_id": "yaml.document.v1",
     "query_family": "config_structure"
+  },
+  {
+    "description": "A Kubernetes resource: a YAML document whose root holds `apiVersion` and `kind`.",
+    "languages": [
+      "yaml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `apiVersion` value.",
+        "key": "api_version",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `kind` value.",
+        "key": "kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `metadata.name` value.",
+        "key": "name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The `metadata.namespace` value.",
+        "key": "namespace",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "0-based index of the document; present only in a stream of more than one document.",
+        "key": "document_index",
+        "presence": "optional",
+        "value_type": "number"
+      }
+    ],
+    "pattern_id": "yaml.k8s_resource.v1",
+    "query_family": "service_structure"
   },
   {
     "description": "A YAML mapping key/value pair.",
@@ -10224,16 +11215,46 @@
         "value_type": "string"
       },
       {
-        "description": "Dotted key path including ancestor keys.",
+        "description": "JSONPath of the key including ancestor keys and sequence item indexes.",
         "key": "key_path",
         "presence": "always",
         "value_type": "string"
       },
       {
-        "description": "Normalized kind of the mapped value.",
+        "description": "Kind of the mapped value after any anchor or tag: \"scalar\", \"block_scalar\", \"mapping\", \"sequence\", \"alias\", or \"other\".",
         "key": "value_kind",
         "presence": "always",
         "value_type": "string"
+      },
+      {
+        "description": "Anchor name declared on the value (`&name`).",
+        "key": "anchor",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Explicit tag on the value (`!Ref`, `!!str`).",
+        "key": "tag",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Scalar style: \"plain\", \"single_quoted\", \"double_quoted\", \"literal\" (`|`), or \"folded\" (`>`).",
+        "key": "scalar_style",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Block scalar chomping: \"clip\", \"strip\" (`-`), or \"keep\" (`+`).",
+        "key": "chomping",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "0-based index of the document; present only in a stream of more than one document.",
+        "key": "document_index",
+        "presence": "optional",
+        "value_type": "number"
       }
     ],
     "pattern_id": "yaml.key_value.v1",
@@ -10258,7 +11279,7 @@
         "value_type": "string"
       },
       {
-        "description": "Dotted key path to this mapping from the document root.",
+        "description": "JSONPath to this mapping from the document root; sequence items are indexed (`$.steps[0]`) and keys that are not plain names are bracket-quoted (`$.data['nginx.conf']`).",
         "key": "key_path",
         "presence": "always",
         "value_type": "string"
@@ -10267,6 +11288,12 @@
         "description": "Number of direct key/value pairs in the mapping.",
         "key": "pair_count",
         "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "0-based index of the document; present only in a stream of more than one document.",
+        "key": "document_index",
+        "presence": "optional",
         "value_type": "number"
       }
     ],
@@ -10298,10 +11325,16 @@
         "value_type": "string"
       },
       {
-        "description": "Dotted YAML key path to the mapping that holds the `$ref`.",
+        "description": "JSONPath to the mapping that holds the `$ref`.",
         "key": "key_path",
         "presence": "always",
         "value_type": "string"
+      },
+      {
+        "description": "0-based index of the document; present only in a stream of more than one document.",
+        "key": "document_index",
+        "presence": "optional",
+        "value_type": "number"
       }
     ],
     "pattern_id": "yaml.ref.v1",
@@ -10326,7 +11359,7 @@
         "value_type": "string"
       },
       {
-        "description": "Dotted key path to this sequence from the document root.",
+        "description": "JSONPath to this sequence from the document root.",
         "key": "key_path",
         "presence": "always",
         "value_type": "string"
@@ -10335,6 +11368,12 @@
         "description": "Number of items in the sequence.",
         "key": "sequence_length",
         "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "0-based index of the document; present only in a stream of more than one document.",
+        "key": "document_index",
+        "presence": "optional",
         "value_type": "number"
       }
     ],

@@ -19,6 +19,9 @@ mod containers;
 pub mod structural_facts;
 
 #[cfg(test)]
+mod wave2;
+
+#[cfg(test)]
 mod json_extractor_tests {
     #![allow(unused_imports)]
     #![allow(unused_variables)]

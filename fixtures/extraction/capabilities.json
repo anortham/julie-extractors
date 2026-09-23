@@ -6651,7 +6651,7 @@
       "capabilities": {
         "symbols": true,
         "relationships": true,
-        "pending_relationships": false,
+        "pending_relationships": true,
         "identifiers": false,
         "types": false
       },
@@ -6670,27 +6670,26 @@
           "name": "test_roles",
           "source": "fixtures/extraction/markdown/test_roles/source.md",
           "expected": "fixtures/extraction/markdown/test_roles/expected.json"
+        },
+        {
+          "name": "extended",
+          "source": "fixtures/extraction/markdown/extended/source.md",
+          "expected": "fixtures/extraction/markdown/extended/expected.json"
+        },
+        {
+          "name": "toml_frontmatter",
+          "source": "fixtures/extraction/markdown/toml_frontmatter/source.md",
+          "expected": "fixtures/extraction/markdown/toml_frontmatter/expected.json"
         }
       ],
       "target_capabilities": {
         "symbols": true,
         "relationships": true,
-        "pending_relationships": false,
+        "pending_relationships": true,
         "identifiers": false,
         "types": false
       },
       "capability_gaps": [
-        {
-          "capability": "pending_relationships",
-          "status": "exception",
-          "reason": "Markdown links and footnote references are within-document. Cross-file links are URL/path strings, not symbol references.",
-          "required_closure": "N/A — domain limitation.",
-          "evidence": {
-            "kind": "test",
-            "value": "markdown_pending_relationships_intra_document_only",
-            "command": "cargo nextest run -p julie-extractors --lib tests::markdown::cross_file_pending::markdown_pending_relationships_intra_document_only"
-          }
-        },
         {
           "capability": "types",
           "status": "exception",
@@ -6753,22 +6752,21 @@
         },
         "structural_facts": {
           "supported": [
+            "markdown.autolink.v1",
+            "markdown.definition_list_item.v1",
             "markdown.fenced_code_block.v1",
+            "markdown.footnote_definition.v1",
+            "markdown.footnote_reference.v1",
             "markdown.frontmatter.v1",
             "markdown.heading.v1",
             "markdown.inline_link.v1",
             "markdown.link_definition.v1",
-            "markdown.table.v1"
+            "markdown.reference_link.v1",
+            "markdown.table.v1",
+            "markdown.task_list_item.v1"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "markdown.extended_markdown_blocks_and_references",
-              "reason": "Markdown structural facts cover headings, frontmatter, fenced code, inline links, link definitions, and tables, but do not yet emit first-class facts for footnotes, reference-link usages, task-list items, definition lists, or autolinks.",
-              "required_closure": "add parser- or scanner-backed facts plus fixtures for footnotes, reference-link usages, task lists, definition lists, and autolinks",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: Markdown extended structural facts"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [],
@@ -6805,6 +6803,7 @@
         },
         "source_regions": {
           "supported": [
+            "comment",
             "embedded"
           ],
           "not_applicable": [],
@@ -6827,7 +6826,12 @@
       "extensions": [
         "json",
         "jsonl",
-        "jsonc"
+        "jsonc",
+        "ndjson",
+        "jsonld",
+        "geojson",
+        "webmanifest",
+        "code-workspace"
       ],
       "dependency_status": "current",
       "capabilities": {
@@ -6867,6 +6871,31 @@
           "name": "test_roles",
           "source": "fixtures/extraction/json/test_roles/source.json",
           "expected": "fixtures/extraction/json/test_roles/expected.json"
+        },
+        {
+          "name": "npm",
+          "source": "fixtures/extraction/json/npm/package.json",
+          "expected": "fixtures/extraction/json/npm/expected.json"
+        },
+        {
+          "name": "composer",
+          "source": "fixtures/extraction/json/composer/composer.json",
+          "expected": "fixtures/extraction/json/composer/expected.json"
+        },
+        {
+          "name": "tsconfig",
+          "source": "fixtures/extraction/json/tsconfig/tsconfig.json",
+          "expected": "fixtures/extraction/json/tsconfig/expected.json"
+        },
+        {
+          "name": "jsonl",
+          "source": "fixtures/extraction/json/jsonl/events.jsonl",
+          "expected": "fixtures/extraction/json/jsonl/expected.json"
+        },
+        {
+          "name": "keys",
+          "source": "fixtures/extraction/json/keys/source.json",
+          "expected": "fixtures/extraction/json/keys/expected.json"
         }
       ],
       "target_capabilities": {
@@ -6911,6 +6940,7 @@
         },
         "relationships": {
           "supported": [
+            "imports",
             "references"
           ],
           "not_applicable": [],
@@ -6942,15 +6972,18 @@
             "json.property.v1",
             "json.ref.v1",
             "json.schema.v1",
+            "json.schema_definition.v1",
+            "manifest.dependency.v1",
+            "manifest.script.v1",
             "openapi.route.v1"
           ],
           "not_applicable": [],
           "open_gaps": [
             {
               "kind": "json5_unquoted_keys",
-              "reason": "JSON Schema `$schema`/`$ref` now emit first-class structural facts, but JSON5 unquoted keys remain outside the grammar-backed JSON collector (tree-sitter-json accepts standard JSON/JSONC only).",
-              "required_closure": "introduce a separate JSON5 grammar/language lane or explicitly mark JSON5 as out of scope before claiming unquoted-key support",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: JSON5 decision"
+              "reason": "tree-sitter-json accepts standard JSON and JSONC only. `.json5` files are unsupported, and JSON5 syntax (unquoted keys, single quotes, trailing commas) in a `.json` file gives error diagnostics and wrong symbols (wave-2 gap json.json5-unsupported).",
+              "required_closure": "add a JSON5 grammar dependency and route `.json5` to it, or record an owner decision that JSON5 is out of scope",
+              "planned_closure_task": "docs/plans/2026-09-22-language-gap-closure.md later waves"
             }
           ]
         },
@@ -6972,6 +7005,7 @@
         },
         "doc_comments": {
           "supported": [
+            "module",
             "variable"
           ],
           "not_applicable": [],
@@ -6987,6 +7021,7 @@
         "source_regions": {
           "supported": [
             "comment",
+            "doc_comment",
             "string_literal"
           ],
           "not_applicable": [],
@@ -7048,6 +7083,26 @@
           "name": "nextest_roles",
           "source": "fixtures/extraction/toml/nextest_roles/source.toml",
           "expected": "fixtures/extraction/toml/nextest_roles/expected.json"
+        },
+        {
+          "name": "pipfile",
+          "source": "fixtures/extraction/toml/pipfile/Pipfile",
+          "expected": "fixtures/extraction/toml/pipfile/expected.json"
+        },
+        {
+          "name": "gradle_catalog",
+          "source": "fixtures/extraction/toml/gradle/libs.versions.toml",
+          "expected": "fixtures/extraction/toml/gradle/expected.json"
+        },
+        {
+          "name": "nextest_path",
+          "source": "fixtures/extraction/toml/nextest_path/.config/nextest.toml",
+          "expected": "fixtures/extraction/toml/nextest_path/expected.json"
+        },
+        {
+          "name": "trycmd_case",
+          "source": "fixtures/extraction/toml/trycmd_case/tests/cmd/exit.toml",
+          "expected": "fixtures/extraction/toml/trycmd_case/expected.json"
         }
       ],
       "target_capabilities": {
@@ -7125,14 +7180,7 @@
             "toml.table.v1"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "toml_multiline_string_semantics",
-              "reason": "TOML structural facts now preserve dotted-key and array-of-inline-table paths, but multi-line basic/literal strings are not classified with string-style or line-span semantics beyond the generic key-value value_kind.",
-              "required_closure": "add fixture-backed metadata for TOML multi-line string style, normalized content policy, and span behavior before claiming that construct as structurally supported",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: TOML multi-line string facts"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [],
@@ -7152,6 +7200,7 @@
         },
         "doc_comments": {
           "supported": [
+            "module",
             "property"
           ],
           "not_applicable": [],
@@ -7167,6 +7216,7 @@
         "source_regions": {
           "supported": [
             "comment",
+            "doc_comment",
             "string_literal"
           ],
           "not_applicable": [],
@@ -7233,6 +7283,31 @@
           "name": "gitlab_ci",
           "source": "fixtures/extraction/yaml/gitlab/.gitlab-ci.yml",
           "expected": "fixtures/extraction/yaml/gitlab/expected.json"
+        },
+        {
+          "name": "compose",
+          "source": "fixtures/extraction/yaml/compose/docker-compose.yml",
+          "expected": "fixtures/extraction/yaml/compose/expected.json"
+        },
+        {
+          "name": "kubernetes",
+          "source": "fixtures/extraction/yaml/k8s/app.yaml",
+          "expected": "fixtures/extraction/yaml/k8s/expected.json"
+        },
+        {
+          "name": "ansible",
+          "source": "fixtures/extraction/yaml/ansible/site.yml",
+          "expected": "fixtures/extraction/yaml/ansible/expected.json"
+        },
+        {
+          "name": "kustomize",
+          "source": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+          "expected": "fixtures/extraction/yaml/kustomize/expected.json"
+        },
+        {
+          "name": "tavern",
+          "source": "fixtures/extraction/yaml/tavern/test_users.tavern.yaml",
+          "expected": "fixtures/extraction/yaml/tavern/expected.json"
         }
       ],
       "target_capabilities": {
@@ -7292,24 +7367,20 @@
             "openapi.route.v1",
             "yaml.alias.v1",
             "yaml.anchor.v1",
+            "yaml.ansible_task.v1",
             "yaml.ci_job.v1",
             "yaml.ci_trigger.v1",
             "yaml.ci_uses.v1",
+            "yaml.compose_service.v1",
             "yaml.document.v1",
+            "yaml.k8s_resource.v1",
             "yaml.key_value.v1",
             "yaml.mapping.v1",
             "yaml.ref.v1",
             "yaml.sequence.v1"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "yaml.block_scalar_tag_and_multidoc_semantics",
-              "reason": "YAML structural facts now cover block and flow mappings/sequences plus key-value paths, anchors, aliases, and documents, but block scalar style/content, explicit tags, and per-document path uniqueness for multi-document streams are not emitted as dedicated metadata/facts.",
-              "required_closure": "emit fixture-backed metadata or facts for block scalar style/content, explicit tag handles/values, and document-index-qualified paths for multi-document YAML streams",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: YAML scalar/tag/multidoc facts"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [],
@@ -7346,6 +7417,7 @@
           "supported": [
             "comment",
             "doc_comment",
+            "embedded",
             "string_literal"
           ],
           "not_applicable": [],
@@ -7374,9 +7446,19 @@
         "targets",
         "vbproj",
         "fsproj",
+        "vcxproj",
+        "sqlproj",
+        "proj",
         "slnx",
         "nuspec",
-        "resx"
+        "resx",
+        "runsettings",
+        "xaml",
+        "axaml",
+        "xsl",
+        "xslt",
+        "xlf",
+        "xliff"
       ],
       "dependency_status": "current",
       "capabilities": {
@@ -7426,6 +7508,71 @@
           "name": "negative",
           "source": "fixtures/extraction/xml/negative/Negative.targets",
           "expected": "fixtures/extraction/xml/negative/expected.json"
+        },
+        {
+          "name": "android_manifest",
+          "source": "fixtures/extraction/xml/android_manifest/AndroidManifest.xml",
+          "expected": "fixtures/extraction/xml/android_manifest/expected.json"
+        },
+        {
+          "name": "android_layout",
+          "source": "fixtures/extraction/xml/android_layout/res/layout/activity_main.xml",
+          "expected": "fixtures/extraction/xml/android_layout/expected.json"
+        },
+        {
+          "name": "spring",
+          "source": "fixtures/extraction/xml/spring/applicationContext.xml",
+          "expected": "fixtures/extraction/xml/spring/expected.json"
+        },
+        {
+          "name": "mybatis",
+          "source": "fixtures/extraction/xml/mybatis/UserMapper.xml",
+          "expected": "fixtures/extraction/xml/mybatis/expected.json"
+        },
+        {
+          "name": "webxml",
+          "source": "fixtures/extraction/xml/webxml/WEB-INF/web.xml",
+          "expected": "fixtures/extraction/xml/webxml/expected.json"
+        },
+        {
+          "name": "ant",
+          "source": "fixtures/extraction/xml/ant/build.xml",
+          "expected": "fixtures/extraction/xml/ant/expected.json"
+        },
+        {
+          "name": "testng",
+          "source": "fixtures/extraction/xml/testng/testng.xml",
+          "expected": "fixtures/extraction/xml/testng/expected.json"
+        },
+        {
+          "name": "resx",
+          "source": "fixtures/extraction/xml/resx/Strings.resx",
+          "expected": "fixtures/extraction/xml/resx/expected.json"
+        },
+        {
+          "name": "xslt",
+          "source": "fixtures/extraction/xml/xslt/orders.xslt",
+          "expected": "fixtures/extraction/xml/xslt/expected.json"
+        },
+        {
+          "name": "xaml",
+          "source": "fixtures/extraction/xml/xaml/MainWindow.xaml",
+          "expected": "fixtures/extraction/xml/xaml/expected.json"
+        },
+        {
+          "name": "config",
+          "source": "fixtures/extraction/xml/config/Web.config",
+          "expected": "fixtures/extraction/xml/config/expected.json"
+        },
+        {
+          "name": "dtd_links",
+          "source": "fixtures/extraction/xml/dtd_links/book.xml",
+          "expected": "fixtures/extraction/xml/dtd_links/expected.json"
+        },
+        {
+          "name": "msbuild_hooks",
+          "source": "fixtures/extraction/xml/msbuild_hooks/Docs.targets",
+          "expected": "fixtures/extraction/xml/msbuild_hooks/expected.json"
         }
       ],
       "target_capabilities": {
@@ -7451,7 +7598,18 @@
       "kind_coverage": {
         "symbols": {
           "supported": [
+            "class",
+            "constant",
+            "enum",
+            "enum_member",
+            "field",
+            "function",
+            "interface",
+            "method",
             "module",
+            "property",
+            "struct",
+            "type",
             "variable"
           ],
           "not_applicable": [],
@@ -7459,17 +7617,13 @@
         },
         "relationships": {
           "supported": [
-            "calls"
+            "calls",
+            "extends",
+            "imports",
+            "references"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "references",
-              "reason": "XSD and WSDL QName attribute references (type, ref, base, element) are emitted as identifiers, but resolving one to the declaration it names requires namespace resolution over in-scope xmlns declarations, which the XML tier does not perform.",
-              "required_closure": "resolve QName prefixes through in-scope xmlns declarations and emit references edges between the reference site and the named declaration, with golden evidence",
-              "planned_closure_task": "docs/plans/2026-05-31-julie-code-migration-implementation-plan.md Task 14: XML Reference Edge Closure"
-            }
-          ]
+          "open_gaps": []
         },
         "identifiers": {
           "supported": [
@@ -7484,7 +7638,18 @@
         },
         "body_spans": {
           "supported": [
+            "class",
+            "constant",
+            "enum",
+            "enum_member",
+            "field",
+            "function",
+            "interface",
+            "method",
             "module",
+            "property",
+            "struct",
+            "type",
             "variable"
           ],
           "not_applicable": [],
@@ -7493,9 +7658,18 @@
         "structural_facts": {
           "supported": [
             "manifest.dependency.v1",
+            "xml.android_component.v1",
+            "xml.android_permission.v1",
+            "xml.config_entry.v1",
             "xml.document.v1",
+            "xml.document_link.v1",
             "xml.msbuild_property.v1",
+            "xml.mybatis_statement.v1",
             "xml.namespace_declaration.v1",
+            "xml.servlet_route.v1",
+            "xml.spring_bean.v1",
+            "xml.spring_component_scan.v1",
+            "xml.test_selection.v1",
             "xml.wsdl.binding.v1",
             "xml.wsdl.message.v1",
             "xml.wsdl.operation.v1",
@@ -7503,6 +7677,7 @@
             "xml.wsdl.service.v1",
             "xml.xsd.element.v1",
             "xml.xsd.import.v1",
+            "xml.xsd.schema.v1",
             "xml.xsd.type.v1"
           ],
           "not_applicable": [],
@@ -7519,17 +7694,39 @@
         "annotations": {
           "supported": [],
           "not_applicable": [
+            "class",
+            "constant",
+            "enum",
+            "enum_member",
+            "field",
+            "function",
+            "interface",
+            "method",
             "module",
+            "property",
+            "struct",
+            "type",
             "variable"
           ],
           "open_gaps": []
         },
         "doc_comments": {
-          "supported": [],
-          "not_applicable": [
+          "supported": [
+            "class",
+            "constant",
+            "enum",
+            "enum_member",
+            "field",
+            "function",
+            "interface",
+            "method",
             "module",
+            "property",
+            "struct",
+            "type",
             "variable"
           ],
+          "not_applicable": [],
           "open_gaps": []
         },
         "literals": {
@@ -7542,6 +7739,8 @@
         "source_regions": {
           "supported": [
             "comment",
+            "doc_comment",
+            "embedded",
             "string_literal"
           ],
           "not_applicable": [],

@@ -12,3 +12,22 @@ worker:
     - active
   api_url: "https://api.example.com/workers/status"
   docs_url: https://docs.example.com/workers
+  limits: {cpu: "500m", memory: 128Mi}
+  timeout: &default_timeout 30
+  script: |-
+    make build
+  motd: >
+    Welcome aboard
+  table: !Sub 'orders-${Stage}'
+  "quoted \"key\"": 1
+  'it''s': 2
+  nginx.conf: literal
+steps:
+  - &checkout actions/checkout@v4
+  - uses: build
+override:
+  retry: *default_timeout
+  first_step: *checkout
+---
+second_document:
+  settings: *defaults

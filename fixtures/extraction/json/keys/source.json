@@ -1,0 +1,7 @@
+{
+  "say \"hi\"": "She said \"hello\"",
+  "café": "Café menu",
+  "files.exclude": { "**/.git": true },
+  "files": { "exclude": { "dist": true } },
+  "limits": { "port": 8080, "debug": false, "timeout": null }
+}

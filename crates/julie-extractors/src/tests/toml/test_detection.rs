@@ -76,12 +76,11 @@ stderr = ""
 }
 
 #[test]
-fn trycmd_requires_all_expected_streams() {
+fn trycmd_requires_a_case_field_beside_bin_name() {
     let symbols = symbols(
         r#"
 bin.name = "demo"
-status = 0
-stdout = "demo\n"
+version = "1.0"
 "#,
     );
 

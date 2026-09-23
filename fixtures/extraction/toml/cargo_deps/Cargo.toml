@@ -27,3 +27,12 @@ anyhow = "1"
 
 [lints]
 workspace = true
+
+[features]
+default = ["std", "json"]
+std = ["serde/std"]
+tls = ["dep:reqwest", "tokio?/rt"]
+
+[[bin]]
+name = "myapp-cli"
+required-features = ["tls"]

@@ -37,7 +37,7 @@
     {
       "key": "fixtures/extraction/xml/negative/Negative.targets:Pack:3:2",
       "name": "Pack",
-      "kind": "module",
+      "kind": "function",
       "language": "xml",
       "file_path": "fixtures/extraction/xml/negative/Negative.targets",
       "start_line": 3,
@@ -56,7 +56,7 @@
       },
       "body_hash": "a79a257a8a232353713b4e07642a65e6",
       "signature": "<Target Name=\"Pack\" DependsOnTargets=\"$(PackDependsOn);Build\" AfterTargets=\"Publish\">",
-      "doc_comment": null,
+      "doc_comment": "<!-- Targets named but not declared here, and property-built names, emit no Calls edges. -->",
       "visibility": "Public",
       "parent_key": "fixtures/extraction/xml/negative/Negative.targets:Negative:1:0",
       "metadata": {
@@ -70,8 +70,78 @@
     }
   ],
   "relationships": [],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/xml/negative/Negative.targets:Pack:3:2",
+      "callee_name": "Build",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/xml/negative/Negative.targets",
+      "line_number": 3,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/xml/negative/Negative.targets:Pack:3:2",
+      "callee_name": "Publish",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/xml/negative/Negative.targets",
+      "line_number": 3,
+      "confidence": "1.000"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/xml/negative/Negative.targets:Pack:3:2",
+        "callee_name": "Build",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/xml/negative/Negative.targets",
+        "line_number": 3,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "Build",
+        "terminal_name": "Build",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/xml/negative/Negative.targets:Pack:3:2",
+      "span": {
+        "start_line": 3,
+        "start_column": 57,
+        "end_line": 3,
+        "end_column": 62,
+        "start_byte": 162,
+        "end_byte": 167
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/xml/negative/Negative.targets:Pack:3:2",
+        "callee_name": "Publish",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/xml/negative/Negative.targets",
+        "line_number": 3,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "Publish",
+        "terminal_name": "Publish",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/xml/negative/Negative.targets:Pack:3:2",
+      "span": {
+        "start_line": 3,
+        "start_column": 78,
+        "end_line": 3,
+        "end_column": 85,
+        "start_byte": 183,
+        "end_byte": 190
+      }
+    }
+  ],
   "identifiers": [
     {
       "key": "fixtures/extraction/xml/negative/Negative.targets:Build:call:3:57",
@@ -268,10 +338,10 @@
   ],
   "source_regions": [
     {
-      "kind": "comment",
+      "kind": "doc_comment",
       "language": "xml",
       "file_path": "fixtures/extraction/xml/negative/Negative.targets",
-      "containing_key": "fixtures/extraction/xml/negative/Negative.targets:Negative:1:0",
+      "containing_key": "fixtures/extraction/xml/negative/Negative.targets:Pack:3:2",
       "start_line": 2,
       "start_column": 2,
       "end_line": 2,

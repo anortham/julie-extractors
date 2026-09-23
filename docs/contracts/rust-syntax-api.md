@@ -88,7 +88,7 @@ All spans and diagnostics reference the exact, unmutated UTF-8 source string pro
 | Variant | Trigger Condition | Recoverable? | Details |
 |---|---|---|---|
 | `UnsupportedLanguage { path }` | Extension or file name unrecognized among all 40 supported languages | No | Returns unmutated caller path |
-| `UnsupportedContainer { path }` | File path has `.jsonl` extension or name (case-insensitive) | No | Line-delimited containers refused by single-tree API |
+| `UnsupportedContainer { path }` | File path has a `.jsonl` or `.ndjson` extension or name (case-insensitive) | No | Line-delimited containers refused by single-tree API |
 | `InputTooLarge { bytes }` | `bytes > max_source_bytes` or `bytes > u32::MAX - 1` | No | Checked before allocation/parsing to prevent index overflow |
 | `Cancelled` | `options.cancelled` atomic flag is `true` | Yes | Takes precedence over deadline when both trigger |
 | `DeadlineExceeded` | `Instant::now() >= deadline` | Yes | Checked during language detection, parser progress, and traversal |
@@ -120,7 +120,7 @@ All spans and diagnostics reference the exact, unmutated UTF-8 source string pro
 
 - **Host Tree Coverage:** The returned `tree` covers the entire source string (`0..source.len()`).
 - **Composite Files (Vue, HTML, Razor, Markdown):** Returns the host template/markup tree only. Embedded language islands (e.g. `<script>` JavaScript inside Vue or HTML) are not parsed as child trees. Downstream consumers needing embedded extractions must use `extract_canonical`.
-- **JSONL Refusal:** Case-insensitive `.jsonl` files are rejected with `SyntaxError::UnsupportedContainer`. Full JSONL extraction remains available in `extract_canonical`.
+- **JSONL Refusal:** Case-insensitive `.jsonl` and `.ndjson` files are rejected with `SyntaxError::UnsupportedContainer`. Full JSONL extraction remains available in `extract_canonical`.
 
 ## 8. Capability Fixture Ledger (40 Languages)
 

@@ -17,3 +17,14 @@ outside:
       setup: nested-setup.sh
 setup: outside.sh
 teardown: outside.sh
+fileExistenceTests:
+  - name: 'Root'
+    path: '/'
+    shouldExist: true
+fileContentTests:
+  - name: 'Debian Sources'
+    path: '/etc/apt/sources.list'
+licenseTests:
+  - debian: true
+metadataTest:
+  workdir: /app

@@ -1,4 +1,5 @@
-//! Package-manifest dependency declarations in `Cargo.toml` and `pyproject.toml`.
+//! Package-manifest dependency declarations in `Cargo.toml`, `pyproject.toml`,
+//! and `Pipfile`.
 //!
 //! One parse feeds two outputs: `Imports` edges for dependencies that are key
 //! symbols (Cargo and Poetry tables) and `manifest.dependency.v1` facts for
@@ -12,6 +13,7 @@ use super::pair_value;
 pub(crate) enum Manifest {
     Cargo,
     Pyproject,
+    Pipfile,
 }
 
 impl Manifest {
@@ -19,6 +21,7 @@ impl Manifest {
         match file_path.rsplit(['/', '\\']).next()? {
             "Cargo.toml" => Some(Self::Cargo),
             "pyproject.toml" => Some(Self::Pyproject),
+            "Pipfile" => Some(Self::Pipfile),
             _ => None,
         }
     }
@@ -26,7 +29,7 @@ impl Manifest {
     pub(crate) fn ecosystem(self) -> &'static str {
         match self {
             Self::Cargo => "cargo",
-            Self::Pyproject => "pypi",
+            Self::Pyproject | Self::Pipfile => "pypi",
         }
     }
 }
@@ -84,6 +87,15 @@ pub(crate) fn collect_dependencies<'tree>(
             Manifest::Pyproject => {
                 collect_pyproject_table(table, &header, content, &mut dependencies)
             }
+            Manifest::Pipfile => match header.as_slice() {
+                ["packages"] => {
+                    push_poetry_table(table, "pipenv:packages", content, &mut dependencies)
+                }
+                ["dev-packages"] => {
+                    push_poetry_table(table, "pipenv:dev-packages", content, &mut dependencies)
+                }
+                _ => {}
+            },
         }
     }
     dependencies
@@ -363,7 +375,7 @@ fn key_parts_at(key: Node<'_>, content: &str, depth: u32) -> Vec<String> {
     };
     if key.kind() != "dotted_key" {
         return node_text(key, content)
-            .map(|text| vec![text.trim_matches(['"', '\'']).to_string()])
+            .map(|text| vec![super::text::decode_toml_key(text)])
             .unwrap_or_default();
     }
     let mut cursor = key.walk();
@@ -374,14 +386,7 @@ fn key_parts_at(key: Node<'_>, content: &str, depth: u32) -> Vec<String> {
 
 pub(crate) fn string_value(node: Node<'_>, content: &str) -> Option<String> {
     (node.kind() == "string").then_some(())?;
-    let text = node_text(node, content)?;
-    let quote = if text.starts_with("\"\"\"") || text.starts_with("'''") {
-        3
-    } else {
-        1
-    };
-    text.get(quote..text.len().checked_sub(quote)?)
-        .map(str::to_string)
+    super::text::decode_toml_string(node_text(node, content)?).map(|(value, _)| value)
 }
 
 fn node_text<'a>(node: Node<'_>, content: &'a str) -> Option<&'a str> {

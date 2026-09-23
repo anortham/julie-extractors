@@ -14,7 +14,7 @@
       "end_byte": 38,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "AWSTemplateFormatVersion: '2010-09-09'",
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
@@ -38,7 +38,7 @@
       "end_byte": 320,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "BUCKET: !Ref DataBucket",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/cloudformation/template.yaml:Variables:14:8",
@@ -124,7 +124,7 @@
       "end_byte": 196,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "DependsOn: DataBucket",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/cloudformation/template.yaml:Handler:8:2",
@@ -272,7 +272,7 @@
       "end_byte": 367,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "NAME: !Sub '${Stage}-${AWS::Region}'",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/cloudformation/template.yaml:Variables:14:8",
@@ -420,7 +420,7 @@
       "end_byte": 248,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "Role: !GetAtt HandlerRole.Arn",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/cloudformation/template.yaml:Properties:11:4",
@@ -475,7 +475,7 @@
       "end_byte": 407,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "Type: AWS::IAM::Role",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/cloudformation/template.yaml:HandlerRole:17:2",
@@ -499,7 +499,7 @@
       "end_byte": 76,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "Type: String",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/cloudformation/template.yaml:Stage:3:2",
@@ -523,7 +523,7 @@
       "end_byte": 127,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "Type: AWS::S3::Bucket",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/cloudformation/template.yaml:DataBucket:6:2",
@@ -547,7 +547,7 @@
       "end_byte": 170,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "Type: AWS::Lambda::Function",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/cloudformation/template.yaml:Handler:8:2",
@@ -824,6 +824,7 @@
       "end_byte": 477,
       "confidence": "1.000",
       "metadata": {
+        "document_index": 0,
         "has_directives": false,
         "pattern_version": 1,
         "query_family": "config_structure"
@@ -892,6 +893,7 @@
         "key_path": "$.Resources.DataBucket.Type",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -958,6 +960,7 @@
         "key_path": "$.Resources.Handler.DependsOn",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -1002,6 +1005,7 @@
         "key_path": "$.Resources.Handler.Type",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -1046,6 +1050,7 @@
         "key_path": "$.Resources.HandlerRole.Type",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -1134,7 +1139,9 @@
         "key_path": "$.Resources.Handler.Properties.Role",
         "pattern_version": 1,
         "query_family": "config_structure",
-        "value_kind": "other"
+        "scalar_style": "plain",
+        "tag": "!GetAtt",
+        "value_kind": "scalar"
       }
     },
     {
@@ -1200,6 +1207,7 @@
         "key_path": "$.Parameters.Stage.Type",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -1266,7 +1274,9 @@
         "key_path": "$.Resources.Handler.Properties.Environment.Variables.BUCKET",
         "pattern_version": 1,
         "query_family": "config_structure",
-        "value_kind": "other"
+        "scalar_style": "plain",
+        "tag": "!Ref",
+        "value_kind": "scalar"
       }
     },
     {
@@ -1288,7 +1298,9 @@
         "key_path": "$.Resources.Handler.Properties.Environment.Variables.NAME",
         "pattern_version": 1,
         "query_family": "config_structure",
-        "value_kind": "other"
+        "scalar_style": "single_quoted",
+        "tag": "!Sub",
+        "value_kind": "scalar"
       }
     },
     {
@@ -1310,6 +1322,7 @@
         "key_path": "$.AWSTemplateFormatVersion",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "single_quoted",
         "value_kind": "scalar"
       }
     },

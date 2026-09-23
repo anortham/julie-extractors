@@ -17,7 +17,7 @@ fn name_attribute_promotes_an_element_to_a_symbol() {
     let symbols = extract(SCHEMA);
     let add_phone = find(&symbols, "AddPhone");
 
-    assert_eq!(add_phone.kind, SymbolKind::Module);
+    assert_eq!(add_phone.kind, SymbolKind::Class);
     assert_eq!(
         add_phone.signature.as_deref(),
         Some("<xs:complexType name=\"AddPhone\">")
@@ -68,11 +68,19 @@ fn named_elements_chain_through_the_nearest_named_ancestor() {
 }
 
 #[test]
-fn container_elements_are_modules_and_leaf_elements_are_variables() {
+fn schema_components_take_their_declared_kind_in_every_form() {
     let symbols = extract(SCHEMA);
 
-    assert_eq!(find(&symbols, "AddPhone").kind, SymbolKind::Module);
-    assert_eq!(find(&symbols, "number").kind, SymbolKind::Variable);
+    assert_eq!(find(&symbols, "AddPhone").kind, SymbolKind::Class);
+    assert_eq!(find(&symbols, "number").kind, SymbolKind::Field);
+}
+
+#[test]
+fn unknown_vocabularies_keep_containers_as_modules_and_leaves_as_variables() {
+    let symbols = extract("<config><group name=\"g\"><item name=\"i\"/></group></config>\n");
+
+    assert_eq!(find(&symbols, "g").kind, SymbolKind::Module);
+    assert_eq!(find(&symbols, "i").kind, SymbolKind::Variable);
 }
 
 #[test]

@@ -33,11 +33,23 @@ where
     if file_name.is_some_and(|name| RUBY_FILE_NAMES.contains(&name)) {
         return Ok(Some(("ruby", None)));
     }
+    if file_name == Some("Pipfile") {
+        return Ok(Some(("toml", None)));
+    }
 
     let extension = file_path
         .extension()
         .and_then(|ext| ext.to_str())
         .unwrap_or("");
+
+    if extension.eq_ignore_ascii_case("config")
+        && source
+            .trim_start_matches('\u{feff}')
+            .trim_start()
+            .starts_with('<')
+    {
+        return Ok(Some(("xml", None)));
+    }
 
     if extension.eq_ignore_ascii_case("h") {
         let blanked = crate::preprocess::blanked_source("cpp", source);

@@ -14,8 +14,15 @@ use std::collections::HashMap;
 use std::path::Path;
 use tree_sitter::Tree;
 
+mod comments;
+pub(crate) mod manifest;
 pub(crate) mod relationships;
 mod test_detection;
+
+pub(crate) use comments::comment_documents_following_value;
+
+const MAX_DOC_CHARS: usize = 2000;
+const MAX_SIGNATURE_CHARS: usize = 80;
 
 pub struct JsonExtractor {
     pub(crate) base: BaseExtractor,
@@ -93,6 +100,7 @@ impl JsonExtractor {
         let index = array_element_index(array, node)?;
         let options = crate::base::SymbolOptions {
             parent_id: parent_id.map(str::to_string),
+            doc_comment: self.value_doc(node, node),
             ..Default::default()
         };
         let mut symbol =
@@ -112,53 +120,26 @@ impl JsonExtractor {
     ) -> Option<Symbol> {
         use crate::base::SymbolOptions;
 
-        // Get children: typically [string (key), ":", value]
         let mut cursor = node.walk();
         let children: Vec<_> = node.children(&mut cursor).collect();
-
         if children.len() < 3 {
-            return None; // Need at least key, colon, value
+            return None;
         }
 
-        // Extract key name (first child, strip quotes)
         let key_node = children[0];
-        let key_text = self.base.get_node_text(&key_node);
-        let key_name = key_text.trim_matches('"').to_string();
-
-        // Value is typically the last child (after key and colon)
+        let key_name = decode_json_string(&self.base.get_node_text(&key_node));
         let value_node = *children.last().unwrap();
 
-        // Determine the value type to choose appropriate SymbolKind
         let symbol_kind = match value_node.kind() {
-            "object" | "array" => SymbolKind::Module, // Treat containers as modules
-            _ => SymbolKind::Variable,                // Treat primitives as variables
-        };
-
-        // Extract string values as doc_comment for semantic search
-        // This enables searching memory files by description content, config values, etc.
-        let doc_comment = if value_node.kind() == "string" {
-            let value_text = self.base.get_node_text(&value_node);
-            let trimmed = value_text.trim_matches('"');
-            // Include non-empty strings, truncating to 2000 chars (for semantic search)
-            if !trimmed.is_empty() {
-                if trimmed.len() <= 2000 {
-                    Some(trimmed.to_string())
-                } else {
-                    // Truncate long strings (e.g., plan content) instead of skipping
-                    Some(trimmed.chars().take(2000).collect())
-                }
-            } else {
-                None
-            }
-        } else {
-            None
+            "object" | "array" => SymbolKind::Module,
+            _ => SymbolKind::Variable,
         };
 
         let options = SymbolOptions {
-            signature: None,
+            signature: scalar_signature(&self.base, key_node, value_node),
             visibility: None,
             parent_id: parent_id.map(|s| s.to_string()),
-            doc_comment,
+            doc_comment: self.value_doc(node, value_node),
             ..Default::default()
         };
 
@@ -174,20 +155,38 @@ impl JsonExtractor {
         }
 
         if value_node.kind() == "string" {
-            let carrier = crate::base::config_literals::build_config_key_carrier(
-                symbols, parent_id, &key_name,
-            );
-            crate::base::config_literals::record_config_string_literal(
-                &mut self.base,
-                &value_node,
-                &carrier,
-                Some(symbol.id.clone()),
-            );
+            let literal_text = decode_json_string(&self.base.get_node_text(&value_node));
+            if !literal_text.is_empty() {
+                let carrier = crate::base::config_literals::build_config_key_carrier(
+                    symbols, parent_id, &key_name,
+                );
+                self.base.record_literal(
+                    &value_node,
+                    literal_text,
+                    Some(carrier),
+                    0,
+                    Some(symbol.id.clone()),
+                );
+            }
         }
 
         Some(symbol)
     }
 
+    /// The doc of a pair or array element: a JSONC comment that documents it,
+    /// else the `description`/`summary`/`title` of an object value, else the
+    /// decoded text of a string value (truncated for semantic search).
+    fn value_doc(&self, holder: tree_sitter::Node, value: tree_sitter::Node) -> Option<String> {
+        let content = &self.base.content;
+        let text = comments::leading_doc(content, holder)
+            .or_else(|| comments::trailing_doc(content, holder))
+            .or_else(|| match value.kind() {
+                "object" => schema_description(content, value),
+                "string" => Some(decode_json_string(&self.base.get_node_text(&value))),
+                _ => None,
+            })?;
+        (!text.is_empty()).then(|| text.chars().take(MAX_DOC_CHARS).collect())
+    }
     pub fn extract_identifiers(
         &mut self,
         _tree: &tree_sitter::Tree,
@@ -201,9 +200,9 @@ impl JsonExtractor {
         HashMap::new()
     }
 
-    /// Extract JSON Schema `$ref` relationships (Phase 3.2). Local pointers
-    /// resolve to concrete `Relationship`s; external pointers (`<file>#/...`)
-    /// emit structured pending relationships.
+    /// Extract JSON Schema `$ref` relationships and package-manifest edges.
+    /// Local pointers resolve to concrete `Relationship`s; references into
+    /// other documents emit structured pending relationships.
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
         let mut relationships = Vec::new();
         relationships::extract_relationships_internal(
@@ -211,7 +210,6 @@ impl JsonExtractor {
             tree.root_node(),
             symbols,
             &mut relationships,
-            0,
         );
         relationships
     }
@@ -244,4 +242,59 @@ pub(crate) fn array_element_index(
         .named_children(&mut cursor)
         .filter(|child| child.kind() != "comment")
         .position(|child| child.id() == element.id())
+}
+
+/// The value of a JSON string token: escapes decoded, quotes removed. Text that
+/// is not a valid JSON string (a parse-error fragment) only loses its quotes.
+pub(crate) fn decode_json_string(raw: &str) -> String {
+    let raw = raw.trim();
+    serde_json::from_str::<String>(raw).unwrap_or_else(|_| {
+        let inner = raw.strip_prefix('"').unwrap_or(raw);
+        inner.strip_suffix('"').unwrap_or(inner).to_string()
+    })
+}
+
+/// `"key": value` for a scalar pair, as written, truncated like TOML signatures.
+fn scalar_signature(
+    base: &BaseExtractor,
+    key: tree_sitter::Node,
+    value: tree_sitter::Node,
+) -> Option<String> {
+    if matches!(value.kind(), "object" | "array") {
+        return None;
+    }
+    let signature = format!(
+        "{}: {}",
+        base.get_node_text(&key),
+        base.get_node_text(&value)
+    );
+    if signature.chars().count() <= MAX_SIGNATURE_CHARS {
+        return Some(signature);
+    }
+    let kept: String = signature.chars().take(MAX_SIGNATURE_CHARS - 3).collect();
+    Some(format!("{kept}..."))
+}
+
+/// The first non-empty `description`, `summary`, or `title` string held
+/// directly by a JSON Schema or OpenAPI object.
+fn schema_description(content: &str, object: tree_sitter::Node) -> Option<String> {
+    ["description", "summary", "title"]
+        .iter()
+        .find_map(|keyword| {
+            let mut cursor = object.walk();
+            object
+                .named_children(&mut cursor)
+                .filter(|child| child.kind() == "pair")
+                .find_map(|pair| {
+                    let key = pair.child_by_field_name("key")?;
+                    let value = pair.child_by_field_name("value")?;
+                    let key_text = content.get(key.start_byte()..key.end_byte())?;
+                    if value.kind() != "string" || decode_json_string(key_text) != *keyword {
+                        return None;
+                    }
+                    let text =
+                        decode_json_string(content.get(value.start_byte()..value.end_byte())?);
+                    (!text.is_empty()).then_some(text)
+                })
+        })
 }

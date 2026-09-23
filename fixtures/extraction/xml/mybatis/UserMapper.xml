@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mapper namespace="com.example.users.UserMapper">
+  <resultMap id="userResult" type="com.example.users.User" />
+  <sql id="columns">user_id, email</sql>
+  <!-- Loads one user by primary key. -->
+  <select id="findById" parameterType="long" resultMap="userResult">
+    SELECT <include refid="columns" /> FROM users
+    <where><if test="id != null">user_id = #{id}</if></where>
+  </select>
+  <insert id="insertUser"><![CDATA[ INSERT INTO users (email) VALUES (#{email}) ]]></insert>
+</mapper>

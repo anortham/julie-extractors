@@ -1,0 +1,506 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:[0]:8:2",
+      "name": "[0]",
+      "kind": "module",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+      "start_line": 8,
+      "start_column": 2,
+      "end_line": 9,
+      "end_column": 0,
+      "start_byte": 139,
+      "end_byte": 166,
+      "body_span": {
+        "start_line": 8,
+        "start_column": 4,
+        "end_line": 8,
+        "end_column": 28,
+        "start_byte": 141,
+        "end_byte": 165
+      },
+      "body_hash": "ce07c1e767c544ec2314b13d979d044a",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:patches:7:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:components:5:0",
+      "name": "components",
+      "kind": "module",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 21,
+      "start_byte": 94,
+      "end_byte": 127,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 2,
+        "end_line": 6,
+        "end_column": 21,
+        "start_byte": 108,
+        "end_byte": 127
+      },
+      "body_hash": "ac8ce0d285c80240ba02098e30590860",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:patches:7:0",
+      "name": "patches",
+      "kind": "module",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 0,
+      "start_byte": 128,
+      "end_byte": 166,
+      "body_span": {
+        "start_line": 8,
+        "start_column": 2,
+        "end_line": 8,
+        "end_column": 28,
+        "start_byte": 139,
+        "end_byte": 165
+      },
+      "body_hash": "58cbd8cd32a7c14b9609936229effeca",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:path:8:4",
+      "name": "path",
+      "kind": "variable",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+      "start_line": 8,
+      "start_column": 4,
+      "end_line": 8,
+      "end_column": 28,
+      "start_byte": 141,
+      "end_byte": 165,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "path: replica-patch.yaml",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:[0]:8:2",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:resources:1:0",
+      "name": "resources",
+      "kind": "module",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 50,
+      "start_byte": 0,
+      "end_byte": 93,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 2,
+        "end_line": 4,
+        "end_column": 50,
+        "start_byte": 13,
+        "end_byte": 93
+      },
+      "body_hash": "83d7da02309bb5c711b528ff76746196",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:components:5:0",
+      "callee_name": "../components/tls",
+      "kind": "references",
+      "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+      "line_number": 6,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:path:8:4",
+      "callee_name": "replica-patch.yaml",
+      "kind": "references",
+      "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+      "line_number": 8,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:resources:1:0",
+      "callee_name": "../base",
+      "kind": "references",
+      "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+      "line_number": 3,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:resources:1:0",
+      "callee_name": "deployment.yaml",
+      "kind": "references",
+      "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+      "line_number": 2,
+      "confidence": "1.000"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:components:5:0",
+        "callee_name": "../components/tls",
+        "kind": "references",
+        "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+        "line_number": 6,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "../components/tls",
+        "terminal_name": "tls",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "../components/tls"
+      },
+      "caller_scope_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:components:5:0",
+      "span": null
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:path:8:4",
+        "callee_name": "replica-patch.yaml",
+        "kind": "references",
+        "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+        "line_number": 8,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "replica-patch.yaml",
+        "terminal_name": "replica-patch.yaml",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "replica-patch.yaml"
+      },
+      "caller_scope_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:path:8:4",
+      "span": null
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:resources:1:0",
+        "callee_name": "../base",
+        "kind": "references",
+        "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+        "line_number": 3,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "../base",
+        "terminal_name": "base",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "../base"
+      },
+      "caller_scope_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:resources:1:0",
+      "span": null
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:resources:1:0",
+        "callee_name": "deployment.yaml",
+        "kind": "references",
+        "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+        "line_number": 2,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "deployment.yaml",
+        "terminal_name": "deployment.yaml",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "deployment.yaml"
+      },
+      "caller_scope_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:resources:1:0",
+      "span": null
+    }
+  ],
+  "identifiers": [],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "yaml.document.v1",
+      "capture_name": "document",
+      "node_kind": "document",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 166,
+      "confidence": "1.000",
+      "metadata": {
+        "document_index": 0,
+        "has_directives": false,
+        "pattern_version": 1,
+        "query_family": "config_structure"
+      }
+    },
+    {
+      "pattern_id": "yaml.key_value.v1",
+      "capture_name": "key_value",
+      "node_kind": "block_mapping_pair",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+      "containing_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:[0]:8:2",
+      "start_line": 8,
+      "start_column": 4,
+      "end_line": 8,
+      "end_column": 28,
+      "start_byte": 141,
+      "end_byte": 165,
+      "confidence": "1.000",
+      "metadata": {
+        "key": "path",
+        "key_path": "$.patches[0].path",
+        "pattern_version": 1,
+        "query_family": "config_structure",
+        "scalar_style": "plain",
+        "value_kind": "scalar"
+      }
+    },
+    {
+      "pattern_id": "yaml.key_value.v1",
+      "capture_name": "key_value",
+      "node_kind": "block_mapping_pair",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+      "containing_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:components:5:0",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 21,
+      "start_byte": 94,
+      "end_byte": 127,
+      "confidence": "1.000",
+      "metadata": {
+        "key": "components",
+        "key_path": "$.components",
+        "pattern_version": 1,
+        "query_family": "config_structure",
+        "value_kind": "sequence"
+      }
+    },
+    {
+      "pattern_id": "yaml.key_value.v1",
+      "capture_name": "key_value",
+      "node_kind": "block_mapping_pair",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+      "containing_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:patches:7:0",
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 0,
+      "start_byte": 128,
+      "end_byte": 166,
+      "confidence": "1.000",
+      "metadata": {
+        "key": "patches",
+        "key_path": "$.patches",
+        "pattern_version": 1,
+        "query_family": "config_structure",
+        "value_kind": "sequence"
+      }
+    },
+    {
+      "pattern_id": "yaml.key_value.v1",
+      "capture_name": "key_value",
+      "node_kind": "block_mapping_pair",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+      "containing_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:resources:1:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 50,
+      "start_byte": 0,
+      "end_byte": 93,
+      "confidence": "1.000",
+      "metadata": {
+        "key": "resources",
+        "key_path": "$.resources",
+        "pattern_version": 1,
+        "query_family": "config_structure",
+        "value_kind": "sequence"
+      }
+    },
+    {
+      "pattern_id": "yaml.mapping.v1",
+      "capture_name": "mapping",
+      "node_kind": "block_mapping",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+      "containing_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:[0]:8:2",
+      "start_line": 8,
+      "start_column": 4,
+      "end_line": 9,
+      "end_column": 0,
+      "start_byte": 141,
+      "end_byte": 166,
+      "confidence": "1.000",
+      "metadata": {
+        "key_path": "$.patches[0]",
+        "pair_count": 1,
+        "pattern_version": 1,
+        "query_family": "config_structure"
+      }
+    },
+    {
+      "pattern_id": "yaml.mapping.v1",
+      "capture_name": "mapping",
+      "node_kind": "block_mapping",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 166,
+      "confidence": "1.000",
+      "metadata": {
+        "key_path": "$",
+        "pair_count": 3,
+        "pattern_version": 1,
+        "query_family": "config_structure"
+      }
+    },
+    {
+      "pattern_id": "yaml.sequence.v1",
+      "capture_name": "sequence",
+      "node_kind": "block_sequence",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+      "containing_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:[0]:8:2",
+      "start_line": 8,
+      "start_column": 2,
+      "end_line": 9,
+      "end_column": 0,
+      "start_byte": 139,
+      "end_byte": 166,
+      "confidence": "1.000",
+      "metadata": {
+        "key_path": "$.patches",
+        "pattern_version": 1,
+        "query_family": "config_structure",
+        "sequence_length": 1
+      }
+    },
+    {
+      "pattern_id": "yaml.sequence.v1",
+      "capture_name": "sequence",
+      "node_kind": "block_sequence",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+      "containing_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:components:5:0",
+      "start_line": 6,
+      "start_column": 2,
+      "end_line": 6,
+      "end_column": 21,
+      "start_byte": 108,
+      "end_byte": 127,
+      "confidence": "1.000",
+      "metadata": {
+        "key_path": "$.components",
+        "pattern_version": 1,
+        "query_family": "config_structure",
+        "sequence_length": 1
+      }
+    },
+    {
+      "pattern_id": "yaml.sequence.v1",
+      "capture_name": "sequence",
+      "node_kind": "block_sequence",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+      "containing_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:resources:1:0",
+      "start_line": 2,
+      "start_column": 2,
+      "end_line": 4,
+      "end_column": 50,
+      "start_byte": 13,
+      "end_byte": 93,
+      "confidence": "1.000",
+      "metadata": {
+        "key_path": "$.resources",
+        "pattern_version": 1,
+        "query_family": "config_structure",
+        "sequence_length": 3
+      }
+    }
+  ],
+  "complexity_metrics": [],
+  "literals": [
+    {
+      "literal_text": "replica-patch.yaml",
+      "kind": "other",
+      "carrier": "patches[0].path",
+      "arg_position": 0,
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/kustomize/kustomization.yaml",
+      "start_line": 8,
+      "start_column": 10,
+      "end_line": 8,
+      "end_column": 28,
+      "start_byte": 147,
+      "end_byte": 165,
+      "containing_key": "fixtures/extraction/yaml/kustomize/kustomization.yaml:path:8:4",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [],
+  "type_argument_usages": []
+}

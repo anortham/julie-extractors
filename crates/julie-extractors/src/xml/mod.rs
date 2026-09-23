@@ -6,16 +6,21 @@
 //! thousands of repeated rows still yields only the handful of named components. Named elements
 //! chain to their nearest named ancestor the way YAML mapping keys chain.
 //!
-//! Attribute values of `type`, `ref`, `base`, and `element` become `type_usage` identifiers
-//! named by the QName's local part, with the raw QName and prefix in metadata, but only in
-//! schema context — the owning element must sit in a declared XML Schema or WSDL namespace, or
-//! the attribute itself must (`xsi:type`), because those four names are ordinary words that a
-//! generic document uses for its own purposes. Every non-empty attribute value is captured as a
-//! literal under a `tag.attribute` carrier regardless of dialect.
+//! The kind comes from what the element declares when its vocabulary is known (XML Schema,
+//! WSDL, XSLT, XAML, MSBuild, Ant, Spring, MyBatis, TestNG, Android, `.resx`): an
+//! `xs:complexType` is a class, a WSDL operation a method, a build target a function. A
+//! document in an unknown vocabulary keeps the structural rule: an element with child
+//! elements is a module, a leaf is a variable.
+//!
+//! References (see [`references`]) become identifiers, same-file edges, and structured pending
+//! rows from one shared list of sites. Every non-empty attribute value is captured as a literal
+//! under a `tag.attribute` carrier regardless of dialect.
 //!
 //! Build manifests (see [`build`]) add a root symbol (MSBuild project, NuGet package, Maven
-//! artifact), MSBuild target `Calls` edges and identifiers, structured pending `Imports` rows for
-//! referenced project, import, and module files, and dependency and property facts.
+//! artifact), target `Calls` edges and identifiers, structured pending `Imports` rows for
+//! referenced project, import, and module files, and dependency and property facts. Document
+//! links (see [`links`]) add pending `Imports` rows for XInclude, stylesheet, schema-location,
+//! DTD, and XSLT import targets.
 //!
 //! Common use cases:
 //! - XSD schemas (complexType/element/simpleType declarations and their references)
@@ -23,17 +28,24 @@
 //! - Project and application configuration documents
 
 pub(crate) mod build;
+pub(crate) mod context;
 mod elements;
-mod identifiers;
+pub(crate) mod facts;
+pub(crate) mod links;
+mod literals;
+mod references;
 
 use std::collections::HashMap;
 use std::path::Path;
 
+pub(crate) use elements::comment_documents_following_element;
+
 use crate::base::{
-    BaseExtractor, Identifier, IdentifierKind, Relationship, RelationshipKind,
-    StructuredPendingRelationship, Symbol, UnresolvedTarget,
+    BaseExtractor, Identifier, Relationship, RelationshipKind, StructuredPendingRelationship,
+    Symbol, UnresolvedTarget,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
+use context::XmlContext;
 
 pub struct XmlExtractor {
     pub(crate) base: BaseExtractor,
@@ -51,9 +63,14 @@ impl XmlExtractor {
         }
     }
 
+    fn context(&self, tree: &tree_sitter::Tree) -> XmlContext {
+        XmlContext::detect(tree, &self.base.file_path, &self.base.content)
+    }
+
     pub fn extract_symbols(&mut self, tree: &tree_sitter::Tree) -> Vec<Symbol> {
+        let context = self.context(tree);
         let mut symbols = Vec::new();
-        self.walk_elements(tree.root_node(), None, 0, &mut symbols);
+        self.walk_elements(&context, tree.root_node(), None, 0, &mut symbols);
         symbols
     }
 
@@ -62,132 +79,71 @@ impl XmlExtractor {
         tree: &tree_sitter::Tree,
         symbols: &[Symbol],
     ) -> Vec<Identifier> {
+        let context = self.context(tree);
         let symbols_by_start_byte: HashMap<u32, &str> = symbols
             .iter()
             .map(|symbol| (symbol.start_byte, symbol.id.as_str()))
             .collect();
-        let namespaces = identifiers::SchemaNamespaces::scan(&self.base, tree.root_node());
-        self.walk_references(
-            tree.root_node(),
-            None,
-            0,
-            &namespaces,
-            &symbols_by_start_byte,
-        );
-        self.extract_msbuild_identifiers(tree, symbols);
+        self.walk_literals(tree.root_node(), None, 0, &symbols_by_start_byte);
+        let sites = references::references(&self.base, &context, tree);
+        let resolver = references::Resolver::new(&self.base.content, tree, symbols);
+        references::emit_identifiers(&mut self.base, &sites, &resolver, symbols);
         self.base.identifiers.clone()
     }
 
-    /// MSBuild target names (`DependsOnTargets`, `CallTarget`) as `call`
-    /// identifiers and `$(Property)` uses as `variable_ref` identifiers.
-    fn extract_msbuild_identifiers(&mut self, tree: &tree_sitter::Tree, symbols: &[Symbol]) {
-        if build::BuildDialect::for_path(&self.base.file_path) != Some(build::BuildDialect::MsBuild)
-        {
-            return;
-        }
-        let Some(root) = build::root_element(tree) else {
-            return;
-        };
-        let content = self.base.content.clone();
-        let sites = build::target_references(&content, root)
-            .into_iter()
-            .map(|site| (site, IdentifierKind::Call))
-            .chain(
-                build::property_references(&content, root)
-                    .into_iter()
-                    .map(|site| (site, IdentifierKind::VariableRef)),
-            );
-        for (site, kind) in sites {
-            let Some(span) = self.base.span_for_byte_range(site.start, site.end) else {
-                continue;
-            };
-            let containing = symbols
-                .iter()
-                .filter(|symbol| {
-                    symbol.start_byte as usize <= site.start && site.end <= symbol.end_byte as usize
-                })
-                .min_by_key(|symbol| symbol.end_byte - symbol.start_byte)
-                .map(|symbol| symbol.id.clone());
-            let target = (kind == IdentifierKind::Call)
-                .then(|| target_symbol(symbols, &site.name))
-                .flatten()
-                .map(|symbol| symbol.id.clone());
-            self.base
-                .create_identifier_at_span(span, site.name, kind, containing, None);
-            if let Some(last) = self.base.identifiers.last_mut() {
-                last.target_symbol_id = target;
-            }
-        }
-    }
-
-    /// MSBuild target-to-target `Calls` edges within the file, plus structured
-    /// pending `Imports` rows for references to other project, import,
-    /// module, and schema files.
+    /// Same-file edges and structured pending rows for every resolvable
+    /// reference site, plus pending `Imports` rows for referenced files.
     pub fn extract_relationships(
         &mut self,
         tree: &tree_sitter::Tree,
         symbols: &[Symbol],
     ) -> Vec<Relationship> {
-        let Some(dialect) = build::BuildDialect::for_path(&self.base.file_path) else {
-            return Vec::new();
-        };
-        let Some(root) = build::root_element(tree) else {
-            return Vec::new();
-        };
-        let content = self.base.content.clone();
+        let context = self.context(tree);
         let mut relationships = Vec::new();
-        if dialect == build::BuildDialect::MsBuild {
-            for site in build::target_references(&content, root) {
-                let from = site
-                    .element
-                    .and_then(|id| element_symbol(tree, symbols, id));
-                let to = target_symbol(symbols, &site.name);
-                let (Some(from), Some(to), Some(span)) = (
-                    from,
-                    to,
-                    self.base.span_for_byte_range(site.start, site.end),
-                ) else {
-                    continue;
-                };
-                relationships.push(Relationship {
-                    id: format!("{}_{}_Calls_{}", from.id, to.id, site.start),
-                    from_symbol_id: from.id.clone(),
-                    to_symbol_id: to.id.clone(),
-                    kind: RelationshipKind::Calls,
-                    file_path: self.base.file_path.clone(),
-                    line_number: span.start_line,
-                    span: Some(span),
-                    reference_site_is_exact: true,
-                    confidence: 1.0,
-                    metadata: None,
-                });
-            }
+        let sites = references::references(&self.base, &context, tree);
+        let resolver = references::Resolver::new(&self.base.content, tree, symbols);
+        references::emit_relationships(
+            &mut self.base,
+            &sites,
+            &resolver,
+            symbols,
+            &mut relationships,
+        );
+        let content = self.base.content.clone();
+        let mut files: Vec<(tree_sitter::Node, String)> = Vec::new();
+        if let (Some(dialect), Some(root)) = (context.build, build::root_element(tree)) {
+            files.extend(
+                build::file_references(dialect, &content, root)
+                    .into_iter()
+                    .map(|reference| (reference.node, reference.path)),
+            );
         }
-        for reference in build::file_references(dialect, &content, root) {
-            let from = std::iter::successors(Some(reference.node), |node| node.parent())
-                .find_map(|node| symbol_at(symbols, node));
-            let Some(from) = from else {
+        files.extend(
+            links::document_links(&content, tree)
+                .into_iter()
+                .filter(|link| link.imports_file())
+                .map(|link| (link.node, link.href.replace('\\', "/"))),
+        );
+        for (node, path) in files {
+            let Some(from) =
+                references::containing_symbol(symbols, node.start_byte(), node.end_byte())
+            else {
                 continue;
             };
-            let terminal_name = reference
-                .path
-                .rsplit('/')
-                .next()
-                .unwrap_or(&reference.path)
-                .to_string();
+            let terminal_name = path.rsplit('/').next().unwrap_or(&path).to_string();
             let pending = StructuredPendingRelationship::new(
                 from.id.clone(),
                 UnresolvedTarget {
-                    display_name: reference.path.clone(),
+                    display_name: path.clone(),
                     terminal_name,
                     receiver: None,
                     namespace_path: Vec::new(),
-                    import_context: Some(reference.path.clone()),
+                    import_context: Some(path.clone()),
                 },
                 Some(from.id.clone()),
                 RelationshipKind::Imports,
                 self.base.file_path.clone(),
-                reference.node.start_position().row as u32 + 1,
+                node.start_position().row as u32 + 1,
                 1.0,
             );
             self.base.add_structured_pending_relationship(pending);
@@ -209,6 +165,7 @@ impl XmlExtractor {
 
     fn walk_elements(
         &mut self,
+        context: &XmlContext,
         node: tree_sitter::Node,
         parent_id: Option<String>,
         depth: u32,
@@ -219,16 +176,35 @@ impl XmlExtractor {
         }
 
         let mut child_parent_id = parent_id;
-        if node.kind() == "element" {
-            if let Some(symbol) = self.extract_element_symbol(node, child_parent_id.as_deref()) {
-                child_parent_id = Some(symbol.id.clone());
-                symbols.push(symbol);
+        match node.kind() {
+            "element" => {
+                if let Some(symbol) =
+                    self.extract_element_symbol(context, node, child_parent_id.as_deref())
+                {
+                    child_parent_id = Some(symbol.id.clone());
+                    symbols.push(symbol);
+                }
             }
-        } else if elements::is_orphan_tag(node)
-            && let Some(symbol) =
-                elements::extract_orphan_tag(&mut self.base, node, child_parent_id.as_deref())
-        {
-            symbols.push(symbol);
+            "elementdecl" | "GEDecl" => {
+                if let Some(symbol) = elements::extract_dtd_declaration(
+                    &mut self.base,
+                    node,
+                    child_parent_id.as_deref(),
+                ) {
+                    symbols.push(symbol);
+                }
+            }
+            _ if elements::is_orphan_tag(node) => {
+                if let Some(symbol) = elements::extract_orphan_tag(
+                    &mut self.base,
+                    context,
+                    node,
+                    child_parent_id.as_deref(),
+                ) {
+                    symbols.push(symbol);
+                }
+            }
+            _ => {}
         }
 
         let Some(child_depth) = child_tree_depth(depth) else {
@@ -236,18 +212,24 @@ impl XmlExtractor {
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_elements(child, child_parent_id.clone(), child_depth, symbols);
+            self.walk_elements(
+                context,
+                child,
+                child_parent_id.clone(),
+                child_depth,
+                symbols,
+            );
         }
     }
 
     fn extract_element_symbol(
         &mut self,
+        context: &XmlContext,
         element: tree_sitter::Node,
         parent_id: Option<&str>,
     ) -> Option<Symbol> {
-        let dialect = build::BuildDialect::for_path(&self.base.file_path);
-        let Some(dialect) = dialect else {
-            return elements::extract_element(&mut self.base, element, parent_id);
+        let Some(dialect) = context.build else {
+            return elements::extract_element(&mut self.base, context, element, parent_id);
         };
         let content = self.base.content.clone();
         if element
@@ -258,6 +240,7 @@ impl XmlExtractor {
         {
             return elements::extract_named_element(
                 &mut self.base,
+                context,
                 element,
                 parent_id,
                 document.source,
@@ -271,6 +254,7 @@ impl XmlExtractor {
         if let Some(name) = build::child_named_element(dialect, &content, element) {
             return elements::extract_named_element(
                 &mut self.base,
+                context,
                 element,
                 parent_id,
                 "id",
@@ -278,15 +262,14 @@ impl XmlExtractor {
                 Vec::new(),
             );
         }
-        elements::extract_element(&mut self.base, element, parent_id)
+        elements::extract_element(&mut self.base, context, element, parent_id)
     }
 
-    fn walk_references(
+    fn walk_literals(
         &mut self,
         node: tree_sitter::Node,
         containing_symbol_id: Option<&str>,
         depth: u32,
-        namespaces: &identifiers::SchemaNamespaces,
         symbols_by_start_byte: &HashMap<u32, &str>,
     ) {
         if !should_visit_tree_depth(depth) {
@@ -302,15 +285,14 @@ impl XmlExtractor {
         if node.kind() == "element" {
             child_containing_symbol_id = own_symbol_id;
             if let Some(tag) = elements::tag_node(node) {
-                identifiers::extract_element_facts(
+                literals::record_attribute_literals(
                     &mut self.base,
                     tag,
-                    namespaces,
                     child_containing_symbol_id,
                 );
             }
         } else if elements::is_orphan_tag(node) {
-            identifiers::extract_element_facts(&mut self.base, node, namespaces, own_symbol_id);
+            literals::record_attribute_literals(&mut self.base, node, own_symbol_id);
         }
 
         let Some(child_depth) = child_tree_depth(depth) else {
@@ -318,43 +300,37 @@ impl XmlExtractor {
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_references(
+            self.walk_literals(
                 child,
                 child_containing_symbol_id,
                 child_depth,
-                namespaces,
                 symbols_by_start_byte,
             );
         }
     }
 }
 
-fn symbol_at<'a>(symbols: &'a [Symbol], node: tree_sitter::Node) -> Option<&'a Symbol> {
-    symbols.iter().find(|symbol| {
-        symbol.start_byte == node.start_byte() as u32 && symbol.end_byte == node.end_byte() as u32
-    })
-}
-
-fn element_symbol<'a>(
-    tree: &tree_sitter::Tree,
-    symbols: &'a [Symbol],
-    element_id: usize,
-) -> Option<&'a Symbol> {
-    symbols.iter().find(|symbol| {
-        tree.root_node()
-            .descendant_for_byte_range(symbol.start_byte as usize, symbol.end_byte as usize)
-            .is_some_and(|node| node.id() == element_id)
-    })
-}
-
-fn target_symbol<'a>(symbols: &'a [Symbol], name: &str) -> Option<&'a Symbol> {
-    symbols.iter().find(|symbol| {
-        symbol.name == name
-            && symbol
-                .metadata
-                .as_ref()
-                .and_then(|metadata| metadata.get("tag"))
-                .and_then(|tag| tag.as_str())
-                == Some("Target")
-    })
+/// `sql` for the body of a MyBatis mapper statement (`select`, `insert`,
+/// `update`, `delete`, `sql`): the `content` node between its tags.
+pub(crate) fn embedded_sql_language(
+    _file_path: &str,
+    content: &str,
+    node: tree_sitter::Node<'_>,
+) -> Option<&'static str> {
+    if node.kind() != "content" {
+        return None;
+    }
+    let statement = node.parent().filter(|parent| parent.kind() == "element")?;
+    if !matches!(
+        build::local_tag(content, statement),
+        Some("select" | "insert" | "update" | "delete" | "sql")
+    ) {
+        return None;
+    }
+    let root =
+        std::iter::successors(Some(statement), |node| build::parent_element(*node)).last()?;
+    let is_mapper = build::local_tag(content, root) == Some("mapper")
+        && build::attribute(content, root, "namespace").is_some()
+        && build::parent_element(statement).is_some_and(|parent| parent.id() == root.id());
+    is_mapper.then_some("sql")
 }

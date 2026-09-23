@@ -7,6 +7,7 @@ mod routing;
 mod structural_facts;
 mod symbols;
 mod test_detection;
+mod wave2;
 
 #[cfg(test)]
 pub(crate) mod support {

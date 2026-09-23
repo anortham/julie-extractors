@@ -14,15 +14,16 @@
 //!
 //! - `base/structural_facts.rs`: built-in patterns for c, cpp, go, javascript, jsx, python, rust, tsx, typescript.
 //! - `base/code_structural_facts.rs`: dart, elixir, erlang, java, kotlin, lua, php, r, ruby, scala, swift, bash, gdscript, powershell, qml, vbnet, zig.
-//! - `base/data_structural_facts.rs`: markdown, json, toml, yaml, regex, xml.
+//! - `base/data_structural_facts.rs`: markdown, json, toml, yaml, regex, xml
+//!   (with `xml/build.rs` and `xml/facts.rs` for build and framework facts).
 //! - `base/openapi_route_facts.rs` and `toml/dependencies.rs`: json (OpenAPI routes), toml (manifest dependencies).
 //! - `base/sql_structural_facts.rs`: sql.
 //! - `base/framework_structural_facts/`: aspnet, htmx, alpine, razor, HTTP frameworks.
 //! - `base/web_structural_facts/`: css, html, vue, react, nextjs, nuxt, http client.
 //!
-//! SPECS live in sibling family modules (`builtins`, `data`, `manifest`, `xml`, `sql`,
-//! `framework`, `web`, `http_client`); this file owns types, authoring helpers,
-//! and JSON serialization only.
+//! SPECS live in sibling family modules (`builtins`, `markdown`, `data`,
+//! `regex`, `manifest`, `xml`, `sql`, `framework`, `web`, `http_client`); this
+//! file owns types, authoring helpers, and JSON serialization only.
 //!
 //! Presence semantics (the conformance rule Task 2 enforces over the golden
 //! corpus): an `Always` key is present on every emitted fact of its pattern; an
@@ -143,7 +144,9 @@ mod data;
 mod framework;
 mod http_client;
 mod manifest;
+mod markdown;
 mod marker;
+mod regex;
 mod sql;
 mod web;
 mod xml;
@@ -154,7 +157,9 @@ fn all_specs() -> Vec<StructuralFactPatternSpec> {
     let mut specs = Vec::new();
     specs.extend(builtins::specs());
     specs.extend_from_slice(marker::SPECS);
+    specs.extend_from_slice(markdown::SPECS);
     specs.extend_from_slice(data::SPECS);
+    specs.extend_from_slice(regex::SPECS);
     specs.extend_from_slice(manifest::SPECS);
     specs.extend_from_slice(xml::SPECS);
     specs.extend_from_slice(sql::SPECS);

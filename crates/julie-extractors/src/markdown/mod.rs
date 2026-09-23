@@ -4,6 +4,8 @@
 /// 1. Semantic search across documentation
 /// 2. goto definition for heading navigation
 /// 3. Knowledge graph connections between code and docs
+pub(crate) mod blocks;
+pub(crate) mod facts;
 pub(crate) mod inline;
 mod relationships;
 mod semantic_symbols;
@@ -115,7 +117,24 @@ impl MarkdownExtractor {
                     parent_id.as_deref(),
                 )
             }
-            "minus_metadata" | "plus_metadata" => self.extract_frontmatter(node, blocks),
+            "minus_metadata" | "plus_metadata" => {
+                let frontmatter = self.extract_frontmatter(node, blocks);
+                if let Some(frontmatter) = &frontmatter {
+                    let keys = self.extract_frontmatter_keys(node, &frontmatter.id);
+                    symbols.extend(keys);
+                }
+                frontmatter
+            }
+            "html_block" => {
+                let parent_id = containing_heading(headings, node.start_byte() as u32)
+                    .map(|heading| heading.id.clone());
+                symbols.extend(semantic_symbols::extract_html_links(
+                    &mut self.base,
+                    node,
+                    parent_id.as_deref(),
+                ));
+                None
+            }
             _ => None,
         };
         symbols.extend(symbol);
@@ -178,11 +197,20 @@ impl MarkdownExtractor {
             format!("{}\n\n---\n\n{}", frontmatter_content, body_content)
         };
 
+        let format = if node.kind() == "plus_metadata" {
+            "toml"
+        } else {
+            "yaml"
+        };
         let options = SymbolOptions {
             signature: None,
             visibility: None,
-            parent_id: None, // Frontmatter is always top-level
+            parent_id: None,
             doc_comment: Some(doc_comment),
+            metadata: Some(HashMap::from([
+                ("markdown_kind".to_string(), json!("frontmatter")),
+                ("format".to_string(), json!(format)),
+            ])),
             ..Default::default()
         };
 
@@ -195,6 +223,41 @@ impl MarkdownExtractor {
         self.base.set_body_span(&mut symbol, None);
 
         Some(symbol)
+    }
+
+    /// One property per top-level frontmatter key, a child of the frontmatter
+    /// symbol, with the value written on the key's line.
+    fn extract_frontmatter_keys(
+        &mut self,
+        node: tree_sitter::Node,
+        parent_id: &str,
+    ) -> Vec<Symbol> {
+        let content = self.base.content.clone();
+        blocks::frontmatter_keys(&content, node)
+            .into_iter()
+            .filter_map(|key| {
+                let span = self.base.span_for_byte_range(key.start, key.end)?;
+                let mut metadata =
+                    HashMap::from([("markdown_kind".to_string(), json!("frontmatter_key"))]);
+                if let Some(value) = &key.value {
+                    metadata.insert("value".to_string(), json!(value));
+                }
+                let mut symbol = self.base.create_symbol_from_span(
+                    &node,
+                    span,
+                    key.name,
+                    SymbolKind::Property,
+                    SymbolOptions {
+                        signature: Some(content[key.start..key.end].to_string()),
+                        parent_id: Some(parent_id.to_string()),
+                        metadata: Some(metadata),
+                        ..Default::default()
+                    },
+                );
+                self.base.set_body_span(&mut symbol, None);
+                Some(symbol)
+            })
+            .collect()
     }
 
     /// Strip frontmatter delimiters (--- or +++) from raw text
@@ -234,7 +297,7 @@ impl MarkdownExtractor {
                 | "fenced_code_block" // ```code blocks```
                 | "indented_code_block"
                 | "block_quote"       // > quotes
-                | "table"             // Tables
+                | "pipe_table"
                 | "thematic_break"    // ---
                 | "html_block" // Raw HTML
         )
@@ -247,13 +310,15 @@ impl MarkdownExtractor {
         parent_id: Option<&str>,
         section_content: Option<String>,
     ) -> Option<Symbol> {
-        // Extract the heading text (skip the # markers)
-        let heading_text = self.extract_heading_text(node)?;
+        let (heading_text, anchor) = blocks::heading_name(&self.base.content, node)?;
 
         let level = self.determine_heading_level(node);
         let mut metadata = HashMap::new();
         metadata.insert("markdown_kind".to_string(), json!("heading"));
         metadata.insert("heading_level".to_string(), json!(level));
+        if let Some(anchor) = anchor {
+            metadata.insert("anchor".to_string(), json!(anchor));
+        }
 
         // Include section content as doc_comment for RAG embedding
         let doc_comment = section_content.filter(|s| !s.is_empty());
@@ -276,27 +341,6 @@ impl MarkdownExtractor {
         self.base.set_body_span(&mut symbol, None);
 
         Some(symbol)
-    }
-
-    /// Extract the text content of a heading (without # markers)
-    fn extract_heading_text(&self, node: tree_sitter::Node) -> Option<String> {
-        if node.kind() == "setext_heading" {
-            let content = node.child_by_field_name("heading_content")?;
-            let text = self.base.get_node_text(&content);
-            return Some(text.split_whitespace().collect::<Vec<_>>().join(" "));
-        }
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            // Look for inline content or heading_content
-            if child.kind() == "inline" || child.kind() == "heading_content" {
-                let text = self.base.get_node_text(&child);
-                return Some(text);
-            }
-        }
-
-        // Fallback: get entire node text and strip # markers
-        let text = self.base.get_node_text(&node);
-        Some(strip_atx_heading_marker(&text))
     }
 
     /// Determine heading level from number of # markers
@@ -329,7 +373,7 @@ impl MarkdownExtractor {
     }
 
     pub fn extract_relationships(&mut self, _tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
-        relationships::extract_relationships(&self.base, symbols)
+        relationships::extract_relationships(&mut self.base, symbols)
     }
 }
 
@@ -359,7 +403,7 @@ fn outline_blocks(root: tree_sitter::Node) -> Vec<tree_sitter::Node> {
 }
 
 /// The innermost heading whose section holds `byte`.
-fn containing_heading(symbols: &[Symbol], byte: u32) -> Option<&Symbol> {
+pub(crate) fn containing_heading(symbols: &[Symbol], byte: u32) -> Option<&Symbol> {
     symbols
         .iter()
         .filter(|symbol| {
@@ -381,15 +425,4 @@ pub(crate) fn setext_level(node: tree_sitter::Node) -> Option<usize> {
             "setext_h2_underline" => Some(2),
             _ => None,
         })
-}
-
-fn strip_atx_heading_marker(raw: &str) -> String {
-    let trimmed = raw.trim_start();
-    let marker_len = trimmed.chars().take_while(|ch| *ch == '#').count();
-    if marker_len == 0 {
-        return trimmed.trim().to_string();
-    }
-
-    let marker_len = marker_len.min(6);
-    trimmed[marker_len..].trim_start().trim_end().to_string()
 }

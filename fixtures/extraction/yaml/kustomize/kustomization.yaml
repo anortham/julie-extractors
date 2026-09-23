@@ -1,0 +1,8 @@
+resources:
+  - deployment.yaml
+  - ../base
+  - https://github.com/acme/manifests//base?ref=v1
+components:
+  - ../components/tls
+patches:
+  - path: replica-patch.yaml

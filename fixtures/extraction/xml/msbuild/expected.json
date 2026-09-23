@@ -37,7 +37,7 @@
     {
       "key": "fixtures/extraction/xml/msbuild/App.csproj:ComputeVersion:15:2",
       "name": "ComputeVersion",
-      "kind": "variable",
+      "kind": "function",
       "language": "xml",
       "file_path": "fixtures/extraction/xml/msbuild/App.csproj",
       "start_line": 15,
@@ -64,7 +64,7 @@
     {
       "key": "fixtures/extraction/xml/msbuild/App.csproj:GenerateVersion:11:2",
       "name": "GenerateVersion",
-      "kind": "module",
+      "kind": "function",
       "language": "xml",
       "file_path": "fixtures/extraction/xml/msbuild/App.csproj",
       "start_line": 11,
@@ -98,7 +98,7 @@
     {
       "key": "fixtures/extraction/xml/msbuild/App.csproj:WriteVersionFile:16:2",
       "name": "WriteVersionFile",
-      "kind": "variable",
+      "kind": "function",
       "language": "xml",
       "file_path": "fixtures/extraction/xml/msbuild/App.csproj",
       "start_line": 16,
@@ -140,7 +140,9 @@
       },
       "reference_site_is_exact": true,
       "confidence": "1.000",
-      "metadata": null
+      "metadata": {
+        "target_usage": "depends_on"
+      }
     },
     {
       "from_key": "fixtures/extraction/xml/msbuild/App.csproj:GenerateVersion:11:2",
@@ -158,7 +160,9 @@
       },
       "reference_site_is_exact": true,
       "confidence": "1.000",
-      "metadata": null
+      "metadata": {
+        "target_usage": "call"
+      }
     }
   ],
   "pending_relationships": [
@@ -176,6 +180,14 @@
       "kind": "imports",
       "file_path": "fixtures/extraction/xml/msbuild/App.csproj",
       "line_number": 10,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/xml/msbuild/App.csproj:GenerateVersion:11:2",
+      "callee_name": "Build",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/xml/msbuild/App.csproj",
+      "line_number": 11,
       "confidence": "1.000"
     }
   ],
@@ -217,6 +229,32 @@
       },
       "caller_scope_key": "fixtures/extraction/xml/msbuild/App.csproj:App:1:0",
       "span": null
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/xml/msbuild/App.csproj:GenerateVersion:11:2",
+        "callee_name": "Build",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/xml/msbuild/App.csproj",
+        "line_number": 11,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "Build",
+        "terminal_name": "Build",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/xml/msbuild/App.csproj:GenerateVersion:11:2",
+      "span": {
+        "start_line": 11,
+        "start_column": 82,
+        "end_line": 11,
+        "end_column": 87,
+        "start_byte": 416,
+        "end_byte": 421
+      }
     }
   ],
   "identifiers": [

@@ -6,7 +6,7 @@
 //! registry access remains through [`super::structural_fact_pattern_specs`].
 
 use super::{
-    ALWAYS, ARR, BOOL, K_FRAMEWORK, K_PATTERN_VERSION, K_QUERY_FAMILY, OPT, STR,
+    ALWAYS, ARR, BOOL, K_FRAMEWORK, K_PATTERN_VERSION, K_QUERY_FAMILY, NUM, OPT, STR,
     StructuralFactPatternSpec, key,
 };
 
@@ -69,9 +69,9 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     // Package manifests
     StructuralFactPatternSpec {
         pattern_id: "manifest.dependency.v1",
-        languages: &["toml", "xml"],
+        languages: &["json", "toml", "xml"],
         query_family: "dependencies",
-        description: "A package dependency declared in a Cargo.toml, pyproject.toml, MSBuild, NuGet, or Maven manifest.",
+        description: "A package dependency declared in a Cargo.toml, pyproject.toml, Pipfile, package.json, composer.json, MSBuild, NuGet, or Maven manifest.",
         metadata_keys: &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
@@ -79,19 +79,19 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "ecosystem",
                 STR,
                 ALWAYS,
-                "Package ecosystem (\"cargo\", \"pypi\", \"nuget\", or \"maven\").",
+                "Package ecosystem (\"cargo\", \"pypi\", \"npm\", \"composer\", \"nuget\", or \"maven\").",
             ),
             key(
                 "name",
                 STR,
                 ALWAYS,
-                "Dependency name: the Cargo key, the PEP 503-normalized distribution name, the NuGet package id, or the Maven `groupId:artifactId`.",
+                "Dependency name: the Cargo key, the PEP 503-normalized distribution name, the npm or Composer package name, the NuGet package id, or the Maven `groupId:artifactId`.",
             ),
             key(
                 "group",
                 STR,
                 ALWAYS,
-                "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`; Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`; NuGet `PackageReference`/`PackageVersion`/`GlobalPackageReference`/`dependency`; Maven scope, `managed`, `plugin`, or `managed-plugin`.",
+                "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`; Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`, `pipenv:packages`/`pipenv:dev-packages`; npm `dependencies`/`devDependencies`/`peerDependencies`/`optionalDependencies`; Composer `require`/`require-dev`; NuGet `PackageReference`/`PackageVersion`/`GlobalPackageReference`/`dependency`; Maven scope, `managed`, `plugin`, or `managed-plugin`.",
             ),
             key("version", STR, OPT, "Version requirement as written."),
             key(
@@ -110,10 +110,96 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "workspace",
                 BOOL,
                 OPT,
-                "True when the Cargo dependency inherits from `[workspace.dependencies]`.",
+                "True when the Cargo dependency inherits from `[workspace.dependencies]`, or the npm version uses the `workspace:` protocol.",
             ),
             key("extras", ARR, OPT, "PEP 508 extras."),
             key("marker", STR, OPT, "PEP 508 environment marker."),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "manifest.script.v1",
+        languages: &["json"],
+        query_family: "pipeline",
+        description: "A named script in a package.json or composer.json `scripts` object.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "ecosystem",
+                STR,
+                ALWAYS,
+                "Package ecosystem (\"npm\" or \"composer\").",
+            ),
+            key("name", STR, ALWAYS, "Script name."),
+            key(
+                "command",
+                STR,
+                ALWAYS,
+                "Command as written; a Composer command list is joined with ` && `.",
+            ),
+        ],
+    },
+    // Deployment and automation documents (YAML)
+    StructuralFactPatternSpec {
+        pattern_id: "yaml.compose_service.v1",
+        languages: &["yaml"],
+        query_family: "service_structure",
+        description: "A service under `services` in a Docker Compose file (`compose.yaml`, `docker-compose*.yml`).",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key("name", STR, ALWAYS, "Service name."),
+            key("image", STR, OPT, "The `image` value."),
+            key(
+                "build_context",
+                STR,
+                OPT,
+                "The `build` path, or `build.context`.",
+            ),
+            key("ports", ARR, OPT, "The `ports` entries as written."),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "yaml.k8s_resource.v1",
+        languages: &["yaml"],
+        query_family: "service_structure",
+        description: "A Kubernetes resource: a YAML document whose root holds `apiVersion` and `kind`.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key("api_version", STR, ALWAYS, "The `apiVersion` value."),
+            key("kind", STR, ALWAYS, "The `kind` value."),
+            key("name", STR, OPT, "The `metadata.name` value."),
+            key("namespace", STR, OPT, "The `metadata.namespace` value."),
+            key(
+                "document_index",
+                NUM,
+                OPT,
+                "0-based index of the document; present only in a stream of more than one document.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "yaml.ansible_task.v1",
+        languages: &["yaml"],
+        query_family: "pipeline",
+        description: "A task or handler in an Ansible playbook or task file.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "module",
+                STR,
+                ALWAYS,
+                "Module key as written (`ansible.builtin.apt`): the first key that is not a task keyword.",
+            ),
+            key("name", STR, OPT, "The task `name`."),
+            key(
+                "handler",
+                BOOL,
+                ALWAYS,
+                "True for a task under `handlers` or in a handlers file.",
+            ),
         ],
     },
     // CI pipelines (YAML)

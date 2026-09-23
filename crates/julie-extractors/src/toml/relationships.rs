@@ -1,20 +1,25 @@
 //! TOML domain-relationship extraction (Phase 3.3).
 //!
 //! TOML has no inter-key reference construct in the format itself; the
-//! Phase 3.3 contract is *domain-aware*. Two file basenames trigger
-//! relationship extraction; everything else emits nothing.
+//! contract is *domain-aware*. File basenames trigger relationship
+//! extraction; everything else emits nothing.
 //!
 //! - **Cargo.toml**: `[dependencies]`, `[dev-dependencies]`,
 //!   `[build-dependencies]`, and target-scoped `[target.<triple>.dependencies]`
 //!   tables emit `RelationshipKind::Imports` edges from the table symbol to
-//!   each child key (e.g., `serde`, `tokio`).
+//!   each child key (e.g., `serde`, `tokio`). `[features]` entries and
+//!   `required-features` lists emit `References` edges to the features and
+//!   dependencies they name (`std`, `dep:serde_json`, `serde?/std`).
 //! - **pyproject.toml**: `[tool.<x>.*]` tables emit
 //!   `RelationshipKind::References` edges, one per unique top-level tool
-//!   name. `[tool.pytest]` and `[tool.pytest.ini_options]` collapse to a
-//!   single `pytest` edge.
+//!   name, from `[project]` (else `[tool.poetry]`). `[tool.pytest]` and
+//!   `[tool.pytest.ini_options]` collapse to a single `pytest` edge.
+//! - **Pipfile**: `[packages]` and `[dev-packages]` emit `Imports` edges.
+//! - **Gradle version catalogs** (`*.versions.toml`): `version.ref` entries
+//!   reference `[versions]` keys and `[bundles]` lists reference
+//!   `[libraries]` aliases.
 //!
-//! Other tables — including dotted tables in non-Cargo / non-pyproject
-//! files — produce no relationships. Symbol extraction is unchanged.
+//! Other tables produce no relationships. Symbol extraction is unchanged.
 
 use super::dependencies::{
     Manifest, collect_dependencies, header_parts, pair_key_parts, pairs, string_value,
@@ -35,17 +40,226 @@ pub(super) fn extract_relationships_internal(
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
 ) {
+    if is_version_catalog(&base.file_path) {
+        extract_version_catalog_references(base, root, symbols, relationships);
+        return;
+    }
     let Some(manifest) = Manifest::for_path(&base.file_path) else {
         return;
     };
     extract_dependency_imports(base, manifest, root, symbols, relationships);
     match manifest {
-        Manifest::Cargo => extract_cargo_workspace_inheritance(base, root, symbols),
+        Manifest::Cargo => {
+            extract_cargo_workspace_inheritance(base, root, symbols);
+            extract_cargo_feature_references(base, root, symbols, relationships);
+        }
         Manifest::Pyproject => {
             extract_pyproject_relationships(base, root, symbols, relationships);
             extract_entry_point_pending(base, root, symbols);
         }
+        Manifest::Pipfile => {}
     }
+}
+
+fn root_tables<'tree>(root: Node<'tree>, content: &str) -> Vec<(Vec<String>, Node<'tree>)> {
+    let mut cursor = root.walk();
+    root.named_children(&mut cursor)
+        .filter(|node| matches!(node.kind(), "table" | "table_array_element"))
+        .filter_map(|table| Some((header_parts(table, content)?, table)))
+        .collect()
+}
+
+fn string_items<'tree>(value: Node<'tree>, content: &str) -> Vec<(String, Node<'tree>)> {
+    if value.kind() != "array" {
+        return Vec::new();
+    }
+    let mut cursor = value.walk();
+    value
+        .named_children(&mut cursor)
+        .filter_map(|item| Some((string_value(item, content)?, item)))
+        .collect()
+}
+
+#[inline(never)]
+fn push_reference(
+    base: &BaseExtractor,
+    from: &Symbol,
+    to: &Symbol,
+    site: Node,
+    metadata: HashMap<String, Value>,
+    relationships: &mut Vec<Relationship>,
+) {
+    if from.id == to.id {
+        return;
+    }
+    relationships.push(Relationship {
+        id: format!(
+            "{}_{}_{:?}_{}_{}",
+            from.id,
+            to.id,
+            RelationshipKind::References,
+            site.start_position().row,
+            site.start_position().column
+        ),
+        from_symbol_id: from.id.clone(),
+        to_symbol_id: to.id.clone(),
+        kind: RelationshipKind::References,
+        file_path: base.file_path.clone(),
+        line_number: site.start_position().row as u32 + 1,
+        span: Some(crate::base::NormalizedSpan::from_node(&site)),
+        reference_site_is_exact: false,
+        confidence: 1.0,
+        metadata: Some(metadata),
+    });
+}
+
+/// Cargo `[features]` entries and `required-features` lists name features in
+/// the same manifest (`default = ["std"]`) or dependencies (`dep:serde_json`,
+/// `serde/std`, `serde?/std`, and an optional dependency's implicit feature).
+fn extract_cargo_feature_references(
+    base: &BaseExtractor,
+    root: Node,
+    symbols: &[Symbol],
+    relationships: &mut Vec<Relationship>,
+) {
+    let content = &base.content;
+    let mut dependencies: HashMap<String, &Symbol> = HashMap::new();
+    for dependency in collect_dependencies(Manifest::Cargo, root, content) {
+        let Some(symbol) = symbol_at(symbols, dependency.node) else {
+            continue;
+        };
+        if dependency.group == "dependencies" || !dependencies.contains_key(&dependency.name) {
+            dependencies.insert(dependency.name.clone(), symbol);
+        }
+    }
+    let tables = root_tables(root, content);
+    let mut features: HashMap<String, &Symbol> = HashMap::new();
+    let mut lists: Vec<Node> = Vec::new();
+    for (header, table) in &tables {
+        let is_features = header.as_slice() == ["features".to_string()];
+        let is_target = matches!(
+            header.as_slice(),
+            [kind] if matches!(kind.as_str(), "lib" | "bin" | "example" | "test" | "bench")
+        );
+        for pair in pairs(*table) {
+            let Some(key) = pair_key_parts(pair, content) else {
+                continue;
+            };
+            if is_features && key.len() == 1 {
+                if let Some(symbol) = symbol_at(symbols, pair) {
+                    features.insert(key[0].clone(), symbol);
+                }
+                lists.push(pair);
+            } else if is_target && key == ["required-features"] {
+                lists.push(pair);
+            }
+        }
+    }
+    for pair in lists {
+        let (Some(from), Some(value)) = (symbol_at(symbols, pair), pair_value(pair)) else {
+            continue;
+        };
+        for (item, site) in string_items(value, content) {
+            let target = if let Some(name) = item.strip_prefix("dep:") {
+                dependencies.get(name)
+            } else if let Some((name, _)) = item.split_once('/') {
+                dependencies.get(name.trim_end_matches('?'))
+            } else {
+                features.get(&item).or_else(|| dependencies.get(&item))
+            };
+            if let Some(target) = target {
+                let metadata =
+                    HashMap::from([("cargoFeature".to_string(), Value::String(item.clone()))]);
+                push_reference(base, from, target, site, metadata, relationships);
+            }
+        }
+    }
+}
+
+fn is_version_catalog(file_path: &str) -> bool {
+    file_path
+        .rsplit(['/', '\\'])
+        .next()
+        .is_some_and(|name| name.ends_with(".versions.toml"))
+}
+
+/// Gradle version catalogs: `version.ref = "x"` (or `version = { ref = "x" }`)
+/// in `[libraries]` and `[plugins]` names a `[versions]` key, and each
+/// `[bundles]` entry lists `[libraries]` aliases.
+fn extract_version_catalog_references(
+    base: &BaseExtractor,
+    root: Node,
+    symbols: &[Symbol],
+    relationships: &mut Vec<Relationship>,
+) {
+    let content = &base.content;
+    let tables = root_tables(root, content);
+    let entries = |section: &str| -> Vec<(String, Node)> {
+        tables
+            .iter()
+            .filter(|(header, _)| header.as_slice() == [section.to_string()])
+            .flat_map(|(_, table)| pairs(*table))
+            .filter_map(|pair| Some((pair_key_parts(pair, content)?.join("."), pair)))
+            .collect()
+    };
+    let named = |section: &str| -> HashMap<String, &Symbol> {
+        entries(section)
+            .into_iter()
+            .filter_map(|(name, pair)| Some((catalog_alias(&name), symbol_at(symbols, pair)?)))
+            .collect()
+    };
+    let versions = named("versions");
+    let libraries = named("libraries");
+    for (_, entry) in entries("libraries").into_iter().chain(entries("plugins")) {
+        let Some(value) = pair_value(entry).filter(|value| value.kind() == "inline_table") else {
+            continue;
+        };
+        for field in pairs(value) {
+            let (Some(key), Some(field_value)) =
+                (pair_key_parts(field, content), pair_value(field))
+            else {
+                continue;
+            };
+            let reference = match key.as_slice() {
+                [version, reference] if version == "version" && reference == "ref" => Some(field),
+                [version] if version == "version" && field_value.kind() == "inline_table" => {
+                    pairs(field_value).into_iter().find(|inner| {
+                        pair_key_parts(*inner, content).as_deref() == Some(&["ref".to_string()])
+                    })
+                }
+                _ => None,
+            };
+            let Some(reference) = reference else {
+                continue;
+            };
+            let (Some(from), Some(name)) = (
+                symbol_at(symbols, reference),
+                pair_value(reference).and_then(|v| string_value(v, content)),
+            ) else {
+                continue;
+            };
+            if let Some(target) = versions.get(&catalog_alias(&name)) {
+                let metadata = HashMap::from([("versionRef".to_string(), Value::String(name))]);
+                push_reference(base, from, target, reference, metadata, relationships);
+            }
+        }
+    }
+    for (_, bundle) in entries("bundles") {
+        let (Some(from), Some(value)) = (symbol_at(symbols, bundle), pair_value(bundle)) else {
+            continue;
+        };
+        for (alias, site) in string_items(value, content) {
+            if let Some(target) = libraries.get(&catalog_alias(&alias)) {
+                let metadata = HashMap::from([("bundleLibrary".to_string(), Value::String(alias))]);
+                push_reference(base, from, target, site, metadata, relationships);
+            }
+        }
+    }
+}
+
+/// Gradle treats `-`, `_`, and `.` in catalog aliases as the same separator.
+fn catalog_alias(name: &str) -> String {
+    name.replace(['_', '.'], "-")
 }
 
 fn walk_tables<F: FnMut(Node)>(node: Node, mut f: F) {
@@ -157,7 +371,7 @@ fn extract_pyproject_relationships(
 ) {
     let mut seen_tools: HashSet<String> = HashSet::new();
     walk_tables(root, |table| {
-        let name = match table_header_text(base, table) {
+        let name = match super::header_name(table, &base.content) {
             Some(n) => n,
             None => return,
         };
@@ -176,14 +390,14 @@ fn extract_pyproject_relationships(
             Some(s) => s,
             None => return,
         };
-        // From-side: prefer a top-level `[project]` table symbol if present,
-        // otherwise fall back to the table itself (the resolver can still
-        // route on metadata.toolName).
-        let from_id = symbols
-            .iter()
-            .find(|s| s.name == "project" && s.parent_id.is_none())
+        // From-side: the project descriptor, `[project]` or else a Poetry
+        // project's `[tool.poetry]`. A table never references itself.
+        let Some(from_id) = root_symbol(symbols, &["project", "tool.poetry"])
             .map(|s| s.id.clone())
-            .unwrap_or_else(|| table_symbol.id.clone());
+            .filter(|id| *id != table_symbol.id)
+        else {
+            return;
+        };
         let mut metadata = HashMap::new();
         metadata.insert("toolName".to_string(), Value::String(tool_name.clone()));
         relationships.push(Relationship {
@@ -350,23 +564,4 @@ fn push_pending(
         1.0,
     );
     base.add_structured_pending_relationship(pending);
-}
-
-/// Extract the textual header of a `table` node (the part between `[` and
-/// `]`). Returns the dotted form (e.g., `"tool.pytest.ini_options"`,
-/// `"target.x86_64-unknown-linux-gnu.dependencies"`).
-fn table_header_text(base: &BaseExtractor, table: Node) -> Option<String> {
-    for child in table.children(&mut table.walk()) {
-        match child.kind() {
-            "bare_key" | "quoted_key" => {
-                let raw = base.get_node_text(&child);
-                return Some(raw.trim_matches('"').trim_matches('\'').to_string());
-            }
-            "dotted_key" => {
-                return Some(base.get_node_text(&child));
-            }
-            _ => {}
-        }
-    }
-    None
 }

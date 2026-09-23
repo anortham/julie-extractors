@@ -344,6 +344,7 @@
         "key_path": "package.name",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "string_style": "basic",
         "value_kind": "string"
       }
     },
@@ -367,6 +368,7 @@
         "key_path": "dependencies.some_other_crate",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "string_style": "basic",
         "value_kind": "string"
       }
     },
@@ -390,6 +392,7 @@
         "key_path": "dependencies.another_crate.version",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "string_style": "basic",
         "value_kind": "string"
       }
     },
@@ -413,6 +416,7 @@
         "key_path": "package.version",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "string_style": "basic",
         "value_kind": "string"
       }
     },

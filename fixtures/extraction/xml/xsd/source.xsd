@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
            xmlns:tns="urn:phonebook"
+           xmlns:common="urn:phonebook-common"
            targetNamespace="urn:phonebook">
 
   <xs:import namespace="urn:phonebook-common" schemaLocation="common.xsd" />
@@ -11,11 +12,33 @@
     <xs:restriction base="xs:string" />
   </xs:simpleType>
 
+  <xs:simpleType name="PhoneKind">
+    <xs:annotation><xs:documentation>Where the number rings.</xs:documentation></xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Home">
+        <xs:annotation><xs:documentation>A landline at home.</xs:documentation></xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="Mobile" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="PhoneNumbers">
+    <xs:list itemType="tns:PhoneNumber" />
+  </xs:simpleType>
+
+  <xs:simpleType name="PhoneOrKind">
+    <xs:union memberTypes="tns:PhoneNumber tns:PhoneKind" />
+  </xs:simpleType>
+
+  <!-- Request to add a number to the book. -->
   <xs:complexType name="AddPhone">
     <xs:sequence>
-      <xs:element name="owner" type="xs:string" />
+      <!-- The person who owns the number. -->
+      <xs:element name="owner" type="common:Contact" />
       <xs:element name="number" type="tns:PhoneNumber" />
     </xs:sequence>
+    <!-- Where the number rings. -->
+    <xs:attribute name="kind" type="tns:PhoneKind" />
   </xs:complexType>
 
   <xs:complexType name="AddMobilePhone">
@@ -29,10 +52,16 @@
   </xs:complexType>
 
   <xs:element name="AddPhoneRequest" type="tns:AddPhone" />
+  <xs:element name="AddMobilePhoneRequest" type="tns:AddMobilePhone" substitutionGroup="tns:AddPhoneRequest" />
 
   <xs:complexType name="PhoneBook">
     <xs:sequence>
       <xs:element ref="tns:AddPhoneRequest" />
     </xs:sequence>
   </xs:complexType>
+
+  <xs:element name="Directory" type="tns:PhoneBook">
+    <xs:key name="OwnerKey"><xs:selector xpath="entry" /><xs:field xpath="@owner" /></xs:key>
+    <xs:keyref name="OwnerRef" refer="tns:OwnerKey"><xs:selector xpath="ref" /><xs:field xpath="@owner" /></xs:keyref>
+  </xs:element>
 </xs:schema>

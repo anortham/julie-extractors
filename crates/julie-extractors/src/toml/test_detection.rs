@@ -12,19 +12,19 @@ pub(crate) struct TomlTestContext {
 }
 
 impl TomlTestContext {
-    pub(crate) fn from_tree(tree: &Tree, source: &str) -> Self {
+    /// A trycmd case names its binary (`bin.name`, or `name` in `[bin]`) and
+    /// at least one case field: `args`, `status`, `stdout`, or `stderr`. The
+    /// streams are optional because trycmd also reads `.stdout`/`.stderr`
+    /// sidecar files. Nextest config is marked by `nextest-version` or
+    /// `experimental`, or by its canonical path `.config/nextest.toml`.
+    pub(crate) fn from_tree(tree: &Tree, source: &str, file_path: &str) -> Self {
         let mut scan = Scan::default();
-        scan.visit(tree.root_node(), source, None);
+        scan.visit(tree.root_node(), source, None, 0);
         Self {
-            trycmd_dotted_case: scan.root_bin_name
-                && scan.root_status
-                && scan.root_stdout
-                && scan.root_stderr,
+            trycmd_dotted_case: scan.root_bin_name && scan.root_case_field,
             trycmd_table_case: scan.table_bin_name
-                && scan.table_status
-                && scan.table_stdout
-                && scan.table_stderr,
-            nextest_marker: scan.nextest_marker,
+                && (scan.table_case_field || scan.root_case_field),
+            nextest_marker: scan.nextest_marker || is_nextest_config_path(file_path),
         }
     }
 
@@ -58,21 +58,20 @@ impl TomlTestContext {
 #[derive(Default)]
 struct Scan {
     root_bin_name: bool,
-    root_status: bool,
-    root_stdout: bool,
-    root_stderr: bool,
+    root_case_field: bool,
     table_bin_name: bool,
-    table_status: bool,
-    table_stdout: bool,
-    table_stderr: bool,
+    table_case_field: bool,
     nextest_marker: bool,
 }
 
 impl Scan {
-    fn visit(&mut self, node: Node<'_>, source: &str, current_table: Option<&str>) {
+    fn visit(&mut self, node: Node<'_>, source: &str, current_table: Option<&str>, depth: u32) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
         let mut table_name = current_table.map(str::to_owned);
         if matches!(node.kind(), "table" | "table_array_element")
-            && let Some(name) = key_text(node, source)
+            && let Some(name) = super::header_name(node, source)
         {
             if current_table.is_none() && name == "experimental" {
                 self.nextest_marker = true;
@@ -81,78 +80,47 @@ impl Scan {
         }
 
         if node.kind() == "pair"
-            && let Some((key_name, value_kind)) = pair_data(node, source)
+            && node
+                .parent()
+                .is_some_and(|parent| parent.kind() != "inline_table")
+            && let Some(key) = super::dependencies::pair_key_parts(node, source)
+            && let Some(value) = super::pair_value(node)
         {
+            let key: Vec<&str> = key.iter().map(String::as_str).collect();
             let table = table_name.as_deref();
-            if table.is_none() && matches!(key_name.as_str(), "nextest-version" | "experimental") {
+            if table.is_none() && matches!(key.as_slice(), ["nextest-version"] | ["experimental"]) {
                 self.nextest_marker = true;
             }
-            match (table, key_name.as_str(), value_kind) {
-                (None, "bin.name", ValueKind::String) => self.root_bin_name = true,
-                (None, "status", ValueKind::Integer) => self.root_status = true,
-                (None, "stdout", ValueKind::String) => self.root_stdout = true,
-                (None, "stderr", ValueKind::String) => self.root_stderr = true,
-                (Some("bin"), "name", ValueKind::String) => self.table_bin_name = true,
-                (Some("bin"), "status", ValueKind::Integer) => self.table_status = true,
-                (Some("bin"), "stdout", ValueKind::String) => self.table_stdout = true,
-                (Some("bin"), "stderr", ValueKind::String) => self.table_stderr = true,
+            match (table, key.as_slice()) {
+                (None, ["bin", "name"]) if value.kind() == "string" => self.root_bin_name = true,
+                (None, [field, ..]) if is_case_field(field) => self.root_case_field = true,
+                (Some("bin"), ["name"]) if value.kind() == "string" => {
+                    self.table_bin_name = true;
+                }
+                (Some("bin"), [field, ..]) if is_case_field(field) => {
+                    self.table_case_field = true;
+                }
                 _ => {}
             }
         }
 
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.visit(child, source, table_name.as_deref());
+            self.visit(child, source, table_name.as_deref(), child_depth);
         }
     }
 }
 
-#[derive(Clone, Copy)]
-enum ValueKind {
-    String,
-    Integer,
-    Other,
+fn is_case_field(field: &str) -> bool {
+    matches!(field, "args" | "status" | "stdout" | "stderr")
 }
 
-fn pair_data(node: Node<'_>, source: &str) -> Option<(String, ValueKind)> {
-    let mut cursor = node.walk();
-    let children: Vec<_> = node.children(&mut cursor).collect();
-    if children.len() < 3 {
-        return None;
-    }
-    let key_name = key_text(children[0], source)?;
-    let value_kind = match super::pair_value(node)?.kind() {
-        "string" => ValueKind::String,
-        "integer" => ValueKind::Integer,
-        _ => ValueKind::Other,
-    };
-    Some((key_name, value_kind))
-}
-
-fn key_text(node: Node<'_>, source: &str) -> Option<String> {
-    key_text_at_depth(node, source, 0)
-}
-
-fn key_text_at_depth(node: Node<'_>, source: &str, depth: u32) -> Option<String> {
-    if !should_visit_tree_depth(depth) {
-        return None;
-    }
-
-    if matches!(node.kind(), "bare_key" | "quoted_key" | "dotted_key") {
-        return node
-            .utf8_text(source.as_bytes())
-            .ok()
-            .map(|text| text.trim_matches('"').trim_matches('\'').to_string());
-    }
-
-    let child_depth = child_tree_depth(depth)?;
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if let Some(name) = key_text_at_depth(child, source, child_depth) {
-            return Some(name);
-        }
-    }
-    None
+fn is_nextest_config_path(file_path: &str) -> bool {
+    let normalized = file_path.replace('\\', "/");
+    normalized == ".config/nextest.toml" || normalized.ends_with("/.config/nextest.toml")
 }
 
 fn is_named_table(name: &str, prefix: &str) -> bool {

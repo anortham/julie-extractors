@@ -11,6 +11,7 @@ pub mod relationships;
 pub mod semantics;
 pub mod structural_facts;
 pub mod test_detection;
+pub mod wave2;
 
 #[cfg(test)]
 mod markdown_extractor_tests {

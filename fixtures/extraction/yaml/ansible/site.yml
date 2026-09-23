@@ -1,0 +1,13 @@
+- import_playbook: db.yml
+- name: Configure web servers
+  hosts: webservers
+  roles:
+    - role: web
+  tasks:
+    - name: Install nginx
+      ansible.builtin.apt: {name: nginx}
+      notify: Restart nginx
+    - ansible.builtin.include_tasks: tls.yml
+  handlers:
+    - name: Restart nginx
+      ansible.builtin.service: {name: nginx, state: restarted}

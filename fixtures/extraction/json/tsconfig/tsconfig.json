@@ -1,0 +1,11 @@
+{
+  "$schema": "../schemas/tsconfig.schema.json",
+  // Shared compiler defaults live in the base config.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    /* Emit ES2022 so top-level await works. */
+    "target": "ES2022",
+    "strict": true // Catches the null bugs we shipped in v1.
+  },
+  "references": [ { "path": "../core" } ]
+}

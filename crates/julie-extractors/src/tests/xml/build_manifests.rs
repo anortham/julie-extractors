@@ -31,6 +31,7 @@ fn pending_paths(results: &ExtractionResults) -> BTreeSet<String> {
     results
         .structured_pending_relationships
         .iter()
+        .filter(|p| p.pending.kind == RelationshipKind::Imports)
         .map(|p| p.target.import_context.clone().unwrap())
         .collect()
 }
@@ -159,12 +160,13 @@ fn msbuild_dependencies_properties_and_file_references() {
             "../build/Common.targets".to_string(),
         ])
     );
-    assert!(
-        results
-            .structured_pending_relationships
-            .iter()
-            .all(|p| p.pending.kind == RelationshipKind::Imports)
-    );
+    let pending_calls: BTreeSet<_> = results
+        .structured_pending_relationships
+        .iter()
+        .filter(|p| p.pending.kind == RelationshipKind::Calls)
+        .map(|p| p.target.terminal_name.as_str())
+        .collect();
+    assert_eq!(pending_calls, BTreeSet::from(["Restore", "Build"]));
 }
 
 #[test]

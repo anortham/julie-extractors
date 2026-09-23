@@ -5,6 +5,7 @@
     <add id="ConnectionTimeout" type="xs:int">30</add>
     <add id="RetryCount" type="xs:int">3</add>
     <add />
+    <add key="Api:BaseUrl" value="https://api.example.com/v2" />
   </appSettings>
   <logging name="serilog">
     <sinks>
@@ -18,4 +19,5 @@
     <feature>audit</feature>
     <feature>export</feature>
   </features>
+  <!-- End of the phone book configuration. -->
 </configuration>

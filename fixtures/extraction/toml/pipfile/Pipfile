@@ -1,0 +1,13 @@
+[[source]]
+url = "https://pypi.org/simple"
+name = "pypi"
+
+[packages]
+requests = "*"
+django = { version = ">=5.0", extras = ["argon2"] }
+
+[dev-packages]
+pytest = ">=8"
+
+[scripts]
+test = "pytest -q"

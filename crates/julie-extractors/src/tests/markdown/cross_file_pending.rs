@@ -1,29 +1,28 @@
-//! Phase 4d.markdown — Recipe B closure. Markdown links and footnotes
-//! resolve within the document or are opaque URL/path strings; there
-//! is no symbol-level cross-file reference construct. Structured
-//! pending is intentionally empty.
-
 use crate::extract_canonical;
 use std::path::Path;
 
 #[test]
-fn markdown_pending_relationships_intra_document_only() {
+fn markdown_pending_relationships_target_headings_in_other_documents() {
     let source = include_str!("../../../../../fixtures/extraction/markdown/cross_file/source.md");
-    let workspace_root = Path::new("/tmp/test");
-    let result = extract_canonical("source.md", source, workspace_root)
+    let result = extract_canonical("source.md", source, Path::new("/tmp/test"))
         .expect("canonical Markdown extraction must succeed");
 
-    assert!(
-        result.structured_pending_relationships.is_empty(),
-        "Markdown must not emit structured pending — links are opaque URLs/paths, \
-         not symbol references. Got {} entries: {:#?}",
-        result.structured_pending_relationships.len(),
-        result.structured_pending_relationships
+    let targets: Vec<_> = result
+        .structured_pending_relationships
+        .iter()
+        .map(|pending| {
+            (
+                pending.target.terminal_name.as_str(),
+                pending.target.import_context.as_deref(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        targets,
+        vec![
+            ("setup", Some("./other.md")),
+            ("rate-limits", Some("docs/api.md")),
+        ]
     );
-    assert!(
-        result.pending_relationships.is_empty(),
-        "Markdown must not emit legacy pending either. Got {} entries: {:#?}",
-        result.pending_relationships.len(),
-        result.pending_relationships
-    );
+    assert_eq!(result.pending_relationships.len(), targets.len());
 }

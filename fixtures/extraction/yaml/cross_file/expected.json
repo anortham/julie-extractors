@@ -78,7 +78,7 @@
       "end_byte": 333,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "port: 8080",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/cross_file/source.yaml:api:11:2",
@@ -102,7 +102,7 @@
       "end_byte": 376,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "port: 9090",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/cross_file/source.yaml:worker:14:2",
@@ -126,7 +126,7 @@
       "end_byte": 282,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "retries: 3",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/cross_file/source.yaml:defaults:6:0",
@@ -181,7 +181,7 @@
       "end_byte": 269,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "timeout: 30",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/cross_file/source.yaml:defaults:6:0",
@@ -379,6 +379,7 @@
       "end_byte": 377,
       "confidence": "1.000",
       "metadata": {
+        "document_index": 0,
         "has_directives": false,
         "pattern_version": 1,
         "query_family": "config_structure"
@@ -447,6 +448,7 @@
         "key_path": "$.services.api.port",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -465,11 +467,12 @@
       "end_byte": 282,
       "confidence": "1.000",
       "metadata": {
+        "anchor": "defaults",
         "key": "defaults",
         "key_path": "$.defaults",
         "pattern_version": 1,
         "query_family": "config_structure",
-        "value_kind": "anchor"
+        "value_kind": "mapping"
       }
     },
     {
@@ -491,6 +494,7 @@
         "key_path": "$.defaults.timeout",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -513,6 +517,7 @@
         "key_path": "$.defaults.retries",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -601,6 +606,7 @@
         "key_path": "$.services.worker.port",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },

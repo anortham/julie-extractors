@@ -169,7 +169,7 @@
       "end_byte": 116,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "extends: .ruby",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/gitlab/.gitlab-ci.yml:compile:6:0",
@@ -193,7 +193,7 @@
       "end_byte": 90,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "image: ruby:3.3",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/gitlab/.gitlab-ci.yml:.ruby:4:0",
@@ -248,7 +248,7 @@
       "end_byte": 185,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "job: compile",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/gitlab/.gitlab-ci.yml:[0]:12:4",
@@ -272,7 +272,7 @@
       "end_byte": 43,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "local: ci/templates/deploy.yml",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/gitlab/.gitlab-ci.yml:[0]:2:2",
@@ -358,7 +358,7 @@
       "end_byte": 131,
       "body_span": null,
       "body_hash": null,
-      "signature": null,
+      "signature": "stage: build",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/yaml/gitlab/.gitlab-ci.yml:compile:6:0",
@@ -628,6 +628,7 @@
       "end_byte": 186,
       "confidence": "1.000",
       "metadata": {
+        "document_index": 0,
         "has_directives": false,
         "pattern_version": 1,
         "query_family": "config_structure"
@@ -649,7 +650,7 @@
       "confidence": "1.000",
       "metadata": {
         "key": ".ruby",
-        "key_path": "$..ruby",
+        "key_path": "$['.ruby']",
         "pattern_version": 1,
         "query_family": "config_structure",
         "value_kind": "mapping"
@@ -671,9 +672,10 @@
       "confidence": "1.000",
       "metadata": {
         "key": "image",
-        "key_path": "$..ruby.image",
+        "key_path": "$['.ruby'].image",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -693,9 +695,10 @@
       "confidence": "1.000",
       "metadata": {
         "key": "job",
-        "key_path": "$.rspec.needs.job",
+        "key_path": "$.rspec.needs[0].job",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -715,9 +718,10 @@
       "confidence": "1.000",
       "metadata": {
         "key": "local",
-        "key_path": "$.include.local",
+        "key_path": "$.include[0].local",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -762,6 +766,7 @@
         "key_path": "$.compile.extends",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -784,6 +789,7 @@
         "key_path": "$.compile.stage",
         "pattern_version": 1,
         "query_family": "config_structure",
+        "scalar_style": "plain",
         "value_kind": "scalar"
       }
     },
@@ -912,7 +918,7 @@
       "end_byte": 90,
       "confidence": "1.000",
       "metadata": {
-        "key_path": "$..ruby",
+        "key_path": "$['.ruby']",
         "pair_count": 1,
         "pattern_version": 1,
         "query_family": "config_structure"
@@ -933,7 +939,7 @@
       "end_byte": 186,
       "confidence": "1.000",
       "metadata": {
-        "key_path": "$.rspec.needs",
+        "key_path": "$.rspec.needs[0]",
         "pair_count": 1,
         "pattern_version": 1,
         "query_family": "config_structure"
@@ -954,7 +960,7 @@
       "end_byte": 43,
       "confidence": "1.000",
       "metadata": {
-        "key_path": "$.include",
+        "key_path": "$.include[0]",
         "pair_count": 1,
         "pattern_version": 1,
         "query_family": "config_structure"

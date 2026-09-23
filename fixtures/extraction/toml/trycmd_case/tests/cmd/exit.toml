@@ -1,0 +1,3 @@
+bin.name = "bin-fixture"
+args = ["--exit", "42"]
+status.code = 42

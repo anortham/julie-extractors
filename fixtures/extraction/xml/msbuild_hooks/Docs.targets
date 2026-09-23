@@ -1,0 +1,8 @@
+<Project>
+  <!-- Builds the API reference after every build. -->
+  <Target Name="GenerateDocs" AfterTargets="Build" DependsOnTargets="Compile;ResolveReferences">
+    <CallTarget Targets="PublishDocs" />
+  </Target>
+  <Target Name="PublishDocs" BeforeTargets="Pack" />
+  <UsingTask TaskName="DocsTask" AssemblyFile="Docs.dll" />
+</Project>
