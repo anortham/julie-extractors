@@ -9,12 +9,13 @@ mod aspnet_node;
 mod dart;
 mod frontend;
 mod godot;
-mod jvm_go_ruby;
+mod jvm_go;
 mod kotlin_elixir;
 mod lua;
 mod php;
 mod python;
 mod r;
+mod ruby;
 mod rust;
 mod swift;
 mod zig;
@@ -28,7 +29,8 @@ pub(super) fn specs() -> Vec<StructuralFactPatternSpec> {
     [
         aspnet_node::SPECS,
         python::SPECS,
-        jvm_go_ruby::SPECS,
+        jvm_go::SPECS,
+        ruby::SPECS,
         php::SPECS,
         kotlin_elixir::SPECS,
         rust::SPECS,

@@ -1,0 +1,179 @@
+//! Rails and Sinatra framework route SPECS.
+//!
+//! Authored metadata for [`super::super::StructuralFactPatternSpec`] entries.
+//! Public registry access remains through
+//! [`super::super::structural_fact_pattern_specs`].
+
+use super::super::{
+    ALWAYS, ARR, K_FRAMEWORK, K_PATTERN_VERSION, K_QUERY_FAMILY, OPT, STR,
+    StructuralFactPatternSpec, key,
+};
+
+pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
+    StructuralFactPatternSpec {
+        pattern_id: "rails.route.v1",
+        languages: &["ruby"],
+        query_family: "framework",
+        description: "A Rails routes DSL handler route.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key("api_style", STR, ALWAYS, "Routing style (\"dsl_routing\")."),
+            key(
+                "route_template",
+                STR,
+                ALWAYS,
+                "Raw route path from the DSL call.",
+            ),
+            key(
+                "normalized_route_template",
+                STR,
+                ALWAYS,
+                "Cross-family normalized route template.",
+            ),
+            key(
+                "dynamic_segments",
+                ARR,
+                OPT,
+                "Route parameter names discovered in the normalized template.",
+            ),
+            key("scope_path", STR, OPT, "Enclosing namespace/scope path."),
+            key(
+                "effective_route_template",
+                STR,
+                OPT,
+                "Scope path joined with route template.",
+            ),
+            key(
+                "verb",
+                STR,
+                OPT,
+                "Uppercase HTTP method when verb-restricted.",
+            ),
+            key("verb_source", STR, OPT, "How the verb was attested."),
+            key(
+                "controller_action",
+                STR,
+                OPT,
+                "controller#action target: literal from to: or a string pair, or the resource controller and path action inside a resources block.",
+            ),
+            key("route_name", STR, OPT, "Literal/as-symbol route name."),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "rails.resource_route.v1",
+        languages: &["ruby"],
+        query_family: "framework",
+        description: "A Rails resources/resource declaration.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key("api_style", STR, ALWAYS, "Routing style (\"dsl_routing\")."),
+            key("resource_name", STR, ALWAYS, "Declared resource name."),
+            key("resource_kind", STR, ALWAYS, "collection or singular."),
+            key("only", ARR, OPT, "Literal only: action list."),
+            key("except", ARR, OPT, "Literal except: action list."),
+            key(
+                "scope_path",
+                STR,
+                OPT,
+                "Enclosing namespace/scope path, including the parent resource path for nested resources.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "rails.mount.v1",
+        languages: &["ruby"],
+        query_family: "framework",
+        description: "A Rails mount route for a Rack app or engine.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key("mount_path", STR, ALWAYS, "Raw mount path literal."),
+            key(
+                "normalized_mount_path",
+                STR,
+                ALWAYS,
+                "Normalized mount path including same-file scope.",
+            ),
+            key(
+                "mount_target",
+                STR,
+                ALWAYS,
+                "Source text of mounted app/engine.",
+            ),
+            key("scope_path", STR, OPT, "Enclosing namespace/scope path."),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "sinatra.route.v1",
+        languages: &["ruby"],
+        query_family: "framework",
+        description: "A Sinatra route block with a static path, in a Sinatra::Base or Sinatra::Application subclass or a classic app that requires sinatra.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key("api_style", STR, ALWAYS, "Routing style (\"dsl_routing\")."),
+            key(
+                "route_template",
+                STR,
+                ALWAYS,
+                "Raw static route path from the DSL call.",
+            ),
+            key(
+                "normalized_route_template",
+                STR,
+                ALWAYS,
+                "Cross-family normalized route template.",
+            ),
+            key(
+                "dynamic_segments",
+                ARR,
+                OPT,
+                "Route parameter names discovered in the normalized template.",
+            ),
+            key(
+                "verb",
+                STR,
+                ALWAYS,
+                "Uppercase HTTP method of the DSL call.",
+            ),
+            key("verb_source", STR, ALWAYS, "How the verb was attested."),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "sinatra.filter.v1",
+        languages: &["ruby"],
+        query_family: "framework",
+        description: "A Sinatra before or after filter block with a static path.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key("api_style", STR, ALWAYS, "Routing style (\"dsl_routing\")."),
+            key(
+                "route_template",
+                STR,
+                ALWAYS,
+                "Raw static path the filter applies to.",
+            ),
+            key(
+                "normalized_route_template",
+                STR,
+                ALWAYS,
+                "Cross-family normalized route template.",
+            ),
+            key(
+                "dynamic_segments",
+                ARR,
+                OPT,
+                "Route parameter names discovered in the normalized template.",
+            ),
+            key("filter_kind", STR, ALWAYS, "\"before\" or \"after\"."),
+        ],
+    },
+];
