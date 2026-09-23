@@ -4,6 +4,7 @@
 use super::parsing::VueSection;
 use super::script::{call_callee, upsert_member};
 use crate::base::{BaseExtractor, Symbol, SymbolKind};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
 /// Declared member types found on the way, as `(symbol id, type)`.
@@ -74,6 +75,10 @@ pub(super) fn declare_macro_members(
     }
 }
 
+fn first_argument(call: Node<'_>) -> Option<Node<'_>> {
+    call.child_by_field_name("arguments")?.named_child(0)
+}
+
 fn unwrap_call(value: Node<'_>) -> Option<Node<'_>> {
     let value = if value.kind() == "await_expression" {
         value.named_child(0)?
@@ -94,9 +99,19 @@ fn declare_members(
     types: &mut MemberTypes,
 ) {
     let source = section.content.as_str();
-    let Some(callee) = call_callee(call, source) else {
+    let Some(mut callee) = call_callee(call, source) else {
         return;
     };
+    let mut call = call;
+    if callee == "withDefaults" {
+        let Some(inner) = first_argument(call).and_then(unwrap_call) else {
+            return;
+        };
+        let Some(inner_callee) = call_callee(inner, source) else {
+            return;
+        };
+        (call, callee) = (inner, inner_callee);
+    }
     let arguments: Vec<Node<'_>> = call
         .child_by_field_name("arguments")
         .map(|arguments| {
@@ -114,11 +129,6 @@ fn declare_members(
             }
         };
     match callee.as_str() {
-        "withDefaults" => {
-            if let Some(inner) = arguments.first().copied().and_then(unwrap_call) {
-                declare_members(base, root, section, inner, owner, symbols, types);
-            }
-        }
         "defineProps" => {
             for signature in type_argument_members(root, call, source) {
                 if signature.kind() == "property_signature"
@@ -294,13 +304,21 @@ fn string_value(node: Node<'_>, source: &str) -> Option<String> {
 /// The TypeScript type a runtime prop declaration names: `String`,
 /// `[String, Number]`, or `{ type: Number }`.
 pub(super) fn prop_type(value: Node<'_>, source: &str) -> Option<String> {
+    prop_type_at(value, source, 0)
+}
+
+fn prop_type_at(value: Node<'_>, source: &str, depth: u32) -> Option<String> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+    let depth = child_tree_depth(depth)?;
     match value.kind() {
         "identifier" => source.get(value.byte_range()).map(constructor_type),
         "array" => {
             let mut cursor = value.walk();
             let parts: Vec<String> = value
                 .named_children(&mut cursor)
-                .filter_map(|part| prop_type(part, source))
+                .filter_map(|part| prop_type_at(part, source, depth))
                 .collect();
             (!parts.is_empty()).then(|| parts.join(" | "))
         }
@@ -311,7 +329,7 @@ pub(super) fn prop_type(value: Node<'_>, source: &str) -> Option<String> {
                 (pair.kind() == "pair" && source.get(key.byte_range())? == "type")
                     .then(|| pair.child_by_field_name("value"))
                     .flatten()
-                    .and_then(|inner| prop_type(inner, source))
+                    .and_then(|inner| prop_type_at(inner, source, depth))
             })
         }
         "as_expression" | "satisfies_expression" => {
