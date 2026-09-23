@@ -11,6 +11,7 @@ pub mod extractor;
 pub mod functions;
 pub mod helpers;
 pub mod identifiers;
+pub mod initializer_types;
 pub mod literals;
 pub mod relationships;
 pub mod signatures;

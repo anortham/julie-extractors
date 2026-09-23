@@ -182,6 +182,16 @@ attributes on parameters at all, so those files also raise parse diagnostics
   fields, variants, traits, consts, statics, unions, and type aliases.
 - Declared return types and const/static types are declared type facts.
   `-> Self` resolves to the implemented type.
+- A `let` with no written type gets an inferred type fact from its
+  initializer: `Type { .. }`, `Self { .. }`, or a call to a same-file function
+  (`load()`), associated function (`Type::open()`, `Self::open()`), or impl
+  method (`self.load()`) with a declared return type. Same-named candidates
+  must agree. `Type::new(..)` with no same-file `new` records `Type`.
+  `?`, `unwrap`, `expect`, `unwrap_or`, `unwrap_or_else`, and
+  `unwrap_or_default` remove one `Result`/`Option` layer; `map_err`, `ok_or`,
+  `ok_or_else`, `context`, and `with_context` keep it. A chain that ends in any
+  other method, a generic return type, or a callee in another file records no
+  fact. Other files are out of scope because each file is extracted alone.
 - A macro invocation is a `call` identifier. A call to a same-file
   `macro_rules!` macro is a resolved `calls` edge; another macro is a pending
   call that keeps its path. Standard-library macros (`println!`, `vec!`,
