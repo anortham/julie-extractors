@@ -1,4 +1,4 @@
-//! Ktor and Phoenix framework route SPECS.
+//! Ktor, Phoenix, and Cowboy framework route SPECS.
 //!
 //! Authored metadata for [`super::super::StructuralFactPatternSpec`] entries.
 //! Public registry access remains through
@@ -215,6 +215,53 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 STR,
                 OPT,
                 "Same-file enclosing scope prefix governing the forward.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "cowboy.route.v1",
+        languages: &["erlang"],
+        query_family: "framework",
+        description: "A static path entry of a Cowboy cowboy_router:compile/1 dispatch table.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key(
+                "api_style",
+                STR,
+                ALWAYS,
+                "Routing style (\"dispatch_table\").",
+            ),
+            key(
+                "route_template",
+                STR,
+                ALWAYS,
+                "Raw static PathMatch string of the dispatch entry.",
+            ),
+            key(
+                "normalized_route_template",
+                STR,
+                ALWAYS,
+                "Cross-family join key with a leading slash and Cowboy :binding segments preserved.",
+            ),
+            key(
+                "dynamic_segments",
+                ARR,
+                OPT,
+                "Binding names discovered in the normalized template.",
+            ),
+            key(
+                "host",
+                STR,
+                OPT,
+                "Static HostMatch of the enclosing host entry (`_` matches any host).",
+            ),
+            key(
+                "handler_module",
+                STR,
+                OPT,
+                "Handler module atom that serves the path.",
             ),
         ],
     },

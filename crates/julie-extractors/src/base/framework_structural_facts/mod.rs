@@ -3,6 +3,7 @@ mod aspnet;
 mod axum;
 mod blazor_navigation;
 mod consumed_attributes;
+mod cowboy;
 mod go_http;
 mod helpers;
 mod htmx_templates;
@@ -29,6 +30,7 @@ use self::actix::collect_actix_routes;
 use self::aspnet::{collect_aspnet_attribute_routes, collect_aspnet_minimal_api_routes};
 use self::axum::collect_axum_routes;
 use self::blazor_navigation::collect_blazor_navigation_facts;
+use self::cowboy::collect_cowboy_routes;
 use self::go_http::collect_go_http_boundary_facts;
 use self::http_clients::{
     collect_backend_http_client_requests, collect_razor_http_client_requests,
@@ -89,6 +91,7 @@ pub(super) const KTOR_ROUTE_PATTERN_ID: &str = "ktor.route.v1";
 pub(super) const PHOENIX_ROUTE_PATTERN_ID: &str = "phoenix.route.v1";
 pub(super) const PHOENIX_RESOURCE_ROUTE_PATTERN_ID: &str = "phoenix.resource_route.v1";
 pub(super) const PHOENIX_FORWARD_PATTERN_ID: &str = "phoenix.forward.v1";
+pub(super) const COWBOY_ROUTE_PATTERN_ID: &str = "cowboy.route.v1";
 pub(super) const HTTP_CLIENT_REQUEST_PATTERN_ID: &str = "http.client_request.v1";
 pub(super) const HTMX_ATTRIBUTE_PATTERN_ID: &str = "htmx.attribute.v1";
 pub(super) const ALPINE_DIRECTIVE_PATTERN_ID: &str = "alpine.directive.v1";
@@ -177,6 +180,8 @@ const ELIXIR_PATTERN_IDS: &[&str] = &[
     PHOENIX_FORWARD_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const ERLANG_PATTERN_IDS: &[&str] = &[COWBOY_ROUTE_PATTERN_ID, HTTP_CLIENT_REQUEST_PATTERN_ID];
 // The shared `rust` server arm. Task 5 declares axum + the rust client; Task 6
 // extends this with the actix pattern ids on the same language.
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -317,6 +322,13 @@ pub fn collect_framework_structural_facts(
             ));
             elixir_facts
         }
+        "erlang" => {
+            let mut erlang_facts = collect_cowboy_routes(language, tree, file_path, content);
+            erlang_facts.extend(collect_backend_http_client_requests(
+                language, tree, file_path, content,
+            ));
+            erlang_facts
+        }
         // The shared `rust` server dispatch arm. Task 5 runs the axum collector;
         // Task 6 extends this arm with the actix collectors (both gate on their
         // own crate import + arg shape, so they never double-emit).
@@ -366,6 +378,7 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
         "ruby" => RAILS_PATTERN_IDS,
         "php" => LARAVEL_PATTERN_IDS,
         "elixir" => ELIXIR_PATTERN_IDS,
+        "erlang" => ERLANG_PATTERN_IDS,
         "rust" => RUST_PATTERN_IDS,
         "vue" => COMPONENT_MARKUP_FRAMEWORK_PATTERN_IDS,
         _ => &[],

@@ -94,7 +94,13 @@ pub(super) fn wild_attribute_string(base: &BaseExtractor, node: &Node) -> Option
         find_child_by_type(node, "paren_expr")
             .and_then(|paren| find_child_by_type(&paren, "string"))
     })?;
-    let text = base.get_node_text(&string);
+    string_text(base, &string)
+}
+
+/// A string literal's text without its quotes, for plain and triple-quoted
+/// strings; `None` when it is empty.
+pub(super) fn string_text(base: &BaseExtractor, string: &Node) -> Option<String> {
+    let text = base.get_node_text(string);
     let trimmed = text.trim();
     let unquoted = trimmed
         .strip_prefix("\"\"\"")
@@ -122,6 +128,10 @@ pub(super) fn preceding_attributes<'a>(base: &BaseExtractor, node: &Node<'a>) ->
         match sibling.kind() {
             "comment" => {}
             "spec" => attributes.push(sibling),
+            "fun_decl" if doc_macro_name(base, &sibling).as_deref() == Some("DOC") => {
+                attributes.push(sibling)
+            }
+            "fun_decl" if doc_macro_name(base, &sibling).as_deref() == Some("MODULEDOC") => break,
             "wild_attribute" => {
                 if wild_attribute_name(base, &sibling).as_deref() == Some("moduledoc") {
                     break;
@@ -134,4 +144,33 @@ pub(super) fn preceding_attributes<'a>(base: &BaseExtractor, node: &Node<'a>) ->
     }
 
     attributes
+}
+
+/// `DOC` or `MODULEDOC` for a top-level `?DOC("...")` / `?MODULEDOC("...")`
+/// form, which the grammar reads as a `fun_decl` whose clause is the macro
+/// call. Libraries such as telemetry define these macros to expand to
+/// `-doc` / `-moduledoc` on OTP 27 and to nothing before it.
+pub(super) fn doc_macro_name(base: &BaseExtractor, node: &Node) -> Option<String> {
+    if node.kind() != "fun_decl" {
+        return None;
+    }
+    let call = node
+        .named_child(0)
+        .filter(|c| c.kind() == "macro_call_expr")?;
+    let name = base.get_node_text(&call.child_by_field_name("name")?);
+    matches!(name.as_str(), "DOC" | "MODULEDOC").then_some(name)
+}
+
+/// The string argument of a `?DOC("...")` / `?MODULEDOC("...")` form.
+/// `?DOC(false)` hides the declaration and yields `None`.
+pub(super) fn doc_macro_string(base: &BaseExtractor, node: &Node) -> Option<String> {
+    let call = node.named_child(0)?;
+    let args = find_child_by_type(&call, "macro_call_args")?;
+    let argument = args.named_child(0)?;
+    let string = if argument.kind() == "string" {
+        argument
+    } else {
+        find_child_by_type(&argument, "string")?
+    };
+    string_text(base, &string)
 }

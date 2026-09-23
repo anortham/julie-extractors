@@ -107,7 +107,9 @@ fn collect_node(
             } else {
                 SourceRegionKind::Comment
             }
-        } else if is_doc_comment(language, text.unwrap_or_default()) {
+        } else if is_doc_comment(language, text.unwrap_or_default())
+            && !is_erlang_plain_comment(language, node, text.unwrap_or_default())
+        {
             SourceRegionKind::DocComment
         } else {
             SourceRegionKind::Comment
@@ -267,6 +269,17 @@ fn documented_symbol_id(region: &SourceRegion, symbols: &[Symbol]) -> Option<Str
 
 fn node_text<'a>(content: &'a str, node: Node<'_>) -> Option<&'a str> {
     content.get(node.start_byte()..node.end_byte())
+}
+
+/// Erlang `%%` comments document the next form only at the top level; inside
+/// a function body they are ordinary comments, and an escript `%%!` line
+/// carries emulator arguments.
+fn is_erlang_plain_comment(language: &str, node: Node, text: &str) -> bool {
+    language == "erlang"
+        && (text.starts_with("%%!")
+            || node
+                .parent()
+                .is_some_and(|parent| parent.kind() != "source_file"))
 }
 
 fn is_doc_comment(language: &str, text: &str) -> bool {

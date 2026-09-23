@@ -160,6 +160,11 @@ pub fn collect_data_structural_facts(
             content,
         ));
     }
+    if language == "erlang" {
+        facts.extend(crate::erlang::term_config::dependency_facts(
+            tree, file_path, content,
+        ));
+    }
     if matches!(language, "json" | "yaml") {
         facts.extend(collect_openapi_route_facts(
             language, tree, file_path, content, symbols,
@@ -186,6 +191,7 @@ pub(crate) fn data_structural_fact_pattern_ids_for_language(
         "yaml" => YAML_DATA_PATTERN_IDS,
         "xml" => XML_DATA_PATTERN_IDS,
         "regex" => REGEX_DATA_PATTERN_IDS,
+        "erlang" => &[crate::toml::dependencies::MANIFEST_DEPENDENCY_PATTERN_ID],
         _ => &[],
     }
 }

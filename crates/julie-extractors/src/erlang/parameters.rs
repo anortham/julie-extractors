@@ -5,17 +5,21 @@ use std::collections::HashSet;
 use tree_sitter::Node;
 
 use super::ErlangExtractor;
-use super::helpers::named_children;
+use super::helpers::{NameArity, named_children};
 use super::type_facts;
 use crate::base::{Symbol, SymbolKind, SymbolOptions};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
+/// Parameter symbols for every clause head. A bare variable parameter takes
+/// the type its `-spec` declares at the same position.
 pub(super) fn extract_parameter_symbols(
     extractor: &mut ErlangExtractor,
     clauses: &[Node],
+    identity: &NameArity,
     callable_id: &str,
     seen: &mut HashSet<String>,
 ) -> Vec<Symbol> {
+    let spec_args = extractor.declared_types.spec_args(identity).to_vec();
     let mut symbols = Vec::new();
     for declaration in clauses {
         let Some(clause) = super::helpers::find_child_by_type(declaration, "function_clause")
@@ -25,8 +29,21 @@ pub(super) fn extract_parameter_symbols(
         let Some(args) = clause.child_by_field_name("args") else {
             continue;
         };
-        for pattern in named_children(&args) {
-            walk_pattern(extractor, pattern, callable_id, None, seen, &mut symbols, 0);
+        for (position, pattern) in named_children(&args).into_iter().enumerate() {
+            let declared = spec_args
+                .get(position)
+                .cloned()
+                .flatten()
+                .filter(|_| pattern.kind() == "var");
+            walk_pattern(
+                extractor,
+                pattern,
+                callable_id,
+                declared.as_deref(),
+                seen,
+                &mut symbols,
+                0,
+            );
         }
     }
     symbols

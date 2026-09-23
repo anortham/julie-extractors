@@ -199,6 +199,8 @@ struct NormalizedStructuredPendingRelationship {
     span: Option<NormalizedBodySpan>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     receiver_type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    target_arity: Option<u32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -855,6 +857,7 @@ fn normalize_structured_pending(
             .map(|id| lookup_symbol_key(id, symbol_keys)),
         span: pending.span.map(normalize_body_span),
         receiver_type: pending.receiver_type.clone(),
+        target_arity: pending.target_arity,
     }
 }
 

@@ -1,0 +1,29 @@
+# Artifact-owned extraction policy only. Do not add search, embedding, watcher, or scoring config here.
+# Erlang carriers are `module:function`, the text of the remote call.
+[literal_carriers]
+url = [
+    "httpc:request",
+    "hackney:request",
+    "hackney:get",
+    "hackney:post",
+    "hackney:put",
+    "hackney:delete",
+    "hackney:patch",
+    "hackney:head",
+    "gun:open",
+    "gun:get",
+    "gun:post",
+    "gun:put",
+    "gun:delete",
+    "gun:patch",
+    "gun:head",
+]
+sql = [
+    "epgsql:squery",
+    "epgsql:equery",
+    "epgsql:parse",
+    "epgsql:prepared_query",
+    "mysql:query",
+    "pgo:query",
+]
+route = []

@@ -137,7 +137,7 @@
       "end_column": 22,
       "start_byte": 63,
       "end_byte": 69,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/erlang/return_types/source.erl:make:4:0",
       "target_key": null,
       "confidence": "1.000"
     }

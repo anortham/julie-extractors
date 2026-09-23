@@ -268,7 +268,7 @@
       "end_column": 30,
       "start_byte": 853,
       "end_byte": 857,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/erlang/test_roles/source.erl:deposit_test_:23:0",
       "target_key": null,
       "confidence": "1.000"
     }

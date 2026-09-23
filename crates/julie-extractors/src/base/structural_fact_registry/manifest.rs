@@ -69,9 +69,9 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     // Package manifests
     StructuralFactPatternSpec {
         pattern_id: "manifest.dependency.v1",
-        languages: &["toml", "xml"],
+        languages: &["toml", "xml", "erlang"],
         query_family: "dependencies",
-        description: "A package dependency declared in a Cargo.toml, pyproject.toml, MSBuild, NuGet, or Maven manifest.",
+        description: "A package dependency declared in a Cargo.toml, pyproject.toml, MSBuild, NuGet, Maven, rebar.config, or Erlang application resource manifest.",
         metadata_keys: &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
@@ -79,19 +79,19 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "ecosystem",
                 STR,
                 ALWAYS,
-                "Package ecosystem (\"cargo\", \"pypi\", \"nuget\", or \"maven\").",
+                "Package ecosystem (\"cargo\", \"pypi\", \"nuget\", \"maven\", \"hex\" for rebar.config, or \"otp\" for application resource `applications`).",
             ),
             key(
                 "name",
                 STR,
                 ALWAYS,
-                "Dependency name: the Cargo key, the PEP 503-normalized distribution name, the NuGet package id, or the Maven `groupId:artifactId`.",
+                "Dependency name: the Cargo key, the PEP 503-normalized distribution name, the NuGet package id, the Maven `groupId:artifactId`, or the Erlang application atom.",
             ),
             key(
                 "group",
                 STR,
                 ALWAYS,
-                "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`; Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`; NuGet `PackageReference`/`PackageVersion`/`GlobalPackageReference`/`dependency`; Maven scope, `managed`, `plugin`, or `managed-plugin`.",
+                "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`; Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`; NuGet `PackageReference`/`PackageVersion`/`GlobalPackageReference`/`dependency`; Maven scope, `managed`, `plugin`, or `managed-plugin`; rebar `deps`, `plugins`, `project_plugins`, or `profile:<name>`; OTP `applications`, `included_applications`, or `optional_applications`.",
             ),
             key("version", STR, OPT, "Version requirement as written."),
             key(

@@ -532,7 +532,8 @@
         "end_column": 16,
         "start_byte": 1513,
         "end_byte": 1518
-      }
+      },
+      "target_arity": 0
     },
     {
       "pending": {
@@ -560,7 +561,8 @@
         "end_column": 21,
         "start_byte": 1437,
         "end_byte": 1444
-      }
+      },
+      "target_arity": 1
     },
     {
       "pending": {
@@ -588,7 +590,8 @@
         "end_column": 17,
         "start_byte": 1305,
         "end_byte": 1311
-      }
+      },
+      "target_arity": 2
     }
   ],
   "identifiers": [
@@ -623,7 +626,7 @@
       "end_column": 28,
       "start_byte": 1238,
       "end_byte": 1245,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/erlang/cross_file/source.erl:settle:26:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -639,7 +642,7 @@
       "end_column": 47,
       "start_byte": 1257,
       "end_byte": 1264,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/erlang/cross_file/source.erl:settle:26:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -770,12 +773,31 @@
       "end_column": 17,
       "start_byte": 1230,
       "end_byte": 1234,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/erlang/cross_file/source.erl:settle:26:0",
       "target_key": null,
       "confidence": "1.000"
     }
   ],
-  "types": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/erlang/cross_file/source.erl:Amount:26:14",
+      "resolved_type": "integer",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "erlang",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/erlang/cross_file/source.erl:Entry:26:7",
+      "resolved_type": "term",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "erlang",
+      "metadata": null
+    }
+  ],
   "parse_diagnostics": [],
   "structural_facts": [
     {

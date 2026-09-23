@@ -906,7 +906,8 @@
         "end_column": 46,
         "start_byte": 1046,
         "end_byte": 1049
-      }
+      },
+      "target_arity": 2
     }
   ],
   "identifiers": [
@@ -1314,7 +1315,7 @@
       "end_column": 20,
       "start_byte": 487,
       "end_byte": 490,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/erlang/docs_and_self_calls/source.erl:start:22:0",
       "target_key": null,
       "confidence": "1.000"
     },

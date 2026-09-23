@@ -4723,7 +4723,8 @@
       "parser_crate": "tree-sitter-erlang",
       "extensions": [
         "erl",
-        "hrl"
+        "hrl",
+        "escript"
       ],
       "dependency_status": "current",
       "capabilities": {
@@ -4773,6 +4774,41 @@
           "name": "docs_and_self_calls",
           "source": "fixtures/extraction/erlang/docs_and_self_calls/source.erl",
           "expected": "fixtures/extraction/erlang/docs_and_self_calls/expected.json"
+        },
+        {
+          "name": "language_forms",
+          "source": "fixtures/extraction/erlang/language_forms/source.erl",
+          "expected": "fixtures/extraction/erlang/language_forms/expected.json"
+        },
+        {
+          "name": "web_boundary",
+          "source": "fixtures/extraction/erlang/web_boundary/source.erl",
+          "expected": "fixtures/extraction/erlang/web_boundary/expected.json"
+        },
+        {
+          "name": "test_roles_fixtures_proper",
+          "source": "fixtures/extraction/erlang/test_roles_fixtures_proper/source.erl",
+          "expected": "fixtures/extraction/erlang/test_roles_fixtures_proper/expected.json"
+        },
+        {
+          "name": "app_resource",
+          "source": "fixtures/extraction/erlang/app_resource/kv.app.src",
+          "expected": "fixtures/extraction/erlang/app_resource/expected.json"
+        },
+        {
+          "name": "rebar_config",
+          "source": "fixtures/extraction/erlang/rebar_config/rebar.config",
+          "expected": "fixtures/extraction/erlang/rebar_config/expected.json"
+        },
+        {
+          "name": "sys_config",
+          "source": "fixtures/extraction/erlang/sys_config/sys.config",
+          "expected": "fixtures/extraction/erlang/sys_config/expected.json"
+        },
+        {
+          "name": "escript",
+          "source": "fixtures/extraction/erlang/escript/tool.escript",
+          "expected": "fixtures/extraction/erlang/escript/expected.json"
         }
       ],
       "target_capabilities": {
@@ -4790,6 +4826,7 @@
             "field",
             "function",
             "module",
+            "property",
             "struct",
             "type",
             "variable"
@@ -4823,6 +4860,7 @@
             "field",
             "function",
             "module",
+            "property",
             "struct",
             "type"
           ],
@@ -4831,11 +4869,14 @@
         },
         "structural_facts": {
           "supported": [
+            "cowboy.route.v1",
             "erlang.behaviour_declaration.v1",
             "erlang.callback_declaration.v1",
             "erlang.export_attribute.v1",
             "erlang.include_directive.v1",
-            "erlang.module_attribute.v1"
+            "erlang.module_attribute.v1",
+            "http.client_request.v1",
+            "manifest.dependency.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -4858,7 +4899,8 @@
         "doc_comments": {
           "supported": [
             "function",
-            "module"
+            "module",
+            "property"
           ],
           "not_applicable": [],
           "open_gaps": []

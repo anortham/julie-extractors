@@ -1,0 +1,2582 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:Children:49:4",
+      "name": "Children",
+      "kind": "variable",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 49,
+      "start_column": 4,
+      "end_line": 49,
+      "end_column": 12,
+      "start_byte": 1463,
+      "end_byte": 1471,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Children",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:init:48:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:Opts:48:5",
+      "name": "Opts",
+      "kind": "variable",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 48,
+      "start_column": 5,
+      "end_line": 48,
+      "end_column": 9,
+      "start_byte": 1450,
+      "end_byte": 1454,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Opts",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:init:48:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:Pid:30:4",
+      "name": "Pid",
+      "kind": "variable",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 30,
+      "start_column": 4,
+      "end_line": 30,
+      "end_column": 7,
+      "start_byte": 974,
+      "end_byte": 977,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Pid",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:Point:53:9",
+      "name": "Point",
+      "kind": "variable",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 53,
+      "start_column": 9,
+      "end_line": 53,
+      "end_column": 14,
+      "start_byte": 1706,
+      "end_byte": 1711,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Point",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:internal:53:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:Qty:37:13",
+      "name": "Qty",
+      "kind": "variable",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 37,
+      "start_column": 13,
+      "end_line": 37,
+      "end_column": 16,
+      "start_byte": 1228,
+      "end_byte": 1231,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Qty",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:Sku:37:8",
+      "name": "Sku",
+      "kind": "variable",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 37,
+      "start_column": 8,
+      "end_line": 37,
+      "end_column": 11,
+      "start_byte": 1223,
+      "end_byte": 1226,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Sku",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:State:44:5",
+      "name": "State",
+      "kind": "variable",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 44,
+      "start_column": 5,
+      "end_line": 44,
+      "end_column": 10,
+      "start_byte": 1407,
+      "end_byte": 1412,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "State",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:loop:44:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:Tick:46:4",
+      "name": "Tick",
+      "kind": "variable",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 46,
+      "start_column": 4,
+      "end_line": 46,
+      "end_column": 8,
+      "start_byte": 1429,
+      "end_byte": 1433,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Tick",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:run:46:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:added:24:15",
+      "name": "added",
+      "kind": "field",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 24,
+      "start_column": 15,
+      "end_line": 24,
+      "end_column": 59,
+      "start_byte": 781,
+      "end_byte": 825,
+      "body_span": {
+        "start_line": 24,
+        "start_column": 44,
+        "end_line": 24,
+        "end_column": 59,
+        "start_byte": 810,
+        "end_byte": 825
+      },
+      "body_hash": "fbf4559d63b18d8b3c46d336476324b3",
+      "signature": "added = erlang:monotonic_time() :: integer()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:item:23:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:conn:21:0",
+      "name": "conn",
+      "kind": "type",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 21,
+      "start_column": 0,
+      "end_line": 21,
+      "end_column": 33,
+      "start_byte": 672,
+      "end_byte": 705,
+      "body_span": {
+        "start_line": 21,
+        "start_column": 10,
+        "end_line": 21,
+        "end_column": 32,
+        "start_byte": 682,
+        "end_byte": 704
+      },
+      "body_hash": "0379c9f9da20ece12c9438e31e758d1f",
+      "signature": "-type conn() :: gen_tcp:socket()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "metadata": {
+        "arity": 0
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:conn:25:16",
+      "name": "conn",
+      "kind": "field",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 25,
+      "start_column": 16,
+      "end_line": 25,
+      "end_column": 30,
+      "start_byte": 845,
+      "end_byte": 859,
+      "body_span": {
+        "start_line": 25,
+        "start_column": 28,
+        "end_line": 25,
+        "end_column": 30,
+        "start_byte": 857,
+        "end_byte": 859
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "conn :: conn()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:state:25:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:init:48:0",
+      "name": "init",
+      "kind": "function",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 48,
+      "start_column": 0,
+      "end_line": 51,
+      "end_column": 49,
+      "start_byte": 1445,
+      "end_byte": 1695,
+      "body_span": {
+        "start_line": 48,
+        "start_column": 11,
+        "end_line": 51,
+        "end_column": 49,
+        "start_byte": 1456,
+        "end_byte": 1695
+      },
+      "body_hash": "8f7b99e260bdd57ff7be4b7f9f8466da",
+      "signature": "init/1(Opts)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "metadata": {
+        "arity": 1,
+        "clause_count": 1
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:internal:53:0",
+      "name": "internal",
+      "kind": "function",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 53,
+      "start_column": 0,
+      "end_line": 53,
+      "end_column": 41,
+      "start_byte": 1697,
+      "end_byte": 1738,
+      "body_span": {
+        "start_line": 53,
+        "start_column": 16,
+        "end_line": 53,
+        "end_column": 41,
+        "start_byte": 1713,
+        "end_byte": 1738
+      },
+      "body_hash": "e84d96da923cd1bf6f284488a5266d62",
+      "signature": "internal/1(Point)",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "metadata": {
+        "arity": 1,
+        "clause_count": 1
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "name": "inventory",
+      "kind": "module",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 19,
+      "start_byte": 276,
+      "end_byte": 295,
+      "body_span": {
+        "start_line": 5,
+        "start_column": 7,
+        "end_line": 5,
+        "end_column": 18,
+        "start_byte": 283,
+        "end_byte": 294
+      },
+      "body_hash": "4d0a6be14d124989bcd7b22127c28fe0",
+      "signature": "-module(inventory)",
+      "doc_comment": "Inventory service.",
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:item:23:0",
+      "name": "item",
+      "kind": "struct",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 23,
+      "start_column": 0,
+      "end_line": 24,
+      "end_column": 62,
+      "start_byte": 707,
+      "end_byte": 828,
+      "body_span": {
+        "start_line": 23,
+        "start_column": 14,
+        "end_line": 24,
+        "end_column": 60,
+        "start_byte": 721,
+        "end_byte": 826
+      },
+      "body_hash": "6143d08bd3735ca74514367f21b852d9",
+      "signature": "-record(item, {sku :: sku(), qty = 0 :: non_neg_integer(), added = erlang:monotonic_time() :: integer()})",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:items:25:32",
+      "name": "items",
+      "kind": "field",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 25,
+      "start_column": 32,
+      "end_line": 25,
+      "end_column": 66,
+      "start_byte": 861,
+      "end_byte": 895,
+      "body_span": {
+        "start_line": 25,
+        "start_column": 41,
+        "end_line": 25,
+        "end_column": 66,
+        "start_byte": 870,
+        "end_byte": 895
+      },
+      "body_hash": "5af27b5c9187fbf7becc4c17ca1ecec7",
+      "signature": "items = #{} :: #{sku() => #item{}}",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:state:25:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:loop:44:0",
+      "name": "loop",
+      "kind": "function",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 44,
+      "start_column": 0,
+      "end_line": 44,
+      "end_column": 21,
+      "start_byte": 1402,
+      "end_byte": 1423,
+      "body_span": {
+        "start_line": 44,
+        "start_column": 12,
+        "end_line": 44,
+        "end_column": 21,
+        "start_byte": 1414,
+        "end_byte": 1423
+      },
+      "body_hash": "b33d1c3b02fc2bd5366bd3cd00753094",
+      "signature": "loop/1(State)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "metadata": {
+        "arity": 1,
+        "clause_count": 1
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:qty:23:29",
+      "name": "qty",
+      "kind": "field",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 23,
+      "start_column": 29,
+      "end_line": 23,
+      "end_column": 57,
+      "start_byte": 736,
+      "end_byte": 764,
+      "body_span": {
+        "start_line": 23,
+        "start_column": 55,
+        "end_line": 23,
+        "end_column": 57,
+        "start_byte": 762,
+        "end_byte": 764
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "qty = 0 :: non_neg_integer()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:item:23:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "name": "reserve",
+      "kind": "function",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 37,
+      "start_column": 0,
+      "end_line": 42,
+      "end_column": 38,
+      "start_byte": 1215,
+      "end_byte": 1400,
+      "body_span": {
+        "start_line": 37,
+        "start_column": 18,
+        "end_line": 42,
+        "end_column": 38,
+        "start_byte": 1233,
+        "end_byte": 1400
+      },
+      "body_hash": "451480b859bb4955aeb177e2859264b9",
+      "signature": "reserve/2(Sku, Qty)",
+      "doc_comment": "Reserve a quantity of a SKU.",
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "metadata": {
+        "arity": 2,
+        "clause_count": 1
+      },
+      "annotations": [
+        {
+          "annotation": "doc",
+          "annotation_key": "doc",
+          "raw_text": "doc(\"Reserve a quantity of a SKU.\")"
+        },
+        {
+          "annotation": "spec",
+          "annotation_key": "spec",
+          "raw_text": "spec reserve(sku(), pos_integer()) -> result(#item{})"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:reserve_test:56:0",
+      "name": "reserve_test",
+      "kind": "function",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 56,
+      "start_column": 0,
+      "end_line": 56,
+      "end_column": 48,
+      "start_byte": 1754,
+      "end_byte": 1802,
+      "body_span": {
+        "start_line": 56,
+        "start_column": 15,
+        "end_line": 56,
+        "end_column": 48,
+        "start_byte": 1769,
+        "end_byte": 1802
+      },
+      "body_hash": "15735b194b0acb9039ea18e2304d7140",
+      "signature": "reserve_test/0()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "metadata": {
+        "arity": 0,
+        "clause_count": 1,
+        "is_test": true,
+        "test_role": "test_case"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:result:20:0",
+      "name": "result",
+      "kind": "type",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 20,
+      "start_column": 0,
+      "end_line": 20,
+      "end_column": 45,
+      "start_byte": 626,
+      "end_byte": 671,
+      "body_span": {
+        "start_line": 20,
+        "start_column": 19,
+        "end_line": 20,
+        "end_column": 44,
+        "start_byte": 645,
+        "end_byte": 670
+      },
+      "body_hash": "47b8b9dc3f63b10906045821cd46cd1c",
+      "signature": "-type result(T) :: {ok, T} | {error, term()}",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "metadata": {
+        "arity": 1
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:run:46:0",
+      "name": "run",
+      "kind": "function",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 46,
+      "start_column": 0,
+      "end_line": 46,
+      "end_column": 18,
+      "start_byte": 1425,
+      "end_byte": 1443,
+      "body_span": {
+        "start_line": 46,
+        "start_column": 10,
+        "end_line": 46,
+        "end_column": 18,
+        "start_byte": 1435,
+        "end_byte": 1443
+      },
+      "body_hash": "98f51a4208fa9b1515eff2a4416009b5",
+      "signature": "run/1(Tick)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "metadata": {
+        "arity": 1,
+        "clause_count": 1
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:sku:19:0",
+      "name": "sku",
+      "kind": "type",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 19,
+      "start_column": 0,
+      "end_line": 19,
+      "end_column": 27,
+      "start_byte": 598,
+      "end_byte": 625,
+      "body_span": {
+        "start_line": 19,
+        "start_column": 12,
+        "end_line": 19,
+        "end_column": 26,
+        "start_byte": 610,
+        "end_byte": 624
+      },
+      "body_hash": "90d0ba461dbabac76751ff677dc53f2f",
+      "signature": "-nominal sku() :: binary()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "metadata": {
+        "arity": 0,
+        "nominal": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:sku:23:15",
+      "name": "sku",
+      "kind": "field",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 23,
+      "start_column": 15,
+      "end_line": 23,
+      "end_column": 27,
+      "start_byte": 722,
+      "end_byte": 734,
+      "body_span": {
+        "start_line": 23,
+        "start_column": 25,
+        "end_line": 23,
+        "end_column": 27,
+        "start_byte": 732,
+        "end_byte": 734
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "sku :: sku()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:item:23:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "name": "start",
+      "kind": "function",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 29,
+      "start_column": 0,
+      "end_line": 33,
+      "end_column": 8,
+      "start_byte": 959,
+      "end_byte": 1119,
+      "body_span": {
+        "start_line": 29,
+        "start_column": 8,
+        "end_line": 33,
+        "end_column": 8,
+        "start_byte": 967,
+        "end_byte": 1119
+      },
+      "body_hash": "e126c0c75f8afd0046939853e63c6533",
+      "signature": "start/0()",
+      "doc_comment": "Start the inventory loop.",
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "metadata": {
+        "arity": 0,
+        "clause_count": 1
+      },
+      "annotations": [
+        {
+          "annotation": "doc",
+          "annotation_key": "doc",
+          "raw_text": "doc(\"Start the inventory loop.\")"
+        },
+        {
+          "annotation": "spec",
+          "annotation_key": "spec",
+          "raw_text": "spec start() -> pid()"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:state:25:0",
+      "name": "state",
+      "kind": "struct",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 25,
+      "start_column": 0,
+      "end_line": 25,
+      "end_column": 69,
+      "start_byte": 829,
+      "end_byte": 898,
+      "body_span": {
+        "start_line": 25,
+        "start_column": 15,
+        "end_line": 25,
+        "end_column": 67,
+        "start_byte": 844,
+        "end_byte": 896
+      },
+      "body_hash": "ec4070c2fcc933ba4ae7d7dd2b7cbc5f",
+      "signature": "-record(state, {conn :: conn(), items = #{} :: #{sku() => #item{}}})",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [
+    {
+      "from_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve_test:56:0",
+      "to_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "line_number": 56,
+      "span": {
+        "start_line": 56,
+        "start_column": 28,
+        "end_line": 56,
+        "end_column": 35,
+        "start_byte": 1782,
+        "end_byte": 1789
+      },
+      "reference_site_is_exact": true,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "to_key": "fixtures/extraction/erlang/language_forms/source.erl:loop:44:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "line_number": 30,
+      "span": {
+        "start_line": 30,
+        "start_column": 25,
+        "end_line": 30,
+        "end_column": 29,
+        "start_byte": 995,
+        "end_byte": 999
+      },
+      "reference_site_is_exact": true,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "to_key": "fixtures/extraction/erlang/language_forms/source.erl:run:46:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "line_number": 31,
+      "span": {
+        "start_line": 31,
+        "start_column": 37,
+        "end_line": 31,
+        "end_column": 40,
+        "start_byte": 1051,
+        "end_byte": 1054
+      },
+      "reference_site_is_exact": true,
+      "confidence": "0.900",
+      "metadata": null
+    }
+  ],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/erlang/language_forms/source.erl:init:48:0",
+      "callee_name": "inventory_cache:start_link",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "line_number": 50,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/language_forms/source.erl:init:48:0",
+      "callee_name": "inventory_worker:start_link",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "line_number": 49,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "callee_name": "eunit/include/eunit.hrl",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "line_number": 16,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "callee_name": "geo",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "line_number": 11,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "callee_name": "ledger",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "line_number": 12,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/language_forms/source.erl:item:23:0",
+      "callee_name": "erlang:monotonic_time",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "line_number": 24,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "callee_name": "flush",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "line_number": 41,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "callee_name": "ledger:record",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "line_number": 39,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "callee_name": "ledger:record",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "line_number": 40,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "callee_name": "audit:record",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "line_number": 32,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "callee_name": "rpc:call",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "line_number": 32,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "callee_name": "timer:apply_after",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "line_number": 31,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/language_forms/source.erl:init:48:0",
+        "callee_name": "inventory_cache:start_link",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+        "line_number": 50,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "inventory_cache:start_link",
+        "terminal_name": "start_link",
+        "receiver": null,
+        "namespace_path": [
+          "inventory_cache"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/language_forms/source.erl:init:48:0",
+      "span": {
+        "start_line": 50,
+        "start_column": 42,
+        "end_line": 50,
+        "end_column": 52,
+        "start_byte": 1583,
+        "end_byte": 1593
+      },
+      "target_arity": 0
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/language_forms/source.erl:init:48:0",
+        "callee_name": "inventory_worker:start_link",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+        "line_number": 49,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "inventory_worker:start_link",
+        "terminal_name": "start_link",
+        "receiver": null,
+        "namespace_path": [
+          "inventory_worker"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/language_forms/source.erl:init:48:0",
+      "span": {
+        "start_line": 49,
+        "start_column": 60,
+        "end_line": 49,
+        "end_column": 70,
+        "start_byte": 1519,
+        "end_byte": 1529
+      },
+      "target_arity": 1
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+        "callee_name": "eunit/include/eunit.hrl",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+        "line_number": 16,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "eunit/include/eunit.hrl",
+        "terminal_name": "eunit.hrl",
+        "receiver": null,
+        "namespace_path": [
+          "eunit",
+          "include"
+        ],
+        "import_context": "include_lib"
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "span": {
+        "start_line": 16,
+        "start_column": 13,
+        "end_line": 16,
+        "end_column": 38,
+        "start_byte": 561,
+        "end_byte": 586
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+        "callee_name": "geo",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+        "line_number": 11,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "geo",
+        "terminal_name": "geo",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "import"
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "span": {
+        "start_line": 11,
+        "start_column": 15,
+        "end_line": 11,
+        "end_column": 18,
+        "start_byte": 447,
+        "end_byte": 450
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+        "callee_name": "ledger",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+        "line_number": 12,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "ledger",
+        "terminal_name": "ledger",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "import"
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "span": {
+        "start_line": 12,
+        "start_column": 8,
+        "end_line": 12,
+        "end_column": 14,
+        "start_byte": 470,
+        "end_byte": 476
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/language_forms/source.erl:item:23:0",
+        "callee_name": "erlang:monotonic_time",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+        "line_number": 24,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "erlang:monotonic_time",
+        "terminal_name": "monotonic_time",
+        "receiver": null,
+        "namespace_path": [
+          "erlang"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/language_forms/source.erl:item:23:0",
+      "span": {
+        "start_line": 24,
+        "start_column": 30,
+        "end_line": 24,
+        "end_column": 44,
+        "start_byte": 796,
+        "end_byte": 810
+      },
+      "target_arity": 0
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+        "callee_name": "flush",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+        "line_number": 41,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "flush",
+        "terminal_name": "flush",
+        "receiver": null,
+        "namespace_path": [
+          "ledger"
+        ],
+        "import_context": "import"
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "span": {
+        "start_line": 41,
+        "start_column": 4,
+        "end_line": 41,
+        "end_column": 9,
+        "start_byte": 1350,
+        "end_byte": 1355
+      },
+      "target_arity": 1
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+        "callee_name": "ledger:record",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+        "line_number": 39,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "ledger:record",
+        "terminal_name": "record",
+        "receiver": null,
+        "namespace_path": [
+          "ledger"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "span": {
+        "start_line": 39,
+        "start_column": 11,
+        "end_line": 39,
+        "end_column": 17,
+        "start_byte": 1294,
+        "end_byte": 1300
+      },
+      "target_arity": 2
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+        "callee_name": "ledger:record",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+        "line_number": 40,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "ledger:record",
+        "terminal_name": "record",
+        "receiver": null,
+        "namespace_path": [
+          "ledger"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "span": {
+        "start_line": 40,
+        "start_column": 11,
+        "end_line": 40,
+        "end_column": 17,
+        "start_byte": 1323,
+        "end_byte": 1329
+      },
+      "target_arity": 3
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+        "callee_name": "audit:record",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+        "line_number": 32,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "audit:record",
+        "terminal_name": "record",
+        "receiver": null,
+        "namespace_path": [
+          "audit"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "span": {
+        "start_line": 32,
+        "start_column": 28,
+        "end_line": 32,
+        "end_column": 34,
+        "start_byte": 1093,
+        "end_byte": 1099
+      },
+      "target_arity": 1
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+        "callee_name": "rpc:call",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+        "line_number": 32,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "rpc:call",
+        "terminal_name": "call",
+        "receiver": null,
+        "namespace_path": [
+          "rpc"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "span": {
+        "start_line": 32,
+        "start_column": 8,
+        "end_line": 32,
+        "end_column": 12,
+        "start_byte": 1073,
+        "end_byte": 1077
+      },
+      "target_arity": 4
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+        "callee_name": "timer:apply_after",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+        "line_number": 31,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "timer:apply_after",
+        "terminal_name": "apply_after",
+        "receiver": null,
+        "namespace_path": [
+          "timer"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "span": {
+        "start_line": 31,
+        "start_column": 10,
+        "end_line": 31,
+        "end_column": 21,
+        "start_byte": 1024,
+        "end_byte": 1035
+      },
+      "target_arity": 4
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:MODULE:variable_ref:30:17",
+      "name": "MODULE",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 30,
+      "start_column": 17,
+      "end_line": 30,
+      "end_column": 23,
+      "start_byte": 987,
+      "end_byte": 993,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:MODULE:variable_ref:31:29",
+      "name": "MODULE",
+      "kind": "variable_ref",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 31,
+      "start_column": 29,
+      "end_line": 31,
+      "end_column": 35,
+      "start_byte": 1043,
+      "end_byte": 1049,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:apply_after:call:31:10",
+      "name": "apply_after",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 31,
+      "start_column": 10,
+      "end_line": 31,
+      "end_column": 21,
+      "start_byte": 1024,
+      "end_byte": 1035,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "timer"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:binary:type_usage:19:18",
+      "name": "binary",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 19,
+      "start_column": 18,
+      "end_line": 19,
+      "end_column": 24,
+      "start_byte": 616,
+      "end_byte": 622,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:sku:19:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:call:call:32:8",
+      "name": "call",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 32,
+      "start_column": 8,
+      "end_line": 32,
+      "end_column": 12,
+      "start_byte": 1073,
+      "end_byte": 1077,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "rpc"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:conn:type_usage:25:24",
+      "name": "conn",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 25,
+      "start_column": 24,
+      "end_line": 25,
+      "end_column": 28,
+      "start_byte": 853,
+      "end_byte": 857,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:state:25:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:erlang:type_usage:24:23",
+      "name": "erlang",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 24,
+      "start_column": 23,
+      "end_line": 24,
+      "end_column": 29,
+      "start_byte": 789,
+      "end_byte": 795,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:item:23:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:flush:call:41:4",
+      "name": "flush",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 41,
+      "start_column": 4,
+      "end_line": 41,
+      "end_column": 9,
+      "start_byte": 1350,
+      "end_byte": 1355,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:gen_tcp:type_usage:21:16",
+      "name": "gen_tcp",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 21,
+      "start_column": 16,
+      "end_line": 21,
+      "end_column": 23,
+      "start_byte": 688,
+      "end_byte": 695,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:conn:21:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:geo:type_usage:53:20",
+      "name": "geo",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 53,
+      "start_column": 20,
+      "end_line": 53,
+      "end_column": 23,
+      "start_byte": 1717,
+      "end_byte": 1720,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:internal:53:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:integer:type_usage:24:50",
+      "name": "integer",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 24,
+      "start_column": 50,
+      "end_line": 24,
+      "end_column": 57,
+      "start_byte": 816,
+      "end_byte": 823,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:item:23:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:item:type_usage:25:59",
+      "name": "item",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 25,
+      "start_column": 59,
+      "end_line": 25,
+      "end_column": 63,
+      "start_byte": 888,
+      "end_byte": 892,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:state:25:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:item:type_usage:36:47",
+      "name": "item",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 36,
+      "start_column": 47,
+      "end_line": 36,
+      "end_column": 51,
+      "start_byte": 1206,
+      "end_byte": 1210,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:item:type_usage:42:10",
+      "name": "item",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 42,
+      "start_column": 10,
+      "end_line": 42,
+      "end_column": 14,
+      "start_byte": 1372,
+      "end_byte": 1376,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:ledger:type_usage:39:4",
+      "name": "ledger",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 39,
+      "start_column": 4,
+      "end_line": 39,
+      "end_column": 10,
+      "start_byte": 1287,
+      "end_byte": 1293,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:ledger:type_usage:40:4",
+      "name": "ledger",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 40,
+      "start_column": 4,
+      "end_line": 40,
+      "end_column": 10,
+      "start_byte": 1316,
+      "end_byte": 1322,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:ledger:type_usage:41:4",
+      "name": "ledger",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 41,
+      "start_column": 4,
+      "end_line": 41,
+      "end_column": 9,
+      "start_byte": 1350,
+      "end_byte": 1355,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:loop:call:30:25",
+      "name": "loop",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 30,
+      "start_column": 25,
+      "end_line": 30,
+      "end_column": 29,
+      "start_byte": 995,
+      "end_byte": 999,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "inventory"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:monotonic_time:call:24:30",
+      "name": "monotonic_time",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 24,
+      "start_column": 30,
+      "end_line": 24,
+      "end_column": 44,
+      "start_byte": 796,
+      "end_byte": 810,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:item:23:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "erlang"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:node:call:32:13",
+      "name": "node",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 32,
+      "start_column": 13,
+      "end_line": 32,
+      "end_column": 17,
+      "start_byte": 1078,
+      "end_byte": 1082,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:non_neg_integer:type_usage:23:40",
+      "name": "non_neg_integer",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 23,
+      "start_column": 40,
+      "end_line": 23,
+      "end_column": 55,
+      "start_byte": 747,
+      "end_byte": 762,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:item:23:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:pid:type_usage:28:17",
+      "name": "pid",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 28,
+      "start_column": 17,
+      "end_line": 28,
+      "end_column": 20,
+      "start_byte": 952,
+      "end_byte": 955,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:point:type_usage:53:24",
+      "name": "point",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 53,
+      "start_column": 24,
+      "end_line": 53,
+      "end_column": 29,
+      "start_byte": 1721,
+      "end_byte": 1726,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:internal:53:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:pos_integer:type_usage:36:21",
+      "name": "pos_integer",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 36,
+      "start_column": 21,
+      "end_line": 36,
+      "end_column": 32,
+      "start_byte": 1180,
+      "end_byte": 1191,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:qty:member_access:42:26",
+      "name": "qty",
+      "kind": "member_access",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 42,
+      "start_column": 26,
+      "end_line": 42,
+      "end_column": 29,
+      "start_byte": 1388,
+      "end_byte": 1391,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "item"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:record:call:32:28",
+      "name": "record",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 32,
+      "start_column": 28,
+      "end_line": 32,
+      "end_column": 34,
+      "start_byte": 1093,
+      "end_byte": 1099,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "audit"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:record:call:39:11",
+      "name": "record",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 39,
+      "start_column": 11,
+      "end_line": 39,
+      "end_column": 17,
+      "start_byte": 1294,
+      "end_byte": 1300,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ledger"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:record:call:40:11",
+      "name": "record",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 40,
+      "start_column": 11,
+      "end_line": 40,
+      "end_column": 17,
+      "start_byte": 1323,
+      "end_byte": 1329,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ledger"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:call:56:28",
+      "name": "reserve",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 56,
+      "start_column": 28,
+      "end_line": 56,
+      "end_column": 35,
+      "start_byte": 1782,
+      "end_byte": 1789,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve_test:56:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:result:type_usage:36:39",
+      "name": "result",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 36,
+      "start_column": 39,
+      "end_line": 36,
+      "end_column": 45,
+      "start_byte": 1198,
+      "end_byte": 1204,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:rpc:type_usage:32:4",
+      "name": "rpc",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 32,
+      "start_column": 4,
+      "end_line": 32,
+      "end_column": 7,
+      "start_byte": 1069,
+      "end_byte": 1072,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:run:call:31:37",
+      "name": "run",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 31,
+      "start_column": 37,
+      "end_line": 31,
+      "end_column": 40,
+      "start_byte": 1051,
+      "end_byte": 1054,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "inventory"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:sku:member_access:42:15",
+      "name": "sku",
+      "kind": "member_access",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 42,
+      "start_column": 15,
+      "end_line": 42,
+      "end_column": 18,
+      "start_byte": 1377,
+      "end_byte": 1380,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "item"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:sku:type_usage:23:22",
+      "name": "sku",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 23,
+      "start_column": 22,
+      "end_line": 23,
+      "end_column": 25,
+      "start_byte": 729,
+      "end_byte": 732,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:item:23:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:sku:type_usage:25:49",
+      "name": "sku",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 25,
+      "start_column": 49,
+      "end_line": 25,
+      "end_column": 52,
+      "start_byte": 878,
+      "end_byte": 881,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:state:25:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:sku:type_usage:36:14",
+      "name": "sku",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 36,
+      "start_column": 14,
+      "end_line": 36,
+      "end_column": 17,
+      "start_byte": 1173,
+      "end_byte": 1176,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:socket:type_usage:21:24",
+      "name": "socket",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 21,
+      "start_column": 24,
+      "end_line": 21,
+      "end_column": 30,
+      "start_byte": 696,
+      "end_byte": 702,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:conn:21:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:spawn:call:30:10",
+      "name": "spawn",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 30,
+      "start_column": 10,
+      "end_line": 30,
+      "end_column": 15,
+      "start_byte": 980,
+      "end_byte": 985,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:start_link:call:49:60",
+      "name": "start_link",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 49,
+      "start_column": 60,
+      "end_line": 49,
+      "end_column": 70,
+      "start_byte": 1519,
+      "end_byte": 1529,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:init:48:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "inventory_worker"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:start_link:call:50:42",
+      "name": "start_link",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 50,
+      "start_column": 42,
+      "end_line": 50,
+      "end_column": 52,
+      "start_byte": 1583,
+      "end_byte": 1593,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:init:48:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "inventory_cache"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:state:type_usage:30:33",
+      "name": "state",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 30,
+      "start_column": 33,
+      "end_line": 30,
+      "end_column": 38,
+      "start_byte": 1003,
+      "end_byte": 1008,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:term:type_usage:20:37",
+      "name": "term",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 20,
+      "start_column": 37,
+      "end_line": 20,
+      "end_column": 41,
+      "start_byte": 663,
+      "end_byte": 667,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:result:20:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:timer:type_usage:31:4",
+      "name": "timer",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 31,
+      "start_column": 4,
+      "end_line": 31,
+      "end_column": 9,
+      "start_byte": 1018,
+      "end_byte": 1023,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/language_forms/source.erl:x:member_access:53:30",
+      "name": "x",
+      "kind": "member_access",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 53,
+      "start_column": 30,
+      "end_line": 53,
+      "end_column": 31,
+      "start_byte": 1727,
+      "end_byte": 1728,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:internal:53:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "point"
+      }
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/erlang/language_forms/source.erl:Qty:37:13",
+      "resolved_type": "pos_integer",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "erlang",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/erlang/language_forms/source.erl:Sku:37:8",
+      "resolved_type": "sku",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "erlang",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/erlang/language_forms/source.erl:added:24:15",
+      "resolved_type": "integer",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "erlang",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/erlang/language_forms/source.erl:conn:21:0",
+      "resolved_type": "gen_tcp:socket",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "erlang",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/erlang/language_forms/source.erl:conn:25:16",
+      "resolved_type": "conn",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "erlang",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/erlang/language_forms/source.erl:qty:23:29",
+      "resolved_type": "non_neg_integer",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "erlang",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "resolved_type": "result",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "erlang",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/erlang/language_forms/source.erl:sku:19:0",
+      "resolved_type": "binary",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "erlang",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/erlang/language_forms/source.erl:sku:23:15",
+      "resolved_type": "sku",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "erlang",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "resolved_type": "pid",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "erlang",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "erlang.export_attribute.v1",
+      "capture_name": "export_attribute",
+      "node_kind": "export_attribute",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "containing_key": null,
+      "start_line": 8,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 53,
+      "start_byte": 331,
+      "end_byte": 384,
+      "confidence": "1.000",
+      "metadata": {
+        "export_kind": "function",
+        "exported_count": 5,
+        "pattern_version": 1,
+        "query_family": "module"
+      }
+    },
+    {
+      "pattern_id": "erlang.export_attribute.v1",
+      "capture_name": "export_attribute",
+      "node_kind": "export_type_attribute",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "containing_key": null,
+      "start_line": 9,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 22,
+      "start_byte": 385,
+      "end_byte": 407,
+      "confidence": "1.000",
+      "metadata": {
+        "export_kind": "type",
+        "exported_count": 1,
+        "pattern_version": 1,
+        "query_family": "module"
+      }
+    },
+    {
+      "pattern_id": "erlang.include_directive.v1",
+      "capture_name": "include_directive",
+      "node_kind": "pp_include_lib",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "containing_key": null,
+      "start_line": 16,
+      "start_column": 0,
+      "end_line": 16,
+      "end_column": 40,
+      "start_byte": 548,
+      "end_byte": 588,
+      "confidence": "1.000",
+      "metadata": {
+        "application": "eunit",
+        "include_kind": "include_lib",
+        "path": "eunit/include/eunit.hrl",
+        "pattern_version": 1,
+        "query_family": "imports"
+      }
+    },
+    {
+      "pattern_id": "erlang.module_attribute.v1",
+      "capture_name": "module_attribute",
+      "node_kind": "module_attribute",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 19,
+      "start_byte": 276,
+      "end_byte": 295,
+      "confidence": "1.000",
+      "metadata": {
+        "module": "inventory",
+        "pattern_version": 1,
+        "query_family": "module"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "covered_lines": 58,
+      "covered_bytes": 1811,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 58,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 1811,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/language_forms/source.erl:init:48:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "covered_lines": 4,
+      "covered_bytes": 250,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 48,
+      "start_column": 0,
+      "end_line": 51,
+      "end_column": 49,
+      "start_byte": 1445,
+      "end_byte": 1695,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/language_forms/source.erl:internal:53:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "covered_lines": 1,
+      "covered_bytes": 41,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 53,
+      "start_column": 0,
+      "end_line": 53,
+      "end_column": 41,
+      "start_byte": 1697,
+      "end_byte": 1738,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/language_forms/source.erl:loop:44:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "covered_lines": 1,
+      "covered_bytes": 21,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 44,
+      "start_column": 0,
+      "end_line": 44,
+      "end_column": 21,
+      "start_byte": 1402,
+      "end_byte": 1423,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "covered_lines": 6,
+      "covered_bytes": 185,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 37,
+      "start_column": 0,
+      "end_line": 42,
+      "end_column": 38,
+      "start_byte": 1215,
+      "end_byte": 1400,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve_test:56:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "covered_lines": 1,
+      "covered_bytes": 48,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 56,
+      "start_column": 0,
+      "end_line": 56,
+      "end_column": 48,
+      "start_byte": 1754,
+      "end_byte": 1802,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/language_forms/source.erl:run:46:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "covered_lines": 1,
+      "covered_bytes": 18,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 46,
+      "start_column": 0,
+      "end_line": 46,
+      "end_column": 18,
+      "start_byte": 1425,
+      "end_byte": 1443,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/language_forms/source.erl:start:29:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "covered_lines": 5,
+      "covered_bytes": 160,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 29,
+      "start_column": 0,
+      "end_line": 33,
+      "end_column": 8,
+      "start_byte": 959,
+      "end_byte": 1119,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "a",
+      "kind": "other",
+      "carrier": "reserve",
+      "arg_position": 0,
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "start_line": 56,
+      "start_column": 38,
+      "end_line": 56,
+      "end_column": 41,
+      "start_byte": 1792,
+      "end_byte": 1795,
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve_test:56:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "comment",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve:37:0",
+      "start_line": 38,
+      "start_column": 4,
+      "end_line": 38,
+      "end_column": 46,
+      "start_byte": 1240,
+      "end_byte": 1282,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 75,
+      "start_byte": 0,
+      "end_byte": 75,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 70,
+      "start_byte": 76,
+      "end_byte": 146,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 75,
+      "start_byte": 147,
+      "end_byte": 222,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:inventory:5:0",
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 52,
+      "start_byte": 223,
+      "end_byte": 275,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "containing_key": "fixtures/extraction/erlang/language_forms/source.erl:reserve_test:56:0",
+      "start_line": 56,
+      "start_column": 38,
+      "end_line": 56,
+      "end_column": 41,
+      "start_byte": 1792,
+      "end_byte": 1795,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "containing_key": null,
+      "start_line": 16,
+      "start_column": 13,
+      "end_line": 16,
+      "end_column": 38,
+      "start_byte": 561,
+      "end_byte": 586,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "containing_key": null,
+      "start_line": 27,
+      "start_column": 5,
+      "end_line": 27,
+      "end_column": 32,
+      "start_byte": 905,
+      "end_byte": 932,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "containing_key": null,
+      "start_line": 35,
+      "start_column": 5,
+      "end_line": 35,
+      "end_column": 35,
+      "start_byte": 1126,
+      "end_byte": 1156,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "containing_key": null,
+      "start_line": 6,
+      "start_column": 11,
+      "end_line": 6,
+      "end_column": 31,
+      "start_byte": 307,
+      "end_byte": 327,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": [
+    {
+      "identifier_key": "fixtures/extraction/erlang/language_forms/source.erl:result:type_usage:36:39",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/language_forms/source.erl",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "#item{}",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

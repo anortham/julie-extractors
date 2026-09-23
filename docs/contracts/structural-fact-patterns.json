@@ -842,6 +842,70 @@
     "query_family": "marker"
   },
   {
+    "description": "A static path entry of a Cowboy cowboy_router:compile/1 dispatch table.",
+    "languages": [
+      "erlang"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"dispatch_table\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static PathMatch string of the dispatch entry.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key with a leading slash and Cowboy :binding segments preserved.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Binding names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Static HostMatch of the enclosing host entry (`_` matches any host).",
+        "key": "host",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Handler module atom that serves the path.",
+        "key": "handler_module",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "cowboy.route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "A C++ `#define` object-like or function-like macro.",
     "languages": [
       "cpp"
@@ -3335,6 +3399,7 @@
       "php",
       "ruby",
       "elixir",
+      "erlang",
       "rust"
     ],
     "metadata_keys": [
@@ -3357,7 +3422,7 @@
         "value_type": "string"
       },
       {
-        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, req, tesla, httpoison, finch, httpc).",
+        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, req, tesla, httpoison, finch, httpc, hackney, gun).",
         "key": "client",
         "presence": "always",
         "value_type": "string"
@@ -4265,10 +4330,11 @@
     "query_family": "data"
   },
   {
-    "description": "A package dependency declared in a Cargo.toml, pyproject.toml, MSBuild, NuGet, or Maven manifest.",
+    "description": "A package dependency declared in a Cargo.toml, pyproject.toml, MSBuild, NuGet, Maven, rebar.config, or Erlang application resource manifest.",
     "languages": [
       "toml",
-      "xml"
+      "xml",
+      "erlang"
     ],
     "metadata_keys": [
       {
@@ -4284,19 +4350,19 @@
         "value_type": "string"
       },
       {
-        "description": "Package ecosystem (\"cargo\", \"pypi\", \"nuget\", or \"maven\").",
+        "description": "Package ecosystem (\"cargo\", \"pypi\", \"nuget\", \"maven\", \"hex\" for rebar.config, or \"otp\" for application resource `applications`).",
         "key": "ecosystem",
         "presence": "always",
         "value_type": "string"
       },
       {
-        "description": "Dependency name: the Cargo key, the PEP 503-normalized distribution name, the NuGet package id, or the Maven `groupId:artifactId`.",
+        "description": "Dependency name: the Cargo key, the PEP 503-normalized distribution name, the NuGet package id, the Maven `groupId:artifactId`, or the Erlang application atom.",
         "key": "name",
         "presence": "always",
         "value_type": "string"
       },
       {
-        "description": "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`; Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`; NuGet `PackageReference`/`PackageVersion`/`GlobalPackageReference`/`dependency`; Maven scope, `managed`, `plugin`, or `managed-plugin`.",
+        "description": "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`; Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`; NuGet `PackageReference`/`PackageVersion`/`GlobalPackageReference`/`dependency`; Maven scope, `managed`, `plugin`, or `managed-plugin`; rebar `deps`, `plugins`, `project_plugins`, or `profile:<name>`; OTP `applications`, `included_applications`, or `optional_applications`.",
         "key": "group",
         "presence": "always",
         "value_type": "string"

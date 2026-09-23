@@ -20,7 +20,7 @@ adds product scope on top of it, not a replacement for it.
 
 ### Erlang — elixir-parity tier
 
-- **Extensions:** `.erl`, `.hrl` (deferred: `.escript`, Erlang term/config formats)
+- **Extensions:** `.erl`, `.hrl`. `.escript` and the `*.app.src`, `rebar.config`, and `sys.config` term files were added by the wave-2 gap closure (`docs/plans/2026-09-22-language-gap-closure.md`).
 - **Grammar:** `tree-sitter-erlang` 0.20.0 (WhatsApp-maintained; published to crates.io
   2026-07-28 — verified live, GitHub releases lag). Runtime pin here is `tree-sitter =0.26.11`;
   both grammars use `tree-sitter-language 0.1`, so compatibility is expected but Phase 0 proves it.
