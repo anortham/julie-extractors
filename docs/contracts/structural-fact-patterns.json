@@ -3335,7 +3335,8 @@
       "php",
       "ruby",
       "elixir",
-      "rust"
+      "rust",
+      "swift"
     ],
     "metadata_keys": [
       {
@@ -3357,7 +3358,7 @@
         "value_type": "string"
       },
       {
-        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, req, tesla, httpoison, finch, httpc).",
+        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, req, tesla, httpoison, finch, httpc, urlsession, alamofire).",
         "key": "client",
         "presence": "always",
         "value_type": "string"
@@ -4265,10 +4266,11 @@
     "query_family": "data"
   },
   {
-    "description": "A package dependency declared in a Cargo.toml, pyproject.toml, MSBuild, NuGet, or Maven manifest.",
+    "description": "A package dependency declared in a Cargo.toml, pyproject.toml, MSBuild, NuGet, Maven, or SwiftPM manifest.",
     "languages": [
       "toml",
-      "xml"
+      "xml",
+      "swift"
     ],
     "metadata_keys": [
       {
@@ -4284,19 +4286,19 @@
         "value_type": "string"
       },
       {
-        "description": "Package ecosystem (\"cargo\", \"pypi\", \"nuget\", or \"maven\").",
+        "description": "Package ecosystem (\"cargo\", \"pypi\", \"nuget\", \"maven\", or \"swiftpm\").",
         "key": "ecosystem",
         "presence": "always",
         "value_type": "string"
       },
       {
-        "description": "Dependency name: the Cargo key, the PEP 503-normalized distribution name, the NuGet package id, or the Maven `groupId:artifactId`.",
+        "description": "Dependency name: the Cargo key, the PEP 503-normalized distribution name, the NuGet package id, the Maven `groupId:artifactId`, or the SwiftPM package identity (the `name:` argument, else the last URL or path component without `.git`).",
         "key": "name",
         "presence": "always",
         "value_type": "string"
       },
       {
-        "description": "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`; Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`; NuGet `PackageReference`/`PackageVersion`/`GlobalPackageReference`/`dependency`; Maven scope, `managed`, `plugin`, or `managed-plugin`.",
+        "description": "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`; Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`; NuGet `PackageReference`/`PackageVersion`/`GlobalPackageReference`/`dependency`; Maven scope, `managed`, `plugin`, or `managed-plugin`; SwiftPM `dependencies`.",
         "key": "group",
         "presence": "always",
         "value_type": "string"
@@ -4330,6 +4332,12 @@
         "key": "extras",
         "presence": "optional",
         "value_type": "string_array"
+      },
+      {
+        "description": "SwiftPM package URL or local path.",
+        "key": "location",
+        "presence": "optional",
+        "value_type": "string"
       },
       {
         "description": "PEP 508 environment marker.",
@@ -8672,6 +8680,120 @@
     "query_family": "async"
   },
   {
+    "description": "The `Package(name:)` declaration of a SwiftPM `Package.swift` manifest.",
+    "languages": [
+      "swift"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Package name.",
+        "key": "name",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "swiftpm.package.v1",
+    "query_family": "dependencies"
+  },
+  {
+    "description": "A product (`.library`, `.executable`, or `.plugin`) declared in a SwiftPM `Package.swift` manifest.",
+    "languages": [
+      "swift"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Product factory name (\"library\", \"executable\", or \"plugin\").",
+        "key": "product_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Product name.",
+        "key": "name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Static target names the product exports.",
+        "key": "targets",
+        "presence": "optional",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "swiftpm.product.v1",
+    "query_family": "dependencies"
+  },
+  {
+    "description": "A target (`.target`, `.testTarget`, `.executableTarget`, `.macro`, `.plugin`, `.systemLibrary`, or `.binaryTarget`) declared in a SwiftPM `Package.swift` manifest.",
+    "languages": [
+      "swift"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Target factory name (for example \"target\" or \"testTarget\").",
+        "key": "target_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Target name.",
+        "key": "name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Static `path:` argument.",
+        "key": "path",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Static dependency names: a bare string, `.target(name:)`, `.byName(name:)`, or `.product(name:)`.",
+        "key": "dependencies",
+        "presence": "optional",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "swiftpm.target.v1",
+    "query_family": "dependencies"
+  },
+  {
     "description": "A static Symfony #[Route] attribute on a controller class or method.",
     "languages": [
       "php"
@@ -8962,6 +9084,82 @@
     ],
     "pattern_id": "typescript.await_expression.v1",
     "query_family": "async"
+  },
+  {
+    "description": "A Vapor route-builder verb call with static path components and a handler, joined to its same-file `grouped`/`group` prefix, in a file that imports Vapor.",
+    "languages": [
+      "swift"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"route_builder\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The call's own static path components joined with `/` behind a leading slash.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The same-file `grouped(...)`/`group(...)` prefix joined with the route template, when a prefix applies.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key with a leading slash and Vapor `:param` segments preserved.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Uppercase HTTP method from the verb method name or the `on(.VERB, ...)` argument.",
+        "key": "verb",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested (\"attested\").",
+        "key": "verb_source",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Handler expression passed as `use:`; absent for a trailing closure.",
+        "key": "handler",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "vapor.route.v1",
+    "query_family": "framework"
   },
   {
     "description": "A VB.NET attribute use.",

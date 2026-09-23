@@ -3617,6 +3617,21 @@
           "name": "structure",
           "source": "fixtures/extraction/swift/structure/source.swift",
           "expected": "fixtures/extraction/swift/structure/expected.json"
+        },
+        {
+          "name": "declarations",
+          "source": "fixtures/extraction/swift/declarations/source.swift",
+          "expected": "fixtures/extraction/swift/declarations/expected.json"
+        },
+        {
+          "name": "vapor_http",
+          "source": "fixtures/extraction/swift/vapor_http/source.swift",
+          "expected": "fixtures/extraction/swift/vapor_http/expected.json"
+        },
+        {
+          "name": "package_manifest",
+          "source": "fixtures/extraction/swift/package_manifest/Package.swift",
+          "expected": "fixtures/extraction/swift/package_manifest/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3640,6 +3655,7 @@
             "interface",
             "method",
             "module",
+            "operator",
             "property",
             "struct",
             "type",
@@ -3677,6 +3693,7 @@
             "interface",
             "method",
             "module",
+            "operator",
             "property",
             "struct"
           ],
@@ -3689,16 +3706,16 @@
           "supported": [
             "swift.await_expression.v1",
             "swift.actor_declaration.v1",
-            "swift.attribute.v1"
+            "swift.attribute.v1",
+            "vapor.route.v1",
+            "http.client_request.v1",
+            "manifest.dependency.v1",
+            "swiftpm.package.v1",
+            "swiftpm.product.v1",
+            "swiftpm.target.v1"
           ],
           "not_applicable": [],
           "open_gaps": [
-            {
-              "kind": "quick.quickspec_subclass_container",
-              "reason": "Quick declares a spec as `class CalculatorSpec: QuickSpec` whose `override func spec()` body holds the `describe`/`it` tree. The call adapter emits the group and example rows, and the scoping pass keeps them, but the `QuickSpec` subclass itself publishes no container row, so a consumer listing test containers misses the class the runner actually loads.",
-              "required_closure": "mark a class whose `base_types` metadata records `QuickSpec` or `AsyncSpec` as a test container, and register a golden fixture that carries such a class beside a same-shaped non-spec subclass as the control",
-              "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 14 follow-up: QuickSpec subclass containers"
-            },
             {
               "kind": "swift_testing.test_traits",
               "reason": "Swift Testing attaches traits to a case or a suite through extra macro arguments, such as `@Test(.tags(.slow))`, `@Test(.disabled(\"flaky\"))`, and `@Suite(.serialized)`. The annotation normalizer keys on the macro name and drops its argument list, so a skip, a tag, and a serialization constraint reach no channel and a runner filter such as `--filter-tag slow` has no published evidence.",
@@ -3734,6 +3751,7 @@
             "enum",
             "function",
             "interface",
+            "method",
             "property"
           ],
           "not_applicable": [],

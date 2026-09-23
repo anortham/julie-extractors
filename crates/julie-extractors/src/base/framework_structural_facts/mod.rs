@@ -21,6 +21,7 @@ mod scan;
 mod sinatra;
 mod spring;
 mod static_arg;
+mod swift;
 mod symfony;
 
 use tree_sitter::Tree;
@@ -86,6 +87,8 @@ pub(super) const LARAVEL_RESOURCE_ROUTE_PATTERN_ID: &str = "laravel.resource_rou
 pub(super) const LARAVEL_ROUTE_PREFIX_PATTERN_ID: &str = "laravel.route_prefix.v1";
 pub(super) const SYMFONY_ROUTE_PATTERN_ID: &str = "symfony.route.v1";
 pub(super) const KTOR_ROUTE_PATTERN_ID: &str = "ktor.route.v1";
+pub(super) const VAPOR_ROUTE_PATTERN_ID: &str = "vapor.route.v1";
+pub(super) const MANIFEST_DEPENDENCY_PATTERN_ID: &str = "manifest.dependency.v1";
 pub(super) const PHOENIX_ROUTE_PATTERN_ID: &str = "phoenix.route.v1";
 pub(super) const PHOENIX_RESOURCE_ROUTE_PATTERN_ID: &str = "phoenix.resource_route.v1";
 pub(super) const PHOENIX_FORWARD_PATTERN_ID: &str = "phoenix.forward.v1";
@@ -328,6 +331,14 @@ pub fn collect_framework_structural_facts(
             ));
             rust_facts
         }
+        "swift" => {
+            let mut swift_facts =
+                swift::collect_swift_framework_facts(language, tree, file_path, content);
+            swift_facts.extend(collect_backend_http_client_requests(
+                language, tree, file_path, content,
+            ));
+            swift_facts
+        }
         "vue" => collect_vue_template_htmx_attributes(language, tree, file_path, content),
         _ => Vec::new(),
     };
@@ -367,6 +378,14 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
         "php" => LARAVEL_PATTERN_IDS,
         "elixir" => ELIXIR_PATTERN_IDS,
         "rust" => RUST_PATTERN_IDS,
+        "swift" => &[
+            VAPOR_ROUTE_PATTERN_ID,
+            HTTP_CLIENT_REQUEST_PATTERN_ID,
+            MANIFEST_DEPENDENCY_PATTERN_ID,
+            "swiftpm.package.v1",
+            "swiftpm.product.v1",
+            "swiftpm.target.v1",
+        ],
         "vue" => COMPONENT_MARKUP_FRAMEWORK_PATTERN_IDS,
         _ => &[],
     }

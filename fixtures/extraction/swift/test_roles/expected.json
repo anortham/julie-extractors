@@ -537,6 +537,84 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:AsyncCalculatorSpec:96:0",
+      "name": "AsyncCalculatorSpec",
+      "kind": "class",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 96,
+      "start_column": 0,
+      "end_line": 100,
+      "end_column": 1,
+      "start_byte": 1673,
+      "end_byte": 1811,
+      "body_span": {
+        "start_line": 96,
+        "start_column": 43,
+        "end_line": 100,
+        "end_column": 1,
+        "start_byte": 1716,
+        "end_byte": 1811
+      },
+      "body_hash": "fbec307f0a374d9c7457654b406a0985",
+      "signature": "final class AsyncCalculatorSpec: AsyncSpec",
+      "doc_comment": null,
+      "visibility": "Internal",
+      "parent_key": null,
+      "metadata": {
+        "base_types": [
+          "AsyncSpec"
+        ],
+        "modifiers": "final",
+        "test_container": true,
+        "test_role": "test_container",
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:CalculatorSpec:90:0",
+      "name": "CalculatorSpec",
+      "kind": "class",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 90,
+      "start_column": 0,
+      "end_line": 94,
+      "end_column": 1,
+      "start_byte": 1541,
+      "end_byte": 1671,
+      "body_span": {
+        "start_line": 90,
+        "start_column": 38,
+        "end_line": 94,
+        "end_column": 1,
+        "start_byte": 1579,
+        "end_byte": 1671
+      },
+      "body_hash": "e51a4a0af46dbc1e79f58cf88bcc7dc7",
+      "signature": "final class CalculatorSpec: QuickSpec",
+      "doc_comment": null,
+      "visibility": "Internal",
+      "parent_key": null,
+      "metadata": {
+        "base_types": [
+          "QuickSpec"
+        ],
+        "modifiers": "final",
+        "test_container": true,
+        "test_role": "test_container",
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/swift/test_roles/test_source.swift:CalculatorSupport:37:0",
       "name": "CalculatorSupport",
       "kind": "struct",
@@ -853,6 +931,43 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:SpecLookalike:102:0",
+      "name": "SpecLookalike",
+      "kind": "class",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 102,
+      "start_column": 0,
+      "end_line": 104,
+      "end_column": 1,
+      "start_byte": 1813,
+      "end_byte": 1887,
+      "body_span": {
+        "start_line": 102,
+        "start_column": 36,
+        "end_line": 104,
+        "end_column": 1,
+        "start_byte": 1849,
+        "end_byte": 1887
+      },
+      "body_hash": "0e784f2c39ff287ec89ca77fbb0c38de",
+      "signature": "final class SpecLookalike: NSObject",
+      "doc_comment": null,
+      "visibility": "Internal",
+      "parent_key": null,
+      "metadata": {
+        "base_types": [
+          "NSObject"
+        ],
+        "modifiers": "final",
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/swift/test_roles/test_source.swift:XCTest:1:0",
       "name": "XCTest",
       "kind": "import",
@@ -1005,6 +1120,40 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/swift/test_roles/test_source.swift:addition:56:4",
+      "metadata": {
+        "is_test": true,
+        "test_role": "test_case"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:adds:92:8",
+      "name": "adds",
+      "kind": "function",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 92,
+      "start_column": 8,
+      "end_line": 92,
+      "end_column": 49,
+      "start_byte": 1622,
+      "end_byte": 1663,
+      "body_span": {
+        "start_line": 92,
+        "start_column": 19,
+        "end_line": 92,
+        "end_column": 49,
+        "start_byte": 1633,
+        "end_byte": 1663
+      },
+      "body_hash": "da245f6d4128a843ce5aa2bea25261fc",
+      "signature": "it(\"adds\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/swift/test_roles/test_source.swift:spec:91:4",
       "metadata": {
         "is_test": true,
         "test_role": "test_case"
@@ -1442,6 +1591,111 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:spec:103:4",
+      "name": "spec",
+      "kind": "method",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 103,
+      "start_column": 4,
+      "end_line": 103,
+      "end_column": 34,
+      "start_byte": 1855,
+      "end_byte": 1885,
+      "body_span": {
+        "start_line": 103,
+        "start_column": 31,
+        "end_line": 103,
+        "end_column": 34,
+        "start_byte": 1882,
+        "end_byte": 1885
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "override class func spec()",
+      "doc_comment": null,
+      "visibility": "Internal",
+      "parent_key": "fixtures/extraction/swift/test_roles/test_source.swift:SpecLookalike:102:0",
+      "metadata": {
+        "modifiers": "override, class",
+        "parameters": "()",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:spec:91:4",
+      "name": "spec",
+      "kind": "method",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 91,
+      "start_column": 4,
+      "end_line": 93,
+      "end_column": 5,
+      "start_byte": 1585,
+      "end_byte": 1669,
+      "body_span": {
+        "start_line": 91,
+        "start_column": 31,
+        "end_line": 93,
+        "end_column": 5,
+        "start_byte": 1612,
+        "end_byte": 1669
+      },
+      "body_hash": "75b086790d085aef98d3773c8e5f8ae8",
+      "signature": "override class func spec()",
+      "doc_comment": null,
+      "visibility": "Internal",
+      "parent_key": "fixtures/extraction/swift/test_roles/test_source.swift:CalculatorSpec:90:0",
+      "metadata": {
+        "modifiers": "override, class",
+        "parameters": "()",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:spec:97:4",
+      "name": "spec",
+      "kind": "method",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 97,
+      "start_column": 4,
+      "end_line": 99,
+      "end_column": 5,
+      "start_byte": 1722,
+      "end_byte": 1809,
+      "body_span": {
+        "start_line": 97,
+        "start_column": 31,
+        "end_line": 99,
+        "end_column": 5,
+        "start_byte": 1749,
+        "end_byte": 1809
+      },
+      "body_hash": "8a377725d1b3de28c489151112d531cd",
+      "signature": "override class func spec()",
+      "doc_comment": null,
+      "visibility": "Internal",
+      "parent_key": "fixtures/extraction/swift/test_roles/test_source.swift:AsyncCalculatorSpec:96:0",
+      "metadata": {
+        "modifiers": "override, class",
+        "parameters": "()",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/swift/test_roles/test_source.swift:starts at zero:48:4",
       "name": "starts at zero",
       "kind": "function",
@@ -1829,6 +2083,40 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:works:98:8",
+      "name": "works",
+      "kind": "function",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 98,
+      "start_column": 8,
+      "end_line": 98,
+      "end_column": 52,
+      "start_byte": 1759,
+      "end_byte": 1803,
+      "body_span": {
+        "start_line": 98,
+        "start_column": 20,
+        "end_line": 98,
+        "end_column": 52,
+        "start_byte": 1771,
+        "end_byte": 1803
+      },
+      "body_hash": "9722a691197c4089cc6f47ff2bb35394",
+      "signature": "it(\"works\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/swift/test_roles/test_source.swift:spec:97:4",
+      "metadata": {
+        "is_test": true,
+        "test_role": "test_case"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [
@@ -1873,6 +2161,22 @@
   ],
   "pending_relationships": [
     {
+      "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:AsyncCalculatorSpec:96:0",
+      "callee_name": "AsyncSpec",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "line_number": 96,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:CalculatorSpec:90:0",
+      "callee_name": "QuickSpec",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "line_number": 90,
+      "confidence": "0.900"
+    },
+    {
       "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:CalculatorTests:5:0",
       "callee_name": "XCTestCase",
       "kind": "extends",
@@ -1897,11 +2201,27 @@
       "confidence": "0.900"
     },
     {
+      "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:SpecLookalike:102:0",
+      "callee_name": "NSObject",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "line_number": 102,
+      "confidence": "0.900"
+    },
+    {
       "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds two numbers:63:8",
       "callee_name": "equal",
       "kind": "calls",
       "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
       "line_number": 64,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds:92:8",
+      "callee_name": "equal",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "line_number": 92,
       "confidence": "0.700"
     },
     {
@@ -1951,9 +2271,69 @@
       "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
       "line_number": 19,
       "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:works:98:8",
+      "callee_name": "equal",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "line_number": 98,
+      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:AsyncCalculatorSpec:96:0",
+        "callee_name": "AsyncSpec",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+        "line_number": 96,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "AsyncSpec",
+        "terminal_name": "AsyncSpec",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/test_roles/test_source.swift:AsyncCalculatorSpec:96:0",
+      "span": {
+        "start_line": 96,
+        "start_column": 0,
+        "end_line": 100,
+        "end_column": 1,
+        "start_byte": 1673,
+        "end_byte": 1811
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:CalculatorSpec:90:0",
+        "callee_name": "QuickSpec",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+        "line_number": 90,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "QuickSpec",
+        "terminal_name": "QuickSpec",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/test_roles/test_source.swift:CalculatorSpec:90:0",
+      "span": {
+        "start_line": 90,
+        "start_column": 0,
+        "end_line": 94,
+        "end_column": 1,
+        "start_byte": 1541,
+        "end_byte": 1671
+      }
+    },
     {
       "pending": {
         "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:CalculatorTests:5:0",
@@ -2034,6 +2414,32 @@
     },
     {
       "pending": {
+        "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:SpecLookalike:102:0",
+        "callee_name": "NSObject",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+        "line_number": 102,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "NSObject",
+        "terminal_name": "NSObject",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/test_roles/test_source.swift:SpecLookalike:102:0",
+      "span": {
+        "start_line": 102,
+        "start_column": 0,
+        "end_line": 104,
+        "end_column": 1,
+        "start_byte": 1813,
+        "end_byte": 1887
+      }
+    },
+    {
+      "pending": {
         "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds two numbers:63:8",
         "callee_name": "equal",
         "kind": "calls",
@@ -2056,6 +2462,32 @@
         "end_column": 37,
         "start_byte": 1094,
         "end_byte": 1102
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds:92:8",
+        "callee_name": "equal",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+        "line_number": 92,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "equal",
+        "terminal_name": "equal",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds:92:8",
+      "span": {
+        "start_line": 92,
+        "start_column": 38,
+        "end_line": 92,
+        "end_column": 46,
+        "start_byte": 1652,
+        "end_byte": 1660
       }
     },
     {
@@ -2217,6 +2649,32 @@
         "end_byte": 374
       },
       "receiver_type": "XCTestCase"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:works:98:8",
+        "callee_name": "equal",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+        "line_number": 98,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "equal",
+        "terminal_name": "equal",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/test_roles/test_source.swift:works:98:8",
+      "span": {
+        "start_line": 98,
+        "start_column": 41,
+        "end_line": 98,
+        "end_column": 49,
+        "start_byte": 1792,
+        "end_byte": 1800
+      }
     }
   ],
   "identifiers": [
@@ -2285,9 +2743,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/swift/test_roles/production_roles.swift:expect:variable_ref:16:9",
+      "key": "fixtures/extraction/swift/test_roles/production_roles.swift:expect:call:16:9",
       "name": "expect",
-      "kind": "variable_ref",
+      "kind": "call",
       "language": "swift",
       "file_path": "fixtures/extraction/swift/test_roles/production_roles.swift",
       "start_line": 16,
@@ -2301,9 +2759,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/swift/test_roles/production_roles.swift:expect:variable_ref:21:9",
+      "key": "fixtures/extraction/swift/test_roles/production_roles.swift:expect:call:21:9",
       "name": "expect",
-      "kind": "variable_ref",
+      "kind": "call",
       "language": "swift",
       "file_path": "fixtures/extraction/swift/test_roles/production_roles.swift",
       "start_line": 21,
@@ -2317,9 +2775,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/swift/test_roles/production_roles.swift:expect:variable_ref:30:5",
+      "key": "fixtures/extraction/swift/test_roles/production_roles.swift:expect:call:30:5",
       "name": "expect",
-      "kind": "variable_ref",
+      "kind": "call",
       "language": "swift",
       "file_path": "fixtures/extraction/swift/test_roles/production_roles.swift",
       "start_line": 30,
@@ -2381,6 +2839,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:AsyncSpec:type_usage:96:33",
+      "name": "AsyncSpec",
+      "kind": "type_usage",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 96,
+      "start_column": 33,
+      "end_line": 96,
+      "end_column": 42,
+      "start_byte": 1706,
+      "end_byte": 1715,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:AsyncCalculatorSpec:96:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/swift/test_roles/test_source.swift:CalculatorSupport:type_usage:43:10",
       "name": "CalculatorSupport",
       "kind": "type_usage",
@@ -2409,6 +2883,38 @@
       "start_byte": 512,
       "end_byte": 527,
       "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:CalculatorTests:31:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:NSObject:type_usage:102:27",
+      "name": "NSObject",
+      "kind": "type_usage",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 102,
+      "start_column": 27,
+      "end_line": 102,
+      "end_column": 35,
+      "start_byte": 1840,
+      "end_byte": 1848,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:SpecLookalike:102:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:QuickSpec:type_usage:90:28",
+      "name": "QuickSpec",
+      "kind": "type_usage",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 90,
+      "start_column": 28,
+      "end_line": 90,
+      "end_column": 37,
+      "start_byte": 1569,
+      "end_byte": 1578,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:CalculatorSpec:90:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2669,6 +3175,38 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:equal:call:92:38",
+      "name": "equal",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 92,
+      "start_column": 38,
+      "end_line": 92,
+      "end_column": 43,
+      "start_byte": 1652,
+      "end_byte": 1657,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds:92:8",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:equal:call:98:41",
+      "name": "equal",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 98,
+      "start_column": 41,
+      "end_line": 98,
+      "end_column": 46,
+      "start_byte": 1792,
+      "end_byte": 1797,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:works:98:8",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/swift/test_roles/test_source.swift:expect:call:49:8",
       "name": "expect",
       "kind": "call",
@@ -2701,6 +3239,38 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:expect:call:92:21",
+      "name": "expect",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 92,
+      "start_column": 21,
+      "end_line": 92,
+      "end_column": 27,
+      "start_byte": 1635,
+      "end_byte": 1641,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds:92:8",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:expect:call:98:28",
+      "name": "expect",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 98,
+      "start_column": 28,
+      "end_line": 98,
+      "end_column": 34,
+      "start_byte": 1779,
+      "end_byte": 1785,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:works:98:8",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/swift/test_roles/test_source.swift:it:call:48:4",
       "name": "it",
       "kind": "call",
@@ -2729,6 +3299,38 @@
       "start_byte": 1040,
       "end_byte": 1042,
       "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:addition:56:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:it:call:92:8",
+      "name": "it",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 92,
+      "start_column": 8,
+      "end_line": 92,
+      "end_column": 10,
+      "start_byte": 1622,
+      "end_byte": 1624,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:spec:91:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:it:call:98:8",
+      "name": "it",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 98,
+      "start_column": 8,
+      "end_line": 98,
+      "end_column": 10,
+      "start_byte": 1759,
+      "end_byte": 1761,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:spec:97:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2895,6 +3497,38 @@
       "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds two numbers:63:8",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:to:call:92:35",
+      "name": "to",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 92,
+      "start_column": 35,
+      "end_line": 92,
+      "end_column": 37,
+      "start_byte": 1649,
+      "end_byte": 1651,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds:92:8",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:to:call:98:38",
+      "name": "to",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 98,
+      "start_column": 38,
+      "end_line": 98,
+      "end_column": 40,
+      "start_byte": 1789,
+      "end_byte": 1791,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:works:98:8",
+      "target_key": null,
+      "confidence": "1.000"
     }
   ],
   "types": [
@@ -3043,6 +3677,25 @@
         "pattern_version": 1,
         "query_family": "metadata"
       }
+    },
+    {
+      "pattern_id": "swift.await_expression.v1",
+      "capture_name": "await_expression",
+      "node_kind": "await_expression",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:works:98:8",
+      "start_line": 98,
+      "start_column": 22,
+      "end_line": 98,
+      "end_column": 37,
+      "start_byte": 1773,
+      "end_byte": 1788,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "async"
+      }
     }
   ],
   "complexity_metrics": [
@@ -3074,18 +3727,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "swift",
       "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
-      "covered_lines": 89,
-      "covered_bytes": 1540,
+      "covered_lines": 105,
+      "covered_bytes": 1888,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 89,
+      "end_line": 105,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 1540,
+      "end_byte": 1888,
       "metadata": {
         "metric_version": 1
       }
@@ -3400,6 +4053,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds:92:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "covered_lines": 1,
+      "covered_bytes": 30,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 92,
+      "start_column": 19,
+      "end_line": 92,
+      "end_column": 49,
+      "start_byte": 1633,
+      "end_byte": 1663,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/swift/test_roles/test_source.swift:afterEach:67:8",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "swift",
@@ -3664,6 +4339,72 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/test_roles/test_source.swift:spec:103:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "covered_lines": 1,
+      "covered_bytes": 3,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 103,
+      "start_column": 31,
+      "end_line": 103,
+      "end_column": 34,
+      "start_byte": 1882,
+      "end_byte": 1885,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/test_roles/test_source.swift:spec:91:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "covered_lines": 3,
+      "covered_bytes": 57,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 91,
+      "start_column": 31,
+      "end_line": 93,
+      "end_column": 5,
+      "start_byte": 1612,
+      "end_byte": 1669,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/test_roles/test_source.swift:spec:97:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "covered_lines": 3,
+      "covered_bytes": 60,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 97,
+      "start_column": 31,
+      "end_line": 99,
+      "end_column": 5,
+      "start_byte": 1749,
+      "end_byte": 1809,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/swift/test_roles/test_source.swift:starts at zero:48:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "swift",
@@ -3881,6 +4622,28 @@
       "metadata": {
         "metric_version": 1
       }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/test_roles/test_source.swift:works:98:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "covered_lines": 1,
+      "covered_bytes": 32,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 98,
+      "start_column": 20,
+      "end_line": 98,
+      "end_column": 52,
+      "start_byte": 1771,
+      "end_byte": 1803,
+      "metadata": {
+        "metric_version": 1
+      }
     }
   ],
   "literals": [
@@ -3949,6 +4712,22 @@
       "confidence": "1.000"
     },
     {
+      "literal_text": "adds",
+      "kind": "other",
+      "carrier": "it",
+      "arg_position": 0,
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 92,
+      "start_column": 11,
+      "end_line": 92,
+      "end_column": 17,
+      "start_byte": 1625,
+      "end_byte": 1631,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:spec:91:4",
+      "confidence": "1.000"
+    },
+    {
       "literal_text": "calculator",
       "kind": "other",
       "carrier": "describe",
@@ -3994,6 +4773,22 @@
       "start_byte": 805,
       "end_byte": 821,
       "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:a calculator:47:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "works",
+      "kind": "other",
+      "carrier": "it",
+      "arg_position": 0,
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 98,
+      "start_column": 11,
+      "end_line": 98,
+      "end_column": 18,
+      "start_byte": 1762,
+      "end_byte": 1769,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:spec:97:4",
       "confidence": "1.000"
     }
   ],
@@ -4093,6 +4888,19 @@
       "kind": "string_literal",
       "language": "swift",
       "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds:92:8",
+      "start_line": 92,
+      "start_column": 11,
+      "end_line": 92,
+      "end_column": 17,
+      "start_byte": 1625,
+      "end_byte": 1631,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
       "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:calculator:53:0",
       "start_line": 53,
       "start_column": 9,
@@ -4113,6 +4921,19 @@
       "end_column": 23,
       "start_byte": 805,
       "end_byte": 821,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:works:98:8",
+      "start_line": 98,
+      "start_column": 11,
+      "end_line": 98,
+      "end_column": 18,
+      "start_byte": 1762,
+      "end_byte": 1769,
       "metadata": null
     }
   ],

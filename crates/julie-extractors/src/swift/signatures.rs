@@ -23,6 +23,7 @@ impl SwiftExtractor {
                         | "access_level_modifier"
                         | "property_modifier"
                         | "member_modifier"
+                        | "function_modifier"
                         | "inheritance_modifier"
                         | "ownership_modifier"
                         | "public"
@@ -221,34 +222,17 @@ impl SwiftExtractor {
         Vec::new()
     }
 
-    /// Implementation of extractWhereClause method
+    /// The declaration's own generic `where` clause.
     pub(super) fn extract_where_clause(&self, node: Node) -> Option<String> {
-        // Look for where clause in class/function declarations
-        if let Some(where_clause) = node.children(&mut node.walk()).find(|c| {
-            matches!(
-                c.kind(),
-                "where_clause" | "generic_where_clause" | "type_constraints"
-            ) || self.base.get_node_text(c).starts_with("where")
-        }) {
-            return Some(self.base.get_node_text(&where_clause));
-        }
-
-        // Fallback: scan for any child containing "where"
-        for child in node.children(&mut node.walk()) {
-            let text = self.base.get_node_text(&child);
-            if text.contains("where ")
-                && let Some(captures) = text.find("where ")
-            {
-                let where_part = &text[captures..];
-                if let Some(end) = where_part.find('{') {
-                    return Some(where_part[..end].trim().to_string());
-                } else {
-                    return Some(where_part.trim().to_string());
-                }
-            }
-        }
-
-        None
+        node.children(&mut node.walk())
+            .find(|child| child.kind() == "type_constraints")
+            .map(|clause| {
+                self.base
+                    .get_node_text(&clause)
+                    .split_whitespace()
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            })
     }
 
     /// Implementation of extractParameters method

@@ -129,7 +129,7 @@ fn is_swift_standard_direct_call(name: &str) -> bool {
 }
 
 fn is_swift_standard_receiver(root: &str) -> bool {
-    matches!(root, "Task" | "MainActor" | "Self")
+    matches!(root, "Task" | "MainActor")
 }
 
 fn is_swiftui_inheritance_target(name: &str) -> bool {
