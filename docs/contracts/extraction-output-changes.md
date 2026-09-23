@@ -92,7 +92,7 @@ Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
 classification: compatible
 
-This unreleased release closes the gaps of the
+This release closes the gaps of the
 [2026-09-22 language gap audit](../findings/2026-09-22-language-gap-audit.md)
 across all 40 languages: the high-rated gaps in wave 1 and the medium and low
 gaps in wave 2. No SQLite or report-schema column is added, removed,

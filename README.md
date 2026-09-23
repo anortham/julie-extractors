@@ -114,8 +114,9 @@ F# is extracted at the full capability tier and covers `.fs`, `.fsx`, and
 `.fsi`; signature files use the tree-sitter-fsharp signature grammar and still
 publish the `fsharp` artifact language. Erlang is extracted at the full
 capability tier — symbols, relationships, pending relationships, identifiers,
-and types. XML is extracted at the data tier — symbols and identifiers — plus
-document, XSD, and WSDL structural facts. Qt C++ headers are extracted as
+and types. XML publishes symbols, identifiers, relationships, and pending
+relationships, plus document, schema, build, and framework structural facts
+(XSD, WSDL, MSBuild, Spring, MyBatis, Android, and more). Qt C++ headers are extracted as
 `cpp`: `Q_PROPERTY` becomes a property row and structural fact, signals become
 event rows, and slots, invokables, and `QML_*` macros publish metadata — see
 [Qt C++ support](docs/languages/cpp-qt.md). QML publishes root, inline, and
