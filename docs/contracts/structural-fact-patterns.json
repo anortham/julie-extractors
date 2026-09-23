@@ -245,9 +245,10 @@
     "query_family": "frontend_interaction"
   },
   {
-    "description": "An ASP.NET Core attribute-routing fact ([Route]/[Http*] on controllers or actions).",
+    "description": "An ASP.NET attribute-routing fact ([Route]/[RoutePrefix]/[Http*] on controllers or actions).",
     "languages": [
-      "csharp"
+      "csharp",
+      "vbnet"
     ],
     "metadata_keys": [
       {
@@ -324,7 +325,8 @@
     "description": "An ASP.NET Core minimal-API endpoint route (MapGet/MapPost/…).",
     "languages": [
       "csharp",
-      "razor"
+      "razor",
+      "vbnet"
     ],
     "metadata_keys": [
       {
@@ -419,7 +421,8 @@
     "description": "An ASP.NET Core minimal-API `MapGroup` route group.",
     "languages": [
       "csharp",
-      "razor"
+      "razor",
+      "vbnet"
     ],
     "metadata_keys": [
       {
@@ -3335,7 +3338,8 @@
       "php",
       "ruby",
       "elixir",
-      "rust"
+      "rust",
+      "vbnet"
     ],
     "metadata_keys": [
       {
@@ -8982,8 +8986,20 @@
         "value_type": "string"
       },
       {
-        "description": "The .NET attribute name.",
+        "description": "Last segment of the attribute name.",
         "key": "attribute_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Dotted name as written, when qualified.",
+        "key": "qualified_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Written target: `Assembly` or `Module`.",
+        "key": "target",
         "presence": "optional",
         "value_type": "string"
       }

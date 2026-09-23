@@ -350,118 +350,263 @@ fn is_csharp_identifier_byte(byte: &u8) -> bool {
 /// Collect `aspnet.attribute_route.v1` facts for attribute-routed controllers.
 ///
 /// Uses tree-sitter attribution (attribute node -> owning class/method
-/// declaration) rather than raw text association. Conventional (non-attribute)
-/// routing is intentionally out of scope. Attributes whose route argument is not
-/// a plain string literal (interpolation, concatenation, `nameof`, constants)
-/// stay silent.
+/// declaration) rather than raw text association. Each .NET language maps its
+/// syntax onto one controller model, so C#, VB.NET, and F# controllers share
+/// the routing rules. Conventional (non-attribute) routing is intentionally out
+/// of scope. Attributes whose route argument is not a plain string literal
+/// (interpolation, concatenation, `nameof`, constants) stay silent.
 pub(super) fn collect_aspnet_attribute_routes(
     language: &str,
     tree: &Tree,
     file_path: &str,
     content: &str,
 ) -> Vec<StructuralFact> {
+    let mut controllers = Vec::new();
+    collect_route_controllers(tree.root_node(), language, content, &mut controllers, 0);
     let mut facts = Vec::new();
-    collect_attribute_route_classes(
-        tree.root_node(),
-        language,
-        file_path,
-        content,
-        &mut facts,
-        0,
-    );
+    for controller in &controllers {
+        emit_controller_routes(controller, language, file_path, &mut facts);
+    }
     facts
 }
 
-fn collect_attribute_route_classes(
-    node: Node<'_>,
+/// One route-relevant attribute: its normalized name (last segment, no
+/// `Attribute` suffix) and its first positional argument.
+struct RouteAttribute<'t> {
+    node: Node<'t>,
+    name: String,
+    argument: AttributeRouteArgument,
+}
+
+struct RouteAction<'t> {
+    name: Option<String>,
+    attributes: Vec<RouteAttribute<'t>>,
+}
+
+struct RouteController<'t> {
+    name: Option<String>,
+    attributes: Vec<RouteAttribute<'t>>,
+    actions: Vec<RouteAction<'t>>,
+}
+
+fn collect_route_controllers<'t>(
+    node: Node<'t>,
     language: &str,
-    file_path: &str,
     content: &str,
-    facts: &mut Vec<StructuralFact>,
+    controllers: &mut Vec<RouteController<'t>>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
         return;
     }
+    let controller = match (language, node.kind()) {
+        ("csharp", "class_declaration") => Some(csharp_controller(node, content)),
+        ("vbnet", "class_block") => Some(vbnet_controller(node, content)),
+        _ => None,
+    };
+    controllers.extend(controller);
 
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if child.kind() == "class_declaration" {
-            collect_attribute_routes_for_class(child, language, file_path, content, facts);
-        }
-        // Recurse so nested type declarations (and top-level namespaces) are
-        // visited; each class computes its own controller context.
-        collect_attribute_route_classes(child, language, file_path, content, facts, child_depth);
+        collect_route_controllers(child, language, content, controllers, child_depth);
     }
 }
 
-fn collect_attribute_routes_for_class(
-    class_node: Node<'_>,
-    language: &str,
-    file_path: &str,
-    content: &str,
-    facts: &mut Vec<StructuralFact>,
-) {
-    let class_name = class_node
-        .child_by_field_name("name")
-        .and_then(|name| node_text(content, name));
-    let controller_token = class_name.map(controller_token_from_class_name);
-
-    // Class-level [Route("...")] attributes -> controller_route facts. The first
-    // literal template becomes the controller template shared with methods.
-    let mut controller_template: Option<String> = None;
-    for attribute in class_attribute_nodes(class_node) {
-        let Some(name) = attribute_route_name(content, attribute) else {
-            continue;
-        };
-        if !is_route_attribute(&name) {
-            continue;
-        }
-        match attribute_route_argument(content, attribute) {
-            AttributeRouteArgument::NonLiteral => continue,
-            AttributeRouteArgument::Absent => continue,
-            AttributeRouteArgument::Literal(template) => {
-                if controller_template.is_none() {
-                    controller_template = Some(template.clone());
-                }
-                let (effective, tokens) =
-                    substitute_route_tokens(&template, controller_token.as_deref(), None);
-                let mut metadata = base_metadata("framework", "aspnet");
-                insert_string(&mut metadata, "api_style", "attribute_routing");
-                insert_string(&mut metadata, "attribute_kind", "controller_route");
-                insert_string(&mut metadata, "route_template", &template);
-                insert_string(&mut metadata, "effective_route_template", &effective);
-                insert_normalized_route_template(&mut metadata, &effective);
-                insert_route_tokens(&mut metadata, tokens);
-                facts.push(fact_for_node(
-                    file_path,
-                    language,
-                    ASPNET_ATTRIBUTE_ROUTE_PATTERN_ID,
-                    "attribute_route",
-                    attribute,
-                    metadata,
-                ));
+fn csharp_controller<'t>(class_node: Node<'t>, content: &str) -> RouteController<'t> {
+    let mut actions = Vec::new();
+    if let Some(body) = class_node.child_by_field_name("body") {
+        let mut cursor = body.walk();
+        for member in body.children(&mut cursor) {
+            if member.kind() == "method_declaration" {
+                actions.push(RouteAction {
+                    name: declaration_name(member, content),
+                    attributes: csharp_route_attributes(member, content),
+                });
             }
         }
     }
+    RouteController {
+        name: declaration_name(class_node, content),
+        attributes: csharp_route_attributes(class_node, content),
+        actions,
+    }
+}
 
-    // Method-level attributes on this class's direct action methods.
-    let Some(body) = class_node.child_by_field_name("body") else {
-        return;
-    };
-    let mut body_cursor = body.walk();
-    for member in body.children(&mut body_cursor) {
-        if member.kind() != "method_declaration" {
+fn declaration_name(node: Node<'_>, content: &str) -> Option<String> {
+    node.child_by_field_name("name")
+        .and_then(|name| node_text(content, name))
+        .map(str::to_string)
+}
+
+/// Attribute lists that are direct children of a C# declaration; a nested
+/// class's own attributes belong to that inner declaration.
+fn csharp_route_attributes<'t>(declaration: Node<'t>, content: &str) -> Vec<RouteAttribute<'t>> {
+    let mut attributes = Vec::new();
+    let mut cursor = declaration.walk();
+    for child in declaration.children(&mut cursor) {
+        if child.kind() != "attribute_list" {
             continue;
         }
-        collect_attribute_routes_for_method(
-            member,
+        let mut list_cursor = child.walk();
+        for attribute in child.children(&mut list_cursor) {
+            if attribute.kind() != "attribute" {
+                continue;
+            }
+            if let Some(name) = attribute_route_name(content, attribute) {
+                attributes.push(RouteAttribute {
+                    node: attribute,
+                    name,
+                    argument: attribute_route_argument(content, attribute),
+                });
+            }
+        }
+    }
+    attributes
+}
+
+fn vbnet_controller<'t>(class_node: Node<'t>, content: &str) -> RouteController<'t> {
+    let wrapper = class_node
+        .parent()
+        .filter(|parent| parent.kind() == "type_declaration")
+        .unwrap_or(class_node);
+    let mut blocks = Vec::new();
+    let mut previous = wrapper.prev_sibling();
+    while let Some(sibling) = previous.filter(|sibling| sibling.kind() == "attribute_block") {
+        blocks.push(sibling);
+        previous = sibling.prev_sibling();
+    }
+    blocks.reverse();
+    blocks.extend(vbnet_attribute_blocks(wrapper));
+
+    let mut actions = Vec::new();
+    let mut cursor = class_node.walk();
+    for member in class_node.children(&mut cursor) {
+        if member.kind() == "method_declaration" {
+            actions.push(RouteAction {
+                name: declaration_name(member, content),
+                attributes: vbnet_route_attributes(&vbnet_attribute_blocks(member), content),
+            });
+        }
+    }
+    RouteController {
+        name: declaration_name(class_node, content),
+        attributes: vbnet_route_attributes(&blocks, content),
+        actions,
+    }
+}
+
+fn vbnet_attribute_blocks(declaration: Node<'_>) -> Vec<Node<'_>> {
+    let mut cursor = declaration.walk();
+    declaration
+        .children(&mut cursor)
+        .filter(|child| child.kind() == "attribute_block")
+        .collect()
+}
+
+fn vbnet_route_attributes<'t>(blocks: &[Node<'t>], content: &str) -> Vec<RouteAttribute<'t>> {
+    let mut attributes = Vec::new();
+    for block in blocks {
+        let mut cursor = block.walk();
+        for attribute in block.children(&mut cursor) {
+            if attribute.kind() != "attribute" || attribute.child_by_field_name("target").is_some()
+            {
+                continue;
+            }
+            let Some(name) = attribute_route_name(content, attribute) else {
+                continue;
+            };
+            let mut attribute_cursor = attribute.walk();
+            let arguments = attribute
+                .children(&mut attribute_cursor)
+                .find(|child| child.kind() == "argument_list");
+            attributes.push(RouteAttribute {
+                node: attribute,
+                name,
+                argument: vbnet_route_argument(content, arguments),
+            });
+        }
+    }
+    attributes
+}
+
+/// The first positional argument of a VB attribute (`name:=` arguments are
+/// named); `""` inside a VB string escapes one quote.
+fn vbnet_route_argument(content: &str, arguments: Option<Node<'_>>) -> AttributeRouteArgument {
+    let Some(arguments) = arguments else {
+        return AttributeRouteArgument::Absent;
+    };
+    let mut cursor = arguments.walk();
+    for argument in arguments.named_children(&mut cursor) {
+        if argument.child_by_field_name("name").is_some() {
+            continue;
+        }
+        let value = if argument.kind() == "argument" {
+            argument.named_child(argument.named_child_count().saturating_sub(1) as u32)
+        } else {
+            Some(argument)
+        };
+        return value
+            .filter(|value| value.kind() == "string_literal")
+            .and_then(|value| node_text(content, value))
+            .and_then(|text| text.strip_prefix('"')?.strip_suffix('"'))
+            .map(|text| AttributeRouteArgument::Literal(text.replace("\"\"", "\"")))
+            .unwrap_or(AttributeRouteArgument::NonLiteral);
+    }
+    AttributeRouteArgument::Absent
+}
+
+fn emit_controller_routes(
+    controller: &RouteController<'_>,
+    language: &str,
+    file_path: &str,
+    facts: &mut Vec<StructuralFact>,
+) {
+    let controller_token = controller
+        .name
+        .as_deref()
+        .map(controller_token_from_class_name);
+
+    // Class-level [Route("...")] and Web API 2 [RoutePrefix("...")] attributes ->
+    // controller_route facts. The first literal template becomes the controller
+    // template shared with methods.
+    let mut controller_template: Option<String> = None;
+    for attribute in &controller.attributes {
+        if !is_route_attribute(&attribute.name) && attribute.name != "RoutePrefix" {
+            continue;
+        }
+        let AttributeRouteArgument::Literal(template) = &attribute.argument else {
+            continue;
+        };
+        if controller_template.is_none() {
+            controller_template = Some(template.clone());
+        }
+        let (effective, tokens) =
+            substitute_route_tokens(template, controller_token.as_deref(), None);
+        let mut metadata = base_metadata("framework", "aspnet");
+        insert_string(&mut metadata, "api_style", "attribute_routing");
+        insert_string(&mut metadata, "attribute_kind", "controller_route");
+        insert_string(&mut metadata, "route_template", template);
+        insert_string(&mut metadata, "effective_route_template", &effective);
+        insert_normalized_route_template(&mut metadata, &effective);
+        insert_route_tokens(&mut metadata, tokens);
+        facts.push(fact_for_node(
+            file_path,
+            language,
+            ASPNET_ATTRIBUTE_ROUTE_PATTERN_ID,
+            "attribute_route",
+            attribute.node,
+            metadata,
+        ));
+    }
+
+    for action in &controller.actions {
+        emit_action_routes(
+            action,
             language,
             file_path,
-            content,
             controller_token.as_deref(),
             controller_template.as_deref(),
             facts,
@@ -469,32 +614,22 @@ fn collect_attribute_routes_for_class(
     }
 }
 
-fn collect_attribute_routes_for_method(
-    method_node: Node<'_>,
+fn emit_action_routes(
+    action: &RouteAction<'_>,
     language: &str,
     file_path: &str,
-    content: &str,
     controller_token: Option<&str>,
     controller_template: Option<&str>,
     facts: &mut Vec<StructuralFact>,
 ) {
-    let action_name = method_node
-        .child_by_field_name("name")
-        .and_then(|name| node_text(content, name));
+    let has_http_verb = action
+        .attributes
+        .iter()
+        .any(|attribute| attribute_route_verb(&attribute.name).is_some());
 
-    let attributes = method_attribute_nodes(method_node);
-    let has_http_verb = attributes.iter().any(|attribute| {
-        attribute_route_name(content, *attribute)
-            .and_then(|name| attribute_route_verb(&name).map(|_| ()))
-            .is_some()
-    });
-
-    for attribute in attributes {
-        let Some(name) = attribute_route_name(content, attribute) else {
-            continue;
-        };
-        let verb = attribute_route_verb(&name);
-        let is_route = is_route_attribute(&name);
+    for attribute in &action.attributes {
+        let verb = attribute_route_verb(&attribute.name);
+        let is_route = is_route_attribute(&attribute.name);
         if verb.is_none() && !is_route {
             continue;
         }
@@ -505,10 +640,10 @@ fn collect_attribute_routes_for_method(
             continue;
         }
 
-        let method_template = match attribute_route_argument(content, attribute) {
+        let method_template = match &attribute.argument {
             AttributeRouteArgument::NonLiteral => continue,
             AttributeRouteArgument::Absent => None,
-            AttributeRouteArgument::Literal(template) => Some(template),
+            AttributeRouteArgument::Literal(template) => Some(template.clone()),
         };
 
         let mut metadata = base_metadata("framework", "aspnet");
@@ -531,7 +666,8 @@ fn collect_attribute_routes_for_method(
         }
 
         if let Some(raw) = join_effective_route(controller_template, method_template.as_deref()) {
-            let (effective, tokens) = substitute_route_tokens(&raw, controller_token, action_name);
+            let (effective, tokens) =
+                substitute_route_tokens(&raw, controller_token, action.name.as_deref());
             insert_string(&mut metadata, "effective_route_template", &effective);
             insert_normalized_route_template(&mut metadata, &effective);
             insert_route_tokens(&mut metadata, tokens);
@@ -542,37 +678,10 @@ fn collect_attribute_routes_for_method(
             language,
             ASPNET_ATTRIBUTE_ROUTE_PATTERN_ID,
             "attribute_route",
-            attribute,
+            attribute.node,
             metadata,
         ));
     }
-}
-
-fn class_attribute_nodes(class_node: Node<'_>) -> Vec<Node<'_>> {
-    // Class-level attribute lists are direct children preceding the `class`
-    // keyword; a nested class's own attributes belong to that inner declaration.
-    attribute_nodes_from_lists(class_node)
-}
-
-fn method_attribute_nodes(method_node: Node<'_>) -> Vec<Node<'_>> {
-    attribute_nodes_from_lists(method_node)
-}
-
-fn attribute_nodes_from_lists(declaration: Node<'_>) -> Vec<Node<'_>> {
-    let mut attributes = Vec::new();
-    let mut cursor = declaration.walk();
-    for child in declaration.children(&mut cursor) {
-        if child.kind() != "attribute_list" {
-            continue;
-        }
-        let mut list_cursor = child.walk();
-        for attribute in child.children(&mut list_cursor) {
-            if attribute.kind() == "attribute" {
-                attributes.push(attribute);
-            }
-        }
-    }
-    attributes
 }
 
 /// Normalize an attribute's name: take the last `.`-separated segment and strip

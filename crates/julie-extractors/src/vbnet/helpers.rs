@@ -17,13 +17,26 @@ pub fn extract_modifiers(base: &BaseExtractor, node: &Node) -> Vec<String> {
         .collect()
 }
 
+/// `Friend` is assembly-scoped (`internal`); `Protected Friend` and
+/// `Private Protected` keep their protected reach.
 pub fn determine_visibility(modifiers: &[String], default_visibility: &str) -> Visibility {
-    let default = match default_visibility {
-        "public" => Visibility::Public,
-        "protected" => Visibility::Protected,
-        _ => Visibility::Private,
-    };
-    crate::base::visibility::visibility_from_modifiers_with_default(modifiers, default)
+    let has = |modifier: &str| modifiers.iter().any(|m| m == modifier);
+    if has("public") {
+        Visibility::Public
+    } else if has("protected") {
+        Visibility::Protected
+    } else if has("private") {
+        Visibility::Private
+    } else if has("friend") {
+        Visibility::Internal
+    } else {
+        match default_visibility {
+            "public" => Visibility::Public,
+            "protected" => Visibility::Protected,
+            "friend" => Visibility::Internal,
+            _ => Visibility::Private,
+        }
+    }
 }
 
 pub fn get_vb_visibility_string(modifiers: &[String], default_visibility: &str) -> String {
@@ -61,12 +74,20 @@ pub fn vb_visibility_metadata(
     metadata
 }
 
-pub fn default_type_visibility(parent_id: Option<&String>) -> &'static str {
-    if parent_id.is_some() {
-        "public"
-    } else {
-        "friend"
+/// Types nested in another type default to `Public`; namespace-level and
+/// file-level types default to `Friend`.
+pub fn default_type_visibility(node: &Node) -> &'static str {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if matches!(
+            candidate.kind(),
+            "class_block" | "module_block" | "structure_block" | "interface_block"
+        ) {
+            return "public";
+        }
+        current = candidate.parent();
     }
+    "friend"
 }
 
 pub fn extract_return_type(base: &BaseExtractor, node: &Node) -> Option<String> {
@@ -127,22 +148,52 @@ pub fn extract_implements(base: &BaseExtractor, node: &Node) -> Vec<String> {
     result
 }
 
+/// Attribute texts (name plus argument list) from the `attribute_block`
+/// children of `node`. Assembly- and module-targeted attributes describe the
+/// compilation unit, not the declaration, so they are skipped.
 pub fn extract_attributes(base: &BaseExtractor, node: &Node) -> Vec<String> {
     let mut attrs = Vec::new();
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         if child.kind() == "attribute_block" {
-            let mut inner_cursor = child.walk();
-            for attr in child.children(&mut inner_cursor) {
-                if attr.kind() == "attribute"
-                    && let Some(name_node) = attr.child_by_field_name("name")
-                {
-                    attrs.push(base.get_node_text(&name_node));
-                }
-            }
+            push_block_attributes(base, child, &mut attrs);
         }
     }
     attrs
+}
+
+/// Attributes of a type declaration: those inside its `type_declaration`
+/// wrapper plus the `attribute_block` siblings the grammar leaves directly
+/// before the wrapper when the type is not the first in its container.
+pub fn extract_type_attributes(base: &BaseExtractor, node: &Node) -> Vec<String> {
+    let owner = node
+        .parent()
+        .filter(|parent| parent.kind() == "type_declaration")
+        .unwrap_or(*node);
+    let mut blocks = Vec::new();
+    let mut previous = owner.prev_sibling();
+    while let Some(sibling) = previous.filter(|sibling| sibling.kind() == "attribute_block") {
+        blocks.push(sibling);
+        previous = sibling.prev_sibling();
+    }
+    let mut attrs = Vec::new();
+    for block in blocks.into_iter().rev() {
+        push_block_attributes(base, block, &mut attrs);
+    }
+    attrs.extend(extract_attributes(base, &owner));
+    attrs
+}
+
+fn push_block_attributes(base: &BaseExtractor, block: Node, attrs: &mut Vec<String>) {
+    let mut cursor = block.walk();
+    for attr in block.children(&mut cursor) {
+        if attr.kind() == "attribute"
+            && attr.child_by_field_name("target").is_none()
+            && attr.child_by_field_name("name").is_some()
+        {
+            attrs.push(base.get_node_text(&attr));
+        }
+    }
 }
 
 pub fn modifier_prefix(modifiers: &[String]) -> String {
@@ -512,5 +563,96 @@ fn strip_global(name: &str) -> String {
     match name.get(..7) {
         Some(prefix) if prefix.eq_ignore_ascii_case("global.") => name[7..].to_string(),
         _ => name.to_string(),
+    }
+}
+
+/// True when a bare `name(...)` indexes a value rather than calling: the name
+/// is a parameter or local of the enclosing member, or a field or constant
+/// of its type, and no callable of that name exists in the file.
+pub(super) fn is_indexed_value(base: &BaseExtractor, callee: Node, symbols: &[Symbol]) -> bool {
+    if callee.kind() != "identifier" {
+        return false;
+    }
+    let Some(member) = enclosing_member_symbol(callee, symbols) else {
+        return false;
+    };
+    let name = base.get_node_text(&callee);
+    let is_value = symbols.iter().any(|symbol| {
+        symbol.name.eq_ignore_ascii_case(&name)
+            && match symbol.kind {
+                SymbolKind::Variable => symbol.parent_id.as_deref() == Some(member.id.as_str()),
+                SymbolKind::Field | SymbolKind::Constant => {
+                    symbol.parent_id.is_some() && symbol.parent_id == member.parent_id
+                }
+                _ => false,
+            }
+    });
+    is_value
+        && !symbols.iter().any(|symbol| {
+            symbol.name.eq_ignore_ascii_case(&name)
+                && matches!(
+                    symbol.kind,
+                    SymbolKind::Method
+                        | SymbolKind::Function
+                        | SymbolKind::Constructor
+                        | SymbolKind::Delegate
+                )
+        })
+}
+
+/// The declaration an attribute decorates. Type attributes sit in the
+/// `type_declaration` wrapper, or directly before it when the type is not the
+/// first in its container. Assembly- and module-targeted attributes decorate
+/// the compilation unit and have no owner.
+pub(crate) fn attribute_owner_declaration(attribute: Node) -> Option<Node> {
+    if attribute.child_by_field_name("target").is_some() {
+        return None;
+    }
+    let block = attribute.parent()?;
+    let owner = block.parent()?;
+    let wrapper = match owner.kind() {
+        "type_declaration" => owner,
+        "namespace_block" | "source_file" => {
+            let mut next = block.next_sibling();
+            while let Some(sibling) = next.filter(|sibling| sibling.kind() == "attribute_block") {
+                next = sibling.next_sibling();
+            }
+            next.filter(|sibling| sibling.kind() == "type_declaration")?
+        }
+        _ => return Some(owner),
+    };
+    let mut cursor = wrapper.walk();
+    wrapper
+        .named_children(&mut cursor)
+        .find(|child| child.kind() != "attribute_block")
+}
+
+/// The constructed type and argument expressions of `New T(args)`. The
+/// grammar reads the argument list as an array rank (`New T("x")` in an
+/// `As New` clause) or as an index on a bare `New T`, so both shapes map here.
+pub(crate) fn constructor_parts(node: Node) -> Option<(Node, Vec<Node>)> {
+    match node.kind() {
+        "new_expression" => {
+            let type_node = node.child_by_field_name("type")?;
+            if type_node.kind() != "array_type" {
+                return Some((type_node, Vec::new()));
+            }
+            let element = type_node.child_by_field_name("element")?;
+            let rank = type_node.child_by_field_name("rank")?;
+            let mut cursor = rank.walk();
+            Some((element, rank.named_children(&mut cursor).collect()))
+        }
+        "element_access" => {
+            let object = node
+                .child_by_field_name("object")
+                .filter(|object| object.kind() == "new_expression")?;
+            let type_node = object.child_by_field_name("type")?;
+            let arguments = (0..node.child_count())
+                .filter(|&index| node.field_name_for_child(index as u32) == Some("index"))
+                .filter_map(|index| node.child(index as u32))
+                .collect();
+            Some((type_node, arguments))
+        }
+        _ => None,
     }
 }

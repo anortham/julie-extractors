@@ -12,7 +12,7 @@ use super::super::{
 pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     StructuralFactPatternSpec {
         pattern_id: "aspnet.minimal_api.route.v1",
-        languages: &["csharp", "razor"],
+        languages: &["csharp", "razor", "vbnet"],
         query_family: "framework",
         description: "An ASP.NET Core minimal-API endpoint route (MapGet/MapPost/…).",
         metadata_keys: &[
@@ -89,7 +89,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     },
     StructuralFactPatternSpec {
         pattern_id: "aspnet.minimal_api.route_group.v1",
-        languages: &["csharp", "razor"],
+        languages: &["csharp", "razor", "vbnet"],
         query_family: "framework",
         description: "An ASP.NET Core minimal-API `MapGroup` route group.",
         metadata_keys: &[
@@ -131,9 +131,9 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     },
     StructuralFactPatternSpec {
         pattern_id: "aspnet.attribute_route.v1",
-        languages: &["csharp"],
+        languages: &["csharp", "vbnet"],
         query_family: "framework",
-        description: "An ASP.NET Core attribute-routing fact ([Route]/[Http*] on controllers or actions).",
+        description: "An ASP.NET attribute-routing fact ([Route]/[RoutePrefix]/[Http*] on controllers or actions).",
         metadata_keys: &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,

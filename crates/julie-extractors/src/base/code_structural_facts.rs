@@ -541,8 +541,45 @@ pub fn collect_code_structural_facts(
         0,
     );
     attach_containing_symbols(&mut facts, symbols);
+    if language == "vbnet" {
+        attach_vbnet_attribute_owners(tree, &mut facts, symbols);
+    }
     sort_structural_facts(&mut facts);
     facts
+}
+
+/// A VB attribute belongs to the declaration it decorates, which for a type
+/// lies outside the type's span; assembly- and module-targeted attributes
+/// describe the file and have no owner.
+pub(crate) fn attach_vbnet_attribute_owners(
+    tree: &Tree,
+    facts: &mut [StructuralFact],
+    symbols: &[Symbol],
+) {
+    for fact in facts {
+        if fact.node_kind != "attribute" {
+            continue;
+        }
+        let mut found = tree
+            .root_node()
+            .descendant_for_byte_range(fact.start_byte as usize, fact.end_byte as usize);
+        while let Some(node) = found.filter(|node| node.kind() != "attribute") {
+            found = node.parent();
+        }
+        let Some(attribute) = found else {
+            continue;
+        };
+        let Some(declaration) = crate::vbnet::attribute_owner_declaration(attribute) else {
+            fact.containing_symbol_id = None;
+            continue;
+        };
+        if let Some(symbol) = symbols.iter().find(|symbol| {
+            symbol.start_byte == declaration.start_byte() as u32
+                && symbol.kind != crate::base::SymbolKind::Variable
+        }) {
+            fact.containing_symbol_id = Some(symbol.id.clone());
+        }
+    }
 }
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -732,7 +769,22 @@ fn enrich_metadata(
                 insert_string(metadata, "path", &path);
             }
         }
-        "swift.attribute.v1" | "vbnet.attribute.v1" => {
+        "vbnet.attribute.v1" => {
+            if let Some(name) = node
+                .child_by_field_name("name")
+                .map(|name| node_text(content, name).trim().to_string())
+            {
+                let last = name.rsplit('.').next().unwrap_or(&name).trim().to_string();
+                insert_string(metadata, "attribute_name", &last);
+                if last != name {
+                    insert_string(metadata, "qualified_name", &name);
+                }
+            }
+            if let Some(target) = node.child_by_field_name("target") {
+                insert_string(metadata, "target", node_text(content, target).trim());
+            }
+        }
+        "swift.attribute.v1" => {
             if let Some(name) = attribute_name(content, node) {
                 insert_string(metadata, "attribute_name", &name);
             }

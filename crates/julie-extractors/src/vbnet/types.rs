@@ -83,7 +83,7 @@ pub fn extract_class(
     let name_node = node.child_by_field_name("name")?;
     let name = base.get_node_text(&name_node);
     let modifiers = helpers::extract_modifiers(base, &node);
-    let default_visibility = helpers::default_type_visibility(parent_id.as_ref());
+    let default_visibility = helpers::default_type_visibility(&node);
     let visibility = helpers::determine_visibility(&modifiers, default_visibility);
 
     let mut signature = format!("{}Class {}", helpers::modifier_prefix(&modifiers), name);
@@ -103,14 +103,7 @@ pub fn extract_class(
     }
 
     let metadata = helpers::vb_visibility_metadata(&modifiers, default_visibility);
-    let attribute_owner = node
-        .parent()
-        .filter(|parent| parent.kind() == "type_declaration")
-        .unwrap_or(node);
-    let annotations = crate::base::annotations::normalize_annotations(
-        &helpers::extract_attributes(base, &attribute_owner),
-        "vbnet",
-    );
+    let annotations = type_annotations(base, node);
 
     let doc_comment = helpers::find_vbnet_doc_comment(base, &node);
 
@@ -134,7 +127,7 @@ pub fn extract_module(
     let name_node = node.child_by_field_name("name")?;
     let name = base.get_node_text(&name_node);
     let modifiers = helpers::extract_modifiers(base, &node);
-    let default_visibility = helpers::default_type_visibility(parent_id.as_ref());
+    let default_visibility = helpers::default_type_visibility(&node);
     let visibility = helpers::determine_visibility(&modifiers, default_visibility);
 
     let signature = format!("{}Module {}", helpers::modifier_prefix(&modifiers), name);
@@ -150,7 +143,7 @@ pub fn extract_module(
         parent_id,
         metadata: Some(metadata),
         doc_comment,
-        annotations: Vec::new(),
+        annotations: type_annotations(base, node),
     };
 
     Some(base.create_symbol(&node, name, SymbolKind::Class, options))
@@ -164,7 +157,7 @@ pub fn extract_structure(
     let name_node = node.child_by_field_name("name")?;
     let name = base.get_node_text(&name_node);
     let modifiers = helpers::extract_modifiers(base, &node);
-    let default_visibility = helpers::default_type_visibility(parent_id.as_ref());
+    let default_visibility = helpers::default_type_visibility(&node);
     let visibility = helpers::determine_visibility(&modifiers, default_visibility);
 
     let mut signature = format!("{}Structure {}", helpers::modifier_prefix(&modifiers), name);
@@ -187,7 +180,7 @@ pub fn extract_structure(
         parent_id,
         metadata: Some(metadata),
         doc_comment,
-        ..Default::default()
+        annotations: type_annotations(base, node),
     };
 
     Some(base.create_symbol(&node, name, SymbolKind::Struct, options))
@@ -201,7 +194,7 @@ pub fn extract_interface(
     let name_node = node.child_by_field_name("name")?;
     let name = base.get_node_text(&name_node);
     let modifiers = helpers::extract_modifiers(base, &node);
-    let default_visibility = helpers::default_type_visibility(parent_id.as_ref());
+    let default_visibility = helpers::default_type_visibility(&node);
     let visibility = helpers::determine_visibility(&modifiers, default_visibility);
 
     let mut signature = format!("{}Interface {}", helpers::modifier_prefix(&modifiers), name);
@@ -224,7 +217,7 @@ pub fn extract_interface(
         parent_id,
         metadata: Some(metadata),
         doc_comment,
-        ..Default::default()
+        annotations: type_annotations(base, node),
     };
 
     Some(base.create_symbol(&node, name, SymbolKind::Interface, options))
@@ -238,7 +231,7 @@ pub fn extract_enum(
     let name_node = node.child_by_field_name("name")?;
     let name = base.get_node_text(&name_node);
     let modifiers = helpers::extract_modifiers(base, &node);
-    let default_visibility = helpers::default_type_visibility(parent_id.as_ref());
+    let default_visibility = helpers::default_type_visibility(&node);
     let visibility = helpers::determine_visibility(&modifiers, default_visibility);
 
     let mut signature = format!("{}Enum {}", helpers::modifier_prefix(&modifiers), name);
@@ -256,7 +249,7 @@ pub fn extract_enum(
         parent_id,
         metadata: Some(metadata),
         doc_comment,
-        ..Default::default()
+        annotations: type_annotations(base, node),
     };
 
     Some(base.create_symbol(&node, name, SymbolKind::Enum, options))
@@ -297,7 +290,7 @@ pub fn extract_delegate(
     let name_node = node.child_by_field_name("name")?;
     let name = base.get_node_text(&name_node);
     let modifiers = helpers::extract_modifiers(base, &node);
-    let default_visibility = helpers::default_type_visibility(parent_id.as_ref());
+    let default_visibility = helpers::default_type_visibility(&node);
     let visibility = helpers::determine_visibility(&modifiers, default_visibility);
 
     let is_function = node.child_by_field_name("return_type").is_some();
@@ -327,8 +320,15 @@ pub fn extract_delegate(
         parent_id,
         metadata: Some(metadata),
         doc_comment,
-        ..Default::default()
+        annotations: type_annotations(base, node),
     };
 
     Some(base.create_symbol(&node, name, SymbolKind::Delegate, options))
+}
+
+fn type_annotations(base: &BaseExtractor, node: Node) -> Vec<crate::base::AnnotationMarker> {
+    crate::base::annotations::normalize_annotations(
+        &helpers::extract_type_attributes(base, &node),
+        "vbnet",
+    )
 }

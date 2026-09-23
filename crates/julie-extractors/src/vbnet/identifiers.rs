@@ -1,5 +1,5 @@
 use crate::base::{
-    BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol,
+    BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol, SymbolKind,
     extract_type_arguments,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -44,6 +44,9 @@ fn extract_identifier_from_node(
     node: Node,
     containing_symbols: &Scope<'_>,
 ) {
+    if matches!(node.kind(), "new_expression" | "element_access") {
+        record_vbnet_constructor_arg_literals(base, node, containing_symbols);
+    }
     match node.kind() {
         "invocation_expression" | "invocation" | "element_access" | "call_statement" => {
             let Some(callee) = super::helpers::call_callee(node) else {
@@ -56,12 +59,16 @@ fn extract_identifier_from_node(
             match callee.kind() {
                 "identifier" => {
                     let name = base.get_node_text(&callee);
-                    base.create_identifier(
-                        &callee,
-                        name,
-                        IdentifierKind::Call,
-                        containing_symbol_id,
-                    );
+                    let kind = if super::helpers::is_indexed_value(
+                        base,
+                        callee,
+                        containing_symbols.symbols,
+                    ) {
+                        IdentifierKind::VariableRef
+                    } else {
+                        IdentifierKind::Call
+                    };
+                    base.create_identifier(&callee, name, kind, containing_symbol_id.clone());
                 }
                 "implicit_member_access" => {
                     if let Some(member) = callee.child_by_field_name("member") {
@@ -152,6 +159,71 @@ fn extract_identifier_from_node(
                     );
                 }
             }
+        }
+
+        // An attribute name names its attribute class, so it is a type usage
+        // owned by the declaration it decorates.
+        "attribute" => {
+            let Some(name) = node.child_by_field_name("name") else {
+                return;
+            };
+            let name_node = if name.kind() == "namespace_name" {
+                terminal_identifier(name).unwrap_or(name)
+            } else {
+                name
+            };
+            let owner = super::helpers::attribute_owner_declaration(node).and_then(|declaration| {
+                containing_symbols.symbols.iter().find(|symbol| {
+                    symbol.start_byte == declaration.start_byte() as u32
+                        && !matches!(symbol.kind, SymbolKind::Variable | SymbolKind::Field)
+                })
+            });
+            let containing_symbol_id = owner
+                .map(|symbol| symbol.id.clone())
+                .or_else(|| find_containing_symbol_id(node, containing_symbols));
+            let text = base.get_node_text(&name_node);
+            base.create_identifier(
+                &name_node,
+                text,
+                IdentifierKind::TypeUsage,
+                containing_symbol_id,
+            );
+        }
+
+        "namespace_name" if is_member_clause_target(node) => {
+            let mut cursor = node.walk();
+            let parts: Vec<Node> = node
+                .named_children(&mut cursor)
+                .filter(|child| child.kind() == "identifier")
+                .collect();
+            let Some((member, owner_parts)) = parts.split_last() else {
+                return;
+            };
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            let is_handles = node
+                .parent()
+                .is_some_and(|clause| clause.kind() == "handles_clause");
+            if let Some(owner) = owner_parts.last() {
+                let owner_name = base.get_node_text(owner);
+                let is_keyword = ["Me", "MyBase", "MyClass"]
+                    .iter()
+                    .any(|keyword| owner_name.eq_ignore_ascii_case(keyword));
+                if !is_keyword {
+                    let kind = if is_handles {
+                        IdentifierKind::VariableRef
+                    } else {
+                        IdentifierKind::TypeUsage
+                    };
+                    base.create_identifier(owner, owner_name, kind, containing_symbol_id.clone());
+                }
+            }
+            let member_name = base.get_node_text(member);
+            base.create_identifier(
+                member,
+                member_name,
+                IdentifierKind::MemberAccess,
+                containing_symbol_id,
+            );
         }
 
         "namespace_name" if is_type_position_namespace(node) => {
@@ -291,6 +363,12 @@ fn is_vbnet_value_read_identifier(node: Node) -> bool {
             parent.child_by_field_name("variable").map(|v| v.id()) != Some(node.id())
         }
 
+        // Rule 3: `Using r As ...` and `Catch ex As ...` declare their names.
+        "using_statement" => {
+            parent.child_by_field_name("resource").map(|r| r.id()) != Some(node.id())
+        }
+        "catch_block" => parent.child_by_field_name("exception").map(|e| e.id()) != Some(node.id()),
+
         // Rule 3: labels and GoTo targets are not variables.
         "label_statement" | "goto_statement" => false,
 
@@ -322,6 +400,21 @@ fn is_vbnet_value_read_identifier(node: Node) -> bool {
             let is_left = parent.child_by_field_name("left").map(|n| n.id()) == Some(node.id());
             if !is_left {
                 return true;
+            }
+            let using_owner = parent.parent().and_then(|value| {
+                if value.kind() == "using_statement" {
+                    Some(value)
+                } else {
+                    value
+                        .parent()
+                        .filter(|owner| owner.kind() == "using_statement")
+                }
+            });
+            let declares_using_resource = using_owner
+                .and_then(super::locals::using_assignment)
+                .is_some_and(|assignment| assignment.id() == parent.id());
+            if declares_using_resource {
+                return false;
             }
             let is_statement_assignment = parent
                 .parent()
@@ -426,6 +519,35 @@ fn record_vbnet_call_arg_literals(
         if let Some(value) = value
             && let Some(text) = decode_vbnet_literal(base, &value)
         {
+            base.record_literal(
+                &value,
+                text,
+                carrier.clone(),
+                pos as u32,
+                containing_symbol_id.clone(),
+            );
+        }
+    }
+}
+
+/// Capture string-literal arguments of `New T(args)` with the constructed type
+/// as the carrier (`New SqlCommand("SELECT ...")`, `New HttpRequestMessage(..)`).
+fn record_vbnet_constructor_arg_literals(
+    base: &mut BaseExtractor,
+    node: Node,
+    containing_symbols: &Scope<'_>,
+) {
+    let Some((type_node, arguments)) = super::helpers::constructor_parts(node) else {
+        return;
+    };
+    if arguments.is_empty() {
+        return;
+    }
+    let type_name = base.get_node_text(&type_node);
+    let carrier = type_name.rsplit('.').next().map(str::to_string);
+    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+    for (pos, value) in arguments.into_iter().enumerate() {
+        if let Some(text) = decode_vbnet_literal(base, &value) {
             base.record_literal(
                 &value,
                 text,
@@ -615,6 +737,20 @@ fn create_with_member_identifier(
             base.create_identifier(&member, name, kind, containing_symbol_id);
         }
     }
+}
+
+/// A `Handles x.Event` target or a member-level `Implements I.Member` target.
+fn is_member_clause_target(node: Node) -> bool {
+    node.parent().is_some_and(|clause| match clause.kind() {
+        "handles_clause" => true,
+        "implements_clause" => clause.parent().is_some_and(|owner| {
+            !matches!(
+                owner.kind(),
+                "class_block" | "structure_block" | "interface_block" | "module_block"
+            )
+        }),
+        _ => false,
+    })
 }
 
 fn terminal_identifier(namespace_name: Node) -> Option<Node> {

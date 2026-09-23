@@ -3011,6 +3011,11 @@
           "name": "calls_and_bodies",
           "source": "fixtures/extraction/vbnet/calls_and_bodies/source.vb",
           "expected": "fixtures/extraction/vbnet/calls_and_bodies/expected.json"
+        },
+        {
+          "name": "framework_and_scopes",
+          "source": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+          "expected": "fixtures/extraction/vbnet/framework_and_scopes/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3025,11 +3030,17 @@
         "symbols": {
           "supported": [
             "class",
+            "enum",
+            "enum_member",
+            "event",
+            "field",
             "import",
             "interface",
             "method",
             "namespace",
+            "operator",
             "property",
+            "struct",
             "variable"
           ],
           "not_applicable": [],
@@ -3038,6 +3049,7 @@
         "relationships": {
           "supported": [
             "calls",
+            "extends",
             "implements",
             "instantiates"
           ],
@@ -3071,10 +3083,14 @@
         },
         "structural_facts": {
           "supported": [
-            "vbnet.handles_clause.v1",
-            "vbnet.implements_clause.v1",
+            "aspnet.attribute_route.v1",
+            "aspnet.minimal_api.route.v1",
+            "aspnet.minimal_api.route_group.v1",
+            "http.client_request.v1",
+            "vbnet.attribute.v1",
             "vbnet.event_declaration.v1",
-            "vbnet.attribute.v1"
+            "vbnet.handles_clause.v1",
+            "vbnet.implements_clause.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -3090,8 +3106,10 @@
         "annotations": {
           "supported": [
             "class",
+            "enum",
             "method",
-            "property"
+            "property",
+            "struct"
           ],
           "not_applicable": [],
           "open_gaps": []

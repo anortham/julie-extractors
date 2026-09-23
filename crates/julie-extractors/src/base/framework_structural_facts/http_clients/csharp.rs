@@ -15,7 +15,7 @@ use super::client_fact;
 use crate::base::http_boundary::classify_url;
 use crate::base::types::StructuralFact;
 
-const HTTPCLIENT_METHODS: &[(&str, &str)] = &[
+pub(super) const HTTPCLIENT_METHODS: &[(&str, &str)] = &[
     ("GetAsync", "GET"),
     ("GetStringAsync", "GET"),
     ("GetByteArrayAsync", "GET"),

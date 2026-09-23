@@ -567,6 +567,30 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:ex:43:18",
+      "name": "ex",
+      "kind": "variable",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/calls_and_bodies/source.vb",
+      "start_line": 43,
+      "start_column": 18,
+      "end_line": 43,
+      "end_column": 20,
+      "start_byte": 1244,
+      "end_byte": 1246,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Dim ex As PaymentException",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:Run:32:8",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:o:32:23",
       "name": "o",
       "kind": "variable",
@@ -1637,22 +1661,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:ex:variable_ref:43:18",
-      "name": "ex",
-      "kind": "variable_ref",
-      "language": "vbnet",
-      "file_path": "fixtures/extraction/vbnet/calls_and_bodies/source.vb",
-      "start_line": 43,
-      "start_column": 18,
-      "end_line": 43,
-      "end_column": 20,
-      "start_byte": 1244,
-      "end_byte": 1246,
-      "containing_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:Run:32:8",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:o:variable_ref:35:24",
       "name": "o",
       "kind": "variable_ref",
@@ -1691,7 +1699,7 @@
       "resolved_type": "Boolean",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "vbnet",
       "metadata": null
     },
@@ -1700,7 +1708,7 @@
       "resolved_type": "String",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "vbnet",
       "metadata": null
     },
@@ -1786,8 +1794,35 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:ex:43:18",
+      "resolved_type": "PaymentException",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "vbnet",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:o:32:23",
       "resolved_type": "Order",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "vbnet",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:operator <>:28:8",
+      "resolved_type": "Boolean",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "vbnet",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:operator =:24:8",
+      "resolved_type": "Boolean",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,

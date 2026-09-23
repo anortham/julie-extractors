@@ -194,7 +194,7 @@
       "end_byte": 387,
       "body_span": null,
       "body_hash": null,
-      "signature": "Dim x",
+      "signature": "Dim x As New OtherClass()",
       "doc_comment": null,
       "visibility": "Private",
       "parent_key": "fixtures/extraction/vbnet/cross_file/source.vb:Run:10:8",
@@ -351,7 +351,7 @@
       "resolved_type": "Integer",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "vbnet",
       "metadata": null
     },
@@ -360,7 +360,7 @@
       "resolved_type": "Integer",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "vbnet",
       "metadata": null
     },

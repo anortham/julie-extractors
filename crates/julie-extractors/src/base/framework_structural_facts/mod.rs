@@ -107,6 +107,13 @@ const CSHARP_FRAMEWORK_PATTERN_IDS: &[&str] = &[
     RAZOR_ROUTE_REFERENCE_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
+const DOTNET_FRAMEWORK_PATTERN_IDS: &[&str] = &[
+    ASPNET_ATTRIBUTE_ROUTE_PATTERN_ID,
+    ASPNET_MINIMAL_API_ROUTE_GROUP_PATTERN_ID,
+    ASPNET_MINIMAL_API_ROUTE_PATTERN_ID,
+    HTTP_CLIENT_REQUEST_PATTERN_ID,
+];
+#[cfg(all(test, feature = "test-capability-matrix"))]
 const MARKUP_FRAMEWORK_PATTERN_IDS: &[&str] =
     &[HTMX_ATTRIBUTE_PATTERN_ID, ALPINE_DIRECTIVE_PATTERN_ID];
 // Component markup (JSX/TSX and Vue `<template>`) carries htmx-driven requests
@@ -224,6 +231,17 @@ pub fn collect_framework_structural_facts(
             ));
             csharp_facts
         }
+        "vbnet" => {
+            let mut vbnet_facts =
+                collect_aspnet_minimal_api_routes(language, tree, file_path, content);
+            vbnet_facts.extend(collect_aspnet_attribute_routes(
+                language, tree, file_path, content,
+            ));
+            vbnet_facts.extend(collect_backend_http_client_requests(
+                language, tree, file_path, content,
+            ));
+            vbnet_facts
+        }
         "python" => {
             let mut python_facts = collect_python_web_facts(language, tree, file_path, content);
             python_facts.extend(collect_backend_http_client_requests(
@@ -336,6 +354,9 @@ pub fn collect_framework_structural_facts(
         language, tree, file_path, content, symbols,
     ));
     attach_containing_symbols(&mut facts, symbols);
+    if language == "vbnet" {
+        super::code_structural_facts::attach_vbnet_attribute_owners(tree, &mut facts, symbols);
+    }
     sort_structural_facts(&mut facts);
     facts
 }
@@ -346,6 +367,7 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
 ) -> &'static [&'static str] {
     match language {
         "csharp" => CSHARP_FRAMEWORK_PATTERN_IDS,
+        "vbnet" => DOTNET_FRAMEWORK_PATTERN_IDS,
         "html" => MARKUP_FRAMEWORK_PATTERN_IDS,
         "razor" => RAZOR_FRAMEWORK_PATTERN_IDS,
         "javascript" => JAVASCRIPT_FRAMEWORK_PATTERN_IDS,

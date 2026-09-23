@@ -1018,7 +1018,7 @@ const VBNET_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
         "select_case_statement",
         "case_clause",
         "catch_block",
-        "conditional_expression",
+        "ternary_expression",
     ],
     loop_node_kinds: &[
         "for_statement",

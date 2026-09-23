@@ -5,11 +5,17 @@ url = [
     "getstringasync",
     "getbytearrayasync",
     "getstreamasync",
+    "getfromjsonasync",
     "postasync",
+    "postasjsonasync",
     "putasync",
+    "putasjsonasync",
     "deleteasync",
+    "deletefromjsonasync",
     "patchasync",
+    "patchasjsonasync",
     "sendasync",
+    "httprequestmessage",
 ]
 sql = [
     "query",
