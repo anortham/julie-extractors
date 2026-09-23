@@ -92,9 +92,10 @@ Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
 classification: compatible
 
-This unreleased wave closes the high-rated gaps of the
+This unreleased release closes the gaps of the
 [2026-09-22 language gap audit](../findings/2026-09-22-language-gap-audit.md)
-across all 40 languages. No SQLite or report-schema column is added, removed,
+across all 40 languages: the high-rated gaps in wave 1 and the medium and low
+gaps in wave 2. No SQLite or report-schema column is added, removed,
 or retyped: SQLite schema remains 7, report schema remains 3, and extraction
 identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` adds
 `language-gap-closure-v1` because canonical output changes for every language
@@ -106,11 +107,24 @@ File selection changes. `.bats` is a `bash` extension. An extensionless file is
 its first line is a `sh`, `bash`, or `bats` shebang. A rebuild therefore adds
 `files` rows that earlier scans reported as unsupported. See
 [2026-09-22-shell-script-selection.md](../decisions/2026-09-22-shell-script-selection.md).
+Wave 2 adds these selections:
+
+- Extensions: `ruby` gains `rake`, `gemspec`, `ru`, `jbuilder`, `builder`,
+  and `thor`; `json` gains `ndjson`, `jsonld`, `geojson`, `webmanifest`, and
+  `code-workspace`; `xml` gains `vcxproj`, `sqlproj`, `proj`, `runsettings`,
+  `xaml`, `axaml`, `xsl`, `xslt`, `xlf`, and `xliff`; `scala` gains `sbt`;
+  `erlang` gains `escript`; `regex` gains `regexp`.
+- Exact base names: `Gemfile`, `Rakefile`, `Guardfile`, `Capfile`, and the
+  other Ruby build files select `ruby`; `Pipfile` selects `toml`; an R package
+  `NAMESPACE` selects `r`; `rebar.config`, `sys.config`, and `*.app.src`
+  select `erlang`.
+- A `.config` file whose first non-blank text is `<` selects `xml`; other
+  `.config` files stay unsupported.
 
 Capability flags change. `razor` now publishes `pending_relationships`; `css`,
 `toml`, `yaml`, and `xml` publish `pending_relationships` and `xml` publishes
-`relationships`. Readers of `language_capabilities` see the new flags; no
-column changes.
+`relationships`. Wave 2 adds `pending_relationships` for `markdown`. Readers
+of `language_capabilities` see the new flags; no column changes.
 
 Embedded blocks change. HTML `<script>`/`<style>` and Vue script and style
 sections run the native JavaScript, TypeScript, TSX, JSX, or CSS pipeline and
@@ -120,7 +134,7 @@ inline HTML handler call (`onclick`, Alpine, htmx) resolves only to a top-level
 function of a classic script; any other call stays pending. See
 [2026-09-22-embedded-blocks-use-native-pipeline.md](../decisions/2026-09-22-embedded-blocks-use-native-pipeline.md).
 
-Row families that move, by language family:
+Row families that move, by language family (wave 1):
 
 - Symbols and ids. Many languages add symbol kinds they dropped before (Rust
   generic-impl methods, C and C++ pointer declarators and out-of-line
@@ -166,6 +180,72 @@ Row families that move, by language family:
 - Test roles. Several frameworks gain container and lifecycle roles (Scala
   suites, Python Django `TestCase` bases, F# .NET test attributes, QML
   `TestCase`, C Criterion, C++ Catch2, bats, ShellSpec).
+
+Wave 2 row-family changes, by language family:
+
+- Scripting. Python emits PEP 695 aliases, protocols, enum members, and match
+  patterns with their own kinds, and decorator receivers drop the `@`. Ruby
+  Rails routes come from a syntax walk (member, nested, scope, namespace,
+  mount, root, match); Rake files give namespace and task symbols. PHP emits
+  one symbol per `const` or property element and per `use` clause, `define()`
+  constants, clean pending receiver paths, and Codeception and PHPSpec roles.
+- Data and markup. JSON `$ref` pointers resolve to `references` edges or
+  structured pending rows, and JSONC comments become doc comments. TOML, YAML,
+  and XML comments before a key or element become doc comments. XML symbol
+  kinds follow the declared vocabulary (XSD, WSDL, XSLT, XAML, MSBuild, Ant,
+  Spring, MyBatis, TestNG, resx). Markdown heading names are plain text,
+  anchors use GitHub slugs, and reference links and footnotes give
+  `references` edges or structured pending rows.
+- Dynamic. Lua class idioms become classes with `extends` rows and LuaLS
+  annotations give type facts. R emits S4, R6, RefClass, and S7 members and
+  more import forms. Bash drops duplicate declaration rows and prefix
+  assignments, honors declaration flags, and links wrapped commands and trap
+  handlers.
+- QML, SQL, and Regex. QML signal handlers own their calls and property and
+  handler body spans cover the value. SQL type facts come from grammar type
+  nodes with `is_inferred` false, docs stop bleeding into columns, and
+  unnamed constraints and top-level select aliases lose their symbols. Regex
+  lookarounds and property escapes are nested symbols.
+- .NET. C# adds event, positional record property, and pattern-variable
+  symbols. VB.NET adds typed locals and `Implements` links. F# adds
+  constructors, properties, operators, active patterns, interfaces, and
+  `open`/`#load`/`#r` imports. Razor emits one file class per `.razor` or
+  `.cshtml` file that owns template calls, one row per directive, and private
+  default visibility. PowerShell parameters parent to the right function and
+  unexported `.psm1` functions are private.
+- JVM. Java adds interface constants, annotation elements, and module
+  namespaces. Kotlin accessors and operator functions own their calls, and
+  plain constructor parameters are private. Scala member `val`/`var` are
+  properties, and extensions and anonymous givens get stable names.
+- Apple, Dart, and Godot. Swift adds operator and macro symbols. Dart adds
+  extension types, mixin applications, libraries, parts, and typedefs, and
+  drops false body spans. GDScript visibility follows the underscore rule.
+- C family. C and C++ bodiless declarations lose body spans and hashes, return
+  types become recorded type facts, and trailing and Doxygen `/*!` docs attach
+  to their symbols. C++ `#include`/`#define` give import and constant rows.
+- BEAM. Elixir special forms emit no calls, `@attr` becomes a constant, and
+  Ecto schemas give struct and field symbols. Erlang pending calls carry
+  `arity` in `metadata_json`, and application resource and rebar files
+  extract.
+- Web. CSS rule sets are property symbols and at-rules are namespaces. HTML
+  drops the synthetic `url:`/`resource:`/`endpoint:`/`script:` relationships
+  in favor of structured pending rows, and element body spans run between the
+  tags. Vue components span the whole file, and `defineProps`,
+  `defineEmits`, and `defineModel` members are symbols.
+- ECMAScript. TypeScript and JavaScript emit one export row per exported name,
+  and export rows no longer parent declarations. Visibility follows module
+  exports. Calls inside field initializers, object methods, and initializer
+  variables belong to that declaration. The `string` keyword no longer yields
+  string regions.
+- Systems. Rust impl members parent to the implemented type and item macros
+  yield real items. Go adds `extends` and `implements` rows and range and
+  type-switch bindings. Zig declaration kinds follow the initializer node.
+- Receivers. A `.` on the previous line never names a receiver. A leading `@`
+  is part of a receiver only in Ruby and C#. PowerShell reads a `.` after
+  whitespace as an argument. Rust `.await` is not a receiver.
+- Structural facts. Wave 2 adds these pattern ids: `akka_http.route.v1`, `angular.route_definition.v1`, `aspnet.conventional_route.v1`, `chi.mount.v1`, `chi.route.v1`, `cowboy.route.v1`, `css.scope.v1`, `css.tailwind_apply.v1`, `css.tailwind_directive.v1`, `drf.api_view.v1`, `drf.router_registration.v1`, `drf.viewset_action.v1`, `efcore.db_set.v1`, `efcore.entity_configuration.v1`, `efcore.table_mapping.v1`, `fiber.route.v1`, `fsharp.active_pattern.v1`, `fsharp.computation_expression.v1`, `fsharp.quotation.v1`, `giraffe.route.v1`, `go_router.route_definition.v1`, `go_router.route_reference.v1`, `godot.node_path.v1`, `godot.resource_reference.v1`, `godot.rpc_annotation.v1`, `godot.signal_connection.v1`, `godot.signal_emission.v1`, `gorilla_mux.route.v1`, `hapi.route.v1`, `html.embed.v1`, `html.resource_link.v1`, `http4s.route.v1`, `httpz.route.v1`, `java.module_directive.v1`, `jaxrs.route.v1`, `json.schema_definition.v1`, `koa.route.v1`, `lapis.route.v1`, `lazy_nvim.plugin_spec.v1`, `love.callback.v1`, `manifest.script.v1`, `markdown.autolink.v1`, `markdown.definition_list_item.v1`, `markdown.footnote_definition.v1`, `markdown.footnote_reference.v1`, `markdown.reference_link.v1`, `markdown.task_list_item.v1`, `neovim.autocmd.v1`, `neovim.keymap.v1`, `neovim.user_command.v1`, `php.include_call.v1`, `plumber.route.v1`, `powershell.data_key.v1`, `powershell.dsc_resource.v1`, `powershell.module_manifest.v1`, `qml.component_url.v1`, `qmldir.static.v1`, `qmldir.system.v1`, `r.namespace_directive.v1`, `razor.layout_reference.v1`, `razor.model_binding.v1`, `razor.mvc_link.v1`, `razor.partial_reference.v1`, `razor.view_component_reference.v1`, `regex.backreference.v1`, `regex.inline_flags.v1`, `regex.quoted_literal.v1`, `rocket.mount.v1`, `rocket.route.v1`, `shelf_router.route.v1`, `shiny.app.v1`, `shiny.input.v1`, `shiny.module.v1`, `shiny.output.v1`, `shiny.reactive.v1`, `spring.functional_route.v1`, `sql.extension.v1`, `sql.policy_definition.v1`, `sql.role_definition.v1`, `sql.sequence_definition.v1`, `sql.type_definition.v1`, `swiftpm.package.v1`, `swiftpm.product.v1`, `swiftpm.target.v1`, `vapor.route.v1`, `xml.android_component.v1`, `xml.android_permission.v1`, `xml.config_entry.v1`, `xml.document_link.v1`, `xml.mybatis_statement.v1`, `xml.servlet_route.v1`, `xml.spring_bean.v1`, `xml.spring_component_scan.v1`, `xml.test_selection.v1`, `xml.xsd.schema.v1`, `yaml.ansible_task.v1`, `yaml.compose_service.v1`, `yaml.k8s_resource.v1`, `zig.build_artifact.v1`, `zig.build_dependency.v1`, `zig.build_module.v1`, `zig.build_module_import.v1`, `zig.build_step.v1`.
+  Existing Rails, Phoenix, Spring, Laravel, and HTTP client facts cover more
+  forms and metadata keys.
 
 Per-language detail is in `docs/languages/*.md` and in the golden fixtures
 under `fixtures/extraction/`.
