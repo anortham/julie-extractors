@@ -310,3 +310,24 @@ fn handler_calls_skip_nested_and_module_script_functions() {
     assert!(pending.contains(&"save"), "{pending:?}");
     assert!(pending.contains(&"publish"), "{pending:?}");
 }
+
+#[test]
+fn embedded_facts_that_share_a_span_keep_distinct_ids() {
+    let results = extract(
+        r#"<html><body>
+<script type="text/babel">
+  const Save = () => <button {...{ "hx-post": "/save", "hx-trigger": "click" }} />;
+</script>
+</body></html>
+"#,
+    );
+    let htmx: Vec<&crate::base::StructuralFact> = results
+        .structural_facts
+        .iter()
+        .filter(|fact| fact.pattern_id == "htmx.attribute.v1")
+        .collect();
+    assert_eq!(htmx.len(), 2, "{htmx:#?}");
+    assert_ne!(htmx[0].start_byte, 0);
+    assert_eq!(htmx[0].start_byte, htmx[1].start_byte);
+    assert_ne!(htmx[0].id, htmx[1].id);
+}

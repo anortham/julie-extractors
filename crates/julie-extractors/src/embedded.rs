@@ -334,15 +334,18 @@ fn remap_to_host(results: &mut ExtractionResults, offset: EmbeddedSpanOffset) {
         map_option(&mut region.containing_symbol_id);
     }
     for fact in &mut results.structural_facts {
-        fact.apply_normalized_span(offset.apply(NormalizedSpan {
+        let host_span = offset.apply(NormalizedSpan {
             start_line: fact.start_line,
             start_column: fact.start_column,
             end_line: fact.end_line,
             end_column: fact.end_column,
             start_byte: fact.start_byte,
             end_byte: fact.end_byte,
-        }));
-        fact.refresh_id();
+        });
+        fact.apply_normalized_span(host_span);
+        // Collectors fold discriminators (attribute name, verb) into the id, so
+        // the block-local id is rehashed with the host span, not rebuilt.
+        fact.id = crate::base::types::stable_location_id(&fact.file_path, &fact.id, host_span);
         map_option(&mut fact.containing_symbol_id);
     }
     for metric in &mut results.complexity_metrics {
