@@ -30,7 +30,7 @@ owner decision or a grammar change. Owner decisions from 2026-09-23:
    `BeforeScenario`-style hooks become fixture hooks. Golden fixtures carry a
    control class for each framework. See the
    [decision](../decisions/2026-09-23-step-definition-test-role.md).
-2. `gomod` language. Pin `camdencheek/tree-sitter-go-mod`, select the exact
+2. `gomod` language. Pin the go.mod grammar, select the exact
    basename `go.mod`, and publish module, go, toolchain, require, replace,
    exclude, retract, tool, and ignore rows with golden fixtures.
 3. Grammar forks. Done. The owner approved the forks, and both grammars are
@@ -65,3 +65,13 @@ Clippy with `-D warnings` on the local toolchain and on Rust 1.98,
 xtask`, `cargo xtask test default`, and `cargo xtask test contract`. The
 Windows default tier runs because `gomod` and `gosum` add basename selection
 rules.
+
+## Result
+
+All five tasks are done on `feat/gap-followups`. The open-gap backlog fell
+from 25 to 21. A two-pass Codex review (general and security) found four
+medium defects, all fixed before release: Behat step roles that a PHPUnit name
+rule could overwrite, a generic `Context` base type taken as Behat, undecoded
+Go string escapes, and a go.mod comment check whose cost grew with the square
+of a comment block. The lead also bounded retract rationales to 500 bytes. The
+release note is [v3.5.0](../release-notes/v3.5.0.md).
