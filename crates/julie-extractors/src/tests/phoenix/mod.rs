@@ -281,8 +281,7 @@ end
 }
 
 #[test]
-fn phoenix_excluded_macros_stay_silent() {
-    // pipe_through / live / socket / channel are documented exclusions.
+fn phoenix_socket_and_channel_stay_silent_while_live_routes() {
     let source = r#"defmodule MyAppWeb.Router do
   use Phoenix.Router
 
@@ -297,15 +296,16 @@ fn phoenix_excluded_macros_stay_silent() {
 end
 "#;
     let results = extract("lib/my_app_web/router.ex", source);
-    // Only forward emits (a mount fact); no route/resource facts from the
-    // excluded macros.
-    assert!(
-        facts_with_pattern(&results, PHOENIX_ROUTE_PATTERN_ID).is_empty(),
-        "no route facts from excluded macros"
+    let routes = facts_with_pattern(&results, PHOENIX_ROUTE_PATTERN_ID);
+    assert_eq!(routes.len(), 1, "{routes:#?}");
+    assert_eq!(
+        metadata_str(routes[0], "effective_route_template"),
+        Some("/api/dashboard")
     );
+    assert_eq!(metadata_str(routes[0], "handler_kind"), Some("live_view"));
     assert!(
         facts_with_pattern(&results, PHOENIX_RESOURCE_ROUTE_PATTERN_ID).is_empty(),
-        "no resource facts from excluded macros"
+        "no resource facts from socket or channel"
     );
     assert_eq!(
         facts_with_pattern(&results, PHOENIX_FORWARD_PATTERN_ID).len(),
