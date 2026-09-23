@@ -53,7 +53,7 @@
       },
       "body_hash": "5c97abd47dacf20529199a74f4df3ba4",
       "signature": "pub fn halve_flag(value: i32) -> i32",
-      "doc_comment": "* Halves a value.\n*\n* ```rust,no_run\n* let _ = halve_flag(8);\n* ```",
+      "doc_comment": "Halves a value.\n```rust,no_run\nlet _ = halve_flag(8);\n```",
       "visibility": "Public",
       "parent_key": null,
       "metadata": {},
@@ -302,7 +302,7 @@
       "resolved_type": "i32",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "rust",
       "metadata": null
     },
@@ -311,7 +311,7 @@
       "resolved_type": "i32",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "rust",
       "metadata": null
     },
@@ -320,7 +320,7 @@
       "resolved_type": "i32",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "rust",
       "metadata": null
     },

@@ -363,7 +363,21 @@ fn axum_method_router_verbs(arg: Node, content: &str) -> Option<Vec<VerbClass>> 
                 }
                 node = function.child_by_field_name("value")?;
             }
-            // A `scoped_identifier` base (`web::get()`) is actix, not axum.
+            // A path-qualified base is axum only through its `routing` module
+            // (`routing::get(h)`, `axum::routing::post(h)`); `web::get()` is actix.
+            "scoped_identifier" => {
+                let path = function.child_by_field_name("path")?;
+                let module = match path.kind() {
+                    "scoped_identifier" => path.child_by_field_name("name")?,
+                    _ => path,
+                };
+                if node_text(content, module)? != "routing" {
+                    return None;
+                }
+                let name = function.child_by_field_name("name")?;
+                verbs.push(classify_verb(node_text(content, name)?)?);
+                return Some(verbs);
+            }
             _ => return None,
         }
     }

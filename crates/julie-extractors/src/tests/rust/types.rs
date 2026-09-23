@@ -1,6 +1,3 @@
-// TDD RED: Test for Rust type extraction (infer_types method)
-// This test will fail until we implement infer_types() for RustExtractor
-
 use crate::rust::RustExtractor;
 use std::path::PathBuf;
 use tree_sitter::Parser;
@@ -37,26 +34,31 @@ fn process_data() -> Result<Vec<u8>, std::io::Error> {
     );
 
     let symbols = extractor.extract_symbols(&tree);
-    let types = extractor.infer_types(&symbols);
+    let return_type = |name: &str| {
+        let symbol = symbols.iter().find(|s| s.name == name).unwrap();
+        let fact = extractor.base.type_info.get(&symbol.id).unwrap();
+        let declared = fact
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("declared"))
+            .and_then(|declared| declared.as_str())
+            .map(str::to_string);
+        (fact.resolved_type.clone(), fact.is_inferred, declared)
+    };
 
-    // Should extract return types for functions that have them in the signature
-    assert!(!types.is_empty(), "Should extract at least one type");
-
-    // Find the process_data symbol (known to have return type in signature)
-    let process_data_symbol = symbols
-        .iter()
-        .find(|s| s.name == "process_data")
-        .expect("Should find process_data");
-
-    // Verify the type was extracted correctly
+    assert_eq!(return_type("get_name"), ("String".to_string(), false, None));
     assert_eq!(
-        types.get(&process_data_symbol.id),
-        Some(&"Result<Vec<u8>, std::io::Error>".to_string()),
-        "process_data should have Result<Vec<u8>, std::io::Error> return type"
+        return_type("calculate_age"),
+        ("i32".to_string(), false, None)
     );
-
-    // Note: get_name and calculate_age may not have types extracted if extract_return_type()
-    // doesn't capture their return types. This is a limitation of the current signature extraction.
+    assert_eq!(
+        return_type("process_data"),
+        (
+            "Result".to_string(),
+            false,
+            Some("Result<Vec<u8>, std::io::Error>".to_string())
+        )
+    );
 }
 
 #[test]
@@ -86,15 +88,19 @@ where
     );
 
     let symbols = extractor.extract_symbols(&tree);
-    let types = extractor.infer_types(&symbols);
     let make_iter = symbols
         .iter()
         .find(|s| s.name == "make_iter")
         .expect("Should find make_iter");
+    let fact = extractor.base.type_info.get(&make_iter.id).unwrap();
 
+    assert_eq!(fact.resolved_type, "Iterator");
     assert_eq!(
-        types.get(&make_iter.id),
-        Some(&"impl Iterator<Item = Result<T, std::io::Error>>".to_string())
+        fact.metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("declared"))
+            .and_then(|declared| declared.as_str()),
+        Some("impl Iterator<Item = Result<T, std::io::Error>>")
     );
 }
 

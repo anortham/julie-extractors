@@ -64,7 +64,7 @@ pub fn collect_source_regions(
         &mut regions,
         0,
     );
-    attach_containing_symbols(&mut regions, symbols);
+    attach_containing_symbols(&mut regions, symbols, content);
     regions.sort_by(|left, right| {
         left.start_byte
             .cmp(&right.start_byte)
@@ -185,9 +185,13 @@ fn region_for_node(
     }
 }
 
-fn attach_containing_symbols(regions: &mut [SourceRegion], symbols: &[Symbol]) {
+fn attach_containing_symbols(regions: &mut [SourceRegion], symbols: &[Symbol], content: &str) {
     for region in regions {
         region.containing_symbol_id = match region.kind {
+            // An inner doc comment (`//!`, `/*!`) documents the item it sits in.
+            SourceRegionKind::DocComment if is_inner_doc_comment(region, content) => {
+                containing_symbol_id(region, symbols)
+            }
             SourceRegionKind::DocComment => documented_symbol_id(region, symbols),
             SourceRegionKind::Comment | SourceRegionKind::StringLiteral => {
                 containing_symbol_id(region, symbols)
@@ -205,6 +209,14 @@ fn containing_symbol_id(region: &SourceRegion, symbols: &[Symbol]) -> Option<Str
         })
         .min_by_key(|symbol| symbol.end_byte.saturating_sub(symbol.start_byte))
         .map(|symbol| symbol.id.clone())
+}
+
+fn is_inner_doc_comment(region: &SourceRegion, content: &str) -> bool {
+    let text = content
+        .get(region.start_byte as usize..region.end_byte as usize)
+        .unwrap_or_default()
+        .trim_start();
+    text.starts_with("//!") || text.starts_with("/*!")
 }
 
 fn documented_symbol_id(region: &SourceRegion, symbols: &[Symbol]) -> Option<String> {

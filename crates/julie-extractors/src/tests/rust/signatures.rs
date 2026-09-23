@@ -339,9 +339,7 @@ fn main() {
 }
 
 #[test]
-fn test_item_position_macros_are_extracted() {
-    // Declarative macros at item position (top-level or in impl/mod) define
-    // named things and ARE worth extracting.
+fn test_item_position_macros_define_their_items() {
     let code = r#"
 thread_local! {
     static CACHE: RefCell<HashMap<String, String>> = RefCell::new(HashMap::new());
@@ -371,15 +369,12 @@ bitflags! {
 
     let symbols = extractor.extract_symbols(&tree);
 
-    // Item-position macros should be extracted
-    for name in &["thread_local", "lazy_static", "bitflags"] {
-        let found = symbols.iter().find(|s| s.name == *name);
-        assert!(
-            found.is_some(),
-            "item-position macro {}! should be extracted, but wasn't. Symbols: {:?}",
-            name,
-            symbols.iter().map(|s| &s.name).collect::<Vec<_>>()
-        );
+    let names: Vec<_> = symbols.iter().map(|s| s.name.as_str()).collect();
+    for name in ["CACHE", "CONFIG", "Flags", "A"] {
+        assert!(names.contains(&name), "{name} missing from {names:?}");
+    }
+    for name in ["thread_local", "lazy_static", "bitflags"] {
+        assert!(!names.contains(&name), "{name} in {names:?}");
     }
 }
 

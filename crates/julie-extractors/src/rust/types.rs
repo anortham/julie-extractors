@@ -1,6 +1,6 @@
 use super::helpers::{
-    extract_attribute_texts, extract_derived_traits, extract_visibility, find_doc_comment,
-    get_preceding_attributes, has_cfg_test_attribute,
+    effective_visibility, extract_attribute_texts, extract_derived_traits, extract_visibility,
+    find_doc_comment, get_preceding_attributes, has_cfg_test_attribute, item_annotations,
 };
 // Rust type definitions: structs, enums, fields, variants, traits,
 // unions, modules, consts, statics, macros, type aliases.
@@ -40,11 +40,7 @@ pub(super) fn extract_struct(
         signature = format!("#[derive({})] {}", derived_traits.join(", "), signature);
     }
 
-    let visibility_enum = if visibility.trim().is_empty() {
-        Visibility::Private
-    } else {
-        Visibility::Public
-    };
+    let visibility_enum = effective_visibility(base, node);
 
     Some(base.create_symbol(
         &node,
@@ -89,11 +85,7 @@ pub(super) fn extract_enum(
         signature = format!("#[derive({})] {}", derived_traits.join(", "), signature);
     }
 
-    let visibility_enum = if visibility.trim().is_empty() {
-        Visibility::Private
-    } else {
-        Visibility::Public
-    };
+    let visibility_enum = effective_visibility(base, node);
 
     Some(base.create_symbol(
         &node,
@@ -130,11 +122,7 @@ pub(super) fn extract_field(
         format!("{}{}: {}", visibility, name, type_text)
     };
 
-    let visibility_enum = if visibility.trim().is_empty() {
-        Visibility::Private
-    } else {
-        Visibility::Public
-    };
+    let visibility_enum = effective_visibility(base, node);
 
     let symbol = base.create_symbol(
         &node,
@@ -146,7 +134,7 @@ pub(super) fn extract_field(
             parent_id,
             doc_comment: find_doc_comment(base, node),
             metadata: Some(HashMap::new()),
-            annotations: Vec::new(),
+            annotations: item_annotations(base, node),
         },
     );
     if let Some(type_node) = type_node {
@@ -174,18 +162,17 @@ pub(super) fn extract_enum_variant(
         format!("{}{}", name, body_text)
     };
 
-    // Enum variants are always public (they inherit the enum's accessibility)
     Some(base.create_symbol(
         &node,
         name,
         SymbolKind::EnumMember,
         SymbolOptions {
             signature: Some(signature),
-            visibility: Some(Visibility::Public),
+            visibility: Some(effective_visibility(base, node)),
             parent_id,
             doc_comment: find_doc_comment(base, node),
             metadata: Some(HashMap::new()),
-            annotations: Vec::new(),
+            annotations: item_annotations(base, node),
         },
     ))
 }
@@ -239,11 +226,7 @@ pub(super) fn extract_trait(
         signature = format!("{} {{ {} }}", signature, associated_types.join("; "));
     }
 
-    let visibility_enum = if visibility.trim().is_empty() {
-        Visibility::Private
-    } else {
-        Visibility::Public
-    };
+    let visibility_enum = effective_visibility(base, node);
 
     Some(base.create_symbol(
         &node,
@@ -255,7 +238,7 @@ pub(super) fn extract_trait(
             parent_id,
             doc_comment: find_doc_comment(base, node),
             metadata: Some(HashMap::new()),
-            annotations: Vec::new(),
+            annotations: item_annotations(base, node),
         },
     ))
 }
@@ -275,11 +258,7 @@ pub(super) fn extract_union(
     let visibility = extract_visibility(base, node);
     let signature = format!("{}union {}", visibility, name);
 
-    let visibility_enum = if visibility.trim().is_empty() {
-        Visibility::Private
-    } else {
-        Visibility::Public
-    };
+    let visibility_enum = effective_visibility(base, node);
 
     Some(base.create_symbol(
         &node,
@@ -291,7 +270,7 @@ pub(super) fn extract_union(
             parent_id,
             doc_comment: find_doc_comment(base, node),
             metadata: Some(HashMap::new()),
-            annotations: Vec::new(),
+            annotations: item_annotations(base, node),
         },
     ))
 }
@@ -315,11 +294,7 @@ pub(super) fn extract_module(
         apply_test_role(&mut metadata, TestRole::TestContainer);
     }
 
-    let visibility_enum = if visibility.trim().is_empty() {
-        Visibility::Private
-    } else {
-        Visibility::Public
-    };
+    let visibility_enum = effective_visibility(base, node);
 
     Some(base.create_symbol(
         &node,
@@ -358,13 +333,9 @@ pub(super) fn extract_const(
         signature.push_str(&format!(" = {}", base.get_node_text(&value_node)));
     }
 
-    let visibility_enum = if visibility.trim().is_empty() {
-        Visibility::Private
-    } else {
-        Visibility::Public
-    };
+    let visibility_enum = effective_visibility(base, node);
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
         name,
         SymbolKind::Constant,
@@ -374,9 +345,13 @@ pub(super) fn extract_const(
             parent_id,
             doc_comment: find_doc_comment(base, node),
             metadata: Some(HashMap::new()),
-            annotations: Vec::new(),
+            annotations: item_annotations(base, node),
         },
-    ))
+    );
+    if let Some(type_node) = type_node {
+        super::type_facts::record_declared_type(base, &symbol.id, type_node);
+    }
+    Some(symbol)
 }
 
 /// Extract static definition
@@ -408,11 +383,7 @@ pub(super) fn extract_static(
         signature.push_str(&format!(" = {}", base.get_node_text(&value_node)));
     }
 
-    let visibility_enum = if visibility.trim().is_empty() {
-        Visibility::Private
-    } else {
-        Visibility::Public
-    };
+    let visibility_enum = effective_visibility(base, node);
 
     // static mut is mutable → Variable; non-mut static is semantically constant → Constant
     let kind = if is_mutable {
@@ -421,7 +392,7 @@ pub(super) fn extract_static(
         SymbolKind::Constant
     };
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
         name,
         kind,
@@ -431,9 +402,13 @@ pub(super) fn extract_static(
             parent_id,
             doc_comment: find_doc_comment(base, node),
             metadata: Some(HashMap::new()),
-            annotations: Vec::new(),
+            annotations: item_annotations(base, node),
         },
-    ))
+    );
+    if let Some(type_node) = type_node {
+        super::type_facts::record_declared_type(base, &symbol.id, type_node);
+    }
+    Some(symbol)
 }
 
 /// Extract macro definition
@@ -463,7 +438,7 @@ pub(super) fn extract_macro(
             parent_id,
             doc_comment: find_doc_comment(base, node),
             metadata: Some(metadata),
-            annotations: Vec::new(),
+            annotations: item_annotations(base, node),
         },
     );
     symbol.body_span = macro_rules_body_span(&base.content, node);
@@ -522,11 +497,7 @@ pub(super) fn extract_type_alias(
 
     let signature = format!("{}type {}{}{}", visibility, name, type_params, type_def);
 
-    let visibility_enum = if visibility.trim().is_empty() {
-        Visibility::Private
-    } else {
-        Visibility::Public
-    };
+    let visibility_enum = effective_visibility(base, node);
 
     Some(base.create_symbol(
         &node,
@@ -538,7 +509,7 @@ pub(super) fn extract_type_alias(
             parent_id,
             doc_comment: find_doc_comment(base, node),
             metadata: Some(HashMap::new()),
-            annotations: Vec::new(),
+            annotations: item_annotations(base, node),
         },
     ))
 }

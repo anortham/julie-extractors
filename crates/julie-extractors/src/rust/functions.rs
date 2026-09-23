@@ -1,13 +1,13 @@
 use super::helpers::{
-    ImplBlockInfo, extract_attribute_texts, extract_extern_modifier, extract_impl_target_names,
-    extract_visibility, find_doc_comment, get_preceding_attributes, has_async_keyword,
-    has_unsafe_keyword, is_inside_impl,
+    ImplBlockInfo, associated_item_owner, effective_visibility, extract_extern_modifier,
+    extract_impl_target_names, extract_visibility, find_doc_comment, has_async_keyword,
+    has_unsafe_keyword, item_annotations,
 };
 use super::signatures::extract_return_type;
 /// Rust function and method extraction
 /// - Functions and methods
 /// - Impl blocks and two-phase processing
-use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations};
+use crate::base::{Symbol, SymbolKind, SymbolOptions};
 use crate::rust::RustExtractor;
 use crate::test_detection::apply_callable_test_metadata;
 use serde_json::Value;
@@ -48,8 +48,8 @@ pub(super) fn extract_function(
     let name_node = node.child_by_field_name("name");
     let name = name_node.map(|n| base.get_node_text(&n))?;
 
-    // Determine if this is a method (inside impl block) or standalone function
-    let kind = if is_inside_impl(node) {
+    let owner = associated_item_owner(node);
+    let kind = if owner.is_some() {
         SymbolKind::Method
     } else {
         SymbolKind::Function
@@ -98,22 +98,28 @@ pub(super) fn extract_function(
     }
     signature.push_str(&where_clause);
 
-    let visibility_enum = if visibility.trim().is_empty() {
-        Visibility::Private
-    } else {
-        Visibility::Public
-    };
-
-    // Extract attributes for test detection
-    let attr_nodes = get_preceding_attributes(base, node);
-    let attribute_texts = extract_attribute_texts(base, &attr_nodes);
-    let annotations = normalize_annotations(&attribute_texts, "rust");
+    let visibility_enum = effective_visibility(base, node);
+    let annotations = item_annotations(base, node);
     let annotation_keys: Vec<String> = annotations
         .iter()
         .map(|marker| marker.annotation_key.clone())
         .collect();
 
     let mut metadata = HashMap::new();
+    let impl_type_name = owner
+        .filter(|owner| owner.kind() == "impl_item")
+        .and(extractor.current_impl_type.clone());
+    if let Some(impl_type_name) = &impl_type_name {
+        metadata.insert(
+            "impl_type_name".to_string(),
+            Value::String(impl_type_name.clone()),
+        );
+        metadata.insert(
+            "impl_parent_id_resolved".to_string(),
+            Value::Bool(parent_id.is_some()),
+        );
+    }
+    let base = extractor.get_base_mut();
 
     apply_callable_test_metadata(
         "rust",
@@ -125,7 +131,7 @@ pub(super) fn extract_function(
         &mut metadata,
     );
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
         name,
         kind,
@@ -137,30 +143,31 @@ pub(super) fn extract_function(
             metadata: Some(metadata),
             annotations,
         },
-    ))
+    );
+    super::type_facts::record_return_type(base, &symbol.id, node, impl_type_name.as_deref());
+    Some(symbol)
 }
 
 /// Store information about an impl block for phase 2 processing
-pub(super) fn extract_impl(extractor: &mut RustExtractor, node: Node, _parent_id: Option<String>) {
+pub(super) fn extract_impl(extractor: &mut RustExtractor, node: Node, parent_id: Option<String>) {
     let base = extractor.get_base_mut();
     let targets = extract_impl_target_names(base, node);
-    let type_name = match targets.type_name {
-        Some(name) => name,
-        None => return, // Skip impl blocks where we can't determine the type name
+    let Some(type_name) = targets.type_name else {
+        return;
     };
-
-    // SAFETY FIX: Store byte ranges instead of Node references
-    // This avoids unsafe lifetime transmutation and is safe to store
+    let tree_index = extractor.current_macro_tree;
     extractor.add_impl_block(ImplBlockInfo {
         start_byte: node.start_byte(),
         end_byte: node.end_byte(),
         type_name,
-        parent_id: None,
+        parent_id,
+        tree_index,
     });
 }
 
-/// Process impl blocks during phase 2
-/// Extracts methods from impl blocks and links them to their parent types
+/// Phase 2: walk each impl block's items with the implemented type as their
+/// parent. The type is looked up in the impl's own scope first, so a method
+/// in `mod b` attaches to `b::Config`, not to a same-named `a::Config`.
 pub(super) fn process_impl_blocks(
     extractor: &mut RustExtractor,
     tree: &Tree,
@@ -169,63 +176,48 @@ pub(super) fn process_impl_blocks(
     let impl_blocks = extractor.get_impl_blocks().to_vec();
 
     for impl_block in impl_blocks {
-        // Find the struct/enum this impl is for
-        let struct_symbol = symbols.iter().find(|s| {
-            s.name == impl_block.type_name
+        let is_type = |symbol: &&Symbol| {
+            symbol.name == impl_block.type_name
                 && matches!(
-                    s.kind,
+                    symbol.kind,
                     SymbolKind::Class
                         | SymbolKind::Struct
                         | SymbolKind::Enum
                         | SymbolKind::Union
                         | SymbolKind::Interface
                 )
-        });
+        };
+        let parent_id = symbols
+            .iter()
+            .filter(is_type)
+            .find(|symbol| symbol.parent_id == impl_block.parent_id)
+            .or_else(|| symbols.iter().find(is_type))
+            .map(|symbol| symbol.id.clone());
 
-        let parent_id = struct_symbol.map(|s| s.id.clone());
-
-        // SAFETY FIX: Reconstruct node from byte range using the tree
-        // This is safe because we have a valid tree reference with proper lifetime
-        let node = tree
+        let block_tree = impl_block
+            .tree_index
+            .and_then(|index| extractor.macro_trees.get(index).cloned())
+            .unwrap_or_else(|| tree.clone());
+        let Some(node) = block_tree
             .root_node()
-            .descendant_for_byte_range(impl_block.start_byte, impl_block.end_byte);
+            .descendant_for_byte_range(impl_block.start_byte, impl_block.end_byte)
+        else {
+            continue;
+        };
+        let Some(declaration_list) = node
+            .children(&mut node.walk())
+            .find(|child| child.kind() == "declaration_list")
+        else {
+            continue;
+        };
 
-        if let Some(node) = node {
-            // Extract methods with correct parent_id (or none for cross-file impls)
-            if let Some(declaration_list) = node
-                .children(&mut node.walk())
-                .find(|c| c.kind() == "declaration_list")
-            {
-                for child in declaration_list.children(&mut declaration_list.walk()) {
-                    if child.kind() == "function_item"
-                        && let Some(mut method_symbol) =
-                            extract_function(extractor, child, parent_id.clone())
-                    {
-                        method_symbol.kind = SymbolKind::Method;
-
-                        // Preserve the impl type name in metadata so cross-file methods stay discoverable
-                        let metadata = method_symbol.metadata.get_or_insert_with(HashMap::new);
-                        metadata.insert(
-                            "impl_type_name".to_string(),
-                            Value::String(impl_block.type_name.clone()),
-                        );
-                        metadata.insert(
-                            "impl_parent_id_resolved".to_string(),
-                            Value::Bool(parent_id.is_some()),
-                        );
-
-                        let method_id = method_symbol.id.clone();
-                        symbols.push(method_symbol);
-                        super::locals::extract_callable_locals(
-                            extractor,
-                            child,
-                            Some(method_id),
-                            Some(&impl_block.type_name),
-                            symbols,
-                        );
-                    }
-                }
-            }
+        let previous_macro_tree = extractor.current_macro_tree;
+        extractor.current_macro_tree = impl_block.tree_index;
+        extractor.current_impl_type = Some(impl_block.type_name.clone());
+        for child in declaration_list.children(&mut declaration_list.walk()) {
+            extractor.walk_impl_item(child, symbols, parent_id.clone());
         }
+        extractor.current_impl_type = None;
+        extractor.current_macro_tree = previous_macro_tree;
     }
 }

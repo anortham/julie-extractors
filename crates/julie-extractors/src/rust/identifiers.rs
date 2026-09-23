@@ -185,7 +185,7 @@ fn extract_identifier_from_node(
         }
 
         "scoped_identifier" | "scoped_type_identifier" => {
-            if is_inside_call_function(node) {
+            if is_inside_call_function(node) || is_macro_or_attribute_path(node) {
                 return;
             }
 
@@ -216,6 +216,9 @@ fn extract_identifier_from_node(
                 let base = extractor.get_base_mut();
                 base.get_node_text(&node)
             };
+            if name == "_" {
+                return;
+            }
             let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
             let identifier = {
@@ -231,6 +234,17 @@ fn extract_identifier_from_node(
         // string literal inside the macro's token-tree (the dominant Rust SQL
         // form, compile-time checked). Phase 3b captures those string tokens.
         "macro_invocation" => {
+            if let Some(name_node) = macro_name_node(node) {
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                let base = extractor.get_base_mut();
+                let name = base.get_node_text(&name_node);
+                base.create_identifier(
+                    &name_node,
+                    name,
+                    IdentifierKind::Call,
+                    containing_symbol_id,
+                );
+            }
             record_rust_macro_arg_literals(extractor, node, containing_symbols);
         }
 
@@ -255,6 +269,13 @@ fn extract_identifier_from_node(
                 let base = extractor.get_base_mut();
                 base.get_node_text(&node)
             };
+            if node
+                .parent()
+                .is_some_and(|parent| parent.kind() == "token_tree")
+                && RUST_KEYWORDS.contains(&name.as_str())
+            {
+                return;
+            }
             let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
             let base = extractor.get_base_mut();
             base.create_identifier(
@@ -324,7 +345,7 @@ fn is_rust_value_read_identifier(node: tree_sitter::Node) -> bool {
         // invocation (`println!("{}", macro_only)`), but not in `macro_rules!`
         // bodies or attribute arguments. Call sites inside the token tree are
         // owned by the macro-token Call arm above.
-        "macro_invocation" => false,
+        "macro_invocation" | "lifetime" => false,
         "token_tree" => super::helpers::token_tree_belongs_to_macro_invocation(node),
 
         // Rule 3: declaration names.
@@ -528,6 +549,9 @@ fn decompose_rust_type_arg<'a>(
     if !node.is_named() {
         return None; // skip punctuation: < , >
     }
+    if base.get_node_text(&node) == "_" {
+        return None;
+    }
     match node.kind() {
         "lifetime" => None, // skip 'a, 'static, etc.
         "generic_type" => {
@@ -541,6 +565,45 @@ fn decompose_rust_type_arg<'a>(
         }
         _ => Some((base.get_node_text(&node), None)),
     }
+}
+
+/// Keywords that tree-sitter leaves as plain identifier tokens inside a
+/// macro's token tree; they are syntax, never a value read.
+const RUST_KEYWORDS: &[&str] = &[
+    "as", "async", "await", "break", "const", "continue", "crate", "dyn", "else", "enum", "extern",
+    "fn", "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref",
+    "return", "static", "struct", "super", "trait", "type", "union", "unsafe", "use", "where",
+    "while", "yield",
+];
+
+/// The name token of a macro invocation: `twice` in `twice!(..)`, `info` in
+/// `tracing::info!(..)`.
+pub(super) fn macro_name_node(node: tree_sitter::Node) -> Option<tree_sitter::Node> {
+    let name = node.child_by_field_name("macro")?;
+    match name.kind() {
+        "scoped_identifier" => name.child_by_field_name("name"),
+        "identifier" => Some(name),
+        _ => None,
+    }
+}
+
+/// A path that names a macro (`tracing::info!`) or an attribute
+/// (`#[tokio::main]`) rather than a type.
+fn is_macro_or_attribute_path(node: tree_sitter::Node) -> bool {
+    let mut outermost = node;
+    while let Some(parent) = outermost.parent() {
+        if matches!(
+            parent.kind(),
+            "scoped_identifier" | "scoped_type_identifier"
+        ) {
+            outermost = parent;
+        } else {
+            break;
+        }
+    }
+    outermost
+        .parent()
+        .is_some_and(|parent| matches!(parent.kind(), "macro_invocation" | "attribute"))
 }
 
 /// Find the ID of the symbol that contains this node

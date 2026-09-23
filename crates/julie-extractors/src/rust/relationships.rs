@@ -64,6 +64,9 @@ fn walk_tree_for_relationships(
         "identifier" => {
             extract_macro_token_call(extractor, node, symbols, symbol_index, relationships);
         }
+        "macro_invocation" => {
+            extract_macro_invocation_call(extractor, node, symbols, relationships);
+        }
         "use_declaration" | "extern_crate_declaration" => {
             extract_use_import_relationship(extractor, node, symbols);
         }
@@ -434,6 +437,103 @@ fn extract_macro_token_call(
         symbol_index,
         relationships,
     );
+}
+
+/// Macros the standard library and the prelude define. A call to one is
+/// never a workspace edge, the same way a builtin function call is not.
+const STD_MACROS: &[&str] = &[
+    "assert",
+    "assert_eq",
+    "assert_ne",
+    "cfg",
+    "column",
+    "compile_error",
+    "concat",
+    "dbg",
+    "debug_assert",
+    "debug_assert_eq",
+    "debug_assert_ne",
+    "env",
+    "eprint",
+    "eprintln",
+    "file",
+    "format",
+    "format_args",
+    "include",
+    "include_bytes",
+    "include_str",
+    "line",
+    "matches",
+    "module_path",
+    "option_env",
+    "panic",
+    "print",
+    "println",
+    "stringify",
+    "todo",
+    "unimplemented",
+    "unreachable",
+    "vec",
+    "write",
+    "writeln",
+];
+
+/// A macro invocation calls its macro: a resolved edge to a same-file
+/// `macro_rules!`, else a pending call that keeps the macro path.
+fn extract_macro_invocation_call(
+    extractor: &mut RustExtractor,
+    node: Node,
+    symbols: &[Symbol],
+    relationships: &mut Vec<Relationship>,
+) {
+    let Some(macro_path) = node.child_by_field_name("macro") else {
+        return;
+    };
+    let Some(target) = scoped_identifier_to_unresolved_target(extractor, macro_path) else {
+        return;
+    };
+    let Some(caller) = extractor
+        .get_base_mut()
+        .find_containing_symbol(&node, symbols)
+        .cloned()
+    else {
+        return;
+    };
+    if target.namespace_path.is_empty() {
+        let local_macro = symbols.iter().find(|symbol| {
+            symbol.name == target.terminal_name
+                && symbol
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("rustSymbolKind"))
+                    .is_some_and(|kind| kind == "macro_rules")
+        });
+        if let Some(local_macro) = local_macro {
+            relationships.push(Relationship {
+                id: format!(
+                    "{}_{}_{:?}_{}",
+                    caller.id,
+                    local_macro.id,
+                    RelationshipKind::Calls,
+                    node.start_position().row
+                ),
+                from_symbol_id: caller.id.clone(),
+                to_symbol_id: local_macro.id.clone(),
+                kind: RelationshipKind::Calls,
+                file_path: extractor.get_base_mut().file_path.clone(),
+                line_number: node.start_position().row as u32 + 1,
+                span: Some(crate::base::NormalizedSpan::from_node(&node)),
+                reference_site_is_exact: false,
+                confidence: 0.9,
+                metadata: None,
+            });
+            return;
+        }
+        if STD_MACROS.contains(&target.terminal_name.as_str()) {
+            return;
+        }
+    }
+    add_structured_pending_call(extractor, &caller, node, target, 0.7, None);
 }
 
 fn scoped_identifier_to_unresolved_target(

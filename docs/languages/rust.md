@@ -160,6 +160,41 @@ the function, so it never reaches the attribute keys. Such a function reports
 attributes on parameters at all, so those files also raise parse diagnostics
 (see the rstest corpus breakdown below).
 
+## Symbols, docs, and macros
+
+- Impl items (methods, associated consts, associated types) are parented to
+  the implemented type. The type is looked up in the impl block's own scope
+  first, so `impl Config` in `mod b` attaches to `b::Config`, not to a
+  same-named type in a sibling module.
+- Items declared inside a function or method body (a nested `fn`, a local
+  `struct`) are parented to that function and keep their own body span.
+- Trait members and impl members are `method`. Free functions and `extern`
+  block functions are `function`.
+- Visibility: `pub` is public; `pub(crate)`, `pub(super)`, and `pub(in path)`
+  are internal; `pub(self)` or no modifier is private. A plain `use` is private.
+  Trait members take the trait's visibility, trait-impl members are public, and
+  enum variants and variant fields take the enum's visibility.
+- Doc comments follow rustdoc: `///` and `/** */` above an item, passing over
+  attributes and plain `//` comments. `//!` and `/*! */` document the enclosing
+  module and never attach to the next item; their doc regions bind to the
+  enclosing symbol.
+- Every attribute on a declaration becomes an annotation row, including
+  fields, variants, traits, consts, statics, unions, and type aliases.
+- Declared return types and const/static types are declared type facts.
+  `-> Self` resolves to the implemented type.
+- A macro invocation is a `call` identifier. A call to a same-file
+  `macro_rules!` macro is a resolved `calls` edge; another macro is a pending
+  call that keeps its path. Standard-library macros (`println!`, `vec!`,
+  `format!`, ...) publish no pending row.
+- Item macros define their items, not a symbol named after the macro:
+  `lazy_static!`, `thread_local!`, and `cfg_if!` bodies are re-parsed as Rust
+  items in place; `bitflags!` yields the flags struct and one constant per
+  flag; `proptest!` yields one function per case, a `test_case` when it
+  carries `#[test]`. Other item macros define no symbol.
+- Rocket attribute routes (`#[get("/x/<id>")]`, `#[route(GET, uri = "/x")]`)
+  emit `rocket.route.v1` on the handler, and `.mount("/api", routes![..])`
+  emits `rocket.mount.v1` with the handler names.
+
 ## Grammar freshness
 
 The grammar is pinned in `Cargo.lock` to `tree-sitter-rust` version `0.24.2`

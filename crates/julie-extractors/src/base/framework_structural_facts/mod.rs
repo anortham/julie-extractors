@@ -17,6 +17,7 @@ mod phoenix;
 mod python_web;
 mod rails;
 mod razor;
+mod rocket;
 mod scan;
 mod sinatra;
 mod spring;
@@ -46,6 +47,7 @@ use self::phoenix::collect_phoenix_routes;
 use self::python_web::collect_python_web_facts;
 use self::rails::collect_rails_routes;
 use self::razor::collect_razor_structural_facts;
+use self::rocket::collect_rocket_routes;
 use self::sinatra::collect_sinatra_routes;
 use self::spring::collect_spring_request_mappings;
 use self::symfony::collect_symfony_routes;
@@ -73,6 +75,8 @@ pub(super) const AXUM_NEST_PATTERN_ID: &str = "axum.nest.v1";
 pub(super) const ACTIX_ATTRIBUTE_ROUTE_PATTERN_ID: &str = "actix.attribute_route.v1";
 pub(super) const ACTIX_SCOPE_ROUTE_PATTERN_ID: &str = "actix.scope_route.v1";
 pub(super) const ACTIX_MOUNT_PATTERN_ID: &str = "actix.mount.v1";
+pub(super) const ROCKET_ROUTE_PATTERN_ID: &str = "rocket.route.v1";
+pub(super) const ROCKET_MOUNT_PATTERN_ID: &str = "rocket.mount.v1";
 pub(super) const GO_NET_HTTP_ROUTE_PATTERN_ID: &str = "go.net_http.route.v1";
 pub(super) const GIN_ROUTE_PATTERN_ID: &str = "gin.route.v1";
 pub(super) const ECHO_ROUTE_PATTERN_ID: &str = "echo.route.v1";
@@ -186,6 +190,8 @@ const RUST_PATTERN_IDS: &[&str] = &[
     ACTIX_ATTRIBUTE_ROUTE_PATTERN_ID,
     ACTIX_SCOPE_ROUTE_PATTERN_ID,
     ACTIX_MOUNT_PATTERN_ID,
+    ROCKET_ROUTE_PATTERN_ID,
+    ROCKET_MOUNT_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -323,6 +329,7 @@ pub fn collect_framework_structural_facts(
         "rust" => {
             let mut rust_facts = collect_axum_routes(language, tree, file_path, content);
             rust_facts.extend(collect_actix_routes(language, tree, file_path, content));
+            rust_facts.extend(collect_rocket_routes(language, tree, file_path, content));
             rust_facts.extend(collect_backend_http_client_requests(
                 language, tree, file_path, content,
             ));

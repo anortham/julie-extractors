@@ -22,6 +22,7 @@ static VAR_TYPE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r":\s*([^=\s{]
 mod functions;
 mod helpers;
 mod identifiers;
+mod item_macros;
 mod locals;
 mod relationships;
 mod signatures;
@@ -31,14 +32,19 @@ mod types;
 // Re-export types
 pub use self::helpers::ImplBlockInfo;
 
-// Use helpers in the orchestrator
-use self::helpers::is_inside_impl;
-
 /// Rust extractor that handles Rust-specific constructs
 pub struct RustExtractor {
     pub(crate) base: BaseExtractor,
     impl_blocks: Vec<ImplBlockInfo>,
     is_processing_impl_blocks: bool,
+    /// Phase 1 depth inside impl blocks: their items wait for phase 2.
+    impl_nesting: u32,
+    /// The implemented type while phase 2 walks an impl block.
+    current_impl_type: Option<String>,
+    /// Item-macro bodies re-parsed as Rust items (`lazy_static!`, `cfg_if!`).
+    macro_trees: Vec<Tree>,
+    /// The re-parsed macro tree the walk is in, if any.
+    current_macro_tree: Option<usize>,
 }
 
 impl RustExtractor {
@@ -52,6 +58,10 @@ impl RustExtractor {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
             impl_blocks: Vec::new(),
             is_processing_impl_blocks: false,
+            impl_nesting: 0,
+            current_impl_type: None,
+            macro_trees: Vec::new(),
+            current_macro_tree: None,
         }
     }
 
@@ -112,21 +122,48 @@ impl RustExtractor {
             return;
         }
 
-        if matches!(node.kind(), "use_declaration" | "extern_crate_declaration") {
-            self.extract_use_symbols(node, symbols, parent_id);
-            return;
-        }
-
-        let scope_id = self
-            .push_symbol(node, parent_id.clone(), symbols)
-            .or(parent_id);
-        let Some(child_depth) = child_tree_depth(depth) else {
-            return;
+        let enters_impl = node.kind() == "impl_item";
+        let scope_id = match node.kind() {
+            "impl_item" if self.is_processing_impl_blocks => return,
+            "impl_item" => {
+                functions::extract_impl(self, node, parent_id.clone());
+                parent_id
+            }
+            _ if self.impl_nesting > 0 => parent_id,
+            "use_declaration" | "extern_crate_declaration" => {
+                self.extract_use_symbols(node, symbols, parent_id);
+                return;
+            }
+            "macro_invocation" if self.extract_item_macro(node, symbols, &parent_id, depth) => {
+                return;
+            }
+            _ => self
+                .push_symbol(node, parent_id.clone(), symbols)
+                .or(parent_id),
         };
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            self.walk_tree(child, symbols, scope_id.clone(), child_depth);
+
+        if enters_impl {
+            self.impl_nesting += 1;
         }
+        if let Some(child_depth) = child_tree_depth(depth) {
+            let mut cursor = node.walk();
+            for child in node.children(&mut cursor) {
+                self.walk_tree(child, symbols, scope_id.clone(), child_depth);
+            }
+        }
+        if enters_impl {
+            self.impl_nesting -= 1;
+        }
+    }
+
+    /// Phase 2 entry for one item of an impl block's declaration list.
+    pub(super) fn walk_impl_item(
+        &mut self,
+        node: Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<String>,
+    ) {
+        self.walk_tree(node, symbols, parent_id, 0);
     }
 
     // Kept out of line: the extracted `Symbol` is large, and `walk_tree` recurses
@@ -138,10 +175,59 @@ impl RustExtractor {
         parent_id: Option<String>,
         symbols: &mut Vec<Symbol>,
     ) -> Option<String> {
-        let symbol = self.extract_symbol(node, parent_id)?;
+        let mut symbol = self.extract_symbol(node, parent_id)?;
+        // The shared fallback reads `//!` inner docs as outer docs; rustdoc
+        // attachment is decided by the Rust rules alone.
+        symbol.doc_comment = helpers::find_doc_comment(&self.base, node);
         let symbol_id = symbol.id.clone();
         symbols.push(symbol);
         Some(symbol_id)
+    }
+
+    /// Item-position macros that define items: re-parse or token-scan their
+    /// body. Returns false for any other macro, which defines no symbol.
+    #[inline(never)]
+    fn extract_item_macro(
+        &mut self,
+        node: Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: &Option<String>,
+        depth: u32,
+    ) -> bool {
+        let parent_id = parent_id.clone();
+        match item_macros::classify(&self.base, node) {
+            Some(item_macros::ItemMacro::Reparse(ranges)) => {
+                let Some(tree) = item_macros::reparse(&self.base.content, &ranges) else {
+                    return false;
+                };
+                let index = self.macro_trees.len();
+                self.macro_trees.push(tree.clone());
+                let previous = self.current_macro_tree.replace(index);
+                let root = tree.root_node();
+                for item in root.children(&mut root.walk()) {
+                    self.walk_tree(item, symbols, parent_id.clone(), depth);
+                }
+                self.current_macro_tree = previous;
+                true
+            }
+            Some(item_macros::ItemMacro::Bitflags(body)) => {
+                symbols.extend(item_macros::bitflags_symbols(
+                    &mut self.base,
+                    body,
+                    parent_id,
+                ));
+                true
+            }
+            Some(item_macros::ItemMacro::Proptest(body)) => {
+                symbols.extend(item_macros::proptest_symbols(
+                    &mut self.base,
+                    body,
+                    parent_id,
+                ));
+                true
+            }
+            None => false,
+        }
     }
 
     // Kept out of line: `walk_tree` recurses to the traversal depth budget, so its
@@ -161,51 +247,22 @@ impl RustExtractor {
             "struct_item" => types::extract_struct(self, node, parent_id),
             "enum_item" => types::extract_enum(self, node, parent_id),
             "trait_item" => types::extract_trait(self, node, parent_id),
-            "impl_item" => {
-                functions::extract_impl(self, node, parent_id);
-                None // impl blocks don't create symbols directly
-            }
-            "function_item" => {
-                // Skip if inside impl block during phase 1
-                if is_inside_impl(node) && !self.is_processing_impl_blocks {
-                    None
-                } else {
-                    functions::extract_function(self, node, parent_id)
-                }
-            }
+            "function_item" => functions::extract_function(self, node, parent_id),
             "function_signature_item" => {
                 signatures::extract_function_signature(self, node, parent_id)
             }
-            "parameter" => {
-                if !locals::is_callable_parameter(node)
-                    || (is_inside_impl(node) && !self.is_processing_impl_blocks)
-                {
-                    None
-                } else {
-                    locals::extract_parameter(self, node, parent_id)
-                }
+            "parameter" if locals::is_callable_parameter(node) => {
+                locals::extract_parameter(self, node, parent_id)
             }
-            "self_parameter" => {
-                if !locals::is_callable_parameter(node)
-                    || (is_inside_impl(node) && !self.is_processing_impl_blocks)
-                {
-                    None
-                } else {
-                    locals::extract_self_parameter(self, node, parent_id, None)
-                }
+            "self_parameter" if locals::is_callable_parameter(node) => {
+                let impl_type_name = self.current_impl_type.clone();
+                locals::extract_self_parameter(self, node, parent_id, impl_type_name.as_deref())
             }
-            "let_declaration" => {
-                if is_inside_impl(node) && !self.is_processing_impl_blocks {
-                    None
-                } else {
-                    locals::extract_let_local(self, node, parent_id)
-                }
-            }
+            "let_declaration" => locals::extract_let_local(self, node, parent_id),
             "associated_type" => signatures::extract_associated_type(self, node, parent_id),
             "field_declaration" => types::extract_field(self, node, parent_id),
             "enum_variant" => types::extract_enum_variant(self, node, parent_id),
             "union_item" => types::extract_union(self, node, parent_id),
-            "macro_invocation" => signatures::extract_macro_invocation(self, node, parent_id),
             "mod_item" => types::extract_module(self, node, parent_id),
             "const_item" => types::extract_const(self, node, parent_id),
             "static_item" => types::extract_static(self, node, parent_id),
@@ -232,16 +289,8 @@ impl RustExtractor {
         let mut type_map = std::collections::HashMap::new();
 
         for symbol in symbols {
-            // For functions/methods, try to extract return type from signature
-            if matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method) {
-                if let Some(ref signature) = symbol.signature
-                    && let Some(return_type) = extract_return_type_from_signature(signature)
-                {
-                    type_map.insert(symbol.id.clone(), return_type);
-                }
-            }
             // For variables, properties, fields - extract type annotation
-            else if matches!(
+            if matches!(
                 symbol.kind,
                 SymbolKind::Variable | SymbolKind::Property | SymbolKind::Field
             ) && let Some(ref signature) = symbol.signature
@@ -270,25 +319,5 @@ impl RustExtractor {
 
     pub(super) fn add_impl_block(&mut self, block: ImplBlockInfo) {
         self.impl_blocks.push(block);
-    }
-}
-
-fn extract_return_type_from_signature(signature: &str) -> Option<String> {
-    let arrow_index = signature.find("->")?;
-    let after_arrow = signature[arrow_index + 2..].trim();
-    let where_index = after_arrow
-        .find(" where")
-        .or_else(|| after_arrow.find("\nwhere"));
-    let return_type = where_index
-        .map(|index| &after_arrow[..index])
-        .unwrap_or(after_arrow)
-        .trim()
-        .trim_end_matches(';')
-        .trim();
-
-    if return_type.is_empty() {
-        None
-    } else {
-        Some(return_type.to_string())
     }
 }

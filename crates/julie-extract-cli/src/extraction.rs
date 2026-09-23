@@ -784,7 +784,12 @@ fn receiver_token_before(source: &str, at: usize, language: &str) -> Option<(Str
     {
         cursor -= 1;
     }
-    (cursor < end).then(|| (source[cursor..end].to_string(), cursor))
+    let token = &source[cursor..end];
+    // Rust `.await` is a postfix keyword, so `x.await.unwrap()` has no named receiver.
+    if cursor == end || (language == "rust" && token == "await") {
+        return None;
+    }
+    Some((token.to_string(), cursor))
 }
 
 fn receiver_before_identifier(source: &str, start_byte: u32, language: &str) -> Option<String> {
@@ -1450,6 +1455,16 @@ mod tests {
         ] {
             assert_eq!(receiver_before_identifier(source, start, "php"), None);
         }
+    }
+
+    #[test]
+    fn rust_await_is_not_a_receiver() {
+        let source = "client.fetch().await.unwrap()";
+        let start = source.find("unwrap").unwrap() as u32;
+        assert_eq!(receiver_before_identifier(source, start, "rust"), None);
+        let source = "handle.await.len()";
+        let start = source.find("len").unwrap() as u32;
+        assert_eq!(receiver_before_identifier(source, start, "rust"), None);
     }
 
     #[test]

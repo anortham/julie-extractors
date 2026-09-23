@@ -69,6 +69,16 @@
           "name": "return_types",
           "source": "fixtures/extraction/rust/return_types/source.rs",
           "expected": "fixtures/extraction/rust/return_types/expected.json"
+        },
+        {
+          "name": "items_and_macros",
+          "source": "fixtures/extraction/rust/items_and_macros/source.rs",
+          "expected": "fixtures/extraction/rust/items_and_macros/expected.json"
+        },
+        {
+          "name": "rocket_routes",
+          "source": "fixtures/extraction/rust/rocket_routes/source.rs",
+          "expected": "fixtures/extraction/rust/rocket_routes/expected.json"
         }
       ],
       "target_capabilities": {
@@ -83,6 +93,8 @@
         "symbols": {
           "supported": [
             "constant",
+            "enum",
+            "enum_member",
             "field",
             "function",
             "import",
@@ -90,6 +102,7 @@
             "method",
             "namespace",
             "struct",
+            "type",
             "variable"
           ],
           "not_applicable": [],
@@ -138,6 +151,8 @@
             "axum.nest.v1",
             "axum.route.v1",
             "http.client_request.v1",
+            "rocket.mount.v1",
+            "rocket.route.v1",
             "rust.doc_test.v1",
             "rust.unsafe_block.v1"
           ],
@@ -197,7 +212,12 @@
         },
         "annotations": {
           "supported": [
+            "constant",
+            "enum",
+            "enum_member",
+            "field",
             "function",
+            "interface",
             "method",
             "namespace",
             "struct"
@@ -207,9 +227,12 @@
         },
         "doc_comments": {
           "supported": [
+            "constant",
             "function",
             "interface",
-            "struct"
+            "method",
+            "struct",
+            "type"
           ],
           "not_applicable": [],
           "open_gaps": []

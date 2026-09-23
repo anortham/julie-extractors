@@ -2,7 +2,7 @@
 /// - Impl block tracking
 /// - Visibility and attribute extraction
 /// - Keyword detection
-use crate::base::BaseExtractor;
+use crate::base::{BaseExtractor, Visibility, normalize_annotations};
 use regex::Regex;
 use std::sync::LazyLock;
 use tree_sitter::Node;
@@ -18,7 +18,12 @@ pub struct ImplBlockInfo {
     pub start_byte: usize,
     pub end_byte: usize,
     pub type_name: String,
+    /// The symbol that encloses the impl block (a module or function), used to
+    /// pick the implemented type among same-named types in sibling scopes.
     pub parent_id: Option<String>,
+    /// Index into the extractor's re-parsed macro trees when the impl block was
+    /// written inside an item macro; `None` for the file's own tree.
+    pub tree_index: Option<usize>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -272,26 +277,94 @@ pub(super) fn extract_visibility(base: &BaseExtractor, node: Node) -> String {
     }
 }
 
-/// Get preceding attributes (like #[derive(...)]) for a node
-pub(super) fn get_preceding_attributes<'a>(_base: &BaseExtractor, node: Node<'a>) -> Vec<Node<'a>> {
-    let mut attributes = Vec::new();
+/// The visibility a node's own modifier states: `pub` is public, the
+/// restricted forms (`pub(crate)`, `pub(super)`, `pub(in path)`) are internal,
+/// and `pub(self)` or no modifier is private.
+fn declared_visibility(base: &BaseExtractor, node: Node) -> Visibility {
+    let Some(modifier) = node
+        .children(&mut node.walk())
+        .find(|child| child.kind() == "visibility_modifier")
+    else {
+        return Visibility::Private;
+    };
+    let text: String = base
+        .get_node_text(&modifier)
+        .chars()
+        .filter(|ch| !ch.is_whitespace())
+        .collect();
+    match text.as_str() {
+        "pub" => Visibility::Public,
+        "pub(self)" => Visibility::Private,
+        _ => Visibility::Internal,
+    }
+}
 
-    if let Some(parent) = node.parent() {
-        let siblings: Vec<_> = parent.children(&mut parent.walk()).collect();
-        if let Some(node_index) = siblings.iter().position(|&n| n.id() == node.id()) {
-            // Look backwards for attribute_item nodes
-            for i in (0..node_index).rev() {
-                let sibling = siblings[i];
-                if sibling.kind() == "attribute_item" {
-                    attributes.insert(0, sibling);
-                } else {
-                    break; // Stop at the first non-attribute
-                }
-            }
+/// The visibility a declaration actually has. Trait members take the trait's
+/// visibility, trait-impl members are as public as the trait they implement,
+/// and enum variants and their fields take the enum's visibility.
+pub(super) fn effective_visibility(base: &BaseExtractor, node: Node) -> Visibility {
+    if let Some(owner) = associated_item_owner(node) {
+        if owner.kind() == "trait_item" {
+            return declared_visibility(base, owner);
+        }
+        if owner.child_by_field_name("trait").is_some() {
+            return Visibility::Public;
         }
     }
+    if let Some(enum_item) = enclosing_enum_of_member(node) {
+        return declared_visibility(base, enum_item);
+    }
+    declared_visibility(base, node)
+}
 
+/// The `enum_item` whose variant (or variant field) this node is.
+fn enclosing_enum_of_member(node: Node) -> Option<Node> {
+    let variant = match node.kind() {
+        "enum_variant" => node,
+        "field_declaration" => node
+            .parent()
+            .and_then(|list| list.parent())
+            .filter(|owner| owner.kind() == "enum_variant")?,
+        _ => return None,
+    };
+    variant
+        .parent()
+        .and_then(|list| list.parent())
+        .filter(|owner| owner.kind() == "enum_item")
+}
+
+/// The `impl_item` or `trait_item` a declaration is directly associated with.
+pub(super) fn associated_item_owner(node: Node) -> Option<Node> {
+    node.parent()
+        .filter(|list| list.kind() == "declaration_list")
+        .and_then(|list| list.parent())
+        .filter(|owner| matches!(owner.kind(), "impl_item" | "trait_item"))
+}
+
+/// Attributes directly above a node (like `#[derive(...)]`), in source order.
+/// Comments between the attributes and the item are passed over.
+pub(super) fn get_preceding_attributes<'a>(_base: &BaseExtractor, node: Node<'a>) -> Vec<Node<'a>> {
+    let mut attributes = Vec::new();
+    let mut previous = node.prev_sibling();
+    while let Some(sibling) = previous {
+        match sibling.kind() {
+            "attribute_item" => attributes.push(sibling),
+            "line_comment" | "block_comment" => {}
+            _ => break,
+        }
+        previous = sibling.prev_sibling();
+    }
+    attributes.reverse();
     attributes
+}
+
+/// Normalized annotation rows for the attributes directly above a node.
+pub(super) fn item_annotations(
+    base: &BaseExtractor,
+    node: Node,
+) -> Vec<crate::base::AnnotationMarker> {
+    let attributes = get_preceding_attributes(base, node);
+    normalize_annotations(&extract_attribute_texts(base, &attributes), "rust")
 }
 
 /// Extract raw attribute text from attribute nodes.
@@ -415,18 +488,6 @@ pub(super) fn extract_derived_traits(base: &BaseExtractor, attributes: &[Node]) 
     traits
 }
 
-/// Check if node is inside an impl block
-pub(super) fn is_inside_impl(node: Node) -> bool {
-    let mut parent = node.parent();
-    while let Some(p) = parent {
-        if p.kind() == "impl_item" {
-            return true;
-        }
-        parent = p.parent();
-    }
-    false
-}
-
 /// Check if node has async keyword
 pub(super) fn has_async_keyword(base: &BaseExtractor, node: Node) -> bool {
     node.children(&mut node.walk())
@@ -458,81 +519,35 @@ pub(super) fn extract_extern_modifier(base: &BaseExtractor, node: Node) -> Strin
     String::new()
 }
 
-/// Find doc comment preceding a node (/// or #[doc = "..."])
+/// The rustdoc text for a node: the outer doc comments (`///`, `/** */`)
+/// directly above it, passing over attributes and plain comments, or its inner
+/// doc comments (`//!`, `/*! */`) when it is a module with a body, or a
+/// `#[doc = "..."]` attribute. Inner doc comments above a node document the
+/// enclosing item, never the node.
 pub(super) fn find_doc_comment(base: &BaseExtractor, node: Node) -> Option<String> {
-    // Look for doc comments in the parent's children by scanning backwards
-    // This handles cases where attributes appear between the comment and the node
-    if let Some(parent) = node.parent() {
-        let siblings: Vec<_> = parent.children(&mut parent.walk()).collect();
-
-        // Find the index of the current node
-        if let Some(node_index) = siblings.iter().position(|&n| n.id() == node.id()) {
-            // Collect all consecutive doc comments starting from just before the node
-            let mut doc_comments = Vec::new();
-            let mut check_index = node_index;
-
-            while check_index > 0 {
-                check_index -= 1;
-                let prev = siblings[check_index];
-
-                // Skip attributes and outer attributes (but keep looking for comments)
-                if prev.kind() == "attribute" || prev.kind() == "attribute_item" {
-                    // Don't break - keep looking backwards for comments
-                    continue;
-                }
-
-                // Check for doc comments
-                if prev.kind() == "line_comment" {
-                    let comment_text = base.get_node_text(&prev);
-
-                    // Try to strip doc comment markers
-                    if let Some(stripped) = comment_text.strip_prefix("///") {
-                        let doc_text = stripped.trim().to_string();
-                        if !doc_text.is_empty() {
-                            doc_comments.push(doc_text);
-                        }
-                        // Keep looking for more doc comments above
-                        continue;
-                    } else if let Some(stripped) = comment_text.strip_prefix("//!") {
-                        let doc_text = stripped.trim().to_string();
-                        if !doc_text.is_empty() {
-                            doc_comments.push(doc_text);
-                        }
-                        // Keep looking for more doc comments above
-                        continue;
-                    } else {
-                        // Found a non-doc comment, stop searching
-                        break;
-                    }
-                } else if prev.kind() == "block_comment" {
-                    let comment_text = base.get_node_text(&prev);
-
-                    if let Some(stripped) = comment_text.strip_prefix("/**") {
-                        // For multi-line /* */ comments
-                        let trimmed = stripped.strip_suffix("*/").unwrap_or(stripped);
-                        let doc_text = trimmed
-                            .lines()
-                            .map(|line| line.trim_start_matches('*').trim())
-                            .filter(|line| !line.is_empty())
-                            .collect::<Vec<_>>()
-                            .join("\n");
-                        if !doc_text.is_empty() {
-                            return Some(doc_text);
-                        }
-                    }
-                    // Found a block comment, stop searching
-                    break;
-                } else if prev.kind() != "ERROR" && !prev.kind().contains("whitespace") {
-                    // Stop at any non-comment, non-attribute, non-whitespace node
-                    break;
-                }
-            }
-
-            // Reverse to get comments in original order (top to bottom)
-            if !doc_comments.is_empty() {
-                doc_comments.reverse();
-                return Some(doc_comments.join("\n"));
-            }
+    let mut doc_blocks = Vec::new();
+    let mut previous = node.prev_sibling();
+    while let Some(sibling) = previous {
+        match sibling.kind() {
+            "attribute_item" | "attribute" => {}
+            "line_comment" | "block_comment" => match classify_comment(base, sibling) {
+                CommentDoc::Outer(text) => doc_blocks.push(text),
+                CommentDoc::Inner => break,
+                CommentDoc::Plain => {}
+            },
+            _ => break,
+        }
+        previous = sibling.prev_sibling();
+    }
+    if !doc_blocks.is_empty() {
+        doc_blocks.reverse();
+        let doc = doc_blocks
+            .into_iter()
+            .filter(|block| !block.is_empty())
+            .collect::<Vec<_>>()
+            .join("\n");
+        if !doc.is_empty() {
+            return Some(doc);
         }
     }
 
@@ -540,39 +555,46 @@ pub(super) fn find_doc_comment(base: &BaseExtractor, node: Node) -> Option<Strin
         return Some(doc_comment);
     }
 
-    // Also try the base extractor's implementation as a fallback
-    if let Some(doc) = base.find_doc_comment(&node) {
-        // Strip the /// or //! prefix and trim whitespace
-        let doc_text = if let Some(stripped) = doc.strip_prefix("///") {
-            stripped.trim().to_string()
-        } else if let Some(stripped) = doc.strip_prefix("//!") {
-            stripped.trim().to_string()
-        } else if let Some(stripped) = doc.strip_prefix("/**") {
-            // For multi-line /* */ comments
-            let trimmed = stripped.strip_suffix("*/").unwrap_or(stripped);
-            trimmed
-                .lines()
-                .map(|line| line.trim_start_matches('*').trim())
-                .collect::<Vec<_>>()
-                .join("\n")
-        } else {
-            doc
-        };
+    get_preceding_attributes(base, node)
+        .into_iter()
+        .find_map(|attribute| extract_doc_from_attribute(base, attribute))
+}
 
-        if !doc_text.is_empty() {
-            return Some(doc_text);
+enum CommentDoc {
+    Outer(String),
+    Inner,
+    Plain,
+}
+
+fn classify_comment(base: &BaseExtractor, comment: Node) -> CommentDoc {
+    let text = base.get_node_text(&comment);
+    let text = text.trim();
+    if let Some(body) = text.strip_prefix("///") {
+        if body.starts_with('/') {
+            return CommentDoc::Plain;
         }
+        return CommentDoc::Outer(body.trim().to_string());
     }
-
-    // Look for attribute doc comments like #[doc = "..."]
-    let attributes = get_preceding_attributes(base, node);
-    for attr in &attributes {
-        if let Some(doc_comment) = extract_doc_from_attribute(base, *attr) {
-            return Some(doc_comment);
-        }
+    if text.starts_with("//!") || text.starts_with("/*!") {
+        return CommentDoc::Inner;
     }
+    if let Some(body) = text.strip_prefix("/**")
+        && !body.starts_with('*')
+        && body != "/"
+    {
+        return CommentDoc::Outer(strip_block_comment_body(body));
+    }
+    CommentDoc::Plain
+}
 
-    None
+fn strip_block_comment_body(body: &str) -> String {
+    body.strip_suffix("*/")
+        .unwrap_or(body)
+        .lines()
+        .map(|line| line.trim().trim_start_matches('*').trim())
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn find_inner_doc_comment(base: &BaseExtractor, node: Node) -> Option<String> {
@@ -600,13 +622,7 @@ fn find_inner_doc_comment(base: &BaseExtractor, node: Node) -> Option<String> {
                 let comment_text = base.get_node_text(&child);
                 let comment_text = comment_text.trim_start();
                 if let Some(stripped) = comment_text.strip_prefix("/*!") {
-                    let trimmed = stripped.strip_suffix("*/").unwrap_or(stripped);
-                    let doc_text = trimmed
-                        .lines()
-                        .map(|line| line.trim_start_matches('*').trim())
-                        .filter(|line| !line.is_empty())
-                        .collect::<Vec<_>>()
-                        .join("\n");
+                    let doc_text = strip_block_comment_body(stripped);
                     if !doc_text.is_empty() {
                         doc_comments.push(doc_text);
                     }
