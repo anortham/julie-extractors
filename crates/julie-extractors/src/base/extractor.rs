@@ -311,14 +311,19 @@ impl BaseExtractor {
     /// A same-line trailing member doc (`int port; /**< TCP port. */`) that
     /// follows the node.
     fn trailing_doc_comment(&self, node: &Node) -> Option<String> {
+        let spec = crate::language::language_spec(&self.language)?;
+        let rest_of_line = self.content.get(node.end_byte()..)?.split('\n').next()?;
+        // `next_named_sibling` searches down from the root, so skip it unless
+        // the rest of the line can hold a trailing doc.
+        if !spec.may_hold_trailing_doc_comment(rest_of_line) {
+            return None;
+        }
         let comment = node.next_named_sibling().filter(is_comment_node)?;
         if comment.start_position().row != node.end_position().row {
             return None;
         }
         let text = self.get_node_text(&comment);
-        crate::language::language_spec(&self.language)?
-            .is_trailing_doc_comment(&text)
-            .then_some(text)
+        spec.is_trailing_doc_comment(&text).then_some(text)
     }
 
     fn should_search_ancestor_doc_comments(&self, ancestor: &Node) -> bool {

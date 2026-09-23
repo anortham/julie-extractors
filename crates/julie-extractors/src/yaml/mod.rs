@@ -45,6 +45,10 @@ use std::path::Path;
 
 pub struct YamlExtractor {
     pub(crate) base: BaseExtractor,
+    /// Whether the file is a Tavern test or holds a container-structure-test
+    /// v2 document: the only YAML files whose keys carry test roles.
+    test_roles_possible: bool,
+    config_keys: crate::base::config_literals::ConfigKeyIndex,
 }
 
 impl YamlExtractor {
@@ -54,11 +58,24 @@ impl YamlExtractor {
         source_code: String,
         workspace_root: &Path,
     ) -> Self {
-        let base = BaseExtractor::new(language, file_path, source_code, workspace_root);
-        Self { base }
+        let mut base = BaseExtractor::new(language, file_path, source_code, workspace_root);
+        // Each symbol sets its body from the value node right after creation,
+        // so an inferred body would only be hashed and thrown away.
+        base.body_span_rule = Some(|_, _| None);
+        Self {
+            base,
+            test_roles_possible: false,
+            config_keys: Default::default(),
+        }
     }
 
     pub fn extract_symbols(&mut self, tree: &tree_sitter::Tree) -> Vec<Symbol> {
+        let root = tree.root_node();
+        let mut cursor = root.walk();
+        self.test_roles_possible = is_tavern_path(&self.base.file_path)
+            || root.children(&mut cursor).any(|document| {
+                document.kind() == "document" && self.document_has_schema_version(document)
+            });
         let mut symbols = Vec::new();
         self.walk_tree_for_symbols(tree.root_node(), &mut symbols, None, 0);
         symbols
@@ -224,9 +241,7 @@ impl YamlExtractor {
         if let Some(scalar) = scalar {
             let text = decode_scalar(scalar.kind(), &self.base.get_node_text(&scalar));
             if !text.is_empty() {
-                let carrier = crate::base::config_literals::build_config_key_carrier(
-                    symbols, parent_id, &key_name,
-                );
+                let carrier = self.config_keys.carrier(symbols, parent_id, &key_name);
                 self.base
                     .record_literal(&scalar, text, Some(carrier), 0, Some(symbol.id.clone()));
             }
@@ -250,6 +265,9 @@ impl YamlExtractor {
         node: tree_sitter::Node,
         key_name: &str,
     ) -> Option<TestRole> {
+        if !self.test_roles_possible {
+            return None;
+        }
         if self.is_document_root_pair(node) {
             if CST_TEST_LISTS.contains(&key_name)
                 && self.is_google_command_tests_root(node)

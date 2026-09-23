@@ -10,7 +10,8 @@ pub fn extract_identifiers(
     tree: &Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    let containing_symbols = super::scope::MemberScope::new(symbols, &base.file_path);
+    let containing_symbols =
+        super::scope::MemberScope::new(tree.root_node(), symbols, &base.file_path);
     walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
     base.identifiers.clone()
 }
@@ -474,16 +475,16 @@ fn is_csharp_type_usage_identifier(node: Node) -> bool {
         return false;
     }
 
-    if let Some(parent) = node.parent() {
-        let is_as_type = parent.kind() == "as_expression"
-            && parent.child_by_field_name("right").map(|n| n.id()) == Some(node.id());
-        if is_as_type || parent.kind() == "type_parameter_constraints_clause" {
-            return true;
-        }
+    let Some(mut parent) = node.parent() else {
+        return false;
+    };
+    let is_as_type = parent.kind() == "as_expression"
+        && parent.child_by_field_name("right").map(|n| n.id()) == Some(node.id());
+    if is_as_type || parent.kind() == "type_parameter_constraints_clause" {
+        return true;
     }
 
-    let mut current = node;
-    while let Some(parent) = current.parent() {
+    loop {
         if let Some(type_node) = parent
             .child_by_field_name("type")
             .or_else(|| parent.child_by_field_name("returns"))
@@ -514,10 +515,11 @@ fn is_csharp_type_usage_identifier(node: Node) -> bool {
             _ => {}
         }
 
-        current = parent;
+        let Some(next) = parent.parent() else {
+            return false;
+        };
+        parent = next;
     }
-
-    false
 }
 
 // ============================================================================

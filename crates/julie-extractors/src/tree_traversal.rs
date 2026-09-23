@@ -64,3 +64,19 @@ fn node_below_depth_limit<'tree>(root: Node<'tree>) -> Option<Node<'tree>> {
 
     None
 }
+
+/// The ancestors of `node` below `root`, root first. `Node::parent` searches
+/// down from the root on every call, so walking up costs depth squared; one
+/// descent from the root costs depth.
+pub(crate) fn ancestors<'a>(root: Node<'a>, node: Node<'a>) -> Vec<Node<'a>> {
+    let mut chain = Vec::new();
+    let mut current = root;
+    while current.id() != node.id() {
+        chain.push(current);
+        let Some(next) = current.child_with_descendant(node) else {
+            break;
+        };
+        current = next;
+    }
+    chain
+}

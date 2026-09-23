@@ -24,7 +24,7 @@ pub(crate) fn extract_relationships(
 ) -> Vec<Relationship> {
     let mut relationships = Vec::new();
     let symbol_index = ScopedSymbolIndex::new(symbols);
-    let owners = super::ecmascript_owner_index(extractor.base(), symbols);
+    let owners = super::ecmascript_owner_index(extractor.base(), tree.root_node(), symbols);
     extract_call_relationships(
         extractor,
         tree.root_node(),

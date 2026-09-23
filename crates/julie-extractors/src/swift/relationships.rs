@@ -28,7 +28,7 @@ impl SwiftExtractor {
             .cloned()
             .collect();
         let symbol_index = ScopedSymbolIndex::new(&targets);
-        let owners = OwnerIndex::new(&self.base, symbols);
+        let owners = OwnerIndex::new(&self.base, tree.root_node(), symbols);
         let import_context = SwiftImportContext::from_symbols(symbols);
         self.visit_node_for_relationships(
             tree.root_node(),

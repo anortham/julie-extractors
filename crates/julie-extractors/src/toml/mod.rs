@@ -23,6 +23,7 @@ pub(crate) use text::comment_documents_following_item;
 
 pub struct TomlExtractor {
     pub(crate) base: BaseExtractor,
+    config_keys: crate::base::config_literals::ConfigKeyIndex,
 }
 
 impl TomlExtractor {
@@ -33,7 +34,10 @@ impl TomlExtractor {
         workspace_root: &Path,
     ) -> Self {
         let base = BaseExtractor::new(language, file_path, source_code, workspace_root);
-        Self { base }
+        Self {
+            base,
+            config_keys: Default::default(),
+        }
     }
 
     pub fn extract_symbols(&mut self, tree: &tree_sitter::Tree) -> Vec<Symbol> {
@@ -212,9 +216,7 @@ impl TomlExtractor {
             .set_body_span(&mut symbol, Some(NormalizedSpan::from_node(&value_node)));
 
         if let Some(literal_text) = decoded_string.filter(|value| !value.is_empty()) {
-            let carrier = crate::base::config_literals::build_config_key_carrier(
-                symbols, parent_id, &key_name,
-            );
+            let carrier = self.config_keys.carrier(symbols, parent_id, &key_name);
             self.base.record_literal(
                 &value_node,
                 literal_text,

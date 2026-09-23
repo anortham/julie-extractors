@@ -13,7 +13,7 @@ impl SwiftExtractor {
         tree: &tree_sitter::Tree,
         symbols: &[Symbol],
     ) -> Vec<Identifier> {
-        let owners = OwnerIndex::new(&self.base, symbols);
+        let owners = OwnerIndex::new(&self.base, tree.root_node(), symbols);
         self.walk_tree_for_identifiers(tree.root_node(), &owners, 0);
         self.base.identifiers.clone()
     }

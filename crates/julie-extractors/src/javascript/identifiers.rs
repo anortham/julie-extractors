@@ -11,7 +11,8 @@ impl super::JavaScriptExtractor {
     /// Extract all identifier usages (function calls, member access, etc.)
     /// Following the Rust extractor reference implementation pattern
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
-        let containing_symbols = super::ecmascript_owner_index(&self.base, symbols);
+        let containing_symbols =
+            super::ecmascript_owner_index(&self.base, tree.root_node(), symbols);
 
         // Walk the tree and extract identifiers
         self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, 0);

@@ -76,6 +76,17 @@ impl LanguageSpec {
             .iter()
             .any(|style| style.starts_trailing_doc_comment(trimmed))
     }
+
+    /// Whether a trailing doc comment could start anywhere in `text`: a cheap
+    /// test before a syntax tree lookup.
+    pub fn may_hold_trailing_doc_comment(&self, text: &str) -> bool {
+        self.doc_comment_styles.iter().any(|style| {
+            style
+                .trailing_doc_prefixes()
+                .iter()
+                .any(|prefix| text.contains(prefix))
+        })
+    }
 }
 
 impl DocCommentStyle {
@@ -111,11 +122,17 @@ impl DocCommentStyle {
         }
     }
 
+    fn trailing_doc_prefixes(self) -> &'static [&'static str] {
+        match self {
+            Self::Doxygen => &["/**<", "/*!<", "///<", "//!<"],
+            _ => &[],
+        }
+    }
+
     fn starts_trailing_doc_comment(self, trimmed: &str) -> bool {
-        self == Self::Doxygen
-            && ["/**<", "/*!<", "///<", "//!<"]
-                .iter()
-                .any(|prefix| trimmed.starts_with(prefix))
+        self.trailing_doc_prefixes()
+            .iter()
+            .any(|prefix| trimmed.starts_with(prefix))
     }
 
     fn continues_doc_comment(self, trimmed: &str) -> bool {

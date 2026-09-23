@@ -98,10 +98,12 @@ fn is_declaration_bound_object(object: tree_sitter::Node) -> bool {
 /// code without owning it, so they never own a reference.
 pub(crate) fn ecmascript_owner_index<'a>(
     base: &BaseExtractor,
+    root: tree_sitter::Node<'a>,
     symbols: &'a [Symbol],
 ) -> EcmaOwnerIndex<'a> {
     EcmaOwnerIndex(crate::base::OwnerIndex::new_filtered(
         base,
+        root,
         symbols,
         |symbol| !matches!(symbol.kind, SymbolKind::Export | SymbolKind::Import),
     ))
@@ -113,9 +115,10 @@ impl<'a> EcmaOwnerIndex<'a> {
     /// The owner of `node`. A decorator written before `export`
     /// (`@Component() export class A {}`) belongs to the declaration it
     /// decorates, as it does without the `export`.
-    pub(crate) fn find(&self, node: tree_sitter::Node) -> Option<&'a Symbol> {
-        let mut current = node;
-        while let Some(parent) = current.parent() {
+    pub(crate) fn find(&self, node: tree_sitter::Node<'a>) -> Option<&'a Symbol> {
+        let ancestors = self.0.ancestors(node);
+        let upward = std::iter::once(node).chain(ancestors.iter().rev().copied());
+        for (current, parent) in upward.zip(ancestors.iter().rev().copied()) {
             if current.kind() == "decorator" && parent.kind() == "export_statement" {
                 if let Some(body) = parent
                     .child_by_field_name("declaration")
@@ -125,9 +128,8 @@ impl<'a> EcmaOwnerIndex<'a> {
                 }
                 break;
             }
-            current = parent;
         }
-        self.0.find(node)
+        self.0.find_with_ancestors(node, &ancestors)
     }
 }
 
@@ -210,7 +212,7 @@ impl JavaScriptExtractor {
         }
         let context = PendingCallContext {
             symbol_index: crate::base::ScopedSymbolIndex::new(symbols),
-            owners: ecmascript_owner_index(&self.base, symbols),
+            owners: ecmascript_owner_index(&self.base, tree.root_node(), symbols),
             typed_receivers: crate::typescript::typed_receiver_names(symbols, &self.base.type_info),
             local_bindings: symbols
                 .iter()

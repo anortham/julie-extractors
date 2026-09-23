@@ -29,7 +29,11 @@ pub(crate) fn extract_relationships(
     let context = RelationshipContext {
         symbols,
         symbol_index: ScopedSymbolIndex::new(symbols),
-        owners: crate::javascript::ecmascript_owner_index(extractor.base(), symbols),
+        owners: crate::javascript::ecmascript_owner_index(
+            extractor.base(),
+            tree.root_node(),
+            symbols,
+        ),
         symbol_map: ScopedSymbolIndex::unique_symbol_map(symbols),
     };
     extract_call_relationships(extractor, tree.root_node(), &context, &mut relationships, 0);

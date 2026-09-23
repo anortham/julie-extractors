@@ -23,7 +23,8 @@ pub(super) fn extract_identifiers(
     tree: &Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    let containing_symbols = crate::javascript::ecmascript_owner_index(extractor.base(), symbols);
+    let containing_symbols =
+        crate::javascript::ecmascript_owner_index(extractor.base(), tree.root_node(), symbols);
 
     // Walk the tree and extract identifiers
     walk_tree_for_identifiers(extractor, tree.root_node(), &containing_symbols, 0);

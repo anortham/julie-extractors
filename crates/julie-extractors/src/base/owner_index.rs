@@ -12,19 +12,21 @@ use tree_sitter::Node;
 /// and a `test(...)` closure to its test. Locals and parameters never own
 /// code. Nodes outside every declaration fall back to the span index.
 pub(crate) struct OwnerIndex<'a> {
+    root: Node<'a>,
     by_range: HashMap<(u32, u32), &'a Symbol>,
     fallback: ContainingSymbolIndex<'a>,
 }
 
 impl<'a> OwnerIndex<'a> {
-    pub(crate) fn new(base: &BaseExtractor, symbols: &'a [Symbol]) -> Self {
-        Self::new_filtered(base, symbols, |_| true)
+    pub(crate) fn new(base: &BaseExtractor, root: Node<'a>, symbols: &'a [Symbol]) -> Self {
+        Self::new_filtered(base, root, symbols, |_| true)
     }
 
     /// An index over the symbols `keep` accepts, so a language can exclude
     /// rows that name code without owning it (ECMAScript export rows).
     pub(crate) fn new_filtered(
         base: &BaseExtractor,
+        root: Node<'a>,
         symbols: &'a [Symbol],
         keep: impl Fn(&Symbol) -> bool,
     ) -> Self {
@@ -57,6 +59,7 @@ impl<'a> OwnerIndex<'a> {
             }
         }
         Self {
+            root,
             by_range,
             fallback: ContainingSymbolIndex::from_iter(
                 symbols
@@ -66,18 +69,30 @@ impl<'a> OwnerIndex<'a> {
         }
     }
 
-    pub(crate) fn find(&self, node: Node) -> Option<&'a Symbol> {
-        let mut current = node.parent();
-        while let Some(ancestor) = current {
-            if let Some(symbol) = self
-                .by_range
-                .get(&(ancestor.start_byte() as u32, ancestor.end_byte() as u32))
-            {
-                return Some(symbol);
-            }
-            current = ancestor.parent();
-        }
-        self.fallback.find(node)
+    pub(crate) fn find(&self, node: Node<'a>) -> Option<&'a Symbol> {
+        self.find_with_ancestors(node, &self.ancestors(node))
+    }
+
+    /// [`Self::find`] with the chain [`Self::ancestors`] already returned.
+    pub(crate) fn find_with_ancestors(
+        &self,
+        node: Node<'a>,
+        ancestors: &[Node<'a>],
+    ) -> Option<&'a Symbol> {
+        ancestors
+            .iter()
+            .rev()
+            .find_map(|ancestor| {
+                self.by_range
+                    .get(&(ancestor.start_byte() as u32, ancestor.end_byte() as u32))
+                    .copied()
+            })
+            .or_else(|| self.fallback.find(node))
+    }
+
+    /// The ancestors of `node`, root first.
+    pub(crate) fn ancestors(&self, node: Node<'a>) -> Vec<Node<'a>> {
+        crate::tree_traversal::ancestors(self.root, node)
     }
 }
 

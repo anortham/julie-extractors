@@ -734,7 +734,8 @@ impl DartExtractor {
     }
 
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
-        let containing_symbols = crate::base::OwnerIndex::new(&self.base, symbols);
+        let containing_symbols =
+            crate::base::OwnerIndex::new(&self.base, tree.root_node(), symbols);
         identifiers::walk_tree_for_identifiers(
             &mut self.base,
             tree.root_node(),

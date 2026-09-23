@@ -52,8 +52,11 @@ fn is_scope_bearing(symbol: &Symbol) -> bool {
 
 /// Bind each fact in `facts` to its containing scope-bearing symbol.
 pub(crate) fn attach_containing_symbols(facts: &mut [StructuralFact], symbols: &[Symbol]) {
-    for fact in facts {
-        fact.containing_symbol_id = containing_symbol_id(fact, symbols);
+    let declarations = narrowest_byte_containers(facts, symbols, is_declaration);
+    for (fact, declaration) in facts.iter_mut().zip(declarations) {
+        fact.containing_symbol_id = declaration
+            .or_else(|| containing_symbol_after_declaration_bytes(fact, symbols))
+            .map(|symbol| symbol.id.clone());
     }
 }
 
@@ -62,9 +65,9 @@ pub(crate) fn attach_containing_symbols(facts: &mut [StructuralFact], symbols: &
 /// fallback would bind it to an unrelated sibling on the same line (minified
 /// JSON, JSON Lines records).
 pub(crate) fn attach_byte_containing_symbols(facts: &mut [StructuralFact], symbols: &[Symbol]) {
-    for fact in facts {
-        fact.containing_symbol_id =
-            byte_containing_symbol(fact, symbols, |_| true).map(|symbol| symbol.id.clone());
+    let containers = narrowest_byte_containers(facts, symbols, |_| true);
+    for (fact, container) in facts.iter_mut().zip(containers) {
+        fact.containing_symbol_id = container.map(|symbol| symbol.id.clone());
     }
 }
 
@@ -86,12 +89,64 @@ pub(crate) fn attach_declaring_symbols(facts: &mut [StructuralFact], symbols: &[
 /// a fact only when no declaration contains the fact by bytes or lines, as for
 /// an anonymous `export default defineEventHandler(...)`.
 fn containing_symbol_id(fact: &StructuralFact, symbols: &[Symbol]) -> Option<String> {
-    let declaration = |symbol: &Symbol| symbol.kind != SymbolKind::Export;
-    byte_containing_symbol(fact, symbols, declaration)
-        .or_else(|| line_containing_symbol(fact, symbols, declaration))
+    byte_containing_symbol(fact, symbols, is_declaration)
+        .or_else(|| containing_symbol_after_declaration_bytes(fact, symbols))
+        .map(|symbol| symbol.id.clone())
+}
+
+fn is_declaration(symbol: &Symbol) -> bool {
+    symbol.kind != SymbolKind::Export
+}
+
+/// The passes of [`containing_symbol_id`] after the declaration byte pass.
+fn containing_symbol_after_declaration_bytes<'a>(
+    fact: &StructuralFact,
+    symbols: &'a [Symbol],
+) -> Option<&'a Symbol> {
+    line_containing_symbol(fact, symbols, is_declaration)
         .or_else(|| byte_containing_symbol(fact, symbols, |_| true))
         .or_else(|| line_containing_symbol(fact, symbols, |_| true))
-        .map(|symbol| symbol.id.clone())
+}
+
+/// [`byte_containing_symbol`] for every fact, in one sweep by start byte. The
+/// cost follows how deep the symbols nest, not how many there are.
+fn narrowest_byte_containers<'a>(
+    facts: &[StructuralFact],
+    symbols: &'a [Symbol],
+    keep: impl Fn(&Symbol) -> bool,
+) -> Vec<Option<&'a Symbol>> {
+    let mut candidates: Vec<usize> = (0..symbols.len())
+        .filter(|&index| is_scope_bearing(&symbols[index]) && keep(&symbols[index]))
+        .collect();
+    candidates.sort_by_key(|&index| symbols[index].start_byte);
+    let mut order: Vec<usize> = (0..facts.len()).collect();
+    order.sort_by_key(|&index| facts[index].start_byte);
+
+    let mut containers = vec![None; facts.len()];
+    let mut open: Vec<usize> = Vec::new();
+    let mut next = 0;
+    for fact_index in order {
+        let fact = &facts[fact_index];
+        while let Some(&candidate) = candidates.get(next)
+            && symbols[candidate].start_byte <= fact.start_byte
+        {
+            open.push(candidate);
+            next += 1;
+        }
+        // Later facts start at or after this one, so a symbol that ends
+        // before this start contains none of them.
+        open.retain(|&index| symbols[index].end_byte >= fact.start_byte);
+        containers[fact_index] = if fact.end_byte < fact.start_byte {
+            byte_containing_symbol(fact, symbols, &keep)
+        } else {
+            open.iter()
+                .copied()
+                .filter(|&index| symbols[index].end_byte >= fact.end_byte)
+                .min_by_key(|&index| (byte_span(&symbols[index]), index))
+                .map(|index| &symbols[index])
+        };
+    }
+    containers
 }
 
 /// Primary pass: narrowest scope-bearing symbol whose byte span contains the fact.
@@ -265,6 +320,47 @@ mod tests {
         ];
         let fact = make_fact(0, 19, 1, 1);
         assert_eq!(bind(&fact, &symbols).as_deref(), Some("DELETE"));
+    }
+
+    #[test]
+    fn sweep_binding_matches_a_scan_of_every_symbol() {
+        let symbols = vec![
+            make_symbol("wide", SymbolKind::Module, 0, 300, 1, 30),
+            make_symbol("tie_first", SymbolKind::Class, 50, 150, 5, 15),
+            make_symbol("tie_second", SymbolKind::Class, 60, 160, 6, 16),
+            make_symbol("overlap", SymbolKind::Method, 100, 250, 10, 25),
+            make_symbol("export", SymbolKind::Export, 55, 70, 5, 7),
+            make_symbol("value", SymbolKind::Variable, 55, 70, 5, 7),
+            make_symbol("empty", SymbolKind::Function, 120, 120, 12, 12),
+            make_symbol("late", SymbolKind::Function, 280, 290, 28, 29),
+        ];
+        let facts: Vec<StructuralFact> = [
+            (295, 299),
+            (120, 120),
+            (60, 65),
+            (110, 140),
+            (0, 300),
+            (140, 155),
+            (281, 285),
+            (90, 80),
+            (310, 320),
+            (60, 65),
+        ]
+        .into_iter()
+        .map(|(start, end)| make_fact(start, end, 1, 1))
+        .collect();
+
+        for keep in [is_declaration as fn(&Symbol) -> bool, |_: &Symbol| true] {
+            let swept: Vec<Option<&str>> = narrowest_byte_containers(&facts, &symbols, keep)
+                .into_iter()
+                .map(|symbol| symbol.map(|symbol| symbol.id.as_str()))
+                .collect();
+            let scanned: Vec<Option<&str>> = facts
+                .iter()
+                .map(|fact| byte_containing_symbol(fact, &symbols, keep).map(|s| s.id.as_str()))
+                .collect();
+            assert_eq!(swept, scanned);
+        }
     }
 
     #[test]

@@ -20,15 +20,39 @@ pub fn extract_relationships(
     symbols: &[Symbol],
 ) -> Vec<Relationship> {
     let mut relationships = Vec::new();
-    visit_relationships(extractor, tree.root_node(), symbols, &mut relationships, 0);
+    let sites = CallSites {
+        owners: super::scope::MemberScope::new(
+            tree.root_node(),
+            symbols,
+            &extractor.get_base().file_path,
+        ),
+        targets: ScopedSymbolIndex::new(symbols),
+    };
+    visit_relationships(
+        extractor,
+        tree.root_node(),
+        symbols,
+        &sites,
+        &mut relationships,
+        0,
+    );
     partial_classes::add_linkage_relationships(symbols, &mut relationships);
     relationships
+}
+
+/// Indexes over the file's symbols, built once per relationship pass.
+struct CallSites<'a> {
+    /// The symbol that owns a call or instantiation site; the identifier pass
+    /// uses the same scope, so both agree on one containing symbol per site.
+    owners: super::scope::MemberScope<'a>,
+    targets: ScopedSymbolIndex<'a>,
 }
 
 fn visit_relationships(
     extractor: &mut CSharpExtractor,
     node: tree_sitter::Node,
     symbols: &[Symbol],
+    sites: &CallSites<'_>,
     relationships: &mut Vec<Relationship>,
     depth: u32,
 ) {
@@ -60,10 +84,10 @@ fn visit_relationships(
                 symbols,
                 relationships,
             );
-            extract_call_relationships(extractor, node, symbols, relationships);
+            extract_call_relationships(extractor, node, symbols, sites, relationships);
         }
         "object_creation_expression" | "implicit_object_creation_expression" => {
-            extract_object_creation_relationships(extractor, node, symbols, relationships);
+            extract_object_creation_relationships(extractor, node, symbols, sites, relationships);
         }
         _ => {}
     }
@@ -73,7 +97,7 @@ fn visit_relationships(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        visit_relationships(extractor, child, symbols, relationships, child_depth);
+        visit_relationships(extractor, child, symbols, sites, relationships, child_depth);
     }
 }
 
@@ -391,6 +415,7 @@ fn extract_object_creation_relationships(
     extractor: &mut CSharpExtractor,
     node: tree_sitter::Node,
     symbols: &[Symbol],
+    sites: &CallSites<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
     let type_name = {
@@ -422,7 +447,9 @@ fn extract_object_creation_relationships(
 
     let target = UnresolvedTarget::simple(type_name);
 
-    let caller = find_caller(extractor.get_base(), node, symbols)
+    let caller = sites
+        .owners
+        .find(node)
         .filter(|symbol| {
             matches!(
                 symbol.kind,
@@ -444,8 +471,9 @@ fn extract_object_creation_relationships(
         return;
     };
 
-    let symbol_index = ScopedSymbolIndex::new(symbols);
-    let resolution = symbol_index.resolve_call_target(&target.terminal_name, Some(&caller), None);
+    let resolution = sites
+        .targets
+        .resolve_call_target(&target.terminal_name, Some(&caller), None);
     let resolved_type = match resolution {
         LocalTargetResolution::Resolved(symbol) => Some(symbol),
         _ => None,
@@ -546,6 +574,7 @@ fn extract_call_relationships(
     extractor: &mut CSharpExtractor,
     node: tree_sitter::Node,
     symbols: &[Symbol],
+    sites: &CallSites<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
     let Some(function) = node.child_by_field_name("function") else {
@@ -567,11 +596,11 @@ fn extract_call_relationships(
     }
 
     if is_base_receiver(function) {
-        handle_base_call(extractor, node, &method_name, symbols, relationships);
+        handle_base_call(extractor, node, &method_name, symbols, sites, relationships);
         return;
     }
     let target = unresolved_call_target(extractor, node, &method_name);
-    handle_call_target(extractor, node, target, symbols, relationships);
+    handle_call_target(extractor, node, target, symbols, sites, relationships);
 }
 
 fn is_base_receiver(function: tree_sitter::Node) -> bool {
@@ -587,10 +616,11 @@ fn handle_base_call(
     call_node: tree_sitter::Node,
     method_name: &str,
     symbols: &[Symbol],
+    sites: &CallSites<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
     let base = extractor.get_base();
-    let Some(caller) = find_caller(base, call_node, symbols).cloned() else {
+    let Some(caller) = sites.owners.find(call_node).cloned() else {
         return;
     };
     let receiver_type = super::identifiers::self_receiver_type(base, call_node);
@@ -646,12 +676,13 @@ fn handle_call_target(
     call_node: tree_sitter::Node,
     target: UnresolvedTarget,
     symbols: &[Symbol],
+    sites: &CallSites<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
     let base = extractor.get_base();
-    let symbol_index = ScopedSymbolIndex::new(symbols);
+    let symbol_index = &sites.targets;
 
-    let caller = find_caller(base, call_node, symbols).cloned();
+    let caller = sites.owners.find(call_node).cloned();
     let Some(caller) = caller else {
         return;
     };
@@ -826,14 +857,4 @@ fn collect_chain_parts(
             _ => {}
         }
     }
-}
-
-/// The symbol that owns a call or instantiation site; shared with the
-/// identifier pass so both agree on one containing symbol per site.
-fn find_caller<'a>(
-    base: &crate::base::BaseExtractor,
-    node: tree_sitter::Node,
-    symbols: &'a [Symbol],
-) -> Option<&'a Symbol> {
-    super::scope::MemberScope::new(symbols, &base.file_path).find(node)
 }

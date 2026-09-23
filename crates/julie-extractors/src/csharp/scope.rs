@@ -22,34 +22,36 @@ const MEMBER_NODE_KINDS: &[&str] = &[
 /// span-priority index, which ranks a type above a property), else the
 /// narrowest symbol the shared index finds.
 pub(crate) struct MemberScope<'a> {
+    root: Node<'a>,
     members_by_start: HashMap<u32, &'a Symbol>,
     index: ContainingSymbolIndex<'a>,
 }
 
 impl<'a> MemberScope<'a> {
-    pub(crate) fn new(symbols: &'a [Symbol], file_path: &str) -> Self {
+    pub(crate) fn new(root: Node<'a>, symbols: &'a [Symbol], file_path: &str) -> Self {
         let members_by_start = symbols
             .iter()
             .filter(|symbol| is_member_kind(&symbol.kind))
             .map(|symbol| (symbol.start_byte, symbol))
             .collect();
         Self {
+            root,
             members_by_start,
             index: ContainingSymbolIndex::new(symbols, file_path),
         }
     }
 
-    pub(crate) fn find(&self, node: Node) -> Option<&'a Symbol> {
-        let mut current = node.parent();
-        while let Some(candidate) = current {
-            if MEMBER_NODE_KINDS.contains(&candidate.kind())
-                && let Some(symbol) = self.members_by_start.get(&(candidate.start_byte() as u32))
-            {
-                return Some(symbol);
-            }
-            current = candidate.parent();
-        }
-        self.index.find(node)
+    pub(crate) fn find(&self, node: Node<'a>) -> Option<&'a Symbol> {
+        crate::tree_traversal::ancestors(self.root, node)
+            .into_iter()
+            .rev()
+            .filter(|candidate| MEMBER_NODE_KINDS.contains(&candidate.kind()))
+            .find_map(|candidate| {
+                self.members_by_start
+                    .get(&(candidate.start_byte() as u32))
+                    .copied()
+            })
+            .or_else(|| self.index.find(node))
     }
 }
 

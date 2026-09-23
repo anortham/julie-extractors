@@ -26,7 +26,7 @@ impl super::DartExtractor {
             .cloned()
             .collect();
         let context = CallContext {
-            owners: OwnerIndex::new(&self.base, symbols),
+            owners: OwnerIndex::new(&self.base, root, symbols),
             scoped: ScopedSymbolIndex::new(&targets),
             classes: targets
                 .iter()

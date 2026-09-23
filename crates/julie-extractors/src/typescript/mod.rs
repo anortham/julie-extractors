@@ -158,7 +158,11 @@ impl TypeScriptExtractor {
             crate::base::ScopedSymbolIndex::unique_symbol_map(symbols);
         let context = PendingCallContext {
             symbol_index: crate::base::ScopedSymbolIndex::new(symbols),
-            owners: crate::javascript::ecmascript_owner_index(&self.base, symbols),
+            owners: crate::javascript::ecmascript_owner_index(
+                &self.base,
+                tree.root_node(),
+                symbols,
+            ),
             typed_receivers: typed_receiver_names(symbols, &self.base.type_info),
             local_callables: symbols
                 .iter()
