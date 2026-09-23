@@ -30,6 +30,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
             "elixir",
             "rust",
             "vbnet",
+            "fsharp",
         ],
         query_family: "web.http_client",
         description: "An outbound HTTP client request with a static URL literal.",

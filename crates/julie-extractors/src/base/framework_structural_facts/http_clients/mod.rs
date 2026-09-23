@@ -1,5 +1,6 @@
 mod csharp;
 mod elixir;
+mod fsharp;
 mod go;
 mod java;
 mod kotlin;
@@ -37,6 +38,7 @@ pub(super) fn collect_backend_http_client_requests(
         "elixir" => elixir::collect_elixir_http_client_requests(language, tree, file_path, content),
         "rust" => rust::collect_rust_http_client_requests(language, tree, file_path, content),
         "vbnet" => vbnet::collect_vbnet_http_client_requests(language, tree, file_path, content),
+        "fsharp" => fsharp::collect_fsharp_http_client_requests(language, tree, file_path, content),
         _ => Vec::new(),
     }
 }

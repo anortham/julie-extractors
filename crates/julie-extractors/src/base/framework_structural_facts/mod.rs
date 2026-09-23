@@ -5,6 +5,7 @@ mod axum;
 mod blazor_navigation;
 mod consumed_attributes;
 mod efcore;
+mod giraffe;
 mod go_http;
 mod helpers;
 mod htmx_templates;
@@ -33,6 +34,7 @@ use self::aspnet_conventional::collect_aspnet_conventional_routes;
 use self::axum::collect_axum_routes;
 use self::blazor_navigation::collect_blazor_navigation_facts;
 use self::efcore::collect_efcore_facts;
+use self::giraffe::collect_giraffe_routes;
 use self::go_http::collect_go_http_boundary_facts;
 use self::http_clients::{
     collect_backend_http_client_requests, collect_razor_http_client_requests,
@@ -62,6 +64,7 @@ pub(super) const ASPNET_MINIMAL_API_ROUTE_GROUP_PATTERN_ID: &str =
     "aspnet.minimal_api.route_group.v1";
 pub(super) const ASPNET_ATTRIBUTE_ROUTE_PATTERN_ID: &str = "aspnet.attribute_route.v1";
 pub(super) const ASPNET_CONVENTIONAL_ROUTE_PATTERN_ID: &str = "aspnet.conventional_route.v1";
+pub(super) const GIRAFFE_ROUTE_PATTERN_ID: &str = "giraffe.route.v1";
 pub(super) const EFCORE_DB_SET_PATTERN_ID: &str = "efcore.db_set.v1";
 pub(super) const EFCORE_TABLE_MAPPING_PATTERN_ID: &str = "efcore.table_mapping.v1";
 pub(super) const EFCORE_ENTITY_CONFIGURATION_PATTERN_ID: &str = "efcore.entity_configuration.v1";
@@ -124,6 +127,13 @@ const DOTNET_FRAMEWORK_PATTERN_IDS: &[&str] = &[
     ASPNET_CONVENTIONAL_ROUTE_PATTERN_ID,
     ASPNET_MINIMAL_API_ROUTE_GROUP_PATTERN_ID,
     ASPNET_MINIMAL_API_ROUTE_PATTERN_ID,
+    HTTP_CLIENT_REQUEST_PATTERN_ID,
+];
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const FSHARP_FRAMEWORK_PATTERN_IDS: &[&str] = &[
+    ASPNET_ATTRIBUTE_ROUTE_PATTERN_ID,
+    ASPNET_MINIMAL_API_ROUTE_PATTERN_ID,
+    GIRAFFE_ROUTE_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -262,6 +272,18 @@ pub fn collect_framework_structural_facts(
             ));
             vbnet_facts
         }
+        "fsharp" => {
+            let mut fsharp_facts =
+                collect_aspnet_minimal_api_routes(language, tree, file_path, content);
+            fsharp_facts.extend(collect_aspnet_attribute_routes(
+                language, tree, file_path, content,
+            ));
+            fsharp_facts.extend(collect_backend_http_client_requests(
+                language, tree, file_path, content,
+            ));
+            fsharp_facts.extend(collect_giraffe_routes(language, tree, file_path, content));
+            fsharp_facts
+        }
         "python" => {
             let mut python_facts = collect_python_web_facts(language, tree, file_path, content);
             python_facts.extend(collect_backend_http_client_requests(
@@ -377,6 +399,9 @@ pub fn collect_framework_structural_facts(
     if language == "vbnet" {
         super::code_structural_facts::attach_vbnet_attribute_owners(tree, &mut facts, symbols);
     }
+    if language == "fsharp" {
+        super::structural_facts::attach_fsharp_attribute_owners(tree, &mut facts, symbols);
+    }
     sort_structural_facts(&mut facts);
     facts
 }
@@ -387,6 +412,7 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
 ) -> &'static [&'static str] {
     match language {
         "csharp" => CSHARP_FRAMEWORK_PATTERN_IDS,
+        "fsharp" => FSHARP_FRAMEWORK_PATTERN_IDS,
         "vbnet" => DOTNET_FRAMEWORK_PATTERN_IDS,
         "html" => MARKUP_FRAMEWORK_PATTERN_IDS,
         "razor" => RAZOR_FRAMEWORK_PATTERN_IDS,

@@ -13,6 +13,7 @@ const TYPE_BODY_KINDS: &[&str] = &[
     "interface_type_defn",
     "record_type_defn",
     "type_abbrev_defn",
+    "type_declaration",
     "union_type_defn",
 ];
 
@@ -36,15 +37,27 @@ pub(super) fn visit_node(
         visit_binding_group(extractor, node, definition, symbols, parent_id, depth);
         return;
     }
+    if node.kind() == "type_extension" {
+        visit_type_extension(extractor, node, symbols, parent_id, depth);
+        return;
+    }
 
     let symbol = extract_symbol(extractor.base(), node, parent_id.clone());
     let next_parent_id = symbol
         .as_ref()
         .map(|symbol| symbol.id.clone())
-        .or(parent_id);
+        .or(parent_id.clone());
     if let Some(symbol) = symbol {
         let callable_id = symbol.id.clone();
+        let is_value = symbol.kind == SymbolKind::Variable || symbol.kind == SymbolKind::Constant;
         symbols.push(symbol);
+        if is_value {
+            symbols.extend(extra_pattern_bindings(
+                extractor.base(),
+                node,
+                parent_id.clone(),
+            ));
+        }
         symbols.extend(super::parameters::extract_parameter_symbols(
             extractor.base(),
             node,
@@ -56,15 +69,76 @@ pub(super) fn visit_node(
         return;
     };
     let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        visit_node(
-            extractor,
-            child,
-            symbols,
-            next_parent_id.clone(),
-            child_depth,
-        );
+    for (index, child) in node.children(&mut cursor).enumerate() {
+        // A `let` scopes over the rest of its block (`in`), but the rest of
+        // the block belongs to the enclosing declaration, not to the `let`.
+        let child_parent = if node.kind() == "declaration_expression"
+            && node.field_name_for_child(index as u32) == Some("in")
+        {
+            parent_id.clone()
+        } else {
+            next_parent_id.clone()
+        };
+        visit_node(extractor, child, symbols, child_parent, child_depth);
     }
+}
+
+/// `type X with member ...`: the members belong to the same-file type `X`
+/// when there is one, else to the enclosing container, and each carries the
+/// extended type name as `extendedType`.
+fn visit_type_extension(
+    extractor: &mut FSharpExtractor,
+    node: Node,
+    symbols: &mut Vec<Symbol>,
+    parent_id: Option<String>,
+    depth: u32,
+) {
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let Some(extended) = direct_child_of_kind(node, "type_name")
+        .and_then(|type_name| type_name.child_by_field_name("type_name"))
+        .map(|name| extractor.base().get_node_text(&name).trim().to_string())
+    else {
+        return;
+    };
+    let owner_id = symbols
+        .iter()
+        .rev()
+        .find(|symbol| symbol.name == extended && is_type_kind(&symbol.kind))
+        .map(|symbol| symbol.id.clone())
+        .or(parent_id);
+    let before = symbols.len();
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        visit_node(extractor, child, symbols, owner_id.clone(), child_depth);
+    }
+    for symbol in &mut symbols[before..] {
+        if symbol.parent_id == owner_id
+            && matches!(
+                symbol.kind,
+                SymbolKind::Method | SymbolKind::Property | SymbolKind::Event
+            )
+        {
+            symbol.metadata.get_or_insert_with(Default::default).insert(
+                "extendedType".to_string(),
+                serde_json::Value::String(extended.clone()),
+            );
+        }
+    }
+}
+
+fn is_type_kind(kind: &SymbolKind) -> bool {
+    matches!(
+        kind,
+        SymbolKind::Class
+            | SymbolKind::Struct
+            | SymbolKind::Union
+            | SymbolKind::Interface
+            | SymbolKind::Enum
+            | SymbolKind::Type
+            | SymbolKind::Delegate
+    )
 }
 
 fn extract_symbol(
@@ -79,7 +153,11 @@ fn extract_symbol(
         "exception_definition" => extract_exception(extractor, node, parent_id),
         "record_field" | "union_type_field" => extract_field(extractor, node, parent_id),
         "union_type_case" => extract_union_case(extractor, node, parent_id),
+        "enum_type_case" => extract_enum_case(extractor, node, parent_id),
         "member_defn" => extract_member(extractor, node, parent_id),
+        "extern_binding" => extract_extern(extractor, node, parent_id),
+        "import_decl" => extract_import(extractor, node, parent_id),
+        "fsi_directive_decl" => extract_script_directive(extractor, node, parent_id),
         "member_signature" => extract_member_signature(extractor, node, parent_id),
         "declaration_expression" => extract_declaration_expression(extractor, node, parent_id),
         "value_definition" => extract_value_definition(extractor, node, parent_id),
@@ -99,9 +177,7 @@ fn extract_namespace(
     node: Node,
     parent_id: Option<String>,
 ) -> Option<Symbol> {
-    let name = node
-        .child_by_field_name("name")
-        .map(|name| base.get_node_text(&name))?;
+    let name = namespace_name(node).map(|name| base.get_node_text(&name))?;
     create_symbol(
         base,
         node,
@@ -109,6 +185,15 @@ fn extract_namespace(
         SymbolKind::Namespace,
         parent_id,
     )
+}
+
+/// The dotted name of a namespace. The grammar's `name` field also covers
+/// the anonymous `rec` keyword of `namespace rec X`.
+fn namespace_name(node: Node) -> Option<Node> {
+    let mut cursor = node.walk();
+    node.children_by_field_name("name", &mut cursor)
+        .filter(|name| name.is_named())
+        .last()
 }
 
 fn extract_module(
@@ -133,6 +218,14 @@ fn extract_type(base: &mut BaseExtractor, body: Node, parent_id: Option<String>)
     let type_name = direct_child_of_kind(body, "type_name")?;
     let name_node = type_name.child_by_field_name("type_name")?;
     let name = base.get_node_text(&name_node).trim().to_string();
+    let is_first = direct_child_matching(definition, TYPE_BODY_KINDS)
+        .is_some_and(|first| first.id() == body.id());
+    let attribute_keys = if is_first {
+        attribute_keys(base, definition)
+    } else {
+        Vec::new()
+    };
+    let has_attribute = |key: &str| attribute_keys.iter().any(|k| k == key);
     let kind = match body.kind() {
         "record_type_defn" => SymbolKind::Struct,
         "union_type_defn" if is_type_abbreviation(body) => SymbolKind::Type,
@@ -140,12 +233,14 @@ fn extract_type(base: &mut BaseExtractor, body: Node, parent_id: Option<String>)
         "interface_type_defn" => SymbolKind::Interface,
         "enum_type_defn" => SymbolKind::Enum,
         "delegate_type_defn" => SymbolKind::Delegate,
+        "anon_type_defn" if has_attribute("interface") || is_abstract_only(body) => {
+            SymbolKind::Interface
+        }
+        "anon_type_defn" if has_attribute("struct") => SymbolKind::Struct,
         "anon_type_defn" => SymbolKind::Class,
         _ => SymbolKind::Type,
     };
 
-    let is_first = direct_child_matching(definition, TYPE_BODY_KINDS)
-        .is_some_and(|first| first.id() == body.id());
     let (context, start) = if is_first {
         (definition, definition)
     } else {
@@ -182,6 +277,121 @@ fn extract_field(
     create_symbol(base, node, name, SymbolKind::Field, parent_id)
 }
 
+/// A type with no primary constructor whose members are all abstract
+/// signatures is an interface in F#.
+fn is_abstract_only(body: Node) -> bool {
+    if direct_child_of_kind(body, "primary_constr_args").is_some() {
+        return false;
+    }
+    let mut cursor = body.walk();
+    let members: Vec<Node> = body
+        .children_by_field_name("block", &mut cursor)
+        .flat_map(|block| {
+            let mut block_cursor = block.walk();
+            block.named_children(&mut block_cursor).collect::<Vec<_>>()
+        })
+        .collect();
+    !members.is_empty()
+        && members.iter().all(|member| {
+            member.kind() == "member_defn"
+                && direct_child_of_kind(*member, "member_signature").is_some()
+        })
+}
+
+/// Normalized attribute keys (`struct`, `interface`, `literal`) directly on
+/// a declaration.
+fn attribute_keys(base: &BaseExtractor, node: Node) -> Vec<String> {
+    annotation_markers(base, node)
+        .into_iter()
+        .map(|marker| marker.annotation_key)
+        .collect()
+}
+
+fn extract_enum_case(
+    base: &mut BaseExtractor,
+    node: Node,
+    parent_id: Option<String>,
+) -> Option<Symbol> {
+    let name = direct_child_of_kind(node, "identifier")
+        .map(|name| base.get_node_text(&name).trim().to_string())?;
+    create_symbol(base, node, name, SymbolKind::EnumMember, parent_id)
+}
+
+fn extract_extern(
+    base: &mut BaseExtractor,
+    node: Node,
+    parent_id: Option<String>,
+) -> Option<Symbol> {
+    let name = node
+        .child_by_field_name("name")
+        .map(|name| base.get_node_text(&name).trim().to_string())?;
+    create_symbol(base, node, name, SymbolKind::Function, parent_id)
+}
+
+/// `open A.B` is an import named by its last segment, as in C#.
+fn extract_import(
+    base: &mut BaseExtractor,
+    node: Node,
+    parent_id: Option<String>,
+) -> Option<Symbol> {
+    let mut cursor = node.walk();
+    let target = node.named_children(&mut cursor).next()?;
+    let path = base.get_node_text(&target).trim().to_string();
+    let name = path.rsplit('.').next().unwrap_or(&path).trim().to_string();
+    create_symbol(base, node, name, SymbolKind::Import, parent_id)
+}
+
+/// `#load "file.fsx"` and `#r "nuget: Package, 1.0"` / `#r "lib.dll"` are
+/// script imports named by the loaded file or referenced package.
+fn extract_script_directive(
+    base: &mut BaseExtractor,
+    node: Node,
+    parent_id: Option<String>,
+) -> Option<Symbol> {
+    let text = base.get_node_text(&node);
+    let directive = text.trim_start().strip_prefix('#')?;
+    let directive = directive
+        .split(|c: char| !c.is_ascii_alphabetic())
+        .next()
+        .unwrap_or_default();
+    if !matches!(directive, "load" | "r") {
+        return None;
+    }
+    let string = direct_child_of_kind(node, "string")?;
+    let argument = base
+        .get_node_text(&string)
+        .trim()
+        .trim_matches('"')
+        .to_string();
+    let mut metadata = std::collections::HashMap::from([(
+        "directive".to_string(),
+        serde_json::Value::String(directive.to_string()),
+    )]);
+    let name = match argument.strip_prefix("nuget:") {
+        Some(package) => {
+            let mut parts = package.split(',').map(str::trim);
+            let package_name = parts.next().unwrap_or_default().to_string();
+            if let Some(version) = parts.next().filter(|version| !version.is_empty()) {
+                metadata.insert(
+                    "version".to_string(),
+                    serde_json::Value::String(version.to_string()),
+                );
+            }
+            metadata.insert(
+                "source".to_string(),
+                serde_json::Value::String("nuget".to_string()),
+            );
+            package_name
+        }
+        None => argument,
+    };
+    let span = base.span_for_byte_range(node.start_byte(), string.end_byte())?;
+    let mut symbol =
+        create_symbol_with_span(base, node, node, span, name, SymbolKind::Import, parent_id)?;
+    symbol.metadata = Some(metadata);
+    Some(symbol)
+}
+
 fn extract_union_case(
     base: &mut BaseExtractor,
     node: Node,
@@ -195,6 +405,9 @@ fn extract_union_case(
     create_symbol(base, node, name, SymbolKind::EnumMember, parent_id)
 }
 
+/// Members: methods and properties (`member x.M`), operator members
+/// (`static member (+)`), constructors (`new(...) = ...`), auto-properties
+/// (`member val X = e`), and explicit fields (`val X: T`).
 fn extract_member(
     base: &mut BaseExtractor,
     node: Node,
@@ -204,7 +417,7 @@ fn extract_member(
         let name_node = definition.child_by_field_name("name")?;
         let name_node = name_node
             .child_by_field_name("method")
-            .or_else(|| direct_child_of_kind(name_node, "identifier"))?;
+            .or_else(|| direct_child_matching(name_node, &["identifier", "op_identifier"]))?;
         let name = base.get_node_text(&name_node).trim().to_string();
         let kind = if definition.child_by_field_name("args").is_some() {
             SymbolKind::Method
@@ -213,8 +426,23 @@ fn extract_member(
         };
         return create_symbol_with_context(base, definition, node, name, kind, parent_id);
     }
-
-    None
+    if let Some(constructor) = direct_child_of_kind(node, "additional_constr_defn") {
+        return create_symbol_with_context(
+            base,
+            constructor,
+            node,
+            "new".to_string(),
+            SymbolKind::Constructor,
+            parent_id,
+        );
+    }
+    if let Some(name_node) = direct_child_of_kind(node, "property_or_ident") {
+        let name = terminal_identifier_text(base, name_node)?;
+        return create_symbol(base, node, name, SymbolKind::Property, parent_id);
+    }
+    let name = direct_child_of_kind(node, "identifier")
+        .map(|name| base.get_node_text(&name).trim().to_string())?;
+    create_symbol(base, node, name, SymbolKind::Field, parent_id)
 }
 
 fn extract_member_signature(
@@ -241,8 +469,49 @@ fn extract_declaration_expression(
     node: Node,
     parent_id: Option<String>,
 ) -> Option<Symbol> {
-    let definition = direct_child_of_kind(node, "function_or_value_defn")?;
+    let Some(definition) = direct_child_of_kind(node, "function_or_value_defn") else {
+        return extract_use_binding(base, node, parent_id);
+    };
     extract_function_or_value_with_carrier(base, definition, node, parent_id)
+}
+
+/// `use name = expr` binds a disposable local like `let`.
+fn extract_use_binding(
+    base: &mut BaseExtractor,
+    node: Node,
+    parent_id: Option<String>,
+) -> Option<Symbol> {
+    let keyword = direct_child_matching(node, &["use", "use!"])?;
+    let name_node = direct_child_of_kind(node, "identifier")?;
+    let name = base.get_node_text(&name_node).trim().to_string();
+    let mut cursor = node.walk();
+    let children: Vec<Node> = node.children(&mut cursor).collect();
+    let value = children
+        .iter()
+        .position(|child| child.kind() == "=")
+        .and_then(|index| children.get(index + 1))
+        .copied()
+        .unwrap_or(name_node);
+    let span = join_spans(keyword, value);
+    let signature = base
+        .get_node_text(&node)
+        .lines()
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .to_string();
+    Some(base.create_symbol_from_span(
+        &name_node,
+        span,
+        name,
+        SymbolKind::Variable,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(Visibility::Private),
+            parent_id,
+            ..Default::default()
+        },
+    ))
 }
 
 fn extract_value_definition(
@@ -274,18 +543,100 @@ fn extract_function_or_value_with_carrier(
     carrier: Node,
     parent_id: Option<String>,
 ) -> Option<Symbol> {
-    let (name, kind) =
-        if let Some(left) = direct_child_of_kind(definition, "function_declaration_left") {
-            (
-                direct_child_of_kind(left, "identifier")
-                    .map(|name| base.get_node_text(&name).trim().to_string())?,
-                SymbolKind::Function,
-            )
-        } else {
-            let left = direct_child_of_kind(definition, "value_declaration_left")?;
-            (first_identifier_text(base, left)?, SymbolKind::Variable)
-        };
+    let left = direct_child_of_kind(definition, "function_declaration_left")
+        .or_else(|| direct_child_of_kind(definition, "value_declaration_left"))?;
+    let (name, kind) = binding_name(base, left)?;
+    let kind = if kind == SymbolKind::Variable {
+        value_kind(base, definition, carrier)
+    } else {
+        kind
+    };
     create_symbol_with_context(base, definition, carrier, name, kind, parent_id)
+}
+
+/// A value bound to `function ...` or `fun ... ->` is a function; a
+/// `[<Literal>]` value is a constant.
+fn value_kind(base: &BaseExtractor, definition: Node, carrier: Node) -> SymbolKind {
+    let body_kind = definition
+        .child_by_field_name("body")
+        .map(|body| body.kind());
+    if matches!(body_kind, Some("function_expression" | "fun_expression")) {
+        return SymbolKind::Function;
+    }
+    let is_literal = annotation_markers(base, carrier)
+        .iter()
+        .any(|marker| marker.annotation_key == "literal");
+    if is_literal {
+        SymbolKind::Constant
+    } else {
+        SymbolKind::Variable
+    }
+}
+
+/// Every name a value pattern binds after the first: `let a, b = ...`,
+/// `let (x, y) = ...`, `let { X = px } = ...`. The first name is the
+/// binding's own symbol.
+fn extra_pattern_bindings(
+    base: &mut BaseExtractor,
+    node: Node,
+    parent_id: Option<String>,
+) -> Vec<Symbol> {
+    let definition = match node.kind() {
+        "declaration_expression" => direct_child_of_kind(node, "function_or_value_defn"),
+        "function_or_value_defn" => Some(node),
+        _ => None,
+    };
+    let Some(left) = definition.and_then(|d| direct_child_of_kind(d, "value_declaration_left"))
+    else {
+        return Vec::new();
+    };
+    let mut patterns = Vec::new();
+    collect_bound_patterns(left, 0, &mut patterns);
+    let visibility_node = node;
+    patterns
+        .into_iter()
+        .skip(1)
+        .filter_map(|pattern| {
+            let name = terminal_identifier_text(base, pattern)?;
+            let visibility = visibility_for(base, visibility_node, visibility_node);
+            let signature = format!("let {}", base.get_node_text(&pattern).trim());
+            (!name.is_empty()).then(|| {
+                base.create_symbol(
+                    &pattern,
+                    name,
+                    SymbolKind::Variable,
+                    SymbolOptions {
+                        signature: Some(signature),
+                        visibility: Some(visibility),
+                        parent_id: parent_id.clone(),
+                        ..Default::default()
+                    },
+                )
+            })
+        })
+        .collect()
+}
+
+/// `identifier_pattern` nodes that bind one plain name, in source order.
+fn collect_bound_patterns<'a>(node: Node<'a>, depth: u32, out: &mut Vec<Node<'a>>) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    if node.kind() == "identifier_pattern" {
+        if node.named_child_count() == 1 {
+            out.push(node);
+        }
+        return;
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        if child.kind() != "attributes" {
+            collect_bound_patterns(child, child_depth, out);
+        }
+    }
 }
 
 fn create_symbol(
@@ -371,7 +722,14 @@ fn signature_for(base: &BaseExtractor, name: &str, kind: &SymbolKind, node: Node
         SymbolKind::Field | SymbolKind::EnumMember => "field",
         _ => "val",
     };
-    let source = base.get_node_text(&node);
+    let source = match direct_child_of_kind(node, "attributes") {
+        Some(attributes) => base
+            .content
+            .get(attributes.end_byte()..node.end_byte())
+            .unwrap_or_default()
+            .to_string(),
+        None => base.get_node_text(&node),
+    };
     let first_line = source
         .lines()
         .find(|line| !line.trim().is_empty())
@@ -421,9 +779,28 @@ fn visibility_for(base: &BaseExtractor, node: Node, context: Node) -> Visibility
         Some("internal") => Visibility::Internal,
         Some("protected") => Visibility::Protected,
         Some("public") => Visibility::Public,
-        _ if is_class_let_binding(node) => Visibility::Private,
+        _ if is_class_let_binding(node) || is_local_binding(node) => Visibility::Private,
         _ => Visibility::Public,
     }
+}
+
+/// A `let` inside a function, member, or constructor body: a local, never
+/// visible outside it.
+fn is_local_binding(node: Node) -> bool {
+    if node.kind() != "function_or_value_defn" {
+        return false;
+    }
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        match candidate.kind() {
+            "function_or_value_defn" | "member_defn" | "fun_expression" => return true,
+            "anon_type_defn" | "module_defn" | "named_module" | "namespace" | "file" => {
+                return false;
+            }
+            _ => current = candidate.parent(),
+        }
+    }
+    false
 }
 
 /// A `let` or `static let` binding inside a class body: always private to
@@ -451,13 +828,33 @@ fn is_class_let_binding(node: Node) -> bool {
     false
 }
 
+/// Attributes on a declaration: its own `[<...>]` list, and for a binding
+/// the inline form `let [<Literal>] X = ...` inside its head.
 fn annotation_markers(base: &BaseExtractor, node: Node) -> Vec<AnnotationMarker> {
-    let Some(attributes) = direct_child_of_kind(node, "attributes") else {
-        return Vec::new();
+    let definition = if node.kind() == "function_or_value_defn" {
+        Some(node)
+    } else {
+        direct_child_of_kind(node, "function_or_value_defn")
     };
-    let raw_texts: Vec<String> = attributes
-        .children(&mut attributes.walk())
-        .filter(|child| child.kind() == "attribute")
+    let inline = definition
+        .and_then(|definition| {
+            direct_child_matching(
+                definition,
+                &["value_declaration_left", "function_declaration_left"],
+            )
+        })
+        .and_then(|left| direct_child_of_kind(left, "attribute_pattern"))
+        .and_then(|pattern| direct_child_of_kind(pattern, "attributes"));
+    let raw_texts: Vec<String> = [direct_child_of_kind(node, "attributes"), inline]
+        .into_iter()
+        .flatten()
+        .flat_map(|attributes| {
+            let mut cursor = attributes.walk();
+            attributes
+                .children(&mut cursor)
+                .filter(|child| child.kind() == "attribute")
+                .collect::<Vec<_>>()
+        })
         .map(|child| base.get_node_text(&child))
         .collect();
     normalize_annotations(&raw_texts, "fsharp")
@@ -683,13 +1080,22 @@ fn visit_binding_group(
     }
 }
 
+/// The name a binding head declares: an identifier, an operator
+/// (`(+.)`), or an active pattern (`(|Even|Odd|)`); for a value pattern, the
+/// first bound name.
 fn binding_name(base: &BaseExtractor, left: Node) -> Option<(String, SymbolKind)> {
     if left.kind() == "function_declaration_left" {
-        let name = direct_child_of_kind(left, "identifier")
+        let name = direct_child_matching(left, &["identifier", "op_identifier", "active_pattern"])
             .map(|name| base.get_node_text(&name).trim().to_string())?;
         Some((name, SymbolKind::Function))
     } else {
-        Some((first_identifier_text(base, left)?, SymbolKind::Variable))
+        let mut patterns = Vec::new();
+        collect_bound_patterns(left, 0, &mut patterns);
+        let name = match patterns.first() {
+            Some(pattern) => terminal_identifier_text(base, *pattern)?,
+            None => first_identifier_text(base, left)?,
+        };
+        Some((name, SymbolKind::Variable))
     }
 }
 
@@ -703,17 +1109,17 @@ fn join_spans(start: Node, end: Node) -> NormalizedSpan {
 }
 
 fn terminal_identifier_text(base: &BaseExtractor, node: Node) -> Option<String> {
+    let name = terminal_identifier(node)?;
+    Some(base.get_node_text(&name).trim().to_string())
+}
+
+fn terminal_identifier(node: Node) -> Option<Node> {
+    if node.kind() == "identifier" {
+        return Some(node);
+    }
     let mut cursor = node.walk();
     let children: Vec<Node> = node.named_children(&mut cursor).collect();
-    let name = if node.kind() == "identifier" {
-        Some(node)
-    } else {
-        children
-            .into_iter()
-            .rev()
-            .find(|child| child.kind() == "identifier")
-    }?;
-    Some(base.get_node_text(&name).trim().to_string())
+    children.into_iter().rev().find_map(terminal_identifier)
 }
 
 /// The body span of an F# declaration node: the expression after `=` for
@@ -748,8 +1154,17 @@ pub(super) fn body_span(node: &Node, _content: &str) -> Option<BodySpan> {
                 })?;
             Some(join_spans(*start, node))
         }
+        "member_defn" | "additional_constr_defn" => {
+            let mut cursor = node.walk();
+            let children: Vec<Node> = node.children(&mut cursor).collect();
+            let body = children
+                .iter()
+                .position(|child| child.kind() == "=")
+                .and_then(|index| children[index + 1..].iter().find(|child| child.is_named()))?;
+            Some(join_spans(*body, node))
+        }
         "namespace" | "named_module" => {
-            let name = node.child_by_field_name("name")?;
+            let name = namespace_name(node)?;
             let mut cursor = node.walk();
             let first = node
                 .named_children(&mut cursor)

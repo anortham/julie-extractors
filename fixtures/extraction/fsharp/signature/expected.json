@@ -345,28 +345,39 @@
       "containing_key": "fixtures/extraction/fsharp/signature/source.fsi:Format:8:2",
       "target_key": null,
       "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/fsharp/signature/source.fsi:value:variable_ref:8:15",
-      "name": "value",
-      "kind": "variable_ref",
-      "language": "fsharp",
-      "file_path": "fixtures/extraction/fsharp/signature/source.fsi",
-      "start_line": 8,
-      "start_column": 15,
-      "end_line": 8,
-      "end_column": 20,
-      "start_byte": 140,
-      "end_byte": 145,
-      "containing_key": "fixtures/extraction/fsharp/signature/source.fsi:Format:8:2",
-      "target_key": null,
-      "confidence": "1.000"
     }
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/fsharp/signature/source.fsi:Add:7:2",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "fsharp",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/fsharp/signature/source.fsi:Age:3:30",
       "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "fsharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/fsharp/signature/source.fsi:Answer:6:2",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "fsharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/fsharp/signature/source.fsi:Format:8:2",
+      "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,

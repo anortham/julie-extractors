@@ -567,7 +567,7 @@ fn parameter_arity(node: Node<'_>) -> u32 {
 /// value) runs code too.
 fn is_complexity_scope(language: &str, symbol: &Symbol) -> bool {
     is_callable(&symbol.kind)
-        || (matches!(language, "dart" | "swift" | "csharp" | "vbnet")
+        || (matches!(language, "dart" | "swift" | "csharp" | "vbnet" | "fsharp")
             && symbol.kind == SymbolKind::Property
             && symbol.body_span.is_some())
 }

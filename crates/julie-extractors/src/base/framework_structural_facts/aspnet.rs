@@ -19,6 +19,9 @@ use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
+#[path = "aspnet_fsharp.rs"]
+mod fsharp;
+
 const ASPNET_ROUTE_METHODS: &[(&str, &str)] = &[
     ("MapGet", "GET"),
     ("MapPost", "POST"),
@@ -490,6 +493,7 @@ fn collect_route_controllers<'t>(
     let controller = match (language, node.kind()) {
         ("csharp", "class_declaration") => Some(csharp_controller(node, content)),
         ("vbnet", "class_block") => Some(vbnet_controller(node, content)),
+        ("fsharp", "anon_type_defn") => Some(fsharp::fsharp_controller(node, content)),
         _ => None,
     };
     controllers.extend(controller);

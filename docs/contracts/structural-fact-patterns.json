@@ -248,6 +248,7 @@
     "description": "An ASP.NET attribute-routing fact ([Route]/[RoutePrefix]/[Http*] on controllers or actions).",
     "languages": [
       "csharp",
+      "fsharp",
       "vbnet"
     ],
     "metadata_keys": [
@@ -378,6 +379,7 @@
     "description": "An ASP.NET Core minimal-API endpoint route (MapGet/MapPost/…).",
     "languages": [
       "csharp",
+      "fsharp",
       "razor",
       "vbnet"
     ],
@@ -2567,6 +2569,46 @@
     "query_family": "framework"
   },
   {
+    "description": "An F# active pattern definition such as `(|Even|Odd|)`.",
+    "languages": [
+      "fsharp"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The banana-clip name as written.",
+        "key": "name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The case names in declaration order.",
+        "key": "cases",
+        "presence": "always",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Whether the pattern is partial (`(|Case|_|)`).",
+        "key": "partial",
+        "presence": "always",
+        "value_type": "bool"
+      }
+    ],
+    "pattern_id": "fsharp.active_pattern.v1",
+    "query_family": "pattern_matching"
+  },
+  {
     "description": "An F# attribute applied to a declaration.",
     "languages": [
       "fsharp"
@@ -2587,6 +2629,62 @@
     ],
     "pattern_id": "fsharp.attribute.v1",
     "query_family": "metadata"
+  },
+  {
+    "description": "An F# computation expression such as `task { }` or `seq { }`.",
+    "languages": [
+      "fsharp"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The builder expression before the braces (`task`, `async`, `seq`, `result`).",
+        "key": "builder",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "fsharp.computation_expression.v1",
+    "query_family": "computation_expression"
+  },
+  {
+    "description": "An F# code quotation (`<@ ... @>` or `<@@ ... @@>`).",
+    "languages": [
+      "fsharp"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"typed\" for `<@ @>`, \"untyped\" for `<@@ @@>`.",
+        "key": "quotation_kind",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "fsharp.quotation.v1",
+    "query_family": "metaprogramming"
   },
   {
     "description": "A GDScript `class_name` registration.",
@@ -2802,6 +2900,76 @@
       }
     ],
     "pattern_id": "gin.route.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Giraffe combinator route (`route`, `routef`, `routeStartsWith`, `subRoute` and their Ci forms).",
+    "languages": [
+      "fsharp"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"combinator_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The Giraffe routing function name.",
+        "key": "route_function",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw string-literal template passed to the routing function.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Joined prefixes of the enclosing `subRoute` calls.",
+        "key": "route_group_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The group prefix joined with the route template, when nested.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key; `routef` format specifiers normalize to `:argN` segments.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "HTTP method from an enclosing `GET >=>`-style verb handler; omitted when none.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "giraffe.route.v1",
     "query_family": "framework"
   },
   {
@@ -3548,7 +3716,8 @@
       "ruby",
       "elixir",
       "rust",
-      "vbnet"
+      "vbnet",
+      "fsharp"
     ],
     "metadata_keys": [
       {

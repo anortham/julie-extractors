@@ -12,7 +12,7 @@ use super::super::{
 pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     StructuralFactPatternSpec {
         pattern_id: "aspnet.minimal_api.route.v1",
-        languages: &["csharp", "razor", "vbnet"],
+        languages: &["csharp", "fsharp", "razor", "vbnet"],
         query_family: "framework",
         description: "An ASP.NET Core minimal-API endpoint route (MapGet/MapPost/…).",
         metadata_keys: &[
@@ -155,7 +155,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     },
     StructuralFactPatternSpec {
         pattern_id: "aspnet.attribute_route.v1",
-        languages: &["csharp", "vbnet"],
+        languages: &["csharp", "fsharp", "vbnet"],
         query_family: "framework",
         description: "An ASP.NET attribute-routing fact ([Route]/[RoutePrefix]/[Http*] on controllers or actions).",
         metadata_keys: &[
@@ -209,6 +209,59 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 STR,
                 OPT,
                 "Owning controller's [Route] template attached to a method fact.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "giraffe.route.v1",
+        languages: &["fsharp"],
+        query_family: "framework",
+        description: "A Giraffe combinator route (`route`, `routef`, `routeStartsWith`, `subRoute` and their Ci forms).",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key(
+                "api_style",
+                STR,
+                ALWAYS,
+                "Routing style (\"combinator_routing\").",
+            ),
+            key(
+                "route_function",
+                STR,
+                ALWAYS,
+                "The Giraffe routing function name.",
+            ),
+            key(
+                "route_template",
+                STR,
+                ALWAYS,
+                "Raw string-literal template passed to the routing function.",
+            ),
+            key(
+                "route_group_prefix",
+                STR,
+                OPT,
+                "Joined prefixes of the enclosing `subRoute` calls.",
+            ),
+            key(
+                "effective_route_template",
+                STR,
+                OPT,
+                "The group prefix joined with the route template, when nested.",
+            ),
+            key(
+                "normalized_route_template",
+                STR,
+                ALWAYS,
+                "Cross-family join key; `routef` format specifiers normalize to `:argN` segments.",
+            ),
+            key(
+                "verb",
+                STR,
+                OPT,
+                "HTTP method from an enclosing `GET >=>`-style verb handler; omitted when none.",
             ),
         ],
     },

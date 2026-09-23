@@ -5,7 +5,7 @@
 //! [`super::super::structural_fact_pattern_specs`].
 
 use super::super::{
-    ALWAYS, BASE_KEYS, BOOL, K_PATTERN_VERSION, K_QUERY_FAMILY, MetadataKeySpec, OPT, STR,
+    ALWAYS, ARR, BASE_KEYS, BOOL, K_PATTERN_VERSION, K_QUERY_FAMILY, MetadataKeySpec, OPT, STR,
     StructuralFactPatternSpec, key,
 };
 
@@ -130,5 +130,55 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
         query_family: "metadata",
         description: "An F# attribute applied to a declaration.",
         metadata_keys: BASE_KEYS,
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "fsharp.computation_expression.v1",
+        languages: &["fsharp"],
+        query_family: "computation_expression",
+        description: "An F# computation expression such as `task { }` or `seq { }`.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "builder",
+                STR,
+                ALWAYS,
+                "The builder expression before the braces (`task`, `async`, `seq`, `result`).",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "fsharp.active_pattern.v1",
+        languages: &["fsharp"],
+        query_family: "pattern_matching",
+        description: "An F# active pattern definition such as `(|Even|Odd|)`.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key("name", STR, ALWAYS, "The banana-clip name as written."),
+            key("cases", ARR, ALWAYS, "The case names in declaration order."),
+            key(
+                "partial",
+                BOOL,
+                ALWAYS,
+                "Whether the pattern is partial (`(|Case|_|)`).",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "fsharp.quotation.v1",
+        languages: &["fsharp"],
+        query_family: "metaprogramming",
+        description: "An F# code quotation (`<@ ... @>` or `<@@ ... @@>`).",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "quotation_kind",
+                STR,
+                ALWAYS,
+                "\"typed\" for `<@ @>`, \"untyped\" for `<@@ @@>`.",
+            ),
+        ],
     },
 ];

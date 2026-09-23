@@ -276,6 +276,30 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/fsharp/basic/source.fs:Generic:3:2",
+      "name": "Generic",
+      "kind": "import",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/basic/source.fs",
+      "start_line": 3,
+      "start_column": 2,
+      "end_line": 3,
+      "end_column": 33,
+      "start_byte": 32,
+      "end_byte": 63,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "open System.Collections.Generic",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/fsharp/basic/source.fs:Domain:1:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/fsharp/basic/source.fs:Go:34:11",
       "name": "Go",
       "kind": "method",
@@ -389,7 +413,7 @@
         "end_byte": 155
       },
       "body_hash": "de0fb761aae614e7e6f32db37f2d659f",
-      "signature": "[<Struct>]",
+      "signature": "type Point = { X: int; Y: int }",
       "doc_comment": "Coordinates used by the domain model.",
       "visibility": "Public",
       "parent_key": "fixtures/extraction/fsharp/basic/source.fs:Domain:1:0",
@@ -458,6 +482,30 @@
       },
       "body_hash": "5207130a3f5c38debe0bdaa12c211361",
       "signature": "type Shape =",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/fsharp/basic/source.fs:Domain:1:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/fsharp/basic/source.fs:System:2:2",
+      "name": "System",
+      "kind": "import",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/basic/source.fs",
+      "start_line": 2,
+      "start_column": 2,
+      "end_line": 2,
+      "end_column": 13,
+      "start_byte": 18,
+      "end_byte": 29,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "open System",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/fsharp/basic/source.fs:Domain:1:0",
@@ -1109,6 +1157,32 @@
       "visibility": "Public",
       "parent_key": "fixtures/extraction/fsharp/basic/source.fs:Circle:10:6",
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/fsharp/basic/source.fs:value:20:18",
+      "name": "value",
+      "kind": "variable",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/basic/source.fs",
+      "start_line": 20,
+      "start_column": 18,
+      "end_line": 20,
+      "end_column": 28,
+      "start_byte": 328,
+      "end_byte": 338,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "value: int",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/fsharp/basic/source.fs:Calculator:20:2",
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -2384,6 +2458,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/fsharp/basic/source.fs:value:20:18",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "fsharp",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/fsharp/basic/source.fs:value:39:15",
       "resolved_type": "Point",
       "generic_params": null,
@@ -2605,6 +2688,28 @@
       "end_column": 43,
       "start_byte": 609,
       "end_byte": 622,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/fsharp/basic/source.fs:Value:25:11",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/basic/source.fs",
+      "covered_lines": 1,
+      "covered_bytes": 5,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 25,
+      "start_column": 21,
+      "end_line": 25,
+      "end_column": 26,
+      "start_byte": 434,
+      "end_byte": 439,
       "metadata": {
         "metric_version": 1
       }
@@ -2868,6 +2973,22 @@
     {
       "literal_text": "0",
       "kind": "other",
+      "carrier": "Calculator",
+      "arg_position": 0,
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/basic/source.fs",
+      "start_line": 30,
+      "start_column": 40,
+      "end_line": 30,
+      "end_column": 41,
+      "start_byte": 546,
+      "end_byte": 547,
+      "containing_key": "fixtures/extraction/fsharp/basic/source.fs:Create:30:18",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "0",
+      "kind": "other",
       "carrier": null,
       "arg_position": 0,
       "language": "fsharp",
@@ -2895,22 +3016,6 @@
       "start_byte": 503,
       "end_byte": 504,
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:Calculate:27:11",
-      "confidence": "1.000"
-    },
-    {
-      "literal_text": "0",
-      "kind": "other",
-      "carrier": null,
-      "arg_position": 0,
-      "language": "fsharp",
-      "file_path": "fixtures/extraction/fsharp/basic/source.fs",
-      "start_line": 30,
-      "start_column": 40,
-      "end_line": 30,
-      "end_column": 41,
-      "start_byte": 546,
-      "end_byte": 547,
-      "containing_key": "fixtures/extraction/fsharp/basic/source.fs:Create:30:18",
       "confidence": "1.000"
     },
     {
@@ -2996,6 +3101,22 @@
     {
       "literal_text": "1",
       "kind": "other",
+      "carrier": "Calculator",
+      "arg_position": 0,
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/basic/source.fs",
+      "start_line": 50,
+      "start_column": 34,
+      "end_line": 50,
+      "end_column": 35,
+      "start_byte": 1022,
+      "end_byte": 1023,
+      "containing_key": "fixtures/extraction/fsharp/basic/source.fs:makeCalculator:50:2",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "1",
+      "kind": "other",
       "carrier": null,
       "arg_position": 0,
       "language": "fsharp",
@@ -3023,22 +3144,6 @@
       "start_byte": 894,
       "end_byte": 895,
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:local:43:2",
-      "confidence": "1.000"
-    },
-    {
-      "literal_text": "1",
-      "kind": "other",
-      "carrier": null,
-      "arg_position": 0,
-      "language": "fsharp",
-      "file_path": "fixtures/extraction/fsharp/basic/source.fs",
-      "start_line": 50,
-      "start_column": 34,
-      "end_line": 50,
-      "end_column": 35,
-      "start_byte": 1022,
-      "end_byte": 1023,
-      "containing_key": "fixtures/extraction/fsharp/basic/source.fs:makeCalculator:50:2",
       "confidence": "1.000"
     },
     {
@@ -3257,6 +3362,18 @@
         {
           "ordinal": 1,
           "type_name": "string",
+          "children": []
+        }
+      ]
+    },
+    {
+      "identifier_key": "fixtures/extraction/fsharp/basic/source.fs:list:type_usage:41:26",
+      "language": "fsharp",
+      "file_path": "fixtures/extraction/fsharp/basic/source.fs",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "Foo",
           "children": []
         }
       ]

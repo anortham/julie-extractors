@@ -8,6 +8,7 @@ mod gap_closure;
 mod semantic_facts;
 mod test_detection;
 mod type_facts;
+mod wave2;
 
 #[test]
 fn fsharp_extensions_select_one_artifact_language_case_insensitively() {
@@ -96,6 +97,7 @@ module Domain =
             "radius",
             "Empty",
             "Calculator",
+            "value",
             "Value",
             "Create",
             "Answer",
@@ -123,7 +125,7 @@ module Domain =
     assert_eq!(by_name["Calculator"].kind, SymbolKind::Class);
     assert_eq!(by_name["Value"].kind, SymbolKind::Property);
     assert_eq!(by_name["Create"].kind, SymbolKind::Method);
-    assert_eq!(by_name["Answer"].kind, SymbolKind::Variable);
+    assert_eq!(by_name["Answer"].kind, SymbolKind::Constant);
     assert_eq!(by_name["add"].kind, SymbolKind::Function);
     for name in ["Person", "Calculator", "Answer", "add"] {
         assert!(

@@ -525,6 +525,9 @@ pub fn collect_code_structural_facts(
     content: &str,
     symbols: &[Symbol],
 ) -> Vec<StructuralFact> {
+    if language == "fsharp" {
+        return crate::fsharp::facts::collect_domain_facts(tree, file_path, content, symbols);
+    }
     let patterns = patterns_for_language(language);
     if patterns.is_empty() {
         return Vec::new();

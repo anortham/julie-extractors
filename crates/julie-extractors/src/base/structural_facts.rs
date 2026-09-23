@@ -125,7 +125,7 @@ pub fn collect_structural_facts(
     );
     attach_containing_symbols(&mut facts, symbols);
     if language == "fsharp" {
-        attach_fsharp_attribute_symbols(&mut facts, symbols);
+        attach_fsharp_attribute_owners(tree, &mut facts, symbols);
     }
     sort_structural_facts(&mut facts);
     facts
@@ -155,6 +155,9 @@ pub(crate) fn structural_fact_pattern_ids_for_language(language: &str) -> Vec<&'
     pattern_ids.extend(sql_structural_fact_pattern_ids_for_language(language));
     if language == "rust" {
         pattern_ids.push(super::rust_doc_test_facts::PATTERN_ID);
+    }
+    if language == "fsharp" {
+        pattern_ids.extend(crate::fsharp::facts::PATTERN_IDS);
     }
     if language == crate::javascript::qml_directives::LANGUAGE {
         pattern_ids.push(crate::javascript::qml_directives::PATTERN_ID);
@@ -235,29 +238,60 @@ fn fact_for_node(
     }
 }
 
-fn attach_fsharp_attribute_symbols(facts: &mut [StructuralFact], symbols: &[Symbol]) {
+/// Declarations an F# attribute list can decorate.
+const FSHARP_ATTRIBUTE_OWNER_KINDS: &[&str] = &[
+    "member_defn",
+    "type_definition",
+    "declaration_expression",
+    "function_or_value_defn",
+    "module_defn",
+    "value_definition",
+    "extern_binding",
+    "exception_definition",
+    "union_type_case",
+    "record_field",
+    "typed_pattern",
+];
+
+/// An F# attribute belongs to the declaration that owns its attribute list:
+/// the first symbol inside that declaration. A member's attributes lie
+/// before the member symbol's span, so the lexical container would be the
+/// type. An attribute with no owning declaration, such as
+/// `[<assembly: ...>]`, keeps its lexical container.
+pub(crate) fn attach_fsharp_attribute_owners(
+    tree: &Tree,
+    facts: &mut [StructuralFact],
+    symbols: &[Symbol],
+) {
     for fact in facts {
-        if fact.pattern_id != "fsharp.attribute.v1" {
+        if fact.node_kind != "attribute" {
             continue;
         }
-        if let Some(containing_symbol_id) = fact.containing_symbol_id.as_deref()
-            && symbols
-                .iter()
-                .any(|symbol| symbol.id == containing_symbol_id && !symbol.annotations.is_empty())
-        {
+        let Some(attribute) = tree
+            .root_node()
+            .descendant_for_byte_range(fact.start_byte as usize, fact.end_byte as usize)
+        else {
             continue;
+        };
+        let mut owner = attribute.parent();
+        while let Some(candidate) = owner {
+            if FSHARP_ATTRIBUTE_OWNER_KINDS.contains(&candidate.kind()) {
+                break;
+            }
+            owner = candidate.parent();
         }
-        let parent_symbol_id = fact.containing_symbol_id.as_deref();
-        let annotated_symbol = symbols
+        let Some(owner) = owner else {
+            continue;
+        };
+        let owned = symbols
             .iter()
-            .filter(|symbol| !symbol.annotations.is_empty() && symbol.start_byte >= fact.end_byte)
-            .filter(|symbol| match parent_symbol_id {
-                Some(parent_symbol_id) => symbol.parent_id.as_deref() == Some(parent_symbol_id),
-                None => symbol.parent_id.is_none(),
+            .filter(|symbol| {
+                symbol.start_byte >= owner.start_byte() as u32
+                    && symbol.end_byte <= owner.end_byte() as u32
             })
-            .min_by_key(|symbol| (symbol.start_byte, symbol.end_byte));
-        if let Some(annotated_symbol) = annotated_symbol {
-            fact.containing_symbol_id = Some(annotated_symbol.id.clone());
+            .min_by_key(|symbol| (symbol.start_byte, u32::MAX - symbol.end_byte));
+        if let Some(owned) = owned {
+            fact.containing_symbol_id = Some(owned.id.clone());
         }
     }
 }
