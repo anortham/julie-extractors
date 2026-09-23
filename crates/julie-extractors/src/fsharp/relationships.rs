@@ -50,6 +50,7 @@ fn walk(
     }
     match node.kind() {
         "import_decl" => extract_import(extractor, node, scope),
+        "fsi_directive_decl" => extract_script_load(extractor, node, scope),
         "application_expression" | "infix_expression" => {
             if let Some(callee) = calls::call_callee(node, &extractor.base.content) {
                 extract_call(extractor, node, callee, scope, symbol_index, relationships);
@@ -97,7 +98,10 @@ fn extract_import(extractor: &mut FSharpExtractor, node: Node, scope: &Scope<'_>
     let Some(target_node) = first_named_child(node) else {
         return;
     };
-    let Some(caller) = scope.find(node) else {
+    let Some(caller) = scope
+        .find_excluding_imports(node)
+        .or_else(|| scope.find(node))
+    else {
         return;
     };
     let display_name = extractor
@@ -117,6 +121,49 @@ fn extract_import(extractor: &mut FSharpExtractor, node: Node, scope: &Scope<'_>
         target,
         RelationshipKind::Imports,
         &target_node,
+        Some(caller.id.clone()),
+        Some(0.95),
+    );
+    extractor.base.add_structured_pending_relationship(pending);
+}
+
+/// `#load "helpers.fsx"` imports another script file.
+fn extract_script_load(extractor: &mut FSharpExtractor, node: Node, scope: &Scope<'_>) {
+    let text = extractor.base().get_node_text(&node);
+    if !text.trim_start().starts_with("#load") {
+        return;
+    }
+    let mut cursor = node.walk();
+    let Some(path_node) = node
+        .named_children(&mut cursor)
+        .find(|child| child.kind() == "string")
+    else {
+        return;
+    };
+    let Some(caller) = scope.find(path_node) else {
+        return;
+    };
+    let path = extractor
+        .base()
+        .get_node_text(&path_node)
+        .trim()
+        .trim_matches('"')
+        .to_string();
+    if path.is_empty() {
+        return;
+    }
+    let target = UnresolvedTarget {
+        display_name: path.clone(),
+        terminal_name: path,
+        receiver: None,
+        namespace_path: Vec::new(),
+        import_context: Some(text.trim().to_string()),
+    };
+    let pending = extractor.base().create_pending_relationship_at_target(
+        caller.id.clone(),
+        target,
+        RelationshipKind::Imports,
+        &path_node,
         Some(caller.id.clone()),
         Some(0.95),
     );
@@ -403,12 +450,23 @@ fn call_target<'a>(base: &crate::base::BaseExtractor, head: Node<'a>) -> Option<
             let receiver_node = head.child_by_field_name("base")?;
             let receiver = base.get_node_text(&receiver_node).trim().to_string();
             let display_name = format!("{}.{}", receiver, base.get_node_text(&field).trim());
-            let (terminal_name, namespace_path) = split_path(&display_name);
-            let (receiver, namespace_path) = if receiver.contains('.') {
-                (None, namespace_path)
-            } else {
-                (Some(receiver), Vec::new())
-            };
+            let (terminal_name, path) = split_path(&display_name);
+            let is_path = matches!(
+                receiver_node.kind(),
+                "long_identifier_or_op" | "long_identifier"
+            );
+            let starts_lowercase = receiver
+                .chars()
+                .next()
+                .is_some_and(|first| first.is_lowercase() || first == '_');
+            // A capitalised dotted path (`System.IO`) is a namespace; any other
+            // receiver, including a call chain (`s.Trim()`), is a value.
+            let (receiver, namespace_path) =
+                if is_path && !starts_lowercase && receiver.contains('.') {
+                    (None, path)
+                } else {
+                    (Some(receiver), Vec::new())
+                };
             Some(CallTarget {
                 node: target_node,
                 display_name,

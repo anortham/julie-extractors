@@ -562,11 +562,12 @@ fn parameter_arity(node: Node<'_>) -> u32 {
     declarator_count.max(1)
 }
 
-/// Callables get symbol metrics. In Dart and Swift a property with a body
-/// (an accessor, an observer, or a computed or lazy value) runs code too.
+/// Callables get symbol metrics. In Dart, Swift, and the .NET languages a
+/// property with a body (an accessor, an observer, or a computed or lazy
+/// value) runs code too.
 fn is_complexity_scope(language: &str, symbol: &Symbol) -> bool {
     is_callable(&symbol.kind)
-        || (matches!(language, "dart" | "swift")
+        || (matches!(language, "dart" | "swift" | "csharp" | "vbnet" | "fsharp")
             && symbol.kind == SymbolKind::Property
             && symbol.body_span.is_some())
 }
@@ -1018,7 +1019,7 @@ const VBNET_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
         "select_case_statement",
         "case_clause",
         "catch_block",
-        "conditional_expression",
+        "ternary_expression",
     ],
     loop_node_kinds: &[
         "for_statement",

@@ -396,10 +396,7 @@ namespace MyProject
 
         let get_users = symbols.iter().find(|s| s.name == "GetUsersAsync");
         assert!(get_users.is_some());
-        assert_eq!(
-            types.get(&get_users.unwrap().id).unwrap(),
-            "Task<List<User>>"
-        );
+        assert_eq!(types.get(&get_users.unwrap().id).unwrap(), "Task");
     }
 
     #[test]

@@ -46,6 +46,10 @@ fn walk(
             collect_member_type(base, node, symbols, types);
             parameters::record_parameter_facts(base, node, symbols);
         }
+        "anon_type_defn" => parameters::record_parameter_facts(base, node, symbols),
+        "value_definition" | "member_signature" => {
+            collect_signature_type(base, node, symbols, types)
+        }
         _ => {}
     }
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -127,8 +131,37 @@ fn collect_member_type(
     let Some(symbol) = symbol_for_name(symbols, base, &name_node) else {
         return;
     };
-    if let Some(type_node) = direct_type_child(definition) {
+    if let Some(type_node) =
+        parameters::member_return_type(definition).or_else(|| direct_type_child(definition))
+    {
         insert_type(base, types, symbol, type_node);
+    }
+}
+
+/// `val pi: float` and `abstract Run: int -> string`: the type after the
+/// last argument arrow is the declared value or return type.
+fn collect_signature_type(
+    base: &mut BaseExtractor,
+    node: Node,
+    symbols: &[Symbol],
+    types: &mut HashMap<String, String>,
+) {
+    let name_node = match node.kind() {
+        "value_definition" => {
+            direct_child(node, "value_declaration_left").and_then(first_identifier)
+        }
+        _ => direct_identifier(node),
+    };
+    let Some(symbol) = name_node.and_then(|name| symbol_for_name(symbols, base, &name)) else {
+        return;
+    };
+    let Some(spec) = direct_child(node, "curried_spec") else {
+        return;
+    };
+    let mut cursor = spec.walk();
+    let children: Vec<Node> = spec.named_children(&mut cursor).collect();
+    if let Some(type_node) = children.last().filter(|child| is_type_node(child)) {
+        insert_type(base, types, symbol, *type_node);
     }
 }
 
@@ -200,6 +233,11 @@ fn structural_base_name(base: &BaseExtractor, node: Node) -> Option<String> {
                     return None;
                 }
                 return Some(name.to_string());
+            }
+            "list_type" => {
+                let text = base.get_node_text(&node);
+                let text = text.trim();
+                return (!text.is_empty()).then(|| text.to_string());
             }
             "postfix_type" => {
                 let ident = last_named_child_of_kind(node, "long_identifier")?;
@@ -301,6 +339,19 @@ fn literal_type(node: Node) -> Option<&'static str> {
         "decimal" => "decimal",
         "bool" => "bool",
         "unit" => "unit",
+        "xint" | "int32" => "int",
+        "int64" => "int64",
+        "uint32" => "uint32",
+        "uint64" => "uint64",
+        "int16" => "int16",
+        "uint16" => "uint16",
+        "byte" => "byte",
+        "sbyte" => "sbyte",
+        "ieee32" => "float32",
+        "ieee64" => "float",
+        "nativeint" => "nativeint",
+        "unativeint" => "unativeint",
+        "bignum" => "bigint",
         _ => return None,
     })
 }

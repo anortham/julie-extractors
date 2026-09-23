@@ -1,6 +1,6 @@
 // C# Identifier Extraction
 
-use crate::base::{BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol};
+use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::{Node, Tree};
 
@@ -10,7 +10,7 @@ pub fn extract_identifiers(
     tree: &Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    let containing_symbols = base.containing_symbol_index(symbols);
+    let containing_symbols = super::scope::MemberScope::new(symbols, &base.file_path);
     walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
     base.identifiers.clone()
 }
@@ -18,7 +18,7 @@ pub fn extract_identifiers(
 fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &super::scope::MemberScope<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -38,7 +38,7 @@ fn walk_tree_for_identifiers(
 fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &super::scope::MemberScope<'_>,
 ) {
     match node.kind() {
         "invocation_expression" => {
@@ -82,10 +82,37 @@ fn extract_identifier_from_node(
                 && let Some((name_node, name)) = terminal_type_identifier(base, type_node, 0)
             {
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                let kind = if type_node.kind() == "identifier"
+                    && super::scope::is_type_parameter_in_scope(&base.content, node, &name)
+                {
+                    IdentifierKind::TypeUsage
+                } else {
+                    IdentifierKind::Call
+                };
+                base.create_identifier(&name_node, name, kind, containing_symbol_id);
+            }
+            record_csharp_constructor_arg_literals(base, node, containing_symbols);
+        }
+        "implicit_object_creation_expression" => {
+            if let Some(type_node) = super::scope::target_type_of_implicit_new(node)
+                && let Some((_, name)) = terminal_type_identifier(base, type_node, 0)
+            {
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                base.create_identifier(&node, name, IdentifierKind::Call, containing_symbol_id);
+            }
+        }
+        // An attribute name names its attribute class. A qualified name is
+        // already a type usage through its `qualified_name` segments.
+        "attribute" => {
+            if let Some(name_node) = node.child_by_field_name("name")
+                && matches!(name_node.kind(), "identifier" | "generic_name")
+                && let Some((identifier, name)) = terminal_type_identifier(base, name_node, 0)
+            {
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 base.create_identifier(
-                    &name_node,
+                    &identifier,
                     name,
-                    IdentifierKind::Call,
+                    IdentifierKind::TypeUsage,
                     containing_symbol_id,
                 );
             }
@@ -447,6 +474,14 @@ fn is_csharp_type_usage_identifier(node: Node) -> bool {
         return false;
     }
 
+    if let Some(parent) = node.parent() {
+        let is_as_type = parent.kind() == "as_expression"
+            && parent.child_by_field_name("right").map(|n| n.id()) == Some(node.id());
+        if is_as_type || parent.kind() == "type_parameter_constraints_clause" {
+            return true;
+        }
+    }
+
     let mut current = node;
     while let Some(parent) = current.parent() {
         if let Some(type_node) = parent
@@ -593,7 +628,10 @@ fn is_csharp_value_read_identifier(node: Node) -> bool {
         | "parameter"
         | "declaration_expression"
         | "catch_declaration"
-        | "implicit_parameter" => !is_name_field,
+        | "implicit_parameter"
+        | "parameter_list"
+        | "declaration_pattern"
+        | "recursive_pattern" => !is_name_field,
         // foreach loop variable (`left`) is a definition; the `right` collection reads.
         "foreach_statement" => {
             parent.child_by_field_name("left").map(|l| l.id()) != Some(node.id())
@@ -638,8 +676,16 @@ fn is_csharp_value_read_identifier(node: Node) -> bool {
 
         // Type positions (also removed by the TypeUsage arm via match ordering; kept
         // explicit so the predicate is correct in isolation).
-        "qualified_name" | "generic_name" | "type_argument_list" | "array_type"
-        | "nullable_type" | "pointer_type" | "tuple_type" | "base_list" => false,
+        "qualified_name"
+        | "generic_name"
+        | "type_argument_list"
+        | "array_type"
+        | "nullable_type"
+        | "pointer_type"
+        | "tuple_type"
+        | "base_list"
+        | "type_parameter_constraints_clause" => false,
+        "as_expression" => parent.child_by_field_name("right").map(|r| r.id()) != Some(node.id()),
 
         // Every other expression/statement value slot — return / binary / conditional /
         // interpolation / initializer element / switch value / element access / cast /
@@ -768,7 +814,7 @@ fn is_csharp_builtin_type(name: &str) -> bool {
 
 fn find_containing_symbol_id(
     node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &super::scope::MemberScope<'_>,
 ) -> Option<String> {
     containing_symbols.find(node).map(|s| s.id.clone())
 }
@@ -787,15 +833,39 @@ fn find_containing_symbol_id(
 fn record_csharp_call_arg_literals(
     base: &mut BaseExtractor,
     node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &super::scope::MemberScope<'_>,
 ) {
     let Some(function) = node.child_by_field_name("function") else {
         return;
     };
+    let carrier = csharp_carrier(base, function);
+    record_argument_literals(base, node, carrier, containing_symbols);
+}
+
+/// Capture string-literal arguments of `new T(...)` with the constructed type
+/// as the carrier (`new SqlCommand("SELECT ...")`, `new HttpRequestMessage(..)`).
+fn record_csharp_constructor_arg_literals(
+    base: &mut BaseExtractor,
+    node: Node,
+    containing_symbols: &super::scope::MemberScope<'_>,
+) {
+    let Some(type_node) = node.child_by_field_name("type") else {
+        return;
+    };
+    let carrier = csharp_carrier(base, type_node)
+        .and_then(|name| name.rsplit('.').next().map(str::to_string));
+    record_argument_literals(base, node, carrier, containing_symbols);
+}
+
+fn record_argument_literals(
+    base: &mut BaseExtractor,
+    node: Node,
+    carrier: Option<String>,
+    containing_symbols: &super::scope::MemberScope<'_>,
+) {
     let Some(args) = node.child_by_field_name("arguments") else {
         return;
     };
-    let carrier = csharp_carrier(base, function);
     let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
     let mut cursor = args.walk();

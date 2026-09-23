@@ -1,6 +1,7 @@
 mod bash;
 mod csharp;
 mod elixir;
+mod fsharp;
 mod go;
 mod java;
 mod kotlin;
@@ -8,6 +9,7 @@ mod php;
 mod python;
 mod ruby;
 mod rust;
+mod vbnet;
 
 use std::ops::Range;
 
@@ -37,6 +39,8 @@ pub(super) fn collect_backend_http_client_requests(
         "elixir" => elixir::collect_elixir_http_client_requests(language, tree, file_path, content),
         "rust" => rust::collect_rust_http_client_requests(language, tree, file_path, content),
         "bash" => bash::collect_bash_http_client_requests(language, tree, file_path, content),
+        "vbnet" => vbnet::collect_vbnet_http_client_requests(language, tree, file_path, content),
+        "fsharp" => fsharp::collect_fsharp_http_client_requests(language, tree, file_path, content),
         _ => Vec::new(),
     }
 }

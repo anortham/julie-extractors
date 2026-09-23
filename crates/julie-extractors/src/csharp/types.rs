@@ -39,44 +39,35 @@ pub fn extract_using(
     node: Node,
     parent_id: Option<String>,
 ) -> Option<Symbol> {
+    let alias_node = node.child_by_field_name("name");
     let mut cursor = node.walk();
-    let name_node = node.children(&mut cursor).find(|c| {
-        matches!(
-            c.kind(),
-            "qualified_name" | "identifier" | "member_access_expression"
-        )
-    })?;
+    let target_node = node
+        .named_children(&mut cursor)
+        .filter(|child| Some(*child) != alias_node && child.kind() != "comment")
+        .last()?;
+    let target = base.get_node_text(&target_node);
+    let has_token = |token: &str| {
+        let mut cursor = node.walk();
+        node.children(&mut cursor).any(|c| c.kind() == token)
+    };
 
-    let full_using_path = base.get_node_text(&name_node);
-    let is_static = node.children(&mut cursor).any(|c| c.kind() == "static");
-
-    let mut cursor2 = node.walk();
-    let alias_node = node
-        .children(&mut cursor2)
-        .find(|c| c.kind() == "name_equals");
-    let name = if let Some(alias_node) = alias_node {
-        let mut alias_cursor = alias_node.walk();
-        let alias_identifier = alias_node
-            .children(&mut alias_cursor)
-            .find(|c| c.kind() == "identifier");
-        if let Some(alias_identifier) = alias_identifier {
-            base.get_node_text(&alias_identifier)
-        } else {
-            full_using_path.clone()
+    let mut signature = String::new();
+    if has_token("global") {
+        signature.push_str("global ");
+    }
+    signature.push_str("using ");
+    if has_token("static") {
+        signature.push_str("static ");
+    }
+    let name = match alias_node {
+        Some(alias_node) => {
+            let alias = base.get_node_text(&alias_node);
+            signature.push_str(&format!("{alias} = "));
+            alias
         }
-    } else {
-        full_using_path
-            .split('.')
-            .next_back()
-            .unwrap_or(&full_using_path)
-            .to_string()
+        None => target.rsplit('.').next().unwrap_or(&target).to_string(),
     };
-
-    let signature = if is_static {
-        format!("using static {}", full_using_path)
-    } else {
-        format!("using {}", full_using_path)
-    };
+    signature.push_str(&target);
 
     // Extract XML doc comment
     let doc_comment = base.find_doc_comment(&node);
@@ -410,4 +401,67 @@ pub fn extract_record(
     };
 
     Some(base.create_symbol(&node, name, symbol_kind, options))
+}
+
+/// The record declaration whose positional parameter list holds `parameter`.
+pub(super) fn positional_record(parameter: Node) -> Option<Node> {
+    parameter
+        .parent()
+        .filter(|list| list.kind() == "parameter_list")?
+        .parent()
+        .filter(|owner| owner.kind() == "record_declaration")
+}
+
+/// A positional record parameter declares a public property: `init`-only
+/// for a record class and a `readonly record struct`, settable for a
+/// mutable `record struct`.
+pub fn extract_positional_property(
+    base: &mut BaseExtractor,
+    parameter: Node,
+    record: Node,
+    parent_id: Option<String>,
+) -> Option<Symbol> {
+    let name = base.get_node_text(&parameter.child_by_field_name("name")?);
+    let type_node = parameter.child_by_field_name("type")?;
+    let modifiers = helpers::extract_modifiers(base, &record);
+    let mut cursor = record.walk();
+    let is_struct = record.children(&mut cursor).any(|c| c.kind() == "struct");
+    let accessor = if is_struct && !modifiers.iter().any(|m| m == "readonly") {
+        "set"
+    } else {
+        "init"
+    };
+    let signature = format!(
+        "public {} {name} {{ get; {accessor}; }}",
+        base.get_node_text(&type_node)
+    );
+    let annotations = helpers::extract_annotations(base, &parameter);
+    let symbol = base.create_symbol(
+        &parameter,
+        name,
+        SymbolKind::Property,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(Visibility::Public),
+            parent_id,
+            annotations,
+            ..Default::default()
+        },
+    );
+    super::type_inference::record_declared_type(base, &symbol.id, type_node);
+    Some(symbol)
+}
+
+/// The receiver type of the `extension(T receiver)` block that directly
+/// declares `member`.
+pub(super) fn extension_receiver_type(base: &BaseExtractor, member: Node) -> Option<String> {
+    let block = member
+        .parent()
+        .filter(|body| body.kind() == "extension_body")?
+        .parent()?;
+    let mut cursor = block.walk();
+    let receiver = block
+        .children(&mut cursor)
+        .find(|child| child.kind() == "receiver_parameter")?;
+    Some(base.get_node_text(&receiver.child_by_field_name("type")?))
 }

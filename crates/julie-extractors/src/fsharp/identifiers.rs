@@ -113,6 +113,9 @@ fn walk(
         "generic_type" => {
             emit_generic_type(extractor, node, containing_symbols, seen);
         }
+        "postfix_type" => {
+            emit_postfix_type(extractor, node, containing_symbols, seen);
+        }
         "long_identifier" if is_type_node(node) => {
             if let Some(name_node) = terminal_identifier(node) {
                 let name = extractor.base().get_node_text(&name_node);
@@ -202,6 +205,44 @@ fn emit_generic_type(
         .record_type_arguments(&identifier, arguments);
 }
 
+/// `Order list`: the postfix name is the generic type and the type before it
+/// is its argument.
+fn emit_postfix_type(
+    extractor: &mut FSharpExtractor,
+    node: Node,
+    containing_symbols: &Scope<'_>,
+    seen: &mut HashSet<(IdentifierKind, u32, u32)>,
+) {
+    let Some(name_node) = postfix_name(node).and_then(terminal_identifier) else {
+        return;
+    };
+    let name = extractor.base().get_node_text(&name_node);
+    let Some(identifier) = emit(
+        extractor,
+        name_node,
+        name,
+        IdentifierKind::TypeUsage,
+        containing_symbols,
+        seen,
+    ) else {
+        return;
+    };
+    let arguments =
+        crate::base::extract_type_arguments(extractor.base(), node, decompose_type_argument);
+    extractor
+        .base()
+        .record_type_arguments(&identifier, arguments);
+}
+
+fn postfix_name(node: Node) -> Option<Node> {
+    let mut cursor = node.walk();
+    let children: Vec<_> = node.named_children(&mut cursor).collect();
+    children
+        .into_iter()
+        .rev()
+        .find(|child| child.kind() == "long_identifier")
+}
+
 fn decompose_type_argument<'a>(
     base: &BaseExtractor,
     node: Node<'a>,
@@ -209,11 +250,21 @@ fn decompose_type_argument<'a>(
     if !node.is_named() {
         return None;
     }
+    if node.parent().is_some_and(|parent| {
+        parent.kind() == "postfix_type"
+            && postfix_name(parent).is_some_and(|name| name.id() == node.id())
+    }) {
+        return None;
+    }
     let type_node = if node.kind() == "type_attribute" {
         first_named_child(node)?
     } else {
         node
     };
+    if type_node.kind() == "postfix_type" {
+        let name = postfix_name(type_node).map(|name| base.get_node_text(&name))?;
+        return Some((name.trim().to_string(), Some(type_node)));
+    }
     let type_name = if type_node.kind() == "generic_type" {
         first_named_child(type_node)
             .map(|child| base.get_node_text(&child))
@@ -357,6 +408,7 @@ fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
         if matches!(
             candidate.kind(),
             "anon_type_defn"
+                | "type_extension"
                 | "delegate_type_defn"
                 | "enum_type_defn"
                 | "interface_type_defn"
@@ -485,7 +537,17 @@ fn in_declaration_name(node: Node) -> bool {
             | "identifier_pattern"
             | "type_name"
             | "union_type_case"
-            | "property_or_ident" => return true,
+            | "enum_type_case"
+            | "property_or_ident"
+            | "argument_patterns"
+            | "argument_name_spec"
+            | "primary_constr_args"
+            | "active_pattern" => return true,
+            "member_signature" | "declaration_expression" | "extern_binding" | "member_defn"
+                if current.kind() == "identifier" =>
+            {
+                return true;
+            }
             "named_module" | "namespace" | "module_defn" => {
                 return first_named_child(parent).is_some_and(|name| contains_node(name, node));
             }

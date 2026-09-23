@@ -42,5 +42,15 @@ sql = [
     "executesqlrawasync",
     "executesqlinterpolated",
     "executesqlinterpolatedasync",
+    "fromsql",
+    "executesql",
+    "executesqlasync",
+    "sqlquery",
+    "sqlqueryraw",
+    "sqlcommand",
+    "npgsqlcommand",
+    "sqlitecommand",
+    "mysqlcommand",
+    "oraclecommand",
 ]
 route = []

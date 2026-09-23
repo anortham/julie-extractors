@@ -35,14 +35,20 @@ fn visit_relationships(
         "interface_block" => {
             extract_interface_relationships(extractor, node, symbols, relationships);
         }
+        "method_declaration"
+        | "abstract_method_declaration"
+        | "property_declaration"
+        | "event_declaration" => {
+            extract_member_implements(extractor, node, symbols, relationships);
+            if node.kind() == "property_declaration" {
+                extract_property_type_relationships(extractor, node, symbols, relationships);
+            }
+        }
         "constructor_declaration" => {
             extract_constructor_uses_relationships(extractor, node, symbols, relationships);
         }
         "field_declaration" => {
             extract_field_type_relationships(extractor, node, symbols, relationships);
-        }
-        "property_declaration" => {
-            extract_property_type_relationships(extractor, node, symbols, relationships);
         }
         "invocation_expression" | "invocation" | "element_access" | "call_statement" => {
             extract_call_relationships(extractor, node, symbols, relationships);
@@ -71,93 +77,31 @@ fn extract_type_relationships(
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
 ) {
-    let (current_symbol_id, inherits_list, implements_list, file_path, line_number) = {
+    let Some(current) = find_containing_type(extractor, node, symbols) else {
+        return;
+    };
+    let (inherits, implements) = {
         let base = extractor.get_base();
-        let name_node = node.child_by_field_name("name");
-        let Some(name_node) = name_node else { return };
-
-        let current_symbol_name = base.get_node_text(&name_node);
-        let Some(current_symbol) = symbols.iter().find(|s| s.name == current_symbol_name) else {
-            return;
-        };
-
-        let inherits = helpers::extract_inherits(base, &node);
-        let implements = helpers::extract_implements(base, &node);
-
         (
-            current_symbol.id.clone(),
-            inherits,
-            implements,
-            base.file_path.clone(),
-            (node.start_position().row + 1) as u32,
+            helpers::extract_inherits(base, &node),
+            helpers::extract_implements(base, &node),
         )
     };
-
-    for base_type_name in inherits_list {
-        if let Some(base_symbol) = symbols.iter().find(|s| s.name == base_type_name) {
-            relationships.push(Relationship {
-                id: format!(
-                    "{}_{}_{:?}_{}",
-                    current_symbol_id,
-                    base_symbol.id,
-                    RelationshipKind::Extends,
-                    node.start_position().row
-                ),
-                from_symbol_id: current_symbol_id.clone(),
-                to_symbol_id: base_symbol.id.clone(),
-                kind: RelationshipKind::Extends,
-                file_path: file_path.clone(),
-                line_number,
-                span: Some(crate::base::NormalizedSpan::from_node(&node)),
-                reference_site_is_exact: false,
-                confidence: 1.0,
-                metadata: None,
-            });
-        } else {
-            let pending = extractor.get_base().create_pending_relationship(
-                current_symbol_id.clone(),
-                helpers::unresolved_type_target(&base_type_name)
-                    .unwrap_or_else(|| UnresolvedTarget::simple(base_type_name)),
-                RelationshipKind::Extends,
-                &node,
-                Some(current_symbol_id.clone()),
-                Some(0.9),
+    let current_id = current.id.clone();
+    for (names, kind) in [
+        (inherits, RelationshipKind::Extends),
+        (implements, RelationshipKind::Implements),
+    ] {
+        for type_name in names {
+            emit_type_edge(
+                extractor,
+                node,
+                &current_id,
+                &type_name,
+                kind.clone(),
+                symbols,
+                relationships,
             );
-            extractor.add_structured_pending_relationship(pending);
-        }
-    }
-
-    for impl_type_name in implements_list {
-        if let Some(impl_symbol) = symbols.iter().find(|s| s.name == impl_type_name) {
-            relationships.push(Relationship {
-                id: format!(
-                    "{}_{}_{:?}_{}",
-                    current_symbol_id,
-                    impl_symbol.id,
-                    RelationshipKind::Implements,
-                    node.start_position().row
-                ),
-                from_symbol_id: current_symbol_id.clone(),
-                to_symbol_id: impl_symbol.id.clone(),
-                kind: RelationshipKind::Implements,
-                file_path: file_path.clone(),
-                line_number,
-                span: Some(crate::base::NormalizedSpan::from_node(&node)),
-                reference_site_is_exact: false,
-                confidence: 1.0,
-                metadata: None,
-            });
-        } else {
-            let pending = extractor.get_base().create_pending_relationship(
-                current_symbol_id.clone(),
-                helpers::unresolved_type_target(&impl_type_name)
-                    .unwrap_or_else(|| UnresolvedTarget::simple(impl_type_name)),
-                RelationshipKind::Implements,
-                &node,
-                Some(current_symbol_id.clone()),
-                Some(0.9),
-            );
-            extractor.add_structured_pending_relationship(pending);
         }
     }
 }
@@ -168,57 +112,145 @@ fn extract_interface_relationships(
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
 ) {
-    let (current_symbol_id, inherits_list, file_path, line_number) = {
-        let base = extractor.get_base();
-        let name_node = node.child_by_field_name("name");
-        let Some(name_node) = name_node else { return };
-
-        let current_symbol_name = base.get_node_text(&name_node);
-        let Some(current_symbol) = symbols.iter().find(|s| s.name == current_symbol_name) else {
-            return;
-        };
-
-        let inherits = helpers::extract_inherits(base, &node);
-
-        (
-            current_symbol.id.clone(),
-            inherits,
-            base.file_path.clone(),
-            (node.start_position().row + 1) as u32,
-        )
+    let Some(current) = find_containing_type(extractor, node, symbols) else {
+        return;
     };
+    let current_id = current.id.clone();
+    let inherits = helpers::extract_inherits(extractor.get_base(), &node);
+    for type_name in inherits {
+        emit_type_edge(
+            extractor,
+            node,
+            &current_id,
+            &type_name,
+            RelationshipKind::Extends,
+            symbols,
+            relationships,
+        );
+    }
+}
 
-    for base_type_name in inherits_list {
-        if let Some(base_symbol) = symbols.iter().find(|s| s.name == base_type_name) {
-            relationships.push(Relationship {
-                id: format!(
-                    "{}_{}_{:?}_{}",
-                    current_symbol_id,
-                    base_symbol.id,
-                    RelationshipKind::Extends,
-                    node.start_position().row
-                ),
-                from_symbol_id: current_symbol_id.clone(),
-                to_symbol_id: base_symbol.id.clone(),
-                kind: RelationshipKind::Extends,
-                file_path: file_path.clone(),
-                line_number,
-                span: Some(crate::base::NormalizedSpan::from_node(&node)),
-                reference_site_is_exact: false,
-                confidence: 1.0,
-                metadata: None,
-            });
-        } else {
+/// Resolves a base-list entry against the file's type symbols by its
+/// generic-stripped terminal name, else leaves a pending edge.
+fn emit_type_edge(
+    extractor: &mut VbNetExtractor,
+    node: tree_sitter::Node,
+    current_id: &str,
+    type_name: &str,
+    kind: RelationshipKind,
+    symbols: &[Symbol],
+    relationships: &mut Vec<Relationship>,
+) {
+    let target = helpers::unresolved_type_target(type_name)
+        .unwrap_or_else(|| UnresolvedTarget::simple(type_name.to_string()));
+    match find_vb_type_symbol(symbols, &target.terminal_name).filter(|s| s.id != current_id) {
+        Some(type_symbol) => relationships.push(Relationship {
+            id: format!(
+                "{}_{}_{:?}_{}",
+                current_id,
+                type_symbol.id,
+                kind,
+                node.start_position().row
+            ),
+            from_symbol_id: current_id.to_string(),
+            to_symbol_id: type_symbol.id.clone(),
+            kind,
+            file_path: extractor.get_base().file_path.clone(),
+            line_number: (node.start_position().row + 1) as u32,
+            span: Some(crate::base::NormalizedSpan::from_node(&node)),
+            reference_site_is_exact: false,
+            confidence: 1.0,
+            metadata: None,
+        }),
+        None => {
             let pending = extractor.get_base().create_pending_relationship(
-                current_symbol_id.clone(),
-                helpers::unresolved_type_target(&base_type_name)
-                    .unwrap_or_else(|| UnresolvedTarget::simple(base_type_name)),
-                RelationshipKind::Extends,
+                current_id.to_string(),
+                target,
+                kind,
                 &node,
-                Some(current_symbol_id.clone()),
+                Some(current_id.to_string()),
                 Some(0.9),
             );
             extractor.add_structured_pending_relationship(pending);
+        }
+    }
+}
+
+/// `Sub DoWork() Implements IJob.Run` links the member to the interface
+/// member it implements: resolved when that member is in the file, else a
+/// pending edge whose receiver is the interface.
+fn extract_member_implements(
+    extractor: &mut VbNetExtractor,
+    node: tree_sitter::Node,
+    symbols: &[Symbol],
+    relationships: &mut Vec<Relationship>,
+) {
+    let Some(clause) = node.child_by_field_name("implements") else {
+        return;
+    };
+    let start = node.start_byte() as u32;
+    let Some(member) = symbols.iter().find(|symbol| {
+        symbol.start_byte == start
+            && matches!(
+                symbol.kind,
+                SymbolKind::Method | SymbolKind::Property | SymbolKind::Event
+            )
+    }) else {
+        return;
+    };
+    let member_id = member.id.clone();
+    let mut cursor = clause.walk();
+    let targets: Vec<Vec<String>> = clause
+        .named_children(&mut cursor)
+        .filter(|child| child.kind() == "namespace_name")
+        .map(|name| {
+            let mut name_cursor = name.walk();
+            name.named_children(&mut name_cursor)
+                .filter(|part| part.kind() == "identifier")
+                .map(|part| extractor.get_base().get_node_text(&part))
+                .collect()
+        })
+        .collect();
+    for parts in targets {
+        let [.., interface_name, member_name] = parts.as_slice() else {
+            continue;
+        };
+        let implemented = find_vb_type_symbol(symbols, interface_name).and_then(|interface| {
+            symbols.iter().find(|candidate| {
+                candidate.parent_id.as_deref() == Some(interface.id.as_str())
+                    && candidate.name.eq_ignore_ascii_case(member_name)
+            })
+        });
+        match implemented {
+            Some(target) => relationships.push(Relationship {
+                id: format!(
+                    "{}_{}_{:?}_{}",
+                    member_id,
+                    target.id,
+                    RelationshipKind::Implements,
+                    clause.start_position().row
+                ),
+                from_symbol_id: member_id.clone(),
+                to_symbol_id: target.id.clone(),
+                kind: RelationshipKind::Implements,
+                file_path: extractor.get_base().file_path.clone(),
+                line_number: clause.start_position().row as u32 + 1,
+                span: Some(crate::base::NormalizedSpan::from_node(&clause)),
+                reference_site_is_exact: false,
+                confidence: 1.0,
+                metadata: None,
+            }),
+            None => {
+                let pending = extractor.get_base().create_pending_relationship(
+                    member_id.clone(),
+                    UnresolvedTarget::from_chain(parts.clone()),
+                    RelationshipKind::Implements,
+                    &clause,
+                    Some(member_id.clone()),
+                    Some(0.9),
+                );
+                extractor.add_structured_pending_relationship(pending);
+            }
         }
     }
 }
@@ -448,6 +480,13 @@ fn extract_call_relationships(
     if method_name.is_empty() {
         return;
     }
+    if is_mybase_member(extractor.get_base(), callee) {
+        extract_mybase_call(extractor, node, &method_name, symbols, relationships);
+        return;
+    }
+    if helpers::is_indexed_value(extractor.get_base(), callee, symbols) {
+        return;
+    }
 
     let base = extractor.get_base();
     let symbol_index = ScopedSymbolIndex::new(symbols);
@@ -540,6 +579,73 @@ fn extract_call_relationships(
             extractor.add_structured_pending_relationship(pending);
         }
     }
+}
+
+fn is_mybase_member(base: &crate::base::BaseExtractor, callee: tree_sitter::Node) -> bool {
+    callee.kind() == "member_access"
+        && callee.child_by_field_name("object").is_some_and(|object| {
+            object.kind() == "me_expression"
+                && base.get_node_text(&object).eq_ignore_ascii_case("MyBase")
+        })
+}
+
+/// `MyBase.M()` targets the inherited `M`, never the calling override: it
+/// resolves when the base type and its member are in the file, else it stays
+/// pending with the `MyBase` receiver and the declared base type.
+fn extract_mybase_call(
+    extractor: &mut VbNetExtractor,
+    node: tree_sitter::Node,
+    method_name: &str,
+    symbols: &[Symbol],
+    relationships: &mut Vec<Relationship>,
+) {
+    let base = extractor.get_base();
+    let Some(caller) = find_caller(base, node, symbols) else {
+        return;
+    };
+    let receiver_type = super::identifiers::self_receiver_type(base, node);
+    let base_member = receiver_type.as_deref().and_then(|type_name| {
+        let owner = find_vb_type_symbol(symbols, type_name)?;
+        symbols.iter().find(|candidate| {
+            candidate.name.eq_ignore_ascii_case(method_name)
+                && candidate.id != caller.id
+                && candidate.parent_id.as_deref() == Some(owner.id.as_str())
+        })
+    });
+    if let Some(called_symbol) = base_member {
+        relationships.push(Relationship {
+            id: format!(
+                "{}_{}_{:?}_{}",
+                caller.id,
+                called_symbol.id,
+                RelationshipKind::Calls,
+                node.start_position().row
+            ),
+            from_symbol_id: caller.id.clone(),
+            to_symbol_id: called_symbol.id.clone(),
+            kind: RelationshipKind::Calls,
+            file_path: base.file_path.clone(),
+            line_number: node.start_position().row as u32 + 1,
+            span: Some(crate::base::NormalizedSpan::from_node(&node)),
+            reference_site_is_exact: false,
+            confidence: 0.9,
+            metadata: None,
+        });
+        return;
+    }
+    let caller_id = caller.id.clone();
+    let target = UnresolvedTarget::from_chain(vec!["MyBase".to_string(), method_name.to_string()]);
+    let pending = base
+        .create_pending_relationship(
+            caller_id.clone(),
+            target,
+            RelationshipKind::Calls,
+            &node,
+            Some(caller_id),
+            Some(0.7),
+        )
+        .with_receiver_type(receiver_type);
+    extractor.add_structured_pending_relationship(pending);
 }
 
 fn extract_new_expression_relationships(
@@ -703,9 +809,9 @@ fn unresolved_call_target(
     if callee_expression.kind() == "implicit_member_access"
         && let Some(with_target) = helpers::with_target(callee_expression)
     {
-        collect_identifiers(extractor, with_target, &mut identifiers);
+        collect_spine(extractor, with_target, &mut identifiers);
     }
-    collect_identifiers(extractor, callee_expression, &mut identifiers);
+    collect_spine(extractor, callee_expression, &mut identifiers);
 
     if identifiers.len() >= 2 {
         let terminal_name = identifiers
@@ -730,35 +836,38 @@ fn unresolved_call_target(
     UnresolvedTarget::simple(fallback_name.to_string())
 }
 
-fn collect_identifiers(
-    extractor: &VbNetExtractor,
-    node: tree_sitter::Node,
-    identifiers: &mut Vec<String>,
-) {
-    collect_identifiers_at_depth(extractor, node, identifiers, 0);
+/// Collects the dotted name spine of a callee (`A.B.C`). A call result,
+/// index, or any other expression in the object position breaks the spine,
+/// so argument names never become target segments.
+fn collect_spine(extractor: &VbNetExtractor, node: tree_sitter::Node, segments: &mut Vec<String>) {
+    collect_spine_at_depth(extractor, node, segments, 0);
 }
 
-fn collect_identifiers_at_depth(
+fn collect_spine_at_depth(
     extractor: &VbNetExtractor,
     node: tree_sitter::Node,
-    identifiers: &mut Vec<String>,
+    segments: &mut Vec<String>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
+        segments.clear();
         return;
     }
-
-    if node.kind() == "identifier" {
-        identifiers.push(extractor.get_base().get_node_text(&node));
-        return;
-    }
-
-    let Some(child_depth) = child_tree_depth(depth) else {
-        return;
-    };
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        collect_identifiers_at_depth(extractor, child, identifiers, child_depth);
+    match node.kind() {
+        "identifier" => segments.push(extractor.get_base().get_node_text(&node)),
+        "me_expression" => {}
+        "member_access" | "null_conditional_member_access" | "implicit_member_access" => {
+            if let Some(object) = node.child_by_field_name("object")
+                && let Some(child_depth) = child_tree_depth(depth)
+            {
+                collect_spine_at_depth(extractor, object, segments, child_depth);
+            }
+            match node.child_by_field_name("member") {
+                Some(member) => segments.push(extractor.get_base().get_node_text(&member)),
+                None => segments.clear(),
+            }
+        }
+        _ => segments.clear(),
     }
 }
 

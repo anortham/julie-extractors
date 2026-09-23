@@ -131,9 +131,10 @@ End Class
         let symbols = extractor.extract_symbols(&tree);
         let relationships = extractor.extract_relationships(&tree, &symbols);
 
+        let resource = symbols.iter().find(|s| s.name == "Resource").unwrap();
         let impl_rels: Vec<_> = relationships
             .iter()
-            .filter(|r| r.kind == RelationshipKind::Implements)
+            .filter(|r| r.kind == RelationshipKind::Implements && r.from_symbol_id == resource.id)
             .collect();
         assert_eq!(
             impl_rels.len(),
@@ -141,8 +142,14 @@ End Class
             "Should have 2 Implements relationships, got {}",
             impl_rels.len()
         );
-
-        let resource = symbols.iter().find(|s| s.name == "Resource").unwrap();
+        let member_impls = relationships
+            .iter()
+            .filter(|r| r.kind == RelationshipKind::Implements && r.from_symbol_id != resource.id)
+            .count();
+        assert_eq!(
+            member_impls, 2,
+            "Dispose and Clone implement interface members"
+        );
         for r in &impl_rels {
             assert_eq!(r.from_symbol_id, resource.id);
         }

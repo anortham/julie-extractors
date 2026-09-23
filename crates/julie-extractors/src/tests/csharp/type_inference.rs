@@ -93,12 +93,12 @@ namespace MyProject
             .iter()
             .find(|symbol| symbol.name == "GetUsersAsync")
             .unwrap();
-        assert_eq!(types.get(&get_users.id).unwrap(), "Task<List<User>>");
+        assert_eq!(types.get(&get_users.id).unwrap(), "Task");
 
         let process_data = symbols
             .iter()
             .find(|symbol| symbol.name == "ProcessData")
             .unwrap();
-        assert_eq!(types.get(&process_data.id).unwrap(), "void");
+        assert_eq!(types.get(&process_data.id), None);
     }
 }

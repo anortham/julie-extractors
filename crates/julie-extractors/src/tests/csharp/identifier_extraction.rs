@@ -724,7 +724,10 @@ public class OrderService : ServiceBase
             pending("Restore").receiver_type.as_deref(),
             Some("ServiceBase")
         );
-        assert_eq!(pending("Log").receiver_type, None);
+        assert_eq!(
+            pending("Log").receiver_type.as_deref(),
+            Some("OrderService")
+        );
     }
 
     #[test]

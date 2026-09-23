@@ -11,7 +11,9 @@ use tree_sitter::Node;
 /// head is the infix expression, so the callee is the infix's right operand.
 pub(super) fn call_callee<'a>(node: Node<'a>, source: &str) -> Option<Node<'a>> {
     match node.kind() {
-        "application_expression" if !is_nested_application(node) => {
+        "application_expression"
+            if !is_nested_application(node) && !is_index_access(node, source) =>
+        {
             callee_of_head(first_named_child(node)?)
         }
         "infix_expression" => pipe_function(node, source),
@@ -41,6 +43,54 @@ pub(super) fn callee_type_arguments(callee: Node) -> Option<Node> {
     parent
         .named_children(&mut cursor)
         .find(|child| child.kind() == "types")
+}
+
+/// The name of the function applied to `argument` (`GetAsync` for
+/// `client.GetAsync("u")`, `route` for `GET >=> route "/p"`) and the
+/// argument's tuple position, or `None` when `argument` is not an argument.
+pub(super) fn argument_carrier(argument: Node, source: &str) -> Option<(String, u32)> {
+    let mut current = argument;
+    let mut position = None;
+    loop {
+        let parent = current.parent()?;
+        match parent.kind() {
+            "paren_expression" => {}
+            "tuple_expression" if position.is_none() => {
+                let mut cursor = parent.walk();
+                position = parent
+                    .named_children(&mut cursor)
+                    .position(|child| child.id() == current.id());
+            }
+            "application_expression" => {
+                let head = first_named_child(parent)?;
+                if head.id() == current.id() || is_index_access(parent, source) {
+                    return None;
+                }
+                let callee = callee_of_head(head)?;
+                let text = source.get(callee.start_byte()..callee.end_byte())?;
+                let name = text.rsplit('.').next()?.trim();
+                let name = name.split('<').next()?.trim();
+                return (!name.is_empty())
+                    .then(|| (name.to_string(), position.unwrap_or(0) as u32));
+            }
+            _ => return None,
+        }
+        current = parent;
+    }
+}
+
+/// `xs[0]` and `xs[1..]` (no space before `[`) index or slice a value, and
+/// `struct (1, 2)` builds a struct tuple; neither is a call.
+fn is_index_access(node: Node, source: &str) -> bool {
+    let mut cursor = node.walk();
+    let mut children = node.named_children(&mut cursor);
+    let (Some(head), Some(argument)) = (children.next(), children.next()) else {
+        return false;
+    };
+    let is_keyword_struct = source.get(head.start_byte()..head.end_byte()) == Some("struct");
+    let is_adjacent_index = argument.start_byte() == head.end_byte()
+        && source.as_bytes().get(argument.start_byte()) == Some(&b'[');
+    is_keyword_struct || is_adjacent_index
 }
 
 fn callee_of_head(head: Node) -> Option<Node> {
@@ -150,11 +200,22 @@ impl<'a> Scope<'a> {
 
     // ponytail: linear scan per lookup; sort by start byte if large files get slow.
     pub(super) fn find(&self, node: Node) -> Option<&'a Symbol> {
+        self.find_matching(node, |_| true)
+    }
+
+    /// The enclosing declaration other than an import, so an `open` inside a
+    /// module belongs to the module; a top-level script `open` has none.
+    pub(super) fn find_excluding_imports(&self, node: Node) -> Option<&'a Symbol> {
+        self.find_matching(node, |symbol| symbol.kind != SymbolKind::Import)
+    }
+
+    fn find_matching(&self, node: Node, keep: impl Fn(&Symbol) -> bool) -> Option<&'a Symbol> {
         let start = node.start_byte() as u32;
         let end = node.end_byte() as u32;
         self.candidates
             .iter()
             .filter(|symbol| symbol.start_byte <= start && symbol.end_byte >= end)
+            .filter(|symbol| keep(symbol))
             .min_by_key(|symbol| symbol.end_byte - symbol.start_byte)
             .copied()
     }

@@ -1432,6 +1432,24 @@
   ],
   "relationships": [
     {
+      "from_key": "fixtures/extraction/csharp/basic/source.cs:Configure:68:4",
+      "to_key": "fixtures/extraction/csharp/basic/source.cs:Registry:62:0",
+      "kind": "instantiates",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "line_number": 72,
+      "span": {
+        "start_line": 72,
+        "start_column": 19,
+        "end_line": 72,
+        "end_column": 54,
+        "start_byte": 1443,
+        "end_byte": 1478
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
       "from_key": "fixtures/extraction/csharp/basic/source.cs:Run:17:4",
       "to_key": "fixtures/extraction/csharp/basic/source.cs:Helper:25:4",
       "kind": "calls",
@@ -1484,14 +1502,6 @@
       "file_path": "fixtures/extraction/csharp/basic/source.cs",
       "line_number": 71,
       "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/csharp/basic/source.cs:Configure:68:4",
-      "callee_name": "Registry",
-      "kind": "instantiates",
-      "file_path": "fixtures/extraction/csharp/basic/source.cs",
-      "line_number": 72,
-      "confidence": "0.900"
     },
     {
       "from_key": "fixtures/extraction/csharp/basic/source.cs:Scaled:81:4",
@@ -1561,32 +1571,6 @@
         "end_column": 53,
         "start_byte": 1391,
         "end_byte": 1422
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/csharp/basic/source.cs:Configure:68:4",
-        "callee_name": "Registry",
-        "kind": "instantiates",
-        "file_path": "fixtures/extraction/csharp/basic/source.cs",
-        "line_number": 72,
-        "confidence": "0.900"
-      },
-      "target": {
-        "display_name": "Registry",
-        "terminal_name": "Registry",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/csharp/basic/source.cs:Configure:68:4",
-      "span": {
-        "start_line": 72,
-        "start_column": 19,
-        "end_line": 72,
-        "end_column": 54,
-        "start_byte": 1443,
-        "end_byte": 1478
       }
     },
     {
@@ -1767,7 +1751,7 @@
       "end_column": 24,
       "start_byte": 2504,
       "end_byte": 2517,
-      "containing_key": "fixtures/extraction/csharp/basic/source.cs:WorkerIndex:102:0",
+      "containing_key": "fixtures/extraction/csharp/basic/source.cs:this[int i]:104:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1852,6 +1836,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/csharp/basic/source.cs:Obsolete:type_usage:25:5",
+      "name": "Obsolete",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 25,
+      "start_column": 5,
+      "end_line": 25,
+      "end_column": 13,
+      "start_byte": 397,
+      "end_byte": 405,
+      "containing_key": "fixtures/extraction/csharp/basic/source.cs:Helper:25:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/csharp/basic/source.cs:Reach:call:71:37",
       "name": "Reach",
       "kind": "call",
@@ -1916,6 +1916,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/csharp/basic/source.cs:Trace:type_usage:68:5",
+      "name": "Trace",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 68,
+      "start_column": 5,
+      "end_line": 68,
+      "end_column": 10,
+      "start_byte": 1305,
+      "end_byte": 1310,
+      "containing_key": "fixtures/extraction/csharp/basic/source.cs:Configure:68:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/csharp/basic/source.cs:Worker:type_usage:104:25",
       "name": "Worker",
       "kind": "type_usage",
@@ -1927,7 +1943,7 @@
       "end_column": 31,
       "start_byte": 2518,
       "end_byte": 2524,
-      "containing_key": "fixtures/extraction/csharp/basic/source.cs:WorkerIndex:102:0",
+      "containing_key": "fixtures/extraction/csharp/basic/source.cs:this[int i]:104:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2537,6 +2553,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:DefaultPrivateProperty:97:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 13,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 97,
+      "start_column": 31,
+      "end_line": 97,
+      "end_column": 44,
+      "start_byte": 2359,
+      "end_byte": 2372,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/csharp/basic/source.cs:Evaluate:36:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "csharp",
@@ -2581,6 +2619,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:ExplicitPrivateProperty:96:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 13,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 96,
+      "start_column": 40,
+      "end_line": 96,
+      "end_column": 53,
+      "start_byte": 2314,
+      "end_byte": 2327,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/csharp/basic/source.cs:Helper:25:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "csharp",
@@ -2603,6 +2663,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:Id:15:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 8,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 15,
+      "start_column": 18,
+      "end_line": 15,
+      "end_column": 26,
+      "start_byte": 172,
+      "end_byte": 180,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/csharp/basic/source.cs:InternalMethod:90:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "csharp",
@@ -2619,6 +2701,28 @@
       "end_column": 38,
       "start_byte": 2120,
       "end_byte": 2124,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:InternalProperty:91:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 13,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 91,
+      "start_column": 34,
+      "end_line": 91,
+      "end_column": 47,
+      "start_byte": 2160,
+      "end_byte": 2173,
       "metadata": {
         "metric_version": 1
       }
@@ -2751,6 +2855,28 @@
       "end_column": 5,
       "start_byte": 128,
       "end_byte": 152,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:this[int i]:104:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 104,
+      "start_column": 45,
+      "end_line": 104,
+      "end_column": 52,
+      "start_byte": 2538,
+      "end_byte": 2545,
       "metadata": {
         "metric_version": 1
       }

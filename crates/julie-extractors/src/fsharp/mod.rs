@@ -1,8 +1,10 @@
 mod calls;
 mod declarations;
+pub(crate) mod facts;
 mod identifiers;
 mod literals;
 mod parameters;
+pub(crate) mod preprocessor;
 mod relationships;
 
 mod test_detection;

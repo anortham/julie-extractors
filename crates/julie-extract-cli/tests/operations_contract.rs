@@ -604,14 +604,17 @@ public class OrderService : ServiceBase
         0,
         "calls without a self receiver must not carry receiver_type metadata"
     );
+    let bare_call_receiver_type: String = conn
+        .query_row(
+            "SELECT json_extract(metadata_json, '$.receiver_type') FROM pending_relationships \
+             WHERE target_terminal_name = 'Log'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
     assert_eq!(
-        scalar_i64(
-            &db,
-            "SELECT COUNT(*) FROM pending_relationships \
-             WHERE target_terminal_name = 'Log' AND metadata_json IS NOT NULL",
-        ),
-        0,
-        "pendings without a self receiver must keep metadata_json NULL"
+        bare_call_receiver_type, "OrderService",
+        "a pending bare call binds to the enclosing type first"
     );
 }
 

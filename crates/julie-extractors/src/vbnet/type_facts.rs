@@ -198,3 +198,16 @@ fn named_child_of_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
     node.children(&mut cursor)
         .find(|child| child.kind() == kind)
 }
+
+/// The ` As T` / ` As New T(...)` signature suffix for a declared type node.
+pub(super) fn as_clause_suffix(base: &BaseExtractor, type_node: Node) -> String {
+    let keyword = if type_node
+        .parent()
+        .is_some_and(|parent| parent.kind() == "new_expression")
+    {
+        " As New "
+    } else {
+        " As "
+    };
+    format!("{keyword}{}", base.get_node_text(&type_node))
+}

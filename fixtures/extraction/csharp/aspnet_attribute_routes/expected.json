@@ -574,7 +574,8 @@
         "end_column": 43,
         "start_byte": 634,
         "end_byte": 638
-      }
+      },
+      "receiver_type": "UsersController"
     },
     {
       "pending": {
@@ -600,7 +601,8 @@
         "end_column": 41,
         "start_byte": 269,
         "end_byte": 273
-      }
+      },
+      "receiver_type": "UsersController"
     },
     {
       "pending": {
@@ -626,7 +628,8 @@
         "end_column": 44,
         "start_byte": 210,
         "end_byte": 214
-      }
+      },
+      "receiver_type": "UsersController"
     },
     {
       "pending": {
@@ -678,7 +681,8 @@
         "end_column": 40,
         "start_byte": 811,
         "end_byte": 815
-      }
+      },
+      "receiver_type": "HealthController"
     },
     {
       "pending": {
@@ -704,7 +708,8 @@
         "end_column": 41,
         "start_byte": 403,
         "end_byte": 407
-      }
+      },
+      "receiver_type": "UsersController"
     },
     {
       "pending": {
@@ -730,7 +735,8 @@
         "end_column": 39,
         "start_byte": 337,
         "end_byte": 341
-      }
+      },
+      "receiver_type": "UsersController"
     },
     {
       "pending": {
@@ -756,7 +762,8 @@
         "end_column": 39,
         "start_byte": 550,
         "end_byte": 554
-      }
+      },
+      "receiver_type": "UsersController"
     },
     {
       "pending": {
@@ -782,7 +789,8 @@
         "end_column": 39,
         "start_byte": 875,
         "end_byte": 879
-      }
+      },
+      "receiver_type": "HealthController"
     },
     {
       "pending": {
@@ -829,6 +837,38 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:ApiController:type_usage:30:1",
+      "name": "ApiController",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 30,
+      "start_column": 1,
+      "end_line": 30,
+      "end_column": 14,
+      "start_byte": 711,
+      "end_byte": 724,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:HealthController:30:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:ApiController:type_usage:5:1",
+      "name": "ApiController",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 5,
+      "start_column": 1,
+      "end_line": 5,
+      "end_column": 14,
+      "start_byte": 57,
+      "end_byte": 70,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:UsersController:5:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:AspNetCore:type_usage:1:16",
       "name": "AspNetCore",
       "kind": "type_usage",
@@ -841,6 +881,102 @@
       "start_byte": 16,
       "end_byte": 26,
       "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Mvc:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:HttpGet:type_usage:15:5",
+      "name": "HttpGet",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 15,
+      "start_column": 5,
+      "end_line": 15,
+      "end_column": 12,
+      "start_byte": 281,
+      "end_byte": 288,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:List:15:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:HttpGet:type_usage:22:5",
+      "name": "HttpGet",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 22,
+      "start_column": 5,
+      "end_line": 22,
+      "end_column": 12,
+      "start_byte": 493,
+      "end_byte": 500,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:22:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:HttpGet:type_usage:25:5",
+      "name": "HttpGet",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 25,
+      "start_column": 5,
+      "end_line": 25,
+      "end_column": 12,
+      "start_byte": 562,
+      "end_byte": 569,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Computed:25:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:HttpGet:type_usage:35:5",
+      "name": "HttpGet",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 35,
+      "start_column": 5,
+      "end_line": 35,
+      "end_column": 12,
+      "start_byte": 823,
+      "end_byte": 830,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:35:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:HttpGet:type_usage:9:5",
+      "name": "HttpGet",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 9,
+      "start_column": 5,
+      "end_line": 9,
+      "end_column": 12,
+      "start_byte": 153,
+      "end_byte": 160,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Get:9:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:HttpPost:type_usage:12:5",
+      "name": "HttpPost",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 12,
+      "start_column": 5,
+      "end_line": 12,
+      "end_column": 13,
+      "start_byte": 222,
+      "end_byte": 230,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Create:12:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1145,6 +1281,38 @@
       "start_byte": 508,
       "end_byte": 512,
       "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:22:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Route:type_usage:18:5",
+      "name": "Route",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 18,
+      "start_column": 5,
+      "end_line": 18,
+      "end_column": 10,
+      "start_byte": 349,
+      "end_byte": 354,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Legacy:18:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Route:type_usage:6:1",
+      "name": "Route",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 6,
+      "start_column": 1,
+      "end_line": 6,
+      "end_column": 6,
+      "start_byte": 73,
+      "end_byte": 78,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:UsersController:5:0",
       "target_key": null,
       "confidence": "1.000"
     },

@@ -6,6 +6,7 @@
 use super::StructuralFactPatternSpec;
 
 mod core;
+mod dotnet;
 mod erlang;
 mod extra;
 mod jvm_native;
@@ -22,6 +23,7 @@ pub(super) fn specs() -> Vec<StructuralFactPatternSpec> {
         r::SPECS,
         extra::SPECS,
         qml::SPECS,
+        dotnet::SPECS,
     ]
     .concat()
 }

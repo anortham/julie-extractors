@@ -245,9 +245,11 @@
     "query_family": "frontend_interaction"
   },
   {
-    "description": "An ASP.NET Core attribute-routing fact ([Route]/[Http*] on controllers or actions).",
+    "description": "An ASP.NET attribute-routing fact ([Route]/[RoutePrefix]/[Http*] on controllers or actions).",
     "languages": [
-      "csharp"
+      "csharp",
+      "fsharp",
+      "vbnet"
     ],
     "metadata_keys": [
       {
@@ -305,7 +307,7 @@
         "value_type": "string_array"
       },
       {
-        "description": "HTTP method for Http* verb attributes; absent on plain [Route] facts.",
+        "description": "HTTP method for Http* verb attributes, one fact per AcceptVerbs verb; absent on plain [Route] facts.",
         "key": "verb",
         "presence": "optional",
         "value_type": "string"
@@ -321,10 +323,65 @@
     "query_family": "framework"
   },
   {
+    "description": "An ASP.NET conventional MVC route (MapControllerRoute/MapAreaControllerRoute/MapDefaultControllerRoute).",
+    "languages": [
+      "csharp",
+      "vbnet"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"conventional_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route pattern with {controller}/{action} tokens and defaults.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route name from the name argument (\"default\" for MapDefaultControllerRoute).",
+        "key": "route_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Area from MapAreaControllerRoute's areaName argument.",
+        "key": "area_name",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "aspnet.conventional_route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "An ASP.NET Core minimal-API endpoint route (MapGet/MapPost/…).",
     "languages": [
       "csharp",
-      "razor"
+      "fsharp",
+      "razor",
+      "vbnet"
     ],
     "metadata_keys": [
       {
@@ -410,6 +467,18 @@
         "key": "handler_name",
         "presence": "optional",
         "value_type": "string"
+      },
+      {
+        "description": "Verb-less endpoint map: \"signalr_hub\" (MapHub), \"any_verb\" (Map), or \"health_checks\" (MapHealthChecks); absent on verb maps.",
+        "key": "endpoint_kind",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Hub class named by the MapHub generic argument.",
+        "key": "hub_type",
+        "presence": "optional",
+        "value_type": "string"
       }
     ],
     "pattern_id": "aspnet.minimal_api.route.v1",
@@ -419,7 +488,8 @@
     "description": "An ASP.NET Core minimal-API `MapGroup` route group.",
     "languages": [
       "csharp",
-      "razor"
+      "razor",
+      "vbnet"
     ],
     "metadata_keys": [
       {
@@ -473,6 +543,18 @@
       {
         "description": "Variable the MapGroup result is assigned to, for linking child routes.",
         "key": "group_variable",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Effective prefix of the group this MapGroup is called on, when nested.",
+        "key": "parent_route_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Parent prefix joined with this group's prefix, when nested.",
+        "key": "effective_route_template",
         "presence": "optional",
         "value_type": "string"
       }
@@ -1762,6 +1844,138 @@
     "query_family": "framework"
   },
   {
+    "description": "An Entity Framework Core `DbSet<T>` property on a context class.",
+    "languages": [
+      "csharp"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Class that declares the DbSet property.",
+        "key": "context_type",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Name of the DbSet property.",
+        "key": "property_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Entity type argument of DbSet<T>.",
+        "key": "entity_type",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "efcore.db_set.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "An Entity Framework Core `IEntityTypeConfiguration<T>` class.",
+    "languages": [
+      "csharp"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Configuration class name.",
+        "key": "configuration_type",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Configured entity type argument.",
+        "key": "entity_type",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "efcore.entity_configuration.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "An Entity Framework Core entity-to-table mapping (ToTable(\"t\") or [Table(\"t\")]).",
+    "languages": [
+      "csharp"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Mapped entity type.",
+        "key": "entity_type",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Table name string literal.",
+        "key": "table_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Origin: \"model_builder_entity\" (Entity<T>().ToTable), \"entity_type_builder\" (EntityTypeBuilder<T> parameter), or \"table_attribute\".",
+        "key": "mapping_source",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "efcore.table_mapping.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "An Elixir `defmodule` definition.",
     "languages": [
       "elixir"
@@ -2517,6 +2731,46 @@
     "query_family": "framework"
   },
   {
+    "description": "An F# active pattern definition such as `(|Even|Odd|)`.",
+    "languages": [
+      "fsharp"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The banana-clip name as written.",
+        "key": "name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The case names in declaration order.",
+        "key": "cases",
+        "presence": "always",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Whether the pattern is partial (`(|Case|_|)`).",
+        "key": "partial",
+        "presence": "always",
+        "value_type": "bool"
+      }
+    ],
+    "pattern_id": "fsharp.active_pattern.v1",
+    "query_family": "pattern_matching"
+  },
+  {
     "description": "An F# attribute applied to a declaration.",
     "languages": [
       "fsharp"
@@ -2537,6 +2791,62 @@
     ],
     "pattern_id": "fsharp.attribute.v1",
     "query_family": "metadata"
+  },
+  {
+    "description": "An F# computation expression such as `task { }` or `seq { }`.",
+    "languages": [
+      "fsharp"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The builder expression before the braces (`task`, `async`, `seq`, `result`).",
+        "key": "builder",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "fsharp.computation_expression.v1",
+    "query_family": "computation_expression"
+  },
+  {
+    "description": "An F# code quotation (`<@ ... @>` or `<@@ ... @@>`).",
+    "languages": [
+      "fsharp"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"typed\" for `<@ @>`, \"untyped\" for `<@@ @@>`.",
+        "key": "quotation_kind",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "fsharp.quotation.v1",
+    "query_family": "metaprogramming"
   },
   {
     "description": "A GDScript `class_name` registration.",
@@ -2752,6 +3062,76 @@
       }
     ],
     "pattern_id": "gin.route.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Giraffe combinator route (`route`, `routef`, `routeStartsWith`, `subRoute` and their Ci forms).",
+    "languages": [
+      "fsharp"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"combinator_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The Giraffe routing function name.",
+        "key": "route_function",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw string-literal template passed to the routing function.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Joined prefixes of the enclosing `subRoute` calls.",
+        "key": "route_group_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The group prefix joined with the route template, when nested.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key; `routef` format specifiers normalize to `:argN` segments.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "HTTP method from an enclosing `GET >=>`-style verb handler; omitted when none.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "giraffe.route.v1",
     "query_family": "framework"
   },
   {
@@ -3498,7 +3878,9 @@
       "ruby",
       "elixir",
       "rust",
-      "bash"
+      "bash",
+      "vbnet",
+      "fsharp"
     ],
     "metadata_keys": [
       {
@@ -10604,8 +10986,20 @@
         "value_type": "string"
       },
       {
-        "description": "The .NET attribute name.",
+        "description": "Last segment of the attribute name.",
         "key": "attribute_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Dotted name as written, when qualified.",
+        "key": "qualified_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Written target: `Assembly` or `Module`.",
+        "key": "target",
         "presence": "optional",
         "value_type": "string"
       }

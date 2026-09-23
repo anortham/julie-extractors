@@ -1,5 +1,5 @@
 use super::FSharpExtractor;
-use super::calls::Scope;
+use super::calls::{Scope, argument_carrier};
 use crate::base::{BaseExtractor, NormalizedSpan};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
@@ -25,11 +25,15 @@ fn walk(extractor: &mut FSharpExtractor, node: Node, containing_symbols: &Scope<
             .map(|symbol| symbol.id.clone());
         let raw = extractor.base().get_node_text(&literal_node);
         let text = decode_literal_text(extractor.base(), &literal_node, &raw);
+        let (carrier, position) = match argument_carrier(node, extractor.base().content.as_str()) {
+            Some((carrier, position)) => (Some(carrier), position),
+            None => (None, 0),
+        };
         extractor.base().record_literal_at_span(
             NormalizedSpan::from_node(&literal_node),
             text,
-            None,
-            0,
+            carrier,
+            position,
             containing_symbol_id,
         );
     }
@@ -52,7 +56,21 @@ fn is_supported_literal(kind: &str) -> bool {
             | "bytearray"
             | "verbatim_bytearray"
             | "int"
+            | "xint"
+            | "int16"
+            | "int32"
+            | "int64"
+            | "uint16"
+            | "uint32"
+            | "uint64"
+            | "byte"
+            | "sbyte"
+            | "nativeint"
+            | "unativeint"
+            | "bignum"
             | "float"
+            | "ieee32"
+            | "ieee64"
             | "decimal"
             | "bool"
             | "unit"

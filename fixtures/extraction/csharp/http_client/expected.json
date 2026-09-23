@@ -756,6 +756,22 @@
       "confidence": "1.000"
     },
     {
+      "literal_text": "/api/users/1",
+      "kind": "other",
+      "carrier": "HttpRequestMessage",
+      "arg_position": 1,
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/http_client/source.cs",
+      "start_line": 10,
+      "start_column": 59,
+      "end_line": 10,
+      "end_column": 74,
+      "start_byte": 329,
+      "end_byte": 344,
+      "containing_key": "fixtures/extraction/csharp/http_client/source.cs:Load:6:4",
+      "confidence": "1.000"
+    },
+    {
       "literal_text": "https://api.example.com/items",
       "kind": "other",
       "carrier": "PostAsJsonAsync",

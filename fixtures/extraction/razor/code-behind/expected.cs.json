@@ -250,6 +250,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:CascadingParameter:type_usage:10:5",
+      "name": "CascadingParameter",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "start_line": 10,
+      "start_column": 5,
+      "end_line": 10,
+      "end_column": 23,
+      "start_byte": 185,
+      "end_byte": 203,
+      "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Theme:10:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Components:type_usage:1:27",
       "name": "Components",
       "kind": "type_usage",
@@ -278,6 +294,22 @@
       "start_byte": 57,
       "end_byte": 67,
       "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Sample.Components:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Inject:type_usage:7:5",
+      "name": "Inject",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "start_line": 7,
+      "start_column": 5,
+      "end_line": 7,
+      "end_column": 11,
+      "start_byte": 105,
+      "end_byte": 111,
+      "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Navigation:7:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -341,7 +373,7 @@
       "end_column": 28,
       "start_byte": 124,
       "end_byte": 141,
-      "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Widget:5:0",
+      "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Navigation:7:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -373,7 +405,7 @@
       "end_column": 23,
       "start_byte": 216,
       "end_byte": 228,
-      "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Widget:5:0",
+      "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Theme:10:4",
       "target_key": null,
       "confidence": "1.000"
     }
@@ -385,15 +417,6 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
-      "language": "csharp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Refresh:13:4",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
       "language": "csharp",
       "metadata": null
     },
@@ -458,6 +481,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Navigation:7:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "covered_lines": 1,
+      "covered_bytes": 13,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 8,
+      "start_column": 40,
+      "end_line": 8,
+      "end_column": 53,
+      "start_byte": 153,
+      "end_byte": 166,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Refresh:13:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "csharp",
@@ -474,6 +519,28 @@
       "end_column": 5,
       "start_byte": 292,
       "end_byte": 350,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Theme:10:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "covered_lines": 1,
+      "covered_bytes": 13,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 11,
+      "start_column": 30,
+      "end_line": 11,
+      "end_column": 43,
+      "start_byte": 235,
+      "end_byte": 248,
       "metadata": {
         "metric_version": 1
       }

@@ -60,8 +60,9 @@ loop variable spans its `Type name` header, not the whole loop.
 
 ## Test roles
 
-The extractor adopts three .NET test frameworks by name: NUnit, MSTest
-(`Microsoft.VisualStudio.TestTools.UnitTesting`), and xUnit.net. Attribute
+The extractor adopts these .NET test frameworks by name: NUnit, MSTest
+(`Microsoft.VisualStudio.TestTools.UnitTesting`), xUnit.net, TUnit,
+SpecFlow/Reqnroll hooks, and Machine.Specifications (MSpec). Attribute
 names are matched after normalization: the key is lower-cased, reduced to its
 rightmost type name, stripped of a trailing `Attribute`, and stripped of its
 argument list. `[NUnit.Framework.TestCaseAttribute(1)]` and `[TestCase(1)]`
@@ -70,10 +71,10 @@ therefore both produce the key `testcase`.
 | Role | Attribute keys |
 | --- | --- |
 | `test_case` | `test`, `testmethod`, `fact` |
-| `parameterized_test` | `theory`, `datatestmethod`, `testcase`, `testcasesource` |
-| `fixture_setup` | `setup`, `onetimesetup`, `testinitialize`, `classinitialize`, `assemblyinitialize` |
-| `fixture_teardown` | `teardown`, `onetimeteardown`, `testcleanup`, `classcleanup`, `assemblycleanup` |
-| `test_container` | `testfixture`, `testclass`, `collectiondefinition`, `setupfixture`, `testfixturesource` |
+| `parameterized_test` | `theory`, `datatestmethod`, `testcase`, `testcasesource`, `arguments`, `methoddatasource`, `classdatasource`, `matrixdatasource` |
+| `fixture_setup` | `setup`, `onetimesetup`, `testinitialize`, `classinitialize`, `assemblyinitialize`, `before`, `beforeevery`, `beforescenario`, `beforefeature`, `beforetestrun`, `beforestep`, `beforescenarioblock` |
+| `fixture_teardown` | `teardown`, `onetimeteardown`, `testcleanup`, `classcleanup`, `assemblycleanup`, `after`, `afterevery`, `afterscenario`, `afterfeature`, `aftertestrun`, `afterstep`, `afterscenarioblock` |
+| `test_container` | `testfixture`, `testclass`, `collectiondefinition`, `setupfixture`, `testfixturesource`, `binding` |
 
 A class or struct also becomes a `test_container` when it directly contains a
 method carrying any `test_case` or `parameterized_test` attribute. This is how
@@ -109,24 +110,88 @@ that control: it declares a constructor, `InitializeAsync`, `Dispose`, and
 The container pass accepts `SymbolKind::Class` and `SymbolKind::Struct`, so a
 `struct` or `record struct` test type is marked. The golden covers both.
 
+### MSpec contexts
+
+Machine.Specifications declares cases as delegate fields with no attribute:
+`It should_x = () => ...`. A class with an `It`, `Establish`, or `Because`
+field is a `test_container`. The lambda each field holds gets the role:
+`It` → `test_case`, `Establish` and `Because` → `fixture_setup`, and
+`Cleanup` → `fixture_teardown`. The field type comes from its declared type
+fact, so a field of any other delegate type stays unclassified.
+
 ### Recorded gaps
 
-Two named .NET test framework families are not adopted. Both are recorded as
-`open_gaps` on the csharp row in `fixtures/extraction/capabilities.json`:
+- `specflow.step_definition_role` (under `structural_facts`) — a
+  `[Given]`/`[When]`/`[Then]` step method is neither a test case nor a fixture
+  hook, and no `TestRole` value names a step definition. The `[Binding]` class
+  and its `Before*`/`After*` hooks are classified.
 
-- `specflow.step_binding_test_roles` — SpecFlow and Reqnroll put the executable
-  case in a `.feature` file and bind steps with `[Given]`/`[When]`/`[Then]`
-  inside a `[Binding]` class. Neither the binding class nor its step methods is
-  classified.
-- `mspec.delegate_field_test_cases` — Machine.Specifications declares cases as
-  delegate fields (`It should_do_x = () => ...`) inside a class with no
-  attribute. Test roles are written only for callable symbols, so an MSpec
-  context class and its fields stay unclassified.
+The gap sits under `structural_facts` because the `test_detection` coverage
+vocabulary is frozen to `test_case`, `test_container`, and `test_lifecycle`.
 
-They are recorded under `structural_facts` rather than `test_detection` because
-the `test_detection` coverage vocabulary is frozen to `test_case`,
-`test_container`, and `test_lifecycle`, and each of those three is already
-classified exactly once for csharp.
+## Declarations and scopes
+
+- A positional record parameter is a public `Property` of the record:
+  `{ get; init; }`, or `{ get; set; }` for a mutable `record struct`. A class
+  primary-constructor parameter stays a private parameter variable.
+- A `params T[] name` parameter is a parameter variable with a declared type
+  fact. The grammar flattens it into the parameter list.
+- A pattern designation (`is Order o`, `case Customer c`, `Invoice { } inv`)
+  is a local variable of the matched type.
+- An implicitly typed lambda parameter has no type fact. Its signature is the
+  name alone.
+- An `extension(T receiver)` block publishes the receiver as a parameter
+  variable. Each member gets metadata `extendedType` with the receiver type.
+- An `event` with `add`/`remove` accessors is an `Event` symbol with a body
+  span and a type fact.
+- A `using` import keeps its alias target and markers:
+  `global using static A.B`, `using Json = System.Text.Json.JsonSerializer`,
+  `using Pair = (int X, int Y)`.
+- An attribute with a target (`[return: NotNull]`) is an annotation whose
+  `carrier` is the target. Parameter attributes are annotations on the
+  parameter variable. Every attribute name is a `type_usage` identifier owned
+  by the decorated declaration.
+- Type facts come only from the syntax tree. Tuple, pointer, and `void`
+  types record no fact. Signatures show the written type (`int*`, `ref int`,
+  `Bits?`).
+- The innermost member owns a reference site: a property, indexer, or event
+  accessor body owns its calls, identifiers, and complexity metric.
+
+## Calls and instantiation
+
+- A bare call `M()` binds to the one method `M` of the enclosing type. When
+  it stays pending, `receiver_type` is the enclosing type name.
+- Target-typed `new(...)` instantiates the declared type of the local,
+  field, property, or return position it initializes.
+- `new T()` for a type parameter `T` records no instantiation.
+
+## Conditional compilation
+
+Before the parse, preprocessor directive lines are blanked to spaces, and so
+is every `#elif`/`#else` branch of each `#if` group. The `#if` branch stays.
+Byte offsets do not change. This keeps an `#if` inside an `else if` chain, a
+switch section, or a base list from breaking the parse. `#:` file-app
+directives are not blanked.
+
+## Framework facts
+
+- Attribute routes: a method-level `[Route("x")]` joins a template-less
+  `[HttpGet]`. `[AcceptVerbs("GET", "POST")]` gives one fact per verb.
+- Minimal APIs: nested `MapGroup` prefixes compose. `MapHub<T>`, `Map`, and
+  `MapHealthChecks` give `aspnet.minimal_api.route.v1` facts with
+  `endpoint_kind`. `MapGrpcService` and `MapFallbackToFile` have no route
+  template and give no fact.
+- `aspnet.conventional_route.v1`: `MapControllerRoute`,
+  `MapAreaControllerRoute`, and `MapDefaultControllerRoute`.
+- EF Core: `efcore.db_set.v1` for `DbSet<T>` properties,
+  `efcore.table_mapping.v1` for `Entity<T>().ToTable("t")`,
+  `EntityTypeBuilder<T>` parameter `ToTable`, and `[Table("t")]`, and
+  `efcore.entity_configuration.v1` for `IEntityTypeConfiguration<T>` classes.
+- SQL carriers include `FromSql`, `ExecuteSql*`, `SqlQuery*`, and the
+  ADO.NET `*Command` constructors.
+
+`fixtures/extraction/csharp/language_idioms` is the golden evidence for this
+section and the two before it.
 
 ## Grammar freshness
 

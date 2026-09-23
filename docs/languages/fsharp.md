@@ -17,38 +17,80 @@ The command runs the F# unit-test modules and the golden extraction test with
 - `fixtures/extraction/fsharp/basic` — modules, classes, records, unions,
   methods, properties, fields, annotations, calls, inheritance, types,
   literals, and complexity.
-- `fixtures/extraction/fsharp/script` — top-level `.fsx` values and functions.
+- `fixtures/extraction/fsharp/script` — top-level `.fsx` values and functions,
+  `#r` and `#load` directives, and `open` imports.
 - `fixtures/extraction/fsharp/signature` — `.fsi` namespaces, modules,
   signatures, record fields, and the signature parser.
 - `fixtures/extraction/fsharp/test_roles` — xUnit `Fact` and `Theory`
   functions, including a qualified attribute and an ordinary control.
 - `fixtures/extraction/fsharp/negative` — a bare value read, member access,
   and unresolved call control.
+- `fixtures/extraction/fsharp/declaration_forms` — constructors, auto
+  properties, `val` fields, operators, active patterns, interfaces, enums,
+  `[<Struct>]` and `[<Literal>]` kinds, type extensions, tuple bindings,
+  locals, chained calls, index access, and domain-native facts.
+- `fixtures/extraction/fsharp/web_routes` — ASP.NET attribute routes, minimal
+  API routes, Giraffe routes, and `HttpClient` requests.
 
 ## Recorded facts
 
-F# emits symbol rows for declarations: modules, namespaces, classes, structs,
-unions, union cases, methods, properties, fields, functions, variables, and
-the type declarations exposed by the grammar. Identifier rows are usage-only:
+F# emits symbol rows for declarations: modules, namespaces, classes,
+interfaces, structs, enums and enum members, unions, union cases, methods,
+constructors, properties, fields, functions, constants, variables, imports,
+and the type declarations exposed by the grammar. A type with only abstract
+members and no primary constructor, or with `[<Interface>]`, is an interface;
+`[<Struct>]` makes a struct; a `let` whose value is `function` or `fun` is a
+function; `[<Literal>]` makes a constant. Primary-constructor parameters,
+`new(...)` constructors, `member val` and `static member val` auto
+properties, abstract properties, `val` fields, operator members such as
+`(+)`, active patterns such as `(|Even|Odd|)`, and every name bound by a
+tuple or record pattern are symbols. Members of a type extension
+(`type Shape with ...`) belong to the extended type when it is in the file;
+otherwise they carry `extendedType` metadata that names it. Locals
+(`let`, `use`) belong to their enclosing function and are private. Identifier rows are usage-only:
 `call`, `member_access`, `type_usage`, and `variable_ref`. A declaration is
 never represented by an identifier kind.
 
 Relationships include exact local calls and inheritance, plus structured
-pending calls and imports when the grammar supplies a caller scope. Explicit
+pending calls and imports. `open A.B` is an import symbol named `B`;
+`#load "file.fsx"` and `#r "nuget: Package, 1.0"` are import symbols named by
+the file or package, with `directive`, `source`, and `version` metadata. Each
+import symbol is the caller of its pending `imports` row. A chained call keeps
+its receiver expression (`s.Trim()`), never a namespace path; `xs[0]`,
+`xs[1..]`, and `struct (1, 2)` are not calls. Explicit
 type annotations produce non-inferred type facts; scalar literal initializers
 produce inferred type facts. Generic type arguments are retained in
 `type_argument_usages` with nested argument positions.
-The F# extraction policy retains unclassified scalar literals as `other` rows;
-it does not assign URL, SQL, or route carriers without evidence.
+Member return types (`: string option`) and signature-file `val` types are
+declared type facts; untyped parameters get none. Suffixed numeric literals
+(`10L`, `3u`) infer their exact types. A literal that is a call argument
+carries the called function as its carrier and its tuple position. The F#
+policy uses the C# URL and SQL carrier lists and retains every other literal
+as `other`.
 
 Comments, `///` XML documentation comments, and F# string forms publish exact
 `source_regions` spans. Attribute nodes publish the registered
 `fsharp.attribute.v1` structural fact with `metadata` query-family metadata and
 the annotated declaration as `containing_symbol_id`. The attribute fact captures
 the grammar's `attribute` node span (the attribute name, excluding `[<` and
-`>]`). The annotated declaration must sit in the attribute's own scope; an
-attribute with no in-scope annotated target, such as `[<assembly: ...>]`, keeps
-its lexical container as `containing_symbol_id`.
+`>]`). The owner is the declaration that holds the attribute list, so a
+member attribute belongs to the member, not the type. An attribute with no
+owning declaration, such as `[<assembly: ...>]`, keeps its lexical container
+as `containing_symbol_id`.
+
+Domain-native facts: `fsharp.computation_expression.v1` names the builder of
+each computation expression (`task`, `async`, `seq`); `fsharp.active_pattern.v1`
+records each active pattern definition with its cases and a `partial` flag;
+`fsharp.quotation.v1` records each code quotation as `typed` or `untyped`.
+
+Web facts use the shared .NET patterns: `aspnet.attribute_route.v1` for
+`[<Route>]` and `[<Http*>]` on controllers and members,
+`aspnet.minimal_api.route.v1` for `app.MapGet(...)`, and
+`http.client_request.v1` for `HttpClient` calls with a literal URL. Giraffe
+routes (`route`, `routef`, `routeStartsWith`, `subRoute`, and the `Ci` forms)
+publish `giraffe.route.v1` with the verb from an enclosing `GET >=>` chain and
+the joined `subRoute` prefix; `routef` format specifiers normalize to
+`:argN` segments.
 
 F# tests use the .NET attribute contract shared with C#: xUnit `[<Fact>]`,
 NUnit `[<Test>]`, and MSTest `[<TestMethod>]` publish `test_case`;
@@ -80,12 +122,13 @@ or namespace header.
 ## Recorded gaps
 
 The capability row in `fixtures/extraction/capabilities.json` is the source of
-truth for F# gaps. It records the current limits with a reason, required
-closure, and planned follow-up for:
+truth for F# gaps. It records no open F# gaps at present.
 
-- top-level `.fsx` imports without an enclosing symbol;
-- F# domain-native facts beyond attributes, including computation expressions,
-  active patterns, and quotations.
+The pinned grammar cannot parse `static member val` or `default val`, and
+either form breaks the parse of every member after it. The extractor rewrites
+them to `member val` at the same byte length before the parse, so both
+publish auto-property symbols with exact spans. The signature of a
+`static member val` starts at `member`.
 
 The pinned Expecto evidence scan also shows the current boundary: its F# files
 produce symbols, relationships, identifiers, types, type-argument usages,

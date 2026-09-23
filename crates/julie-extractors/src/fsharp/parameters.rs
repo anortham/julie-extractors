@@ -95,8 +95,21 @@ fn pattern_roots(node: Node<'_>) -> Vec<Node<'_>> {
         }
         "member_defn" => {
             let mut cursor = node.walk();
-            let Some(definition) = node
-                .children(&mut cursor)
+            let children: Vec<Node> = node.children(&mut cursor).collect();
+            if let Some(constructor) = children
+                .iter()
+                .find(|child| child.kind() == "additional_constr_defn")
+            {
+                let mut constructor_cursor = constructor.walk();
+                return constructor
+                    .named_children(&mut constructor_cursor)
+                    .take_while(|child| {
+                        child.kind().ends_with("pattern") || child.kind() == "const"
+                    })
+                    .collect();
+            }
+            let Some(definition) = children
+                .iter()
                 .find(|child| child.kind() == "method_or_prop_defn")
             else {
                 return Vec::new();
@@ -106,13 +119,41 @@ fn pattern_roots(node: Node<'_>) -> Vec<Node<'_>> {
                 if definition.field_name_for_child(i as u32) == Some("args")
                     && let Some(child) = definition.child(i as u32)
                 {
-                    args.push(child);
+                    args.push(parameter_pattern_of_args(child));
                 }
             }
             args
         }
+        "anon_type_defn" => {
+            let mut cursor = node.walk();
+            node.children(&mut cursor)
+                .filter(|child| child.kind() == "primary_constr_args")
+                .collect()
+        }
         _ => Vec::new(),
     }
+}
+
+/// A top-level `typed_pattern` in member `args` annotates the return type
+/// (`member _.Find(id: int) : string option`); the parameters are its
+/// pattern.
+fn parameter_pattern_of_args(args: Node<'_>) -> Node<'_> {
+    if args.kind() == "typed_pattern"
+        && let Some((pattern, _)) = typed_pattern_parts(args)
+    {
+        return pattern;
+    }
+    args
+}
+
+/// The written return type of a member, from the `typed_pattern` that wraps
+/// its `args`.
+pub(super) fn member_return_type(definition: Node<'_>) -> Option<Node<'_>> {
+    let args = definition.child_by_field_name("args")?;
+    if args.kind() != "typed_pattern" {
+        return None;
+    }
+    typed_pattern_parts(args).map(|(_, type_node)| type_node)
 }
 
 fn collect_bindings<'a>(
@@ -155,6 +196,20 @@ fn collect_bindings<'a>(
                     depth,
                     out,
                 );
+            }
+        }
+        // `a: int, b: int` parses as `(a: int, b): int`, so the trailing
+        // annotation types only the last element of a tuple pattern.
+        "repeat_pattern" => {
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
+            let mut cursor = node.walk();
+            let children: Vec<Node> = node.named_children(&mut cursor).collect();
+            let last = children.len().saturating_sub(1);
+            for (index, child) in children.into_iter().enumerate() {
+                let inherited = (index == last).then_some(inherited_type).flatten();
+                collect_bindings(base, child, inherited, None, child_depth, out);
             }
         }
         _ => {

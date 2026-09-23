@@ -8,16 +8,19 @@ mod type_facts;
 mod type_inference;
 mod types;
 
+pub(crate) use helpers::{attribute_owner_declaration, constructor_parts};
+
 use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
     Symbol,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use tree_sitter::Tree;
 
 pub struct VbNetExtractor {
     pub(crate) base: BaseExtractor,
+    same_file_type_names: HashSet<String>,
 }
 
 impl VbNetExtractor {
@@ -29,7 +32,10 @@ impl VbNetExtractor {
     ) -> Self {
         let mut base = BaseExtractor::new(language, file_path, content, workspace_root);
         base.body_span_rule = Some(helpers::body_span);
-        Self { base }
+        Self {
+            base,
+            same_file_type_names: HashSet::new(),
+        }
     }
 
     pub fn get_pending_relationships(&self) -> Vec<PendingRelationship> {
@@ -64,6 +70,7 @@ impl VbNetExtractor {
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
         let root = tree.root_node();
+        self.same_file_type_names = locals::collect_type_names(&self.base, root);
         self.walk_tree(root, &mut symbols, None, 0);
         crate::test_detection::mark_dotnet_test_containers(&mut symbols);
         symbols
@@ -99,8 +106,12 @@ impl VbNetExtractor {
         }
 
         if node.kind() == "dim_statement" {
-            let dim_symbols =
-                locals::extract_dim_statement(&mut self.base, node, parent_id.clone(), symbols);
+            let dim_symbols = locals::extract_dim_statement(
+                &mut self.base,
+                node,
+                parent_id.clone(),
+                &self.same_file_type_names,
+            );
             symbols.extend(dim_symbols);
             let Some(child_depth) = child_tree_depth(depth) else {
                 return;
@@ -110,6 +121,19 @@ impl VbNetExtractor {
                 self.walk_tree(child, symbols, parent_id.clone(), child_depth);
             }
             return;
+        }
+
+        if matches!(
+            node.kind(),
+            "for_each_statement" | "for_statement" | "using_statement" | "catch_block"
+        ) && let Some(local) = locals::extract_block_local(
+            &mut self.base,
+            node,
+            parent_id.clone(),
+            symbols,
+            &self.same_file_type_names,
+        ) {
+            symbols.push(local);
         }
 
         if node.kind() == "const_declaration" {

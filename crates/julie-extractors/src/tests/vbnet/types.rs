@@ -24,10 +24,10 @@ End Class
             &workspace_root,
         );
         let symbols = extractor.extract_symbols(&tree);
-        let types = extractor.infer_types(&symbols);
+        let types = &extractor.base.type_info;
 
         let add_symbol = symbols.iter().find(|s| s.name == "Add").unwrap();
-        let inferred = types.get(&add_symbol.id);
+        let inferred = types.get(&add_symbol.id).map(|t| t.resolved_type.as_str());
         assert!(
             inferred.is_some(),
             "Should infer return type for Function Add"
@@ -54,10 +54,10 @@ End Class
             &workspace_root,
         );
         let symbols = extractor.extract_symbols(&tree);
-        let types = extractor.infer_types(&symbols);
+        let types = &extractor.base.type_info;
 
         let format_sym = symbols.iter().find(|s| s.name == "Format").unwrap();
-        let inferred = types.get(&format_sym.id);
+        let inferred = types.get(&format_sym.id).map(|t| t.resolved_type.as_str());
         assert!(inferred.is_some(), "Should infer return type for Format");
         assert_eq!(inferred.unwrap(), "String");
     }
@@ -187,10 +187,10 @@ End Class
             &workspace_root,
         );
         let symbols = extractor.extract_symbols(&tree);
-        let types = extractor.infer_types(&symbols);
+        let types = &extractor.base.type_info;
 
         let calc = symbols.iter().find(|s| s.name == "CalculateArea").unwrap();
-        let inferred = types.get(&calc.id);
+        let inferred = types.get(&calc.id).map(|t| t.resolved_type.as_str());
         assert!(
             inferred.is_some(),
             "Should infer Double return type for CalculateArea"
