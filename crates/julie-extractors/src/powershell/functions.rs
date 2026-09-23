@@ -13,8 +13,8 @@ use tree_sitter::Node;
 use super::documentation;
 use super::helpers::{
     extract_command_annotation_attributes, extract_function_name_from_param_block,
-    extract_parameter_annotation_attributes, extract_parameter_attributes, find_function_name_node,
-    find_nodes_by_type, find_parameter_name_node, has_attribute,
+    extract_parameter_annotation_attributes, find_function_name_node, has_attribute,
+    split_function_scope, variable_name,
 };
 use super::type_facts;
 
@@ -28,10 +28,9 @@ pub(super) fn extract_function(
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
     let name_node = find_function_name_node(node)?;
-    let name = base.get_node_text(&name_node);
-
-    // Check if it's an advanced function with [CmdletBinding()]
-    let _is_advanced = has_attribute(base, node, "CmdletBinding");
+    let raw_name = base.get_node_text(&name_node);
+    let (scope, name) = split_function_scope(&raw_name);
+    let name = name.to_string();
 
     let signature = extract_function_signature(base, node)?;
 
@@ -46,8 +45,13 @@ pub(super) fn extract_function(
         .map(|annotation| annotation.annotation_key.clone())
         .collect::<Vec<_>>();
 
-    // Test detection
     let mut metadata = HashMap::new();
+    if let Some(scope) = &scope {
+        metadata.insert(
+            "scope".to_string(),
+            serde_json::Value::String(scope.clone()),
+        );
+    }
     apply_callable_test_metadata(
         "powershell",
         &name,
@@ -58,13 +62,18 @@ pub(super) fn extract_function(
         &mut metadata,
     );
 
-    Some(base.create_symbol(
+    let visibility = if scope.as_deref() == Some("private") {
+        Visibility::Private
+    } else {
+        Visibility::Public
+    };
+    let symbol = base.create_symbol(
         &node,
         name,
         SymbolKind::Function,
         SymbolOptions {
             signature: Some(signature),
-            visibility: Some(Visibility::Public),
+            visibility: Some(visibility),
             parent_id: parent_id.map(|s| s.to_string()),
             metadata: if metadata.is_empty() {
                 None
@@ -74,7 +83,9 @@ pub(super) fn extract_function(
             doc_comment,
             annotations,
         },
-    ))
+    );
+    record_output_type(base, &symbol.id, node);
+    Some(symbol)
 }
 
 /// Extract advanced function symbols (from param_block nodes)
@@ -86,9 +97,6 @@ pub(super) fn extract_advanced_function(
     // For param_block nodes (advanced functions), extract function name from ERROR node content
     let function_name = extract_function_name_from_param_block(base, node, &FUNCTION_NAME_RE)?;
 
-    // Check for CmdletBinding attribute
-    let _has_cmdlet_binding = has_attribute(base, node, "CmdletBinding");
-
     let signature = extract_advanced_function_signature(base, node, &function_name);
 
     // Extract doc comment (PowerShell comment-based help)
@@ -98,7 +106,7 @@ pub(super) fn extract_advanced_function(
         "powershell",
     );
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
         function_name,
         SymbolKind::Function,
@@ -110,123 +118,164 @@ pub(super) fn extract_advanced_function(
             doc_comment,
             annotations,
         },
-    ))
+    );
+    record_output_type(base, &symbol.id, node);
+    Some(symbol)
 }
 
-/// Extract function parameters from a function node
+/// The parameter symbols a callable owns: the parameters of its own
+/// `param()` block or parameter list. Nested functions and script blocks own
+/// theirs, so their parameters never attach to the enclosing callable.
 pub(super) fn extract_function_parameters(
     base: &mut BaseExtractor,
-    func_node: Node,
-    parent_id: &str,
+    owner: Node,
+    parent_id: Option<&str>,
 ) -> Vec<Symbol> {
+    let owner_doc = documentation::extract_powershell_doc_comment(base, &owner);
     let mut parameters = Vec::new();
-
-    // Handle simple functions - look for param_block with parameter_definition
-    let param_blocks = find_nodes_by_type(func_node, "param_block");
-    for param_block in param_blocks {
-        let param_defs = find_nodes_by_type(param_block, "parameter_definition");
-
-        for param_def in param_defs {
-            if let Some(name_node) = find_parameter_name_node(param_def) {
-                let param_name = base.get_node_text(&name_node).replace("$", "");
-                let Some(signature) = extract_parameter_signature(base, param_def) else {
-                    continue;
-                };
-                let annotations = normalize_annotations(
-                    &extract_parameter_annotation_attributes(base, param_def),
-                    "powershell",
-                );
-
-                let param_symbol = base.create_symbol(
-                    &param_def,
-                    param_name,
-                    SymbolKind::Variable,
-                    SymbolOptions {
-                        signature: Some(signature),
-                        visibility: Some(Visibility::Public),
-                        parent_id: Some(parent_id.to_string()),
-                        metadata: Some(parameter_role_metadata()),
-                        doc_comment: None,
-                        annotations,
-                    },
-                );
-                type_facts::record_declared_type_literal(base, &param_symbol.id, param_def);
-                parameters.push(param_symbol);
-            }
-        }
-    }
-
-    // Handle advanced functions - look for parameter_list with script_parameter
-    let param_lists = find_nodes_by_type(func_node, "parameter_list");
-    for param_list in param_lists {
-        let script_params = find_nodes_by_type(param_list, "script_parameter");
-
-        for script_param in script_params {
-            // Find the direct child variable node (the parameter name), not any variable in the subtree
-            let mut cursor = script_param.walk();
-            let children: Vec<_> = script_param.children(&mut cursor).collect();
-            if let Some(variable_node) = children
-                .into_iter()
-                .find(|child| child.kind() == "variable")
-            {
-                let param_name = base.get_node_text(&variable_node).replace("$", "");
-                let Some(signature) = extract_script_parameter_signature(base, script_param) else {
-                    continue;
-                };
-                let annotations = normalize_annotations(
-                    &extract_parameter_annotation_attributes(base, script_param),
-                    "powershell",
-                );
-
-                let param_symbol = base.create_symbol(
-                    &script_param,
-                    param_name,
-                    SymbolKind::Variable,
-                    SymbolOptions {
-                        signature: Some(signature),
-                        visibility: Some(Visibility::Public),
-                        parent_id: Some(parent_id.to_string()),
-                        metadata: Some(parameter_role_metadata()),
-                        doc_comment: None,
-                        annotations,
-                    },
-                );
-
-                type_facts::record_declared_type_literal(base, &param_symbol.id, script_param);
-                parameters.push(param_symbol);
-            }
-        }
-    }
-
-    let method_params = find_nodes_by_type(func_node, "class_method_parameter");
-    for method_param in method_params {
-        let mut cursor = method_param.walk();
-        let Some(variable_node) = method_param
+    for parameter in own_parameter_nodes(owner) {
+        let mut cursor = parameter.walk();
+        let Some(variable_node) = parameter
             .children(&mut cursor)
             .find(|child| child.kind() == "variable")
         else {
             continue;
         };
-        let param_name = base.get_node_text(&variable_node).replace("$", "");
-        let signature = base.get_node_text(&method_param);
-        let param_symbol = base.create_symbol(
-            &method_param,
+        let param_name = variable_name(&base.get_node_text(&variable_node));
+        let signature = if parameter.kind() == "class_method_parameter" {
+            base.get_node_text(&parameter)
+        } else {
+            extract_script_parameter_signature(base, parameter, variable_node)
+        };
+        let annotations = normalize_annotations(
+            &extract_parameter_annotation_attributes(base, parameter),
+            "powershell",
+        );
+        let doc_comment =
+            documentation::extract_powershell_doc_comment(base, &parameter).or_else(|| {
+                owner_doc
+                    .as_deref()
+                    .and_then(|doc| documentation::parameter_help(doc, &param_name))
+            });
+
+        let mut param_symbol = base.create_symbol(
+            &parameter,
             param_name,
             SymbolKind::Variable,
             SymbolOptions {
                 signature: Some(signature),
                 visibility: Some(Visibility::Public),
-                parent_id: Some(parent_id.to_string()),
+                parent_id: parent_id.map(str::to_string),
                 metadata: Some(parameter_role_metadata()),
-                doc_comment: None,
-                annotations: Vec::new(),
+                doc_comment,
+                annotations,
             },
         );
-        type_facts::record_declared_type_literal(base, &param_symbol.id, method_param);
+        param_symbol.body_span = None;
+        param_symbol.body_hash = None;
+        type_facts::record_declared_type_literal(base, &param_symbol.id, parameter);
         parameters.push(param_symbol);
     }
-
     parameters
+}
+
+/// The `script_parameter` / `class_method_parameter` nodes that belong to
+/// `owner` itself.
+fn own_parameter_nodes(owner: Node) -> Vec<Node> {
+    let lists: Vec<Node> = match owner.kind() {
+        "function_statement" => direct_children(owner, "function_parameter_declaration")
+            .into_iter()
+            .chain(
+                direct_children(owner, "script_block")
+                    .into_iter()
+                    .flat_map(|block| direct_children(block, "param_block")),
+            )
+            .flat_map(|holder| direct_children(holder, "parameter_list"))
+            .collect(),
+        "param_block" => direct_children(owner, "parameter_list"),
+        "class_method_definition" => direct_children(owner, "class_method_parameter_list"),
+        "command" => block_arguments(owner)
+            .into_iter()
+            .flat_map(|block| {
+                let mut holders = direct_children(block, "param_block");
+                holders.extend(
+                    direct_children(block, "script_block")
+                        .into_iter()
+                        .flat_map(|inner| direct_children(inner, "param_block")),
+                );
+                holders
+            })
+            .flat_map(|holder| direct_children(holder, "parameter_list"))
+            .collect(),
+        _ => Vec::new(),
+    };
+    lists
+        .into_iter()
+        .flat_map(|list| {
+            let mut cursor = list.walk();
+            list.named_children(&mut cursor)
+                .filter(|child| {
+                    matches!(child.kind(), "script_parameter" | "class_method_parameter")
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect()
+}
+
+/// The script-block arguments of a command (`It 'x' { ... }`), unwrapped from
+/// their expression wrappers.
+pub(super) fn block_arguments(command: Node) -> Vec<Node> {
+    let Some(elements) = command.child_by_field_name("command_elements") else {
+        return Vec::new();
+    };
+    let mut cursor = elements.walk();
+    elements
+        .named_children(&mut cursor)
+        .filter_map(|element| {
+            let mut current = element;
+            while matches!(
+                current.kind(),
+                "array_literal_expression" | "unary_expression"
+            ) {
+                current = current.named_child(0)?;
+            }
+            (current.kind() == "script_block_expression").then_some(current)
+        })
+        .collect()
+}
+
+fn direct_children<'a>(node: Node<'a>, kind: &str) -> Vec<Node<'a>> {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .filter(|child| child.kind() == kind)
+        .collect()
+}
+
+/// Record the `[OutputType([T])]` a function declares as its return type.
+fn record_output_type(base: &mut BaseExtractor, symbol_id: &str, function: Node) {
+    let param_blocks: Vec<Node> = match function.kind() {
+        "function_statement" => direct_children(function, "script_block")
+            .into_iter()
+            .flat_map(|block| direct_children(block, "param_block"))
+            .collect(),
+        _ => vec![function],
+    };
+    for attribute in param_blocks
+        .into_iter()
+        .flat_map(|block| direct_children(block, "attribute_list"))
+        .flat_map(|list| direct_children(list, "attribute"))
+    {
+        let is_output_type = direct_children(attribute, "attribute_name")
+            .first()
+            .is_some_and(|name| base.get_node_text(name).eq_ignore_ascii_case("OutputType"));
+        if let (true, Some(arguments)) = (
+            is_output_type,
+            direct_children(attribute, "attribute_arguments").first(),
+        ) {
+            type_facts::record_declared_type_literal(base, symbol_id, *arguments);
+            return;
+        }
+    }
 }
 
 /// Extract function signature
@@ -264,47 +313,20 @@ fn extract_advanced_function_signature(
     signature
 }
 
-/// Extract parameter signature
-fn extract_parameter_signature(base: &BaseExtractor, node: Node) -> Option<String> {
-    let name = find_parameter_name_node(node).map(|n| base.get_node_text(&n))?;
-
-    let attributes = extract_parameter_attributes(base, node);
-    if !attributes.is_empty() {
-        Some(format!("{} {}", attributes, name))
+/// A `param()` parameter's signature: its `[Parameter(...)]` and type
+/// attributes, then its own variable.
+fn extract_script_parameter_signature(base: &BaseExtractor, node: Node, variable: Node) -> String {
+    let name = base.get_node_text(&variable);
+    let attributes: Vec<String> = direct_children(node, "attribute_list")
+        .into_iter()
+        .flat_map(|list| direct_children(list, "attribute"))
+        .map(|attribute| base.get_node_text(&attribute))
+        .filter(|text| text.contains("Parameter") || super::types::is_type_bracket(text))
+        .collect();
+    if attributes.is_empty() {
+        name
     } else {
-        Some(name)
-    }
-}
-
-/// Extract script parameter signature
-fn extract_script_parameter_signature(base: &BaseExtractor, node: Node) -> Option<String> {
-    // Extract variable name
-    let name = find_nodes_by_type(node, "variable")
-        .first()
-        .map(|n| base.get_node_text(n))?;
-
-    // Extract type and attributes from attribute_list
-    let attribute_list = find_nodes_by_type(node, "attribute_list");
-    if attribute_list.is_empty() {
-        return Some(name);
-    }
-
-    let mut attributes = Vec::new();
-    let attribute_nodes = find_nodes_by_type(attribute_list[0], "attribute");
-
-    for attr in attribute_nodes {
-        let attr_text = base.get_node_text(&attr);
-
-        // Collect Parameter attributes and type brackets (like [string], [switch])
-        if attr_text.contains("Parameter") || super::types::is_type_bracket(&attr_text) {
-            attributes.push(attr_text);
-        }
-    }
-
-    if !attributes.is_empty() {
-        Some(format!("{} {}", attributes.join(" "), name))
-    } else {
-        Some(name)
+        format!("{} {}", attributes.join(" "), name)
     }
 }
 

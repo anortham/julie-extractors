@@ -1,12 +1,15 @@
 //! PowerShell class, method, property, and enum extraction
 //! Handles OOP constructs in PowerShell 5.0+
 
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::base::{
+    BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations,
+};
+use std::collections::HashMap;
 use tree_sitter::Node;
 
 use super::documentation;
 use super::helpers::{
-    class_base_name_nodes, extract_enum_member_value, extract_property_type, find_class_name_node,
+    class_base_name_nodes, extract_enum_member_value, find_class_name_node,
     find_enum_member_name_node, find_enum_name_node, find_method_name_node,
     find_property_name_node, has_modifier,
 };
@@ -49,7 +52,7 @@ pub(super) fn extract_method(
 ) -> Option<Symbol> {
     let name_node = find_method_name_node(node)?;
     let name = base.get_node_text(&name_node);
-    let _is_static = has_modifier(base, node, "static");
+    let is_static = has_modifier(base, node, "static");
     let is_hidden = has_modifier(base, node, "hidden");
 
     let signature = extract_method_signature(base, node)?;
@@ -64,10 +67,9 @@ pub(super) fn extract_method(
         .map(|_| SymbolKind::Constructor)
         .unwrap_or(SymbolKind::Method);
 
-    // Extract doc comment (PowerShell comment-based help)
     let doc_comment = documentation::extract_powershell_doc_comment(base, &node);
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
         name,
         kind,
@@ -75,11 +77,37 @@ pub(super) fn extract_method(
             signature: Some(signature),
             visibility: Some(visibility),
             parent_id: parent_id.map(|s| s.to_string()),
-            metadata: None,
+            metadata: static_metadata(is_static),
             doc_comment,
-            annotations: Vec::new(),
+            annotations: member_annotations(base, node),
         },
-    ))
+    );
+    if let Some(return_type) = direct_child(node, "type_literal") {
+        type_facts::record_type_literal(base, &symbol.id, return_type, false);
+    }
+    Some(symbol)
+}
+
+fn static_metadata(is_static: bool) -> Option<HashMap<String, serde_json::Value>> {
+    is_static.then(|| HashMap::from([("isStatic".to_string(), serde_json::Value::Bool(true))]))
+}
+
+/// The attributes written on a class member (`[DscProperty(Key)]`,
+/// `[ValidateNotNullOrEmpty()]`), normalized like function attributes.
+fn member_annotations(base: &BaseExtractor, node: Node) -> Vec<crate::base::AnnotationMarker> {
+    let mut cursor = node.walk();
+    let attributes: Vec<String> = node
+        .children(&mut cursor)
+        .filter(|child| child.kind() == "attribute")
+        .map(|attribute| base.get_node_text(&attribute))
+        .collect();
+    normalize_annotations(&attributes, "powershell")
+}
+
+fn direct_child<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .find(|child| child.kind() == kind)
 }
 
 /// Extract property symbols from class properties
@@ -93,6 +121,7 @@ pub(super) fn extract_property(
     name = name.replace("$", ""); // Remove $ prefix
 
     let is_hidden = has_modifier(base, node, "hidden");
+    let is_static = has_modifier(base, node, "static");
     let signature = extract_property_signature(base, node)?;
     let visibility = if is_hidden {
         Visibility::Private
@@ -103,7 +132,7 @@ pub(super) fn extract_property(
     // Extract doc comment (PowerShell comment-based help)
     let doc_comment = documentation::extract_powershell_doc_comment(base, &node);
 
-    let symbol = base.create_symbol(
+    let mut symbol = base.create_symbol(
         &node,
         name,
         SymbolKind::Property,
@@ -111,12 +140,16 @@ pub(super) fn extract_property(
             signature: Some(signature),
             visibility: Some(visibility),
             parent_id: parent_id.map(|s| s.to_string()),
-            metadata: None,
+            metadata: static_metadata(is_static),
             doc_comment,
-            annotations: Vec::new(),
+            annotations: member_annotations(base, node),
         },
     );
-    type_facts::record_declared_type_literal(base, &symbol.id, node);
+    symbol.body_span = None;
+    symbol.body_hash = None;
+    if let Some(declared) = direct_child(node, "type_literal") {
+        type_facts::record_type_literal(base, &symbol.id, declared, false);
+    }
     Some(symbol)
 }
 
@@ -235,7 +268,7 @@ fn extract_method_signature(base: &BaseExtractor, node: Node) -> Option<String> 
 fn extract_property_signature(base: &BaseExtractor, node: Node) -> Option<String> {
     let name = find_property_name_node(node).map(|n| base.get_node_text(&n).replace("$", ""))?;
 
-    let property_type = extract_property_type(base, node);
+    let property_type = direct_child(node, "type_literal").map(|t| base.get_node_text(&t));
     let is_hidden = has_modifier(base, node, "hidden");
 
     let prefix = if is_hidden { "hidden " } else { "" };

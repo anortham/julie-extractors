@@ -5737,6 +5737,21 @@
           "name": "return_types",
           "source": "fixtures/extraction/powershell/return_types/source.ps1",
           "expected": "fixtures/extraction/powershell/return_types/expected.json"
+        },
+        {
+          "name": "script_features",
+          "source": "fixtures/extraction/powershell/script_features/source.ps1",
+          "expected": "fixtures/extraction/powershell/script_features/expected.json"
+        },
+        {
+          "name": "module",
+          "source": "fixtures/extraction/powershell/module/Tools.psm1",
+          "expected": "fixtures/extraction/powershell/module/expected.json"
+        },
+        {
+          "name": "manifest",
+          "source": "fixtures/extraction/powershell/manifest/Tools.psd1",
+          "expected": "fixtures/extraction/powershell/manifest/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5752,6 +5767,7 @@
           "supported": [
             "class",
             "constructor",
+            "export",
             "function",
             "import",
             "method",
@@ -5797,7 +5813,11 @@
             "powershell.cmdlet_binding_attribute.v1",
             "powershell.param_block.v1",
             "powershell.pipeline_expression.v1",
-            "powershell.class_definition.v1"
+            "powershell.class_definition.v1",
+            "http.client_request.v1",
+            "powershell.data_key.v1",
+            "powershell.dsc_resource.v1",
+            "powershell.module_manifest.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -5813,6 +5833,7 @@
         "annotations": {
           "supported": [
             "function",
+            "property",
             "variable"
           ],
           "not_applicable": [],

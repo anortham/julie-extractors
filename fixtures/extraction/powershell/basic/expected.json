@@ -281,6 +281,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/powershell/basic/source.ps1:Get-First:121:0",
+      "name": "Get-First",
+      "kind": "export",
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/basic/source.ps1",
+      "start_line": 121,
+      "start_column": 0,
+      "end_line": 121,
+      "end_column": 39,
+      "start_byte": 2196,
+      "end_byte": 2235,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Export-ModuleMember -function Get-First",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "export_kind": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/powershell/basic/source.ps1:Get-First:80:0",
       "name": "Get-First",
       "kind": "function",
@@ -507,15 +533,8 @@
       "end_column": 13,
       "start_byte": 887,
       "end_byte": 931,
-      "body_span": {
-        "start_line": 51,
-        "start_column": 18,
-        "end_line": 51,
-        "end_column": 20,
-        "start_byte": 897,
-        "end_byte": 899
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "[Parameter()] [string] $Name",
       "doc_comment": null,
       "visibility": "Public",
@@ -1033,30 +1052,6 @@
       "metadata": {
         "role": "parameter"
       },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/powershell/basic/source.ps1:function:121:0",
-      "name": "function",
-      "kind": "export",
-      "language": "powershell",
-      "file_path": "fixtures/extraction/powershell/basic/source.ps1",
-      "start_line": 121,
-      "start_column": 0,
-      "end_line": 121,
-      "end_column": 39,
-      "start_byte": 2196,
-      "end_byte": 2235,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "Export-ModuleMember -function Get-First",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {},
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -2933,6 +2928,17 @@
       }
     },
     {
+      "symbol_key": "fixtures/extraction/powershell/basic/source.ps1:Get-First:80:0",
+      "resolved_type": "Widget",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "powershell",
+      "metadata": {
+        "declared": "[Widget]"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/powershell/basic/source.ps1:Id:37:4",
       "resolved_type": "int",
       "generic_params": null,
@@ -2963,6 +2969,17 @@
       "language": "powershell",
       "metadata": {
         "declared": "[string]"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/powershell/basic/source.ps1:Run:43:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "powershell",
+      "metadata": {
+        "declared": "[int]"
       }
     },
     {
@@ -3007,6 +3024,17 @@
       "language": "powershell",
       "metadata": {
         "declared": "[Dictionary[string, List[int]]]"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/powershell/basic/source.ps1:cast:115:4",
+      "resolved_type": "Widget",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "powershell",
+      "metadata": {
+        "declared": "[Widget]"
       }
     },
     {
@@ -3103,15 +3131,6 @@
     {
       "symbol_key": "unresolved:MAX",
       "resolved_type": "int",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "powershell",
-      "metadata": null
-    },
-    {
-      "symbol_key": "unresolved:cast",
-      "resolved_type": "Widget",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -3818,19 +3837,35 @@
   ],
   "literals": [
     {
-      "literal_text": "disposed",
+      "literal_text": "Contoso.Helpers",
       "kind": "other",
-      "carrier": "Write-AuditLog",
-      "arg_position": 1,
+      "carrier": "Import-Module",
+      "arg_position": 0,
       "language": "powershell",
       "file_path": "fixtures/extraction/powershell/basic/source.ps1",
-      "start_line": 97,
-      "start_column": 32,
-      "end_line": 97,
-      "end_column": 42,
-      "start_byte": 1660,
-      "end_byte": 1670,
-      "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Dispose:95:4",
+      "start_line": 4,
+      "start_column": 14,
+      "end_line": 4,
+      "end_column": 29,
+      "start_byte": 112,
+      "end_byte": 127,
+      "containing_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "Widget",
+      "kind": "other",
+      "carrier": "New-Object",
+      "arg_position": 0,
+      "language": "powershell",
+      "file_path": "fixtures/extraction/powershell/basic/source.ps1",
+      "start_line": 71,
+      "start_column": 20,
+      "end_line": 71,
+      "end_column": 26,
+      "start_byte": 1197,
+      "end_byte": 1203,
+      "containing_key": "fixtures/extraction/powershell/basic/source.ps1:Use-Facts:68:0",
       "confidence": "1.000"
     }
   ],

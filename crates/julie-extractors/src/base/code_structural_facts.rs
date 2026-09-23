@@ -456,6 +456,24 @@ const POWERSHELL_PATTERNS: &[CodeStructuralPattern] = &[
         node_kinds: &["class_statement"],
         query_family: "types",
     },
+    CodeStructuralPattern {
+        pattern_id: "powershell.dsc_resource.v1",
+        capture_name: "dsc_resource",
+        node_kinds: &["command"],
+        query_family: "configuration",
+    },
+    CodeStructuralPattern {
+        pattern_id: "powershell.data_key.v1",
+        capture_name: "data_key",
+        node_kinds: &["hash_entry"],
+        query_family: "config_structure",
+    },
+    CodeStructuralPattern {
+        pattern_id: "powershell.module_manifest.v1",
+        capture_name: "module_manifest",
+        node_kinds: &["hash_literal_expression"],
+        query_family: "module",
+    },
 ];
 
 const GDSCRIPT_PATTERNS: &[CodeStructuralPattern] = &[
@@ -954,9 +972,16 @@ fn enrich_metadata(
             }
         }
         "powershell.pipeline_expression.v1" => {
-            if let Some(marker) = powershell_pipeline_marker(content, node) {
-                insert_string(metadata, "pipeline_marker", &marker);
-            }
+            insert_string(metadata, "pipeline_marker", "|");
+        }
+        "powershell.dsc_resource.v1" => {
+            crate::powershell::structural::dsc_resource_metadata(content, node, metadata);
+        }
+        "powershell.data_key.v1" => {
+            crate::powershell::structural::data_key_metadata(content, node, metadata);
+        }
+        "powershell.module_manifest.v1" => {
+            crate::powershell::structural::module_manifest_metadata(content, node, metadata);
         }
         "powershell.class_definition.v1" => {
             if let Some(name) = powershell_class_name(content, node) {
@@ -1241,9 +1266,18 @@ fn matches_pattern(
         }
         ("powershell", "powershell.param_block.v1") => true,
         ("powershell", "powershell.pipeline_expression.v1") => {
-            node_text(content, node).contains('|')
+            crate::powershell::structural::has_pipeline_operator(node)
         }
         ("powershell", "powershell.class_definition.v1") => true,
+        ("powershell", "powershell.dsc_resource.v1") => {
+            crate::powershell::structural::is_dsc_resource(content, node)
+        }
+        ("powershell", "powershell.data_key.v1") => {
+            crate::powershell::structural::is_data_key(file_path, node)
+        }
+        ("powershell", "powershell.module_manifest.v1") => {
+            crate::powershell::structural::is_module_manifest(file_path, content, node)
+        }
         ("gdscript", "gdscript.class_name.v1") => true,
         ("gdscript", "gdscript.extends_declaration.v1") => true,
         ("gdscript", "gdscript.signal_declaration.v1") => true,
@@ -1742,15 +1776,6 @@ fn powershell_attribute_name(content: &str, node: Node<'_>) -> Option<String> {
                     .map(str::to_string)
             })
         })
-}
-
-fn powershell_pipeline_marker(content: &str, node: Node<'_>) -> Option<String> {
-    let text = node_text(content, node);
-    if text.contains('|') {
-        Some("|".to_string())
-    } else {
-        None
-    }
 }
 
 fn powershell_class_name(content: &str, node: Node<'_>) -> Option<String> {

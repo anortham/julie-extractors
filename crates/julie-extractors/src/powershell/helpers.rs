@@ -146,6 +146,188 @@ pub(super) fn find_command_name_node<'a>(node: Node<'a>) -> Option<Node<'a>> {
         .find(|child| matches!(child.kind(), "command_name" | "identifier" | "cmdlet_name"))
 }
 
+/// The command a `command` node runs, as its name node and the name a caller
+/// resolves: `Get-Thing` and `& Get-Thing` run `Get-Thing`; `& ./x.ps1` and
+/// `& "$PSScriptRoot\x.ps1"` run the script file `x.ps1`. Dot-sourcing (an
+/// import) and dynamic targets (`& $exe`, `& { }`) run no named command.
+pub(super) fn invoked_command<'a>(
+    base: &BaseExtractor,
+    node: Node<'a>,
+) -> Option<(Node<'a>, String)> {
+    let target = node.child_by_field_name("command_name")?;
+    if is_property_statement(base, node) {
+        return None;
+    }
+    if target.kind() == "command_name" {
+        let name = base.get_node_text(&target);
+        return (!name.eq_ignore_ascii_case("using")).then_some((target, name));
+    }
+    if target.kind() != "command_name_expr" || !is_call_operator_invocation(base, node) {
+        return None;
+    }
+    let inner = target.named_child(0)?;
+    let text = match inner.kind() {
+        "path_command_name" | "command_name" => base.get_node_text(&inner),
+        "string_literal" => base
+            .get_node_text(&inner)
+            .trim_matches(['"', '\''])
+            .to_string(),
+        _ => return None,
+    };
+    let name = script_file_name(&text)?;
+    Some((inner, name))
+}
+
+/// `Key = value` inside a DSC resource or similar keyword block: the grammar
+/// reads it as a command named `Key`, but it assigns a property.
+fn is_property_statement(base: &BaseExtractor, node: Node) -> bool {
+    node.child_by_field_name("command_elements")
+        .and_then(|elements| {
+            let mut cursor = elements.walk();
+            elements
+                .named_children(&mut cursor)
+                .find(|child| child.kind() != "command_argument_sep")
+        })
+        .is_some_and(|first| first.kind() == "generic_token" && base.get_node_text(&first) == "=")
+}
+
+fn is_call_operator_invocation(base: &BaseExtractor, node: Node) -> bool {
+    invokation_operator(base, node).as_deref() == Some("&")
+}
+
+/// Whether a command dot-sources a script (`. ./common.ps1`).
+pub(super) fn is_dot_sourcing(base: &BaseExtractor, node: Node) -> bool {
+    invokation_operator(base, node).as_deref() == Some(".")
+}
+
+fn invokation_operator(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .find(|child| child.kind() == "command_invokation_operator")
+        .map(|operator| base.get_node_text(&operator))
+}
+
+/// The last path segment of a command path, or the whole name for a bare
+/// command. A segment that still holds an interpolation hole names nothing.
+pub(super) fn script_file_name(path: &str) -> Option<String> {
+    let name = path.rsplit(['/', '\\']).next()?.trim();
+    (!name.is_empty() && !name.contains('$') && !name.contains('(')).then(|| name.to_string())
+}
+
+/// The function name without a scope qualifier (`global:Get-Tool` is
+/// `Get-Tool`), and the qualifier in lowercase when one is present.
+pub(super) fn split_function_scope(raw: &str) -> (Option<String>, &str) {
+    match raw.split_once(':') {
+        Some((scope, name))
+            if ["global", "script", "local", "private"]
+                .iter()
+                .any(|known| scope.eq_ignore_ascii_case(known)) =>
+        {
+            (Some(scope.to_ascii_lowercase()), name)
+        }
+        _ => (None, raw),
+    }
+}
+
+/// A command's argument values, each with the lowercase name of the
+/// parameter it binds to (`-Name X` binds `X` to `name`). Positional values
+/// bind to `None`. A value list (`'a', 'b'`) is one argument.
+pub(super) fn command_arguments<'a>(
+    base: &BaseExtractor,
+    command: Node<'a>,
+) -> Vec<(Option<String>, Node<'a>)> {
+    let Some(elements) = command.child_by_field_name("command_elements") else {
+        return Vec::new();
+    };
+    let mut arguments: Vec<(Option<String>, Node<'a>)> = Vec::new();
+    let mut pending_parameter: Option<String> = None;
+    let mut cursor = elements.walk();
+    for element in elements.named_children(&mut cursor) {
+        match element.kind() {
+            "command_argument_sep" | "redirection" | "comment" => {}
+            "command_parameter" => {
+                let text = base.get_node_text(&element);
+                let name = text.trim_start_matches('-').trim_end_matches(':');
+                pending_parameter = Some(name.to_ascii_lowercase());
+            }
+            _ => {
+                let continues_list = base.get_node_text(&element).starts_with(',');
+                let parameter = match (continues_list, arguments.last()) {
+                    (true, Some((previous, _))) => previous.clone(),
+                    _ => pending_parameter.take(),
+                };
+                arguments.push((parameter, element));
+            }
+        }
+    }
+    arguments
+}
+
+/// The literal words of an argument value: bare tokens and the unquoted text
+/// of string literals, in source order. An interpolated string keeps its
+/// `$var` holes.
+pub(super) fn argument_words(base: &BaseExtractor, value: Node) -> Vec<String> {
+    let mut words = Vec::new();
+    collect_argument_words(base, value, &mut words, 0);
+    words
+}
+
+fn collect_argument_words(base: &BaseExtractor, node: Node, words: &mut Vec<String>, depth: u32) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    match node.kind() {
+        "generic_token" | "command_name" | "path_command_name" => {
+            words.extend(
+                base.get_node_text(&node)
+                    .split(',')
+                    .map(str::trim)
+                    .filter(|word| !word.is_empty())
+                    .map(str::to_string),
+            );
+            return;
+        }
+        "string_literal" => {
+            let text = base.get_node_text(&node);
+            let text = text.trim();
+            let text = text
+                .strip_prefix('@')
+                .and_then(|inner| inner.strip_suffix('@'))
+                .unwrap_or(text);
+            words.push(text.trim_matches(['"', '\'']).to_string());
+            return;
+        }
+        "variable" | "sub_expression" | "script_block_expression" | "hash_literal_expression" => {
+            return;
+        }
+        _ => {}
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        collect_argument_words(base, child, words, child_depth);
+    }
+}
+
+/// The module or script a path names: its last segment without a
+/// `.psm1`/`.psd1`/`.ps1`/`.dll` extension (`$PSScriptRoot\Helpers.psm1` is
+/// `Helpers`). A bare module name (`Az.Accounts`) is kept whole.
+pub(super) fn module_stem(path: &str) -> Option<String> {
+    let segment = path.rsplit(['/', '\\']).next()?.trim();
+    let lower = segment.to_ascii_lowercase();
+    let stem = [".psm1", ".psd1", ".ps1", ".dll"]
+        .iter()
+        .find_map(|extension| {
+            lower
+                .ends_with(extension)
+                .then(|| &segment[..segment.len() - extension.len()])
+        })
+        .unwrap_or(segment);
+    (!stem.is_empty() && !stem.contains(['$', '(', '*'])).then(|| stem.to_string())
+}
+
 /// Find the configuration name node from a configuration statement
 pub(super) fn find_configuration_name_node<'a>(node: Node<'a>) -> Option<Node<'a>> {
     let mut cursor = node.walk();
@@ -175,10 +357,14 @@ pub(super) fn has_attribute(base: &BaseExtractor, node: Node, attribute_name: &s
     node_text.contains(&format!("[{}", attribute_name))
 }
 
-/// Check if a node has a modifier (e.g., static, hidden)
+/// Whether a class member carries a modifier keyword (`static`, `hidden`) as
+/// one of its own `class_attribute` children. PowerShell keywords ignore case.
 pub(super) fn has_modifier(base: &BaseExtractor, node: Node, modifier: &str) -> bool {
-    let node_text = base.get_node_text(&node);
-    node_text.contains(modifier)
+    let mut cursor = node.walk();
+    node.children(&mut cursor).any(|child| {
+        child.kind() == "class_attribute"
+            && base.get_node_text(&child).eq_ignore_ascii_case(modifier)
+    })
 }
 
 /// Extract parameter attributes from a parameter definition

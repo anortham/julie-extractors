@@ -68,7 +68,8 @@ pub(super) fn extract_pester_test_call(
     // script `Context.Helper`), a single dotted token a node-kind guard cannot
     // catch (Mech B). Exact match never equates it to the dotless `Context`. Pester
     // cmdlets are dotless.
-    let category = classify_call_exact(&full_callee, &PESTER_VOCAB)?;
+    let full_callee = canonical_pester_keyword(&full_callee)?;
+    let category = classify_call_exact(full_callee, &PESTER_VOCAB)?;
 
     let name = match category {
         // Lifecycle hooks take no description string; use the callee name.
@@ -84,11 +85,23 @@ pub(super) fn extract_pester_test_call(
     Some(build_test_call_symbol(
         base,
         &node,
-        &full_callee,
+        full_callee,
         name,
         category,
         parent_id,
     ))
+}
+
+/// The vocabulary spelling of a Pester keyword. PowerShell command names
+/// ignore case, so `describe` and `DESCRIBE` both run `Describe`.
+fn canonical_pester_keyword(callee: &str) -> Option<&'static str> {
+    PESTER_VOCAB
+        .test
+        .iter()
+        .chain(PESTER_VOCAB.container)
+        .chain(PESTER_VOCAB.lifecycle)
+        .find(|keyword| keyword.eq_ignore_ascii_case(callee))
+        .copied()
 }
 
 /// Walk the `command_elements` node's children, skip `command_argument_sep`

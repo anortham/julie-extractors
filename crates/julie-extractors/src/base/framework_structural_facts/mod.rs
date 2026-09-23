@@ -329,6 +329,7 @@ pub fn collect_framework_structural_facts(
             rust_facts
         }
         "vue" => collect_vue_template_htmx_attributes(language, tree, file_path, content),
+        "powershell" => collect_backend_http_client_requests(language, tree, file_path, content),
         _ => Vec::new(),
     };
 
@@ -367,6 +368,7 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
         "php" => LARAVEL_PATTERN_IDS,
         "elixir" => ELIXIR_PATTERN_IDS,
         "rust" => RUST_PATTERN_IDS,
+        "powershell" => &[HTTP_CLIENT_REQUEST_PATTERN_ID],
         "vue" => COMPONENT_MARKUP_FRAMEWORK_PATTERN_IDS,
         _ => &[],
     }

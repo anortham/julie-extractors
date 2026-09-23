@@ -20,7 +20,9 @@ pub mod functions;
 pub mod helpers;
 pub mod identifiers;
 pub mod imports;
+pub mod manifest;
 pub mod relationships;
+pub mod structural;
 pub mod test_calls;
 pub mod type_facts;
 pub mod types;
@@ -33,6 +35,15 @@ use crate::base::{
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashSet;
 use tree_sitter::Tree;
+
+fn is_parameter(symbol: &Symbol) -> bool {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get("role"))
+        .and_then(|role| role.as_str())
+        == Some("parameter")
+}
 
 /// PowerShell language extractor that handles PowerShell-specific constructs for Windows/Azure DevOps
 pub struct PowerShellExtractor {
@@ -59,6 +70,13 @@ impl PowerShellExtractor {
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
         self.walk_tree_for_symbols(tree.root_node(), &mut symbols, None, 0);
+        if manifest::is_data_file_path(&self.base.file_path) {
+            symbols.extend(manifest::extract_manifest_symbols(
+                &mut self.base,
+                tree.root_node(),
+            ));
+        }
+        imports::narrow_to_exported_functions(&self.base.file_path, &mut symbols);
         symbols
     }
 
@@ -74,6 +92,27 @@ impl PowerShellExtractor {
             return;
         }
 
+        let current_parent_id = self.record_node_symbols(node, symbols, parent_id);
+
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            self.walk_tree_for_symbols(child, symbols, current_parent_id.clone(), child_depth);
+        }
+    }
+
+    /// Push the symbols `node` declares and return the parent for its
+    /// children. Kept out of the recursive walker so the walker's frame holds
+    /// no `Symbol` while it recurses to the depth budget.
+    #[inline(never)]
+    fn record_node_symbols(
+        &mut self,
+        node: tree_sitter::Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<String>,
+    ) -> Option<String> {
         let mut current_parent_id = parent_id;
 
         let variable_key = (node.kind() == "assignment_expression")
@@ -84,39 +123,84 @@ impl PowerShellExtractor {
             .as_ref()
             .is_some_and(|key| self.declared_variables.contains(key));
 
-        if !reassigns_declared_variable
-            && let Some(symbol) = self.extract_symbol_from_node(node, current_parent_id.as_deref())
-        {
-            if matches!(
-                symbol.kind,
-                crate::base::SymbolKind::Function
-                    | crate::base::SymbolKind::Method
-                    | crate::base::SymbolKind::Constructor
-            ) {
-                let parameters =
-                    functions::extract_function_parameters(&mut self.base, node, &symbol.id);
-                for parameter in &parameters {
-                    self.declared_variables.insert((
-                        Some(symbol.id.clone()),
-                        helpers::variable_key(&parameter.name),
-                    ));
+        if !reassigns_declared_variable {
+            for symbol in self.extract_symbols_from_node(node, current_parent_id.as_deref()) {
+                if matches!(
+                    symbol.kind,
+                    crate::base::SymbolKind::Function
+                        | crate::base::SymbolKind::Method
+                        | crate::base::SymbolKind::Constructor
+                ) {
+                    let parameters = functions::extract_function_parameters(
+                        &mut self.base,
+                        node,
+                        Some(&symbol.id),
+                    );
+                    self.declare_parameters(&parameters);
+                    symbols.extend(parameters);
                 }
-                symbols.extend(parameters);
+                if is_parameter(&symbol) {
+                    self.declare_parameters(std::slice::from_ref(&symbol));
+                } else {
+                    current_parent_id = Some(symbol.id.clone());
+                }
+                if let Some(key) = variable_key.clone() {
+                    self.declared_variables.insert(key);
+                }
+                symbols.push(symbol);
             }
-            if let Some(key) = variable_key {
-                self.declared_variables.insert(key);
-            }
-
-            current_parent_id = Some(symbol.id.clone());
-            symbols.push(symbol);
         }
+        current_parent_id
+    }
 
-        let Some(child_depth) = child_tree_depth(depth) else {
-            return;
-        };
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            self.walk_tree_for_symbols(child, symbols, current_parent_id.clone(), child_depth);
+    fn declare_parameters(&mut self, parameters: &[Symbol]) {
+        for parameter in parameters {
+            self.declared_variables.insert((
+                parameter.parent_id.clone(),
+                helpers::variable_key(&parameter.name),
+            ));
+        }
+    }
+
+    /// Extract the symbols a single node declares, based on its kind.
+    fn extract_symbols_from_node(
+        &mut self,
+        node: tree_sitter::Node,
+        parent_id: Option<&str>,
+    ) -> Vec<Symbol> {
+        match node.kind() {
+            "param_block" => {
+                match functions::extract_advanced_function(&mut self.base, node, parent_id) {
+                    Some(function) => vec![function],
+                    None if node
+                        .parent()
+                        .is_some_and(|parent| parent.kind() == "program") =>
+                    {
+                        functions::extract_function_parameters(&mut self.base, node, parent_id)
+                    }
+                    None => Vec::new(),
+                }
+            }
+            "comment" => imports::extract_requires_modules(&mut self.base, node, parent_id),
+            "command" => {
+                let command_name = node
+                    .child_by_field_name("command_name")
+                    .filter(|name| name.kind() == "command_name")
+                    .map(|name| self.base.get_node_text(&name));
+                match command_name {
+                    Some(name) if imports::is_module_command(&name) => {
+                        imports::extract_import_command(&mut self.base, node, &name, parent_id)
+                    }
+                    _ => self
+                        .extract_symbol_from_node(node, parent_id)
+                        .into_iter()
+                        .collect(),
+                }
+            }
+            _ => self
+                .extract_symbol_from_node(node, parent_id)
+                .into_iter()
+                .collect(),
         }
     }
 
@@ -128,8 +212,6 @@ impl PowerShellExtractor {
     ) -> Option<Symbol> {
         match node.kind() {
             "function_statement" => functions::extract_function(&mut self.base, node, parent_id),
-            "param_block" => functions::extract_advanced_function(&mut self.base, node, parent_id),
-            "configuration" => self.extract_configuration(node, parent_id),
             "ERROR" => self.extract_error_node(node, parent_id),
             "assignment_expression" => variables::extract_variable(&mut self.base, node, parent_id),
             "class_statement" => classes::extract_class(&mut self.base, node, parent_id),
@@ -139,71 +221,23 @@ impl PowerShellExtractor {
             }
             "enum_statement" => classes::extract_enum(&mut self.base, node, parent_id),
             "enum_member" => classes::extract_enum_member(&mut self.base, node, parent_id),
-            "import_statement" | "using_statement" => {
-                imports::extract_import(&mut self.base, node, parent_id)
-            }
-            "command" | "command_expression" | "pipeline" => {
-                // Check for dot sourcing, DSC configuration, or regular commands
-                let node_text = self.base.get_node_text(&node);
-                if node_text.starts_with(".") {
+            "command" => {
+                if helpers::is_dot_sourcing(&self.base, node) {
                     imports::extract_dot_sourcing(&mut self.base, node, parent_id)
                 } else if helpers::find_command_name_node(node)
-                    .map(|cn| self.base.get_node_text(&cn) == "Configuration")
-                    .unwrap_or(false)
+                    .is_some_and(|cn| self.base.get_node_text(&cn) == "Configuration")
                 {
                     commands::extract_dsc_configuration(&mut self.base, node, parent_id)
-                } else if helpers::find_command_name_node(node)
-                    .map(|cn| {
-                        let name = self.base.get_node_text(&cn);
-                        matches!(
-                            name.as_str(),
-                            "Import-Module" | "Export-ModuleMember" | "using"
-                        )
-                    })
-                    .unwrap_or(false)
-                {
-                    if let Some(command_name_node) = helpers::find_command_name_node(node) {
-                        let cmd_name = self.base.get_node_text(&command_name_node);
-                        imports::extract_import_command(&mut self.base, node, &cmd_name, parent_id)
-                    } else {
-                        None
-                    }
                 } else if let Some(sym) =
                     test_calls::extract_pester_test_call(&mut self.base, node, parent_id)
                 {
-                    // Pester DSL call — materialize as a Function with test-role metadata.
                     Some(sym)
                 } else {
-                    commands::extract_command(&mut self.base, node, parent_id)
+                    commands::extract_build_task(&mut self.base, node, parent_id)
                 }
             }
             _ => None,
         }
-    }
-
-    /// Extract configuration statement
-    fn extract_configuration(
-        &mut self,
-        node: tree_sitter::Node,
-        parent_id: Option<&str>,
-    ) -> Option<Symbol> {
-        let name_node = helpers::find_configuration_name_node(node)?;
-        let name = self.base.get_node_text(&name_node);
-
-        let signature = format!("Configuration {}", name);
-        Some(self.base.create_symbol(
-            &node,
-            name,
-            crate::base::SymbolKind::Function, // DSC configurations are treated as functions for symbol purposes
-            crate::base::SymbolOptions {
-                signature: Some(signature),
-                visibility: Some(crate::base::Visibility::Public),
-                parent_id: parent_id.map(|s| s.to_string()),
-                metadata: None,
-                doc_comment: None,
-                annotations: Vec::new(),
-            },
-        ))
     }
 
     /// Extract configuration/function from ERROR nodes

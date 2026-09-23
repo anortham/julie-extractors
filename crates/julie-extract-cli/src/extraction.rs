@@ -758,9 +758,15 @@ fn map_identifiers(
 /// not a receiver.
 fn receiver_token_before(source: &str, at: usize, language: &str) -> Option<(String, usize)> {
     let arrow_is_member_access = matches!(language, "c" | "cpp" | "php");
+    // PowerShell reads `.` after whitespace as an argument (`dotnet restore .`),
+    // never as member access, so only an adjacent separator names a receiver.
+    let separator_may_follow_space = language != "powershell";
+    // In Razor `@` is the transition into code (`@Model.Count()`), not part of
+    // the receiver name.
+    let at_sign_is_identifier = language != "razor";
     let bytes = source.as_bytes();
     let mut cursor = at.min(bytes.len());
-    while cursor > 0 && bytes[cursor - 1].is_ascii_whitespace() {
+    while separator_may_follow_space && cursor > 0 && bytes[cursor - 1].is_ascii_whitespace() {
         cursor -= 1;
     }
     let separator_width = if cursor >= 2
@@ -780,7 +786,8 @@ fn receiver_token_before(source: &str, at: usize, language: &str) -> Option<(Str
     let end = cursor;
     while cursor > 0
         && (bytes[cursor - 1].is_ascii_alphanumeric()
-            || matches!(bytes[cursor - 1], b'_' | b'$' | b'@'))
+            || matches!(bytes[cursor - 1], b'_' | b'$')
+            || (at_sign_is_identifier && bytes[cursor - 1] == b'@'))
     {
         cursor -= 1;
     }
@@ -1450,6 +1457,43 @@ mod tests {
         ] {
             assert_eq!(receiver_before_identifier(source, start, "php"), None);
         }
+    }
+
+    #[test]
+    fn powershell_dot_argument_on_the_previous_line_is_not_a_receiver() {
+        let source = "dotnet restore .\n    Invoke-Compile -Configuration Release";
+        let start = source.find("Invoke-Compile").unwrap() as u32;
+        assert_eq!(
+            receiver_before_identifier(source, start, "powershell"),
+            None
+        );
+        let member = "$w.Run()";
+        let at = member.find("Run").unwrap() as u32;
+        assert_eq!(
+            receiver_before_identifier(member, at, "powershell"),
+            Some("$w".to_string())
+        );
+    }
+
+    #[test]
+    fn razor_transition_is_not_part_of_the_receiver() {
+        let source = "<td>@item.Price.ToString(\"C\")</td>";
+        let price = source.find("Price").unwrap() as u32;
+        assert_eq!(
+            receiver_before_identifier(source, price, "razor"),
+            Some("item".to_string())
+        );
+        let to_string = source.find("ToString").unwrap() as u32;
+        assert_eq!(
+            receiver_qualifier_before_identifier(source, to_string, "razor"),
+            Some("item".to_string())
+        );
+        let verbatim = "@class.Name";
+        let at = verbatim.find("Name").unwrap() as u32;
+        assert_eq!(
+            receiver_before_identifier(verbatim, at, "csharp"),
+            Some("@class".to_string())
+        );
     }
 
     #[test]

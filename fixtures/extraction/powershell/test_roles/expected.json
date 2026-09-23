@@ -400,46 +400,6 @@
       "node_kind": "pipeline",
       "language": "powershell",
       "file_path": "fixtures/extraction/powershell/test_roles/source.ps1",
-      "containing_key": "fixtures/extraction/powershell/test_roles/source.ps1:addition:6:4",
-      "start_line": 6,
-      "start_column": 4,
-      "end_line": 11,
-      "end_column": 5,
-      "start_byte": 77,
-      "end_byte": 211,
-      "confidence": "1.000",
-      "metadata": {
-        "pattern_version": 1,
-        "pipeline_marker": "|",
-        "query_family": "pipeline"
-      }
-    },
-    {
-      "pattern_id": "powershell.pipeline_expression.v1",
-      "capture_name": "pipeline_expression",
-      "node_kind": "pipeline",
-      "language": "powershell",
-      "file_path": "fixtures/extraction/powershell/test_roles/source.ps1",
-      "containing_key": "fixtures/extraction/powershell/test_roles/source.ps1:extracts a Pester test case:7:8",
-      "start_line": 7,
-      "start_column": 8,
-      "end_line": 10,
-      "end_column": 9,
-      "start_byte": 106,
-      "end_byte": 205,
-      "confidence": "1.000",
-      "metadata": {
-        "pattern_version": 1,
-        "pipeline_marker": "|",
-        "query_family": "pipeline"
-      }
-    },
-    {
-      "pattern_id": "powershell.pipeline_expression.v1",
-      "capture_name": "pipeline_expression",
-      "node_kind": "pipeline",
-      "language": "powershell",
-      "file_path": "fixtures/extraction/powershell/test_roles/source.ps1",
       "containing_key": "fixtures/extraction/powershell/test_roles/source.ps1:extracts a Pester test case:7:8",
       "start_line": 8,
       "start_column": 12,
@@ -447,26 +407,6 @@
       "end_column": 32,
       "start_byte": 153,
       "end_byte": 173,
-      "confidence": "1.000",
-      "metadata": {
-        "pattern_version": 1,
-        "pipeline_marker": "|",
-        "query_family": "pipeline"
-      }
-    },
-    {
-      "pattern_id": "powershell.pipeline_expression.v1",
-      "capture_name": "pipeline_expression",
-      "node_kind": "pipeline",
-      "language": "powershell",
-      "file_path": "fixtures/extraction/powershell/test_roles/source.ps1",
-      "containing_key": "fixtures/extraction/powershell/test_roles/source.ps1:powershell roles:1:0",
-      "start_line": 1,
-      "start_column": 0,
-      "end_line": 12,
-      "end_column": 1,
-      "start_byte": 0,
-      "end_byte": 213,
       "confidence": "1.000",
       "metadata": {
         "pattern_version": 1,

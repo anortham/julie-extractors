@@ -3335,7 +3335,8 @@
       "php",
       "ruby",
       "elixir",
-      "rust"
+      "rust",
+      "powershell"
     ],
     "metadata_keys": [
       {
@@ -3357,7 +3358,7 @@
         "value_type": "string"
       },
       {
-        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, req, tesla, httpoison, finch, httpc).",
+        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, invoke-restmethod, invoke-webrequest, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, req, tesla, httpoison, finch, httpc).",
         "key": "client",
         "presence": "always",
         "value_type": "string"
@@ -5617,6 +5618,144 @@
     ],
     "pattern_id": "powershell.cmdlet_binding_attribute.v1",
     "query_family": "metadata"
+  },
+  {
+    "description": "A key of a PowerShell data file (`.psd1`) hashtable.",
+    "languages": [
+      "powershell"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The key name.",
+        "key": "key",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Full dotted key path including the enclosing hashtable keys.",
+        "key": "key_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Kind of the value: string, number, boolean, array, hashtable, scriptblock, or expression.",
+        "key": "value_kind",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "powershell.data_key.v1",
+    "query_family": "config_structure"
+  },
+  {
+    "description": "A DSC resource instance inside a `Configuration` block (`WindowsFeature IIS { ... }`).",
+    "languages": [
+      "powershell"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The DSC resource type (`WindowsFeature`).",
+        "key": "resource_type",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The resource instance name (`IIS`).",
+        "key": "resource_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The enclosing `Configuration` name.",
+        "key": "configuration_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The argument text of the enclosing `Node` block, when there is one.",
+        "key": "node_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The `DependsOn` references (`[WindowsFeature]IIS`), when present.",
+        "key": "depends_on",
+        "presence": "optional",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "powershell.dsc_resource.v1",
+    "query_family": "configuration"
+  },
+  {
+    "description": "A PowerShell module manifest (`.psd1` hashtable that sets `RootModule` or `ModuleVersion`).",
+    "languages": [
+      "powershell"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `RootModule` value.",
+        "key": "root_module",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The `ModuleVersion` value.",
+        "key": "module_version",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The `GUID` value.",
+        "key": "guid",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The minimum `PowerShellVersion` value.",
+        "key": "powershell_version",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "powershell.module_manifest.v1",
+    "query_family": "module"
   },
   {
     "description": "A PowerShell `param(...)` block.",
