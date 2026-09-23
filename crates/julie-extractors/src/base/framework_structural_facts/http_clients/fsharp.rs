@@ -167,15 +167,10 @@ fn client_request(
     Some((verb, first_string(argument, content)?))
 }
 
-fn first_string(node: Node<'_>, content: &str) -> Option<String> {
-    let node = match node.kind() {
-        "paren_expression" | "tuple_expression" => {
-            let mut cursor = node.walk();
-            let first = node.named_children(&mut cursor).next()?;
-            return first_string(first, content);
-        }
-        _ => node,
-    };
+fn first_string(mut node: Node<'_>, content: &str) -> Option<String> {
+    while matches!(node.kind(), "paren_expression" | "tuple_expression") {
+        node = node.named_child(0)?;
+    }
     if node.kind() != "const" {
         return None;
     }
