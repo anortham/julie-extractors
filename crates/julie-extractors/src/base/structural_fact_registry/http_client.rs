@@ -40,7 +40,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "client",
                 STR,
                 ALWAYS,
-                "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, req, tesla, httpoison, finch, httpc).",
+                "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, spring_restclient, openfeign, req, tesla, httpoison, finch, httpc).",
             ),
             key(
                 "target_path",

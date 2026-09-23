@@ -53,10 +53,18 @@ A class also becomes a `test_container` when it directly contains a method
 carrying any of those case or hook annotations. A class holding only hooks — a
 shared JUnit base class — counts, because a hook is test infrastructure.
 
-Two further container rules have no annotation on the class itself:
+An interface that declares test or hook methods (JUnit 5 `default` methods) is
+a `test_container` by the same rule.
+
+Further container rules:
 
 - A class whose `base_types` metadata contains `TestCase` is a JUnit 3
   container.
+- A class annotated with the JUnit Platform `@Suite` is a container. Each class
+  that `@SelectClasses` names gets a `references` edge from the suite: resolved
+  when the class is in the same file, structured pending otherwise.
+- A class that implements a same-file test interface is a container, because
+  JUnit runs the interface's `default` test methods on it.
 - Every class ancestor of a marked container is marked too, because JUnit runs
   an outer class whose only test content is a `@Nested` inner class.
 
@@ -97,26 +105,22 @@ enclosing class at all.
 
 ### Recorded gaps
 
-Two named Java test framework families are not adopted. Both are recorded as
-`open_gaps` on the java row in `fixtures/extraction/capabilities.json`:
+One named Java test framework family is not adopted. It is recorded as an
+`open_gaps` entry on the java row in `fixtures/extraction/capabilities.json`:
 
 - `cucumber.step_binding_test_roles` — Cucumber-JVM puts the executable
   scenario in a `.feature` file and binds steps with `@Given`/`@When`/`@Then`
   on methods of a glue class. Neither the glue class nor its step methods is
-  classified.
-- `junit_platform.suite_container_roles` — the JUnit Platform Suite engine
-  declares an aggregating suite with `@Suite` plus selectors such as
-  `@SelectClasses`. The class holds no test member of its own, so the container
-  pass never marks it and the selected classes are never linked to it.
+  classified. A step needs its own role value, and the frozen
+  `test_detection` vocabulary has none.
 
-They are recorded under `structural_facts` rather than `test_detection` because
+It is recorded under `structural_facts` rather than `test_detection` because
 the `test_detection` coverage vocabulary is frozen to `test_case`,
 `test_container`, and `test_lifecycle`, and each of those three is already
 classified exactly once for java.
 
-The `@Suite` gap is measurable. The JUnit 5 corpus below holds 47 classes
-carrying `@Suite`; only 2 of them are marked containers, and those 2 qualify
-through unrelated members.
+The JUnit Platform `@Suite` gap (`junit_platform.suite_container_roles`) is
+closed: see the container rules above.
 
 ## Relationships
 
@@ -138,6 +142,49 @@ constructor chaining. The caller is the innermost method or constructor. A
 call outside any callable belongs to the field, constant, or enum constant
 whose initializer holds it, and a call in an initializer block belongs to the
 class.
+
+## Declarations and types
+
+Beyond classes, interfaces, enums, records and their members, the extractor
+emits:
+
+- interface constants (`int MAX = 3;`) as `constant` symbols;
+- annotation-type elements (`String level() default "info";`) as `method`
+  symbols whose signature keeps the default value;
+- record compact constructors as `constructor` symbols, so their calls have a
+  caller;
+- switch type patterns (`case Circle c`) and record pattern components
+  (`case Rect(double w, double h)`) as typed `variable` symbols;
+- a `module-info.java` module as a `namespace` symbol, with one
+  `java.module_directive.v1` fact per `requires`, `exports`, `opens`, `uses`
+  and `provides` directive and a `type_usage` for each service and provider
+  type.
+
+Signatures and type facts read the stated `type` field, so qualified types
+(`java.time.Instant`) keep their text. Java records every stated type from the
+tree; no type is inferred from signature text, so `void` never becomes a type
+fact. Lower-case qualifier segments of a scoped type (`java`, `util`) and the
+`var` keyword are not type usages; an upper-case qualifier (`Map` in
+`Map.Entry`) is. Annotation usages are `type_usage` identifiers of the
+annotated symbol, and every annotated declaration kind, including interfaces,
+enums, records, annotation types and record components, carries its
+annotations. Bodies come only from the grammar's `body` field, so abstract
+methods, annotation elements and locals have no body span.
+
+## Frameworks
+
+- Spring MVC routes (`spring.request_mapping.v1`) are read from the tree.
+  Each type owns its class `@RequestMapping` prefix, fully qualified mapping
+  annotations count, and a bare `@GetMapping` under a prefix resolves to the
+  prefix with no trailing slash. `@FeignClient` interfaces emit no server
+  route.
+- JAX-RS / Jakarta REST resources emit `jaxrs.route.v1` facts for the class
+  `@Path`, resource methods and sub-resource locators.
+- Outbound calls emit `http.client_request.v1` for `java.net.http`, Spring
+  `RestTemplate`, `WebClient` and `RestClient` on a same-file declared
+  receiver, and OpenFeign `@FeignClient` mapping methods.
+- JPA query strings (`createQuery`, `createNativeQuery`) and Spring Data
+  `@Query` values are `sql` literals.
 
 ## Visibility
 

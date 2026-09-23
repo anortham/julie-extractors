@@ -48,6 +48,18 @@ const JAVA_PATTERNS: &[CodeStructuralPattern] = &[
         node_kinds: &["annotation"],
         query_family: "metadata",
     },
+    CodeStructuralPattern {
+        pattern_id: "java.module_directive.v1",
+        capture_name: "module_directive",
+        node_kinds: &[
+            "requires_module_directive",
+            "exports_module_directive",
+            "opens_module_directive",
+            "uses_module_directive",
+            "provides_module_directive",
+        ],
+        query_family: "modules",
+    },
 ];
 
 const KOTLIN_PATTERNS: &[CodeStructuralPattern] = &[
@@ -685,6 +697,7 @@ fn enrich_metadata(
                 insert_string(metadata, "annotation_name", &name);
             }
         }
+        "java.module_directive.v1" => java_module_directive_metadata(content, node, metadata),
         "erlang.module_attribute.v1" => {
             if let Some(module) = erlang_attribute_atom(content, node) {
                 insert_string(metadata, "module", &module);
@@ -990,6 +1003,54 @@ fn enrich_metadata(
             }
         }
         _ => {}
+    }
+}
+
+/// `requires`/`exports`/`opens`/`uses`/`provides` directive of a Java module:
+/// the directive keyword, its module, package or service target, the
+/// `transitive`/`static` modifiers, the `to` modules and the `with` providers.
+fn java_module_directive_metadata(
+    content: &str,
+    node: Node<'_>,
+    metadata: &mut HashMap<String, Value>,
+) {
+    let directive = node.kind().trim_end_matches("_module_directive");
+    insert_string(metadata, "directive", directive);
+    let target_field = match directive {
+        "requires" => "module",
+        "exports" | "opens" => "package",
+        "uses" => "type",
+        _ => "provided",
+    };
+    if let Some(target) = node.child_by_field_name(target_field) {
+        insert_string(metadata, "target", &node_text(content, target));
+    }
+    let texts = |field: &str| -> Vec<Value> {
+        let mut cursor = node.walk();
+        node.children_by_field_name(field, &mut cursor)
+            .map(|child| Value::String(node_text(content, child)))
+            .collect()
+    };
+    let modifiers = texts("modifiers");
+    if !modifiers.is_empty() {
+        metadata.insert("modifiers".to_string(), Value::Array(modifiers));
+    }
+    let to_modules = texts("modules");
+    if !to_modules.is_empty() {
+        metadata.insert("to_modules".to_string(), Value::Array(to_modules));
+    }
+    if directive == "provides" {
+        let provided = node.child_by_field_name("provided").map(|n| n.id());
+        let mut cursor = node.walk();
+        let providers: Vec<Value> = node
+            .named_children(&mut cursor)
+            .filter(|child| Some(child.id()) != provided)
+            .filter(|child| matches!(child.kind(), "identifier" | "scoped_identifier"))
+            .map(|child| Value::String(node_text(content, child)))
+            .collect();
+        if !providers.is_empty() {
+            metadata.insert("providers".to_string(), Value::Array(providers));
+        }
     }
 }
 

@@ -1,17 +1,44 @@
-use tree_sitter::Tree;
+//! Java Spring MVC annotation-controller route facts.
+//!
+//! The collector reads the tree: each type declaration owns its own class-level
+//! `@RequestMapping` prefix, and each mapping annotation in a method's
+//! `modifiers` produces one fact per template and verb. A nested type starts a
+//! new prefix scope, so a DTO nested in a controller cannot reset or leak the
+//! controller prefix. `@FeignClient` interfaces declare outbound calls, not
+//! server routes, so they emit nothing here (the HTTP client collector reads
+//! them).
+//!
+//! Static-literal silence: a route argument is used only when it is a plain
+//! string literal (or an array of them); a dynamic route argument emits nothing.
+//!
+//! Each fact spans its declaration after the `modifiers` node, which is where
+//! the Kotlin collector anchors its handler facts too.
+
+use tree_sitter::{Node, Tree};
 
 use super::SPRING_REQUEST_MAPPING_PATTERN_ID;
 use super::helpers::{
-    base_metadata, fact_for_span, insert_string, insert_string_array, is_comment_or_string_node,
-    skip_ascii_whitespace_until, smallest_node_covering_range,
+    base_metadata, fact_for_span, insert_string, insert_string_array, node_text,
+    smallest_node_covering_range,
 };
-use super::scan::{
-    MaskLanguage, SourceMask, find_matching_brace_within, find_matching_paren,
-    find_top_level_comma_or_end, parse_java_string_literal,
-};
+use super::static_arg::{StaticArgLang, static_route_arg};
 use crate::base::http_boundary::{ParamFlavor, join_route_templates, normalize_route_template};
 use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
+
+const IMPORT_NEEDLE: &str = "org.springframework.web.bind.annotation";
+
+const REQUEST_METHODS: &[&str] = &[
+    "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "TRACE",
+];
+
+const TYPE_DECLARATIONS: &[&str] = &[
+    "class_declaration",
+    "interface_declaration",
+    "enum_declaration",
+    "record_declaration",
+];
 
 pub(super) fn collect_spring_request_mappings(
     language: &str,
@@ -19,316 +46,324 @@ pub(super) fn collect_spring_request_mappings(
     file_path: &str,
     content: &str,
 ) -> Vec<StructuralFact> {
-    if !content.contains("import org.springframework.web.bind.annotation.") {
+    if !content.contains(IMPORT_NEEDLE) {
         return Vec::new();
     }
-
-    let mask = SourceMask::new(content, MaskLanguage::Java);
     let mut facts = Vec::new();
-    let mut pending_class_mapping: Option<(MappingAnnotation, usize, usize)> = None;
-    let mut current_class_templates: Vec<String> = Vec::new();
-    let mut offset = 0;
-    let lines: Vec<&str> = content.split_inclusive('\n').collect();
-    let mut index = 0;
-    while index < lines.len() {
-        let line = lines[index];
-        let trimmed = line.trim();
-        let line_offset = offset + (line.len() - line.trim_start().len());
-        if trimmed.starts_with('@')
-            && !mask.is_string_or_comment(line_offset)
-            && let Some(mapping) = parse_mapping_annotation(content, &mask, offset, line)
+    for declaration in java_type_declarations(tree.root_node()) {
+        let annotations = java_annotations(declaration, content);
+        if annotations
+            .iter()
+            .any(|annotation| annotation.name == "FeignClient")
         {
-            let (target_start, target_end, target_kind) = next_java_declaration_line(
+            continue;
+        }
+        let Some(body) = declaration.child_by_field_name("body") else {
+            continue;
+        };
+        let class_mapping = annotations
+            .iter()
+            .find(|annotation| annotation.name == "RequestMapping")
+            .map(|annotation| MappingArguments::parse(annotation.node, content));
+        let prefixes = class_mapping
+            .as_ref()
+            .map(|mapping| mapping.templates.clone())
+            .unwrap_or_default();
+        for prefix in &prefixes {
+            let spec = MappingFact {
+                attribute_kind: "class_route",
+                route_template: prefix,
+                class_route_template: None,
+                verb: None,
+            };
+            facts.extend(mapping_fact(
+                language,
+                tree,
+                file_path,
                 content,
-                offset + line.len(),
-            )
-            .unwrap_or((offset, offset + line.len(), DeclarationKind::Method));
-            if target_kind == DeclarationKind::Class {
-                pending_class_mapping = Some((mapping, target_start, target_end));
-            } else {
-                let templates = if mapping.templates.is_empty() {
-                    if mapping.has_route_argument {
-                        Vec::new()
-                    } else {
-                        vec!["".to_string()]
-                    }
-                } else {
-                    mapping.templates.clone()
-                };
-                let class_templates: Vec<Option<&str>> = if current_class_templates.is_empty() {
-                    vec![None]
-                } else {
-                    current_class_templates
-                        .iter()
-                        .map(|template| Some(template.as_str()))
-                        .collect()
-                };
-                let verbs: Vec<Option<&str>> = if mapping.verbs.is_empty() {
-                    vec![None]
-                } else {
-                    mapping
-                        .verbs
-                        .iter()
-                        .map(|verb| Some(verb.as_str()))
-                        .collect()
-                };
-                for class_template in class_templates {
-                    for template in &templates {
-                        let effective =
-                            class_template.map(|class| join_route_templates(class, template));
-                        let source = effective.as_deref().unwrap_or(template);
-                        for verb in &verbs {
-                            if let Some(fact) = mapping_fact(
-                                language,
-                                tree,
-                                file_path,
-                                content,
-                                target_start,
-                                target_end,
-                                mapping.attribute_kind,
-                                template,
-                                source,
-                                class_template,
-                                effective.as_deref(),
-                                *verb,
-                            ) {
-                                facts.push(fact);
-                            }
-                        }
-                    }
-                }
+                declaration,
+                &spec,
+            ));
+        }
+        for member in body.named_children(&mut body.walk()) {
+            if member.kind() != "method_declaration" {
+                continue;
+            }
+            for annotation in java_annotations(member, content) {
+                emit_method_routes(
+                    &annotation,
+                    member,
+                    &prefixes,
+                    language,
+                    tree,
+                    file_path,
+                    content,
+                    &mut facts,
+                );
             }
         }
-        if is_java_class_declaration(trimmed) && !mask.is_string_or_comment(line_offset) {
-            // Each class declaration owns its own class-level template; a class
-            // without a class-level mapping resets it so the previous
-            // controller's prefix cannot leak into this one's routes.
-            let pending = pending_class_mapping.take();
-            current_class_templates = pending
-                .as_ref()
-                .map(|(mapping, _, _)| mapping.templates.clone())
-                .unwrap_or_default();
-            if let Some((mapping, start, end)) = pending {
-                for template in mapping.templates {
-                    if let Some(fact) = mapping_fact(
-                        language,
-                        tree,
-                        file_path,
-                        content,
-                        start,
-                        end,
-                        "class_route",
-                        &template,
-                        &template,
-                        None,
-                        None,
-                        None,
-                    ) {
-                        facts.push(fact);
-                    }
-                }
-            }
-        }
-        offset += line.len();
-        index += 1;
     }
     facts
 }
 
-#[derive(Clone)]
-struct MappingAnnotation {
-    templates: Vec<String>,
-    verbs: Vec<String>,
-    attribute_kind: &'static str,
-    has_route_argument: bool,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum DeclarationKind {
-    Class,
-    Method,
-}
-
-fn parse_mapping_annotation(
-    content: &str,
-    mask: &SourceMask,
-    line_start: usize,
-    line: &str,
-) -> Option<MappingAnnotation> {
-    let annotation_start = line.find('@')?;
-    let name_start = line_start + annotation_start + 1;
-    let after_name = &content[name_start..];
-    let name_len = after_name.find(['(', ' ', '\n', '\r'])?;
-    let annotation = &after_name[..name_len];
-    let default_verb = match annotation {
-        "GetMapping" => Some("GET"),
-        "PostMapping" => Some("POST"),
-        "PutMapping" => Some("PUT"),
-        "PatchMapping" => Some("PATCH"),
-        "DeleteMapping" => Some("DELETE"),
-        "RequestMapping" => None,
-        _ => return None,
-    };
-    let attribute_kind = if default_verb.is_some() {
-        "http_method"
-    } else {
-        "request_mapping"
-    };
-    let open = skip_ascii_whitespace_until(content, name_start + name_len, content.len());
-    if content.as_bytes().get(open) != Some(&b'(') {
-        return Some(MappingAnnotation {
-            templates: vec!["".to_string()],
-            verbs: default_verb.map(str::to_string).into_iter().collect(),
-            attribute_kind,
-            has_route_argument: false,
-        });
+/// The default verb and attribute kind of a Spring mapping annotation.
+pub(super) fn mapping_annotation_kind(name: &str) -> Option<(Option<&'static str>, &'static str)> {
+    match name {
+        "GetMapping" => Some((Some("GET"), "http_method")),
+        "PostMapping" => Some((Some("POST"), "http_method")),
+        "PutMapping" => Some((Some("PUT"), "http_method")),
+        "PatchMapping" => Some((Some("PATCH"), "http_method")),
+        "DeleteMapping" => Some((Some("DELETE"), "http_method")),
+        "RequestMapping" => Some((None, "request_mapping")),
+        _ => None,
     }
-    let close = find_matching_paren(content, mask, open)?;
-    let args = &content[open + 1..close];
-    let elements = parse_annotation_elements(args);
-    let templates = if elements.templates.is_empty() && args.trim().is_empty() {
-        vec!["".to_string()]
-    } else {
-        elements.templates
-    };
-    let verbs = default_verb
-        .map(|verb| vec![verb.to_string()])
-        .unwrap_or(elements.verbs);
-    Some(MappingAnnotation {
-        templates,
-        verbs,
-        attribute_kind,
-        has_route_argument: elements.has_route_argument,
-    })
-}
-
-#[derive(Default)]
-struct AnnotationElements {
-    templates: Vec<String>,
-    verbs: Vec<String>,
-    has_route_argument: bool,
-}
-
-/// Splits annotation arguments into named elements. Route templates come only
-/// from the positional value or the `value =` / `path =` elements; string
-/// literals in `produces`/`consumes`/`params`/`headers` are not routes.
-fn parse_annotation_elements(args: &str) -> AnnotationElements {
-    let mask = SourceMask::new(args, MaskLanguage::Java);
-    let mut elements = AnnotationElements::default();
-    let mut cursor = 0;
-    while cursor < args.len() {
-        cursor = skip_ascii_whitespace_until(args, cursor, args.len());
-        if cursor >= args.len() {
-            break;
-        }
-        let element_end = find_top_level_comma_or_end(args, &mask, cursor, args.len());
-        let element = &args[cursor..element_end];
-        let (name, value) = split_annotation_element(element);
-        match name {
-            None | Some("value") | Some("path") => {
-                elements.has_route_argument = true;
-                collect_string_values(args, &mask, cursor + value_offset(element, value), value)
-                    .into_iter()
-                    .for_each(|template| elements.templates.push(template));
-            }
-            Some("method") => {
-                for verb in ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"] {
-                    if value.contains(&format!("RequestMethod.{verb}")) {
-                        elements.verbs.push(verb.to_string());
-                    }
-                }
-            }
-            _ => {}
-        }
-        cursor = element_end.saturating_add(1);
-    }
-    elements
-}
-
-fn split_annotation_element(element: &str) -> (Option<&str>, &str) {
-    let trimmed = element.trim_start();
-    let Some(equals) = trimmed.find('=') else {
-        return (None, element);
-    };
-    let name = trimmed[..equals].trim();
-    if name.is_empty()
-        || !name
-            .chars()
-            .all(|ch| ch == '_' || ch.is_ascii_alphanumeric())
-    {
-        return (None, element);
-    }
-    (Some(name), &trimmed[equals + 1..])
-}
-
-fn value_offset(element: &str, value: &str) -> usize {
-    element.len() - value.len()
-}
-
-/// Collects the string literal(s) of one annotation element value: either a
-/// single literal or a `{ "a", "b" }` array initializer.
-fn collect_string_values(
-    args: &str,
-    mask: &SourceMask,
-    value_start: usize,
-    value: &str,
-) -> Vec<String> {
-    let trimmed_start = value_start + (value.len() - value.trim_start().len());
-    if args.as_bytes().get(trimmed_start) == Some(&b'{') {
-        let Some(close) = find_matching_brace_within(args, mask, trimmed_start, args.len()) else {
-            return Vec::new();
-        };
-        let mut values = Vec::new();
-        let mut cursor = trimmed_start + 1;
-        while cursor < close {
-            cursor = skip_ascii_whitespace_until(args, cursor, close);
-            if cursor >= close {
-                break;
-            }
-            let element_end = find_top_level_comma_or_end(args, mask, cursor, close);
-            if let Some((literal, literal_end)) = parse_java_string_literal(args, cursor)
-                && skip_ascii_whitespace_until(args, literal_end, element_end) == element_end
-            {
-                values.push(literal);
-            }
-            cursor = element_end.saturating_add(1);
-        }
-        return values;
-    }
-    let value_end = value_start + value.len();
-    parse_java_string_literal(args, trimmed_start)
-        .filter(|(_, literal_end)| {
-            skip_ascii_whitespace_until(args, *literal_end, value_end) == value_end
-        })
-        .map(|(literal, _)| vec![literal])
-        .unwrap_or_default()
 }
 
 #[allow(clippy::too_many_arguments)]
+fn emit_method_routes(
+    annotation: &JavaAnnotation,
+    method: Node,
+    prefixes: &[String],
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    facts: &mut Vec<StructuralFact>,
+) {
+    let Some((default_verb, attribute_kind)) = mapping_annotation_kind(annotation.name) else {
+        return;
+    };
+    let arguments = MappingArguments::parse(annotation.node, content);
+    let templates = if arguments.templates.is_empty() {
+        if arguments.had_route_argument {
+            return;
+        }
+        vec![String::new()]
+    } else {
+        arguments.templates
+    };
+    let verbs: Vec<Option<String>> = match default_verb {
+        Some(verb) => vec![Some(verb.to_string())],
+        None if arguments.verbs.is_empty() => vec![None],
+        None => arguments.verbs.into_iter().map(Some).collect(),
+    };
+    let class_templates: Vec<Option<&str>> = if prefixes.is_empty() {
+        vec![None]
+    } else {
+        prefixes
+            .iter()
+            .map(|prefix| Some(prefix.as_str()))
+            .collect()
+    };
+    for class_template in &class_templates {
+        for template in &templates {
+            for verb in &verbs {
+                let spec = MappingFact {
+                    attribute_kind,
+                    route_template: template,
+                    class_route_template: *class_template,
+                    verb: verb.as_deref(),
+                };
+                facts.extend(mapping_fact(
+                    language, tree, file_path, content, method, &spec,
+                ));
+            }
+        }
+    }
+}
+
+/// Every Java type declaration in the file, outermost first.
+pub(super) fn java_type_declarations(root: Node) -> Vec<Node> {
+    let mut declarations = Vec::new();
+    collect_type_declarations(root, 0, &mut declarations);
+    declarations
+}
+
+fn collect_type_declarations<'tree>(node: Node<'tree>, depth: u32, out: &mut Vec<Node<'tree>>) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    if TYPE_DECLARATIONS.contains(&node.kind()) {
+        out.push(node);
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    for child in node.named_children(&mut node.walk()) {
+        collect_type_declarations(child, child_depth, out);
+    }
+}
+
+/// One annotation in a declaration's `modifiers`, keyed by the simple name so
+/// `@org.springframework…GetMapping` and `@GetMapping` read the same.
+pub(super) struct JavaAnnotation<'tree, 'src> {
+    pub(super) name: &'src str,
+    pub(super) node: Node<'tree>,
+}
+
+pub(super) fn java_annotations<'tree, 'src>(
+    declaration: Node<'tree>,
+    content: &'src str,
+) -> Vec<JavaAnnotation<'tree, 'src>> {
+    let Some(modifiers) = declaration
+        .children(&mut declaration.walk())
+        .find(|child| child.kind() == "modifiers")
+    else {
+        return Vec::new();
+    };
+    modifiers
+        .children(&mut modifiers.walk())
+        .filter(|child| matches!(child.kind(), "annotation" | "marker_annotation"))
+        .filter_map(|annotation| {
+            let name = annotation.child_by_field_name("name")?;
+            let terminal = match name.kind() {
+                "scoped_identifier" => name.child_by_field_name("name")?,
+                _ => name,
+            };
+            Some(JavaAnnotation {
+                name: node_text(content, terminal)?,
+                node: annotation,
+            })
+        })
+        .collect()
+}
+
+/// The `(name, value)` elements of an annotation: `None` names the positional
+/// value. A marker annotation has none.
+pub(super) fn annotation_elements<'tree>(
+    annotation: Node<'tree>,
+    content: &str,
+) -> Vec<(Option<String>, Node<'tree>)> {
+    let Some(arguments) = annotation.child_by_field_name("arguments") else {
+        return Vec::new();
+    };
+    arguments
+        .named_children(&mut arguments.walk())
+        .filter_map(|argument| {
+            if argument.kind() != "element_value_pair" {
+                return Some((None, argument));
+            }
+            let key = argument.child_by_field_name("key")?;
+            let value = argument.child_by_field_name("value")?;
+            Some((node_text(content, key).map(str::to_string), value))
+        })
+        .collect()
+}
+
+/// Static templates of an element value: one string literal, or the static
+/// elements of an array. A dynamic array element is skipped, never guessed.
+/// `None` when a single value is not a plain string literal.
+pub(super) fn static_templates(value: Node, content: &str) -> Option<Vec<String>> {
+    if value.kind() == "element_value_array_initializer" {
+        return Some(
+            value
+                .named_children(&mut value.walk())
+                .filter_map(|element| {
+                    static_route_arg(element, content, StaticArgLang::Java).map(str::to_string)
+                })
+                .collect(),
+        );
+    }
+    static_route_arg(value, content, StaticArgLang::Java).map(|template| vec![template.to_string()])
+}
+
+#[derive(Default)]
+pub(super) struct MappingArguments {
+    pub(super) templates: Vec<String>,
+    pub(super) had_route_argument: bool,
+    pub(super) verbs: Vec<String>,
+}
+
+impl MappingArguments {
+    /// Route templates come only from the positional value or the `value` /
+    /// `path` elements; `produces`/`consumes`/`params`/`headers` are not routes.
+    pub(super) fn parse(annotation: Node, content: &str) -> Self {
+        let mut arguments = Self::default();
+        for (name, value) in annotation_elements(annotation, content) {
+            match name.as_deref() {
+                None | Some("value") | Some("path") => {
+                    arguments.had_route_argument = true;
+                    if let Some(mut templates) = static_templates(value, content) {
+                        arguments.templates.append(&mut templates);
+                    }
+                }
+                Some("method") => collect_request_methods(value, content, &mut arguments.verbs),
+                _ => {}
+            }
+        }
+        arguments
+    }
+}
+
+fn collect_request_methods(value: Node, content: &str, verbs: &mut Vec<String>) {
+    let values: Vec<Node> = if value.kind() == "element_value_array_initializer" {
+        value.named_children(&mut value.walk()).collect()
+    } else {
+        vec![value]
+    };
+    for value in values {
+        let terminal = match value.kind() {
+            "field_access" => value.child_by_field_name("field"),
+            "identifier" => Some(value),
+            _ => None,
+        };
+        if let Some(verb) = terminal.and_then(|terminal| node_text(content, terminal))
+            && REQUEST_METHODS.contains(&verb)
+        {
+            verbs.push(verb.to_string());
+        }
+    }
+}
+
+/// Join a class prefix and a method sub-path. An empty method path resolves to
+/// the prefix alone, with no trailing slash.
+pub(super) fn join_prefix(prefix: &str, template: &str) -> String {
+    if template.is_empty() {
+        prefix.to_string()
+    } else {
+        join_route_templates(prefix, template)
+    }
+}
+
+/// The span of a declaration after its `modifiers`.
+pub(super) fn declaration_span(declaration: Node) -> (usize, usize) {
+    let end = declaration.end_byte();
+    declaration
+        .children(&mut declaration.walk())
+        .find(|child| child.kind() != "modifiers")
+        .map(|child| (child.start_byte(), end))
+        .unwrap_or((declaration.start_byte(), end))
+}
+
+struct MappingFact<'a> {
+    attribute_kind: &'static str,
+    route_template: &'a str,
+    class_route_template: Option<&'a str>,
+    verb: Option<&'a str>,
+}
+
 fn mapping_fact(
     language: &str,
     tree: &Tree,
     file_path: &str,
     content: &str,
-    start: usize,
-    end: usize,
-    attribute_kind: &str,
-    route_template: &str,
-    normalized_source: &str,
-    class_route_template: Option<&str>,
-    effective_route_template: Option<&str>,
-    verb: Option<&str>,
+    declaration: Node,
+    spec: &MappingFact,
 ) -> Option<StructuralFact> {
+    let (start, end) = declaration_span(declaration);
     let node = smallest_node_covering_range(tree.root_node(), start, end)?;
-    if is_comment_or_string_node(node.kind()) {
-        return None;
-    }
     let span = NormalizedSpan::from_content_range(content, start, end)?;
-    let normalized = normalize_route_template(normalized_source, ParamFlavor::Braces);
+    let effective = spec
+        .class_route_template
+        .map(|prefix| join_prefix(prefix, spec.route_template));
+    let normalized = normalize_route_template(
+        effective.as_deref().unwrap_or(spec.route_template),
+        ParamFlavor::Braces,
+    );
     let mut metadata = base_metadata("framework", "spring");
     insert_string(&mut metadata, "api_style", "annotation_routing");
-    insert_string(&mut metadata, "attribute_kind", attribute_kind);
-    insert_string(&mut metadata, "route_template", route_template);
+    insert_string(&mut metadata, "attribute_kind", spec.attribute_kind);
+    insert_string(&mut metadata, "route_template", spec.route_template);
     insert_string(
         &mut metadata,
         "normalized_route_template",
@@ -341,17 +376,13 @@ fn mapping_fact(
             normalized.dynamic_segments,
         );
     }
-    if let Some(class_route_template) = class_route_template {
+    if let Some(class_route_template) = spec.class_route_template {
         insert_string(&mut metadata, "class_route_template", class_route_template);
     }
-    if let Some(effective_route_template) = effective_route_template {
-        insert_string(
-            &mut metadata,
-            "effective_route_template",
-            effective_route_template,
-        );
+    if let Some(effective) = &effective {
+        insert_string(&mut metadata, "effective_route_template", effective);
     }
-    if let Some(verb) = verb {
+    if let Some(verb) = spec.verb {
         insert_string(&mut metadata, "verb", verb);
         insert_string(&mut metadata, "verb_source", "attested");
     }
@@ -364,93 +395,4 @@ fn mapping_fact(
         span,
         metadata,
     ))
-}
-
-fn next_java_declaration_line(
-    content: &str,
-    start: usize,
-) -> Option<(usize, usize, DeclarationKind)> {
-    let mut cursor = start;
-    while cursor < content.len() {
-        let line_end = content[cursor..]
-            .find('\n')
-            .map(|offset| cursor + offset)
-            .unwrap_or(content.len());
-        let line = content[cursor..line_end].trim();
-        if line.is_empty() || line.starts_with('@') || is_java_comment_line(line) {
-            cursor = line_end.saturating_add(1);
-            continue;
-        }
-        let kind = if is_java_class_declaration(line) {
-            DeclarationKind::Class
-        } else {
-            DeclarationKind::Method
-        };
-        let start = cursor + content[cursor..line_end].find(line).unwrap_or(0);
-        return Some((start, line_end, kind));
-    }
-    None
-}
-
-fn is_java_class_declaration(line: &str) -> bool {
-    let declaration_head = line
-        .split('{')
-        .next()
-        .unwrap_or(line)
-        .split(';')
-        .next()
-        .unwrap_or(line);
-    for keyword in ["class", "interface", "enum", "record"] {
-        let Some(index) = find_java_keyword(declaration_head, keyword) else {
-            continue;
-        };
-        if declaration_head[..index].contains('(') {
-            continue;
-        }
-        let leading_tokens = declaration_head[..index]
-            .split(|ch: char| !ch.is_ascii_alphanumeric() && ch != '_')
-            .filter(|token| !token.is_empty());
-        if leading_tokens.clone().all(|token| {
-            matches!(
-                token,
-                "public"
-                    | "protected"
-                    | "private"
-                    | "abstract"
-                    | "final"
-                    | "static"
-                    | "sealed"
-                    | "non"
-                    | "permits"
-            )
-        }) {
-            return true;
-        }
-    }
-    false
-}
-
-fn is_java_comment_line(line: &str) -> bool {
-    line.starts_with("//") || line.starts_with("/*") || line.starts_with('*')
-}
-
-fn find_java_keyword(source: &str, keyword: &str) -> Option<usize> {
-    let mut cursor = 0;
-    while let Some(relative) = source[cursor..].find(keyword) {
-        let start = cursor + relative;
-        let end = start + keyword.len();
-        let before_ok = source[..start]
-            .chars()
-            .next_back()
-            .is_none_or(|ch| !ch.is_ascii_alphanumeric() && ch != '_');
-        let after_ok = source[end..]
-            .chars()
-            .next()
-            .is_none_or(|ch| !ch.is_ascii_alphanumeric() && ch != '_');
-        if before_ok && after_ok {
-            return Some(start);
-        }
-        cursor = end;
-    }
-    None
 }

@@ -138,7 +138,7 @@ pub(super) fn extract_interface(
         parent_id: parent_id.map(|s| s.to_string()),
         metadata: base_types_metadata(super_interfaces),
         doc_comment,
-        ..Default::default()
+        annotations: helpers::extract_annotations(extractor.base(), node),
     };
 
     Some(
@@ -183,7 +183,7 @@ pub(super) fn extract_enum(
         parent_id: parent_id.map(|s| s.to_string()),
         metadata: base_types_metadata(interfaces),
         doc_comment,
-        ..Default::default()
+        annotations: helpers::extract_annotations(extractor.base(), node),
     };
 
     Some(
@@ -290,7 +290,7 @@ pub(super) fn extract_record(
         parent_id: parent_id.map(|s| s.to_string()),
         metadata: Some(metadata),
         doc_comment,
-        annotations: Vec::new(),
+        annotations: helpers::extract_annotations(extractor.base(), node),
     };
 
     Some(
@@ -338,6 +338,7 @@ pub(super) fn extract_record_components(
             signature: Some(signature),
             visibility: Some(Visibility::Public),
             parent_id: parent_id.map(|s| s.to_string()),
+            annotations: helpers::extract_annotations(extractor.base(), parameter),
             ..Default::default()
         };
         let symbol =

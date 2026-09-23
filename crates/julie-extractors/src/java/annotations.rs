@@ -30,6 +30,8 @@ pub(super) fn extract_annotation(
         signature: Some(signature),
         visibility: Some(visibility),
         parent_id: parent_id.map(|s| s.to_string()),
+        doc_comment: extractor.base().find_doc_comment(&node),
+        annotations: helpers::extract_annotations(extractor.base(), node),
         ..Default::default()
     };
 

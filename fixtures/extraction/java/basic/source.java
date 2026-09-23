@@ -111,3 +111,57 @@ class Supervisor extends Worker {
         sum.apply(1, 2);
     }
 }
+
+interface RetryPolicy {
+    /** Maximum retry attempts. */
+    int MAX_RETRIES = 3;
+    java.time.Duration backoff();
+}
+
+/** Audit marker. */
+@java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+@interface Audited {
+    /** Audit level. */
+    String level() default "info";
+    int priority();
+}
+
+@Deprecated
+enum LegacyMode { OFF }
+
+record Money(@JsonProperty("amount_cents") long cents, String currency) {
+    Money {
+        if (cents < 0) throw new IllegalArgumentException("negative");
+        validate(cents);
+    }
+
+    static void validate(long value) {}
+}
+
+class ShapeMath {
+    private java.util.concurrent.atomic.AtomicInteger calls;
+    private Map.Entry<String, Integer> lastEntry;
+
+    @Audited(level = "high")
+    java.util.Map<String, java.util.List<Money>> byCurrency() { return null; }
+
+    double area(Object shape) {
+        var cache = new java.util.ArrayList<String>();
+        return switch (shape) {
+            case Circle c -> Math.PI * c.radius() * c.radius();
+            case Rect(double w, double h) -> w * h;
+            default -> 0;
+        };
+    }
+}
+
+interface OrderRepository {
+    @Query("select o from Order o where o.status = :status")
+    java.util.List<Order> byStatus(String status);
+}
+
+class OrderQueries {
+    long count(EntityManager em) {
+        return (long) em.createNativeQuery("SELECT count(*) FROM orders").getSingleResult();
+    }
+}

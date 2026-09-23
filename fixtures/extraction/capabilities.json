@@ -2632,6 +2632,11 @@
           "name": "hierarchy_and_calls",
           "source": "fixtures/extraction/java/hierarchy_and_calls/source.java",
           "expected": "fixtures/extraction/java/hierarchy_and_calls/expected.json"
+        },
+        {
+          "name": "module_info",
+          "source": "fixtures/extraction/java/module_info/module-info.java",
+          "expected": "fixtures/extraction/java/module_info/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2664,7 +2669,8 @@
           "supported": [
             "calls",
             "extends",
-            "implements"
+            "implements",
+            "references"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2698,8 +2704,10 @@
             "java.annotation.v1",
             "java.lambda_expression.v1",
             "java.marker_annotation.v1",
+            "java.module_directive.v1",
             "java.synchronized_statement.v1",
             "java.try_with_resources_statement.v1",
+            "jaxrs.route.v1",
             "spring.request_mapping.v1"
           ],
           "not_applicable": [],
@@ -2709,12 +2717,6 @@
               "reason": "Cucumber-JVM binds step definitions with @Given/@When/@Then on methods of a glue class, and the executable scenario lives in a .feature file, not in Java. The extractor classifies neither the glue class nor its step methods, so a Cucumber-JVM suite publishes no test roles from its Java side.",
               "required_closure": "adopt the Cucumber-JVM glue contract as a named Java test framework, classify a glue class as a test container and step annotations as their own role, and register a golden fixture with a non-glue control class",
               "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 10 follow-up: Cucumber-JVM step binding roles"
-            },
-            {
-              "kind": "junit_platform.suite_container_roles",
-              "reason": "The JUnit Platform Suite engine declares an aggregating suite with @Suite plus selector annotations such as @SelectClasses and @SelectPackages. The class holds no test member of its own, so the container pass never marks it and the selected classes are never linked to it.",
-              "required_closure": "adopt the JUnit Platform Suite contract, classify a @Suite class as a test container, resolve @SelectClasses targets into edges, and register a golden fixture with a plain aggregator class as the control",
-              "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 10 follow-up: JUnit Platform @Suite containers"
             }
           ]
         },
@@ -2729,14 +2731,20 @@
         "annotations": {
           "supported": [
             "class",
-            "method"
+            "enum",
+            "interface",
+            "method",
+            "property"
           ],
           "not_applicable": [],
           "open_gaps": []
         },
         "doc_comments": {
           "supported": [
-            "method"
+            "constant",
+            "interface",
+            "method",
+            "namespace"
           ],
           "not_applicable": [],
           "open_gaps": []

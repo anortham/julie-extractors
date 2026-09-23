@@ -24,5 +24,8 @@ sql = [
     "queryForMap",
     "update",
     "batchUpdate",
+    "createQuery",
+    "createNativeQuery",
+    "Query",
 ]
 route = []

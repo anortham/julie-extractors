@@ -7,6 +7,7 @@ mod go_http;
 mod helpers;
 mod htmx_templates;
 mod http_clients;
+mod jaxrs;
 mod kotlin_spring;
 mod ktor;
 mod laravel;
@@ -33,6 +34,7 @@ use self::go_http::collect_go_http_boundary_facts;
 use self::http_clients::{
     collect_backend_http_client_requests, collect_razor_http_client_requests,
 };
+use self::jaxrs::collect_jaxrs_routes;
 use self::kotlin_spring::collect_kotlin_spring_routes;
 use self::ktor::collect_ktor_routes;
 use self::laravel::collect_laravel_routes;
@@ -68,6 +70,7 @@ pub(super) const FLASK_BLUEPRINT_REGISTRATION_PATTERN_ID: &str = "flask.blueprin
 pub(super) const DJANGO_URL_PATTERN_ID: &str = "django.url_pattern.v1";
 pub(super) const DJANGO_URL_INCLUDE_PATTERN_ID: &str = "django.url_include.v1";
 pub(super) const SPRING_REQUEST_MAPPING_PATTERN_ID: &str = "spring.request_mapping.v1";
+pub(super) const JAXRS_ROUTE_PATTERN_ID: &str = "jaxrs.route.v1";
 pub(super) const AXUM_ROUTE_PATTERN_ID: &str = "axum.route.v1";
 pub(super) const AXUM_NEST_PATTERN_ID: &str = "axum.nest.v1";
 pub(super) const ACTIX_ATTRIBUTE_ROUTE_PATTERN_ID: &str = "actix.attribute_route.v1";
@@ -274,6 +277,7 @@ pub fn collect_framework_structural_facts(
         "java" => {
             let mut java_facts =
                 collect_spring_request_mappings(language, tree, file_path, content);
+            java_facts.extend(collect_jaxrs_routes(language, tree, file_path, content));
             java_facts.extend(collect_backend_http_client_requests(
                 language, tree, file_path, content,
             ));
@@ -359,6 +363,7 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
         "python" => PYTHON_WEB_PATTERN_IDS,
         "java" => &[
             SPRING_REQUEST_MAPPING_PATTERN_ID,
+            JAXRS_ROUTE_PATTERN_ID,
             HTTP_CLIENT_REQUEST_PATTERN_ID,
         ],
         "kotlin" => KOTLIN_PATTERN_IDS,

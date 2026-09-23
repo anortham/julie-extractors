@@ -173,6 +173,11 @@ than `test_detection`, for the same reason as the csharp pair below: the
 `test_detection` vocabulary is frozen to three units and each is already
 classified exactly once for java.
 
+Update 2026-09-22 (language gap closure wave 2): JUnit Platform `@Suite` is
+adopted. A `@Suite` class is a `test_container`, and each `@SelectClasses`
+target gets a `references` edge from the suite. The container vocabulary did
+not change, so this needed no new role. Cucumber-JVM stays excluded.
+
 Real-world precision and recall measurements against the TestNG and JUnit
 source trees are in `docs/languages/java.md`.
 

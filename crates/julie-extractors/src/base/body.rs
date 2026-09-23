@@ -21,7 +21,7 @@ const BODY_NODE_KINDS: &[&str] = &[
 
 /// Languages whose grammar marks every body structurally. The textual brace
 /// and parenthesis fallback would invent bodies for their bodiless items.
-const STRUCTURAL_BODY_LANGUAGES: &[&str] = &["rust"];
+const STRUCTURAL_BODY_LANGUAGES: &[&str] = &["java", "rust"];
 
 pub(crate) fn infer_body_span(
     node: &Node,

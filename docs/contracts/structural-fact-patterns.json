@@ -3357,7 +3357,7 @@
         "value_type": "string"
       },
       {
-        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, req, tesla, httpoison, finch, httpc).",
+        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, spring_restclient, openfeign, req, tesla, httpoison, finch, httpc).",
         "key": "client",
         "presence": "always",
         "value_type": "string"
@@ -3475,6 +3475,58 @@
     "query_family": "metadata"
   },
   {
+    "description": "A `requires`, `exports`, `opens`, `uses` or `provides` directive in a Java `module-info.java` declaration.",
+    "languages": [
+      "java"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The directive keyword: requires, exports, opens, uses or provides.",
+        "key": "directive",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The required module, the exported or opened package, or the used or provided service type, as written.",
+        "key": "target",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The `transitive` and `static` modifiers of a requires directive.",
+        "key": "modifiers",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "The modules named after `to` in a qualified exports or opens directive.",
+        "key": "to_modules",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "The implementation types named after `with` in a provides directive.",
+        "key": "providers",
+        "presence": "optional",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "java.module_directive.v1",
+    "query_family": "modules"
+  },
+  {
     "description": "A Java `synchronized` statement.",
     "languages": [
       "java"
@@ -3573,6 +3625,88 @@
     ],
     "pattern_id": "javascript.qml_directive.v1",
     "query_family": "directives"
+  },
+  {
+    "description": "A JAX-RS / Jakarta REST `@Path` resource class, resource method (`@GET`, `@POST`, …) or sub-resource locator.",
+    "languages": [
+      "java"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"annotation_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "class_route, resource_method or subresource_locator.",
+        "key": "attribute_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static `@Path` template; empty for a resource method without `@Path`.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "The resource class `@Path` template.",
+        "key": "class_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Class and method templates joined.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Uppercase HTTP method of a resource method; absent on a class route or sub-resource locator.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "jaxrs.route.v1",
+    "query_family": "framework"
   },
   {
     "description": "A JSON array node.",

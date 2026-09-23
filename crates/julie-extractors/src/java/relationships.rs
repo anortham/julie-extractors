@@ -35,6 +35,8 @@ pub(super) fn extract_inheritance_relationships(
         supertypes.push((RelationshipKind::Extends, interface));
     }
 
+    extract_suite_selection_relationships(extractor, node, type_symbol, symbols, relationships);
+
     let file_path = extractor.base().file_path.clone();
     let line_number = (node.start_position().row + 1) as u32;
     for (kind, type_node) in supertypes {
@@ -91,6 +93,104 @@ pub(super) fn extract_inheritance_relationships(
             );
             extractor.add_structured_pending_relationship(pending);
         }
+    }
+}
+
+/// A JUnit Platform `@SelectClasses({A.class, B.class})` suite references each
+/// selected class: resolved when the class is declared in this file, pending
+/// otherwise.
+fn extract_suite_selection_relationships(
+    extractor: &mut JavaExtractor,
+    node: Node,
+    suite: &Symbol,
+    symbols: &[Symbol],
+    relationships: &mut Vec<Relationship>,
+) {
+    let Some(modifiers) = node
+        .children(&mut node.walk())
+        .find(|child| child.kind() == "modifiers")
+    else {
+        return;
+    };
+    let mut selected = Vec::new();
+    for annotation in modifiers.children(&mut modifiers.walk()) {
+        let is_select_classes = annotation.kind() == "annotation"
+            && annotation.child_by_field_name("name").is_some_and(|name| {
+                let text = extractor.base().get_node_text(&name);
+                text == "SelectClasses" || text.ends_with(".SelectClasses")
+            });
+        if !is_select_classes {
+            continue;
+        }
+        let Some(arguments) = annotation.child_by_field_name("arguments") else {
+            continue;
+        };
+        collect_class_literal_types(arguments, &mut selected, 0);
+    }
+
+    let file_path = extractor.base().file_path.clone();
+    for type_node in selected {
+        let target = helpers::type_reference_target(extractor.base(), type_node);
+        let local = target
+            .receiver
+            .is_none()
+            .then(|| {
+                symbols.iter().find(|s| {
+                    s.name == target.terminal_name
+                        && s.file_path == file_path
+                        && s.kind == SymbolKind::Class
+                })
+            })
+            .flatten();
+        match local {
+            Some(selected_class) => relationships.push(Relationship {
+                id: format!(
+                    "{}_{}_{:?}_{}",
+                    suite.id,
+                    selected_class.id,
+                    RelationshipKind::References,
+                    type_node.start_byte()
+                ),
+                from_symbol_id: suite.id.clone(),
+                to_symbol_id: selected_class.id.clone(),
+                kind: RelationshipKind::References,
+                file_path: file_path.clone(),
+                line_number: (type_node.start_position().row + 1) as u32,
+                span: Some(crate::base::NormalizedSpan::from_node(&type_node)),
+                reference_site_is_exact: true,
+                confidence: 1.0,
+                metadata: None,
+            }),
+            None => {
+                let pending = extractor.base().create_pending_relationship(
+                    suite.id.clone(),
+                    target,
+                    RelationshipKind::References,
+                    &type_node,
+                    Some(suite.id.clone()),
+                    Some(0.9),
+                );
+                extractor.add_structured_pending_relationship(pending);
+            }
+        }
+    }
+}
+
+fn collect_class_literal_types<'tree>(node: Node<'tree>, out: &mut Vec<Node<'tree>>, depth: u32) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    if node.kind() == "class_literal" {
+        if let Some(type_node) = node.named_child(0) {
+            out.push(type_node);
+        }
+        return;
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    for child in node.named_children(&mut node.walk()) {
+        collect_class_literal_types(child, out, child_depth);
     }
 }
 

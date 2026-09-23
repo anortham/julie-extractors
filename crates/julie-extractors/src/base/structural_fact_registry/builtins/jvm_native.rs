@@ -5,7 +5,8 @@
 //! [`super::super::structural_fact_pattern_specs`].
 
 use super::super::{
-    BASE_KEYS, K_PATTERN_VERSION, K_QUERY_FAMILY, OPT, STR, StructuralFactPatternSpec, key,
+    ALWAYS, ARR, BASE_KEYS, K_PATTERN_VERSION, K_QUERY_FAMILY, OPT, STR, StructuralFactPatternSpec,
+    key,
 };
 
 pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
@@ -59,6 +60,46 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 STR,
                 OPT,
                 "The annotation's name identifier.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "java.module_directive.v1",
+        languages: &["java"],
+        query_family: "modules",
+        description: "A `requires`, `exports`, `opens`, `uses` or `provides` directive in a Java `module-info.java` declaration.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "directive",
+                STR,
+                ALWAYS,
+                "The directive keyword: requires, exports, opens, uses or provides.",
+            ),
+            key(
+                "target",
+                STR,
+                OPT,
+                "The required module, the exported or opened package, or the used or provided service type, as written.",
+            ),
+            key(
+                "modifiers",
+                ARR,
+                OPT,
+                "The `transitive` and `static` modifiers of a requires directive.",
+            ),
+            key(
+                "to_modules",
+                ARR,
+                OPT,
+                "The modules named after `to` in a qualified exports or opens directive.",
+            ),
+            key(
+                "providers",
+                ARR,
+                OPT,
+                "The implementation types named after `with` in a provides directive.",
             ),
         ],
     },
