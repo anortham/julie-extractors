@@ -431,6 +431,7 @@ fn test_public_api_surface_exports_exact_symbols() {
         "fsharp",
         "gdscript",
         "go",
+        "gomod",
         "html",
         "java",
         "javascript",
@@ -459,7 +460,7 @@ fn test_public_api_surface_exports_exact_symbols() {
         "yaml",
         "zig",
     ];
-    assert_eq!(languages.len(), 38);
+    assert_eq!(languages.len(), 39);
     for lang in languages {
         assert!(
             lib_rs.contains(&format!("pub(crate) mod {lang};")),

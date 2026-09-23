@@ -2008,10 +2008,10 @@ fn languages_json_emits_capability_snapshot_data() {
         let extensions = language["extensions"]
             .as_array()
             .expect("language rows include an extensions array");
-        if language_name == "qmldir" {
+        if matches!(language_name, "qmldir" | "gomod") {
             assert!(
                 extensions.is_empty(),
-                "qmldir is identified by its basename, not an invented extension"
+                "{language_name} is identified by its basename, not an invented extension"
             );
         } else {
             assert!(

@@ -265,6 +265,7 @@ parser!(parser_rust, tree_sitter_rust::LANGUAGE);
 parser!(parser_c, tree_sitter_c::LANGUAGE);
 parser!(parser_cpp, tree_sitter_cpp::LANGUAGE);
 parser!(parser_go, tree_sitter_go::LANGUAGE);
+parser!(parser_gomod, tree_sitter_gomod::LANGUAGE);
 parser!(parser_zig, tree_sitter_zig::LANGUAGE);
 parser!(
     parser_typescript,

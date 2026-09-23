@@ -138,6 +138,11 @@ fn comment_syntax(language: &str) -> CommentSyntax {
             block: &[],
             vbnet_rem: false,
         },
+        "gomod" => CommentSyntax {
+            line: &["//"],
+            block: &[],
+            vbnet_rem: false,
+        },
         "erlang" => CommentSyntax {
             line: &["%"],
             block: &[],

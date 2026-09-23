@@ -32,6 +32,7 @@ pub mod go;
 pub mod go_http;
 #[cfg(feature = "test-golden")]
 pub mod golden;
+pub mod gomod;
 pub mod helpers;
 pub mod html;
 pub mod http_client;

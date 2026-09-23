@@ -1,0 +1,1154 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/gomod/basic/go.mod:example.com/app/cmd/gen:48:1",
+      "name": "example.com/app/cmd/gen",
+      "kind": "import",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "start_line": 48,
+      "start_column": 1,
+      "end_line": 48,
+      "end_column": 24,
+      "start_byte": 919,
+      "end_byte": 942,
+      "body_span": {
+        "start_line": 48,
+        "start_column": 1,
+        "end_line": 48,
+        "end_column": 24,
+        "start_byte": 919,
+        "end_byte": 942
+      },
+      "body_hash": "bc9d9dd1169f71d0395697a4efddfb10",
+      "signature": "tool example.com/app/cmd/gen",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "directive": "tool"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gomod/basic/go.mod:example.com/app:4:0",
+      "name": "example.com/app",
+      "kind": "module",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 22,
+      "start_byte": 89,
+      "end_byte": 111,
+      "body_span": {
+        "start_line": 4,
+        "start_column": 7,
+        "end_line": 4,
+        "end_column": 22,
+        "start_byte": 96,
+        "end_byte": 111
+      },
+      "body_hash": "33b90b86bc8dc65ae63d7e2998c51213",
+      "signature": "module example.com/app",
+      "doc_comment": "// Package app is the example service.\n//\n// Deprecated: use example.com/app/v2 instead.",
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "deprecated": "use example.com/app/v2 instead.",
+        "directive": "module"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gomod/basic/go.mod:example.com/quoted:17:1",
+      "name": "example.com/quoted",
+      "kind": "import",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "start_line": 17,
+      "start_column": 1,
+      "end_line": 17,
+      "end_column": 28,
+      "start_byte": 342,
+      "end_byte": 369,
+      "body_span": {
+        "start_line": 17,
+        "start_column": 22,
+        "end_line": 17,
+        "end_column": 28,
+        "start_byte": 363,
+        "end_byte": 369
+      },
+      "body_hash": "3f715f166cf5a9c1b437b2232544b855",
+      "signature": "require \"example.com/quoted\" v0.1.0",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "directive": "require",
+        "indirect": false,
+        "version": "v0.1.0"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gomod/basic/go.mod:github.com/spf13/cobra:12:0",
+      "name": "github.com/spf13/cobra",
+      "kind": "import",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "start_line": 12,
+      "start_column": 0,
+      "end_line": 12,
+      "end_column": 37,
+      "start_byte": 221,
+      "end_byte": 258,
+      "body_span": {
+        "start_line": 12,
+        "start_column": 31,
+        "end_line": 12,
+        "end_column": 37,
+        "start_byte": 252,
+        "end_byte": 258
+      },
+      "body_hash": "85be615e818b2bd4d38fef33bc3dd93f",
+      "signature": "require github.com/spf13/cobra v1.8.0",
+      "doc_comment": "// Cobra drives the command line.",
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "directive": "require",
+        "indirect": false,
+        "version": "v1.8.0"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gomod/basic/go.mod:github.com/spf13/pflag:16:1",
+      "name": "github.com/spf13/pflag",
+      "kind": "import",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "start_line": 16,
+      "start_column": 1,
+      "end_line": 16,
+      "end_column": 30,
+      "start_byte": 299,
+      "end_byte": 328,
+      "body_span": {
+        "start_line": 16,
+        "start_column": 24,
+        "end_line": 16,
+        "end_column": 30,
+        "start_byte": 322,
+        "end_byte": 328
+      },
+      "body_hash": "c7db57ff8edf8bcb4191eda3cfd17799",
+      "signature": "require github.com/spf13/pflag v1.0.5 // indirect",
+      "doc_comment": "// pflag parses the flags.",
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "directive": "require",
+        "indirect": true,
+        "version": "v1.0.5"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gomod/basic/go.mod:go:7:0",
+      "name": "go",
+      "kind": "property",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 9,
+      "start_byte": 156,
+      "end_byte": 165,
+      "body_span": {
+        "start_line": 7,
+        "start_column": 3,
+        "end_line": 7,
+        "end_column": 9,
+        "start_byte": 159,
+        "end_byte": 165
+      },
+      "body_hash": "23dc38dcce197958f07df58469ac6fdd",
+      "signature": "go 1.22.0",
+      "doc_comment": "// The minimum Go version for this module.",
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "directive": "go"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gomod/basic/go.mod:golang.org/x/text:18:1",
+      "name": "golang.org/x/text",
+      "kind": "import",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "start_line": 18,
+      "start_column": 1,
+      "end_line": 18,
+      "end_column": 26,
+      "start_byte": 371,
+      "end_byte": 396,
+      "body_span": {
+        "start_line": 18,
+        "start_column": 19,
+        "end_line": 18,
+        "end_column": 26,
+        "start_byte": 389,
+        "end_byte": 396
+      },
+      "body_hash": "67907bb84e607b519ddf1322aafbde3f",
+      "signature": "require golang.org/x/text v0.14.0 // indirect",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "directive": "require",
+        "indirect": true,
+        "version": "v0.14.0"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gomod/basic/go.mod:golang.org/x/tools/cmd/stringer:45:0",
+      "name": "golang.org/x/tools/cmd/stringer",
+      "kind": "import",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "start_line": 45,
+      "start_column": 0,
+      "end_line": 45,
+      "end_column": 36,
+      "start_byte": 873,
+      "end_byte": 909,
+      "body_span": {
+        "start_line": 45,
+        "start_column": 5,
+        "end_line": 45,
+        "end_column": 36,
+        "start_byte": 878,
+        "end_byte": 909
+      },
+      "body_hash": "cbe536ae53081d097e3ca5bea942051c",
+      "signature": "tool golang.org/x/tools/cmd/stringer",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "directive": "tool"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gomod/basic/go.mod:toolchain:9:0",
+      "name": "toolchain",
+      "kind": "property",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "start_line": 9,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 18,
+      "start_byte": 167,
+      "end_byte": 185,
+      "body_span": {
+        "start_line": 9,
+        "start_column": 10,
+        "end_line": 9,
+        "end_column": 18,
+        "start_byte": 177,
+        "end_byte": 185
+      },
+      "body_hash": "e716ada7a9e9568f434be03c00c631d2",
+      "signature": "toolchain go1.22.4",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "directive": "toolchain"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [
+    {
+      "from_key": "fixtures/extraction/gomod/basic/go.mod:example.com/app:4:0",
+      "to_key": "fixtures/extraction/gomod/basic/go.mod:example.com/app/cmd/gen:48:1",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "line_number": 48,
+      "span": {
+        "start_line": 48,
+        "start_column": 1,
+        "end_line": 48,
+        "end_column": 24,
+        "start_byte": 919,
+        "end_byte": 942
+      },
+      "reference_site_is_exact": false,
+      "confidence": "1.000",
+      "metadata": {
+        "dependencyKind": "tool",
+        "dependencyName": "example.com/app/cmd/gen"
+      }
+    },
+    {
+      "from_key": "fixtures/extraction/gomod/basic/go.mod:example.com/app:4:0",
+      "to_key": "fixtures/extraction/gomod/basic/go.mod:example.com/quoted:17:1",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "line_number": 17,
+      "span": {
+        "start_line": 17,
+        "start_column": 1,
+        "end_line": 17,
+        "end_column": 28,
+        "start_byte": 342,
+        "end_byte": 369
+      },
+      "reference_site_is_exact": false,
+      "confidence": "1.000",
+      "metadata": {
+        "dependencyKind": "require",
+        "dependencyName": "example.com/quoted",
+        "indirect": false
+      }
+    },
+    {
+      "from_key": "fixtures/extraction/gomod/basic/go.mod:example.com/app:4:0",
+      "to_key": "fixtures/extraction/gomod/basic/go.mod:github.com/spf13/cobra:12:0",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "line_number": 12,
+      "span": {
+        "start_line": 12,
+        "start_column": 0,
+        "end_line": 12,
+        "end_column": 37,
+        "start_byte": 221,
+        "end_byte": 258
+      },
+      "reference_site_is_exact": false,
+      "confidence": "1.000",
+      "metadata": {
+        "dependencyKind": "require",
+        "dependencyName": "github.com/spf13/cobra",
+        "indirect": false
+      }
+    },
+    {
+      "from_key": "fixtures/extraction/gomod/basic/go.mod:example.com/app:4:0",
+      "to_key": "fixtures/extraction/gomod/basic/go.mod:github.com/spf13/pflag:16:1",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "line_number": 16,
+      "span": {
+        "start_line": 16,
+        "start_column": 1,
+        "end_line": 16,
+        "end_column": 30,
+        "start_byte": 299,
+        "end_byte": 328
+      },
+      "reference_site_is_exact": false,
+      "confidence": "1.000",
+      "metadata": {
+        "dependencyKind": "require",
+        "dependencyName": "github.com/spf13/pflag",
+        "indirect": true
+      }
+    },
+    {
+      "from_key": "fixtures/extraction/gomod/basic/go.mod:example.com/app:4:0",
+      "to_key": "fixtures/extraction/gomod/basic/go.mod:golang.org/x/text:18:1",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "line_number": 18,
+      "span": {
+        "start_line": 18,
+        "start_column": 1,
+        "end_line": 18,
+        "end_column": 26,
+        "start_byte": 371,
+        "end_byte": 396
+      },
+      "reference_site_is_exact": false,
+      "confidence": "1.000",
+      "metadata": {
+        "dependencyKind": "require",
+        "dependencyName": "golang.org/x/text",
+        "indirect": true
+      }
+    },
+    {
+      "from_key": "fixtures/extraction/gomod/basic/go.mod:example.com/app:4:0",
+      "to_key": "fixtures/extraction/gomod/basic/go.mod:golang.org/x/tools/cmd/stringer:45:0",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "line_number": 45,
+      "span": {
+        "start_line": 45,
+        "start_column": 0,
+        "end_line": 45,
+        "end_column": 36,
+        "start_byte": 873,
+        "end_byte": 909
+      },
+      "reference_site_is_exact": false,
+      "confidence": "1.000",
+      "metadata": {
+        "dependencyKind": "tool",
+        "dependencyName": "golang.org/x/tools/cmd/stringer"
+      }
+    }
+  ],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/gomod/basic/go.mod:example.com/app:4:0",
+      "callee_name": "../lib/go.mod",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "line_number": 25,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/gomod/basic/go.mod:example.com/app:4:0",
+      "callee_name": "./tools/go.mod",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "line_number": 26,
+      "confidence": "1.000"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gomod/basic/go.mod:example.com/app:4:0",
+        "callee_name": "../lib/go.mod",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/gomod/basic/go.mod",
+        "line_number": 25,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "../lib/go.mod",
+        "terminal_name": "go.mod",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "../lib/go.mod"
+      },
+      "caller_scope_key": "fixtures/extraction/gomod/basic/go.mod:example.com/app:4:0",
+      "span": null
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gomod/basic/go.mod:example.com/app:4:0",
+        "callee_name": "./tools/go.mod",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/gomod/basic/go.mod",
+        "line_number": 26,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "./tools/go.mod",
+        "terminal_name": "go.mod",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "./tools/go.mod"
+      },
+      "caller_scope_key": "fixtures/extraction/gomod/basic/go.mod:example.com/app:4:0",
+      "span": null
+    }
+  ],
+  "identifiers": [],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "gomod.exclude.v1",
+      "capture_name": "exclude",
+      "node_kind": "exclude_spec",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": null,
+      "start_line": 29,
+      "start_column": 0,
+      "end_line": 29,
+      "end_column": 33,
+      "start_byte": 615,
+      "end_byte": 648,
+      "confidence": "1.000",
+      "metadata": {
+        "module_path": "example.com/broken",
+        "pattern_version": 1,
+        "query_family": "dependencies",
+        "version": "v0.9.0"
+      }
+    },
+    {
+      "pattern_id": "gomod.exclude.v1",
+      "capture_name": "exclude",
+      "node_kind": "exclude_spec",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": null,
+      "start_line": 32,
+      "start_column": 1,
+      "end_line": 32,
+      "end_column": 23,
+      "start_byte": 661,
+      "end_byte": 683,
+      "confidence": "1.000",
+      "metadata": {
+        "module_path": "example.com/bad",
+        "pattern_version": 1,
+        "query_family": "dependencies",
+        "version": "v1.2.0"
+      }
+    },
+    {
+      "pattern_id": "gomod.exclude.v1",
+      "capture_name": "exclude",
+      "node_kind": "exclude_spec",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": null,
+      "start_line": 33,
+      "start_column": 1,
+      "end_line": 33,
+      "end_column": 23,
+      "start_byte": 685,
+      "end_byte": 707,
+      "confidence": "1.000",
+      "metadata": {
+        "module_path": "example.com/bad",
+        "pattern_version": 1,
+        "query_family": "dependencies",
+        "version": "v1.2.1"
+      }
+    },
+    {
+      "pattern_id": "gomod.go.v1",
+      "capture_name": "go",
+      "node_kind": "go_directive",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": "fixtures/extraction/gomod/basic/go.mod:go:7:0",
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 9,
+      "start_byte": 156,
+      "end_byte": 165,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "dependencies",
+        "version": "1.22.0"
+      }
+    },
+    {
+      "pattern_id": "gomod.ignore.v1",
+      "capture_name": "ignore",
+      "node_kind": "ignore_spec",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": null,
+      "start_line": 51,
+      "start_column": 0,
+      "end_line": 51,
+      "end_column": 21,
+      "start_byte": 946,
+      "end_byte": 967,
+      "confidence": "1.000",
+      "metadata": {
+        "path": "./node_modules",
+        "pattern_version": 1,
+        "query_family": "dependencies"
+      }
+    },
+    {
+      "pattern_id": "gomod.ignore.v1",
+      "capture_name": "ignore",
+      "node_kind": "ignore_spec",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": null,
+      "start_line": 54,
+      "start_column": 1,
+      "end_line": 54,
+      "end_column": 17,
+      "start_byte": 979,
+      "end_byte": 995,
+      "confidence": "1.000",
+      "metadata": {
+        "path": "./third_party/js",
+        "pattern_version": 1,
+        "query_family": "dependencies"
+      }
+    },
+    {
+      "pattern_id": "gomod.ignore.v1",
+      "capture_name": "ignore",
+      "node_kind": "ignore_spec",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": null,
+      "start_line": 55,
+      "start_column": 1,
+      "end_line": 55,
+      "end_column": 7,
+      "start_byte": 997,
+      "end_byte": 1003,
+      "confidence": "1.000",
+      "metadata": {
+        "path": "static",
+        "pattern_version": 1,
+        "query_family": "dependencies"
+      }
+    },
+    {
+      "pattern_id": "gomod.module.v1",
+      "capture_name": "module",
+      "node_kind": "module_directive",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": "fixtures/extraction/gomod/basic/go.mod:example.com/app:4:0",
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 22,
+      "start_byte": 89,
+      "end_byte": 111,
+      "confidence": "1.000",
+      "metadata": {
+        "deprecated": "use example.com/app/v2 instead.",
+        "module_path": "example.com/app",
+        "pattern_version": 1,
+        "query_family": "dependencies"
+      }
+    },
+    {
+      "pattern_id": "gomod.replace.v1",
+      "capture_name": "replace",
+      "node_kind": "replace_spec",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": null,
+      "start_line": 21,
+      "start_column": 0,
+      "end_line": 21,
+      "end_column": 56,
+      "start_byte": 440,
+      "end_byte": 496,
+      "confidence": "1.000",
+      "metadata": {
+        "local": false,
+        "module_path": "example.com/old",
+        "pattern_version": 1,
+        "query_family": "dependencies",
+        "replacement": "example.com/new",
+        "replacement_version": "v1.1.0",
+        "version": "v1.0.0"
+      }
+    },
+    {
+      "pattern_id": "gomod.replace.v1",
+      "capture_name": "replace",
+      "node_kind": "replace_spec",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": null,
+      "start_line": 25,
+      "start_column": 1,
+      "end_line": 25,
+      "end_column": 26,
+      "start_byte": 549,
+      "end_byte": 574,
+      "confidence": "1.000",
+      "metadata": {
+        "local": true,
+        "module_path": "example.com/lib",
+        "pattern_version": 1,
+        "query_family": "dependencies",
+        "replacement": "../lib"
+      }
+    },
+    {
+      "pattern_id": "gomod.replace.v1",
+      "capture_name": "replace",
+      "node_kind": "replace_spec",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": null,
+      "start_line": 26,
+      "start_column": 1,
+      "end_line": 26,
+      "end_column": 36,
+      "start_byte": 576,
+      "end_byte": 611,
+      "confidence": "1.000",
+      "metadata": {
+        "local": true,
+        "module_path": "example.com/tools",
+        "pattern_version": 1,
+        "query_family": "dependencies",
+        "replacement": "./tools",
+        "version": "v0.2.0"
+      }
+    },
+    {
+      "pattern_id": "gomod.retract.v1",
+      "capture_name": "retract",
+      "node_kind": "retract_spec",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": null,
+      "start_line": 37,
+      "start_column": 0,
+      "end_line": 37,
+      "end_column": 14,
+      "start_byte": 752,
+      "end_byte": 766,
+      "confidence": "1.000",
+      "metadata": {
+        "high": "v1.0.5",
+        "low": "v1.0.5",
+        "pattern_version": 1,
+        "query_family": "dependencies",
+        "range": false,
+        "rationale": "Remote-triggered crash in the parser."
+      }
+    },
+    {
+      "pattern_id": "gomod.retract.v1",
+      "capture_name": "retract",
+      "node_kind": "retract_spec",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": null,
+      "start_line": 41,
+      "start_column": 1,
+      "end_line": 41,
+      "end_column": 7,
+      "start_byte": 818,
+      "end_byte": 824,
+      "confidence": "1.000",
+      "metadata": {
+        "high": "v1.0.0",
+        "low": "v1.0.0",
+        "pattern_version": 1,
+        "query_family": "dependencies",
+        "range": false,
+        "rationale": "Published accidentally."
+      }
+    },
+    {
+      "pattern_id": "gomod.retract.v1",
+      "capture_name": "retract",
+      "node_kind": "retract_spec",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": null,
+      "start_line": 42,
+      "start_column": 1,
+      "end_line": 42,
+      "end_column": 17,
+      "start_byte": 853,
+      "end_byte": 869,
+      "confidence": "1.000",
+      "metadata": {
+        "high": "v1.0.4",
+        "low": "v1.0.1",
+        "pattern_version": 1,
+        "query_family": "dependencies",
+        "range": true,
+        "rationale": "Releases cut from the wrong branch."
+      }
+    },
+    {
+      "pattern_id": "gomod.tool.v1",
+      "capture_name": "tool",
+      "node_kind": "tool",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": "fixtures/extraction/gomod/basic/go.mod:example.com/app/cmd/gen:48:1",
+      "start_line": 48,
+      "start_column": 1,
+      "end_line": 48,
+      "end_column": 24,
+      "start_byte": 919,
+      "end_byte": 942,
+      "confidence": "1.000",
+      "metadata": {
+        "package_path": "example.com/app/cmd/gen",
+        "pattern_version": 1,
+        "query_family": "dependencies"
+      }
+    },
+    {
+      "pattern_id": "gomod.tool.v1",
+      "capture_name": "tool",
+      "node_kind": "tool",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": "fixtures/extraction/gomod/basic/go.mod:golang.org/x/tools/cmd/stringer:45:0",
+      "start_line": 45,
+      "start_column": 0,
+      "end_line": 45,
+      "end_column": 36,
+      "start_byte": 873,
+      "end_byte": 909,
+      "confidence": "1.000",
+      "metadata": {
+        "package_path": "golang.org/x/tools/cmd/stringer",
+        "pattern_version": 1,
+        "query_family": "dependencies"
+      }
+    },
+    {
+      "pattern_id": "gomod.toolchain.v1",
+      "capture_name": "toolchain",
+      "node_kind": "toolchain_directive",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": "fixtures/extraction/gomod/basic/go.mod:toolchain:9:0",
+      "start_line": 9,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 18,
+      "start_byte": 167,
+      "end_byte": 185,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "dependencies",
+        "toolchain": "go1.22.4"
+      }
+    },
+    {
+      "pattern_id": "manifest.dependency.v1",
+      "capture_name": "dependency",
+      "node_kind": "require_spec",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": "fixtures/extraction/gomod/basic/go.mod:example.com/quoted:17:1",
+      "start_line": 17,
+      "start_column": 1,
+      "end_line": 17,
+      "end_column": 28,
+      "start_byte": 342,
+      "end_byte": 369,
+      "confidence": "1.000",
+      "metadata": {
+        "ecosystem": "go",
+        "group": "require",
+        "indirect": false,
+        "name": "example.com/quoted",
+        "pattern_version": 1,
+        "query_family": "dependencies",
+        "version": "v0.1.0"
+      }
+    },
+    {
+      "pattern_id": "manifest.dependency.v1",
+      "capture_name": "dependency",
+      "node_kind": "require_spec",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": "fixtures/extraction/gomod/basic/go.mod:github.com/spf13/cobra:12:0",
+      "start_line": 12,
+      "start_column": 0,
+      "end_line": 12,
+      "end_column": 37,
+      "start_byte": 221,
+      "end_byte": 258,
+      "confidence": "1.000",
+      "metadata": {
+        "ecosystem": "go",
+        "group": "require",
+        "indirect": false,
+        "name": "github.com/spf13/cobra",
+        "pattern_version": 1,
+        "query_family": "dependencies",
+        "version": "v1.8.0"
+      }
+    },
+    {
+      "pattern_id": "manifest.dependency.v1",
+      "capture_name": "dependency",
+      "node_kind": "require_spec",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": "fixtures/extraction/gomod/basic/go.mod:github.com/spf13/pflag:16:1",
+      "start_line": 16,
+      "start_column": 1,
+      "end_line": 16,
+      "end_column": 30,
+      "start_byte": 299,
+      "end_byte": 328,
+      "confidence": "1.000",
+      "metadata": {
+        "ecosystem": "go",
+        "group": "require",
+        "indirect": true,
+        "name": "github.com/spf13/pflag",
+        "pattern_version": 1,
+        "query_family": "dependencies",
+        "version": "v1.0.5"
+      }
+    },
+    {
+      "pattern_id": "manifest.dependency.v1",
+      "capture_name": "dependency",
+      "node_kind": "require_spec",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": "fixtures/extraction/gomod/basic/go.mod:golang.org/x/text:18:1",
+      "start_line": 18,
+      "start_column": 1,
+      "end_line": 18,
+      "end_column": 26,
+      "start_byte": 371,
+      "end_byte": 396,
+      "confidence": "1.000",
+      "metadata": {
+        "ecosystem": "go",
+        "group": "require",
+        "indirect": true,
+        "name": "golang.org/x/text",
+        "pattern_version": 1,
+        "query_family": "dependencies",
+        "version": "v0.14.0"
+      }
+    }
+  ],
+  "complexity_metrics": [],
+  "literals": [
+    {
+      "literal_text": "example.com/quoted",
+      "kind": "other",
+      "carrier": "require.module_path",
+      "arg_position": 0,
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "start_line": 17,
+      "start_column": 1,
+      "end_line": 17,
+      "end_column": 21,
+      "start_byte": 342,
+      "end_byte": 362,
+      "containing_key": "fixtures/extraction/gomod/basic/go.mod:example.com/quoted:17:1",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "comment",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": null,
+      "start_line": 16,
+      "start_column": 31,
+      "end_line": 16,
+      "end_column": 42,
+      "start_byte": 329,
+      "end_byte": 340,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": null,
+      "start_line": 18,
+      "start_column": 27,
+      "end_line": 18,
+      "end_column": 66,
+      "start_byte": 397,
+      "end_byte": 436,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": null,
+      "start_line": 41,
+      "start_column": 8,
+      "end_line": 41,
+      "end_column": 34,
+      "start_byte": 825,
+      "end_byte": 851,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": "fixtures/extraction/gomod/basic/go.mod:example.com/app:4:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 38,
+      "start_byte": 0,
+      "end_byte": 38,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": "fixtures/extraction/gomod/basic/go.mod:example.com/app:4:0",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 2,
+      "start_byte": 39,
+      "end_byte": 41,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": "fixtures/extraction/gomod/basic/go.mod:example.com/app:4:0",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 46,
+      "start_byte": 42,
+      "end_byte": 88,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": "fixtures/extraction/gomod/basic/go.mod:github.com/spf13/cobra:12:0",
+      "start_line": 11,
+      "start_column": 0,
+      "end_line": 11,
+      "end_column": 33,
+      "start_byte": 187,
+      "end_byte": 220,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": "fixtures/extraction/gomod/basic/go.mod:github.com/spf13/pflag:16:1",
+      "start_line": 15,
+      "start_column": 1,
+      "end_line": 15,
+      "end_column": 27,
+      "start_byte": 271,
+      "end_byte": 297,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": "fixtures/extraction/gomod/basic/go.mod:go:7:0",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 42,
+      "start_byte": 113,
+      "end_byte": 155,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": null,
+      "start_line": 24,
+      "start_column": 1,
+      "end_line": 24,
+      "end_column": 39,
+      "start_byte": 509,
+      "end_byte": 547,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": null,
+      "start_line": 36,
+      "start_column": 0,
+      "end_line": 36,
+      "end_column": 40,
+      "start_byte": 711,
+      "end_byte": 751,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": null,
+      "start_line": 39,
+      "start_column": 0,
+      "end_line": 39,
+      "end_column": 38,
+      "start_byte": 768,
+      "end_byte": 806,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "gomod",
+      "file_path": "fixtures/extraction/gomod/basic/go.mod",
+      "containing_key": "fixtures/extraction/gomod/basic/go.mod:example.com/quoted:17:1",
+      "start_line": 17,
+      "start_column": 1,
+      "end_line": 17,
+      "end_column": 21,
+      "start_byte": 342,
+      "end_byte": 362,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

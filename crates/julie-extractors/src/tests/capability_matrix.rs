@@ -233,19 +233,12 @@ fn capability_matrix_matches_registry_entries() {
                 row.language
             );
             for fixture in &row.fixtures {
-                let basename = Path::new(&fixture.source)
-                    .file_name()
-                    .and_then(|name| name.to_str())
-                    .unwrap_or_else(|| {
-                        panic!(
-                            "{} fixture source must have a UTF-8 basename: {}",
-                            row.language, fixture.source
-                        )
-                    });
                 assert_eq!(
-                    basename, row.language,
-                    "{} fixture must use its basename-only language marker",
-                    row.language
+                    crate::language::detect_language_for_path(Path::new(&fixture.source), ""),
+                    Some(row.language.as_str()),
+                    "{} fixture {} must use a basename that selects the language",
+                    row.language,
+                    fixture.source
                 );
             }
         } else {
@@ -1190,8 +1183,8 @@ fn capability_matrix_has_no_silent_kind_coverage_cells() {
 
 #[test]
 fn capability_matrix_code_languages_require_resolved_test_detection() {
-    const DOMAIN_LANGUAGES: [&str; 9] = [
-        "css", "html", "json", "markdown", "regex", "sql", "toml", "xml", "yaml",
+    const DOMAIN_LANGUAGES: [&str; 10] = [
+        "css", "gomod", "html", "json", "markdown", "regex", "sql", "toml", "xml", "yaml",
     ];
 
     let root = workspace_root();

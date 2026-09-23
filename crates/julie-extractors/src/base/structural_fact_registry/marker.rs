@@ -5,6 +5,7 @@ const LANGUAGES: &[&str] = &[
     "c",
     "cpp",
     "go",
+    "gomod",
     "zig",
     "typescript",
     "tsx",

@@ -24,6 +24,7 @@ const EMBEDDED_LITERAL_CARRIER_POLICIES: &[(&str, &str)] = &[
     ("erlang", include_str!("../../../languages/erlang.toml")),
     ("gdscript", include_str!("../../../languages/gdscript.toml")),
     ("go", include_str!("../../../languages/go.toml")),
+    ("gomod", include_str!("../../../languages/gomod.toml")),
     ("html", include_str!("../../../languages/html.toml")),
     ("java", include_str!("../../../languages/java.toml")),
     ("json", include_str!("../../../languages/json.toml")),

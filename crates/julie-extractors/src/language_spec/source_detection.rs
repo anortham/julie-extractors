@@ -30,6 +30,9 @@ where
     if file_name.is_some_and(|name| name.eq_ignore_ascii_case("qmldir")) {
         return Ok(Some(("qmldir", None)));
     }
+    if file_name.is_some_and(|name| name.eq_ignore_ascii_case("go.mod")) {
+        return Ok(Some(("gomod", None)));
+    }
     if file_name.is_some_and(|name| RUBY_FILE_NAMES.contains(&name)) {
         return Ok(Some(("ruby", None)));
     }

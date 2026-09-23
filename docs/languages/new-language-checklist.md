@@ -44,9 +44,14 @@ that fail for any new language until they are updated:
 - Add a `comment_syntax` arm in `crates/julie-extractors/src/base/body.rs` so
   comments do not count toward `body_hash`. No guard forces this; a comment-only
   edit silently changes the hash without it.
-- Bump `open_reference_resolution_gaps` in
-  `crates/julie-extract-cli/tests/operations_contract.rs` by three — the runtime
-  emits three `reference_resolution.*` rows per language.
+- Raise the language counts that the suite pins: `registry_matches_supported_language_count`
+  in `registry.rs`, `test_all_languages_in_factory` in `factory.rs`,
+  `test_capability_snapshot_loads_all_languages`, and the module list in
+  `tests/api_surface.rs`.
+- For a language selected by exact basename with no extension (`qmldir`,
+  `gomod`), add it to the empty-extension check in
+  `crates/julie-extract-cli/tests/operations_contract.rs`, and name its
+  fixture sources with that basename.
 - For a data language (no language-native test constructs), add it to
   `DOMAIN_LANGUAGES` in `crates/julie-extractors/src/tests/capability_matrix.rs`.
   Guard: `capability_matrix_code_languages_require_resolved_test_detection`,

@@ -189,6 +189,11 @@ fn marker_language_matrix_covers_every_supported_comment_language() {
             source: "package main\n// TODO: marker\nfunc main() {}\n",
         },
         MarkerFixture {
+            language: "gomod",
+            file_path: "go.mod",
+            source: "module example.com/app\n// TODO: marker\ngo 1.22\n",
+        },
+        MarkerFixture {
             language: "zig",
             file_path: "src/main.zig",
             source: "// TODO: marker\npub fn main() void {}\n",

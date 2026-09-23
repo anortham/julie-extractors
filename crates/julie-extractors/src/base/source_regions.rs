@@ -183,6 +183,12 @@ fn collect_node(
             } else {
                 SourceRegionKind::Comment
             }
+        } else if language == "gomod" {
+            if crate::gomod::comment_documents_following_directive(content, node) {
+                SourceRegionKind::DocComment
+            } else {
+                SourceRegionKind::Comment
+            }
         } else if is_doc_comment(language, text.unwrap_or_default())
             && !is_erlang_plain_comment(language, node, text.unwrap_or_default())
         {
@@ -478,7 +484,7 @@ fn trailing_documented_symbol_id(region: &SourceRegion, symbols: &[Symbol]) -> O
 /// `doc_comment` holds that comment; any other doc comment is a plain comment
 /// of its enclosing symbol.
 fn documents_by_adjacency(language: &str) -> bool {
-    matches!(language, "css" | "html")
+    matches!(language, "css" | "gomod" | "html")
 }
 
 fn adjacent_documented_symbol_id(
@@ -992,6 +998,13 @@ fn config_for_language(language: &str) -> Option<RegionLanguageConfig> {
             comment_node_kinds: &["comment", "marginalia"],
             string_literal_node_kinds: &[],
             quoted_string_literal_node_kinds: &["literal"],
+            html_comment_node_kinds: &[],
+            embedded_node_kinds: &[],
+        }),
+        "gomod" => Some(RegionLanguageConfig {
+            comment_node_kinds: &["comment"],
+            string_literal_node_kinds: &[],
+            quoted_string_literal_node_kinds: &[],
             html_comment_node_kinds: &[],
             embedded_node_kinds: &[],
         }),

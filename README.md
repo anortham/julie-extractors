@@ -101,13 +101,13 @@ preserving usable rows from successful files.
 
 ## Supported languages
 
-The current `languages --json` capability snapshot reports 40 languages:
+The current `languages --json` capability snapshot reports 41 languages:
 
 ```text
 bash, c, cpp, csharp, css, dart, elixir, erlang, fsharp, gdscript, go,
-html, java, javascript, json, jsx, kotlin, lua, markdown, php, powershell,
-python, qml, qmldir, r, razor, regex, ruby, rust, scala, sql, swift, toml,
-tsx, typescript, vbnet, vue, xml, yaml, zig
+gomod, html, java, javascript, json, jsx, kotlin, lua, markdown, php,
+powershell, python, qml, qmldir, r, razor, regex, ruby, rust, scala, sql,
+swift, toml, tsx, typescript, vbnet, vue, xml, yaml, zig
 ```
 
 F# is extracted at the full capability tier and covers `.fs`, `.fsx`, and
@@ -123,7 +123,10 @@ event rows, and slots, invokables, and `QML_*` macros publish metadata — see
 nested object structure, binding facts, imports, and scoped relationships; QML
 JavaScript `.pragma` and `.import` directives are extracted from `.js` files —
 see [QML support](docs/languages/qml.md) and
-[JavaScript directives](docs/languages/javascript.md).
+[JavaScript directives](docs/languages/javascript.md). A `go.mod` file is
+extracted as `gomod`: the module, requirements, and tools become symbols and
+`Imports` edges, and every directive becomes a structural fact — see
+[Go module manifest support](docs/languages/gomod.md).
 
 Use `julie-extract languages --json` for the current parser and capability
 snapshot instead of hard-coding this list in consumers.

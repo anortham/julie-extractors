@@ -34,6 +34,14 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
         GO_DOCS,
     ),
     spec(
+        "gomod",
+        &[],
+        "tree-sitter-gomod",
+        PENDING_NO_TYPES_NO_IDENTIFIERS_CAPABILITIES,
+        parser_gomod,
+        EMPTY,
+    ),
+    spec(
         "zig",
         &["zig"],
         "tree-sitter-zig",

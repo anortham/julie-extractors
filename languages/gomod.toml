@@ -1,0 +1,7 @@
+# Artifact-owned extraction policy only. Do not add search, embedding, watcher, or scoring config here.
+# A quoted go.mod value is a module path, version, or file path, not a call argument, so every one is kept.
+[literal_carriers]
+retain_unclassified = true
+url = []
+sql = []
+route = []
