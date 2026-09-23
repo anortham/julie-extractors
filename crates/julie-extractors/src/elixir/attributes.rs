@@ -44,17 +44,98 @@ fn extract_attribute_call(
         "type" | "typep" | "opaque" => {
             extract_type_attribute(extractor, attr_node, call_node, parent_id, &attr_name)
         }
-        "callback" => extract_callback_attribute(extractor, attr_node, call_node, parent_id),
+        "callback" | "macrocallback" => {
+            extract_callback_attribute(extractor, attr_node, call_node, parent_id, &attr_name)
+        }
         "spec" => {
             extract_spec_attribute(extractor, call_node);
-            None // @spec doesn't create a standalone symbol
+            None
         }
         "behaviour" | "behavior" => {
             extract_behaviour_attribute(extractor, attr_node, call_node, parent_id)
         }
-        "moduledoc" | "doc" => None,
+        name if RESERVED_ATTRIBUTES.contains(&name) => None,
+        _ => extract_constant_attribute(extractor, attr_node, &attr_name, parent_id),
+    }
+}
+
+/// Attributes the compiler, ExUnit, or the typespec system reads. Every other
+/// `@name value` is a module constant.
+const RESERVED_ATTRIBUTES: &[&str] = &[
+    "doc",
+    "moduledoc",
+    "typedoc",
+    "impl",
+    "derive",
+    "enforce_keys",
+    "compile",
+    "deprecated",
+    "dialyzer",
+    "external_resource",
+    "file",
+    "on_definition",
+    "on_load",
+    "before_compile",
+    "after_compile",
+    "after_verify",
+    "vsn",
+    "optional_callbacks",
+    "nifs",
+    "tag",
+    "moduletag",
+    "describetag",
+];
+
+fn extract_constant_attribute(
+    extractor: &mut ElixirExtractor,
+    attr_node: &Node,
+    attr_name: &str,
+    parent_id: Option<&str>,
+) -> Option<Symbol> {
+    let mut symbol = extractor.base.create_symbol(
+        attr_node,
+        format!("@{attr_name}"),
+        SymbolKind::Constant,
+        SymbolOptions {
+            signature: Some(extractor.base.get_node_text(attr_node)),
+            visibility: Some(Visibility::Private),
+            parent_id: parent_id.map(String::from),
+            metadata: None,
+            doc_comment: None,
+            annotations: Vec::new(),
+        },
+    );
+    super::helpers::set_body_span(&extractor.base, &mut symbol, None);
+    Some(symbol)
+}
+
+/// The name node and parameter count of a typespec head: `result(t)` or the
+/// bare `count` of a zero-arity spec.
+fn typespec_head<'a>(base: &BaseExtractor, head: Node<'a>) -> Option<(String, usize)> {
+    match head.kind() {
+        "call" => {
+            let target = head.child_by_field_name("target")?;
+            let arity = find_child_by_type(&head, "arguments")
+                .map(|args| args.named_child_count())
+                .unwrap_or(0);
+            Some((base.get_node_text(&target), arity))
+        }
+        "identifier" => Some((base.get_node_text(&head), 0)),
         _ => None,
     }
+}
+
+/// The `head :: definition` operator of a typespec, looking past a trailing
+/// `when` constraint list.
+fn typespec_body<'a>(args: &Node<'a>) -> Option<Node<'a>> {
+    let mut body = args.named_child(0)?;
+    if body.kind() != "binary_operator" {
+        return None;
+    }
+    if body.child_by_field_name("operator")?.kind() == "when" {
+        body = body.child_by_field_name("left")?;
+    }
+    (body.child_by_field_name("operator")?.kind() == "::").then_some(body)
 }
 
 fn extract_type_attribute(
@@ -66,13 +147,8 @@ fn extract_type_attribute(
 ) -> Option<Symbol> {
     // NOTE: `arguments` is a child type, NOT a named field
     let args = find_child_by_type(call_node, "arguments")?;
-    let type_text = extractor.base.get_node_text(&args);
-
-    // Extract the type name (before ::)
-    let type_name = type_text.split("::").next()?.trim().to_string();
-    if type_name.is_empty() {
-        return None;
-    }
+    let body = typespec_body(&args)?;
+    let (type_name, arity) = typespec_head(&extractor.base, body.child_by_field_name("left")?)?;
 
     let visibility = if attr_name == "typep" {
         Visibility::Private
@@ -80,7 +156,7 @@ fn extract_type_attribute(
         Visibility::Public
     };
 
-    let signature = format!("@{} {}", attr_name, extractor.base.get_node_text(call_node));
+    let signature = format!("@{} {}", attr_name, extractor.base.get_node_text(&args));
     let annotations = normalize_annotations(&[extractor.base.get_node_text(attr_node)], "elixir");
 
     let mut symbol = extractor.base.create_symbol(
@@ -91,16 +167,16 @@ fn extract_type_attribute(
             signature: Some(signature),
             visibility: Some(visibility),
             parent_id: parent_id.map(String::from),
-            metadata: None,
+            metadata: Some(HashMap::from([("arity".to_string(), Value::from(arity))])),
             doc_comment: extract_doc_comment_for_node(&extractor.base, attr_node, "typedoc"),
             annotations,
         },
     );
-    let definition = args
-        .named_child(0)
-        .filter(|child| child.kind() == "binary_operator")
-        .and_then(|child| child.child_by_field_name("right"));
-    super::helpers::set_body_span(&extractor.base, &mut symbol, definition);
+    super::helpers::set_body_span(
+        &extractor.base,
+        &mut symbol,
+        body.child_by_field_name("right"),
+    );
     Some(symbol)
 }
 
@@ -109,21 +185,23 @@ fn extract_callback_attribute(
     attr_node: &Node,
     call_node: &Node,
     parent_id: Option<&str>,
+    attr_name: &str,
 ) -> Option<Symbol> {
     let args = find_child_by_type(call_node, "arguments")?;
-    let callback_text = extractor.base.get_node_text(&args);
+    let (callback_name, arity) = typespec_head(
+        &extractor.base,
+        typespec_body(&args)?.child_by_field_name("left")?,
+    )?;
 
-    // Extract callback name (before `(` or `::`)
-    let callback_name = callback_text.split(['(', ':']).next()?.trim().to_string();
-    if callback_name.is_empty() {
-        return None;
-    }
-
-    let signature = format!("@callback {}", extractor.base.get_node_text(call_node));
+    let signature = format!("@{attr_name} {}", extractor.base.get_node_text(&args));
     let annotations = normalize_annotations(&[extractor.base.get_node_text(attr_node)], "elixir");
 
     let mut metadata = HashMap::new();
     metadata.insert("callback".to_string(), Value::Bool(true));
+    metadata.insert("arity".to_string(), Value::from(arity));
+    if attr_name == "macrocallback" {
+        metadata.insert("macro".to_string(), Value::Bool(true));
+    }
 
     let mut symbol = extractor.base.create_symbol(
         attr_node,
@@ -142,27 +220,28 @@ fn extract_callback_attribute(
     Some(symbol)
 }
 
+/// Record the return type of a `@spec` under its module, name, and arity, so
+/// only the definition with the matching head takes it.
 fn extract_spec_attribute(extractor: &mut ElixirExtractor, call_node: &Node) {
-    let Some(args) = find_child_by_type(call_node, "arguments") else {
+    let Some(body) = find_child_by_type(call_node, "arguments").and_then(|a| typespec_body(&a))
+    else {
         return;
     };
-    let spec_text = extractor.base.get_node_text(&args);
-
-    // Extract function name from spec text (before the `(`)
-    let fn_name = spec_text
-        .split('(')
-        .next()
-        .map(|s| s.trim().to_string())
-        .unwrap_or_default();
-
-    if !fn_name.is_empty() {
-        // Store the return type (after ::)
-        if let Some(return_type) = spec_text.split("::").last() {
-            extractor
-                .specs
-                .insert(fn_name, return_type.trim().to_string());
-        }
+    let (Some(head), Some(return_type)) = (
+        body.child_by_field_name("left"),
+        body.child_by_field_name("right"),
+    ) else {
+        return;
+    };
+    if return_type.kind() == "identifier" {
+        return;
     }
+    let Some((name, arity)) = typespec_head(&extractor.base, head) else {
+        return;
+    };
+    let module = extractor.module_stack.last().cloned();
+    let return_type = extractor.base.get_node_text(&return_type);
+    extractor.specs.insert((module, name, arity), return_type);
 }
 
 fn extract_behaviour_attribute(

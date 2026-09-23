@@ -3,6 +3,7 @@
 //!
 //! Silence (design §4.4, M2): only static string/charlist URLs produce a fact.
 
+use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 use super::super::helpers::{child_of_kind, node_text};
@@ -16,6 +17,7 @@ struct ElixirClientRequest<'a> {
     target_path: &'a str,
     verb: &'static str,
     verb_source: &'static str,
+    base_url: Option<&'a str>,
 }
 
 fn verb_for_method(method: &str) -> Option<&'static str> {
@@ -33,8 +35,8 @@ pub(super) fn collect_elixir_http_client_requests(
     file_path: &str,
     content: &str,
 ) -> Vec<StructuralFact> {
-    let req = content.contains("Req.");
-    let tesla = content.contains("Tesla.");
+    let req = content.contains("Req");
+    let tesla = content.contains("Tesla");
     let httpoison = content.contains("HTTPoison.");
     let finch = content.contains("Finch.");
     let httpc = content.contains(":httpc.");
@@ -42,8 +44,15 @@ pub(super) fn collect_elixir_http_client_requests(
         return Vec::new();
     }
     let mut facts = Vec::new();
+    let mut aliases = HashMap::new();
+    collect_aliases(tree.root_node(), content, 0, &mut aliases);
+    let context = ClientContext {
+        aliases,
+        tesla_module: None,
+    };
     walk(
         tree.root_node(),
+        &context,
         language,
         tree,
         file_path,
@@ -54,8 +63,130 @@ pub(super) fn collect_elixir_http_client_requests(
     facts
 }
 
+/// What a request call needs from its surroundings: the file's `alias`
+/// declarations, to resolve a receiver to its real module, and the enclosing
+/// `use Tesla` module with its `Tesla.Middleware.BaseUrl` plug, if any.
+#[derive(Clone)]
+struct ClientContext<'a> {
+    aliases: HashMap<&'a str, String>,
+    tesla_module: Option<Option<&'a str>>,
+}
+
+impl ClientContext<'_> {
+    /// The full module name a receiver alias stands for.
+    fn resolve(&self, receiver: &str) -> String {
+        let (head, rest) = receiver
+            .split_once('.')
+            .map_or((receiver, None), |(head, rest)| (head, Some(rest)));
+        match (self.aliases.get(head), rest) {
+            (Some(full), Some(rest)) => format!("{full}.{rest}"),
+            (Some(full), None) => full.clone(),
+            (None, _) => receiver.to_string(),
+        }
+    }
+}
+
+// ponytail: aliases are collected file-wide, not per lexical scope; two
+// modules in one file that alias the same name differently can misresolve.
+fn collect_aliases<'a>(
+    node: Node,
+    content: &'a str,
+    depth: u32,
+    aliases: &mut HashMap<&'a str, String>,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    if let Some(arguments) = bare_call_arguments(node, content, "alias") {
+        let module = first_positional_arg(arguments)
+            .filter(|arg| arg.kind() == "alias")
+            .and_then(|arg| node_text(content, arg));
+        if let Some(module) = module {
+            let local = keyword_value(arguments, "as", content)
+                .filter(|value| value.kind() == "alias")
+                .and_then(|value| node_text(content, value))
+                .or_else(|| module.rsplit('.').next());
+            if let Some(local) = local {
+                aliases.insert(local, module.to_string());
+            }
+        }
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_aliases(child, content, child_depth, aliases);
+    }
+}
+
+/// The arguments of a bare `name ...` call, such as `alias X` or `use Tesla`.
+fn bare_call_arguments<'a>(node: Node<'a>, content: &str, name: &str) -> Option<Node<'a>> {
+    if node.kind() != "call" {
+        return None;
+    }
+    let target = node.child_by_field_name("target")?;
+    if target.kind() != "identifier" || node_text(content, target)? != name {
+        return None;
+    }
+    child_of_kind(node, "arguments")
+}
+
+fn keyword_value<'a>(arguments: Node<'a>, key: &str, content: &str) -> Option<Node<'a>> {
+    let mut cursor = arguments.walk();
+    let keywords = arguments
+        .named_children(&mut cursor)
+        .find(|child| child.kind() == "keywords")?;
+    let mut pair_cursor = keywords.walk();
+    keywords
+        .named_children(&mut pair_cursor)
+        .find(|pair| {
+            pair.child_by_field_name("key")
+                .and_then(|k| node_text(content, k))
+                .is_some_and(|text| text.trim().trim_end_matches(':').trim() == key)
+        })
+        .and_then(|pair| pair.child_by_field_name("value"))
+}
+
+/// For a `defmodule` whose body `use`s Tesla, the static URL of its
+/// `plug Tesla.Middleware.BaseUrl, "..."`: `Some(None)` when the module has no
+/// such plug, `None` when the module is not a Tesla client.
+fn tesla_module_base_url<'a>(
+    node: Node,
+    context: &ClientContext,
+    content: &'a str,
+) -> Option<Option<&'a str>> {
+    bare_call_arguments(node, content, "defmodule")?;
+    let body = child_of_kind(node, "do_block")?;
+    let mut cursor = body.walk();
+    let statements: Vec<Node> = body.named_children(&mut cursor).collect();
+    let uses_tesla = statements.iter().any(|statement| {
+        bare_call_arguments(*statement, content, "use")
+            .and_then(first_positional_arg)
+            .and_then(|arg| node_text(content, arg))
+            .is_some_and(|module| context.resolve(module) == "Tesla")
+    });
+    if !uses_tesla {
+        return None;
+    }
+    Some(statements.iter().find_map(|statement| {
+        let arguments = bare_call_arguments(*statement, content, "plug")?;
+        let middleware = node_text(content, first_positional_arg(arguments)?)?;
+        if context.resolve(middleware) != "Tesla.Middleware.BaseUrl" {
+            return None;
+        }
+        static_route_arg(
+            nth_positional_arg(arguments, 1)?,
+            content,
+            StaticArgLang::Elixir,
+        )
+    }))
+}
+
+#[allow(clippy::too_many_arguments)]
 fn walk(
     node: Node,
+    context: &ClientContext,
     language: &str,
     tree: &Tree,
     file_path: &str,
@@ -67,9 +198,24 @@ fn walk(
         return;
     }
 
+    let mut inner = None;
+    if let Some(base_url) = tesla_module_base_url(node, context, content) {
+        let mut tesla = context.clone();
+        tesla.tesla_module = Some(base_url);
+        inner = Some(tesla);
+    }
+    let context = inner.as_ref().unwrap_or(context);
+
     if node.kind() == "call"
-        && let Some(req) = classify_call(node, content)
-        && let Some(fact) = client_fact(
+        && let Some(req) = classify_call(node, context, content)
+    {
+        let target_path = match (&req.base_url, req.target_path.starts_with('/')) {
+            (Some(base_url), true) => {
+                format!("{}{}", base_url.trim_end_matches('/'), req.target_path)
+            }
+            _ => req.target_path.to_string(),
+        };
+        if let Some(fact) = client_fact(
             language,
             tree,
             file_path,
@@ -77,13 +223,13 @@ fn walk(
             node.start_byte(),
             node.end_byte(),
             req.client,
-            req.target_path,
+            &target_path,
             req.verb,
             req.verb_source,
             None,
-        )
-    {
-        facts.push(fact);
+        ) {
+            facts.push(fact);
+        }
     }
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
@@ -93,6 +239,7 @@ fn walk(
     for child in node.children(&mut cursor) {
         walk(
             child,
+            context,
             language,
             tree,
             file_path,
@@ -103,14 +250,53 @@ fn walk(
     }
 }
 
-fn classify_call<'a>(call: Node<'_>, content: &'a str) -> Option<ElixirClientRequest<'a>> {
-    if let Some(r) = module_client_request(call, content) {
+fn classify_call<'a>(
+    call: Node<'_>,
+    context: &ClientContext<'a>,
+    content: &'a str,
+) -> Option<ElixirClientRequest<'a>> {
+    if let Some(r) = module_client_request(call, context, content) {
+        return Some(r);
+    }
+    if let Some(r) = tesla_module_request(call, context, content) {
         return Some(r);
     }
     httpc_request(call, content)
 }
 
-fn module_client_request<'a>(call: Node<'_>, content: &'a str) -> Option<ElixirClientRequest<'a>> {
+/// A bare `get("/path")` inside a `use Tesla` module, joined to the module's
+/// `BaseUrl` plug.
+fn tesla_module_request<'a>(
+    call: Node<'_>,
+    context: &ClientContext<'a>,
+    content: &'a str,
+) -> Option<ElixirClientRequest<'a>> {
+    let base_url = context.tesla_module?;
+    let target = call.child_by_field_name("target")?;
+    if target.kind() != "identifier" {
+        return None;
+    }
+    let verb = verb_for_method(node_text(content, target)?)?;
+    let arguments = child_of_kind(call, "arguments")?;
+    let target_path = static_route_arg(
+        first_positional_arg(arguments)?,
+        content,
+        StaticArgLang::Elixir,
+    )?;
+    Some(ElixirClientRequest {
+        client: "tesla",
+        target_path,
+        verb,
+        verb_source: "attested",
+        base_url,
+    })
+}
+
+fn module_client_request<'a>(
+    call: Node<'_>,
+    context: &ClientContext<'a>,
+    content: &'a str,
+) -> Option<ElixirClientRequest<'a>> {
     let target = call.child_by_field_name("target")?;
     if target.kind() != "dot" {
         return None;
@@ -119,11 +305,11 @@ fn module_client_request<'a>(call: Node<'_>, content: &'a str) -> Option<ElixirC
     if module.kind() != "alias" {
         return None;
     }
-    let module_name = node_text(content, module)?;
+    let module_name = context.resolve(node_text(content, module)?);
     let method = node_text(content, target.child_by_field_name("right")?)?;
     let arguments = child_of_kind(call, "arguments")?;
 
-    match module_name {
+    match module_name.as_str() {
         "Req" => {
             let verb = verb_for_method(method)?;
             let url_argument = first_positional_arg(arguments)?;
@@ -133,6 +319,7 @@ fn module_client_request<'a>(call: Node<'_>, content: &'a str) -> Option<ElixirC
                 target_path,
                 verb,
                 verb_source: "attested",
+                base_url: None,
             })
         }
         "Tesla" => tesla_request(method, arguments, content),
@@ -157,6 +344,7 @@ fn tesla_request<'a>(
             target_path: path,
             verb,
             verb_source: "attested",
+            base_url: None,
         });
     }
     let arg1 = nth_positional_arg(arguments, 1)?;
@@ -166,6 +354,7 @@ fn tesla_request<'a>(
         target_path: path,
         verb,
         verb_source: "attested",
+        base_url: None,
     })
 }
 
@@ -185,6 +374,7 @@ fn httpoison_request<'a>(
             target_path,
             verb,
             verb_source: "attested",
+            base_url: None,
         });
     }
     let verb = verb_for_method(method)?;
@@ -195,6 +385,7 @@ fn httpoison_request<'a>(
         target_path,
         verb,
         verb_source: "attested",
+        base_url: None,
     })
 }
 
@@ -215,6 +406,7 @@ fn finch_request<'a>(
         target_path,
         verb,
         verb_source: "attested",
+        base_url: None,
     })
 }
 
@@ -242,6 +434,7 @@ fn httpc_request<'a>(call: Node<'_>, content: &'a str) -> Option<ElixirClientReq
             target_path: path,
             verb: "GET",
             verb_source: "default",
+            base_url: None,
         });
     }
     // :httpc.request(method, {url, headers}, ...)
@@ -257,6 +450,7 @@ fn httpc_request<'a>(call: Node<'_>, content: &'a str) -> Option<ElixirClientReq
         target_path,
         verb,
         verb_source: "attested",
+        base_url: None,
     })
 }
 

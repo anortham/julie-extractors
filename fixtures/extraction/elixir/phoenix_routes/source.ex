@@ -20,6 +20,17 @@ defmodule MyAppWeb.Router do
     end
 
     forward "/health", HealthPlug
+
+    resources "/users", UserController, only: [:index] do
+      resources "/posts", PostController
+      get "/avatar", AvatarController, :show
+    end
+
+    live "/dashboard", DashboardLive.Index, :index
+  end
+
+  scope path: "/beta", alias: MyAppWeb.Beta do
+    get "/feature", FeatureController, :index
   end
 
   # Dynamic route args are silent (M2 silence): interpolation, concatenation,

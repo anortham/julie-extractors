@@ -17,6 +17,105 @@ pub(super) fn extract_call_target_name(base: &BaseExtractor, node: &Node) -> Opt
     }
 }
 
+/// Control-flow and quoting forms that parse as calls but name no function:
+/// the `Kernel.SpecialForms` constructs plus the `if`/`unless` macros.
+pub(super) fn is_special_form(name: &str) -> bool {
+    matches!(
+        name,
+        "if" | "unless"
+            | "case"
+            | "cond"
+            | "with"
+            | "for"
+            | "try"
+            | "receive"
+            | "fn"
+            | "quote"
+            | "unquote"
+            | "unquote_splicing"
+            | "super"
+            | "__block__"
+            | "__aliases__"
+    )
+}
+
+/// True when `node` is the operand of a `@` module attribute.
+pub(super) fn is_attribute_operand(base: &BaseExtractor, node: &Node) -> bool {
+    node.parent().is_some_and(|parent| {
+        parent.kind() == "unary_operator"
+            && parent
+                .child_by_field_name("operator")
+                .is_some_and(|op| base.get_node_text(&op) == "@")
+    })
+}
+
+/// True when `node` is the function name of a local capture `&name/arity`.
+pub(super) fn is_local_capture(base: &BaseExtractor, node: &Node) -> bool {
+    capture_arity(base, node).is_some()
+}
+
+/// The arity of a capture `&name/arity` or `&Mod.name/arity` whose function
+/// part is `node`.
+pub(super) fn capture_arity(base: &BaseExtractor, node: &Node) -> Option<usize> {
+    let slash = node.parent()?;
+    if slash.kind() != "binary_operator"
+        || slash.child_by_field_name("left")?.id() != node.id()
+        || slash.child_by_field_name("operator")?.kind() != "/"
+    {
+        return None;
+    }
+    let capture = slash.parent()?;
+    if capture.kind() != "unary_operator" || capture.child_by_field_name("operator")?.kind() != "&"
+    {
+        return None;
+    }
+    base.get_node_text(&slash.child_by_field_name("right")?)
+        .parse()
+        .ok()
+}
+
+/// The callbacks an ExUnit `setup :name` or `setup [:a, :b]` names, with the
+/// atom node of each.
+pub(super) fn setup_callbacks<'a>(
+    base: &BaseExtractor,
+    node: &Node<'a>,
+) -> Vec<(Node<'a>, String)> {
+    if !matches!(
+        extract_call_target_name(base, node).as_deref(),
+        Some("setup" | "setup_all")
+    ) {
+        return Vec::new();
+    }
+    let Some(args) = find_child_by_type(node, "arguments") else {
+        return Vec::new();
+    };
+    let mut atoms = Vec::new();
+    let mut cursor = args.walk();
+    for arg in args.named_children(&mut cursor) {
+        match arg.kind() {
+            "atom" => atoms.push(arg),
+            "list" => {
+                let mut list_cursor = arg.walk();
+                atoms.extend(
+                    arg.named_children(&mut list_cursor)
+                        .filter(|item| item.kind() == "atom"),
+                );
+            }
+            _ => {}
+        }
+    }
+    atoms
+        .into_iter()
+        .map(|atom| {
+            let name = base
+                .get_node_text(&atom)
+                .trim_start_matches(':')
+                .to_string();
+            (atom, name)
+        })
+        .collect()
+}
+
 /// Extract module name from the first argument of defmodule.
 /// The `arguments` node is a child type, NOT a named field.
 pub(super) fn extract_module_name(base: &BaseExtractor, node: &Node) -> Option<String> {
@@ -142,6 +241,36 @@ pub(super) fn extract_impl_protocol_name(base: &BaseExtractor, node: &Node) -> O
     None
 }
 
+/// The types a `defimpl ..., for:` names: one alias, or each alias of a list.
+pub(super) fn impl_for_types(base: &BaseExtractor, node: &Node) -> Option<Vec<String>> {
+    let args = find_child_by_type(node, "arguments")?;
+    let mut cursor = args.walk();
+    let keywords = args
+        .named_children(&mut cursor)
+        .find(|child| child.kind() == "keywords")?;
+    let value = keyword_pair_value(base, &keywords, "for")?;
+    if value.kind() == "list" {
+        let mut list_cursor = value.walk();
+        return Some(
+            value
+                .named_children(&mut list_cursor)
+                .map(|item| base.get_node_text(&item))
+                .collect(),
+        );
+    }
+    Some(vec![base.get_node_text(&value)])
+}
+
+/// The module a `defimpl` defines: `Protocol.Type`, or the multi-alias form
+/// `Protocol.{A, B}` for a list of types.
+pub(super) fn impl_name(protocol: &str, for_types: &[String]) -> String {
+    match for_types {
+        [] => protocol.to_string(),
+        [single] => format!("{protocol}.{single}"),
+        many => format!("{protocol}.{{{}}}", many.join(", ")),
+    }
+}
+
 /// Struct field names from a defstruct/defexception argument list, each with
 /// the node that declares it: `:name` atoms of the list form and the keys of
 /// the keyword form. Default values are never fields.
@@ -249,13 +378,31 @@ pub(super) fn is_elixir_parameterized_type_call(node: &Node) -> bool {
     let Some(target) = node.child_by_field_name("target") else {
         return false;
     };
-    if target.kind() != "identifier" {
+    if type_application_name_node(&target).is_none() {
         return false;
     }
     let Some(args) = find_child_by_type(node, "arguments") else {
         return false;
     };
     elixir_args_has_type_param_call(&args)
+}
+
+/// The name node of a type application target: `list` in `list(t)`, or `t`
+/// in the remote form `Enumerable.t(t)`.
+pub(super) fn type_application_name_node<'a>(target: &Node<'a>) -> Option<Node<'a>> {
+    match target.kind() {
+        "identifier" => Some(*target),
+        "dot"
+            if target
+                .child_by_field_name("left")
+                .is_some_and(|left| left.kind() == "alias") =>
+        {
+            target
+                .child_by_field_name("right")
+                .filter(|right| right.kind() == "identifier")
+        }
+        _ => None,
+    }
 }
 
 fn elixir_args_has_type_param_call(args: &Node) -> bool {
@@ -286,6 +433,33 @@ pub(super) fn definition_head_argument<'a>(
         return None;
     }
     find_child_by_type(node, "arguments")?.named_child(0)
+}
+
+/// Arity range of a definition node: defaults (`\\`) make parameters optional.
+pub(super) fn definition_arity(base: &BaseExtractor, node: &Node) -> (usize, usize) {
+    let Some(mut head) = definition_head_argument(base, node) else {
+        return (0, usize::MAX);
+    };
+    if head.kind() == "binary_operator"
+        && let Some(left) = head.child_by_field_name("left")
+    {
+        head = left;
+    }
+    let Some(args) = find_child_by_type(&head, "arguments") else {
+        return (0, 0);
+    };
+    let mut cursor = args.walk();
+    let params: Vec<Node> = args.named_children(&mut cursor).collect();
+    let defaults = params
+        .iter()
+        .filter(|param| {
+            param.kind() == "binary_operator"
+                && param
+                    .child_by_field_name("operator")
+                    .is_some_and(|op| op.kind() == "\\\\")
+        })
+        .count();
+    (params.len() - defaults, params.len())
 }
 
 /// True when `node` is the function-head call of a definition (`run(id)` in

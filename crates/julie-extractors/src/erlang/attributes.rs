@@ -61,6 +61,11 @@ pub(super) fn extract_record(
     let signature = attribute_signature(&extractor.base, node);
     let doc_comment = super::doc::doc_for(extractor, node);
     let annotations = super::doc::annotations_for(extractor, node);
+    let visibility = if extractor.is_header || extractor.exported_records.contains(&name) {
+        Visibility::Public
+    } else {
+        Visibility::Private
+    };
 
     let record = super::doc::keep_doc(
         extractor.base.create_symbol(
@@ -69,7 +74,7 @@ pub(super) fn extract_record(
             SymbolKind::Struct,
             SymbolOptions {
                 signature: Some(signature),
-                visibility: Some(Visibility::Private),
+                visibility: Some(visibility.clone()),
                 parent_id: parent_id.map(String::from),
                 metadata: None,
                 doc_comment: doc_comment.clone(),
@@ -83,33 +88,52 @@ pub(super) fn extract_record(
     symbols.push(record);
 
     for field in child_named_kinds(node, "record_field") {
-        if let Some(symbol) = extract_record_field(extractor, &field, &record_id) {
+        if let Some(symbol) = extract_record_field(extractor, &field, &record_id, &visibility) {
             symbols.push(symbol);
         }
     }
 }
 
+/// A record field, with the base type its `:: Type` annotation declares as a
+/// type fact.
 fn extract_record_field(
     extractor: &mut ErlangExtractor,
     node: &Node,
     record_id: &str,
+    visibility: &Visibility,
 ) -> Option<Symbol> {
     let name = first_atom_text(&extractor.base, node)?;
     let signature = attribute_signature(&extractor.base, node);
 
-    Some(extractor.base.create_symbol(
+    let symbol = extractor.base.create_symbol(
         node,
         name,
         SymbolKind::Field,
         SymbolOptions {
             signature: Some(signature),
-            visibility: Some(Visibility::Private),
+            visibility: Some(visibility.clone()),
             parent_id: Some(record_id.to_string()),
             metadata: None,
             doc_comment: None,
             annotations: Vec::new(),
         },
-    ))
+    );
+    if let Some(declared) = node
+        .child_by_field_name("ty")
+        .and_then(|field_type| field_type.named_child(0))
+        .and_then(|declared| super::types::base_type_name(&extractor.base, &declared))
+    {
+        super::type_facts::record_record_fact(&mut extractor.base, &symbol.id, &declared, false);
+    }
+    Some(symbol)
+}
+
+fn declaration_visibility(extractor: &ErlangExtractor) -> Visibility {
+    if extractor.is_header {
+        Visibility::Public
+    } else {
+        Visibility::Private
+    }
 }
 
 pub(super) fn extract_macro(
@@ -143,7 +167,7 @@ pub(super) fn extract_macro(
             SymbolKind::Constant,
             SymbolOptions {
                 signature: Some(signature),
-                visibility: Some(Visibility::Private),
+                visibility: Some(declaration_visibility(extractor)),
                 parent_id: parent_id.map(String::from),
                 metadata: Some(metadata),
                 doc_comment: doc_comment.clone(),
@@ -165,17 +189,22 @@ pub(super) fn extract_type(
         .map(|args| arg_count(&args))
         .unwrap_or(0);
 
-    let opaque = node.kind() == "opaque";
     let visibility = if extractor.exported_types.contains(&(name.clone(), arity)) {
         Visibility::Public
     } else {
-        Visibility::Private
+        declaration_visibility(extractor)
     };
 
     let mut metadata = HashMap::new();
     metadata.insert("arity".to_string(), Value::Number(arity.into()));
-    if opaque {
-        metadata.insert("opaque".to_string(), Value::Bool(true));
+    match node.kind() {
+        "opaque" => {
+            metadata.insert("opaque".to_string(), Value::Bool(true));
+        }
+        "nominal" => {
+            metadata.insert("nominal".to_string(), Value::Bool(true));
+        }
+        _ => {}
     }
 
     let signature = attribute_signature(&extractor.base, node);

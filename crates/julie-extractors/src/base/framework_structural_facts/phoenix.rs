@@ -29,7 +29,12 @@
 //! `scope` prefix flows only into `route_group_prefix`/`effective_route_template`
 //! on the routes it governs, exactly like the Rails `scope`.
 //!
-//! Documented exclusions (emit nothing): `pipe_through`, `live`, `socket`, and
+//! `live "/path", SomeLive, :action` is a GET route to a LiveView module
+//! (`handler_kind` `live_view`). A `resources` block prefixes its nested
+//! routes with the member path `/users/:user_id`. Scope aliases qualify the
+//! controller into `controller_module`.
+//!
+//! Documented exclusions (emit nothing): `pipe_through`, `socket`, and
 //! `channel` router macros, and cross-file `scope`/router prefixes — recorded as
 //! `open_gaps` on the elixir capability row.
 
@@ -70,7 +75,7 @@ pub(super) fn collect_phoenix_routes(
     let mut facts = Vec::new();
     walk(
         tree.root_node(),
-        &[],
+        &RouterScope::default(),
         language,
         tree,
         file_path,
@@ -89,7 +94,7 @@ pub(super) fn collect_phoenix_routes(
 #[allow(clippy::too_many_arguments)]
 fn walk(
     node: Node,
-    prefix_stack: &[Option<String>],
+    scope: &RouterScope,
     language: &str,
     tree: &Tree,
     file_path: &str,
@@ -102,39 +107,13 @@ fn walk(
     }
 
     if try_scope(
-        node,
-        prefix_stack,
-        language,
-        tree,
-        file_path,
-        content,
-        depth,
-        facts,
-    ) || try_route(
-        node,
-        prefix_stack,
-        language,
-        tree,
-        file_path,
-        content,
-        facts,
-    ) || try_resource(
-        node,
-        prefix_stack,
-        language,
-        tree,
-        file_path,
-        content,
-        facts,
-    ) || try_forward(
-        node,
-        prefix_stack,
-        language,
-        tree,
-        file_path,
-        content,
-        facts,
-    ) {
+        node, scope, language, tree, file_path, content, depth, facts,
+    ) || try_route(node, scope, language, tree, file_path, content, facts)
+        || try_resource(
+            node, scope, language, tree, file_path, content, depth, facts,
+        )
+        || try_forward(node, scope, language, tree, file_path, content, facts)
+    {
         return;
     }
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -145,7 +124,7 @@ fn walk(
     for child in node.children(&mut cursor) {
         walk(
             child,
-            prefix_stack,
+            scope,
             language,
             tree,
             file_path,
@@ -168,7 +147,7 @@ fn walk(
 #[allow(clippy::too_many_arguments)]
 fn try_scope(
     node: Node,
-    prefix_stack: &[Option<String>],
+    scope: &RouterScope,
     language: &str,
     tree: &Tree,
     file_path: &str,
@@ -185,18 +164,30 @@ fn try_scope(
         return false;
     };
 
-    let mut new_stack = prefix_stack.to_vec();
-    // The prefix is the first positional argument only when it is a static
-    // string/sigil/charlist. An alias-only (`scope MyAppWeb do`) or options-only
-    // (`scope host: "x" do`) scope has no positional path arg0 and adds no
-    // segment; an interpolated path poisons the stack.
-    if let Some(arg0) = first_positional_arg(node)
-        && is_string_arg_kind(arg0)
-    {
-        match static_route_arg(arg0, content, StaticArgLang::Elixir) {
-            Some(prefix) => new_stack.push(Some(prefix.to_string())),
-            None => new_stack.push(None),
-        }
+    let mut inner = scope.clone();
+    // The prefix is the positional path argument or the `path:` option when it
+    // is a static string/sigil/charlist; an interpolated path poisons the
+    // stack. A scope with neither (`scope host: "x" do`) adds no segment. The
+    // module alias is the positional alias after the path or the `alias:`
+    // option; nested scope aliases concatenate.
+    let args = positional_args(node);
+    let path = args
+        .first()
+        .copied()
+        .filter(|arg| is_string_arg_kind(*arg))
+        .or_else(|| keyword_arg(node, "path", content).filter(|arg| is_string_arg_kind(*arg)));
+    if let Some(path) = path {
+        inner
+            .prefixes
+            .push(static_route_arg(path, content, StaticArgLang::Elixir).map(str::to_string));
+    }
+    let alias = args
+        .get(1)
+        .copied()
+        .or_else(|| keyword_arg(node, "alias", content))
+        .and_then(|arg| alias_text(arg, content));
+    if let Some(alias) = alias {
+        inner.aliases.push(alias);
     }
 
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -207,7 +198,7 @@ fn try_scope(
     for child in block.children(&mut cursor) {
         walk(
             child,
-            &new_stack,
+            &inner,
             language,
             tree,
             file_path,
@@ -232,6 +223,7 @@ fn verb_for_macro(macro_name: &str) -> Option<&'static str> {
         "delete" => Some("DELETE"),
         "head" => Some("HEAD"),
         "options" => Some("OPTIONS"),
+        "live" => Some("GET"),
         _ => None,
     }
 }
@@ -242,7 +234,7 @@ fn verb_for_macro(macro_name: &str) -> Option<&'static str> {
 #[allow(clippy::too_many_arguments)]
 fn try_route(
     node: Node,
-    prefix_stack: &[Option<String>],
+    scope: &RouterScope,
     language: &str,
     tree: &Tree,
     file_path: &str,
@@ -270,8 +262,9 @@ fn try_route(
     };
     let controller = args.get(1).and_then(|arg| alias_text(*arg, content));
     let action = args.get(2).and_then(|arg| atom_name(*arg, content));
+    let is_live = macro_name == "live";
 
-    let prefix = joined_prefix(prefix_stack);
+    let prefix = joined_prefix(&scope.prefixes);
     let spec = RouteFactSpec {
         framework: "phoenix",
         pattern_id: PHOENIX_ROUTE_PATTERN_ID,
@@ -295,9 +288,13 @@ fn try_route(
         |metadata| {
             if let Some(controller) = controller {
                 insert_string(metadata, "controller", &controller);
+                insert_string(metadata, "controller_module", &scope.qualify(&controller));
             }
             if let Some(action) = action {
                 insert_string(metadata, "action", &action);
+            }
+            if is_live {
+                insert_string(metadata, "handler_kind", "live_view");
             }
         },
     ) {
@@ -315,38 +312,131 @@ fn try_route(
 #[allow(clippy::too_many_arguments)]
 fn try_resource(
     node: Node,
-    prefix_stack: &[Option<String>],
+    scope: &RouterScope,
     language: &str,
     tree: &Tree,
     file_path: &str,
     content: &str,
+    depth: u32,
     facts: &mut Vec<StructuralFact>,
 ) -> bool {
     if call_macro_name(node, content) != Some("resources") || !is_block_statement(node) {
         return false;
     }
     let args = positional_args(node);
-    let Some(path) = args
+    let path = args
         .first()
-        .and_then(|arg| static_route_arg(*arg, content, StaticArgLang::Elixir))
-    else {
-        return true;
-    };
+        .and_then(|arg| static_route_arg(*arg, content, StaticArgLang::Elixir));
     let controller = args.get(1).and_then(|arg| alias_text(*arg, content));
+    if let Some(path) = path {
+        emit_resource(
+            node,
+            scope,
+            path,
+            controller.as_deref(),
+            language,
+            tree,
+            file_path,
+            content,
+            facts,
+        );
+    }
 
+    if let Some(block) = call_do_block(node)
+        && let Some(child_depth) = child_tree_depth(depth)
+    {
+        let mut inner = scope.clone();
+        inner.prefixes.push(
+            path.and_then(|path| {
+                nested_resource_prefix(node, path, controller.as_deref(), content)
+            }),
+        );
+        let mut cursor = block.walk();
+        for child in block.children(&mut cursor) {
+            walk(
+                child,
+                &inner,
+                language,
+                tree,
+                file_path,
+                content,
+                child_depth,
+                facts,
+            );
+        }
+    }
+    true
+}
+
+/// The path prefix a `resources` block gives the routes nested in it:
+/// `/users/:user_id`, where the member parameter joins the resource name
+/// (the `name:` option, else the controller name without `Controller`) and
+/// the `param:` option (default `id`). A singleton resource has no member
+/// parameter.
+fn nested_resource_prefix(
+    node: Node,
+    path: &str,
+    controller: Option<&str>,
+    content: &str,
+) -> Option<String> {
+    let option = |key: &str| {
+        keyword_arg(node, key, content)
+            .and_then(|value| node_text(content, value))
+            .map(|text| text.trim_matches('"').to_string())
+    };
+    if option("singleton").as_deref() == Some("true") {
+        return Some(path.to_string());
+    }
+    let name = match option("name") {
+        Some(name) => name,
+        None => {
+            let base = controller?.rsplit('.').next()?;
+            underscore(base.strip_suffix("Controller").unwrap_or(base))
+        }
+    };
+    let param = option("param").unwrap_or_else(|| "id".to_string());
+    Some(join_route_templates(path, &format!("/:{name}_{param}")))
+}
+
+/// `UserProfile` to `user_profile`, as `Macro.underscore` names a resource.
+fn underscore(name: &str) -> String {
+    let mut out = String::new();
+    let mut previous_lower = false;
+    for ch in name.chars() {
+        if ch.is_uppercase() && previous_lower {
+            out.push('_');
+        }
+        previous_lower = ch.is_lowercase() || ch.is_ascii_digit();
+        out.extend(ch.to_lowercase());
+    }
+    out
+}
+
+#[allow(clippy::too_many_arguments)]
+fn emit_resource(
+    node: Node,
+    scope: &RouterScope,
+    path: &str,
+    controller: Option<&str>,
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    facts: &mut Vec<StructuralFact>,
+) {
     let start = node.start_byte();
     let end = node.end_byte();
     let Some(anchor) = smallest_node_covering_range(tree.root_node(), start, end) else {
-        return true;
+        return;
     };
     if is_comment_or_string_node(anchor.kind()) {
-        return true;
+        return;
     }
     let Some(span) = NormalizedSpan::from_content_range(content, start, end) else {
-        return true;
+        return;
     };
 
-    let prefix = joined_prefix(prefix_stack);
+    let prefix = joined_prefix(&scope.prefixes);
     let effective = match &prefix {
         Some(prefix) => join_route_templates(prefix, path),
         None => path.to_string(),
@@ -362,7 +452,12 @@ fn try_resource(
         &normalized.template,
     );
     if let Some(controller) = controller {
-        insert_string(&mut metadata, "controller", &controller);
+        insert_string(&mut metadata, "controller", controller);
+        insert_string(
+            &mut metadata,
+            "controller_module",
+            &scope.qualify(controller),
+        );
     }
     if let Some(prefix) = prefix {
         insert_string(&mut metadata, "route_group_prefix", &prefix);
@@ -376,7 +471,6 @@ fn try_resource(
         span,
         metadata,
     ));
-    true
 }
 
 // ---------------------------------------------------------------------------
@@ -389,7 +483,7 @@ fn try_resource(
 #[allow(clippy::too_many_arguments)]
 fn try_forward(
     node: Node,
-    prefix_stack: &[Option<String>],
+    scope: &RouterScope,
     language: &str,
     tree: &Tree,
     file_path: &str,
@@ -422,7 +516,7 @@ fn try_forward(
         return true;
     };
 
-    let prefix = joined_prefix(prefix_stack);
+    let prefix = joined_prefix(&scope.prefixes);
     let absolute = match &prefix {
         Some(prefix) => join_route_templates(prefix, mount_path),
         None => mount_path.to_string(),
@@ -446,6 +540,26 @@ fn try_forward(
         metadata,
     ));
     true
+}
+
+/// The enclosing `scope`/`resources` blocks of a route: the path prefix
+/// segments (`None` marks a poisoned, non-literal segment) and the module
+/// aliases that qualify controller names.
+#[derive(Clone, Default)]
+struct RouterScope {
+    prefixes: Vec<Option<String>>,
+    aliases: Vec<String>,
+}
+
+impl RouterScope {
+    /// The controller module a route names once the scope aliases apply:
+    /// `MyAppWeb.PageController` for `PageController` in `scope "/", MyAppWeb`.
+    fn qualify(&self, controller: &str) -> String {
+        if self.aliases.is_empty() {
+            return controller.to_string();
+        }
+        format!("{}.{controller}", self.aliases.join("."))
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -527,8 +641,26 @@ fn positional_args(call: Node) -> Vec<Node> {
         .collect()
 }
 
-fn first_positional_arg(call: Node) -> Option<Node> {
-    positional_args(call).into_iter().next()
+/// The value node of a `key:` option in a call's trailing keyword list.
+fn keyword_arg<'a>(call: Node<'a>, key: &str, content: &str) -> Option<Node<'a>> {
+    let mut cursor = call.walk();
+    let arguments = call
+        .children(&mut cursor)
+        .find(|child| child.kind() == "arguments")?;
+    let mut args_cursor = arguments.walk();
+    let keywords = arguments
+        .named_children(&mut args_cursor)
+        .find(|child| child.kind() == "keywords")?;
+    let mut pair_cursor = keywords.walk();
+    keywords
+        .named_children(&mut pair_cursor)
+        .filter(|pair| pair.kind() == "pair")
+        .find(|pair| {
+            pair.child_by_field_name("key")
+                .and_then(|k| node_text(content, k))
+                .is_some_and(|text| text.trim().trim_end_matches(':').trim() == key)
+        })
+        .and_then(|pair| pair.child_by_field_name("value"))
 }
 
 /// Whether a node kind is one the Elixir static guard could accept as a path

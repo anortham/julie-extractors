@@ -31,7 +31,9 @@ use std::collections::HashMap;
 use tree_sitter::Node;
 
 use super::definition_forms;
-use super::helpers::{NameArity, arg_count, find_child_by_type, named_children, unquote_atom};
+use super::helpers::{
+    NameArity, arg_count, child_named_kinds, find_child_by_type, named_children, unquote_atom,
+};
 use super::identifiers::{ImportedFunctions, imported_functions};
 use super::{Bounded, ErlangExtractor};
 use crate::base::{Relationship, RelationshipKind, Symbol, SymbolKind, UnresolvedTarget};
@@ -79,7 +81,25 @@ pub(super) fn extract_relationships(
             "pp_include_lib" => {
                 emit_include(extractor, declaration, module_id.as_deref(), "include_lib")
             }
-            "import_attribute" => emit_import(extractor, declaration, module_id.as_deref()),
+            "import_attribute" | "import_record_attribute" => {
+                emit_import(extractor, declaration, module_id.as_deref())
+            }
+            "record_decl" => {
+                let scope = containing_symbols
+                    .find(*declaration)
+                    .map(|symbol| symbol.id.clone());
+                let mut walk = CallWalk {
+                    scope: scope.as_deref(),
+                    end,
+                    targets: &targets,
+                    relationships: &mut relationships,
+                };
+                for field in child_named_kinds(declaration, "record_field") {
+                    if let Some(default) = field.child_by_field_name("expr") {
+                        walk.visit(extractor, default, 0);
+                    }
+                }
+            }
             "fun_decl" => {
                 let scope = clause_scope(extractor, declaration, &targets.functions);
                 let mut walk = CallWalk {
@@ -197,6 +217,19 @@ impl CallWalk<'_, '_> {
             "macro_call_expr" => self.macro_call(extractor, node),
             _ => {}
         }
+        for (function, module, arity) in
+            super::mfa::targets(extractor, node, self.targets.module_name.as_deref())
+        {
+            let name = unquote_atom(&extractor.base.get_node_text(&function));
+            self.qualified_target(
+                extractor,
+                RelationshipKind::Calls,
+                module,
+                name,
+                arity,
+                &function,
+            );
+        }
 
         let Some(child_depth) = child_tree_depth(depth) else {
             return;
@@ -232,19 +265,23 @@ impl CallWalk<'_, '_> {
         extractor: &mut ErlangExtractor,
         kind: RelationshipKind,
         target: UnresolvedTarget,
+        arity: u32,
         anchor: &Node,
     ) {
         let Some(scope) = self.scope else {
             return;
         };
-        let pending = extractor.base.create_pending_relationship_at_target(
-            scope.to_string(),
-            target,
-            kind,
-            anchor,
-            Some(scope.to_string()),
-            Some(REMOTE_CALL_CONFIDENCE),
-        );
+        let pending = extractor
+            .base
+            .create_pending_relationship_at_target(
+                scope.to_string(),
+                target,
+                kind,
+                anchor,
+                Some(scope.to_string()),
+                Some(REMOTE_CALL_CONFIDENCE),
+            )
+            .with_target_arity(Some(arity));
         extractor.base.add_structured_pending_relationship(pending);
     }
 
@@ -296,7 +333,7 @@ impl CallWalk<'_, '_> {
             namespace_path: vec![module],
             import_context: None,
         };
-        self.pending(extractor, kind, target, anchor);
+        self.pending(extractor, kind, target, arity, anchor);
     }
 
     fn local_call(&mut self, extractor: &mut ErlangExtractor, node: Node) {
@@ -336,7 +373,7 @@ impl CallWalk<'_, '_> {
             namespace_path: vec![module],
             import_context: Some("import".to_string()),
         };
-        self.pending(extractor, kind, target, anchor);
+        self.pending(extractor, kind, target, arity, anchor);
     }
 
     /// `fun f/N` names a function as a value rather than calling it, so it

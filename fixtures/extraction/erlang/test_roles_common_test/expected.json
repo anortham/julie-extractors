@@ -976,7 +976,7 @@
       "end_column": 20,
       "start_byte": 1112,
       "end_byte": 1116,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/erlang/test_roles_common_test/source.erl:all:26:0",
       "target_key": null,
       "confidence": "1.000"
     }

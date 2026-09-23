@@ -5,7 +5,10 @@
 use tree_sitter::Node;
 
 use super::ErlangExtractor;
-use super::helpers::{preceding_attributes, wild_attribute_name, wild_attribute_string};
+use super::helpers::{
+    doc_macro_name, doc_macro_string, preceding_attributes, wild_attribute_name,
+    wild_attribute_string,
+};
 use crate::base::AnnotationMarker;
 use crate::base::extractor::select_doc_comment_block;
 use crate::base::normalize_annotations;
@@ -38,12 +41,14 @@ pub(super) fn doc_for(extractor: &ErlangExtractor, node: &Node) -> Option<String
 }
 
 fn doc_attribute_text(extractor: &ErlangExtractor, attributes: &[Node]) -> Option<String> {
-    attributes
-        .iter()
-        .filter(|attribute| {
-            wild_attribute_name(&extractor.base, attribute).as_deref() == Some(DOC_ATTRIBUTE)
-        })
-        .find_map(|attribute| wild_attribute_string(&extractor.base, attribute))
+    attributes.iter().find_map(|attribute| {
+        if doc_macro_name(&extractor.base, attribute).is_some() {
+            return doc_macro_string(&extractor.base, attribute);
+        }
+        (wild_attribute_name(&extractor.base, attribute).as_deref() == Some(DOC_ATTRIBUTE))
+            .then(|| wild_attribute_string(&extractor.base, attribute))
+            .flatten()
+    })
 }
 
 /// The `%%` comment block that touches `node`: a blank line ends the block,
@@ -72,6 +77,9 @@ pub(super) fn comment_doc_above(extractor: &ErlangExtractor, node: &Node) -> Opt
     let mut in_license = false;
     let mut kept: Vec<&str> = Vec::new();
     for line in blocks.iter().flat_map(|block| block.lines()) {
+        if line.trim_start().starts_with("%%!") {
+            continue;
+        }
         let content = line.trim().trim_start_matches('%').trim();
         if content.contains("%CopyrightBegin%") {
             in_license = true;
@@ -103,6 +111,9 @@ pub(super) fn module_doc_for(
 }
 
 pub(super) fn module_doc_text(extractor: &ErlangExtractor, node: &Node) -> Option<String> {
+    if doc_macro_name(&extractor.base, node).is_some() {
+        return doc_macro_string(&extractor.base, node);
+    }
     wild_attribute_string(&extractor.base, node)
 }
 
@@ -120,9 +131,12 @@ pub(super) fn annotations_for(extractor: &ErlangExtractor, node: &Node) -> Vec<A
 fn annotation_text(extractor: &ErlangExtractor, node: &Node) -> String {
     let text = extractor.base.get_node_text(node);
     let collapsed = text.split_whitespace().collect::<Vec<_>>().join(" ");
-    collapsed
+    let text = collapsed
         .trim_start_matches('-')
         .trim_end_matches('.')
-        .trim()
-        .to_string()
+        .trim();
+    match text.strip_prefix("?DOC") {
+        Some(rest) => format!("doc{rest}"),
+        None => text.to_string(),
+    }
 }

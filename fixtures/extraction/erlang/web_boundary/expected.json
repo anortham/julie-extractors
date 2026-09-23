@@ -1,0 +1,1536 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:Body:17:12",
+      "name": "Body",
+      "kind": "variable",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 17,
+      "start_column": 12,
+      "end_line": 17,
+      "end_column": 16,
+      "start_byte": 650,
+      "end_byte": 654,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Body",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:Conn:17:6",
+      "name": "Conn",
+      "kind": "variable",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 17,
+      "start_column": 6,
+      "end_line": 17,
+      "end_column": 10,
+      "start_byte": 644,
+      "end_byte": 648,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Conn",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:Dispatch:7:4",
+      "name": "Dispatch",
+      "kind": "variable",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 7,
+      "start_column": 4,
+      "end_line": 7,
+      "end_column": 12,
+      "start_byte": 215,
+      "end_byte": 223,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Dispatch",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:_Args:6:13",
+      "name": "_Args",
+      "kind": "variable",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 6,
+      "start_column": 13,
+      "end_line": 6,
+      "end_column": 18,
+      "start_byte": 201,
+      "end_byte": 206,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "_Args",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:_Type:6:6",
+      "name": "_Type",
+      "kind": "variable",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 6,
+      "start_column": 6,
+      "end_line": 6,
+      "end_column": 11,
+      "start_byte": 194,
+      "end_byte": 199,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "_Type",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "name": "fetch",
+      "kind": "function",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 17,
+      "start_column": 0,
+      "end_line": 24,
+      "end_column": 77,
+      "start_byte": 638,
+      "end_byte": 1152,
+      "body_span": {
+        "start_line": 17,
+        "start_column": 18,
+        "end_line": 24,
+        "end_column": 77,
+        "start_byte": 656,
+        "end_byte": 1152
+      },
+      "body_hash": "f00ed3546354f9b822ba5f5f0d22a37f",
+      "signature": "fetch/2(Conn, Body)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/erlang/web_boundary/source.erl:kv_http:3:0",
+      "metadata": {
+        "arity": 2,
+        "clause_count": 1
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:kv_http:3:0",
+      "name": "kv_http",
+      "kind": "module",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 17,
+      "start_byte": 140,
+      "end_byte": 157,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 7,
+        "end_line": 3,
+        "end_column": 16,
+        "start_byte": 147,
+        "end_byte": 156
+      },
+      "body_hash": "d858605ee8d9ee8f358ffbeea86bdbd8",
+      "signature": "-module(kv_http)",
+      "doc_comment": "%% Cowboy dispatch tables, outbound HTTP clients (httpc, hackney, gun), and\n%% SQL/URL literal carriers, including binary-string arguments.",
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "name": "start",
+      "kind": "function",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 15,
+      "end_column": 87,
+      "start_byte": 188,
+      "end_byte": 636,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 20,
+        "end_line": 15,
+        "end_column": 87,
+        "start_byte": 208,
+        "end_byte": 636
+      },
+      "body_hash": "c2b13a97a48dd7c344bfaaec12e7e1b0",
+      "signature": "start/2(_Type, _Args)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/erlang/web_boundary/source.erl:kv_http:3:0",
+      "metadata": {
+        "arity": 2,
+        "clause_count": 1
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "callee_name": "epgsql:equery",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "line_number": 24,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "callee_name": "epgsql:squery",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "line_number": 23,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "callee_name": "gun:post",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "line_number": 22,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "callee_name": "hackney:get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "line_number": 21,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "callee_name": "hackney:request",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "line_number": 20,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "callee_name": "httpc:request",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "line_number": 18,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "callee_name": "httpc:request",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "line_number": 19,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "callee_name": "cowboy:start_clear",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "line_number": 15,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "callee_name": "cowboy_router:compile",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "line_number": 7,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+        "callee_name": "epgsql:equery",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+        "line_number": 24,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "epgsql:equery",
+        "terminal_name": "equery",
+        "receiver": null,
+        "namespace_path": [
+          "epgsql"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "span": {
+        "start_line": 24,
+        "start_column": 11,
+        "end_line": 24,
+        "end_column": 17,
+        "start_byte": 1086,
+        "end_byte": 1092
+      },
+      "target_arity": 3
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+        "callee_name": "epgsql:squery",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+        "line_number": 23,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "epgsql:squery",
+        "terminal_name": "squery",
+        "receiver": null,
+        "namespace_path": [
+          "epgsql"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "span": {
+        "start_line": 23,
+        "start_column": 11,
+        "end_line": 23,
+        "end_column": 17,
+        "start_byte": 1011,
+        "end_byte": 1017
+      },
+      "target_arity": 2
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+        "callee_name": "gun:post",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+        "line_number": 22,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "gun:post",
+        "terminal_name": "post",
+        "receiver": null,
+        "namespace_path": [
+          "gun"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "span": {
+        "start_line": 22,
+        "start_column": 8,
+        "end_line": 22,
+        "end_column": 12,
+        "start_byte": 964,
+        "end_byte": 968
+      },
+      "target_arity": 4
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+        "callee_name": "hackney:get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+        "line_number": 21,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "hackney:get",
+        "terminal_name": "get",
+        "receiver": null,
+        "namespace_path": [
+          "hackney"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "span": {
+        "start_line": 21,
+        "start_column": 12,
+        "end_line": 21,
+        "end_column": 15,
+        "start_byte": 910,
+        "end_byte": 913
+      },
+      "target_arity": 1
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+        "callee_name": "hackney:request",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+        "line_number": 20,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "hackney:request",
+        "terminal_name": "request",
+        "receiver": null,
+        "namespace_path": [
+          "hackney"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "span": {
+        "start_line": 20,
+        "start_column": 12,
+        "end_line": 20,
+        "end_column": 19,
+        "start_byte": 824,
+        "end_byte": 831
+      },
+      "target_arity": 5
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+        "callee_name": "httpc:request",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+        "line_number": 18,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "httpc:request",
+        "terminal_name": "request",
+        "receiver": null,
+        "namespace_path": [
+          "httpc"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "span": {
+        "start_line": 18,
+        "start_column": 10,
+        "end_line": 18,
+        "end_column": 17,
+        "start_byte": 669,
+        "end_byte": 676
+      },
+      "target_arity": 1
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+        "callee_name": "httpc:request",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+        "line_number": 19,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "httpc:request",
+        "terminal_name": "request",
+        "receiver": null,
+        "namespace_path": [
+          "httpc"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "span": {
+        "start_line": 19,
+        "start_column": 10,
+        "end_line": 19,
+        "end_column": 17,
+        "start_byte": 725,
+        "end_byte": 732
+      },
+      "target_arity": 4
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+        "callee_name": "cowboy:start_clear",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+        "line_number": 15,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "cowboy:start_clear",
+        "terminal_name": "start_clear",
+        "receiver": null,
+        "namespace_path": [
+          "cowboy"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "span": {
+        "start_line": 15,
+        "start_column": 11,
+        "end_line": 15,
+        "end_column": 22,
+        "start_byte": 560,
+        "end_byte": 571
+      },
+      "target_arity": 3
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+        "callee_name": "cowboy_router:compile",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+        "line_number": 7,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "cowboy_router:compile",
+        "terminal_name": "compile",
+        "receiver": null,
+        "namespace_path": [
+          "cowboy_router"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "span": {
+        "start_line": 7,
+        "start_column": 29,
+        "end_line": 7,
+        "end_column": 36,
+        "start_byte": 240,
+        "end_byte": 247
+      },
+      "target_arity": 1
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:compile:call:7:29",
+      "name": "compile",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 7,
+      "start_column": 29,
+      "end_line": 7,
+      "end_column": 36,
+      "start_byte": 240,
+      "end_byte": 247,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "cowboy_router"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:cowboy:type_usage:15:4",
+      "name": "cowboy",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 15,
+      "start_column": 4,
+      "end_line": 15,
+      "end_column": 10,
+      "start_byte": 553,
+      "end_byte": 559,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:cowboy_router:type_usage:7:15",
+      "name": "cowboy_router",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 7,
+      "start_column": 15,
+      "end_line": 7,
+      "end_column": 28,
+      "start_byte": 226,
+      "end_byte": 239,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:epgsql:type_usage:23:4",
+      "name": "epgsql",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 23,
+      "start_column": 4,
+      "end_line": 23,
+      "end_column": 10,
+      "start_byte": 1004,
+      "end_byte": 1010,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:epgsql:type_usage:24:4",
+      "name": "epgsql",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 24,
+      "start_column": 4,
+      "end_line": 24,
+      "end_column": 10,
+      "start_byte": 1079,
+      "end_byte": 1085,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:equery:call:24:11",
+      "name": "equery",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 24,
+      "start_column": 11,
+      "end_line": 24,
+      "end_column": 17,
+      "start_byte": 1086,
+      "end_byte": 1092,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "epgsql"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:get:call:21:12",
+      "name": "get",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 21,
+      "start_column": 12,
+      "end_line": 21,
+      "end_column": 15,
+      "start_byte": 910,
+      "end_byte": 913,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "hackney"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:gun:type_usage:22:4",
+      "name": "gun",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 22,
+      "start_column": 4,
+      "end_line": 22,
+      "end_column": 7,
+      "start_byte": 960,
+      "end_byte": 963,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:hackney:type_usage:20:4",
+      "name": "hackney",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 20,
+      "start_column": 4,
+      "end_line": 20,
+      "end_column": 11,
+      "start_byte": 816,
+      "end_byte": 823,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:hackney:type_usage:21:4",
+      "name": "hackney",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 21,
+      "start_column": 4,
+      "end_line": 21,
+      "end_column": 11,
+      "start_byte": 902,
+      "end_byte": 909,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:httpc:type_usage:18:4",
+      "name": "httpc",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 18,
+      "start_column": 4,
+      "end_line": 18,
+      "end_column": 9,
+      "start_byte": 663,
+      "end_byte": 668,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:httpc:type_usage:19:4",
+      "name": "httpc",
+      "kind": "type_usage",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 19,
+      "start_column": 4,
+      "end_line": 19,
+      "end_column": 9,
+      "start_byte": 719,
+      "end_byte": 724,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:post:call:22:8",
+      "name": "post",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 22,
+      "start_column": 8,
+      "end_line": 22,
+      "end_column": 12,
+      "start_byte": 964,
+      "end_byte": 968,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "gun"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:request:call:18:10",
+      "name": "request",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 18,
+      "start_column": 10,
+      "end_line": 18,
+      "end_column": 17,
+      "start_byte": 669,
+      "end_byte": 676,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "httpc"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:request:call:19:10",
+      "name": "request",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 19,
+      "start_column": 10,
+      "end_line": 19,
+      "end_column": 17,
+      "start_byte": 725,
+      "end_byte": 732,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "httpc"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:request:call:20:12",
+      "name": "request",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 20,
+      "start_column": 12,
+      "end_line": 20,
+      "end_column": 19,
+      "start_byte": 824,
+      "end_byte": 831,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "hackney"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:squery:call:23:11",
+      "name": "squery",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 23,
+      "start_column": 11,
+      "end_line": 23,
+      "end_column": 17,
+      "start_byte": 1011,
+      "end_byte": 1017,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "epgsql"
+      }
+    },
+    {
+      "key": "fixtures/extraction/erlang/web_boundary/source.erl:start_clear:call:15:11",
+      "name": "start_clear",
+      "kind": "call",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 15,
+      "start_column": 11,
+      "end_line": 15,
+      "end_column": 22,
+      "start_byte": 560,
+      "end_byte": 571,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "cowboy"
+      }
+    }
+  ],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "cowboy.route.v1",
+      "capture_name": "route",
+      "node_kind": "tuple",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "start_line": 10,
+      "start_column": 12,
+      "end_line": 10,
+      "end_column": 80,
+      "start_byte": 318,
+      "end_byte": 386,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "dispatch_table",
+        "dynamic_segments": [
+          "key"
+        ],
+        "framework": "cowboy",
+        "handler_module": "kv_key_handler",
+        "host": "_",
+        "normalized_route_template": "/keys/:key",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/keys/:key"
+      }
+    },
+    {
+      "pattern_id": "cowboy.route.v1",
+      "capture_name": "route",
+      "node_kind": "tuple",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "start_line": 11,
+      "start_column": 12,
+      "end_line": 11,
+      "end_column": 70,
+      "start_byte": 400,
+      "end_byte": 458,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "dispatch_table",
+        "framework": "cowboy",
+        "handler_module": "cowboy_static",
+        "host": "_",
+        "normalized_route_template": "/static/[...]",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/static/[...]"
+      }
+    },
+    {
+      "pattern_id": "cowboy.route.v1",
+      "capture_name": "route",
+      "node_kind": "tuple",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "start_line": 13,
+      "start_column": 31,
+      "end_line": 13,
+      "end_column": 67,
+      "start_byte": 502,
+      "end_byte": 538,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "dispatch_table",
+        "framework": "cowboy",
+        "handler_module": "kv_stats_handler",
+        "host": "admin.example.com",
+        "normalized_route_template": "/stats",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/stats"
+      }
+    },
+    {
+      "pattern_id": "cowboy.route.v1",
+      "capture_name": "route",
+      "node_kind": "tuple",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "start_line": 9,
+      "start_column": 12,
+      "end_line": 9,
+      "end_column": 38,
+      "start_byte": 278,
+      "end_byte": 304,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "dispatch_table",
+        "framework": "cowboy",
+        "handler_module": "kv_root_handler",
+        "host": "_",
+        "normalized_route_template": "/",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/"
+      }
+    },
+    {
+      "pattern_id": "erlang.export_attribute.v1",
+      "capture_name": "export_attribute",
+      "node_kind": "export_attribute",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": null,
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 28,
+      "start_byte": 158,
+      "end_byte": 186,
+      "confidence": "1.000",
+      "metadata": {
+        "export_kind": "function",
+        "exported_count": 2,
+        "pattern_version": 1,
+        "query_family": "module"
+      }
+    },
+    {
+      "pattern_id": "erlang.module_attribute.v1",
+      "capture_name": "module_attribute",
+      "node_kind": "module_attribute",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:kv_http:3:0",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 17,
+      "start_byte": 140,
+      "end_byte": 157,
+      "confidence": "1.000",
+      "metadata": {
+        "module": "kv_http",
+        "pattern_version": 1,
+        "query_family": "module"
+      }
+    },
+    {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "remote",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "start_line": 18,
+      "start_column": 4,
+      "end_line": 18,
+      "end_column": 54,
+      "start_byte": 663,
+      "end_byte": 713,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "httpc",
+        "framework": "httpc",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "https://api.example.com/v1/health",
+        "url_kind": "absolute",
+        "verb": "GET",
+        "verb_source": "default"
+      }
+    },
+    {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "remote",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "start_line": 19,
+      "start_column": 4,
+      "end_line": 19,
+      "end_column": 95,
+      "start_byte": 719,
+      "end_byte": 810,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "httpc",
+        "framework": "httpc",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "http://audit.internal/events",
+        "url_kind": "absolute",
+        "verb": "POST",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "remote",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "start_line": 20,
+      "start_column": 4,
+      "end_line": 20,
+      "end_column": 84,
+      "start_byte": 816,
+      "end_byte": 896,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "hackney",
+        "framework": "hackney",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "https://api.example.com/v1/orders/1",
+        "url_kind": "absolute",
+        "verb": "DELETE",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "remote",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "start_line": 21,
+      "start_column": 4,
+      "end_line": 21,
+      "end_column": 56,
+      "start_byte": 902,
+      "end_byte": 954,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "hackney",
+        "framework": "hackney",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "https://api.example.com/v1/orders",
+        "url_kind": "absolute",
+        "verb": "GET",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "remote",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "start_line": 22,
+      "start_column": 4,
+      "end_line": 22,
+      "end_column": 42,
+      "start_byte": 960,
+      "end_byte": 998,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "gun",
+        "framework": "gun",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "/v1/events",
+        "url_kind": "path",
+        "verb": "POST",
+        "verb_source": "attested"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "covered_lines": 25,
+      "covered_bytes": 1153,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 25,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 1153,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "covered_lines": 8,
+      "covered_bytes": 514,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 17,
+      "start_column": 0,
+      "end_line": 24,
+      "end_column": 77,
+      "start_byte": 638,
+      "end_byte": 1152,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "covered_lines": 10,
+      "covered_bytes": 448,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 15,
+      "end_column": 87,
+      "start_byte": 188,
+      "end_byte": 636,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "/v1/events",
+      "kind": "other",
+      "carrier": "gun:post",
+      "arg_position": 1,
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 22,
+      "start_column": 19,
+      "end_line": 22,
+      "end_column": 31,
+      "start_byte": 975,
+      "end_byte": 987,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "SELECT id FROM users WHERE email = $1",
+      "kind": "other",
+      "carrier": "epgsql:equery",
+      "arg_position": 1,
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 24,
+      "start_column": 26,
+      "end_line": 24,
+      "end_column": 65,
+      "start_byte": 1101,
+      "end_byte": 1140,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "SELECT id, name FROM users WHERE active = true",
+      "kind": "other",
+      "carrier": "epgsql:squery",
+      "arg_position": 1,
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 23,
+      "start_column": 24,
+      "end_line": 23,
+      "end_column": 72,
+      "start_byte": 1024,
+      "end_byte": 1072,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "https://api.example.com/v1/health",
+      "kind": "other",
+      "carrier": "httpc:request",
+      "arg_position": 0,
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 18,
+      "start_column": 18,
+      "end_line": 18,
+      "end_column": 53,
+      "start_byte": 677,
+      "end_byte": 712,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "https://api.example.com/v1/orders",
+      "kind": "other",
+      "carrier": "hackney:get",
+      "arg_position": 0,
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 21,
+      "start_column": 18,
+      "end_line": 21,
+      "end_column": 53,
+      "start_byte": 916,
+      "end_byte": 951,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "https://api.example.com/v1/orders/1",
+      "kind": "other",
+      "carrier": "hackney:request",
+      "arg_position": 1,
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "start_line": 20,
+      "start_column": 30,
+      "end_line": 20,
+      "end_column": 67,
+      "start_byte": 842,
+      "end_byte": 879,
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "doc_comment",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:kv_http:3:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 75,
+      "start_byte": 0,
+      "end_byte": 75,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:kv_http:3:0",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 63,
+      "start_byte": 76,
+      "end_byte": 139,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "start_line": 18,
+      "start_column": 18,
+      "end_line": 18,
+      "end_column": 53,
+      "start_byte": 677,
+      "end_byte": 712,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "start_line": 19,
+      "start_column": 25,
+      "end_line": 19,
+      "end_column": 55,
+      "start_byte": 740,
+      "end_byte": 770,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "start_line": 19,
+      "start_column": 61,
+      "end_line": 19,
+      "end_column": 79,
+      "start_byte": 776,
+      "end_byte": 794,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "start_line": 20,
+      "start_column": 30,
+      "end_line": 20,
+      "end_column": 67,
+      "start_byte": 842,
+      "end_byte": 879,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "start_line": 21,
+      "start_column": 18,
+      "end_line": 21,
+      "end_column": 53,
+      "start_byte": 916,
+      "end_byte": 951,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "start_line": 22,
+      "start_column": 19,
+      "end_line": 22,
+      "end_column": 31,
+      "start_byte": 975,
+      "end_byte": 987,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "start_line": 23,
+      "start_column": 24,
+      "end_line": 23,
+      "end_column": 72,
+      "start_byte": 1024,
+      "end_byte": 1072,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:fetch:17:0",
+      "start_line": 24,
+      "start_column": 26,
+      "end_line": 24,
+      "end_column": 65,
+      "start_byte": 1101,
+      "end_byte": 1140,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "start_line": 10,
+      "start_column": 13,
+      "end_line": 10,
+      "end_column": 25,
+      "start_byte": 319,
+      "end_byte": 331,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "start_line": 11,
+      "start_column": 13,
+      "end_line": 11,
+      "end_column": 28,
+      "start_byte": 401,
+      "end_byte": 416,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "start_line": 11,
+      "start_column": 60,
+      "end_line": 11,
+      "end_column": 68,
+      "start_byte": 448,
+      "end_byte": 456,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "start_line": 13,
+      "start_column": 34,
+      "end_line": 13,
+      "end_column": 42,
+      "start_byte": 505,
+      "end_byte": 513,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "start_line": 13,
+      "start_column": 9,
+      "end_line": 13,
+      "end_column": 28,
+      "start_byte": 480,
+      "end_byte": 499,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/web_boundary/source.erl",
+      "containing_key": "fixtures/extraction/erlang/web_boundary/source.erl:start:6:0",
+      "start_line": 9,
+      "start_column": 13,
+      "end_line": 9,
+      "end_column": 16,
+      "start_byte": 279,
+      "end_byte": 282,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

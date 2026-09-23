@@ -963,14 +963,24 @@ fn map_structured_pending(
             ReferenceSiteProvenance::Spanless
         },
         confidence: f64::from(pending.pending.confidence),
-        metadata_json: pending.receiver_type.as_ref().map(|receiver_type| {
-            serde_json::Value::Object(serde_json::Map::from_iter([(
-                "receiver_type".to_string(),
-                serde_json::Value::String(receiver_type.clone()),
-            )]))
-            .to_string()
-        }),
+        metadata_json: pending_metadata_json(pending),
     })
+}
+
+/// Pending `metadata_json`: the self-receiver type and the call-site arity,
+/// when the extractor recorded them.
+fn pending_metadata_json(pending: &StructuredPendingRelationship) -> Option<String> {
+    let mut metadata = serde_json::Map::new();
+    if let Some(receiver_type) = &pending.receiver_type {
+        metadata.insert(
+            "receiver_type".to_string(),
+            serde_json::Value::String(receiver_type.clone()),
+        );
+    }
+    if let Some(arity) = pending.target_arity {
+        metadata.insert("arity".to_string(), serde_json::Value::from(arity));
+    }
+    (!metadata.is_empty()).then(|| serde_json::Value::Object(metadata).to_string())
 }
 
 fn map_legacy_pending(

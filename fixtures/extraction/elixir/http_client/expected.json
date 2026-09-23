@@ -1,6 +1,37 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.Aliased:29:0",
+      "name": "MyApp.Aliased",
+      "kind": "module",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 29,
+      "start_column": 0,
+      "end_line": 35,
+      "end_column": 3,
+      "start_byte": 488,
+      "end_byte": 673,
+      "body_span": {
+        "start_line": 29,
+        "start_column": 24,
+        "end_line": 35,
+        "end_column": 3,
+        "start_byte": 512,
+        "end_byte": 673
+      },
+      "body_hash": "c653c8ef7e3a602c72715ea7a8623593",
+      "signature": "defmodule MyApp.Aliased",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.ApiClient:1:0",
       "name": "MyApp.ApiClient",
       "kind": "module",
@@ -33,6 +64,113 @@
           "raw_text": "moduledoc \"Thin Req HTTP client wrapper.\""
         }
       ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.FakeReq:31:2",
+      "name": "MyApp.FakeReq",
+      "kind": "import",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 31,
+      "start_column": 2,
+      "end_line": 31,
+      "end_column": 30,
+      "start_byte": 536,
+      "end_byte": 564,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "alias MyApp.FakeReq, as: Req",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.Aliased:29:0",
+      "metadata": {
+        "alias": "Req"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.GitHub:22:0",
+      "name": "MyApp.GitHub",
+      "kind": "module",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 22,
+      "start_column": 0,
+      "end_line": 27,
+      "end_column": 3,
+      "start_byte": 350,
+      "end_byte": 486,
+      "body_span": {
+        "start_line": 22,
+        "start_column": 23,
+        "end_line": 27,
+        "end_column": 3,
+        "start_byte": 373,
+        "end_byte": 486
+      },
+      "body_hash": "750f9c4cfdd4215b0a6dcc50d65b4faf",
+      "signature": "defmodule MyApp.GitHub",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/elixir/http_client/source.ex:Req:30:2",
+      "name": "Req",
+      "kind": "import",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 30,
+      "start_column": 2,
+      "end_line": 30,
+      "end_column": 18,
+      "start_byte": 517,
+      "end_byte": 533,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "alias Req, as: R",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.Aliased:29:0",
+      "metadata": {
+        "alias": "R"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/elixir/http_client/source.ex:Tesla:23:2",
+      "name": "Tesla",
+      "kind": "import",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 23,
+      "start_column": 2,
+      "end_line": 23,
+      "end_column": 11,
+      "start_byte": 378,
+      "end_byte": 387,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "use Tesla",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.GitHub:22:0",
+      "metadata": {},
+      "annotations": [],
       "semantic_group": null,
       "confidence": null,
       "content_type": null
@@ -126,6 +264,37 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/elixir/http_client/source.ex:fake:34:2",
+      "name": "fake",
+      "kind": "function",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 34,
+      "start_column": 2,
+      "end_line": 34,
+      "end_column": 52,
+      "start_byte": 619,
+      "end_byte": 669,
+      "body_span": {
+        "start_line": 34,
+        "start_column": 16,
+        "end_line": 34,
+        "end_column": 52,
+        "start_byte": 633,
+        "end_byte": 669
+      },
+      "body_hash": "4fe18a40120e476176ba4eca29f2b5aa",
+      "signature": "def fake",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.Aliased:29:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/elixir/http_client/source.ex:health:12:2",
       "name": "health",
       "kind": "function",
@@ -212,10 +381,80 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/elixir/http_client/source.ex:real:33:2",
+      "name": "real",
+      "kind": "function",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 33,
+      "start_column": 2,
+      "end_line": 33,
+      "end_column": 50,
+      "start_byte": 568,
+      "end_byte": 616,
+      "body_span": {
+        "start_line": 33,
+        "start_column": 16,
+        "end_line": 33,
+        "end_column": 50,
+        "start_byte": 582,
+        "end_byte": 616
+      },
+      "body_hash": "54c3a8ca3d25b6869c6a9bb46344bc25",
+      "signature": "def real",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.Aliased:29:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/elixir/http_client/source.ex:repos:26:2",
+      "name": "repos",
+      "kind": "function",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 26,
+      "start_column": 2,
+      "end_line": 26,
+      "end_column": 35,
+      "start_byte": 449,
+      "end_byte": 482,
+      "body_span": {
+        "start_line": 26,
+        "start_column": 17,
+        "end_line": 26,
+        "end_column": 35,
+        "start_byte": 464,
+        "end_byte": 482
+      },
+      "body_hash": "ba7402d1f135ee4d9b321a711734220a",
+      "signature": "def repos",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.GitHub:22:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [],
   "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.GitHub:22:0",
+      "callee_name": "Tesla",
+      "kind": "uses",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "line_number": 23,
+      "confidence": "0.800"
+    },
     {
       "from_key": "fixtures/extraction/elixir/http_client/source.ex:create_user:8:2",
       "callee_name": "Req.post",
@@ -233,6 +472,14 @@
       "confidence": "0.700"
     },
     {
+      "from_key": "fixtures/extraction/elixir/http_client/source.ex:fake:34:2",
+      "callee_name": "MyApp.FakeReq.get!",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "line_number": 34,
+      "confidence": "0.700"
+    },
+    {
       "from_key": "fixtures/extraction/elixir/http_client/source.ex:health:12:2",
       "callee_name": "Req.get!",
       "kind": "calls",
@@ -247,9 +494,51 @@
       "file_path": "fixtures/extraction/elixir/http_client/source.ex",
       "line_number": 5,
       "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/elixir/http_client/source.ex:real:33:2",
+      "callee_name": "Req.get!",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "line_number": 33,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/elixir/http_client/source.ex:repos:26:2",
+      "callee_name": "get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "line_number": 26,
+      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.GitHub:22:0",
+        "callee_name": "Tesla",
+        "kind": "uses",
+        "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+        "line_number": 23,
+        "confidence": "0.800"
+      },
+      "target": {
+        "display_name": "Tesla",
+        "terminal_name": "Tesla",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.GitHub:22:0",
+      "span": {
+        "start_line": 23,
+        "start_column": 2,
+        "end_line": 23,
+        "end_column": 11,
+        "start_byte": 378,
+        "end_byte": 387
+      }
+    },
     {
       "pending": {
         "from_key": "fixtures/extraction/elixir/http_client/source.ex:create_user:8:2",
@@ -308,6 +597,34 @@
     },
     {
       "pending": {
+        "from_key": "fixtures/extraction/elixir/http_client/source.ex:fake:34:2",
+        "callee_name": "MyApp.FakeReq.get!",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+        "line_number": 34,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "MyApp.FakeReq.get!",
+        "terminal_name": "get!",
+        "receiver": null,
+        "namespace_path": [
+          "MyApp.FakeReq"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/elixir/http_client/source.ex:fake:34:2",
+      "span": {
+        "start_line": 34,
+        "start_column": 16,
+        "end_line": 34,
+        "end_column": 52,
+        "start_byte": 633,
+        "end_byte": 669
+      }
+    },
+    {
+      "pending": {
         "from_key": "fixtures/extraction/elixir/http_client/source.ex:health:12:2",
         "callee_name": "Req.get!",
         "kind": "calls",
@@ -361,10 +678,112 @@
         "start_byte": 99,
         "end_byte": 139
       }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/elixir/http_client/source.ex:real:33:2",
+        "callee_name": "Req.get!",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+        "line_number": 33,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Req.get!",
+        "terminal_name": "get!",
+        "receiver": null,
+        "namespace_path": [
+          "Req"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/elixir/http_client/source.ex:real:33:2",
+      "span": {
+        "start_line": 33,
+        "start_column": 16,
+        "end_line": 33,
+        "end_column": 50,
+        "start_byte": 582,
+        "end_byte": 616
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/elixir/http_client/source.ex:repos:26:2",
+        "callee_name": "get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+        "line_number": 26,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "get",
+        "terminal_name": "get",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/elixir/http_client/source.ex:repos:26:2",
+      "span": {
+        "start_line": 26,
+        "start_column": 17,
+        "end_line": 26,
+        "end_column": 35,
+        "start_byte": 464,
+        "end_byte": 482
+      }
     }
   ],
   "identifiers": [
     {
+      "key": "fixtures/extraction/elixir/http_client/source.ex:R:type_usage:30:17",
+      "name": "R",
+      "kind": "type_usage",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 30,
+      "start_column": 17,
+      "end_line": 30,
+      "end_column": 18,
+      "start_byte": 532,
+      "end_byte": 533,
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:Req:30:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/elixir/http_client/source.ex:R:type_usage:33:16",
+      "name": "R",
+      "kind": "type_usage",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 33,
+      "start_column": 16,
+      "end_line": 33,
+      "end_column": 17,
+      "start_byte": 582,
+      "end_byte": 583,
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:real:33:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/elixir/http_client/source.ex:R:type_usage:33:16",
+      "name": "R",
+      "kind": "type_usage",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 33,
+      "start_column": 16,
+      "end_line": 33,
+      "end_column": 17,
+      "start_byte": 582,
+      "end_byte": 583,
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:real:33:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/elixir/http_client/source.ex:Req:type_usage:13:4",
       "name": "Req",
       "kind": "type_usage",
@@ -429,6 +848,54 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/elixir/http_client/source.ex:Req:type_usage:31:27",
+      "name": "Req",
+      "kind": "type_usage",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 31,
+      "start_column": 27,
+      "end_line": 31,
+      "end_column": 30,
+      "start_byte": 561,
+      "end_byte": 564,
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.FakeReq:31:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/elixir/http_client/source.ex:Req:type_usage:34:16",
+      "name": "Req",
+      "kind": "type_usage",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 34,
+      "start_column": 16,
+      "end_line": 34,
+      "end_column": 19,
+      "start_byte": 633,
+      "end_byte": 636,
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:fake:34:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/elixir/http_client/source.ex:Req:type_usage:34:16",
+      "name": "Req",
+      "kind": "type_usage",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 34,
+      "start_column": 16,
+      "end_line": 34,
+      "end_column": 19,
+      "start_byte": 633,
+      "end_byte": 636,
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:fake:34:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/elixir/http_client/source.ex:Req:type_usage:5:4",
       "name": "Req",
       "kind": "type_usage",
@@ -489,6 +956,22 @@
       "start_byte": 182,
       "end_byte": 185,
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:create_user:8:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/elixir/http_client/source.ex:Tesla.Middleware.BaseUrl:type_usage:24:7",
+      "name": "Tesla.Middleware.BaseUrl",
+      "kind": "type_usage",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 24,
+      "start_column": 7,
+      "end_line": 24,
+      "end_column": 31,
+      "start_byte": 395,
+      "end_byte": 419,
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.GitHub:22:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -505,6 +988,54 @@
       "start_byte": 232,
       "end_byte": 236,
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:health:12:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/elixir/http_client/source.ex:get!:member_access:33:18",
+      "name": "get!",
+      "kind": "member_access",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 33,
+      "start_column": 18,
+      "end_line": 33,
+      "end_column": 22,
+      "start_byte": 584,
+      "end_byte": 588,
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:real:33:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/elixir/http_client/source.ex:get!:member_access:34:20",
+      "name": "get!",
+      "kind": "member_access",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 34,
+      "start_column": 20,
+      "end_line": 34,
+      "end_column": 24,
+      "start_byte": 637,
+      "end_byte": 641,
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:fake:34:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/elixir/http_client/source.ex:get:call:26:17",
+      "name": "get",
+      "kind": "call",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 26,
+      "start_column": 17,
+      "end_line": 26,
+      "end_column": 20,
+      "start_byte": 464,
+      "end_byte": 467,
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:repos:26:2",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -557,18 +1088,18 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/elixir/http_client/source.ex:moduledoc:call:2:3",
-      "name": "moduledoc",
+      "key": "fixtures/extraction/elixir/http_client/source.ex:plug:call:24:2",
+      "name": "plug",
       "kind": "call",
       "language": "elixir",
       "file_path": "fixtures/extraction/elixir/http_client/source.ex",
-      "start_line": 2,
-      "start_column": 3,
-      "end_line": 2,
-      "end_column": 12,
-      "start_byte": 32,
-      "end_byte": 41,
-      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.ApiClient:1:0",
+      "start_line": 24,
+      "start_column": 2,
+      "end_line": 24,
+      "end_column": 6,
+      "start_byte": 390,
+      "end_byte": 394,
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.GitHub:22:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -598,6 +1129,26 @@
       "node_kind": "call",
       "language": "elixir",
       "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.Aliased:29:0",
+      "start_line": 29,
+      "start_column": 0,
+      "end_line": 35,
+      "end_column": 3,
+      "start_byte": 488,
+      "end_byte": 673,
+      "confidence": "1.000",
+      "metadata": {
+        "module_name": "MyApp.Aliased",
+        "pattern_version": 1,
+        "query_family": "module"
+      }
+    },
+    {
+      "pattern_id": "elixir.defmodule_call.v1",
+      "capture_name": "defmodule_call",
+      "node_kind": "call",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.ApiClient:1:0",
       "start_line": 1,
       "start_column": 0,
@@ -610,6 +1161,89 @@
         "module_name": "MyApp.ApiClient",
         "pattern_version": 1,
         "query_family": "module"
+      }
+    },
+    {
+      "pattern_id": "elixir.defmodule_call.v1",
+      "capture_name": "defmodule_call",
+      "node_kind": "call",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.GitHub:22:0",
+      "start_line": 22,
+      "start_column": 0,
+      "end_line": 27,
+      "end_column": 3,
+      "start_byte": 350,
+      "end_byte": 486,
+      "confidence": "1.000",
+      "metadata": {
+        "module_name": "MyApp.GitHub",
+        "pattern_version": 1,
+        "query_family": "module"
+      }
+    },
+    {
+      "pattern_id": "elixir.directive_call.v1",
+      "capture_name": "directive_call",
+      "node_kind": "call",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.Aliased:29:0",
+      "start_line": 30,
+      "start_column": 2,
+      "end_line": 30,
+      "end_column": 18,
+      "start_byte": 517,
+      "end_byte": 533,
+      "confidence": "1.000",
+      "metadata": {
+        "directive_kind": "alias",
+        "directive_target": "Req",
+        "pattern_version": 1,
+        "query_family": "directives"
+      }
+    },
+    {
+      "pattern_id": "elixir.directive_call.v1",
+      "capture_name": "directive_call",
+      "node_kind": "call",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.Aliased:29:0",
+      "start_line": 31,
+      "start_column": 2,
+      "end_line": 31,
+      "end_column": 30,
+      "start_byte": 536,
+      "end_byte": 564,
+      "confidence": "1.000",
+      "metadata": {
+        "directive_kind": "alias",
+        "directive_target": "MyApp.FakeReq",
+        "pattern_version": 1,
+        "query_family": "directives"
+      }
+    },
+    {
+      "pattern_id": "elixir.directive_call.v1",
+      "capture_name": "directive_call",
+      "node_kind": "call",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.GitHub:22:0",
+      "start_line": 23,
+      "start_column": 2,
+      "end_line": 23,
+      "end_column": 11,
+      "start_byte": 378,
+      "end_byte": 387,
+      "confidence": "1.000",
+      "metadata": {
+        "directive_kind": "use",
+        "directive_target": "Tesla",
+        "pattern_version": 1,
+        "query_family": "directives"
       }
     },
     {
@@ -638,46 +1272,21 @@
       "node_kind": "call",
       "language": "elixir",
       "file_path": "fixtures/extraction/elixir/http_client/source.ex",
-      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:create_user:8:2",
-      "start_line": 9,
-      "start_column": 4,
-      "end_line": 9,
-      "end_column": 22,
-      "start_byte": 182,
-      "end_byte": 200,
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:real:33:2",
+      "start_line": 33,
+      "start_column": 16,
+      "end_line": 33,
+      "end_column": 50,
+      "start_byte": 582,
+      "end_byte": 616,
       "confidence": "1.000",
       "metadata": {
         "client": "req",
         "framework": "req",
         "pattern_version": 1,
         "query_family": "web.http_client",
-        "target_path": "/users",
-        "url_kind": "path",
-        "verb": "POST",
-        "verb_source": "attested"
-      }
-    },
-    {
-      "pattern_id": "http.client_request.v1",
-      "capture_name": "client_request",
-      "node_kind": "call",
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
-      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:health:12:2",
-      "start_line": 13,
-      "start_column": 4,
-      "end_line": 13,
-      "end_column": 23,
-      "start_byte": 228,
-      "end_byte": 247,
-      "confidence": "1.000",
-      "metadata": {
-        "client": "req",
-        "framework": "req",
-        "pattern_version": 1,
-        "query_family": "web.http_client",
-        "target_path": "/health",
-        "url_kind": "path",
+        "target_path": "https://example.com/real",
+        "url_kind": "absolute",
         "verb": "GET",
         "verb_source": "attested"
       }
@@ -688,20 +1297,20 @@
       "node_kind": "call",
       "language": "elixir",
       "file_path": "fixtures/extraction/elixir/http_client/source.ex",
-      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:list_users:4:2",
-      "start_line": 5,
-      "start_column": 4,
-      "end_line": 5,
-      "end_column": 44,
-      "start_byte": 99,
-      "end_byte": 139,
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:repos:26:2",
+      "start_line": 26,
+      "start_column": 17,
+      "end_line": 26,
+      "end_column": 35,
+      "start_byte": 464,
+      "end_byte": 482,
       "confidence": "1.000",
       "metadata": {
-        "client": "req",
-        "framework": "req",
+        "client": "tesla",
+        "framework": "tesla",
         "pattern_version": 1,
         "query_family": "web.http_client",
-        "target_path": "https://api.example.com/users",
+        "target_path": "https://api.github.com/user/repos",
         "url_kind": "absolute",
         "verb": "GET",
         "verb_source": "attested"
@@ -715,18 +1324,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "elixir",
       "file_path": "fixtures/extraction/elixir/http_client/source.ex",
-      "covered_lines": 21,
-      "covered_bytes": 349,
+      "covered_lines": 36,
+      "covered_bytes": 674,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 21,
+      "end_line": 36,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 349,
+      "end_byte": 674,
       "metadata": {
         "metric_version": 1
       }
@@ -777,6 +1386,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/elixir/http_client/source.ex:fake:34:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "covered_lines": 1,
+      "covered_bytes": 36,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 34,
+      "start_column": 16,
+      "end_line": 34,
+      "end_column": 52,
+      "start_byte": 633,
+      "end_byte": 669,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/elixir/http_client/source.ex:health:12:2",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "elixir",
@@ -786,7 +1417,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": null,
+      "parameter_count": 0,
       "start_line": 12,
       "start_column": 13,
       "end_line": 14,
@@ -808,13 +1439,57 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": null,
+      "parameter_count": 0,
       "start_line": 4,
       "start_column": 17,
       "end_line": 6,
       "end_column": 5,
       "start_byte": 92,
       "end_byte": 145,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/elixir/http_client/source.ex:real:33:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "covered_lines": 1,
+      "covered_bytes": 34,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 33,
+      "start_column": 16,
+      "end_line": 33,
+      "end_column": 50,
+      "start_byte": 582,
+      "end_byte": 616,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/elixir/http_client/source.ex:repos:26:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "covered_lines": 1,
+      "covered_bytes": 18,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 26,
+      "start_column": 17,
+      "end_line": 26,
+      "end_column": 35,
+      "start_byte": 464,
+      "end_byte": 482,
       "metadata": {
         "metric_version": 1
       }
@@ -835,6 +1510,22 @@
       "start_byte": 237,
       "end_byte": 246,
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:health:12:2",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/user/repos",
+      "kind": "other",
+      "carrier": "get",
+      "arg_position": 0,
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 26,
+      "start_column": 21,
+      "end_line": 26,
+      "end_column": 34,
+      "start_byte": 468,
+      "end_byte": 481,
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:repos:26:2",
       "confidence": "1.000"
     },
     {
@@ -870,22 +1561,6 @@
       "confidence": "1.000"
     },
     {
-      "literal_text": "Thin Req HTTP client wrapper.",
-      "kind": "other",
-      "carrier": "moduledoc",
-      "arg_position": 0,
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
-      "start_line": 2,
-      "start_column": 13,
-      "end_line": 2,
-      "end_column": 44,
-      "start_byte": 42,
-      "end_byte": 73,
-      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.ApiClient:1:0",
-      "confidence": "1.000"
-    },
-    {
       "literal_text": "https://api.example.com/users",
       "kind": "other",
       "carrier": "Req.get",
@@ -899,6 +1574,54 @@
       "start_byte": 107,
       "end_byte": 138,
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:list_users:4:2",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "https://api.github.com",
+      "kind": "other",
+      "carrier": "plug",
+      "arg_position": 1,
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 24,
+      "start_column": 33,
+      "end_line": 24,
+      "end_column": 57,
+      "start_byte": 421,
+      "end_byte": 445,
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.GitHub:22:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "https://example.com/fake",
+      "kind": "other",
+      "carrier": "Req.get!",
+      "arg_position": 0,
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 34,
+      "start_column": 25,
+      "end_line": 34,
+      "end_column": 51,
+      "start_byte": 642,
+      "end_byte": 668,
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:fake:34:2",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "https://example.com/real",
+      "kind": "other",
+      "carrier": "R.get!",
+      "arg_position": 0,
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 33,
+      "start_column": 23,
+      "end_line": 33,
+      "end_column": 49,
+      "start_byte": 589,
+      "end_byte": 615,
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:real:33:2",
       "confidence": "1.000"
     }
   ],
@@ -933,6 +1656,19 @@
       "kind": "string_literal",
       "language": "elixir",
       "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.GitHub:22:0",
+      "start_line": 24,
+      "start_column": 33,
+      "end_line": 24,
+      "end_column": 57,
+      "start_byte": 421,
+      "end_byte": 445,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:create_user:8:2",
       "start_line": 9,
       "start_column": 13,
@@ -959,6 +1695,19 @@
       "kind": "string_literal",
       "language": "elixir",
       "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:fake:34:2",
+      "start_line": 34,
+      "start_column": 25,
+      "end_line": 34,
+      "end_column": 51,
+      "start_byte": 642,
+      "end_byte": 668,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:health:12:2",
       "start_line": 13,
       "start_column": 13,
@@ -979,6 +1728,32 @@
       "end_column": 43,
       "start_byte": 107,
       "end_byte": 138,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:real:33:2",
+      "start_line": 33,
+      "start_column": 23,
+      "end_line": 33,
+      "end_column": 49,
+      "start_byte": 589,
+      "end_byte": 615,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:repos:26:2",
+      "start_line": 26,
+      "start_column": 21,
+      "end_line": 26,
+      "end_column": 34,
+      "start_byte": 468,
+      "end_byte": 481,
       "metadata": null
     }
   ],

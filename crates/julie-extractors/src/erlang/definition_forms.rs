@@ -71,7 +71,9 @@ pub(super) fn extract_function(
         arity,
         exported,
         extractor.common_test_cases.as_ref(),
-    ) {
+    )
+    .or_else(|| extractor.eunit_fixture_roles.get(&clause.identity).copied())
+    {
         apply_test_role(&mut metadata, role);
     }
 
@@ -103,6 +105,7 @@ pub(super) fn extract_function(
     symbols.extend(super::parameters::extract_parameter_symbols(
         extractor,
         clauses,
+        &clause.identity,
         &callable_id,
         &mut seen,
     ));

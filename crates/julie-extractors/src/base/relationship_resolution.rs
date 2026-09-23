@@ -118,6 +118,15 @@ pub struct StructuredPendingRelationship {
         skip_serializing_if = "Option::is_none"
     )]
     pub receiver_type: Option<String>,
+    /// Argument count of the call site, for languages whose function identity
+    /// includes arity (Erlang `name/arity`). Rides into the artifact pending
+    /// `metadata_json` under key `"arity"`.
+    #[serde(
+        rename = "targetArity",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub target_arity: Option<u32>,
 }
 
 impl StructuredPendingRelationship {
@@ -137,6 +146,7 @@ impl StructuredPendingRelationship {
             span: None,
             reference_site_is_exact: false,
             receiver_type: None,
+            target_arity: None,
             pending: PendingRelationship {
                 from_symbol_id,
                 callee_name: display_name,
@@ -161,6 +171,11 @@ impl StructuredPendingRelationship {
 
     pub fn with_receiver_type(mut self, receiver_type: Option<String>) -> Self {
         self.receiver_type = receiver_type;
+        self
+    }
+
+    pub fn with_target_arity(mut self, arity: Option<u32>) -> Self {
+        self.target_arity = arity;
         self
     }
 

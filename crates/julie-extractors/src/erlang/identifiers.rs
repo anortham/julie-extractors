@@ -26,13 +26,13 @@ use std::collections::HashMap;
 
 use tree_sitter::Node;
 
-use super::definition_forms;
 use super::helpers::{
-    NameArity, arg_count, child_named_kinds, find_child_by_type, first_atom_text,
+    self, NameArity, arg_count, child_named_kinds, find_child_by_type, first_atom_text,
     function_arity_entries, named_children, unquote_atom,
 };
 use super::{Bounded, ErlangExtractor};
-use crate::base::{Identifier, IdentifierKind, Symbol, SymbolKind};
+use super::{definition_forms, mfa};
+use crate::base::{Identifier, IdentifierKind, Symbol, SymbolKind, extract_type_arguments};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 /// `(name, arity)` pairs made local by `-import(Module, [...])`, keyed to the
@@ -52,6 +52,7 @@ pub(super) fn extract_identifiers(
         .iter()
         .find(|symbol| symbol.kind == SymbolKind::Module)
         .map(|symbol| symbol.name.clone());
+    let spec_scopes = function_ids_by_identity(symbols);
 
     for &Bounded {
         node: declaration,
@@ -65,6 +66,7 @@ pub(super) fn extract_identifiers(
             end,
         };
         match declaration.kind() {
+            "fun_decl" if helpers::doc_macro_name(&extractor.base, declaration).is_some() => {}
             "fun_decl" => {
                 let scope = function_scope(
                     extractor,
@@ -74,9 +76,25 @@ pub(super) fn extract_identifiers(
                 );
                 walk(extractor, *declaration, scope.as_deref(), &context, 0);
             }
-            "spec" | "callback" | "type_alias" | "opaque" => {
+            "spec" => {
+                let scope = spec_identity(extractor, declaration)
+                    .and_then(|identity| spec_scopes.get(&identity).cloned());
+                walk_type_identifiers(extractor, *declaration, scope.as_deref(), end, 0);
+            }
+            "callback" | "type_alias" | "opaque" | "nominal" => {
                 let scope = containing_symbol_id(declaration, &containing_symbols);
                 walk_type_identifiers(extractor, *declaration, scope.as_deref(), end, 0);
+            }
+            "record_decl" => {
+                let scope = containing_symbol_id(declaration, &containing_symbols);
+                for field in child_named_kinds(declaration, "record_field") {
+                    if let Some(field_type) = field.child_by_field_name("ty") {
+                        walk_type_identifiers(extractor, field_type, scope.as_deref(), end, 0);
+                    }
+                    if let Some(default) = field.child_by_field_name("expr") {
+                        walk(extractor, default, scope.as_deref(), &context, 0);
+                    }
+                }
             }
             "pp_define" => {
                 let scope = containing_symbol_id(declaration, &containing_symbols);
@@ -92,6 +110,32 @@ pub(super) fn extract_identifiers(
     }
 
     extractor.base.identifiers.clone()
+}
+
+/// Function symbol ids keyed by `(name, arity)`, the identity a `-spec`
+/// annotates. Callbacks are declarations of their own, not spec targets.
+fn function_ids_by_identity(symbols: &[Symbol]) -> HashMap<NameArity, String> {
+    symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Function)
+        .filter(|symbol| {
+            symbol
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("callback"))
+                .is_none()
+        })
+        .filter_map(|symbol| {
+            let arity = symbol.metadata.as_ref()?.get("arity")?.as_u64()? as u32;
+            Some(((symbol.name.clone(), arity), symbol.id.clone()))
+        })
+        .collect()
+}
+
+fn spec_identity(extractor: &ErlangExtractor, spec: &Node) -> Option<NameArity> {
+    let name = first_atom_text(&extractor.base, spec)?;
+    let arguments = find_child_by_type(spec, "type_sig")?.child_by_field_name("args")?;
+    Some((name, arg_count(&arguments)))
 }
 
 struct WalkContext<'a> {
@@ -166,15 +210,31 @@ fn walk_type_identifiers(
             .filter(|expr| expr.kind() == "atom")
     {
         let name = unquote_atom(&extractor.base.get_node_text(&atom));
-        extractor.base.create_identifier(
+        let identifier = extractor.base.create_identifier(
             &atom,
             name,
             IdentifierKind::TypeUsage,
             scope.map(String::from),
         );
+        let nested_in_application = node
+            .parent()
+            .filter(|parent| parent.kind() == "expr_args")
+            .and_then(|args| args.parent())
+            .is_some_and(|parent| parent.kind() == "call");
+        if let Some(args) = node
+            .child_by_field_name("args")
+            .filter(|args| args.named_child_count() > 0 && !nested_in_application)
+        {
+            let arguments = extract_type_arguments(&extractor.base, args, decompose_type_arg);
+            extractor.base.record_type_arguments(&identifier, arguments);
+        }
     }
-    if node.kind() == "record_expr" {
-        emit_record_reference(extractor, node, scope);
+    match node.kind() {
+        "record_expr" => emit_record_reference(extractor, node, scope),
+        "remote" => {
+            emit_module_qualifier(extractor, find_child_by_type(&node, "remote_module"), scope)
+        }
+        _ => {}
     }
     let Some(next_depth) = child_tree_depth(depth) else {
         return;
@@ -204,7 +264,80 @@ fn emit_identifiers(
         "record_expr" | "record_update_expr" | "record_index_expr" | "record_field_expr" => {
             emit_record_reference(extractor, node, scope)
         }
+        "qualified_record_expr"
+        | "qualified_record_update_expr"
+        | "qualified_record_field_expr" => emit_qualified_record_reference(extractor, node, scope),
         _ => {}
+    }
+    for (function, module, _) in mfa::targets(extractor, node, context.module_name) {
+        let name = unquote_atom(&extractor.base.get_node_text(&function));
+        extractor.base.create_identifier_with_metadata(
+            &function,
+            name,
+            IdentifierKind::Call,
+            scope.map(String::from),
+            receiver_metadata(&module),
+        );
+    }
+}
+
+/// `#geo:line{from = P}` (OTP 29): the record name and its module are type
+/// usages, and each field is a member access on the record.
+fn emit_qualified_record_reference(
+    extractor: &mut ErlangExtractor,
+    node: Node,
+    scope: Option<&str>,
+) {
+    let Some(name) = node.child_by_field_name("name") else {
+        return;
+    };
+    emit_module_qualifier(extractor, name.child_by_field_name("module"), scope);
+    let Some(record) = name
+        .child_by_field_name("name")
+        .filter(|n| n.kind() == "atom")
+    else {
+        return;
+    };
+    let record_name = unquote_atom(&extractor.base.get_node_text(&record));
+    extractor.base.create_identifier(
+        &record,
+        record_name.clone(),
+        IdentifierKind::TypeUsage,
+        scope.map(String::from),
+    );
+    let fields = node
+        .child_by_field_name("field")
+        .into_iter()
+        .chain(child_named_kinds(&node, "record_field"));
+    for field in fields {
+        emit_wrapped_atom(
+            extractor,
+            Some(field),
+            IdentifierKind::MemberAccess,
+            scope,
+            Some(&record_name),
+        );
+    }
+}
+
+fn decompose_type_arg<'a>(
+    base: &crate::base::BaseExtractor,
+    node: Node<'a>,
+) -> Option<(String, Option<Node<'a>>)> {
+    if !node.is_named() {
+        return None;
+    }
+    match node.kind() {
+        "call" => {
+            let atom = node
+                .child_by_field_name("expr")
+                .filter(|e| e.kind() == "atom")?;
+            let nested = node
+                .child_by_field_name("args")
+                .filter(|args| args.named_child_count() > 0);
+            Some((unquote_atom(&base.get_node_text(&atom)), nested))
+        }
+        _ => Some((base.get_node_text(&node), None)),
     }
 }
 
@@ -311,17 +444,36 @@ fn record_call_arg_literals(
         return;
     };
     for (position, argument) in named_children(&args).into_iter().enumerate() {
-        let Some(text) = extractor.base.decode_string_literal(&argument) else {
+        let literal = binary_string(&argument).unwrap_or(argument);
+        let Some(text) = extractor.base.decode_string_literal(&literal) else {
             continue;
         };
         extractor.base.record_literal(
-            &argument,
+            &literal,
             text,
             Some(carrier.to_string()),
             position as u32,
             scope.map(String::from),
         );
     }
+}
+
+/// The string of a one-segment binary `<<"text">>`, which Erlang code uses
+/// for UTF-8 text such as URLs and SQL.
+fn binary_string<'a>(node: &Node<'a>) -> Option<Node<'a>> {
+    if node.kind() != "binary" {
+        return None;
+    }
+    let elements = named_children(node);
+    let [element] = elements.as_slice() else {
+        return None;
+    };
+    if element.named_child_count() != 1 {
+        return None;
+    }
+    element
+        .child_by_field_name("element")
+        .filter(|string| string.kind() == "string")
 }
 
 /// Records the module of `lists:reverse(X)`, `fun lists:reverse/1`, and an

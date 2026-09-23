@@ -109,7 +109,9 @@ fn collect_node(
     let markdown_body = (language == "markdown")
         .then(|| crate::markdown::blocks::embedded_body(content, node))
         .flatten();
-    if let Some((embedded_language, start, end)) = markdown_body {
+    if language == "elixir" && node_kind == "sigil" {
+        regions.push(elixir_sigil_region(file_path, node, content));
+    } else if let Some((embedded_language, start, end)) = markdown_body {
         let metadata = HashMap::from([
             (
                 "host_node_kind".to_string(),
@@ -181,7 +183,9 @@ fn collect_node(
             } else {
                 SourceRegionKind::Comment
             }
-        } else if is_doc_comment(language, text.unwrap_or_default()) {
+        } else if is_doc_comment(language, text.unwrap_or_default())
+            && !is_erlang_plain_comment(language, node, text.unwrap_or_default())
+        {
             SourceRegionKind::DocComment
         } else {
             SourceRegionKind::Comment
@@ -234,6 +238,53 @@ fn collect_node(
             regions,
             child_depth,
         );
+    }
+}
+
+/// An Elixir sigil: a template sigil (`~H` HEEx, `~E`/`~L` EEx) is an embedded
+/// template region; every other sigil (`~r`, `~s`, `~p`, `~w`, ...) is a string
+/// literal.
+fn elixir_sigil_region(file_path: &str, node: Node<'_>, content: &str) -> SourceRegion {
+    let sigil_name = {
+        let mut cursor = node.walk();
+        node.children(&mut cursor)
+            .find(|child| child.kind() == "sigil_name")
+            .and_then(|name| node_text(content, name))
+            .unwrap_or_default()
+    };
+    let template_language = match sigil_name {
+        "H" => Some("heex"),
+        "E" | "L" => Some("eex"),
+        _ => None,
+    };
+    match template_language {
+        Some(template_language) => region_for_node(
+            file_path,
+            "elixir",
+            node,
+            SourceRegionKind::Embedded,
+            Some(HashMap::from([
+                (
+                    "host_node_kind".to_string(),
+                    serde_json::Value::String("sigil".to_string()),
+                ),
+                (
+                    "sigil_name".to_string(),
+                    serde_json::Value::String(sigil_name.to_string()),
+                ),
+                (
+                    "embedded_language".to_string(),
+                    serde_json::Value::String(template_language.to_string()),
+                ),
+            ])),
+        ),
+        None => region_for_node(
+            file_path,
+            "elixir",
+            node,
+            SourceRegionKind::StringLiteral,
+            None,
+        ),
     }
 }
 
@@ -403,6 +454,17 @@ fn trailing_documented_symbol_id(region: &SourceRegion, symbols: &[Symbol]) -> O
 
 fn node_text<'a>(content: &'a str, node: Node<'_>) -> Option<&'a str> {
     content.get(node.start_byte()..node.end_byte())
+}
+
+/// Erlang `%%` comments document the next form only at the top level; inside
+/// a function body they are ordinary comments, and an escript `%%!` line
+/// carries emulator arguments.
+fn is_erlang_plain_comment(language: &str, node: Node, text: &str) -> bool {
+    language == "erlang"
+        && (text.starts_with("%%!")
+            || node
+                .parent()
+                .is_some_and(|parent| parent.kind() != "source_file"))
 }
 
 fn is_doc_comment(language: &str, text: &str) -> bool {

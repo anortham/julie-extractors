@@ -177,18 +177,22 @@ end
         .map(|id| id.name.as_str())
         .collect();
 
-    // Reads: do:-bodies of defs, capture operands, attribute reads,
-    // comprehension sources, anonymous-fn bodies.
+    // Reads: do:-bodies of defs, attribute reads, comprehension sources,
+    // anonymous-fn bodies. A capture `&compute/1` is a call, not a read.
+    assert!(
+        identifiers
+            .iter()
+            .any(|id| id.name == "compute" && id.kind == IdentifierKind::Call)
+    );
     for expected in [
-        "bonus",   // def do:-body read
-        "kv",      // defp do:-body tuple element read
-        "whole",   // defp do:-body tuple element read
-        "compute", // &compute/1 function-reference read
-        "limit",   // @limit attribute read
-        "items",   // comprehension source read
-        "item",    // do:-body argument read
-        "shift",   // anonymous-fn body read
-        "q",       // anonymous-fn body read (LHS of +)
+        "bonus",  // def do:-body read
+        "kv",     // defp do:-body tuple element read
+        "whole",  // defp do:-body tuple element read
+        "@limit", // @limit attribute read
+        "items",  // comprehension source read
+        "item",   // do:-body argument read
+        "shift",  // anonymous-fn body read
+        "q",      // anonymous-fn body read (LHS of +)
     ] {
         assert!(
             var_refs.contains(&expected),

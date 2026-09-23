@@ -1,0 +1,10 @@
+%% Application resource: the application, its callback module, its runtime
+%% dependencies, and its environment keys.
+{application, kv,
+ [{description, "Key-value store"},
+  {vsn, "1.0.0"},
+  {mod, {kv_app, []}},
+  {applications, [kernel, stdlib, cowboy]},
+  {included_applications, [kv_audit]},
+  {env, [{http_port, 8080},
+         {pool, [{size, 10}, {overflow, 5}]}]}]}.

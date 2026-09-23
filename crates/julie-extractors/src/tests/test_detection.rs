@@ -1805,7 +1805,7 @@ fn test_is_test_symbol_dispatch_across_languages() {
             SymbolKind::Function,
             vec![],
             None,
-            true,
+            false,
         ),
         (
             "elixir",

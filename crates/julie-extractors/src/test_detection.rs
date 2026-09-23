@@ -1913,8 +1913,10 @@ pub(crate) const SWIFT_TEST_MACRO_KEY: &str = "test";
 /// The normalized annotation key for Swift Testing's `@Suite` macro.
 pub(crate) const SWIFT_SUITE_MACRO_KEY: &str = "suite";
 
+/// ExUnit discovers tests only through the `test`/`property` macros, which the
+/// Elixir extractor marks itself. A `def test_*` function is never a test.
 fn detect_elixir(name: &str) -> bool {
-    name.starts_with("test_") || name.starts_with("test ")
+    name.starts_with("test ")
 }
 
 /// EUnit discovers a test from its name alone: `sum_test/0` is a test case and
@@ -1944,25 +1946,32 @@ const COMMON_TEST_CONFIG_NAMES: [&str; 4] = ["all", "groups", "group", "suite"];
 /// Common Test runs every test case as `Case(Config)`.
 const COMMON_TEST_CASE_ARITY: u32 = 1;
 
-/// Whether an Erlang module hosts EUnit tests, Common Test cases, or both.
-/// The two frameworks are independent — a `*_SUITE` module may also include
-/// `eunit.hrl` — so the classification carries a flag per framework.
+/// Whether an Erlang module hosts EUnit tests, Common Test cases, PropEr
+/// properties, or several of them. The frameworks are independent — a
+/// `*_SUITE` module may also include `eunit.hrl` — so the classification
+/// carries a flag per framework.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) struct ErlangTestModule {
     eunit: bool,
     common_test: bool,
+    proper: bool,
 }
 
 impl ErlangTestModule {
-    pub(crate) fn classify(module_name: &str, includes_eunit_header: bool) -> Self {
+    pub(crate) fn classify(
+        module_name: &str,
+        includes_eunit_header: bool,
+        includes_proper_header: bool,
+    ) -> Self {
         Self {
             eunit: includes_eunit_header || module_name.ends_with("_tests"),
             common_test: module_name.ends_with("_SUITE"),
+            proper: includes_proper_header || module_name.starts_with("prop_"),
         }
     }
 
     pub(crate) fn is_test_container(&self) -> bool {
-        self.eunit || self.common_test
+        self.eunit || self.common_test || self.proper
     }
 
     pub(crate) fn is_common_test(&self) -> bool {
@@ -1970,7 +1979,7 @@ impl ErlangTestModule {
     }
 }
 
-/// Classify an Erlang function against EUnit and Common Test.
+/// Classify an Erlang function against EUnit, Common Test, and PropEr.
 ///
 /// Common Test dispatches on exact callback names inside a `*_SUITE` module and
 /// runs the `Case(Config)` functions its `all/0` and `groups/0` list. When the
@@ -1978,7 +1987,7 @@ impl ErlangTestModule {
 /// is a case; otherwise every other exported `Case(Config)` counts. EUnit
 /// matches the name suffix on any zero-arity function, in any module, because
 /// EUnit test modules are not required to be named or located in a particular
-/// way.
+/// way. PropEr runs the zero-arity `prop_*` functions of a PropEr module.
 pub(crate) fn erlang_test_role(
     module: ErlangTestModule,
     name: &str,
@@ -1999,7 +2008,8 @@ pub(crate) fn erlang_test_role(
         }
     }
 
-    (arity == 0 && detect_erlang(name)).then_some(TestRole::TestCase)
+    let is_property = module.proper && name.starts_with("prop_");
+    (arity == 0 && (is_property || detect_erlang(name))).then_some(TestRole::TestCase)
 }
 
 fn detect_dart(name: &str, file_path: &str, annotation_keys: &[String]) -> bool {

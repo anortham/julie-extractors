@@ -55,7 +55,11 @@ fn extract_identifier_from_node(
                 && target.kind() == "identifier"
             {
                 let name = base.get_node_text(&target);
-                if is_definition_keyword(&name) || super::helpers::is_definition_head(base, &node) {
+                if is_definition_keyword(&name)
+                    || super::helpers::is_special_form(&name)
+                    || super::helpers::is_definition_head(base, &node)
+                    || super::helpers::is_attribute_operand(base, &node)
+                {
                     return;
                 }
                 let containing = find_containing_symbol_id(node, containing_symbols);
@@ -70,7 +74,15 @@ fn extract_identifier_from_node(
                     }
                     return;
                 }
-                base.create_identifier(&target, name, IdentifierKind::Call, containing);
+                base.create_identifier(&target, name, IdentifierKind::Call, containing.clone());
+                for (atom, callback) in super::helpers::setup_callbacks(base, &node) {
+                    base.create_identifier(
+                        &atom,
+                        callback,
+                        IdentifierKind::Call,
+                        containing.clone(),
+                    );
+                }
             }
             // Phase 3b: capture string-literal call-arguments config-free; the
             // carrier classification + bloat gate run later in the artifact language-policy pass.
@@ -83,8 +95,18 @@ fn extract_identifier_from_node(
                 node.child_by_field_name("left"),
                 node.child_by_field_name("right"),
             ) {
-                // Module reference
-                if left.kind() == "alias" {
+                if left.kind() != "alias" {
+                    if right.kind() == "identifier" {
+                        let containing = find_containing_symbol_id(node, containing_symbols);
+                        let name = base.get_node_text(&right);
+                        let kind = if typespec_position(base, node) == Some(true) {
+                            IdentifierKind::TypeUsage
+                        } else {
+                            IdentifierKind::MemberAccess
+                        };
+                        base.create_identifier(&right, name, kind, containing);
+                    }
+                } else {
                     let module_name = base.get_node_text(&left);
                     let containing = find_containing_symbol_id(node, containing_symbols);
                     base.create_identifier(
@@ -120,7 +142,7 @@ fn extract_identifier_from_node(
                 }
             }
         }
-        "alias" if !is_in_definition_context(&node) && !is_map_struct_child(&node) => {
+        "alias" if !is_declaration_name(base, &node) && !is_map_struct_child(&node) => {
             let name = base.get_node_text(&node);
             let containing = find_containing_symbol_id(node, containing_symbols);
             base.create_identifier(&node, name, IdentifierKind::TypeUsage, containing);
@@ -132,14 +154,28 @@ fn extract_identifier_from_node(
         // nodes and stay owned by the dot/alias arms (no double emission);
         // keyword-list keys are atoms and never reach here; `nil`/`true`/`false`
         // are distinct grammar nodes.
-        "identifier" if is_elixir_value_read_identifier(base, node) => {
+        "identifier"
+            if super::helpers::is_attribute_operand(base, &node)
+                || is_elixir_value_read_identifier(base, node) =>
+        {
             let name = base.get_node_text(&node);
             // Rule 5: `__MODULE__`-style special forms are never symbol names;
             // a bare `_` placeholder only occurs in patterns but is filtered
             // defensively.
             if name != "_" && !(name.starts_with("__") && name.ends_with("__")) {
                 let containing = find_containing_symbol_id(node, containing_symbols);
-                base.create_identifier(&node, name, IdentifierKind::VariableRef, containing);
+                if super::helpers::is_local_capture(base, &node) {
+                    base.create_identifier(&node, name, IdentifierKind::Call, containing);
+                } else if super::helpers::is_attribute_operand(base, &node) {
+                    base.create_identifier(
+                        &node,
+                        format!("@{name}"),
+                        IdentifierKind::VariableRef,
+                        containing,
+                    );
+                } else {
+                    base.create_identifier(&node, name, IdentifierKind::VariableRef, containing);
+                }
             }
         }
         _ => {}
@@ -329,22 +365,36 @@ fn is_map_struct_child(node: &Node) -> bool {
         .is_some_and(|parent| parent.kind() == "struct")
 }
 
-fn is_in_definition_context(node: &Node) -> bool {
-    let mut current = Some(*node);
-    while let Some(n) = current {
-        if n.kind() == "call"
-            && let Some(target) = n.child_by_field_name("target")
-            && target.kind() == "identifier"
-        {
-            // Check if the alias is a direct argument of a definition call
-            let parent_is_args = node.parent().is_some_and(|p| {
-                p.kind() == "arguments" && p.parent().is_some_and(|pp| pp.id() == n.id())
-            });
-            if parent_is_args {
-                return true;
+/// True when an alias names the declaration or directive target of its call:
+/// the module of `defmodule`/`defprotocol`, the target of
+/// `alias`/`import`/`use`/`require`, or an `@behaviour` module. Those names are
+/// symbols or import rows of their own, so they are not type usages.
+fn is_declaration_name(base: &BaseExtractor, node: &Node) -> bool {
+    let mut current = node.parent();
+    while let Some(parent) = current {
+        match parent.kind() {
+            "dot" | "tuple" => current = parent.parent(),
+            "arguments" => {
+                return parent
+                    .parent()
+                    .and_then(|call| call.child_by_field_name("target"))
+                    .is_some_and(|target| {
+                        target.kind() == "identifier"
+                            && matches!(
+                                base.get_node_text(&target).as_str(),
+                                "defmodule"
+                                    | "defprotocol"
+                                    | "alias"
+                                    | "import"
+                                    | "use"
+                                    | "require"
+                                    | "behaviour"
+                                    | "behavior"
+                            )
+                    });
             }
+            _ => return false,
         }
-        current = n.parent();
     }
     false
 }
@@ -579,10 +629,7 @@ fn walk_elixir_typespec_type_expr_at_depth(
         return;
     }
 
-    if node.kind() == "call"
-        && is_elixir_parameterized_type_call(&node)
-        && !is_nested_in_type_application_args(&node)
-    {
+    if node.kind() == "call" && is_elixir_parameterized_type_call(&node) {
         record_elixir_type_arguments(base, node, containing_symbols);
         return;
     }
@@ -607,32 +654,17 @@ fn walk_elixir_typespec_type_expr_children(
     }
 }
 
-fn is_nested_in_type_application_args(node: &Node) -> bool {
-    let Some(args) = node.parent() else {
-        return false;
-    };
-    if args.kind() != "arguments" {
-        return false;
-    }
-    let Some(parent_call) = args.parent() else {
-        return false;
-    };
-    parent_call.kind() == "call"
-        && parent_call.id() != node.id()
-        && is_elixir_parameterized_type_call(&parent_call)
-}
-
 fn record_elixir_type_arguments(
     base: &mut BaseExtractor,
     call_node: Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
-    let Some(target) = call_node.child_by_field_name("target") else {
+    let Some(target) = call_node
+        .child_by_field_name("target")
+        .and_then(|target| super::helpers::type_application_name_node(&target))
+    else {
         return;
     };
-    if target.kind() != "identifier" {
-        return;
-    }
     let Some(args) = find_child_by_type(&call_node, "arguments") else {
         return;
     };

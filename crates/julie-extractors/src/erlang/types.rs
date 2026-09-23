@@ -28,8 +28,17 @@ const CALLBACK_METADATA_KEY: &str = "callback";
 #[derive(Debug, Default, Clone)]
 pub(crate) struct DeclaredTypes {
     specs: HashMap<NameArity, String>,
+    /// Base type of each `-spec` argument position, `None` where the declared
+    /// argument has no single base name.
+    spec_args: HashMap<NameArity, Vec<Option<String>>>,
     callbacks: HashMap<NameArity, String>,
     aliases: HashMap<NameArity, String>,
+}
+
+impl DeclaredTypes {
+    pub(super) fn spec_args(&self, identity: &NameArity) -> &[Option<String>] {
+        self.spec_args.get(identity).map_or(&[], Vec::as_slice)
+    }
 }
 
 /// Collect every declared type form from the top-level declarations.
@@ -38,9 +47,16 @@ pub(super) fn collect(base: &BaseExtractor, declarations: &[Node]) -> DeclaredTy
 
     for declaration in declarations {
         match declaration.kind() {
-            "spec" => insert(base, declaration, signature_form, &mut declared.specs),
+            "spec" => {
+                insert(base, declaration, signature_form, &mut declared.specs);
+                if let Some((identity, args)) = spec_argument_types(base, declaration) {
+                    declared.spec_args.entry(identity).or_insert(args);
+                }
+            }
             "callback" => insert(base, declaration, signature_form, &mut declared.callbacks),
-            "type_alias" | "opaque" => insert(base, declaration, alias_form, &mut declared.aliases),
+            "type_alias" | "opaque" | "nominal" => {
+                insert(base, declaration, alias_form, &mut declared.aliases)
+            }
             _ => {}
         }
     }
@@ -98,6 +114,22 @@ fn signature_form(base: &BaseExtractor, declaration: &Node) -> Option<(NameArity
     ))
 }
 
+/// The base type of each argument of a spec's first clause:
+/// `-spec c(Req :: cowboy_req:req(), role())` gives `cowboy_req:req`, `role`.
+fn spec_argument_types(
+    base: &BaseExtractor,
+    declaration: &Node,
+) -> Option<(NameArity, Vec<Option<String>>)> {
+    let name = first_atom_text(base, declaration)?;
+    let arguments = find_child_by_type(declaration, "type_sig")?.child_by_field_name("args")?;
+    let mut cursor = arguments.walk();
+    let types: Vec<Option<String>> = arguments
+        .named_children(&mut cursor)
+        .map(|argument| base_type_name(base, &argument))
+        .collect();
+    Some(((name, types.len() as u32), types))
+}
+
 /// `-type account() :: #account{}.` names the alias in a `type_name` child and
 /// carries the declared form in the `ty` field.
 fn alias_form(base: &BaseExtractor, declaration: &Node) -> Option<(NameArity, String)> {
@@ -114,7 +146,7 @@ fn alias_form(base: &BaseExtractor, declaration: &Node) -> Option<(NameArity, St
 /// The single name a declared type node states: `foo()` and `mod:foo()` name
 /// `foo` and `mod:foo`, `#foo{}` names `foo`, a bare atom names itself, and an
 /// annotation (`Result :: foo()`) names its type.
-fn base_type_name(base: &BaseExtractor, declared: &Node) -> Option<String> {
+pub(super) fn base_type_name(base: &BaseExtractor, declared: &Node) -> Option<String> {
     match declared.kind() {
         "atom" => Some(unquote_atom(&base.get_node_text(declared))),
         "call" => atom_name(base, &declared.child_by_field_name("expr")?),

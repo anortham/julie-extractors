@@ -95,10 +95,14 @@ fn collect_match_binds<'a>(
     out: &mut Vec<PatternBind<'a>>,
     depth: u32,
 ) {
-    let is_eq = node
-        .child_by_field_name("operator")
-        .is_some_and(|op| op.kind() == "=");
-    if !is_eq {
+    let operator = node.child_by_field_name("operator").map(|op| op.kind());
+    if operator == Some("\\\\") {
+        if let Some(left) = node.child_by_field_name("left") {
+            collect_pattern_binds(base, left, out, depth);
+        }
+        return;
+    }
+    if operator != Some("=") {
         collect_child_binds(base, node, out, depth);
         return;
     }
@@ -126,7 +130,7 @@ fn collect_unary_binds<'a>(
     depth: u32,
 ) {
     let op = node.child_by_field_name("operator").map(|op| op.kind());
-    if op == Some("^") {
+    if matches!(op, Some("^" | "@")) {
         return;
     }
     collect_child_binds(base, node, out, depth);

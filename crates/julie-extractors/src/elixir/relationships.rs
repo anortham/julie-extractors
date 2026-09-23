@@ -85,7 +85,7 @@ impl<'a> CallScope<'a> {
         for symbol in symbols.iter().filter(|s| is_callable_definition(s)) {
             let (min_arity, max_arity) = root
                 .descendant_for_byte_range(symbol.start_byte as usize, symbol.end_byte as usize)
-                .map(|node| definition_arity(base, &node))
+                .map(|node| helpers::definition_arity(base, &node))
                 .unwrap_or((0, usize::MAX));
             let module = scope.module_of(symbol).map(|m| m.id.as_str());
             scope
@@ -222,34 +222,10 @@ impl<'a> CallScope<'a> {
     }
 }
 
-/// Arity range of a definition node: defaults (`\\`) make parameters optional.
-fn definition_arity(base: &BaseExtractor, node: &Node) -> (usize, usize) {
-    let Some(mut head) = helpers::definition_head_argument(base, node) else {
-        return (0, usize::MAX);
-    };
-    if head.kind() == "binary_operator"
-        && let Some(left) = head.child_by_field_name("left")
-    {
-        head = left;
+fn call_arity(base: &BaseExtractor, node: &Node) -> usize {
+    if let Some(arity) = helpers::capture_arity(base, node) {
+        return arity;
     }
-    let Some(args) = helpers::find_child_by_type(&head, "arguments") else {
-        return (0, 0);
-    };
-    let mut cursor = args.walk();
-    let params: Vec<Node> = args.named_children(&mut cursor).collect();
-    let defaults = params
-        .iter()
-        .filter(|param| {
-            param.kind() == "binary_operator"
-                && param
-                    .child_by_field_name("operator")
-                    .is_some_and(|op| op.kind() == "\\\\")
-        })
-        .count();
-    (params.len() - defaults, params.len())
-}
-
-fn call_arity(node: &Node) -> usize {
     let explicit = helpers::find_child_by_type(node, "arguments")
         .map(|args| args.named_child_count())
         .unwrap_or(0);
@@ -283,12 +259,35 @@ fn walk_for_relationships(
                         extract_use_relationship(extractor, &node, scope, relationships);
                     }
                     "defimpl" => {
-                        extract_impl_relationship(extractor, &node, symbols, relationships);
+                        extract_impl_relationship(extractor, &node, symbols, scope, relationships);
+                    }
+                    "defdelegate" => {
+                        extract_delegate_relationship(
+                            extractor,
+                            &node,
+                            symbols,
+                            scope,
+                            relationships,
+                        );
+                    }
+                    "setup" | "setup_all" => {
+                        for (atom, callback) in helpers::setup_callbacks(&extractor.base, &node) {
+                            emit_call(
+                                extractor,
+                                &atom,
+                                scope,
+                                &callback,
+                                1,
+                                unresolved_elixir_alias(callback.clone()),
+                                relationships,
+                            );
+                        }
                     }
                     "defmodule" | "def" | "defp" | "defmacro" | "defmacrop" | "defprotocol"
-                    | "defstruct" | "defguard" | "defguardp" | "defdelegate" | "defexception"
+                    | "defstruct" | "defguard" | "defguardp" | "defexception"
                     | "defoverridable" | "import" | "alias" | "require" | "test" | "describe"
-                    | "setup" | "setup_all" => {}
+                    | "property" | "doctest" => {}
+                    name if helpers::is_special_form(name) => {}
                     _ => {
                         extract_call_relationship(extractor, &node, scope, relationships);
                     }
@@ -298,6 +297,19 @@ fn walk_for_relationships(
         "unary_operator" if is_module_attribute(&extractor.base, &node) => {
             extract_behaviour_relationship(extractor, &node, scope, relationships);
             return;
+        }
+        "identifier" if helpers::is_local_capture(&extractor.base, &node) => {
+            let name = extractor.base.get_node_text(&node);
+            let arity = helpers::capture_arity(&extractor.base, &node).unwrap_or(0);
+            emit_call(
+                extractor,
+                &node,
+                scope,
+                &name,
+                arity,
+                unresolved_elixir_alias(name.clone()),
+                relationships,
+            );
         }
         _ => {}
     }
@@ -372,27 +384,31 @@ fn extract_use_relationship(
     }
 }
 
+/// A protocol implementation implements its protocol: the local protocol
+/// symbol, or a pending row for a protocol defined elsewhere.
 fn extract_impl_relationship(
-    extractor: &super::ElixirExtractor,
+    extractor: &mut super::ElixirExtractor,
     node: &Node,
     symbols: &[Symbol],
+    scope: &CallScope<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
     let Some(protocol_name) = helpers::extract_impl_protocol_name(&extractor.base, node) else {
         return;
     };
-    let for_type = helpers::extract_keyword_value(&extractor.base, node, "for");
-
-    let impl_name = match &for_type {
-        Some(ft) => format!("{}.{}", protocol_name, ft),
-        None => protocol_name.clone(),
+    let Some(from) = symbols
+        .iter()
+        .find(|s| s.kind == SymbolKind::Class && s.start_byte as usize == node.start_byte())
+    else {
+        return;
     };
-
-    let from_symbol = symbols.iter().find(|s| s.name == impl_name);
-    let to_symbol = symbols.iter().find(|s| s.name == protocol_name);
-
-    if let (Some(from), Some(to)) = (from_symbol, to_symbol) {
-        relationships.push(Relationship {
+    let target = module_target(scope, node, &protocol_name);
+    match scope
+        .modules_by_name
+        .get(target.terminal_name.as_str())
+        .filter(|to| to.kind == SymbolKind::Interface)
+    {
+        Some(to) => relationships.push(Relationship {
             id: format!(
                 "{}_{}_Implements_{}",
                 from.id,
@@ -408,8 +424,56 @@ fn extract_impl_relationship(
             reference_site_is_exact: false,
             confidence: 1.0,
             metadata: None,
-        });
+        }),
+        None => {
+            let pending = extractor.base.create_pending_relationship(
+                from.id.clone(),
+                target,
+                RelationshipKind::Implements,
+                node,
+                Some(from.id.clone()),
+                Some(0.9),
+            );
+            extractor.base.add_structured_pending_relationship(pending);
+        }
     }
+}
+
+/// `defdelegate name(args), to: Mod, as: :other` calls `Mod.other` with the
+/// same arity.
+fn extract_delegate_relationship(
+    extractor: &mut super::ElixirExtractor,
+    node: &Node,
+    symbols: &[Symbol],
+    scope: &CallScope<'_>,
+    relationships: &mut Vec<Relationship>,
+) {
+    let Some(delegate) = symbols
+        .iter()
+        .find(|s| s.kind == SymbolKind::Delegate && s.start_byte as usize == node.start_byte())
+    else {
+        return;
+    };
+    let Some(target_module) = helpers::extract_keyword_value(&extractor.base, node, "to") else {
+        return;
+    };
+    let function = helpers::extract_keyword_value(&extractor.base, node, "as")
+        .map(|renamed| renamed.trim_start_matches(':').to_string())
+        .unwrap_or_else(|| delegate.name.clone());
+    let arity = helpers::definition_arity(&extractor.base, node).1;
+    let module = scope.expand_module(scope.enclosing_module(node), &target_module);
+    let callee = scope
+        .modules_by_name
+        .get(module.as_str())
+        .and_then(|m| scope.resolve(Some(m), &function, arity));
+    let unresolved = UnresolvedTarget {
+        display_name: format!("{module}.{function}"),
+        terminal_name: function,
+        receiver: None,
+        namespace_path: vec![module],
+        import_context: None,
+    };
+    push_call(extractor, node, delegate, callee, unresolved, relationships);
 }
 
 fn extract_behaviour_relationship(
@@ -538,7 +602,7 @@ fn extract_call_relationship(
     let Some(target) = node.child_by_field_name("target") else {
         return;
     };
-    let arity = call_arity(node);
+    let arity = call_arity(&extractor.base, node);
     let enclosing = scope.enclosing_module(node);
 
     let (callee, unresolved) = match target.kind() {
@@ -558,7 +622,28 @@ fn extract_call_relationship(
             };
             let module_text = extractor.base.get_node_text(&left);
             let function = extractor.base.get_node_text(&right);
-            if left.kind() == "alias" || module_text.split('.').next() == Some("__MODULE__") {
+            let is_module =
+                left.kind() == "alias" || module_text.split('.').next() == Some("__MODULE__");
+            let has_arguments = helpers::find_child_by_type(node, "arguments").is_some();
+            if !is_module
+                && !has_arguments
+                && helpers::capture_arity(&extractor.base, node).is_none()
+            {
+                return;
+            }
+            if left.kind() == "atom" {
+                let erlang_module = module_text.trim_start_matches(':').to_string();
+                (
+                    None,
+                    UnresolvedTarget {
+                        display_name: format!("{module_text}.{function}"),
+                        terminal_name: function,
+                        receiver: None,
+                        namespace_path: vec![erlang_module],
+                        import_context: None,
+                    },
+                )
+            } else if is_module {
                 let module = scope.expand_module(enclosing, &module_text);
                 let callee = scope
                     .modules_by_name
@@ -575,13 +660,48 @@ fn extract_call_relationship(
             } else {
                 (
                     None,
-                    unresolved_elixir_alias(extractor.base.get_node_text(&target)),
+                    UnresolvedTarget {
+                        display_name: format!("{module_text}.{function}"),
+                        terminal_name: function,
+                        receiver: Some(module_text),
+                        namespace_path: Vec::new(),
+                        import_context: None,
+                    },
                 )
             }
         }
         _ => return,
     };
+    push_call(extractor, node, caller, callee, unresolved, relationships);
+}
 
+/// Emit a call from the callable around `site` to `name/arity`: a local edge
+/// when the enclosing module defines it, otherwise a pending row.
+#[allow(clippy::too_many_arguments)]
+fn emit_call(
+    extractor: &mut super::ElixirExtractor,
+    site: &Node,
+    scope: &CallScope<'_>,
+    name: &str,
+    arity: usize,
+    unresolved: UnresolvedTarget,
+    relationships: &mut Vec<Relationship>,
+) {
+    let Some(caller) = scope.callers.find(*site) else {
+        return;
+    };
+    let callee = scope.resolve(scope.enclosing_module(site), name, arity);
+    push_call(extractor, site, caller, callee, unresolved, relationships);
+}
+
+fn push_call(
+    extractor: &mut super::ElixirExtractor,
+    node: &Node,
+    caller: &Symbol,
+    callee: Option<&Symbol>,
+    unresolved: UnresolvedTarget,
+    relationships: &mut Vec<Relationship>,
+) {
     if let Some(callee) = callee {
         relationships.push(Relationship {
             id: format!(

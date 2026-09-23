@@ -2,6 +2,7 @@ mod bash;
 mod csharp;
 mod dart;
 mod elixir;
+mod erlang;
 mod fsharp;
 mod go;
 mod java;
@@ -41,6 +42,7 @@ pub(super) fn collect_backend_http_client_requests(
         "php" => php::collect_php_http_client_requests(language, tree, file_path, content),
         "ruby" => ruby::collect_ruby_http_client_requests(language, tree, file_path, content),
         "elixir" => elixir::collect_elixir_http_client_requests(language, tree, file_path, content),
+        "erlang" => erlang::collect_erlang_http_client_requests(language, tree, file_path, content),
         "rust" => rust::collect_rust_http_client_requests(language, tree, file_path, content),
         "bash" => bash::collect_bash_http_client_requests(language, tree, file_path, content),
         "vbnet" => vbnet::collect_vbnet_http_client_requests(language, tree, file_path, content),

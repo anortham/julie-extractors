@@ -11,6 +11,7 @@ mod test_roles;
 mod type_facts;
 mod types;
 mod visibility;
+mod wave2_gaps;
 
 #[cfg(test)]
 pub(crate) mod support {

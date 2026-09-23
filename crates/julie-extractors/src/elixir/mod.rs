@@ -31,8 +31,10 @@ pub struct ElixirExtractor {
     pub(crate) base: BaseExtractor,
     /// Stack of module names for building qualified names
     pub(crate) module_stack: Vec<String>,
-    /// Collected @spec annotations keyed by function name
-    pub(crate) specs: HashMap<String, String>,
+    /// `@spec` return types keyed by enclosing module, function name, and arity.
+    pub(crate) specs: HashMap<(Option<String>, String, usize), String>,
+    /// Spec return types already matched to their definition symbols.
+    pub(crate) spec_types: HashMap<String, String>,
 }
 
 impl ElixirExtractor {
@@ -46,6 +48,7 @@ impl ElixirExtractor {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
             module_stack: Vec::new(),
             specs: HashMap::new(),
+            spec_types: HashMap::new(),
         }
     }
 
@@ -54,6 +57,7 @@ impl ElixirExtractor {
         let mut symbols = Vec::new();
         self.module_stack.clear();
         self.specs.clear();
+        self.spec_types.clear();
 
         self.traverse_node(&tree.root_node(), &mut symbols, None, 0);
         symbols
@@ -70,8 +74,8 @@ impl ElixirExtractor {
     }
 
     /// Infer types from @spec annotations and other type hints
-    pub fn infer_types(&self, symbols: &[Symbol]) -> HashMap<String, String> {
-        types_inference::infer_types(&self.specs, symbols)
+    pub fn infer_types(&self, _symbols: &[Symbol]) -> HashMap<String, String> {
+        self.spec_types.clone()
     }
 
     // ========================================================================

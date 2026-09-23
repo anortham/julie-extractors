@@ -9,8 +9,10 @@ use super::helpers;
 use super::parameters;
 use super::test_calls;
 use super::type_facts;
+use super::types_inference;
+use crate::base::TestRole;
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations};
-use crate::test_detection::apply_callable_test_metadata;
+use crate::test_detection::{apply_callable_test_metadata, apply_test_role};
 use crate::tree_traversal::child_tree_depth;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -81,7 +83,11 @@ pub(super) fn dispatch_call(
         "use" => extract_use_call(extractor, node, symbols, parent_id),
         "alias" => extract_alias_call(extractor, node, symbols, parent_id),
         "require" => extract_require_call(extractor, node, symbols, parent_id),
-        "test" => test_calls::extract_test(extractor, node, parent_id),
+        "test" | "property" => test_calls::extract_test(extractor, node, &target_name, parent_id),
+        "doctest" => test_calls::extract_doctest(extractor, node, parent_id),
+        "schema" | "embedded_schema" => {
+            definition_forms::extract_ecto_schema(extractor, node, &target_name, symbols, parent_id)
+        }
         "describe" => test_calls::extract_describe(extractor, node, symbols, parent_id, depth),
         "setup" | "setup_all" => {
             test_calls::extract_setup(extractor, node, &target_name, parent_id)
@@ -113,6 +119,11 @@ fn extract_defmodule(
         &attributes::collect_module_annotations(&extractor.base, node),
         "elixir",
     );
+    let metadata = test_calls::is_exunit_case_module(&extractor.base, node).then(|| {
+        let mut metadata = HashMap::new();
+        apply_test_role(&mut metadata, TestRole::TestContainer);
+        metadata
+    });
 
     let symbol = extractor.base.create_symbol(
         node,
@@ -122,7 +133,7 @@ fn extract_defmodule(
             signature: Some(signature),
             visibility: Some(Visibility::Public),
             parent_id: parent_id.map(String::from),
-            metadata: None,
+            metadata,
             doc_comment,
             annotations,
         },
@@ -203,6 +214,7 @@ fn extract_def(
         &mut symbol,
         helpers::definition_body(&extractor.base, node),
     );
+    record_spec_type(extractor, node, &symbol);
     extract_callable_bindings(extractor, node, &symbol.id, symbols, depth);
     Some((symbol, false))
 }
@@ -257,8 +269,27 @@ fn extract_defmacro(
         &mut symbol,
         helpers::definition_body(&extractor.base, node),
     );
+    record_spec_type(extractor, node, &symbol);
     extract_callable_bindings(extractor, node, &symbol.id, symbols, depth);
     Some((symbol, false))
+}
+
+/// Give a definition the return type of the `@spec` with its module, name,
+/// and full arity.
+fn record_spec_type(extractor: &mut ElixirExtractor, node: &Node, symbol: &Symbol) {
+    let arity = helpers::definition_arity(&extractor.base, node).1;
+    let key = (
+        extractor.module_stack.last().cloned(),
+        symbol.name.clone(),
+        arity,
+    );
+    if let Some(base_type) = extractor
+        .specs
+        .get(&key)
+        .and_then(|return_type| types_inference::spec_base_type_name(return_type))
+    {
+        extractor.spec_types.insert(symbol.id.clone(), base_type);
+    }
 }
 
 fn extract_callable_bindings(
@@ -333,25 +364,30 @@ fn extract_defimpl(
     depth: u32,
 ) -> Option<(Symbol, bool)> {
     let protocol_name = helpers::extract_impl_protocol_name(&extractor.base, node)?;
-    let for_type = helpers::extract_keyword_value(&extractor.base, node, "for").unwrap_or_default();
+    let for_types = helpers::impl_for_types(&extractor.base, node)
+        .or_else(|| extractor.module_stack.last().map(|m| vec![m.clone()]))
+        .unwrap_or_default();
+    let impl_name = helpers::impl_name(&protocol_name, &for_types);
 
-    let impl_name = if for_type.is_empty() {
-        protocol_name.clone()
-    } else {
-        format!("{}.{}", protocol_name, for_type)
-    };
-
-    let signature = if for_type.is_empty() {
-        format!("defimpl {}", protocol_name)
-    } else {
-        format!("defimpl {}, for: {}", protocol_name, for_type)
+    let signature = match helpers::extract_keyword_value(&extractor.base, node, "for") {
+        Some(for_text) => format!("defimpl {protocol_name}, for: {for_text}"),
+        None => format!("defimpl {protocol_name}"),
     };
     let doc_comment = attributes::extract_doc_comment_for_node(&extractor.base, node, "doc");
 
     let mut metadata = HashMap::new();
     metadata.insert("protocol_impl".to_string(), Value::Bool(true));
-    if !for_type.is_empty() {
-        metadata.insert("for_type".to_string(), Value::String(for_type));
+    match for_types.as_slice() {
+        [] => {}
+        [single] => {
+            metadata.insert("for_type".to_string(), Value::String(single.clone()));
+        }
+        _ => {
+            metadata.insert(
+                "for_types".to_string(),
+                Value::Array(for_types.iter().cloned().map(Value::String).collect()),
+            );
+        }
     }
     metadata.insert("protocol".to_string(), Value::String(protocol_name));
 

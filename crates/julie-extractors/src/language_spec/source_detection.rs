@@ -45,6 +45,14 @@ where
         return Ok(Some(("r", None)));
     }
 
+    if file_path
+        .to_str()
+        .and_then(crate::erlang::term_config::TermConfig::for_path)
+        .is_some()
+    {
+        return Ok(Some(("erlang", None)));
+    }
+
     let extension = file_path
         .extension()
         .and_then(|ext| ext.to_str())

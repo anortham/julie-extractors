@@ -18,7 +18,7 @@ use tree_sitter::{Node, Tree};
 
 use crate::base::{
     BaseExtractor, Identifier, NormalizedSpan, ParseDiagnostic, ParseDiagnosticKind, Relationship,
-    Symbol,
+    Symbol, TestRole,
 };
 use crate::test_detection::ErlangTestModule;
 use helpers::{NameArity, function_arity_entries, named_children, wild_attribute_name};
@@ -29,15 +29,19 @@ mod doc;
 mod helpers;
 mod identifiers;
 mod lexical;
+mod mfa;
 mod parameters;
 mod recovery;
 mod relationships;
+pub(crate) mod term_config;
+mod test_fixtures;
 mod type_facts;
 mod types;
 
 const EXPORT_ALL_OPTION: &str = "export_all";
 const MODULE_DOC_ATTRIBUTE: &str = "moduledoc";
 const EUNIT_HEADER: &str = "eunit/include/eunit.hrl";
+const PROPER_HEADER: &str = "proper/include/proper.hrl";
 
 /// The primary tree's top-level children plus the declarations [`recovery`]
 /// rescued from re-parses, in source order.
@@ -125,7 +129,15 @@ pub struct ErlangExtractor {
     /// Common Test case names listed by literal `all/0` and `groups/0` bodies;
     /// `None` when the suite computes them, so the export rule applies.
     pub(crate) common_test_cases: Option<HashSet<String>>,
-    /// Declared `-spec`, `-callback`, `-type` and `-opaque` forms.
+    /// Record names listed in `-export_record([...])`.
+    pub(crate) exported_records: HashSet<String>,
+    /// A `.hrl` header exists to be included elsewhere, so its declarations
+    /// are public.
+    pub(crate) is_header: bool,
+    /// Roles the EUnit fixture tuples of `*_test_` generators give the funs
+    /// they name: setup, cleanup, and instantiated tests.
+    pub(crate) eunit_fixture_roles: HashMap<NameArity, TestRole>,
+    /// Declared `-spec`, `-callback`, `-type`, `-opaque` and `-nominal` forms.
     declared_types: types::DeclaredTypes,
     /// Re-parses produced by [`recovery`] for a file with parse errors. Owned
     /// here so every walk sees the same recovered declarations; empty for a file
@@ -147,6 +159,9 @@ impl ErlangExtractor {
             exports_everything: false,
             test_module: ErlangTestModule::default(),
             common_test_cases: None,
+            exported_records: HashSet::new(),
+            is_header: false,
+            eunit_fixture_roles: HashMap::new(),
             declared_types: types::DeclaredTypes::default(),
             recovery: None,
         }
@@ -180,8 +195,13 @@ impl ErlangExtractor {
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         self.exported_functions.clear();
         self.exported_types.clear();
+        self.exported_records.clear();
         self.exports_everything = false;
+        self.is_header = self.base.file_path.ends_with(".hrl");
 
+        if let Some(config) = term_config::TermConfig::for_path(&self.base.file_path) {
+            return term_config::extract_symbols(self, tree, config);
+        }
         self.with_declarations(tree, Self::extract_symbols_from)
     }
 
@@ -189,6 +209,7 @@ impl ErlangExtractor {
         self.collect_exports(declarations);
         self.test_module = self.classify_test_module(declarations);
         self.common_test_cases = self.common_test_cases(declarations);
+        self.eunit_fixture_roles = test_fixtures::eunit_fixture_roles(self, declarations);
         self.declared_types = types::collect(&self.base, declarations);
         let same_file_records = type_facts::same_file_record_names(&self.base, declarations);
 
@@ -216,7 +237,9 @@ impl ErlangExtractor {
                     None
                 }
                 "pp_define" => attributes::extract_macro(self, declaration, parent_id),
-                "type_alias" | "opaque" => attributes::extract_type(self, declaration, parent_id),
+                "type_alias" | "opaque" | "nominal" => {
+                    attributes::extract_type(self, declaration, parent_id)
+                }
                 "callback" => attributes::extract_callback(self, declaration, parent_id),
                 "fun_decl" => {
                     let clause = definition_forms::function_clause(self, declaration);
@@ -256,6 +279,10 @@ impl ErlangExtractor {
     /// Extract same-file call edges, plus structured pending edges for remote
     /// calls, `-behaviour`, `-include`/`-include_lib`, and `-import`.
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
+        if term_config::TermConfig::for_path(&self.base.file_path).is_some() {
+            term_config::extract_relationships(self, tree, symbols);
+            return Vec::new();
+        }
         self.with_declarations(tree, |extractor, declarations| {
             relationships::extract_relationships(extractor, &bounded(declarations), symbols)
         })
@@ -274,6 +301,9 @@ impl ErlangExtractor {
     /// Extract call sites, fun references, macro usages, and record/field
     /// references from function clauses and macro bodies.
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
+        if term_config::TermConfig::for_path(&self.base.file_path).is_some() {
+            return Vec::new();
+        }
         self.with_declarations(tree, |extractor, declarations| {
             identifiers::extract_identifiers(extractor, &bounded(declarations), symbols)
         })
@@ -324,8 +354,15 @@ impl ErlangExtractor {
     }
 
     fn collect_exports(&mut self, declarations: &[Node]) {
+        let test_only = test_only_declarations(&self.base, declarations);
         for declaration in declarations {
             match declaration.kind() {
+                "export_record_attribute" => {
+                    for atom in helpers::child_named_kinds(declaration, "atom") {
+                        self.exported_records
+                            .insert(helpers::unquote_atom(&self.base.get_node_text(&atom)));
+                    }
+                }
                 "export_attribute" => {
                     self.exported_functions
                         .extend(function_arity_entries(&self.base, declaration));
@@ -334,7 +371,10 @@ impl ErlangExtractor {
                     self.exported_types
                         .extend(function_arity_entries(&self.base, declaration));
                 }
-                "compile_options_attribute" if self.declares_export_all(declaration) => {
+                "compile_options_attribute"
+                    if self.declares_export_all(declaration)
+                        && !test_only.contains(&declaration.start_byte()) =>
+                {
                     self.exports_everything = true;
                 }
                 _ => {}
@@ -342,8 +382,9 @@ impl ErlangExtractor {
         }
     }
 
-    /// EUnit owns `*_tests` modules and any module that pulls in `eunit.hrl`;
-    /// Common Test owns `*_SUITE` modules.
+    /// EUnit owns `*_tests` modules and any module that pulls in `eunit.hrl`
+    /// outside an `-ifdef(TEST)` block; Common Test owns `*_SUITE` modules;
+    /// PropEr owns modules that include `proper.hrl`.
     fn classify_test_module(&self, declarations: &[Node]) -> ErlangTestModule {
         let module_name = declarations
             .iter()
@@ -351,13 +392,23 @@ impl ErlangExtractor {
             .and_then(|declaration| helpers::first_atom_text(&self.base, declaration))
             .unwrap_or_default();
 
-        let includes_eunit = declarations
-            .iter()
-            .filter(|declaration| matches!(declaration.kind(), "pp_include" | "pp_include_lib"))
-            .filter_map(|declaration| helpers::find_child_by_type(declaration, "string"))
-            .any(|string| self.base.get_node_text(&string).contains(EUNIT_HEADER));
+        let test_only = test_only_declarations(&self.base, declarations);
+        let includes = |header: &str| {
+            declarations
+                .iter()
+                .filter(|declaration| {
+                    matches!(declaration.kind(), "pp_include" | "pp_include_lib")
+                        && !test_only.contains(&declaration.start_byte())
+                })
+                .filter_map(|declaration| helpers::find_child_by_type(declaration, "string"))
+                .any(|string| self.base.get_node_text(&string).contains(header))
+        };
 
-        ErlangTestModule::classify(&module_name, includes_eunit)
+        ErlangTestModule::classify(
+            &module_name,
+            includes(EUNIT_HEADER),
+            includes(PROPER_HEADER),
+        )
     }
 
     /// Test case names a Common Test suite lists in `all/0` and `groups/0`.
@@ -513,11 +564,46 @@ impl ErlangExtractor {
     fn module_doc(&self, declarations: &[Node]) -> Option<String> {
         declarations
             .iter()
-            .filter(|declaration| declaration.kind() == "wild_attribute")
             .filter(|declaration| {
-                wild_attribute_name(&self.base, declaration).as_deref()
-                    == Some(MODULE_DOC_ATTRIBUTE)
+                (declaration.kind() == "wild_attribute"
+                    && wild_attribute_name(&self.base, declaration).as_deref()
+                        == Some(MODULE_DOC_ATTRIBUTE))
+                    || helpers::doc_macro_name(&self.base, declaration).as_deref()
+                        == Some("MODULEDOC")
             })
             .find_map(|declaration| doc::module_doc_text(self, declaration))
     }
+}
+
+/// Start bytes of the declarations that only exist in a test build: those
+/// inside `-ifdef(TEST)` / `-ifdef(EUNIT)` blocks, or the `-else` branch of an
+/// `-ifndef(TEST)`.
+fn test_only_declarations(base: &BaseExtractor, declarations: &[Node]) -> HashSet<usize> {
+    let mut stack: Vec<Option<bool>> = Vec::new();
+    let mut test_only = HashSet::new();
+    for declaration in declarations {
+        let names_test_macro = || {
+            declaration
+                .child_by_field_name("name")
+                .is_some_and(|name| matches!(base.get_node_text(&name).as_str(), "TEST" | "EUNIT"))
+        };
+        match declaration.kind() {
+            "pp_ifdef" => stack.push(names_test_macro().then_some(true)),
+            "pp_ifndef" => stack.push(names_test_macro().then_some(false)),
+            "pp_if" => stack.push(None),
+            "pp_else" => {
+                if let Some(Some(branch)) = stack.last_mut() {
+                    *branch = !*branch;
+                }
+            }
+            "pp_endif" => {
+                stack.pop();
+            }
+            _ if stack.contains(&Some(true)) => {
+                test_only.insert(declaration.start_byte());
+            }
+            _ => {}
+        }
+    }
+    test_only
 }
