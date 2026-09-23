@@ -150,6 +150,16 @@ class Worker {
             expected_kinds: &[Comment, DocComment, StringLiteral],
         },
         SourceRegionFixture {
+            language: "gomod",
+            file_path: "go.mod",
+            source: r#"// The module.
+module "example.com/app"
+
+require example.com/a v1.0.0 // indirect
+"#,
+            expected_kinds: &[Comment, DocComment, StringLiteral],
+        },
+        SourceRegionFixture {
             language: "csharp",
             file_path: "src/Worker.cs",
             source: r#"// plain

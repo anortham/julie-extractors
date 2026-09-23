@@ -1,6 +1,6 @@
 //! Structural-fact pattern SPECS for the `manifest` registry family: package
-//! manifest dependencies, API description documents (OpenAPI / Swagger), and
-//! CI pipeline documents.
+//! manifest dependencies, Go module manifest directives, API description
+//! documents (OpenAPI / Swagger), and CI pipeline documents.
 //!
 //! Authored metadata for [`super::StructuralFactPatternSpec`] entries. Public
 //! registry access remains through [`super::structural_fact_pattern_specs`].
@@ -69,9 +69,9 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     // Package manifests
     StructuralFactPatternSpec {
         pattern_id: "manifest.dependency.v1",
-        languages: &["json", "toml", "xml", "swift", "erlang"],
+        languages: &["json", "toml", "xml", "swift", "erlang", "gomod"],
         query_family: "dependencies",
-        description: "A package dependency declared in a Cargo.toml, pyproject.toml, Pipfile, package.json, composer.json, MSBuild, NuGet, Maven, SwiftPM, rebar.config, or Erlang application resource manifest.",
+        description: "A package dependency declared in a Cargo.toml, pyproject.toml, Pipfile, package.json, composer.json, MSBuild, NuGet, Maven, SwiftPM, rebar.config, Erlang application resource, or go.mod manifest.",
         metadata_keys: &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
@@ -79,19 +79,19 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "ecosystem",
                 STR,
                 ALWAYS,
-                "Package ecosystem (\"cargo\", \"pypi\", \"npm\", \"composer\", \"nuget\", \"maven\", \"swiftpm\", \"hex\" for rebar.config, or \"otp\" for application resource `applications`).",
+                "Package ecosystem (\"cargo\", \"pypi\", \"npm\", \"composer\", \"nuget\", \"maven\", \"swiftpm\", \"hex\" for rebar.config, \"otp\" for application resource `applications`, or \"go\" for go.mod `require`).",
             ),
             key(
                 "name",
                 STR,
                 ALWAYS,
-                "Dependency name: the Cargo key, the PEP 503-normalized distribution name, the npm or Composer package name, the NuGet package id, the Maven `groupId:artifactId`, the SwiftPM package identity (the `name:` argument, else the last URL or path component without `.git`), or the Erlang application atom.",
+                "Dependency name: the Cargo key, the PEP 503-normalized distribution name, the npm or Composer package name, the NuGet package id, the Maven `groupId:artifactId`, the SwiftPM package identity (the `name:` argument, else the last URL or path component without `.git`), the Erlang application atom, or the Go module path.",
             ),
             key(
                 "group",
                 STR,
                 ALWAYS,
-                "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`; Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`, `pipenv:packages`/`pipenv:dev-packages`; npm `dependencies`/`devDependencies`/`peerDependencies`/`optionalDependencies`; Composer `require`/`require-dev`; NuGet `PackageReference`/`PackageVersion`/`GlobalPackageReference`/`dependency`; Maven scope, `managed`, `plugin`, or `managed-plugin`; SwiftPM `dependencies`; rebar `deps`, `plugins`, `project_plugins`, or `profile:<name>`; OTP `applications`, `included_applications`, or `optional_applications`.",
+                "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`; Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`, `pipenv:packages`/`pipenv:dev-packages`; npm `dependencies`/`devDependencies`/`peerDependencies`/`optionalDependencies`; Composer `require`/`require-dev`; NuGet `PackageReference`/`PackageVersion`/`GlobalPackageReference`/`dependency`; Maven scope, `managed`, `plugin`, or `managed-plugin`; SwiftPM `dependencies`; rebar `deps`, `plugins`, `project_plugins`, or `profile:<name>`; OTP `applications`, `included_applications`, or `optional_applications`; Go `require`.",
             ),
             key("version", STR, OPT, "Version requirement as written."),
             key(
@@ -115,6 +115,12 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
             key("extras", ARR, OPT, "PEP 508 extras."),
             key("location", STR, OPT, "SwiftPM package URL or local path."),
             key("marker", STR, OPT, "PEP 508 environment marker."),
+            key(
+                "indirect",
+                BOOL,
+                OPT,
+                "Go only: true when the `require` line carries the `// indirect` comment.",
+            ),
         ],
     },
     StructuralFactPatternSpec {
@@ -137,6 +143,164 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 STR,
                 ALWAYS,
                 "Command as written; a Composer command list is joined with ` && `.",
+            ),
+        ],
+    },
+    // Go module manifests (go.mod)
+    StructuralFactPatternSpec {
+        pattern_id: "gomod.module.v1",
+        languages: &["gomod"],
+        query_family: "dependencies",
+        description: "The `module` directive of a go.mod manifest.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_GOMOD_MODULE_PATH,
+            key(
+                "deprecated",
+                STR,
+                OPT,
+                "The `Deprecated:` paragraph of the directive's leading or suffix comment.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "gomod.go.v1",
+        languages: &["gomod"],
+        query_family: "dependencies",
+        description: "The `go` directive of a go.mod manifest: the minimum Go version.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key("version", STR, ALWAYS, "The Go version as written."),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "gomod.toolchain.v1",
+        languages: &["gomod"],
+        query_family: "dependencies",
+        description: "The `toolchain` directive of a go.mod manifest.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "toolchain",
+                STR,
+                ALWAYS,
+                "The toolchain name as written (`go1.22.4` or `default`).",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "gomod.replace.v1",
+        languages: &["gomod"],
+        query_family: "dependencies",
+        description: "A `replace` line of a go.mod manifest.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_GOMOD_MODULE_PATH,
+            key(
+                "version",
+                STR,
+                OPT,
+                "The replaced version; absent when every version is replaced.",
+            ),
+            key(
+                "replacement",
+                STR,
+                ALWAYS,
+                "The replacement module path, or the file path of a local replacement.",
+            ),
+            key(
+                "replacement_version",
+                STR,
+                OPT,
+                "The replacement module version; absent for a file path.",
+            ),
+            key(
+                "local",
+                BOOL,
+                ALWAYS,
+                "True when the replacement is a file path.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "gomod.exclude.v1",
+        languages: &["gomod"],
+        query_family: "dependencies",
+        description: "An `exclude` line of a go.mod manifest.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_GOMOD_MODULE_PATH,
+            key("version", STR, ALWAYS, "The excluded version."),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "gomod.retract.v1",
+        languages: &["gomod"],
+        query_family: "dependencies",
+        description: "A `retract` line of a go.mod manifest: one version or a `[low, high]` interval of this module.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "low",
+                STR,
+                ALWAYS,
+                "The lowest retracted version; the version itself for a single version.",
+            ),
+            key(
+                "high",
+                STR,
+                ALWAYS,
+                "The highest retracted version; the version itself for a single version.",
+            ),
+            key(
+                "range",
+                BOOL,
+                ALWAYS,
+                "True when the line is written as a `[low, high]` interval.",
+            ),
+            key(
+                "rationale",
+                STR,
+                OPT,
+                "The line's leading and suffix comments, else its block's, without `//`.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "gomod.tool.v1",
+        languages: &["gomod"],
+        query_family: "dependencies",
+        description: "A `tool` line of a go.mod manifest.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "package_path",
+                STR,
+                ALWAYS,
+                "The import path of the tool's main package.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "gomod.ignore.v1",
+        languages: &["gomod"],
+        query_family: "dependencies",
+        description: "An `ignore` line of a go.mod manifest: a directory the go command skips when it matches package patterns.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "path",
+                STR,
+                ALWAYS,
+                "The ignored directory path as written.",
             ),
         ],
     },
@@ -262,6 +426,13 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
         ],
     },
 ];
+
+const K_GOMOD_MODULE_PATH: super::MetadataKeySpec = key(
+    "module_path",
+    STR,
+    ALWAYS,
+    "The module path, unquoted when written as a Go string.",
+);
 
 const K_CI_PLATFORM: super::MetadataKeySpec = key(
     "platform",

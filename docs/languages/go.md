@@ -1,8 +1,8 @@
 # Go support
 
-`go` handles `.go` files. Go's module manifests, `go.mod` and `go.sum`, have no
-extension and no registered language, so they are scanned as unsupported. That
-gap is recorded as `go.module_manifest_language`.
+`go` handles `.go` files. A `go.mod` manifest selects the separate `gomod`
+language; see [Go module manifest support](gomod.md). `go.sum` is not selected
+yet; that gap is recorded on the `gomod` row as `gomod.go_sum_checksums`.
 
 ## Continuous testing
 
@@ -249,8 +249,9 @@ Representative rows prove each framework arm:
   and seven `_test.go` suites embed it. The `_test.go` gate keeps that struct
   unmarked, which is a deliberate recall cost of gating on the suffix `go test`
   itself uses.
-- go-redis indexes 58 `go.mod` and `go.sum` files with status `unsupported`,
-  which is the evidence behind `go.module_manifest_language`.
+- go-redis indexes 58 `go.mod` and `go.sum` files with status `unsupported`.
+  That was the evidence behind the former `go.module_manifest_language` gap;
+  `go.mod` now selects `gomod`.
 
 The temporary checkouts and SQLite artifacts were removed after recording this
 evidence.

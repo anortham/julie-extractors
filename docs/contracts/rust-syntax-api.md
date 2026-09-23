@@ -87,7 +87,7 @@ All spans and diagnostics reference the exact, unmutated UTF-8 source string pro
 
 | Variant | Trigger Condition | Recoverable? | Details |
 |---|---|---|---|
-| `UnsupportedLanguage { path }` | Extension or file name unrecognized among all 40 supported languages | No | Returns unmutated caller path |
+| `UnsupportedLanguage { path }` | Extension or file name unrecognized among all 41 supported languages | No | Returns unmutated caller path |
 | `UnsupportedContainer { path }` | File path has a `.jsonl` or `.ndjson` extension or name (case-insensitive) | No | Line-delimited containers refused by single-tree API |
 | `InputTooLarge { bytes }` | `bytes > max_source_bytes` or `bytes > u32::MAX - 1` | No | Checked before allocation/parsing to prevent index overflow |
 | `Cancelled` | `options.cancelled` atomic flag is `true` | Yes | Takes precedence over deadline when both trigger |
@@ -113,7 +113,7 @@ All spans and diagnostics reference the exact, unmutated UTF-8 source string pro
 
 - **C/C++ Headers (`.h`, `.H`):** Disambiguation executes at most two probes (`parser_c` and `parser_cpp`). The winning parse tree is reused directly for `ParsedSource.tree`, incurring **zero third parse**. Probe errors propagate immediately as `SyntaxError` without falling back to C.
 - **F# Signature Files (`.fsi`):** Dispatches to `tree_sitter_fsharp::LANGUAGE_SIGNATURE`. Other F# extensions (`.fs`, `.fsx`) dispatch to standard `LANGUAGE`.
-- **Extensionless Files:** Exact base names (e.g. `qmldir`) are matched case-insensitively. An R package `NAMESPACE` file (exact, upper-case base name) selects `r`. Shell startup files (`.bashrc`, `.bash_profile`, `.bash_login`, `.bash_logout`, `.bash_aliases`, `.profile`, `.envrc`) and files whose first line is a `sh`, `bash`, or `bats` shebang select `bash`.
+- **Extensionless Files:** Exact base names (e.g. `qmldir`, and `go.mod` for `gomod`) are matched case-insensitively. An R package `NAMESPACE` file (exact, upper-case base name) selects `r`. Shell startup files (`.bashrc`, `.bash_profile`, `.bash_login`, `.bash_logout`, `.bash_aliases`, `.profile`, `.envrc`) and files whose first line is a `sh`, `bash`, or `bats` shebang select `bash`.
 - **Erlang Term Files:** The exact base names `rebar.config` and `sys.config`, and base names that end in `.app.src`, select `erlang`. The extractor reads them as term documents: application symbols, configuration keys as `property` symbols, the application callback module, and `manifest.dependency.v1` facts. Other `.config` files stay unsupported.
 - **Case Sensitivity:** File extensions are evaluated case-insensitively (e.g. `.RS`, `.JSONL`, `.H`).
 
@@ -123,7 +123,7 @@ All spans and diagnostics reference the exact, unmutated UTF-8 source string pro
 - **Composite Files (Vue, HTML, Razor, Markdown):** Returns the host template/markup tree only. Embedded language islands (e.g. `<script>` JavaScript inside Vue or HTML) are not parsed as child trees. Downstream consumers needing embedded extractions must use `extract_canonical`.
 - **JSONL Refusal:** Case-insensitive `.jsonl` and `.ndjson` files are rejected with `SyntaxError::UnsupportedContainer`. Full JSONL extraction remains available in `extract_canonical`.
 
-## 8. Capability Fixture Ledger (40 Languages)
+## 8. Capability Fixture Ledger (41 Languages)
 
 Every capability language entry in `fixtures/extraction/capabilities.json` is backed by a non-JSONL host syntax fixture:
 
@@ -140,6 +140,7 @@ Every capability language entry in `fixtures/extraction/capabilities.json` is ba
 | `fsharp` | `fixtures/extraction/fsharp/basic/source.fs` |
 | `gdscript` | `fixtures/extraction/gdscript/basic/source.gd` |
 | `go` | `fixtures/extraction/go/basic/source.go` |
+| `gomod` | `fixtures/extraction/gomod/basic/go.mod` |
 | `html` | `fixtures/extraction/html/basic/source.html` |
 | `java` | `fixtures/extraction/java/basic/source.java` |
 | `javascript` | `fixtures/extraction/javascript/basic/source.js` |

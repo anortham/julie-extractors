@@ -719,6 +719,40 @@ fn extract_qmldir(
     })
 }
 
+/// go.mod extractor: module, setting, requirement, and tool symbols, `Imports`
+/// edges to requirements and tools, and pending rows for file-path
+/// replacements. Structural facts come from the data collector.
+fn extract_gomod(
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    workspace_root: &Path,
+    _level: ExtractionLevel,
+) -> Result<ExtractionResults, anyhow::Error> {
+    let mut ext = crate::gomod::GoModExtractor::new(
+        "gomod".to_string(),
+        file_path.to_string(),
+        content.to_string(),
+        workspace_root,
+    );
+    let symbols = ext.extract_symbols(tree);
+    let relationships = ext.extract_relationships(tree, &symbols);
+    Ok(ExtractionResults {
+        symbols,
+        relationships,
+        pending_relationships: ext.base.take_pending_relationships(),
+        structured_pending_relationships: ext.base.take_structured_pending_relationships(),
+        identifiers: Vec::new(),
+        type_argument_usages: Vec::new(),
+        literals: ext.base.take_literals(),
+        source_regions: ext.take_string_regions(),
+        structural_facts: Vec::new(),
+        complexity_metrics: Vec::new(),
+        types: HashMap::new(),
+        parse_diagnostics: Vec::new(),
+    })
+}
+
 fn extract_vue(
     tree: &Tree,
     file_path: &str,
@@ -770,6 +804,7 @@ const EXTRACTORS: &[(&str, ExtractFn)] = &[
     ("c", extract_c),
     ("cpp", extract_cpp),
     ("go", extract_go),
+    ("gomod", extract_gomod),
     ("zig", extract_zig),
     ("typescript", extract_typescript),
     ("tsx", extract_tsx),
@@ -1018,7 +1053,7 @@ mod registry_tests {
 
     #[test]
     fn registry_matches_supported_language_count() {
-        assert_eq!(supported_languages().len(), 40);
+        assert_eq!(supported_languages().len(), 41);
         assert!(
             capabilities_for_language("rust")
                 .unwrap()

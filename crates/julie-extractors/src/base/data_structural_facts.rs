@@ -175,6 +175,7 @@ pub fn collect_data_structural_facts(
         "yaml" => collect_yaml_structural_facts(tree, file_path, content),
         "xml" => collect_xml_structural_facts(tree, file_path, content),
         "regex" => collect_regex_structural_facts(file_path, content),
+        "gomod" => crate::gomod::facts::structural_facts(tree, file_path, content),
         _ => Vec::new(),
     };
     if language == "markdown" {
@@ -219,7 +220,7 @@ pub fn collect_data_structural_facts(
         crate::regex::attach_fact_symbols(&mut facts, symbols);
     } else if language == "json" {
         super::containing_symbol::attach_byte_containing_symbols(&mut facts, symbols);
-    } else if language == "xml" {
+    } else if matches!(language, "xml" | "gomod") {
         super::containing_symbol::attach_declaring_symbols(&mut facts, symbols);
     } else {
         attach_containing_symbols(&mut facts, symbols);
@@ -240,6 +241,7 @@ pub(crate) fn data_structural_fact_pattern_ids_for_language(
         "xml" => XML_DATA_PATTERN_IDS,
         "regex" => REGEX_DATA_PATTERN_IDS,
         "erlang" => &[crate::toml::dependencies::MANIFEST_DEPENDENCY_PATTERN_ID],
+        "gomod" => crate::gomod::facts::PATTERN_IDS,
         _ => &[],
     }
 }

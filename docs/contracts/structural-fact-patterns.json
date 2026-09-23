@@ -1139,6 +1139,7 @@
       "c",
       "cpp",
       "go",
+      "gomod",
       "zig",
       "typescript",
       "tsx",
@@ -4129,6 +4130,284 @@
     "query_family": "signals"
   },
   {
+    "description": "An `exclude` line of a go.mod manifest.",
+    "languages": [
+      "gomod"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The module path, unquoted when written as a Go string.",
+        "key": "module_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The excluded version.",
+        "key": "version",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "gomod.exclude.v1",
+    "query_family": "dependencies"
+  },
+  {
+    "description": "The `go` directive of a go.mod manifest: the minimum Go version.",
+    "languages": [
+      "gomod"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The Go version as written.",
+        "key": "version",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "gomod.go.v1",
+    "query_family": "dependencies"
+  },
+  {
+    "description": "An `ignore` line of a go.mod manifest: a directory the go command skips when it matches package patterns.",
+    "languages": [
+      "gomod"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The ignored directory path as written.",
+        "key": "path",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "gomod.ignore.v1",
+    "query_family": "dependencies"
+  },
+  {
+    "description": "The `module` directive of a go.mod manifest.",
+    "languages": [
+      "gomod"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The module path, unquoted when written as a Go string.",
+        "key": "module_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `Deprecated:` paragraph of the directive's leading or suffix comment.",
+        "key": "deprecated",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "gomod.module.v1",
+    "query_family": "dependencies"
+  },
+  {
+    "description": "A `replace` line of a go.mod manifest.",
+    "languages": [
+      "gomod"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The module path, unquoted when written as a Go string.",
+        "key": "module_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The replaced version; absent when every version is replaced.",
+        "key": "version",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The replacement module path, or the file path of a local replacement.",
+        "key": "replacement",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The replacement module version; absent for a file path.",
+        "key": "replacement_version",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "True when the replacement is a file path.",
+        "key": "local",
+        "presence": "always",
+        "value_type": "bool"
+      }
+    ],
+    "pattern_id": "gomod.replace.v1",
+    "query_family": "dependencies"
+  },
+  {
+    "description": "A `retract` line of a go.mod manifest: one version or a `[low, high]` interval of this module.",
+    "languages": [
+      "gomod"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The lowest retracted version; the version itself for a single version.",
+        "key": "low",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The highest retracted version; the version itself for a single version.",
+        "key": "high",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "True when the line is written as a `[low, high]` interval.",
+        "key": "range",
+        "presence": "always",
+        "value_type": "bool"
+      },
+      {
+        "description": "The line's leading and suffix comments, else its block's, without `//`.",
+        "key": "rationale",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "gomod.retract.v1",
+    "query_family": "dependencies"
+  },
+  {
+    "description": "A `tool` line of a go.mod manifest.",
+    "languages": [
+      "gomod"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The import path of the tool's main package.",
+        "key": "package_path",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "gomod.tool.v1",
+    "query_family": "dependencies"
+  },
+  {
+    "description": "The `toolchain` directive of a go.mod manifest.",
+    "languages": [
+      "gomod"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The toolchain name as written (`go1.22.4` or `default`).",
+        "key": "toolchain",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "gomod.toolchain.v1",
+    "query_family": "dependencies"
+  },
+  {
     "description": "A gorilla/mux `HandleFunc`/`Handle` registration, one fact per `.Methods(...)` verb, with the same-file `PathPrefix(..).Subrouter()` prefix.",
     "languages": [
       "go"
@@ -6512,13 +6791,14 @@
     "query_family": "data"
   },
   {
-    "description": "A package dependency declared in a Cargo.toml, pyproject.toml, Pipfile, package.json, composer.json, MSBuild, NuGet, Maven, SwiftPM, rebar.config, or Erlang application resource manifest.",
+    "description": "A package dependency declared in a Cargo.toml, pyproject.toml, Pipfile, package.json, composer.json, MSBuild, NuGet, Maven, SwiftPM, rebar.config, Erlang application resource, or go.mod manifest.",
     "languages": [
       "json",
       "toml",
       "xml",
       "swift",
-      "erlang"
+      "erlang",
+      "gomod"
     ],
     "metadata_keys": [
       {
@@ -6534,19 +6814,19 @@
         "value_type": "string"
       },
       {
-        "description": "Package ecosystem (\"cargo\", \"pypi\", \"npm\", \"composer\", \"nuget\", \"maven\", \"swiftpm\", \"hex\" for rebar.config, or \"otp\" for application resource `applications`).",
+        "description": "Package ecosystem (\"cargo\", \"pypi\", \"npm\", \"composer\", \"nuget\", \"maven\", \"swiftpm\", \"hex\" for rebar.config, \"otp\" for application resource `applications`, or \"go\" for go.mod `require`).",
         "key": "ecosystem",
         "presence": "always",
         "value_type": "string"
       },
       {
-        "description": "Dependency name: the Cargo key, the PEP 503-normalized distribution name, the npm or Composer package name, the NuGet package id, the Maven `groupId:artifactId`, the SwiftPM package identity (the `name:` argument, else the last URL or path component without `.git`), or the Erlang application atom.",
+        "description": "Dependency name: the Cargo key, the PEP 503-normalized distribution name, the npm or Composer package name, the NuGet package id, the Maven `groupId:artifactId`, the SwiftPM package identity (the `name:` argument, else the last URL or path component without `.git`), the Erlang application atom, or the Go module path.",
         "key": "name",
         "presence": "always",
         "value_type": "string"
       },
       {
-        "description": "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`; Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`, `pipenv:packages`/`pipenv:dev-packages`; npm `dependencies`/`devDependencies`/`peerDependencies`/`optionalDependencies`; Composer `require`/`require-dev`; NuGet `PackageReference`/`PackageVersion`/`GlobalPackageReference`/`dependency`; Maven scope, `managed`, `plugin`, or `managed-plugin`; SwiftPM `dependencies`; rebar `deps`, `plugins`, `project_plugins`, or `profile:<name>`; OTP `applications`, `included_applications`, or `optional_applications`.",
+        "description": "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`; Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`, `pipenv:packages`/`pipenv:dev-packages`; npm `dependencies`/`devDependencies`/`peerDependencies`/`optionalDependencies`; Composer `require`/`require-dev`; NuGet `PackageReference`/`PackageVersion`/`GlobalPackageReference`/`dependency`; Maven scope, `managed`, `plugin`, or `managed-plugin`; SwiftPM `dependencies`; rebar `deps`, `plugins`, `project_plugins`, or `profile:<name>`; OTP `applications`, `included_applications`, or `optional_applications`; Go `require`.",
         "key": "group",
         "presence": "always",
         "value_type": "string"
@@ -6592,6 +6872,12 @@
         "key": "marker",
         "presence": "optional",
         "value_type": "string"
+      },
+      {
+        "description": "Go only: true when the `require` line carries the `// indirect` comment.",
+        "key": "indirect",
+        "presence": "optional",
+        "value_type": "bool"
       }
     ],
     "pattern_id": "manifest.dependency.v1",

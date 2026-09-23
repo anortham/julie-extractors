@@ -928,6 +928,32 @@ mod tests {
     }
 
     #[test]
+    fn discover_selects_go_mod_by_exact_basename_only() {
+        let fixture = DiscoveryFixture::new();
+        let policy = fixture.policy();
+        for path in ["go.mod", "tools/go.mod"] {
+            let target = fixture.write(path, "module example.com/app\n");
+            assert_eq!(
+                policy.select_file(&target),
+                FileSelection::Supported {
+                    language: "gomod".to_string()
+                },
+                "{path}"
+            );
+        }
+        for path in ["go.sum", "go.work", "deps.mod"] {
+            let target = fixture.write(path, "module example.com/app\n");
+            assert_eq!(
+                policy.select_file(&target),
+                FileSelection::Unsupported {
+                    reason: UnsupportedReason::UnsupportedExtension
+                },
+                "{path}"
+            );
+        }
+    }
+
+    #[test]
     fn discover_selects_ruby_build_files_by_basename_and_extension() {
         let fixture = DiscoveryFixture::new();
         let ruby = FileSelection::Supported {

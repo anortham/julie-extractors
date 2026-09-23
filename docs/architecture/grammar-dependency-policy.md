@@ -47,6 +47,7 @@ exact commit, license, lockfile source, and extraction evidence are recorded.
 
 | Dependency | Approved remote | Pinned commit | License | Rationale |
 | --- | --- | --- | --- | --- |
+| `tree-sitter-gomod` | [`camdencheek/tree-sitter-go-mod`](https://github.com/camdencheek/tree-sitter-go-mod) | `2e886870578eeba1927a2dc4bd2e2b3f598c5f9a` | MIT | The crates.io release (1.0.1) depends on tree-sitter 0.20 and cannot link with runtime 0.26.11; the Git head depends on `tree-sitter-language` 0.1.3. Provides the `go.mod` grammar for the `gomod` extractor. |
 | `tree-sitter-qmldir` | [`tree-sitter-grammars/tree-sitter-qmldir`](https://github.com/tree-sitter-grammars/tree-sitter-qmldir) | `c57e00865a1a6f1cca83340d6dad91f13df55479` | MIT | No suitable registry release; provides the qmldir module-manifest grammar used by the first-class QML extractor. |
 
 `crates/julie-extractors/Cargo.toml` and `Cargo.lock` are authoritative for the

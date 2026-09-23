@@ -775,14 +775,7 @@
             "http.client_request.v1"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "go.module_manifest_language",
-              "reason": "`go.mod` and `go.sum` carry the module path, the Go toolchain version, the require/replace/exclude graph, and the dependency checksums. Neither file has an extension, and no registered language claims an exact basename for them, so both are scanned as unsupported and publish no symbols or structural facts.",
-              "required_closure": "register a Go module-manifest language keyed on the exact basenames `go.mod` and `go.sum`, the way `qmldir` is keyed on its exact basename, and register a golden fixture covering module, go, toolchain, require, replace, exclude, and checksum lines",
-              "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 9 follow-up: Go module manifest language row"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [
@@ -838,6 +831,188 @@
             "test_lifecycle"
           ],
           "not_applicable": [],
+          "open_gaps": []
+        }
+      }
+    },
+    {
+      "language": "gomod",
+      "parser_crate": "tree-sitter-gomod",
+      "extensions": [],
+      "dependency_status": "git_pinned",
+      "capabilities": {
+        "symbols": true,
+        "relationships": true,
+        "pending_relationships": true,
+        "identifiers": false,
+        "types": false
+      },
+      "fixtures": [
+        {
+          "name": "basic",
+          "source": "fixtures/extraction/gomod/basic/go.mod",
+          "expected": "fixtures/extraction/gomod/basic/expected.json"
+        },
+        {
+          "name": "negative",
+          "source": "fixtures/extraction/gomod/negative/go.mod",
+          "expected": "fixtures/extraction/gomod/negative/expected.json"
+        }
+      ],
+      "target_capabilities": {
+        "symbols": true,
+        "relationships": true,
+        "pending_relationships": true,
+        "identifiers": false,
+        "types": false
+      },
+      "capability_gaps": [
+        {
+          "capability": "identifiers",
+          "status": "exception",
+          "reason": "A go.mod manifest has no calls, variables, types, or member access. Module paths, versions, and file paths are modeled as symbols, Imports edges, pending rows, and structural facts.",
+          "required_closure": "N/A - manifest language limitation.",
+          "evidence": {
+            "kind": "fixture",
+            "value": "fixtures/extraction/gomod/basic/expected.json",
+            "command": "cargo xtask test golden"
+          }
+        },
+        {
+          "capability": "types",
+          "status": "exception",
+          "reason": "A go.mod manifest has no type system. Versions and paths are directive values, published as symbol metadata and structural facts.",
+          "required_closure": "N/A - manifest language limitation.",
+          "evidence": {
+            "kind": "fixture",
+            "value": "fixtures/extraction/gomod/basic/expected.json",
+            "command": "cargo xtask test golden"
+          }
+        }
+      ],
+      "kind_coverage": {
+        "symbols": {
+          "supported": [
+            "import",
+            "module",
+            "property"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "relationships": {
+          "supported": [
+            "imports"
+          ],
+          "not_applicable": [
+            "calls",
+            "instantiates",
+            "uses"
+          ],
+          "open_gaps": []
+        },
+        "identifiers": {
+          "supported": [],
+          "not_applicable": [
+            "call",
+            "member_access",
+            "type_usage",
+            "variable_ref"
+          ],
+          "open_gaps": []
+        },
+        "body_spans": {
+          "supported": [
+            "import",
+            "module",
+            "property"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [
+            "gomod.exclude.v1",
+            "gomod.go.v1",
+            "gomod.ignore.v1",
+            "gomod.module.v1",
+            "gomod.replace.v1",
+            "gomod.retract.v1",
+            "gomod.tool.v1",
+            "gomod.toolchain.v1",
+            "manifest.dependency.v1"
+          ],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "gomod.godebug_directive",
+              "reason": "The pinned tree-sitter-gomod grammar has no `godebug` directive. `godebug default=go1.21` and the `godebug ( ... )` block parse as ERROR, so the file reports a parse diagnostic and its godebug settings publish no rows. The other directives in the file still extract.",
+              "required_closure": "an owned grammar fork that adds the godebug directive, then a godebug fact",
+              "planned_closure_task": "docs/plans/2026-09-23-gap-followups.md"
+            },
+            {
+              "kind": "gomod.go_sum_checksums",
+              "reason": "`go.sum` is not selected yet. The upstream tree-sitter-go-sum grammar rejects empty `go.sum` files and pre-release identifiers outside its fixed list (for example `v0.1.1-deprecated`), so 11 of 70 local `go.sum` files fail to parse.",
+              "required_closure": "an owned grammar fork with those fixes, then a `gosum` language row keyed on the exact basename `go.sum` with checksum facts",
+              "planned_closure_task": "docs/plans/2026-09-23-gap-followups.md"
+            },
+            {
+              "kind": "gomod.grammar_path_tokens",
+              "reason": "The pinned tree-sitter-gomod identifier token cannot start with `/` and needs at least two characters. A `replace` to an absolute Unix path (`=> /src/lib`) and a one-character `ignore` path (`ignore x`) parse as ERROR, so the file reports a parse diagnostic and those lines publish no rows. A last line with no final newline still extracts but reports a MISSING newline diagnostic.",
+              "required_closure": "an owned grammar fork whose path token accepts a leading `/` and one-character paths and whose line rules accept end of input, then golden coverage for those lines",
+              "planned_closure_task": "docs/plans/2026-09-23-gap-followups.md"
+            }
+          ]
+        },
+        "complexity_metrics": {
+          "supported": [],
+          "not_applicable": [
+            "file",
+            "symbol"
+          ],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [
+            "import",
+            "module",
+            "property"
+          ],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "import",
+            "module",
+            "property"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [
+            "other"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "doc_comment",
+            "string_literal"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
           "open_gaps": []
         }
       }

@@ -75,6 +75,7 @@ pub(crate) mod erlang;
 pub(crate) mod fsharp;
 pub(crate) mod gdscript;
 pub(crate) mod go;
+pub(crate) mod gomod;
 pub(crate) mod html;
 pub(crate) mod java;
 pub(crate) mod javascript;
