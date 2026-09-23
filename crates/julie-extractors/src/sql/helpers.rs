@@ -9,7 +9,7 @@ use std::sync::LazyLock;
 /// Regex for matching SQL data types (INT, VARCHAR, TEXT, etc.)
 pub(super) static SQL_TYPE_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
-        r"\b(INT|INTEGER|VARCHAR|TEXT|DECIMAL|FLOAT|BOOLEAN|DATE|TIMESTAMP|CHAR|BIGINT|SMALLINT)\b",
+        r"(?i)\b(INT|INTEGER|VARCHAR|TEXT|DECIMAL|FLOAT|BOOLEAN|DATE|TIMESTAMP|CHAR|BIGINT|SMALLINT)\b",
     )
     .unwrap()
 });
@@ -17,24 +17,6 @@ pub(super) static SQL_TYPE_RE: LazyLock<Regex> = LazyLock::new(|| {
 /// Regex for extracting CREATE VIEW statements
 pub(super) static CREATE_VIEW_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"CREATE\s+VIEW\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+AS").unwrap());
-
-/// Regex for extracting index column definitions
-pub(super) static INDEX_COLUMN_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?:ON\s+[a-zA-Z_][a-zA-Z0-9_]*(?:\s+USING\s+[A-Z]+)?\s*)?(\([^)]+\))").unwrap()
-});
-
-/// Regex for extracting INCLUDE clauses (PostgreSQL indexes)
-pub(super) static INCLUDE_CLAUSE_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"INCLUDE\s*(\([^)]+\))").unwrap());
-
-/// Regex for extracting variable declarations (PostgreSQL style)
-pub(super) static VAR_DECL_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_]*)\s+([A-Z0-9(),\s]+)").unwrap());
-
-/// Regex for extracting DECLARE variable statements (MySQL style)
-pub(super) static DECLARE_VAR_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"DECLARE\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+(DECIMAL\([^)]+\)|INT|BIGINT|VARCHAR\([^)]+\)|TEXT|BOOLEAN)").unwrap()
-});
 
 pub(crate) fn normalize_sql_identifier(raw: &str) -> String {
     let trimmed = raw.trim();
@@ -57,6 +39,19 @@ pub(crate) fn normalize_sql_identifier(raw: &str) -> String {
         return inner.to_string();
     }
     trimmed.to_string()
+}
+
+/// The text of a quoted SQL string literal (`'a''b'`, `N'x'`, `E'x'`), or
+/// `None` when the text is not a quoted string or the value is blank.
+pub(crate) fn sql_string_literal_text(raw: &str) -> Option<String> {
+    let raw = raw.trim();
+    let raw = raw
+        .strip_prefix(['N', 'n', 'E', 'e'])
+        .filter(|rest| rest.starts_with('\''))
+        .unwrap_or(raw);
+    let inner = raw.strip_prefix('\'')?.strip_suffix('\'')?;
+    let text = inner.replace("''", "'");
+    (!text.trim().is_empty()).then_some(text)
 }
 
 #[cfg(test)]

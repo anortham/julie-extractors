@@ -6337,6 +6337,16 @@
           "name": "pg_dump",
           "source": "fixtures/extraction/sql/pg_dump/source.sql",
           "expected": "fixtures/extraction/sql/pg_dump/expected.json"
+        },
+        {
+          "name": "pg_semantics",
+          "source": "fixtures/extraction/sql/pg_semantics/source.sql",
+          "expected": "fixtures/extraction/sql/pg_semantics/expected.json"
+        },
+        {
+          "name": "tsql_semantics",
+          "source": "fixtures/extraction/sql/tsql_semantics/source.sql",
+          "expected": "fixtures/extraction/sql/tsql_semantics/expected.json"
         }
       ],
       "target_capabilities": {
@@ -6370,11 +6380,10 @@
           "supported": [
             "call",
             "member_access",
-            "type_usage"
-          ],
-          "not_applicable": [
+            "type_usage",
             "variable_ref"
           ],
+          "not_applicable": [],
           "open_gaps": []
         },
         "body_spans": {
@@ -6394,17 +6403,22 @@
             "sql.constraint.v1",
             "sql.cte.v1",
             "sql.delete_statement.v1",
+            "sql.extension.v1",
             "sql.foreign_key.v1",
             "sql.function_definition.v1",
             "sql.index_definition.v1",
             "sql.insert_statement.v1",
             "sql.join.v1",
             "sql.merge_statement.v1",
+            "sql.policy_definition.v1",
             "sql.procedure_definition.v1",
+            "sql.role_definition.v1",
             "sql.select_query.v1",
+            "sql.sequence_definition.v1",
             "sql.table_definition.v1",
             "sql.transaction.v1",
             "sql.trigger_definition.v1",
+            "sql.type_definition.v1",
             "sql.update_statement.v1",
             "sql.view_definition.v1",
             "sql.window_definition.v1"
@@ -6434,7 +6448,8 @@
           "supported": [
             "class",
             "field",
-            "function"
+            "function",
+            "interface"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -7679,7 +7694,6 @@
         "json",
         "markdown",
         "regex",
-        "sql",
         "toml"
       ]
     },

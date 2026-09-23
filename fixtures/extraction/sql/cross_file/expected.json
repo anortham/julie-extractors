@@ -72,7 +72,7 @@
       "body_span": null,
       "body_hash": null,
       "signature": "INT PRIMARY KEY",
-      "doc_comment": "-- Phase 3.1 fixture: cross-schema FK references must produce a\n-- StructuredPendingRelationship with target.namespace_path=[\"other_schema\"]\n-- and target.terminal_name=\"users\". The local-only `audit_events` FK to\n-- `orders.id` resolves concretely.",
+      "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/sql/cross_file/source.sql:orders:5:0",
       "metadata": {},
@@ -153,7 +153,7 @@
       "body_span": null,
       "body_hash": null,
       "signature": "INT",
-      "doc_comment": "-- Phase 3.1 fixture: cross-schema FK references must produce a\n-- StructuredPendingRelationship with target.namespace_path=[\"other_schema\"]\n-- and target.terminal_name=\"users\". The local-only `audit_events` FK to\n-- `orders.id` resolves concretely.",
+      "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/sql/cross_file/source.sql:orders:5:0",
       "metadata": {},
@@ -237,7 +237,7 @@
       "resolved_type": "INT",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
     },
@@ -246,7 +246,7 @@
       "resolved_type": "INT",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
     },
@@ -255,7 +255,7 @@
       "resolved_type": "INT",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
     },
@@ -273,7 +273,7 @@
       "resolved_type": "INT",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
     }
@@ -490,7 +490,7 @@
       "start_byte": 0,
       "end_byte": 444,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     }

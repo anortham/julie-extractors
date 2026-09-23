@@ -56,6 +56,12 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
             K_QUERY_FAMILY,
             key("view_name", STR, ALWAYS, "Name of the view being created."),
             key(
+                "materialized",
+                BOOL,
+                ALWAYS,
+                "Whether the view is a materialized view.",
+            ),
+            key(
                 "schema_name",
                 STR,
                 OPT,
@@ -94,13 +100,25 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "timing",
                 STR,
                 OPT,
-                "Trigger timing (before/after) when detected.",
+                "Trigger timing (before/after/instead_of) when detected.",
             ),
             key(
                 "event",
                 STR,
                 OPT,
-                "Trigger event (insert/update/delete/truncate) when detected.",
+                "First trigger event (insert/update/delete/truncate) when detected.",
+            ),
+            key(
+                "events",
+                ARR,
+                OPT,
+                "Every trigger event in declaration order when detected.",
+            ),
+            key(
+                "function_name",
+                STR,
+                OPT,
+                "Function or procedure the trigger executes.",
             ),
             key(
                 "target_table",

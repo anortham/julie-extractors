@@ -1,0 +1,8 @@
+# Artifact-owned extraction policy only. Do not add search, embedding, watcher, or scoring config here.
+# SQL literals are values in the schema and in statements, so every one is kept.
+# A string passed to EXEC(...) or sp_executesql is dynamic SQL.
+[literal_carriers]
+retain_unclassified = true
+url = []
+sql = ["exec", "execute", "sp_executesql"]
+route = []

@@ -21,14 +21,14 @@
         "end_byte": 112
       },
       "body_hash": "c7358e44967305a222396ad18c91522c",
-      "signature": "CREATE FUNCTION make() LANGUAGE SQL",
+      "signature": "CREATE FUNCTION make() RETURNS result LANGUAGE SQL",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "bodySpanSource": "function_body",
         "isFunction": true,
-        "isStoredProcedure": true
+        "isStoredProcedure": false
       },
       "annotations": [],
       "semantic_group": null,
@@ -154,10 +154,10 @@
   "types": [
     {
       "symbol_key": "fixtures/extraction/sql/return_types/source.sql:make:2:0",
-      "resolved_type": "PROCEDURE",
+      "resolved_type": "result",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
     }
@@ -231,6 +231,27 @@
         "query_family": "query_structure",
         "source_count": 0
       }
+    },
+    {
+      "pattern_id": "sql.type_definition.v1",
+      "capture_name": "create_type",
+      "node_kind": "create_type",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/return_types/source.sql",
+      "containing_key": "fixtures/extraction/sql/return_types/source.sql:result:1:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 29,
+      "start_byte": 0,
+      "end_byte": 29,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "schema_structure",
+        "type_kind": "composite",
+        "type_name": "result"
+      }
     }
   ],
   "complexity_metrics": [
@@ -253,7 +274,7 @@
       "start_byte": 0,
       "end_byte": 114,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     },
@@ -268,7 +289,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 1,
-      "parameter_count": null,
+      "parameter_count": 0,
       "start_line": 2,
       "start_column": 0,
       "end_line": 2,
@@ -276,7 +297,7 @@
       "start_byte": 31,
       "end_byte": 113,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     }

@@ -114,37 +114,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/sql/basic/source.sql:id:9:4",
-      "name": "id",
-      "kind": "interface",
-      "language": "sql",
-      "file_path": "fixtures/extraction/sql/basic/source.sql",
-      "start_line": 9,
-      "start_column": 4,
-      "end_line": 9,
-      "end_column": 50,
-      "start_byte": 187,
-      "end_byte": 233,
-      "body_span": {
-        "start_line": 9,
-        "start_column": 16,
-        "end_line": 9,
-        "end_column": 50,
-        "start_byte": 199,
-        "end_byte": 233
-      },
-      "body_hash": "6a8b73741093e1c28a8d5a2e55d754ee",
-      "signature": "CONSTRAINT FOREIGN_KEY",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/sql/basic/source.sql:jobs:6:0",
-      "metadata": {},
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/sql/basic/source.sql:idx_workers_name:18:0",
       "name": "idx_workers_name",
       "kind": "property",
@@ -171,7 +140,8 @@
       "parent_key": null,
       "metadata": {
         "isIndex": true,
-        "isUnique": false
+        "isUnique": false,
+        "table": "workers"
       },
       "annotations": [],
       "semantic_group": null,
@@ -386,6 +356,28 @@
       }
     },
     {
+      "from_key": "fixtures/extraction/sql/basic/source.sql:idx_workers_name:18:0",
+      "to_key": "fixtures/extraction/sql/basic/source.sql:workers:1:0",
+      "kind": "references",
+      "file_path": "fixtures/extraction/sql/basic/source.sql",
+      "line_number": 18,
+      "span": {
+        "start_line": 18,
+        "start_column": 33,
+        "end_line": 18,
+        "end_column": 40,
+        "start_byte": 406,
+        "end_byte": 413
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.950",
+      "metadata": {
+        "isExternal": false,
+        "relationshipType": "index_table",
+        "targetTable": "workers"
+      }
+    },
+    {
       "from_key": "fixtures/extraction/sql/basic/source.sql:jobs:6:0",
       "to_key": "fixtures/extraction/sql/basic/source.sql:workers:1:0",
       "kind": "references",
@@ -448,7 +440,8 @@
       "end_byte": 338,
       "containing_key": "fixtures/extraction/sql/basic/source.sql:active_workers:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "workers"
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:id:member_access:16:6",
@@ -464,7 +457,8 @@
       "end_byte": 366,
       "containing_key": "fixtures/extraction/sql/basic/source.sql:active_workers:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "workers"
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:id:member_access:21:11",
@@ -480,7 +474,8 @@
       "end_byte": 461,
       "containing_key": "fixtures/extraction/sql/basic/source.sql:recent_workers:20:5",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "workers"
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:id:member_access:21:39",
@@ -496,7 +491,8 @@
       "end_byte": 489,
       "containing_key": "fixtures/extraction/sql/basic/source.sql:recent_workers:20:5",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "workers"
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:id:member_access:23:9",
@@ -512,7 +508,8 @@
       "end_byte": 507,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "workers"
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:id:member_access:25:21",
@@ -528,7 +525,8 @@
       "end_byte": 562,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "recent_workers"
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:id:member_access:25:28",
@@ -544,7 +542,8 @@
       "end_byte": 569,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "workers"
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:id:member_access:28:42",
@@ -560,7 +559,8 @@
       "end_byte": 623,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "workers"
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:name:member_access:14:11",
@@ -576,7 +576,8 @@
       "end_byte": 344,
       "containing_key": "fixtures/extraction/sql/basic/source.sql:active_workers:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "workers"
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:name:member_access:18:42",
@@ -592,7 +593,8 @@
       "end_byte": 419,
       "containing_key": "fixtures/extraction/sql/basic/source.sql:idx_workers_name:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "workers"
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:name:member_access:21:15",
@@ -608,7 +610,8 @@
       "end_byte": 467,
       "containing_key": "fixtures/extraction/sql/basic/source.sql:recent_workers:20:5",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "workers"
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:name:member_access:23:15",
@@ -624,7 +627,8 @@
       "end_byte": 515,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "workers"
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:name:member_access:28:19",
@@ -640,7 +644,8 @@
       "end_byte": 602,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "workers"
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:recent_workers:type_usage:24:5",
@@ -687,6 +692,22 @@
       "start_byte": 350,
       "end_byte": 357,
       "containing_key": "fixtures/extraction/sql/basic/source.sql:active_workers:13:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/sql/basic/source.sql:workers:type_usage:18:33",
+      "name": "workers",
+      "kind": "type_usage",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/basic/source.sql",
+      "start_line": 18,
+      "start_column": 33,
+      "end_line": 18,
+      "end_column": 40,
+      "start_byte": 406,
+      "end_byte": 413,
+      "containing_key": "fixtures/extraction/sql/basic/source.sql:idx_workers_name:18:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -754,7 +775,7 @@
       "resolved_type": "INTEGER",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
     },
@@ -763,7 +784,7 @@
       "resolved_type": "INTEGER",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
     },
@@ -781,7 +802,7 @@
       "resolved_type": "TEXT",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
     },
@@ -790,7 +811,7 @@
       "resolved_type": "INTEGER",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
     },
@@ -979,7 +1000,7 @@
       "node_kind": "constraint",
       "language": "sql",
       "file_path": "fixtures/extraction/sql/basic/source.sql",
-      "containing_key": "fixtures/extraction/sql/basic/source.sql:id:9:4",
+      "containing_key": "fixtures/extraction/sql/basic/source.sql:jobs:6:0",
       "start_line": 9,
       "start_column": 4,
       "end_line": 9,
@@ -1239,6 +1260,7 @@
       "end_byte": 370,
       "confidence": "1.000",
       "metadata": {
+        "materialized": false,
         "pattern_version": 1,
         "query_family": "schema_structure",
         "source_table_count": 1,
@@ -1269,7 +1291,30 @@
       "start_byte": 0,
       "end_byte": 814,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/sql/basic/source.sql:active_workers:13:0",
+      "algorithm_id": "julie-sql-complexity-v1",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/basic/source.sql",
+      "covered_lines": 3,
+      "covered_bytes": 41,
+      "decision_count": 1,
+      "loop_count": 0,
+      "max_nesting_depth": 1,
+      "parameter_count": null,
+      "start_line": 14,
+      "start_column": 0,
+      "end_line": 16,
+      "end_column": 12,
+      "start_byte": 329,
+      "end_byte": 370,
+      "metadata": {
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     },
@@ -1292,7 +1337,7 @@
       "start_byte": 718,
       "end_byte": 812,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     }

@@ -269,6 +269,9 @@ impl BaseExtractor {
         if self.language == "ruby" {
             return crate::ruby::doc_comments::find_ruby_doc_comment(self, *node);
         }
+        if self.language == "sql" {
+            return crate::sql::doc_comments::find_sql_doc_comment(self, *node);
+        }
         // First try to find comments as siblings of this node
         let comments = self.previous_comment_texts(node.prev_named_sibling());
         if let Some(doc_comment) = select_doc_comment_block(&self.language, &comments) {
@@ -296,29 +299,10 @@ impl BaseExtractor {
             }
         }
 
-        // For certain nodes (like cte), also check for comments as children (e.g., inside parentheses)
-        if node.kind() == "cte" {
-            // Look for first comments among direct children
-            let mut comments = Vec::new();
-            let mut cursor = node.walk();
-            for child in node.children(&mut cursor) {
-                if is_comment_node(&child) {
-                    comments.push(self.get_node_text(&child));
-                }
-            }
-            comments.reverse();
-            if let Some(doc_comment) = select_doc_comment_block(&self.language, &comments) {
-                return Some(doc_comment);
-            }
-        }
-
         None
     }
 
     fn should_search_ancestor_doc_comments(&self, ancestor: &Node) -> bool {
-        if self.language == "sql" {
-            return true;
-        }
         if matches!(
             self.language.as_str(),
             "typescript" | "tsx" | "javascript" | "jsx"

@@ -300,14 +300,14 @@
         "end_byte": 1039
       },
       "body_hash": "fee719656e1d7a1516fc122ab75c1013",
-      "signature": "CREATE FUNCTION order_count() LANGUAGE sql",
+      "signature": "CREATE FUNCTION order_count() RETURNS bigint LANGUAGE sql",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "bodySpanSource": "function_body",
         "isFunction": true,
-        "isStoredProcedure": true,
+        "isStoredProcedure": false,
         "schema": "public"
       },
       "annotations": [],
@@ -499,14 +499,14 @@
         "end_byte": 908
       },
       "body_hash": "32e6c45055d60a837b99aaee60962fd8",
-      "signature": "CREATE FUNCTION recent_orders(since date) LANGUAGE sql",
+      "signature": "CREATE FUNCTION recent_orders(since date) RETURNS SETOF public.orders LANGUAGE sql",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "bodySpanSource": "function_body",
         "isFunction": true,
-        "isStoredProcedure": true,
+        "isStoredProcedure": false,
         "schema": "public"
       },
       "annotations": [],
@@ -585,14 +585,14 @@
         "end_byte": 1133
       },
       "body_hash": "6c63fa19d201c750cc0e5ac2abfe5d4d",
-      "signature": "CREATE FUNCTION touch() LANGUAGE plpgsql",
+      "signature": "CREATE FUNCTION touch() RETURNS trigger LANGUAGE plpgsql",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "bodySpanSource": "statement_text",
         "isFunction": true,
-        "isStoredProcedure": true,
+        "isStoredProcedure": false,
         "schema": "public"
       },
       "annotations": [],
@@ -1058,7 +1058,8 @@
       "end_byte": 897,
       "containing_key": "fixtures/extraction/sql/pg_dump/source.sql:recent_orders:30:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "orders"
     },
     {
       "key": "fixtures/extraction/sql/pg_dump/source.sql:id:member_access:48:40",
@@ -1074,7 +1075,8 @@
       "end_byte": 1288,
       "containing_key": "fixtures/extraction/sql/pg_dump/source.sql:big_orders:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "orders"
     },
     {
       "key": "fixtures/extraction/sql/pg_dump/source.sql:id:member_access:48:68",
@@ -1090,7 +1092,8 @@
       "end_byte": 1316,
       "containing_key": "fixtures/extraction/sql/pg_dump/source.sql:big_orders:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "orders"
     },
     {
       "key": "fixtures/extraction/sql/pg_dump/source.sql:invoices:type_usage:50:62",
@@ -1221,9 +1224,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/sql/pg_dump/source.sql:since:member_access:35:18",
+      "key": "fixtures/extraction/sql/pg_dump/source.sql:since:variable_ref:35:18",
       "name": "since",
-      "kind": "member_access",
+      "kind": "variable_ref",
       "language": "sql",
       "file_path": "fixtures/extraction/sql/pg_dump/source.sql",
       "start_line": 35,
@@ -1264,6 +1267,24 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/sql/pg_dump/source.sql:created:9:4",
+      "resolved_type": "date",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "sql",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/sql/pg_dump/source.sql:email:3:4",
+      "resolved_type": "text",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "sql",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/sql/pg_dump/source.sql:events:16:0",
       "resolved_type": "TABLE",
       "generic_params": null,
@@ -1282,11 +1303,47 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/sql/pg_dump/source.sql:order_count:38:0",
-      "resolved_type": "PROCEDURE",
+      "symbol_key": "fixtures/extraction/sql/pg_dump/source.sql:id:13:4",
+      "resolved_type": "bigint",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
+      "language": "sql",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/sql/pg_dump/source.sql:id:17:4",
+      "resolved_type": "bigint",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "sql",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/sql/pg_dump/source.sql:id:2:4",
+      "resolved_type": "bigint",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "sql",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/sql/pg_dump/source.sql:id:7:4",
+      "resolved_type": "bigint",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "sql",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/sql/pg_dump/source.sql:order_count:38:0",
+      "resolved_type": "bigint",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
     },
@@ -1310,19 +1367,57 @@
     },
     {
       "symbol_key": "fixtures/extraction/sql/pg_dump/source.sql:recent_orders:30:0",
-      "resolved_type": "PROCEDURE",
+      "resolved_type": "public.orders",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
+      "language": "sql",
+      "metadata": {
+        "declared": "SETOF public.orders"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/sql/pg_dump/source.sql:since:30:37",
+      "resolved_type": "date",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "sql",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/sql/pg_dump/source.sql:status:28:37",
+      "resolved_type": "text",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
     },
     {
       "symbol_key": "fixtures/extraction/sql/pg_dump/source.sql:touch:42:0",
-      "resolved_type": "PROCEDURE",
+      "resolved_type": "trigger",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
+      "language": "sql",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/sql/pg_dump/source.sql:user_id:18:4",
+      "resolved_type": "bigint",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "sql",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/sql/pg_dump/source.sql:user_id:8:4",
+      "resolved_type": "bigint",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
     },
@@ -1683,7 +1778,7 @@
       "end_byte": 908,
       "confidence": "1.000",
       "metadata": {
-        "parameter_count": 0,
+        "parameter_count": 1,
         "pattern_version": 1,
         "query_family": "schema_structure",
         "routine_name": "recent_orders"
@@ -1961,6 +2056,10 @@
       "confidence": "1.000",
       "metadata": {
         "event": "update",
+        "events": [
+          "update"
+        ],
+        "function_name": "touch",
         "pattern_version": 1,
         "query_family": "schema_structure",
         "target_table": "orders",
@@ -1983,6 +2082,7 @@
       "end_byte": 1322,
       "confidence": "1.000",
       "metadata": {
+        "materialized": false,
         "pattern_version": 1,
         "query_family": "schema_structure",
         "schema_name": "public",
@@ -2008,6 +2108,7 @@
       "end_byte": 1395,
       "confidence": "1.000",
       "metadata": {
+        "materialized": false,
         "pattern_version": 1,
         "query_family": "schema_structure",
         "schema_name": "public",
@@ -2039,7 +2140,53 @@
       "start_byte": 0,
       "end_byte": 1464,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/sql/pg_dump/source.sql:big_orders:48:0",
+      "algorithm_id": "julie-sql-complexity-v1",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/pg_dump/source.sql",
+      "covered_lines": 1,
+      "covered_bytes": 43,
+      "decision_count": 1,
+      "loop_count": 0,
+      "max_nesting_depth": 1,
+      "parameter_count": null,
+      "start_line": 48,
+      "start_column": 33,
+      "end_line": 48,
+      "end_column": 76,
+      "start_byte": 1279,
+      "end_byte": 1322,
+      "metadata": {
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/sql/pg_dump/source.sql:external_invoices:50:0",
+      "algorithm_id": "julie-sql-complexity-v1",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/pg_dump/source.sql",
+      "covered_lines": 1,
+      "covered_bytes": 70,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 1,
+      "parameter_count": null,
+      "start_line": 50,
+      "start_column": 0,
+      "end_line": 50,
+      "end_column": 70,
+      "start_byte": 1325,
+      "end_byte": 1395,
+      "metadata": {
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     },
@@ -2054,7 +2201,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 1,
-      "parameter_count": null,
+      "parameter_count": 0,
       "start_line": 38,
       "start_column": 0,
       "end_line": 40,
@@ -2062,7 +2209,7 @@
       "start_byte": 911,
       "end_byte": 1040,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     },
@@ -2085,7 +2232,7 @@
       "start_byte": 1140,
       "end_byte": 1244,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     },
@@ -2100,7 +2247,7 @@
       "decision_count": 1,
       "loop_count": 0,
       "max_nesting_depth": 1,
-      "parameter_count": null,
+      "parameter_count": 1,
       "start_line": 30,
       "start_column": 0,
       "end_line": 36,
@@ -2108,7 +2255,7 @@
       "start_byte": 747,
       "end_byte": 909,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     },
@@ -2123,7 +2270,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": null,
+      "parameter_count": 0,
       "start_line": 42,
       "start_column": 0,
       "end_line": 44,
@@ -2131,7 +2278,7 @@
       "start_byte": 1042,
       "end_byte": 1138,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     }

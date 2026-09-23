@@ -89,33 +89,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/sql/advanced_dml/source.sql:Rn:18:11",
-      "name": "Rn",
-      "kind": "field",
-      "language": "sql",
-      "file_path": "fixtures/extraction/sql/advanced_dml/source.sql",
-      "start_line": 18,
-      "start_column": 11,
-      "end_line": 18,
-      "end_column": 66,
-      "start_byte": 338,
-      "end_byte": 393,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "ROW_NUMBER() OVER (PARTITION BY Name ORDER BY Id) AS Rn",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": null,
-      "metadata": {
-        "isComputedField": true,
-        "isSelectAlias": true
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:WorkerLabel:11:0",
       "name": "WorkerLabel",
       "kind": "function",
@@ -136,14 +109,14 @@
         "end_byte": 324
       },
       "body_hash": "04d19e3d1d87b0d48095ed8503655c4e",
-      "signature": "CREATE FUNCTION WorkerLabel(@Id INT)",
+      "signature": "CREATE FUNCTION WorkerLabel(@Id INT) RETURNS NVARCHAR(100)",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "bodySpanSource": "function_body",
         "isFunction": true,
-        "isStoredProcedure": true,
+        "isStoredProcedure": false,
         "schema": "dbo"
       },
       "annotations": [],
@@ -188,9 +161,9 @@
   ],
   "identifiers": [
     {
-      "key": "fixtures/extraction/sql/advanced_dml/source.sql:@Id:member_access:8:55",
+      "key": "fixtures/extraction/sql/advanced_dml/source.sql:@Id:variable_ref:8:55",
       "name": "@Id",
-      "kind": "member_access",
+      "kind": "variable_ref",
       "language": "sql",
       "file_path": "fixtures/extraction/sql/advanced_dml/source.sql",
       "start_line": 8,
@@ -215,9 +188,10 @@
       "end_column": 59,
       "start_byte": 384,
       "end_byte": 386,
-      "containing_key": "fixtures/extraction/sql/advanced_dml/source.sql:Rn:18:11",
+      "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "Workers"
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:Id:member_access:18:7",
@@ -233,7 +207,25 @@
       "end_byte": 336,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "Workers"
+    },
+    {
+      "key": "fixtures/extraction/sql/advanced_dml/source.sql:Id:member_access:1:25",
+      "name": "Id",
+      "kind": "member_access",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/advanced_dml/source.sql",
+      "start_line": 1,
+      "start_column": 25,
+      "end_line": 1,
+      "end_column": 27,
+      "start_byte": 25,
+      "end_byte": 27,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "Workers"
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:Id:member_access:21:7",
@@ -249,7 +241,8 @@
       "end_byte": 422,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "Workers"
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:Id:member_access:23:45",
@@ -265,7 +258,8 @@
       "end_byte": 487,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "Workers"
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:Id:member_access:8:50",
@@ -281,7 +275,8 @@
       "end_byte": 213,
       "containing_key": "fixtures/extraction/sql/advanced_dml/source.sql:MarkWorker:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "Workers"
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:Jobs:type_usage:2:16",
@@ -311,9 +306,27 @@
       "end_column": 47,
       "start_byte": 370,
       "end_byte": 374,
-      "containing_key": "fixtures/extraction/sql/advanced_dml/source.sql:Rn:18:11",
+      "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "Workers"
+    },
+    {
+      "key": "fixtures/extraction/sql/advanced_dml/source.sql:Name:member_access:1:29",
+      "name": "Name",
+      "kind": "member_access",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/advanced_dml/source.sql",
+      "start_line": 1,
+      "start_column": 29,
+      "end_line": 1,
+      "end_column": 33,
+      "start_byte": 29,
+      "end_byte": 33,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "Workers"
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:Name:member_access:23:31",
@@ -329,7 +342,8 @@
       "end_byte": 475,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "Workers"
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:Name:member_access:8:27",
@@ -345,7 +359,8 @@
       "end_byte": 192,
       "containing_key": "fixtures/extraction/sql/advanced_dml/source.sql:MarkWorker:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "Workers"
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:ROW_NUMBER:call:18:11",
@@ -359,7 +374,7 @@
       "end_column": 21,
       "start_byte": 338,
       "end_byte": 348,
-      "containing_key": "fixtures/extraction/sql/advanced_dml/source.sql:Rn:18:11",
+      "containing_key": null,
       "target_key": null,
       "confidence": "1.000"
     },
@@ -377,7 +392,8 @@
       "end_byte": 101,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "Jobs"
     },
     {
       "key": "fixtures/extraction/sql/advanced_dml/source.sql:Workers:type_usage:19:9",
@@ -450,7 +466,7 @@
       "resolved_type": "INT",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
     },
@@ -459,7 +475,7 @@
       "resolved_type": "INT",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
     },
@@ -474,12 +490,14 @@
     },
     {
       "symbol_key": "fixtures/extraction/sql/advanced_dml/source.sql:WorkerLabel:11:0",
-      "resolved_type": "PROCEDURE",
+      "resolved_type": "NVARCHAR",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
-      "metadata": null
+      "metadata": {
+        "declared": "NVARCHAR(100)"
+      }
     }
   ],
   "parse_diagnostics": [
@@ -686,7 +704,7 @@
       "node_kind": "window_function",
       "language": "sql",
       "file_path": "fixtures/extraction/sql/advanced_dml/source.sql",
-      "containing_key": "fixtures/extraction/sql/advanced_dml/source.sql:Rn:18:11",
+      "containing_key": null,
       "start_line": 18,
       "start_column": 11,
       "end_line": 18,
@@ -724,7 +742,7 @@
       "start_byte": 0,
       "end_byte": 490,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     },
@@ -739,7 +757,7 @@
       "decision_count": 1,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": null,
+      "parameter_count": 1,
       "start_line": 6,
       "start_column": 0,
       "end_line": 9,
@@ -747,7 +765,7 @@
       "start_byte": 152,
       "end_byte": 224,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     },
@@ -762,7 +780,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": null,
+      "parameter_count": 1,
       "start_line": 11,
       "start_column": 0,
       "end_line": 16,
@@ -770,12 +788,101 @@
       "start_byte": 227,
       "end_byte": 325,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     }
   ],
-  "literals": [],
-  "source_regions": [],
+  "literals": [
+    {
+      "literal_text": "fixture-insert",
+      "kind": "other",
+      "carrier": "INSERT",
+      "arg_position": 0,
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/advanced_dml/source.sql",
+      "start_line": 1,
+      "start_column": 46,
+      "end_line": 1,
+      "end_column": 63,
+      "start_byte": 46,
+      "end_byte": 63,
+      "containing_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "marked",
+      "kind": "other",
+      "carrier": "value",
+      "arg_position": 0,
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/advanced_dml/source.sql",
+      "start_line": 8,
+      "start_column": 34,
+      "end_line": 8,
+      "end_column": 43,
+      "start_byte": 195,
+      "end_byte": 204,
+      "containing_key": "fixtures/extraction/sql/advanced_dml/source.sql:MarkWorker:4:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "worker",
+      "kind": "other",
+      "carrier": "value",
+      "arg_position": 0,
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/advanced_dml/source.sql",
+      "start_line": 15,
+      "start_column": 11,
+      "end_line": 15,
+      "end_column": 20,
+      "start_byte": 310,
+      "end_byte": 319,
+      "containing_key": "fixtures/extraction/sql/advanced_dml/source.sql:WorkerLabel:11:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/advanced_dml/source.sql",
+      "containing_key": "fixtures/extraction/sql/advanced_dml/source.sql:MarkWorker:4:0",
+      "start_line": 8,
+      "start_column": 34,
+      "end_line": 8,
+      "end_column": 43,
+      "start_byte": 195,
+      "end_byte": 204,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/advanced_dml/source.sql",
+      "containing_key": "fixtures/extraction/sql/advanced_dml/source.sql:WorkerLabel:11:0",
+      "start_line": 15,
+      "start_column": 11,
+      "end_line": 15,
+      "end_column": 20,
+      "start_byte": 310,
+      "end_byte": 319,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/advanced_dml/source.sql",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 46,
+      "end_line": 1,
+      "end_column": 63,
+      "start_byte": 46,
+      "end_byte": 63,
+      "metadata": null
+    }
+  ],
   "type_argument_usages": []
 }

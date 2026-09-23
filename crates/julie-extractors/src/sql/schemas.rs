@@ -11,9 +11,7 @@
 
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
 use crate::sql::body_spans;
-use crate::sql::helpers::{
-    CREATE_VIEW_RE, INCLUDE_CLAUSE_RE, INDEX_COLUMN_RE, normalize_sql_identifier,
-};
+use crate::sql::helpers::{CREATE_VIEW_RE, normalize_sql_identifier};
 use regex::Regex;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -22,15 +20,6 @@ use tree_sitter::Node;
 
 // Invariant for every `expect` below: the pattern is a compile-time regex
 // literal validated by the test suite, so `Regex::new` cannot fail at runtime.
-static INDEX_ON_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"ON\s+([a-zA-Z_][a-zA-Z0-9_]*)").expect("INDEX_ON_RE literal regex must compile")
-});
-static INDEX_USING_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"USING\s+([A-Z]+)").expect("INDEX_USING_RE literal regex must compile")
-});
-static INDEX_WHERE_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"WHERE\s+(.+?)(?:;|$)").expect("INDEX_WHERE_RE literal regex must compile")
-});
 static CREATE_SCHEMA_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"CREATE\s+SCHEMA\s+([a-zA-Z_][a-zA-Z0-9_]*)")
         .expect("CREATE_SCHEMA_RE literal regex must compile")
@@ -114,17 +103,26 @@ pub(super) fn extract_view(
     node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    if node.kind() == "create_view"
+    if matches!(node.kind(), "create_view" | "create_materialized_view")
         && let Some(name_node) = declared_object_name_node(base, node)
             .or_else(|| base.find_child_by_type(&node, "identifier"))
             .or_else(|| base.find_child_by_type(&node, "view_name"))
     {
         let name = normalize_sql_identifier(&base.get_node_text(&name_node));
+        let materialized = node.kind() == "create_materialized_view";
         let mut metadata = HashMap::new();
         metadata.insert("isView".to_string(), serde_json::Value::Bool(true));
+        if materialized {
+            metadata.insert("isMaterialized".to_string(), serde_json::Value::Bool(true));
+        }
+        let keyword = if materialized {
+            "CREATE MATERIALIZED VIEW"
+        } else {
+            "CREATE VIEW"
+        };
 
         let options = SymbolOptions {
-            signature: Some(format!("CREATE VIEW {}", name)),
+            signature: Some(format!("{keyword} {name}")),
             visibility: Some(crate::base::Visibility::Public),
             parent_id: parent_id.map(|s| s.to_string()),
             doc_comment: base.find_doc_comment(&node),
@@ -169,73 +167,61 @@ pub(super) fn extract_view(
     None
 }
 
-/// Extract index from CREATE INDEX statement
+/// Extract index from CREATE INDEX statement. The signature is rebuilt from
+/// the grammar: `CREATE [UNIQUE] INDEX name ON schema.table [USING method]
+/// (columns) [INCLUDE (columns)] [WHERE predicate]`.
 pub(super) fn extract_index(
     base: &mut BaseExtractor,
     node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    // Port extractIndex logic
-    let name_node = base
-        .find_child_by_type(&node, "identifier")
+    let name_node = node
+        .child_by_field_name("column")
+        .or_else(|| base.find_child_by_type(&node, "identifier"))
         .or_else(|| base.find_child_by_type(&node, "index_name"))?;
-
     let name = normalize_sql_identifier(&base.get_node_text(&name_node));
+    let is_unique = base.find_child_by_type(&node, "keyword_unique").is_some();
 
-    // Get the full index text for signature
-    let node_text = base.get_node_text(&node);
-    let is_unique = node_text.contains("UNIQUE");
-
-    // Build a more comprehensive signature that includes key parts
     let mut signature = if is_unique {
         format!("CREATE UNIQUE INDEX {}", name)
     } else {
         format!("CREATE INDEX {}", name)
     };
-
-    // Add table and column information if found
-    if let Some(on_captures) = INDEX_ON_RE.captures(&node_text) {
-        let table_name = on_captures.get(1).map_or("", |m| m.as_str());
-        if !table_name.is_empty() {
-            signature.push_str(&format!(" ON {}", table_name));
-        }
+    let table = base.find_child_by_type(&node, "object_reference");
+    if let Some(table) = table {
+        let parts = super::references::object_reference_parts(base, table);
+        signature.push_str(&format!(" ON {}", parts.join(".")));
     }
-
-    // Add USING clause if present (before columns)
-    if let Some(using_captures) = INDEX_USING_RE.captures(&node_text) {
-        let using_method = using_captures.get(1).map_or("", |m| m.as_str());
-        if !using_method.is_empty() {
-            signature.push_str(&format!(" USING {}", using_method));
-        }
+    if let Some(using) = base.find_child_by_type(&node, "keyword_using")
+        && let Some(method) = using.next_named_sibling()
+        && method.kind() != "index_fields"
+    {
+        signature.push_str(&format!(" USING {}", base.get_node_text(&method)));
     }
-
-    // Add column information if found
-    if let Some(column_captures) = INDEX_COLUMN_RE.captures(&node_text) {
-        let columns = column_captures.get(1).map_or("", |m| m.as_str());
-        if !columns.is_empty() {
-            signature.push_str(&format!(" {}", columns));
-        }
+    let compact = |node: &Node| {
+        base.get_node_text(node)
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+    };
+    if let Some(fields) = base.find_child_by_type(&node, "index_fields") {
+        signature.push_str(&format!(" {}", compact(&fields)));
     }
-
-    // Add INCLUDE clause if present
-    if let Some(include_captures) = INCLUDE_CLAUSE_RE.captures(&node_text) {
-        let include_clause = include_captures.get(1).map_or("", |m| m.as_str());
-        if !include_clause.is_empty() {
-            signature.push_str(&format!(" INCLUDE {}", include_clause));
-        }
+    if let Some(covering) = base.find_child_by_type(&node, "covering_columns") {
+        signature.push_str(&format!(" {}", compact(&covering)));
     }
-
-    // Add WHERE clause if present
-    if let Some(where_captures) = INDEX_WHERE_RE.captures(&node_text) {
-        let where_condition = where_captures.get(1).map_or("", |m| m.as_str()).trim();
-        if !where_condition.is_empty() {
-            signature.push_str(&format!(" WHERE {}", where_condition));
-        }
+    if let Some(filter) = base.find_child_by_type(&node, "where") {
+        signature.push_str(&format!(" {}", compact(&filter)));
     }
 
     let mut metadata = HashMap::new();
     metadata.insert("isIndex".to_string(), serde_json::Value::Bool(true));
     metadata.insert("isUnique".to_string(), serde_json::Value::Bool(is_unique));
+    if let Some(table_name) =
+        table.and_then(|table| super::references::object_reference_parts(base, table).pop())
+    {
+        metadata.insert("table".to_string(), serde_json::Value::String(table_name));
+    }
 
     let options = SymbolOptions {
         signature: Some(signature),

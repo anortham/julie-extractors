@@ -8226,6 +8226,40 @@
     "query_family": "mutation_structure"
   },
   {
+    "description": "A PostgreSQL `CREATE EXTENSION` statement.",
+    "languages": [
+      "sql"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Name of the extension.",
+        "key": "extension_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Whether the statement has IF NOT EXISTS.",
+        "key": "if_not_exists",
+        "presence": "always",
+        "value_type": "bool"
+      }
+    ],
+    "pattern_id": "sql.extension.v1",
+    "query_family": "schema_structure"
+  },
+  {
     "description": "A SQL foreign-key constraint.",
     "languages": [
       "sql"
@@ -8484,6 +8518,46 @@
     "query_family": "mutation_structure"
   },
   {
+    "description": "A PostgreSQL `CREATE POLICY` row-security policy.",
+    "languages": [
+      "sql"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Name of the policy.",
+        "key": "policy_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Table the policy applies to.",
+        "key": "table_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Schema qualifier of the table.",
+        "key": "schema_name",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "sql.policy_definition.v1",
+    "query_family": "schema_structure"
+  },
+  {
     "description": "A SQL stored procedure definition (`CREATE PROCEDURE`).",
     "languages": [
       "sql"
@@ -8515,6 +8589,34 @@
       }
     ],
     "pattern_id": "sql.procedure_definition.v1",
+    "query_family": "schema_structure"
+  },
+  {
+    "description": "A SQL `CREATE ROLE` statement.",
+    "languages": [
+      "sql"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Name of the role.",
+        "key": "role_name",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "sql.role_definition.v1",
     "query_family": "schema_structure"
   },
   {
@@ -8568,6 +8670,46 @@
     ],
     "pattern_id": "sql.select_query.v1",
     "query_family": "query_structure"
+  },
+  {
+    "description": "A SQL `CREATE SEQUENCE` definition.",
+    "languages": [
+      "sql"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Name of the sequence.",
+        "key": "sequence_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Schema qualifier of the sequence.",
+        "key": "schema_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "START value when it is an integer.",
+        "key": "start",
+        "presence": "optional",
+        "value_type": "number"
+      }
+    ],
+    "pattern_id": "sql.sequence_definition.v1",
+    "query_family": "schema_structure"
   },
   {
     "description": "A SQL `CREATE TABLE` definition.",
@@ -8674,14 +8816,26 @@
         "value_type": "string"
       },
       {
-        "description": "Trigger timing (before/after) when detected.",
+        "description": "Trigger timing (before/after/instead_of) when detected.",
         "key": "timing",
         "presence": "optional",
         "value_type": "string"
       },
       {
-        "description": "Trigger event (insert/update/delete/truncate) when detected.",
+        "description": "First trigger event (insert/update/delete/truncate) when detected.",
         "key": "event",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Every trigger event in declaration order when detected.",
+        "key": "events",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Function or procedure the trigger executes.",
+        "key": "function_name",
         "presence": "optional",
         "value_type": "string"
       },
@@ -8693,6 +8847,52 @@
       }
     ],
     "pattern_id": "sql.trigger_definition.v1",
+    "query_family": "schema_structure"
+  },
+  {
+    "description": "A SQL `CREATE TYPE` definition: an enum, a composite, or another type.",
+    "languages": [
+      "sql"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Name of the type.",
+        "key": "type_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Schema qualifier of the type.",
+        "key": "schema_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Type shape: \"enum\", \"composite\", or \"other\".",
+        "key": "type_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Enum labels in declaration order (enum types only).",
+        "key": "enum_values",
+        "presence": "optional",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "sql.type_definition.v1",
     "query_family": "schema_structure"
   },
   {
@@ -8752,6 +8952,12 @@
         "key": "view_name",
         "presence": "always",
         "value_type": "string"
+      },
+      {
+        "description": "Whether the view is a materialized view.",
+        "key": "materialized",
+        "presence": "always",
+        "value_type": "bool"
       },
       {
         "description": "Schema/namespace qualifier when the view name is qualified.",

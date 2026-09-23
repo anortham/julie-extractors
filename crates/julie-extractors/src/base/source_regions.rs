@@ -232,12 +232,31 @@ fn containing_symbol_id(region: &SourceRegion, symbols: &[Symbol]) -> Option<Str
 }
 
 fn documented_symbol_id(region: &SourceRegion, symbols: &[Symbol]) -> Option<String> {
+    if region.language == "sql"
+        && let Some(documented) = sql_trailing_documented_symbol(region, symbols)
+    {
+        return Some(documented.id.clone());
+    }
     symbols
         .iter()
         .filter(|symbol| symbol.doc_comment.is_some())
         .filter(|symbol| symbol.start_byte >= region.end_byte)
         .min_by_key(|symbol| symbol.start_byte.saturating_sub(region.end_byte))
         .map(|symbol| symbol.id.clone())
+}
+
+/// A SQL comment after a declaration on its last line documents it.
+fn sql_trailing_documented_symbol<'a>(
+    region: &SourceRegion,
+    symbols: &'a [Symbol],
+) -> Option<&'a Symbol> {
+    symbols
+        .iter()
+        .filter(|symbol| symbol.doc_comment.is_some())
+        .filter(|symbol| {
+            symbol.end_byte <= region.start_byte && symbol.end_line == region.start_line
+        })
+        .max_by_key(|symbol| symbol.end_byte)
 }
 
 fn node_text<'a>(content: &'a str, node: Node<'_>) -> Option<&'a str> {
@@ -259,7 +278,11 @@ fn is_html_comment(text: &str) -> bool {
 
 fn is_quoted_string_literal(text: &str) -> bool {
     let trimmed = text.trim_start();
-    trimmed.starts_with('"') || trimmed.starts_with('\'')
+    let unprefixed = trimmed
+        .strip_prefix(['N', 'n', 'E', 'e'])
+        .filter(|rest| rest.starts_with('\''))
+        .unwrap_or(trimmed);
+    unprefixed.starts_with('"') || unprefixed.starts_with('\'')
 }
 
 fn embedded_metadata(node: Node<'_>, content: &str) -> Option<HashMap<String, serde_json::Value>> {

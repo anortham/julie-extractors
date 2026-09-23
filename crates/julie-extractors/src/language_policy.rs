@@ -46,6 +46,7 @@ const EMBEDDED_LITERAL_CARRIER_POLICIES: &[(&str, &str)] = &[
     ("ruby", include_str!("../../../languages/ruby.toml")),
     ("rust", include_str!("../../../languages/rust.toml")),
     ("scala", include_str!("../../../languages/scala.toml")),
+    ("sql", include_str!("../../../languages/sql.toml")),
     ("swift", include_str!("../../../languages/swift.toml")),
     ("toml", include_str!("../../../languages/toml.toml")),
     (

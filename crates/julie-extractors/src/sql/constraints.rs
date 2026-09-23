@@ -146,11 +146,9 @@ pub(super) fn extract_table_columns(
                 .or_else(|| base.find_child_by_type(&node, "date"))
                 .or_else(|| base.find_child_by_type(&node, "timestamp"));
 
-            let data_type = if let Some(type_node) = data_type_node {
-                base.get_node_text(&type_node)
-            } else {
-                String::new()
-            };
+            let data_type = super::types::column_type(base, node)
+                .or_else(|| data_type_node.map(|type_node| base.get_node_text(&type_node)))
+                .unwrap_or_default();
 
             // Extract column constraints and build signature standard format
             let constraints = extract_column_constraints(base, &node);
@@ -170,7 +168,8 @@ pub(super) fn extract_table_columns(
     }
 }
 
-/// Extract table constraints from CREATE TABLE statement
+/// Extract named table constraints from CREATE TABLE statement. An unnamed
+/// constraint has no name of its own, so it is a structural fact only.
 pub(super) fn extract_table_constraints(
     base: &mut BaseExtractor,
     table_node: Node,
@@ -181,11 +180,10 @@ pub(super) fn extract_table_constraints(
     let constraint_nodes = base.find_nodes_by_type(&table_node, "constraint");
 
     for node in constraint_nodes {
-        let mut constraint_name = format!("constraint_{}", node.start_position().row);
-
-        if let Some(name_node) = base.find_child_by_type(&node, "identifier") {
-            constraint_name = normalize_sql_identifier(&base.get_node_text(&name_node));
-        }
+        let Some(name_node) = node.child_by_field_name("name") else {
+            continue;
+        };
+        let constraint_name = normalize_sql_identifier(&base.get_node_text(&name_node));
         let Some(constraint_type) = constraint_type(base, &node) else {
             continue;
         };
@@ -276,10 +274,12 @@ pub(super) fn extract_constraints_from_alter_table(
                 let Some(constraint_type) = constraint_type(base, &constraint) else {
                     continue;
                 };
-                let name = base
+                let Some(name) = base
                     .find_child_by_type(&action, "identifier")
                     .map(|name| normalize_sql_identifier(&base.get_node_text(&name)))
-                    .unwrap_or_else(|| format!("constraint_{}", action.start_position().row));
+                else {
+                    continue;
+                };
                 let mut symbol = create_constraint_symbol(
                     base,
                     &action,

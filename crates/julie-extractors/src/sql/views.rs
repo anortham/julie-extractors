@@ -143,15 +143,11 @@ impl SqlExtractor {
         symbols: &mut Vec<Symbol>,
         parent_view_id: &str,
     ) {
-        // Port extractViewColumns logic
-        let nodes = self.base.find_nodes_by_type(&view_node, "select_statement");
-        for select_node in nodes {
-            self.extract_select_aliases(select_node, symbols, Some(parent_view_id));
-        }
-
         let select_nodes = self.base.find_nodes_by_type(&view_node, "select");
         for select_node in select_nodes {
-            self.extract_select_aliases(select_node, symbols, Some(parent_view_id));
+            if alias_owner_kind(select_node) == Some(view_node.kind()) {
+                self.extract_select_aliases(select_node, symbols, Some(parent_view_id));
+            }
         }
     }
 
@@ -253,6 +249,24 @@ impl SqlExtractor {
             symbols.push(alias_symbol);
         }
     }
+}
+
+/// The nearest view or CTE that owns a SELECT's result columns. A SELECT
+/// outside every view and CTE declares no columns, so its aliases are not
+/// symbols.
+pub(super) fn alias_owner_kind(select: Node) -> Option<&'static str> {
+    let mut current = select.parent();
+    while let Some(node) = current {
+        match node.kind() {
+            "cte" => return Some("cte"),
+            "create_view" => return Some("create_view"),
+            "create_materialized_view" => return Some("create_materialized_view"),
+            "subquery" | "create_function" | "create_procedure" | "alter_function"
+            | "alter_procedure" | "create_trigger" => return None,
+            _ => current = node.parent(),
+        }
+    }
+    None
 }
 
 /// Extract views from ERROR node text
