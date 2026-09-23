@@ -286,6 +286,16 @@
           "name": "declarators",
           "source": "fixtures/extraction/c/declarators/source.c",
           "expected": "fixtures/extraction/c/declarators/expected.json"
+        },
+        {
+          "name": "members",
+          "source": "fixtures/extraction/c/members/source.c",
+          "expected": "fixtures/extraction/c/members/expected.json"
+        },
+        {
+          "name": "unity_cmocka_roles",
+          "source": "fixtures/extraction/c/unity_cmocka_roles/tests/test_math.c",
+          "expected": "fixtures/extraction/c/unity_cmocka_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -361,13 +371,19 @@
         },
         "annotations": {
           "supported": [
-            "function"
+            "field",
+            "function",
+            "struct",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
         },
         "doc_comments": {
           "supported": [
+            "constant",
+            "enum",
+            "field",
             "function",
             "struct"
           ],

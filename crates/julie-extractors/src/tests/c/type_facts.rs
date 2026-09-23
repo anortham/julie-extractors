@@ -227,13 +227,7 @@ fn legacy_signature_inference_rejects_test_macro_text() {
     "#;
     let (symbols, extractor) = extract(source);
     let types = extractor.infer_types(&symbols);
-    for symbol in symbols.iter().filter(|s| s.name != "count") {
-        assert!(
-            !types.contains_key(&symbol.id),
-            "unexpected type row for `{}`",
-            symbol.name
-        );
-    }
+    assert!(types.is_empty(), "unexpected inferred rows: {types:?}");
     let count = symbol(&symbols, "count", SymbolKind::Function);
-    assert_eq!(types.get(&count.id).map(String::as_str), Some("int"));
+    assert_eq!(fact(&extractor, count).resolved_type, "int");
 }

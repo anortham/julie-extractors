@@ -3,7 +3,7 @@
 //! This module provides utilities for finding nodes, extracting names from various
 //! C constructs, and navigating the syntax tree.
 
-use crate::base::BaseExtractor;
+use crate::base::{AnnotationMarker, BaseExtractor, normalize_annotations};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 /// Extract standard C attributes that decorate a declaration.
@@ -34,6 +34,22 @@ pub(super) fn extract_attributes(base: &BaseExtractor, node: tree_sitter::Node) 
     }
 
     attributes
+}
+
+/// Annotations from the attribute specifiers written directly on a record,
+/// field, or variable declaration.
+pub(super) fn child_attributes(
+    base: &BaseExtractor,
+    node: tree_sitter::Node,
+) -> Vec<AnnotationMarker> {
+    let mut attributes = Vec::new();
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if is_attribute_node(child) {
+            collect_attributes_from_text(&base.get_node_text(&child), &mut attributes);
+        }
+    }
+    normalize_annotations(&attributes, "c")
 }
 
 fn collect_attributes_from_text(text: &str, attributes: &mut Vec<String>) {
@@ -377,23 +393,14 @@ pub(super) fn extract_union_name(base: &BaseExtractor, node: tree_sitter::Node) 
     Some(base.get_node_text(&name_node))
 }
 
-/// Check if this looks like a typedef name by examining parent context
-pub(super) fn looks_like_typedef_name(
-    base: &BaseExtractor,
-    node: &tree_sitter::Node,
-    _identifier_name: &str,
-) -> bool {
-    // Simple heuristic: check if previous siblings contain "typedef"
-    if let Some(parent) = node.parent() {
-        let mut cursor = parent.walk();
-        for child in parent.children(&mut cursor) {
-            let child_text = base.get_node_text(&child);
-            if child_text.contains("typedef") {
-                return true;
-            }
-        }
-    }
-    false
+/// Whether an expression statement is the name of a typedef whose record body the
+/// grammar split off: `typedef struct ALIGN(8) { ... } Name;` recovers as a
+/// bodiless `type_definition`, a detached `compound_statement`, then `Name;`.
+pub(super) fn follows_detached_typedef_body(node: tree_sitter::Node) -> bool {
+    node.prev_named_sibling()
+        .filter(|body| body.kind() == "compound_statement")
+        .and_then(|body| body.prev_named_sibling())
+        .is_some_and(|typedef| typedef.kind() == "type_definition")
 }
 
 /// Check if a function/variable is static
@@ -477,4 +484,78 @@ fn find_field_identifier_name_at_depth(
         }
     }
     None
+}
+
+/// The callee a call names once `(*callee)` dereference wrappers are removed.
+pub(super) fn unwrapped_callee(function: tree_sitter::Node) -> tree_sitter::Node {
+    let mut callee = function;
+    loop {
+        let inner = match callee.kind() {
+            "parenthesized_expression" => callee.named_child(0),
+            "pointer_expression" => callee.child_by_field_name("argument"),
+            _ => None,
+        };
+        match inner {
+            Some(inner) => callee = inner,
+            None => return callee,
+        }
+    }
+}
+
+/// The token a call's reference site names: the field of `recv->fn(...)` or
+/// `(*recv->fn)(...)`, the identifier of `fn(...)` or `(*fn)(...)`, and else
+/// the whole callee expression.
+pub(super) fn callee_token(function: tree_sitter::Node) -> tree_sitter::Node {
+    let callee = unwrapped_callee(function);
+    match callee.kind() {
+        "field_expression" => callee.child_by_field_name("field").unwrap_or(function),
+        "identifier" => callee,
+        _ => function,
+    }
+}
+
+/// Whether a node is the callee of a call, under any `(*...)` wrappers.
+pub(super) fn is_call_callee(node: tree_sitter::Node) -> bool {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        match parent.kind() {
+            "parenthesized_expression" | "pointer_expression" => current = parent,
+            "call_expression" => {
+                return parent
+                    .child_by_field_name("function")
+                    .is_some_and(|function| function.id() == current.id());
+            }
+            _ => return false,
+        }
+    }
+    false
+}
+
+/// `static_assert(...)` and `_Static_assert(...)` are compile-time assertions,
+/// not calls.
+pub(super) fn is_static_assertion(base: &BaseExtractor, call: tree_sitter::Node) -> bool {
+    call.child_by_field_name("function")
+        .filter(|function| function.kind() == "identifier")
+        .is_some_and(|function| {
+            matches!(
+                base.get_node_text(&function).as_str(),
+                "static_assert" | "_Static_assert"
+            )
+        })
+}
+
+/// The `default` association label of `_Generic(x, int: 1, default: 0)`,
+/// which the grammar parses as a type name.
+pub(super) fn is_generic_default_label(base: &BaseExtractor, node: tree_sitter::Node) -> bool {
+    node.parent()
+        .filter(|descriptor| descriptor.kind() == "type_descriptor")
+        .and_then(|descriptor| descriptor.parent())
+        .is_some_and(|parent| parent.kind() == "generic_expression")
+        && base.get_node_text(&node) == "default"
+}
+
+/// Attribute arguments (`__attribute__((aligned(2)))`, `[[gnu::format(...)]]`)
+/// are metadata, not calls or value reads.
+pub(super) fn is_attribute_node(node: tree_sitter::Node) -> bool {
+    matches!(node.kind(), "attribute_specifier" | "attribute_declaration")
 }

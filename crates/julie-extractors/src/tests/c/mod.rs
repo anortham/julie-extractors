@@ -40,6 +40,7 @@ pub mod cross_file_pending;
 pub mod cross_file_relationships;
 pub mod declarators;
 pub mod doxygen_comments;
+pub mod gap_closure;
 pub mod identifier_extraction;
 pub mod literals;
 pub mod pointers;

@@ -199,6 +199,10 @@ pub fn is_test_symbol(
         "qml" => detect_qml(name, file_path),
         "lua" => detect_lua(name, file_path),
         "r" => detect_r(name, file_path),
+        "c" => {
+            detect_generic(name, file_path)
+                || (c_test_lifecycle_direction(name).is_lifecycle() && is_test_path(file_path))
+        }
         _ => detect_generic(name, file_path),
     }
 }
@@ -393,6 +397,16 @@ fn cpp_test_case_role(annotation_keys: &[String]) -> Option<TestRole> {
 
 /// GoogleTest fixture hooks, matched on the method name after any `Class::`
 /// qualifier so an out-of-class definition classifies like its in-class twin.
+/// Unity runs `setUp`/`tearDown` around every test and `suiteSetUp`/
+/// `suiteTearDown` around the run; the caller checks the file is a test file.
+fn c_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
+    match name {
+        "setUp" | "suiteSetUp" => TestLifecycleDirection::Setup,
+        "tearDown" | "suiteTearDown" => TestLifecycleDirection::Teardown,
+        _ => TestLifecycleDirection::None,
+    }
+}
+
 fn cpp_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
     match name.rsplit("::").next().unwrap_or(name) {
         "SetUp" | "SetUpTestSuite" | "SetUpTestCase" => TestLifecycleDirection::Setup,
@@ -532,6 +546,7 @@ fn is_test_lifecycle(
         "csharp" | "vbnet" | "razor" | "fsharp" => {
             first_annotation_direction(annotation_keys, dotnet_test_lifecycle_direction)
         }
+        "c" => c_test_lifecycle_direction(name),
         "cpp" => cpp_test_lifecycle_direction(name),
         "php" => php_test_lifecycle_direction(name, annotation_keys),
         "python" => python_test_lifecycle_direction(name, annotation_keys),

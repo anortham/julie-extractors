@@ -360,15 +360,8 @@
       "end_column": 53,
       "start_byte": 835,
       "end_byte": 884,
-      "body_span": {
-        "start_line": 30,
-        "start_column": 8,
-        "end_line": 30,
-        "end_column": 42,
-        "start_byte": 839,
-        "end_byte": 873
-      },
-      "body_hash": "257940a17b5fa9ecfa1308fe6f7ae88a",
+      "body_span": null,
+      "body_hash": null,
       "signature": "int (*cmp)(const void *, const void *) = compare",
       "doc_comment": null,
       "visibility": "Public",
@@ -591,15 +584,8 @@
       "end_column": 56,
       "start_byte": 699,
       "end_byte": 755,
-      "body_span": {
-        "start_line": 26,
-        "start_column": 4,
-        "end_line": 26,
-        "end_column": 45,
-        "start_byte": 703,
-        "end_byte": 744
-      },
-      "body_hash": "99589ad6f19e7ff5e53820d88167c9b4",
+      "body_span": null,
+      "body_hash": null,
       "signature": "int (*global_cmp)(const void *, const void *) = compare",
       "doc_comment": null,
       "visibility": "Public",
@@ -633,15 +619,8 @@
       "end_column": 34,
       "start_byte": 405,
       "end_byte": 439,
-      "body_span": {
-        "start_line": 18,
-        "start_column": 22,
-        "end_line": 18,
-        "end_column": 33,
-        "start_byte": 427,
-        "end_byte": 438
-      },
-      "body_hash": "c2c0a8872ea08f7fd5855d8918336c13",
+      "body_span": null,
+      "body_hash": null,
       "signature": "typedef void handler_t(int signo)",
       "doc_comment": null,
       "visibility": "Public",
@@ -669,15 +648,8 @@
       "end_column": 32,
       "start_byte": 666,
       "end_byte": 698,
-      "body_span": {
-        "start_line": 25,
-        "start_column": 12,
-        "end_line": 25,
-        "end_column": 31,
-        "start_byte": 678,
-        "end_byte": 697
-      },
-      "body_hash": "9fe8b87a0d2f1b11ca1416d1e2b1a785",
+      "body_span": null,
+      "body_hash": null,
       "signature": "static void (*handlers[4])(int)",
       "doc_comment": null,
       "visibility": "Private",
@@ -887,15 +859,8 @@
       "end_column": 28,
       "start_byte": 144,
       "end_byte": 172,
-      "body_span": {
-        "start_line": 6,
-        "start_column": 21,
-        "end_line": 6,
-        "end_column": 27,
-        "start_byte": 165,
-        "end_byte": 171
-      },
-      "body_hash": "e7b11c0a3c292cb85fa4b9bffdf49104",
+      "body_span": null,
+      "body_hash": null,
       "signature": "struct Node* node_new(void)",
       "doc_comment": null,
       "visibility": "Public",
@@ -925,15 +890,8 @@
       "end_column": 66,
       "start_byte": 53,
       "end_byte": 81,
-      "body_span": {
-        "start_line": 2,
-        "start_column": 38,
-        "end_line": 2,
-        "end_column": 66,
-        "start_byte": 53,
-        "end_byte": 81
-      },
-      "body_hash": "02dc45efc1d9baf9ebec36650c917bb1",
+      "body_span": null,
+      "body_hash": null,
       "signature": "int (*probe)(struct device *dev)",
       "doc_comment": null,
       "visibility": "Public",
@@ -1021,15 +979,8 @@
       "end_column": 29,
       "start_byte": 114,
       "end_byte": 143,
-      "body_span": {
-        "start_line": 5,
-        "start_column": 13,
-        "end_line": 5,
-        "end_column": 28,
-        "start_byte": 127,
-        "end_byte": 142
-      },
-      "body_hash": "950897587693ebff15f6525a16827911",
+      "body_span": null,
+      "body_hash": null,
       "signature": "char* str_dup(const char *s)",
       "doc_comment": "/** Duplicate a string. */",
       "visibility": "Public",
@@ -1123,15 +1074,8 @@
       "end_column": 51,
       "start_byte": 440,
       "end_byte": 491,
-      "body_span": {
-        "start_line": 19,
-        "start_column": 12,
-        "end_line": 19,
-        "end_column": 50,
-        "start_byte": 452,
-        "end_byte": 490
-      },
-      "body_hash": "b84daa8b13dba5d49379529a064ed6e6",
+      "body_span": null,
+      "body_hash": null,
       "signature": "typedef int (*visit_fn)(Buffer *buffer, void *ctx)",
       "doc_comment": null,
       "visibility": "Public",
@@ -1442,10 +1386,10 @@
       "caller_scope_key": "fixtures/extraction/c/declarators/source.c:use:28:0",
       "span": {
         "start_line": 32,
-        "start_column": 27,
+        "start_column": 32,
         "end_line": 32,
         "end_column": 37,
-        "start_byte": 936,
+        "start_byte": 941,
         "end_byte": 946
       }
     },
@@ -1702,22 +1646,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/c/declarators/source.c:drv->probe:call:32:27",
-      "name": "drv->probe",
-      "kind": "call",
-      "language": "c",
-      "file_path": "fixtures/extraction/c/declarators/source.c",
-      "start_line": 32,
-      "start_column": 27,
-      "end_line": 32,
-      "end_column": 37,
-      "start_byte": 936,
-      "end_byte": 946,
-      "containing_key": "fixtures/extraction/c/declarators/source.c:use:28:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/c/declarators/source.c:drv:variable_ref:32:27",
       "name": "drv",
       "kind": "variable_ref",
@@ -1793,6 +1721,22 @@
       "end_column": 23,
       "start_byte": 927,
       "end_byte": 932,
+      "containing_key": "fixtures/extraction/c/declarators/source.c:use:28:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/c/declarators/source.c:probe:call:32:32",
+      "name": "probe",
+      "kind": "call",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/declarators/source.c",
+      "start_line": 32,
+      "start_column": 32,
+      "end_line": 32,
+      "end_column": 37,
+      "start_byte": 941,
+      "end_byte": 946,
       "containing_key": "fixtures/extraction/c/declarators/source.c:use:28:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1892,6 +1836,15 @@
       }
     },
     {
+      "symbol_key": "fixtures/extraction/c/declarators/source.c:compare:24:0",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "c",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/c/declarators/source.c:count:15:0",
       "resolved_type": "int",
       "generic_params": null,
@@ -1951,12 +1904,14 @@
     },
     {
       "symbol_key": "fixtures/extraction/c/declarators/source.c:make_list:8:0",
-      "resolved_type": "char**",
+      "resolved_type": "char",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "c",
-      "metadata": null
+      "metadata": {
+        "declared": "char **"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/c/declarators/source.c:n:8:17",
@@ -1990,6 +1945,17 @@
       }
     },
     {
+      "symbol_key": "fixtures/extraction/c/declarators/source.c:node_new:6:0",
+      "resolved_type": "Node",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "c",
+      "metadata": {
+        "declared": "struct Node *"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/c/declarators/source.c:ptr:15:0",
       "resolved_type": "int",
       "generic_params": null,
@@ -2002,19 +1968,21 @@
     },
     {
       "symbol_key": "fixtures/extraction/c/declarators/source.c:str_dup:5:0",
-      "resolved_type": "char*",
+      "resolved_type": "char",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "c",
-      "metadata": null
+      "metadata": {
+        "declared": "char *"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/c/declarators/source.c:use:28:0",
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "c",
       "metadata": null
     },
@@ -2113,17 +2081,17 @@
       "language": "c",
       "file_path": "fixtures/extraction/c/declarators/source.c",
       "covered_lines": 1,
-      "covered_bytes": 6,
+      "covered_bytes": 28,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 1,
       "start_line": 6,
-      "start_column": 21,
+      "start_column": 0,
       "end_line": 6,
-      "end_column": 27,
-      "start_byte": 165,
-      "end_byte": 171,
+      "end_column": 28,
+      "start_byte": 144,
+      "end_byte": 172,
       "metadata": {
         "metric_version": 1
       }
@@ -2135,17 +2103,17 @@
       "language": "c",
       "file_path": "fixtures/extraction/c/declarators/source.c",
       "covered_lines": 1,
-      "covered_bytes": 15,
+      "covered_bytes": 29,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 1,
       "start_line": 5,
-      "start_column": 13,
+      "start_column": 0,
       "end_line": 5,
-      "end_column": 28,
-      "start_byte": 127,
-      "end_byte": 142,
+      "end_column": 29,
+      "start_byte": 114,
+      "end_byte": 143,
       "metadata": {
         "metric_version": 1
       }

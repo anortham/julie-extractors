@@ -84,10 +84,10 @@
       "file_path": "fixtures/extraction/c/cross_file/source.c",
       "start_line": 7,
       "start_column": 0,
-      "end_line": 8,
-      "end_column": 0,
+      "end_line": 7,
+      "end_column": 18,
       "start_byte": 321,
-      "end_byte": 340,
+      "end_byte": 339,
       "body_span": null,
       "body_hash": null,
       "signature": "#include \"other.h\"\n",
@@ -223,7 +223,16 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
+      "language": "c",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/c/cross_file/source.c:local_helper:9:0",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "c",
       "metadata": null
     }

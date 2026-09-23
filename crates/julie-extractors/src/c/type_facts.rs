@@ -17,6 +17,35 @@ pub(super) fn record_declared_from_declaration(
     if contains_function_declarator(declarator) {
         return;
     }
+    record_declared(base, symbol_id, decl, declarator);
+}
+
+/// Record a function's return type from its definition or prototype. The
+/// declarator must be pointer levels around the function's own declarator; a
+/// function returning a function pointer has no plain return type to record.
+pub(super) fn record_return_type(
+    base: &mut BaseExtractor,
+    symbol_id: &str,
+    decl: Node,
+    declarator: Node,
+) {
+    let mut current = declarator;
+    while current.kind() == "pointer_declarator" {
+        let Some(inner) = current.child_by_field_name("declarator") else {
+            return;
+        };
+        current = inner;
+    }
+    let names_function = current.kind() == "function_declarator"
+        && current
+            .child_by_field_name("declarator")
+            .is_some_and(|name| name.kind() != "parenthesized_declarator");
+    if names_function {
+        record_declared(base, symbol_id, decl, declarator);
+    }
+}
+
+fn record_declared(base: &mut BaseExtractor, symbol_id: &str, decl: Node, declarator: Node) {
     let Some(type_node) = decl.child_by_field_name("type") else {
         return;
     };
