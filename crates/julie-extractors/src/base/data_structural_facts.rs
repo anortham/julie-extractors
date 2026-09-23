@@ -2012,7 +2012,7 @@ fn regex_quoted_literal_facts(
                 child.kind() == "identity_escape" && node_text(content, *child) == Some(r"\E")
             })
             .map(|offset| index + 1 + offset);
-        let last = close.map_or(children.len() - 1, |close| close);
+        let last = close.unwrap_or(children.len() - 1);
         let text_end = close.map_or(children[last].end_byte(), |close| {
             children[close].start_byte()
         });
