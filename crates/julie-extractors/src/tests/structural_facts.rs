@@ -141,6 +141,21 @@ app.MapPost("/static", () => "ok");
 }
 
 #[test]
+fn csharp_minimal_api_route_with_non_ascii_text_emits_its_fact() {
+    let source = r#"using Microsoft.AspNetCore.Builder;
+
+var app = WebApplication.CreateBuilder(args).Build();
+app.MapGet("/é", () => "ok");
+"#;
+
+    let results = extract("src/Program.cs", source);
+    let facts = facts_with_pattern(&results, "aspnet.minimal_api.route.v1");
+
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(metadata_str(facts[0], "route_template"), Some("/é"));
+}
+
+#[test]
 fn csharp_navigation_manager_calls_emit_literal_route_references() {
     let source = r#"using Microsoft.AspNetCore.Components;
 

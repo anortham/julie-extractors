@@ -209,7 +209,10 @@ fn generic_type_argument(content: &str, after_name: usize) -> (Option<&str>, usi
             return (None, start);
         };
         (&rest[1..close], start + close + 1)
-    } else if rest.len() > 4 && rest[..4].eq_ignore_ascii_case("(Of ") {
+    } else if rest
+        .get(..4)
+        .is_some_and(|prefix| prefix.eq_ignore_ascii_case("(Of "))
+    {
         let Some(close) = find_matching_paren(content, start) else {
             return (None, start);
         };
