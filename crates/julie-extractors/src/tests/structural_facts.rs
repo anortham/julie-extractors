@@ -185,7 +185,7 @@ sealed class OrdersPage
 
     void OpenProven() => this.navigation.NavigateTo("/orders");
     void SkipDynamic(string path) => navigation.NavigateTo(path);
-    void SkipInterpolated(int id) => navigation.NavigateTo($"/orders/{id}");
+    void SkipLeadingHole(string root) => navigation.NavigateTo($"{root}/orders");
     void SkipUnproven() => router.NavigateTo("/admin");
     void SkipShadowed(Router navigation) => navigation.NavigateTo("/shadowed");
 }

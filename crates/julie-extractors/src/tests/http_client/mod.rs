@@ -768,12 +768,26 @@ public class Api {
     public async Task Load(HttpClient client, string id) {
         await cache.GetAsync("user-key");
         await client.GetAsync($"https://api.example.com/{id}");
-        await client.PostAsync("relative/path", body);
     }
 }
 "#;
     let results = extract("src/Api.cs", source);
     assert!(client_requests(&results).is_empty());
+}
+
+#[test]
+fn csharp_httpclient_relative_urls_resolve_against_base_address() {
+    let source = r#"
+public class Api {
+    public async Task Load(HttpClient client) {
+        await client.PostAsync("relative/path", body);
+    }
+}
+"#;
+    let results = extract("src/Api.cs", source);
+    let fact = single_request(&results);
+    assert_eq!(metadata_str(fact, "target_path"), Some("relative/path"));
+    assert_eq!(metadata_str(fact, "url_kind"), Some("relative"));
 }
 
 #[test]
