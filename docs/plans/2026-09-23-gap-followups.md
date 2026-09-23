@@ -32,19 +32,30 @@ owner decision or a grammar change. Owner decisions from 2026-09-23:
 2. `gomod` language. Pin `camdencheek/tree-sitter-go-mod`, select the exact
    basename `go.mod`, and publish module, go, toolchain, require, replace,
    exclude, retract, tool, and ignore rows with golden fixtures.
-3. `go.sum` and `godebug`. Both upstream grammars need fixes: the go.sum
-   grammar rejects empty files and pre-release identifiers outside a fixed
-   list, and the go.mod grammar has no `godebug` directive. Closure needs
-   owned grammar forks, which need owner approval to create. Until then the
-   `gomod` row records both as open gaps.
+3. Grammar forks. Both upstream grammars need fixes, and the `gomod` row
+   records each as an open gap until an owned fork is pinned:
+   - `gomod.go_sum_checksums`: the go.sum grammar rejects empty files and
+     pre-release identifiers outside a fixed list (11 of 70 local `go.sum`
+     files fail). Closure adds a `gosum` row keyed on the exact basename
+     `go.sum`.
+   - `gomod.godebug_directive`: the go.mod grammar has no `godebug`
+     directive.
+   - `gomod.grammar_path_tokens`: the go.mod grammar cannot read a `replace`
+     to an absolute path or a one-character path, and a last line without a
+     newline gives a MISSING diagnostic.
+
+   Fixed grammars with corpus tests exist as local commits: they parse all
+   70 local `go.sum` and all 128 local `go.mod` files, including CRLF files.
+   Creating the `anortham` forks needs owner approval.
 4. JSON5 and regex decisions. Record the
    [JSON5 decision](../decisions/2026-09-23-json5-out-of-scope.md) and remove
    the `json5_unquoted_keys` gap. Keep `regex_conditional_patterns` open with
    a grammar-change closure.
 5. Integration. Move the crate version to 3.5.0, append
    `step-definition-role-v1.go-module-manifest-v1` to
-   `EXTRACTION_CONTRACT_VERSION`, declare the output changes under `## 3.5.0`
-   in the output-change ledger, and update the site language counts.
+   `EXTRACTION_CONTRACT_VERSION`, and declare the output changes under
+   `## 3.5.0` in the output-change ledger. The site pages describe the
+   published release, so their language counts move at 3.5.0 publication.
 
 ## Gates
 

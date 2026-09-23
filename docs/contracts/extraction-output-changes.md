@@ -96,8 +96,8 @@ This release adds the `step_definition` test role and the `gomod` language
 from the [gap follow-ups](../plans/2026-09-23-gap-followups.md). No SQLite or
 report-schema column is added, removed, or retyped: SQLite schema remains 7,
 report schema remains 3, and extraction identity epoch remains 10.
-`EXTRACTION_CONTRACT_VERSION` adds `step-definition-role-v1` because canonical
-output changes.
+`EXTRACTION_CONTRACT_VERSION` adds `step-definition-role-v1` and
+`go-module-manifest-v1` because canonical output changes.
 
 `symbols.metadata_json.test_role` gains the value `step_definition`. `csharp`,
 `vbnet`, `fsharp`, and `razor` methods of a `[Binding]` class with a `[Given]`,
@@ -109,8 +109,22 @@ a `test_container`, and its `Before*` and `After*` hook methods become
 `is_test`, `test_container`, and `test_lifecycle` columns. See
 [2026-09-23-step-definition-test-role.md](../decisions/2026-09-23-step-definition-test-role.md).
 
-Consumer action: accept the new `test_role` string, replace the binary, and
-rebuild every affected artifact. No schema migration is required.
+File selection changes. A file whose basename is `go.mod`, compared without
+case, is now the new `gomod` language instead of unsupported, so a rebuild adds
+`files` rows. `go.sum` stays unsupported. The `gomod` row publishes a `module`
+symbol for the module path, `property` symbols for `go` and `toolchain`, and an
+`import` symbol for each `require` line and `tool` package. Each required
+module and tool is an `imports` relationship from the module symbol, and a
+`replace` to a file path is a structured pending `imports` row to
+`<path>/go.mod`. Each `require` line is a `manifest.dependency.v1` fact with
+ecosystem `go`, group `require`, and a new optional boolean key `indirect`. The
+new pattern ids are `gomod.module.v1`, `gomod.go.v1`, `gomod.toolchain.v1`,
+`gomod.replace.v1`, `gomod.exclude.v1`, `gomod.retract.v1`, `gomod.tool.v1`,
+and `gomod.ignore.v1`. `julie-extract languages --json` lists 41 languages.
+
+Consumer action: accept the new `test_role` string and the new `gomod`
+language, replace the binary, and rebuild every affected artifact. No schema
+migration is required.
 
 ## 3.4.0
 
