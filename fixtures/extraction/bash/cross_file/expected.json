@@ -101,7 +101,7 @@
       "body_span": null,
       "body_hash": null,
       "signature": "source ./other.sh",
-      "doc_comment": "#!/usr/bin/env bash\n# Phase 4a fixture: cross-script call. `other_fn` is defined in another file\n# sourced via `source ./other.sh`. The bash extractor must emit a\n# StructuredPendingRelationship with target.terminal_name=\"other_fn\".\n# The intra-script call to local_helper resolves concretely.",
+      "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
@@ -339,30 +339,13 @@
       }
     }
   ],
-  "literals": [
-    {
-      "literal_text": "{}",
-      "kind": "other",
-      "carrier": "other_fn",
-      "arg_position": 0,
-      "language": "bash",
-      "file_path": "fixtures/extraction/bash/cross_file/source.sh",
-      "start_line": 14,
-      "start_column": 13,
-      "end_line": 14,
-      "end_column": 17,
-      "start_byte": 369,
-      "end_byte": 373,
-      "containing_key": "fixtures/extraction/bash/cross_file/source.sh:entry:13:0",
-      "confidence": "1.000"
-    }
-  ],
+  "literals": [],
   "source_regions": [
     {
-      "kind": "doc_comment",
+      "kind": "comment",
       "language": "bash",
       "file_path": "fixtures/extraction/bash/cross_file/source.sh",
-      "containing_key": "fixtures/extraction/bash/cross_file/source.sh:other:7:0",
+      "containing_key": "fixtures/extraction/bash/cross_file/source.sh:bash:1:0",
       "start_line": 1,
       "start_column": 0,
       "end_line": 1,
@@ -372,10 +355,10 @@
       "metadata": null
     },
     {
-      "kind": "doc_comment",
+      "kind": "comment",
       "language": "bash",
       "file_path": "fixtures/extraction/bash/cross_file/source.sh",
-      "containing_key": "fixtures/extraction/bash/cross_file/source.sh:other:7:0",
+      "containing_key": null,
       "start_line": 2,
       "start_column": 0,
       "end_line": 2,
@@ -385,10 +368,10 @@
       "metadata": null
     },
     {
-      "kind": "doc_comment",
+      "kind": "comment",
       "language": "bash",
       "file_path": "fixtures/extraction/bash/cross_file/source.sh",
-      "containing_key": "fixtures/extraction/bash/cross_file/source.sh:other:7:0",
+      "containing_key": null,
       "start_line": 3,
       "start_column": 0,
       "end_line": 3,
@@ -398,10 +381,10 @@
       "metadata": null
     },
     {
-      "kind": "doc_comment",
+      "kind": "comment",
       "language": "bash",
       "file_path": "fixtures/extraction/bash/cross_file/source.sh",
-      "containing_key": "fixtures/extraction/bash/cross_file/source.sh:other:7:0",
+      "containing_key": null,
       "start_line": 4,
       "start_column": 0,
       "end_line": 4,
@@ -411,10 +394,10 @@
       "metadata": null
     },
     {
-      "kind": "doc_comment",
+      "kind": "comment",
       "language": "bash",
       "file_path": "fixtures/extraction/bash/cross_file/source.sh",
-      "containing_key": "fixtures/extraction/bash/cross_file/source.sh:other:7:0",
+      "containing_key": null,
       "start_line": 5,
       "start_column": 0,
       "end_line": 5,

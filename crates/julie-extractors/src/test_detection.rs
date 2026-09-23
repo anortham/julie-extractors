@@ -108,6 +108,9 @@ const TEST_FILE_NAME_SUFFIXES: &[&str] = &[
     "Cest.php",
     "Spec.php",
     "Tests.swift",
+    "_test.sh",
+    "_spec.sh",
+    ".bats",
 ];
 
 const PATH_SEPARATORS: [char; 2] = ['/', '\\'];
@@ -1485,16 +1488,19 @@ fn matches_script_test_name(
     is_test_path(file_path) && keywords.contains(&normalized.as_str())
 }
 
+/// bats, ShellSpec, shunit2, and bashunit. shunit2 and bashunit run every
+/// function whose name starts with `test` (`testAdds`, `test_adds`).
 fn detect_bash(name: &str, file_path: &str) -> bool {
     matches_script_test_name(
         name,
         file_path,
         true,
         &[
-            "describe", "context", "it", "specify", "example", "feature", "scenario", "setup",
-            "teardown",
+            "describe", "context", "it", "specify", "example", "feature", "scenario",
         ],
-    )
+    ) || (is_test_path(file_path)
+        && ((name.starts_with("test") && name.len() > 4)
+            || bash_test_lifecycle_direction(name) != TestLifecycleDirection::None))
 }
 
 fn detect_powershell(name: &str, file_path: &str) -> bool {
@@ -1807,10 +1813,22 @@ fn detect_qml(name: &str, file_path: &str) -> bool {
     is_test_path(file_path) && qml_test_role(name).is_some()
 }
 
+/// bats `setup`/`setup_file`/`setup_suite`, shunit2 `setUp`/`oneTimeSetUp`,
+/// bashunit `set_up`/`set_up_before_script`, and their teardown halves.
 fn bash_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
     match name.to_ascii_lowercase().as_str() {
-        "setup" => TestLifecycleDirection::Setup,
-        "teardown" => TestLifecycleDirection::Teardown,
+        "setup"
+        | "setup_file"
+        | "setup_suite"
+        | "onetimesetup"
+        | "set_up"
+        | "set_up_before_script" => TestLifecycleDirection::Setup,
+        "teardown"
+        | "teardown_file"
+        | "teardown_suite"
+        | "onetimeteardown"
+        | "tear_down"
+        | "tear_down_after_script" => TestLifecycleDirection::Teardown,
         _ => TestLifecycleDirection::None,
     }
 }

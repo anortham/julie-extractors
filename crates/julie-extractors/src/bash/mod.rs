@@ -15,12 +15,17 @@
 mod arithmetic;
 mod commands;
 mod functions;
-mod helpers;
+pub(crate) mod helpers;
+mod http;
+mod invocations;
 mod relationships;
 mod signatures;
 pub(crate) mod test_calls;
 mod types;
 mod variables;
+
+pub(crate) use http::http_requests;
+pub(crate) use variables::{declaration_flags, declared_names};
 
 use crate::base::{
     BaseExtractor, ContainingSymbolIndex, Identifier, PendingRelationship, Relationship,
@@ -32,6 +37,7 @@ use tree_sitter::Tree;
 pub struct BashExtractor {
     pub(super) base: BaseExtractor,
     associative_arrays: std::collections::HashSet<String>,
+    local_functions: std::collections::HashSet<String>,
 }
 
 impl BashExtractor {
@@ -41,10 +47,40 @@ impl BashExtractor {
         content: String,
         workspace_root: &std::path::Path,
     ) -> Self {
+        let mut base = BaseExtractor::new(language, file_path, content, workspace_root);
+        base.body_span_rule = Some(helpers::body_span);
         Self {
-            base: BaseExtractor::new(language, file_path, content, workspace_root),
+            base,
             associative_arrays: std::collections::HashSet::new(),
+            local_functions: std::collections::HashSet::new(),
         }
+    }
+
+    /// bats, ShellSpec, shunit2, and bashunit files, where `run`, `load`,
+    /// `Include`, and the ShellSpec hooks have their test-framework meaning.
+    pub(super) fn test_context(&self) -> bool {
+        crate::test_detection::is_test_path(&self.base.file_path)
+    }
+
+    pub(super) fn command_scope(&self) -> invocations::CommandScope<'_> {
+        invocations::CommandScope {
+            local_functions: &self.local_functions,
+            test_context: self.test_context(),
+        }
+    }
+
+    fn remember_local_functions(&mut self, symbols: &[Symbol]) {
+        self.local_functions = symbols
+            .iter()
+            .filter(|symbol| symbol.kind == SymbolKind::Function)
+            .filter(|symbol| {
+                symbol
+                    .signature
+                    .as_deref()
+                    .is_some_and(|signature| signature.starts_with("function "))
+            })
+            .map(|symbol| symbol.name.clone())
+            .collect();
     }
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
@@ -99,16 +135,7 @@ impl BashExtractor {
         }
 
         if node.kind() == "declaration_command" {
-            let declaration_symbols = self.extract_declarations(node, parent_id.as_deref());
-            let mut current_parent_id = parent_id;
-
-            if let Some(first_symbol) = declaration_symbols.first() {
-                current_parent_id = Some(first_symbol.id.clone());
-            }
-
-            symbols.extend(declaration_symbols);
-
-            self.walk_symbol_children(node, symbols, current_parent_id, depth);
+            self.walk_declaration(node, symbols, parent_id, depth);
             return;
         }
 
@@ -128,6 +155,26 @@ impl BashExtractor {
         }
 
         self.walk_symbol_children(node, symbols, current_parent_id, depth);
+    }
+
+    /// Declare the names of a declaration command, then walk each assignment
+    /// value under the symbol it initializes.
+    #[inline(never)]
+    fn walk_declaration(
+        &mut self,
+        node: tree_sitter::Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<String>,
+        depth: u32,
+    ) {
+        let values = self.extract_declarations(node, parent_id.as_deref(), symbols);
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
+        for (value, owner_id) in values {
+            let value_parent = owner_id.or_else(|| parent_id.clone());
+            self.walk_tree_for_symbols(value, symbols, value_parent, child_depth);
+        }
     }
 
     /// Walk `node`'s children. A bats or ShellSpec block opener becomes a test
@@ -180,7 +227,6 @@ impl BashExtractor {
         match node.kind() {
             "function_definition" => self.extract_function(node, parent_id),
             "variable_assignment" => self.extract_variable(node, parent_id),
-            "declaration_command" => self.extract_declaration(node, parent_id),
             "command" | "simple_command" => {
                 // Try shellspec/bats DSL first; fall through to alias/source detection.
                 if let Some(sym) =
@@ -197,6 +243,7 @@ impl BashExtractor {
     }
 
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
+        self.remember_local_functions(symbols);
         let mut relationships = Vec::new();
         let function_symbols = ContainingSymbolIndex::from_iter(
             symbols.iter().filter(|s| s.kind == SymbolKind::Function),
@@ -254,6 +301,7 @@ impl BashExtractor {
     }
 
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
+        self.remember_local_functions(symbols);
         let containing_symbols = self.base.containing_symbol_index(symbols);
         self.associative_arrays = arithmetic::associative_array_names(&self.base, tree.root_node());
         self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, 0);
@@ -292,34 +340,7 @@ impl BashExtractor {
         containing_symbols: &ContainingSymbolIndex<'_>,
     ) {
         match node.kind() {
-            "command" => {
-                if let Some(command_name_node) = self.find_command_name_node(node) {
-                    let name = self.base.get_node_text(&command_name_node);
-                    if matches!(name.as_str(), "}" | "End") {
-                        return;
-                    }
-                    if let Some(callee) = test_calls::wrapped_callee(&self.base, node) {
-                        let containing_symbol_id =
-                            self.find_containing_symbol_id(node, containing_symbols);
-                        let callee_name = self.base.get_node_text(&callee);
-                        self.base.create_identifier(
-                            &callee,
-                            callee_name,
-                            crate::base::IdentifierKind::Call,
-                            containing_symbol_id,
-                        );
-                    }
-                    let containing_symbol_id =
-                        self.find_containing_symbol_id(node, containing_symbols);
-                    self.base.create_identifier(
-                        &command_name_node,
-                        name.clone(),
-                        crate::base::IdentifierKind::Call,
-                        containing_symbol_id,
-                    );
-                    self.record_command_arg_literals(node, &name, containing_symbols);
-                }
-            }
+            "command" => self.extract_command_identifiers(node, containing_symbols),
             "subscript" => {
                 let mut cursor = node.walk();
                 for child in node.children(&mut cursor) {
@@ -385,48 +406,135 @@ impl BashExtractor {
         }
     }
 
-    /// Capture string-literal arguments of a `command` node.
+    /// Call identifiers for a command with a static name and for every command
+    /// it runs or registers (`sudo x`, `trap handler`, `complete -F fn`), plus
+    /// its string-literal arguments.
+    #[inline(never)]
+    fn extract_command_identifiers(
+        &mut self,
+        node: tree_sitter::Node,
+        containing_symbols: &ContainingSymbolIndex<'_>,
+    ) {
+        let Some((name_node, name)) = invocations::static_command_name(&self.base.content, node)
+        else {
+            return;
+        };
+        if matches!(name.as_str(), "}" | "End") {
+            return;
+        }
+        let containing_symbol_id = self.find_containing_symbol_id(node, containing_symbols);
+        let targets = invocations::invocations(&self.base.content, node, &self.command_scope());
+        for target in &targets {
+            let Some(span) = self
+                .base
+                .span_for_byte_range(target.range.start, target.range.end)
+            else {
+                continue;
+            };
+            self.base.create_identifier_at_span(
+                span,
+                target.name.clone(),
+                crate::base::IdentifierKind::Call,
+                containing_symbol_id.clone(),
+                None,
+            );
+        }
+        self.base.create_identifier(
+            &name_node,
+            name.clone(),
+            crate::base::IdentifierKind::Call,
+            containing_symbol_id.clone(),
+        );
+        let (carrier, arguments) = match targets
+            .into_iter()
+            .find_map(|target| Some((target.name, target.arguments?)))
+        {
+            Some(wrapped) => wrapped,
+            None => (name, invocations::arguments(node)),
+        };
+        self.record_command_literals(node, &carrier, &arguments, containing_symbol_id);
+    }
+
+    /// Capture the string literals a command receives.
     ///
     /// Bash commands are a COMMAND grammar, not `call_expression`: the carrier is
-    /// the command name itself (`curl`, `wget`, `psql`, `mysql`, `sqlite3`, …) and
-    /// the args are the repeated `argument`-field children. This is config-free —
-    /// `kind` is `Other` and the `src/` carrier gate reclassifies/drops; the
-    /// `[literal_carriers]` table in `languages/bash.toml` decides which command
-    /// names survive.
+    /// the command name itself (`curl`, `wget`, `psql`, `mysql`, `sqlite3`, …),
+    /// or the wrapped command for `sudo curl …`. This is config-free — `kind` is
+    /// `Other`, and the `[literal_carriers]` table in `languages/bash.toml`
+    /// decides which carriers survive.
     ///
-    /// Only string-bearing args are captured (`string`, `raw_string`,
-    /// `ansi_c_string`, `translated_string` — all decode via
-    /// `decode_string_literal`). A bare `word` arg such as the unquoted URL in
-    /// `curl https://x` is NOT a string literal and is intentionally skipped;
-    /// quoting (`curl "https://x"`) is required for capture, matching the
-    /// string-literal contract used by every other language.
+    /// String-bearing arguments are captured (`string`, `raw_string`,
+    /// `ansi_c_string`, `translated_string`). A bare `word` such as the unquoted
+    /// URL in `curl https://x` is not a string literal. For `curl` and `wget`
+    /// only request arguments count, so a `-H` header value is not captured.
+    /// A herestring (`<<< "..."`) and a heredoc body are captured after the
+    /// arguments. A literal that is only interpolation holes (`"$DB"`) is not.
     ///
-    /// `arg_position` counts over the full `argument` list, so the SQL in
+    /// `arg_position` counts over the full argument list, so the SQL in
     /// `psql -c "SELECT …"` (args `["-c", "SELECT …"]`) reports position 1.
-    fn record_command_arg_literals(
+    fn record_command_literals(
         &mut self,
         command_node: tree_sitter::Node,
         carrier: &str,
-        containing_symbols: &ContainingSymbolIndex<'_>,
+        args: &[tree_sitter::Node],
+        containing_symbol_id: Option<String>,
     ) {
-        let containing_symbol_id = self.find_containing_symbol_id(command_node, containing_symbols);
-        let args: Vec<tree_sitter::Node> = {
-            let mut cursor = command_node.walk();
-            command_node
-                .children_by_field_name("argument", &mut cursor)
-                .collect()
-        };
-        for (position, arg) in args.into_iter().enumerate() {
-            if let Some(text) = self.base.decode_string_literal(&arg) {
-                self.base.record_literal(
-                    &arg,
+        let request_args = http::HTTP_CLIENTS
+            .contains(&carrier)
+            .then(|| http::http_arguments(&self.base.content, carrier, args).positionals);
+        for (position, arg) in args.iter().enumerate() {
+            if request_args
+                .as_ref()
+                .is_some_and(|requests| !requests.contains(arg))
+            {
+                continue;
+            }
+            if let Some(text) = self.base.decode_string_literal(arg) {
+                self.record_command_literal(
+                    arg,
                     text,
-                    Some(carrier.to_string()),
+                    carrier,
                     position as u32,
                     containing_symbol_id.clone(),
                 );
             }
         }
+        let position = args.len() as u32;
+        for input in redirected_inputs(command_node) {
+            let text = match input.kind() {
+                "heredoc_body" => heredoc_text(&self.base.content, input),
+                _ => self.base.decode_string_literal(&input),
+            };
+            if let Some(text) = text {
+                self.record_command_literal(
+                    &input,
+                    text,
+                    carrier,
+                    position,
+                    containing_symbol_id.clone(),
+                );
+            }
+        }
+    }
+
+    fn record_command_literal(
+        &mut self,
+        node: &tree_sitter::Node,
+        text: String,
+        carrier: &str,
+        position: u32,
+        containing_symbol_id: Option<String>,
+    ) {
+        if text.replace("{}", "").trim().is_empty() {
+            return;
+        }
+        self.base.record_literal(
+            node,
+            text,
+            Some(carrier.to_string()),
+            position,
+            containing_symbol_id,
+        );
     }
 
     fn find_containing_symbol_id(
@@ -465,4 +573,54 @@ impl BashExtractor {
     pub fn get_structured_pending_relationships(&self) -> Vec<StructuredPendingRelationship> {
         self.base.get_structured_pending_relationships()
     }
+}
+
+/// The herestring and heredoc bodies fed to `command` on standard input.
+fn redirected_inputs(command: tree_sitter::Node<'_>) -> Vec<tree_sitter::Node<'_>> {
+    let statement = command
+        .parent()
+        .filter(|parent| parent.kind() == "redirected_statement")
+        .filter(|parent| parent.child_by_field_name("body") == Some(command));
+    let mut inputs = Vec::new();
+    for owner in std::iter::once(command).chain(statement) {
+        let mut cursor = owner.walk();
+        for redirect in owner.children_by_field_name("redirect", &mut cursor) {
+            let mut inner = redirect.walk();
+            let body = match redirect.kind() {
+                "herestring_redirect" => redirect
+                    .named_children(&mut inner)
+                    .find(|child| child.kind().contains("string")),
+                "heredoc_redirect" => redirect
+                    .named_children(&mut inner)
+                    .find(|child| child.kind() == "heredoc_body"),
+                _ => None,
+            };
+            inputs.extend(body);
+        }
+    }
+    inputs
+}
+
+/// A heredoc body with each expansion replaced by `{}`. A quoted delimiter
+/// (`<<'SQL'`) turns expansion off, so its body is kept verbatim.
+fn heredoc_text(content: &str, body: tree_sitter::Node<'_>) -> Option<String> {
+    let quoted = body
+        .prev_named_sibling()
+        .filter(|start| start.kind() == "heredoc_start")
+        .and_then(|start| content.get(start.byte_range()))
+        .is_some_and(|start| start.contains(['\'', '"', '\\']));
+    let mut text = String::new();
+    let mut position = body.start_byte();
+    if !quoted {
+        let mut cursor = body.walk();
+        for child in body.named_children(&mut cursor) {
+            if child.kind().contains("expansion") || child.kind().contains("substitution") {
+                text.push_str(content.get(position..child.start_byte())?);
+                text.push_str("{}");
+                position = child.end_byte();
+            }
+        }
+    }
+    text.push_str(content.get(position..body.end_byte())?);
+    Some(text.trim_end_matches(['\n', '\r']).to_string())
 }

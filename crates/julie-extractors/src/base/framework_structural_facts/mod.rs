@@ -365,6 +365,7 @@ pub fn collect_framework_structural_facts(
         "vue" => collect_vue_template_htmx_attributes(language, tree, file_path, content),
         "lua" => collect_lua_framework_facts(language, tree, file_path, content),
         "r" => collect_r_framework_facts(language, tree, file_path, content),
+        "bash" => collect_backend_http_client_requests(language, tree, file_path, content),
         _ => Vec::new(),
     };
 
@@ -406,6 +407,7 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
         "vue" => COMPONENT_MARKUP_FRAMEWORK_PATTERN_IDS,
         "lua" => LUA_PATTERN_IDS,
         "r" => R_PATTERN_IDS,
+        "bash" => &[HTTP_CLIENT_REQUEST_PATTERN_ID],
         _ => &[],
     }
 }

@@ -10,11 +10,94 @@ use std::path::Path;
 use tree_sitter::Node;
 
 const SHELL_BUILTINS: &[&str] = &[
-    "echo", "printf", "cd", "pwd", "ls", "mkdir", "rmdir", "rm", "cp", "mv", "cat", "grep", "sed",
-    "awk", "find", "test", "[", "]", "return", "exit", "export", "declare", "local", "readonly",
-    "unset", "set", "shopt", "read", "eval", "source", ".", "exec", "command", "type", "which",
-    "alias", "unalias", "true", "false", ":", "!", "history", "if", "then", "else", "elif", "fi",
-    "case", "esac", "for", "while", "until", "do", "done", "break", "continue",
+    "echo",
+    "printf",
+    "cd",
+    "pwd",
+    "ls",
+    "mkdir",
+    "rmdir",
+    "rm",
+    "cp",
+    "mv",
+    "cat",
+    "grep",
+    "sed",
+    "awk",
+    "find",
+    "test",
+    "[",
+    "]",
+    "return",
+    "exit",
+    "export",
+    "declare",
+    "local",
+    "readonly",
+    "unset",
+    "set",
+    "shopt",
+    "read",
+    "eval",
+    "source",
+    ".",
+    "exec",
+    "command",
+    "type",
+    "which",
+    "alias",
+    "unalias",
+    "true",
+    "false",
+    ":",
+    "!",
+    "history",
+    "if",
+    "then",
+    "else",
+    "elif",
+    "fi",
+    "case",
+    "esac",
+    "for",
+    "while",
+    "until",
+    "do",
+    "done",
+    "break",
+    "continue",
+    "trap",
+    "shift",
+    "getopts",
+    "let",
+    "time",
+    "wait",
+    "kill",
+    "mapfile",
+    "readarray",
+    "pushd",
+    "popd",
+    "dirs",
+    "umask",
+    "ulimit",
+    "builtin",
+    "caller",
+    "compgen",
+    "complete",
+    "compopt",
+    "typeset",
+    "bind",
+    "hash",
+    "times",
+    "disown",
+    "jobs",
+    "fg",
+    "bg",
+    "suspend",
+    "logout",
+    "enable",
+    "help",
+    "fc",
 ];
 
 impl super::BashExtractor {
@@ -36,7 +119,7 @@ impl super::BashExtractor {
             return extract_alias_symbol(self, &node, parent_id, &command_text);
         }
 
-        if is_import_command(&command_name) {
+        if is_import_command(&command_name, self.test_context()) {
             return extract_source_symbol(self, &node, parent_id, &command_name, &command_text);
         }
 
@@ -48,8 +131,11 @@ pub(super) fn is_shell_builtin(name: &str) -> bool {
     SHELL_BUILTINS.contains(&name)
 }
 
-pub(super) fn is_import_command(name: &str) -> bool {
-    matches!(name, "source" | ".")
+/// `source`/`.`, bats `bats_load_library`, and in test files bats `load` and
+/// ShellSpec `Include`.
+pub(super) fn is_import_command(name: &str, test_context: bool) -> bool {
+    matches!(name, "source" | "." | "bats_load_library")
+        || (test_context && matches!(name, "load" | "Include"))
 }
 
 /// The file a `source`/`.` command loads, named after the static tail of its

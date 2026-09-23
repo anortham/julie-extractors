@@ -27,8 +27,14 @@ impl BashExtractor for super::BashExtractor {
                 // Infer type from signature
                 let signature = symbol.signature.as_deref().unwrap_or("");
                 let mut var_type = "string".to_string();
+                let declared_array = signature
+                    .split_whitespace()
+                    .take_while(|word| !word.contains('='))
+                    .any(|word| word.starts_with('-') && word.contains(['a', 'A']));
 
-                if let Some(value_part) = signature.split('=').nth(1) {
+                if declared_array {
+                    var_type = "array".to_string();
+                } else if let Some(value_part) = signature.split('=').nth(1) {
                     let value = value_part.trim().trim_matches(|c| c == '"' || c == '\'');
 
                     if value_part.trim_start().starts_with('(') {

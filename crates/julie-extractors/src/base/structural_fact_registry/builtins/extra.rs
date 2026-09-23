@@ -5,7 +5,7 @@
 //! [`super::super::structural_fact_pattern_specs`].
 
 use super::super::{
-    ALWAYS, BASE_KEYS, BOOL, K_PATTERN_VERSION, K_QUERY_FAMILY, OPT, STR,
+    ALWAYS, ARR, BASE_KEYS, BOOL, K_PATTERN_VERSION, K_QUERY_FAMILY, OPT, STR,
     StructuralFactPatternSpec, key,
 };
 
@@ -466,11 +466,22 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
         pattern_id: "bash.export_declaration.v1",
         languages: &["bash"],
         query_family: "environment",
-        description: "A Bash `export` declaration.",
+        description: "A Bash declaration that exports its names (`export`, `declare -x`, `local -x`).",
         metadata_keys: &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
-            key("variable_name", STR, OPT, "The exported variable's name."),
+            key(
+                "variable_name",
+                STR,
+                OPT,
+                "The first exported variable's name.",
+            ),
+            key(
+                "variable_names",
+                ARR,
+                ALWAYS,
+                "Every name the declaration exports, in source order.",
+            ),
         ],
     },
     StructuralFactPatternSpec {

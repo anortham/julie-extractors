@@ -970,9 +970,17 @@ fn enrich_metadata(
             }
         }
         "bash.export_declaration.v1" => {
-            if let Some(name) = bash_export_variable_name(content, node) {
-                insert_string(metadata, "variable_name", &name);
+            let names: Vec<String> = crate::bash::declared_names(node)
+                .into_iter()
+                .map(|name| node_text(content, name))
+                .collect();
+            if let Some(first) = names.first() {
+                insert_string(metadata, "variable_name", first);
             }
+            metadata.insert(
+                "variable_names".to_string(),
+                Value::Array(names.into_iter().map(Value::String).collect()),
+            );
         }
         "powershell.cmdlet_binding_attribute.v1" => {
             if let Some(name) = powershell_attribute_name(content, node) {
@@ -1263,7 +1271,7 @@ fn matches_pattern(
         ("bash", "bash.command_substitution.v1") => true,
         ("bash", "bash.arithmetic_expansion.v1") => true,
         ("bash", "bash.export_declaration.v1") => {
-            bash_declaration_command(content, node).as_deref() == Some("export")
+            crate::bash::declaration_flags(content, node).exported
         }
         ("powershell", "powershell.cmdlet_binding_attribute.v1") => {
             powershell_attribute_name(content, node).as_deref() == Some("CmdletBinding")
@@ -1828,20 +1836,6 @@ fn qml_is_semantic_property_binding(content: &str, node: Node<'_>) -> bool {
         return false;
     }
     true
-}
-
-fn bash_declaration_command(content: &str, node: Node<'_>) -> Option<String> {
-    let text = node_text(content, node);
-    text.split_whitespace().next().map(str::to_string)
-}
-
-fn bash_export_variable_name(content: &str, node: Node<'_>) -> Option<String> {
-    first_descendant_of_kind(node, "variable_assignment").and_then(|assignment| {
-        assignment
-            .child_by_field_name("name")
-            .map(|name| node_text(content, name))
-            .or_else(|| first_named_identifier(content, assignment, &["variable_name"]))
-    })
 }
 
 fn powershell_attribute_name(content: &str, node: Node<'_>) -> Option<String> {

@@ -635,7 +635,7 @@
     "query_family": "expansion"
   },
   {
-    "description": "A Bash `export` declaration.",
+    "description": "A Bash declaration that exports its names (`export`, `declare -x`, `local -x`).",
     "languages": [
       "bash"
     ],
@@ -653,10 +653,16 @@
         "value_type": "string"
       },
       {
-        "description": "The exported variable's name.",
+        "description": "The first exported variable's name.",
         "key": "variable_name",
         "presence": "optional",
         "value_type": "string"
+      },
+      {
+        "description": "Every name the declaration exports, in source order.",
+        "key": "variable_names",
+        "presence": "always",
+        "value_type": "string_array"
       }
     ],
     "pattern_id": "bash.export_declaration.v1",
@@ -3335,7 +3341,8 @@
       "php",
       "ruby",
       "elixir",
-      "rust"
+      "rust",
+      "bash"
     ],
     "metadata_keys": [
       {
@@ -3357,7 +3364,7 @@
         "value_type": "string"
       },
       {
-        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, req, tesla, httpoison, finch, httpc).",
+        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, req, tesla, httpoison, finch, httpc, wget).",
         "key": "client",
         "presence": "always",
         "value_type": "string"

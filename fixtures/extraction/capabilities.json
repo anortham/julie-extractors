@@ -5634,6 +5634,11 @@
           "name": "scripts",
           "source": "fixtures/extraction/bash/scripts/source.sh",
           "expected": "fixtures/extraction/bash/scripts/expected.json"
+        },
+        {
+          "name": "commands",
+          "source": "fixtures/extraction/bash/commands/source.sh",
+          "expected": "fixtures/extraction/bash/commands/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5685,7 +5690,8 @@
             "bash.shebang.v1",
             "bash.command_substitution.v1",
             "bash.arithmetic_expansion.v1",
-            "bash.export_declaration.v1"
+            "bash.export_declaration.v1",
+            "http.client_request.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -5709,8 +5715,10 @@
         },
         "doc_comments": {
           "supported": [
+            "constant",
             "function",
-            "import"
+            "import",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -5724,6 +5732,7 @@
         },
         "source_regions": {
           "supported": [
+            "comment",
             "doc_comment",
             "string_literal"
           ],

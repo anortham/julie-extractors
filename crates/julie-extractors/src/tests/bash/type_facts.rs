@@ -1,4 +1,4 @@
-use crate::base::{Symbol, SymbolKind};
+use crate::base::{Symbol, SymbolKind, Visibility};
 use crate::bash::BashExtractor;
 use std::path::PathBuf;
 
@@ -65,14 +65,15 @@ deploy() {
 }
 
 #[test]
-fn readonly_and_exported_uppercase_are_constants() {
+fn readonly_is_constant_and_export_is_public() {
     let source = r#"
 readonly MAX=3
 export API_URL=x
 "#;
     let symbols = extract(source);
+    assert_eq!(symbols.len(), 2);
     let max = symbol(&symbols, "MAX", SymbolKind::Constant);
-    let api_url = symbol(&symbols, "API_URL", SymbolKind::Constant);
-    assert_eq!(max.kind, SymbolKind::Constant);
-    assert_eq!(api_url.kind, SymbolKind::Constant);
+    let api_url = symbol(&symbols, "API_URL", SymbolKind::Variable);
+    assert_eq!(max.visibility, Some(Visibility::Private));
+    assert_eq!(api_url.visibility, Some(Visibility::Public));
 }

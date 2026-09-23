@@ -5,6 +5,8 @@
 
 use tree_sitter::Node;
 
+use crate::base::body::BodySpan;
+use crate::base::{BaseExtractor, NormalizedSpan};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 impl super::BashExtractor {
@@ -77,46 +79,34 @@ impl super::BashExtractor {
         None
     }
 
-    /// Get all children of a specific type
-    pub(super) fn get_children_of_type<'a>(
-        &self,
-        node: Node<'a>,
-        node_type: &str,
-    ) -> Vec<Node<'a>> {
-        let mut children = Vec::new();
-        let mut cursor = node.walk();
-
-        for child in node.children(&mut cursor) {
-            if child.kind() == node_type {
-                children.push(child);
-            }
-        }
-
-        children
-    }
-
-    /// Recursively collect parameter nodes (simple_expansion or expansion)
-    #[allow(clippy::only_used_in_recursion)] // &self used in recursive calls
+    /// Positional parameter reads (`$1`, `${2}`, `${1:-x}`) in a function,
+    /// with their numbers. `$0` names the script, and a nested function owns
+    /// its own parameters.
     pub(super) fn collect_parameter_nodes<'a>(
         &self,
-        node: Node<'a>,
-        param_nodes: &mut Vec<Node<'a>>,
-    ) {
-        self.collect_parameter_nodes_at_depth(node, param_nodes, 0);
+        function: Node<'a>,
+    ) -> Vec<(Node<'a>, String)> {
+        let mut params = Vec::new();
+        self.collect_parameter_nodes_at_depth(function, &mut params, 0);
+        params
     }
 
     fn collect_parameter_nodes_at_depth<'a>(
         &self,
         node: Node<'a>,
-        param_nodes: &mut Vec<Node<'a>>,
+        params: &mut Vec<(Node<'a>, String)>,
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
             return;
         }
-
-        if matches!(node.kind(), "simple_expansion" | "expansion") {
-            param_nodes.push(node);
+        if depth > 0 && node.kind() == "function_definition" {
+            return;
+        }
+        if matches!(node.kind(), "simple_expansion" | "expansion")
+            && let Some(number) = positional_number(&self.base, node)
+        {
+            params.push((node, number));
         }
 
         let Some(child_depth) = child_tree_depth(depth) else {
@@ -124,7 +114,57 @@ impl super::BashExtractor {
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.collect_parameter_nodes_at_depth(child, param_nodes, child_depth);
+            self.collect_parameter_nodes_at_depth(child, params, child_depth);
         }
     }
+}
+
+fn positional_number(base: &BaseExtractor, expansion: Node<'_>) -> Option<String> {
+    let mut cursor = expansion.walk();
+    let name = expansion
+        .named_children(&mut cursor)
+        .find(|child| child.kind() == "variable_name")?;
+    let number = base.get_node_text(&name);
+    (number.bytes().all(|b| b.is_ascii_digit()) && !number.trim_start_matches('0').is_empty())
+        .then_some(number)
+}
+
+/// Bash body spans come from the grammar: a function's compound body and an
+/// assignment's value. Nothing else has a body.
+pub(super) fn body_span(node: &Node, _content: &str) -> Option<BodySpan> {
+    let field = match node.kind() {
+        "function_definition" => "body",
+        "variable_assignment" => "value",
+        _ => return None,
+    };
+    node.child_by_field_name(field)
+        .map(|body| NormalizedSpan::from_node(&body))
+}
+
+/// The `#` comment block directly above `node`. A blank line ends the block,
+/// a comment that trails code on its line documents nothing, and the `#!`
+/// interpreter line is never documentation.
+pub(crate) fn doc_comment(base: &BaseExtractor, node: &Node) -> Option<String> {
+    let mut comments = Vec::new();
+    let mut next_row = node.start_position().row;
+    let mut current = node.prev_named_sibling();
+    while let Some(sibling) = current {
+        if sibling.kind() != "comment" || sibling.end_position().row + 1 != next_row {
+            break;
+        }
+        let text = base.get_node_text(&sibling);
+        let line_start = base.content[..sibling.start_byte()]
+            .rfind('\n')
+            .map_or(0, |index| index + 1);
+        let owns_line = base.content[line_start..sibling.start_byte()]
+            .trim()
+            .is_empty();
+        if !owns_line || (sibling.start_byte() == 0 && text.starts_with("#!")) {
+            break;
+        }
+        comments.push(text);
+        next_row = sibling.start_position().row;
+        current = sibling.prev_named_sibling();
+    }
+    crate::base::extractor::select_doc_comment_block("bash", &comments)
 }
