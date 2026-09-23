@@ -35,6 +35,8 @@ const SETUP_HALF_WORDS: &[&str] = &[
     "BeforeEach",
     "BeforeSuite",
     "JustBeforeEach",
+    "Before",
+    "strict_setup",
 ];
 
 const TEARDOWN_HALF_WORDS: &[&str] = &[
@@ -55,6 +57,9 @@ const TEARDOWN_HALF_WORDS: &[&str] = &[
     "AfterSuite",
     "JustAfterEach",
     "DeferCleanup",
+    "After",
+    "strict_teardown",
+    "finally",
 ];
 
 fn production_sources(root: &Path) -> Vec<PathBuf> {

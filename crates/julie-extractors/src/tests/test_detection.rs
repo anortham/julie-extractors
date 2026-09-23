@@ -1122,11 +1122,19 @@ fn r_runit_dot_prefix_in_test_path() {
 }
 
 #[test]
-fn r_test_underscore_prefix_in_test_path() {
+fn r_test_prefix_counts_only_in_runit_files() {
     assert!(check(
         "r",
         "test_addition",
-        "tests/test_math.R",
+        "tests/runit_math.R",
+        &SymbolKind::Function,
+        &[],
+        None,
+    ));
+    assert!(!check(
+        "r",
+        "test_addition",
+        "tests/testthat/test_math.R",
         &SymbolKind::Function,
         &[],
         None,
