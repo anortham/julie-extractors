@@ -489,7 +489,8 @@
       "visibility": "Public",
       "parent_key": "fixtures/extraction/csharp/language_idioms/source.cs:CartSteps:98:0",
       "metadata": {
-        "isStatic": false
+        "isStatic": false,
+        "test_role": "step_definition"
       },
       "annotations": [
         {

@@ -3037,6 +3037,11 @@
           "name": "language_idioms",
           "source": "fixtures/extraction/csharp/language_idioms/source.cs",
           "expected": "fixtures/extraction/csharp/language_idioms/expected.json"
+        },
+        {
+          "name": "step_definitions",
+          "source": "fixtures/extraction/csharp/step_definitions/source.cs",
+          "expected": "fixtures/extraction/csharp/step_definitions/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3117,14 +3122,7 @@
             "razor.route_reference.v1"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "specflow.step_definition_role",
-              "reason": "SpecFlow and Reqnroll [Given]/[When]/[Then] step methods are the C# half of a case whose scenario lives in a .feature file. The [Binding] class is now a test_container and its Before*/After* hooks are fixture hooks, but no TestRole value names a step definition, and a step method is neither a test case nor a fixture hook.",
-              "required_closure": "an owner decision on a step-definition TestRole value (or an explicit ruling that steps stay unclassified), then classify [Given]/[When]/[Then]/[StepDefinition] methods inside a [Binding] class with a golden fixture",
-              "planned_closure_task": "docs/plans/2026-09-22-language-gap-closure.md later waves"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [
@@ -3444,6 +3442,11 @@
             "fixtures/extraction/php/wave2_semantics/tests/acceptance/LoginCest.php",
             "fixtures/extraction/php/wave2_semantics/spec/MoneySpec.php"
           ]
+        },
+        {
+          "name": "behat_context",
+          "source": "fixtures/extraction/php/behat_context/FeatureContext.php",
+          "expected": "fixtures/extraction/php/behat_context/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3535,12 +3538,6 @@
               "reason": "A RouteServiceProvider group prefix is applied cross-file (in the provider, not the routes file), so it cannot flow into a route's effective_route_template in-file; the extractor emits the provider-side laravel.route_prefix.v1 site fact with mount_target naming the routes file, but route_template in that routes file is not the absolute public path.",
               "required_closure": "join the provider's laravel.route_prefix.v1 mount_target to the routes file's laravel.route.v1 rows, which is code-kb's cross-file join responsibility per decision 0004",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2c (cross-file RouteServiceProvider prefix)"
-            },
-            {
-              "kind": "behat.step_definition_roles",
-              "reason": "Behat binds step definitions with `#[Given]`, `#[When]`, and `#[Then]` attributes on a context class, and the executable scenario lives in a `.feature` file, not in PHP. A step definition is neither a test case nor a fixture hook, and the frozen TestRole vocabulary (test_case, parameterized_test, fixture_setup, fixture_teardown, test_container) has no step role, so the PHP side publishes no test role.",
-              "required_closure": "decide and record a step-definition role in the TestRole product contract, then classify a Behat context class as a test container and its step-attributed methods with that role, with a golden fixture that has a non-context class as the control",
-              "planned_closure_task": "docs/plans/2026-09-22-language-gap-closure.md later waves"
             }
           ]
         },
@@ -7095,9 +7092,9 @@
           "open_gaps": [
             {
               "kind": "regex_conditional_patterns",
-              "reason": "The pinned tree-sitter-regex grammar (ECMAScript syntax) has no conditional node: `(?(1)a|b)` parses as an ERROR token followed by a regrouped alternation in which the condition `(1)` becomes a capture group, so neither the condition, the branches, nor the capture numbering after it can be read from the tree.",
+              "reason": "The pinned tree-sitter-regex grammar (ECMAScript syntax) has no conditional node: `(?(1)a|b)` parses as an ERROR token followed by a regrouped alternation in which the condition `(1)` becomes a capture group, so neither the condition, the branches, nor the capture numbering after it can be read from the tree. tree-sitter-regex 0.25.0 is the latest registry release and its grammar has no conditional rule, so a version update does not close the gap.",
               "required_closure": "pin or patch a grammar that parses `(?(cond)yes|no)` groups, then emit a conditional fact with the condition and branch count, count conditionals as complexity decisions, and add fixture evidence",
-              "planned_closure_task": "docs/plans/2026-09-22-language-gap-closure.md later waves"
+              "planned_closure_task": "docs/plans/2026-09-23-gap-followups.md task 4: stays a grammar limit until an upstream or owned tree-sitter-regex release adds a conditional node"
             }
           ]
         },
@@ -7494,14 +7491,7 @@
             "openapi.route.v1"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "json5_unquoted_keys",
-              "reason": "tree-sitter-json accepts standard JSON and JSONC only. `.json5` files are unsupported, and JSON5 syntax (unquoted keys, single quotes, trailing commas) in a `.json` file gives error diagnostics and wrong symbols (wave-2 gap json.json5-unsupported).",
-              "required_closure": "add a JSON5 grammar dependency and route `.json5` to it, or record an owner decision that JSON5 is out of scope",
-              "planned_closure_task": "docs/plans/2026-09-22-language-gap-closure.md later waves"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [],

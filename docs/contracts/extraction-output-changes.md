@@ -88,6 +88,30 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 3.5.0
+
+classification: compatible
+
+This release adds the `step_definition` test role and the `gomod` language
+from the [gap follow-ups](../plans/2026-09-23-gap-followups.md). No SQLite or
+report-schema column is added, removed, or retyped: SQLite schema remains 7,
+report schema remains 3, and extraction identity epoch remains 10.
+`EXTRACTION_CONTRACT_VERSION` adds `step-definition-role-v1` because canonical
+output changes.
+
+`symbols.metadata_json.test_role` gains the value `step_definition`. `csharp`,
+`vbnet`, `fsharp`, and `razor` methods of a `[Binding]` class with a `[Given]`,
+`[When]`, `[Then]`, or `[StepDefinition]` attribute carry it. `php` methods of
+a class that implements a Behat context interface carry it when they have a
+`Given`, `When`, or `Then` attribute or docblock tag. The same PHP class becomes
+a `test_container`, and its `Before*` and `After*` hook methods become
+`fixture_setup` and `fixture_teardown`. A step definition sets none of the
+`is_test`, `test_container`, and `test_lifecycle` columns. See
+[2026-09-23-step-definition-test-role.md](../decisions/2026-09-23-step-definition-test-role.md).
+
+Consumer action: accept the new `test_role` string, replace the binary, and
+rebuild every affected artifact. No schema migration is required.
+
 ## 3.4.0
 
 classification: compatible

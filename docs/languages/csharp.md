@@ -75,6 +75,7 @@ therefore both produce the key `testcase`.
 | `fixture_setup` | `setup`, `onetimesetup`, `testinitialize`, `classinitialize`, `assemblyinitialize`, `before`, `beforeevery`, `beforescenario`, `beforefeature`, `beforetestrun`, `beforestep`, `beforescenarioblock` |
 | `fixture_teardown` | `teardown`, `onetimeteardown`, `testcleanup`, `classcleanup`, `assemblycleanup`, `after`, `afterevery`, `afterscenario`, `afterfeature`, `aftertestrun`, `afterstep`, `afterscenarioblock` |
 | `test_container` | `testfixture`, `testclass`, `collectiondefinition`, `setupfixture`, `testfixturesource`, `binding` |
+| `step_definition` | `given`, `when`, `then`, `stepdefinition`, on a method of a `binding` class |
 
 A class or struct also becomes a `test_container` when it directly contains a
 method carrying any `test_case` or `parameterized_test` attribute. This is how
@@ -119,15 +120,15 @@ field is a `test_container`. The lambda each field holds gets the role:
 `Cleanup` → `fixture_teardown`. The field type comes from its declared type
 fact, so a field of any other delegate type stays unclassified.
 
-### Recorded gaps
+### Step definitions
 
-- `specflow.step_definition_role` (under `structural_facts`) — a
-  `[Given]`/`[When]`/`[Then]` step method is neither a test case nor a fixture
-  hook, and no `TestRole` value names a step definition. The `[Binding]` class
-  and its `Before*`/`After*` hooks are classified.
-
-The gap sits under `structural_facts` because the `test_detection` coverage
-vocabulary is frozen to `test_case`, `test_container`, and `test_lifecycle`.
+A method of a `[Binding]` class that carries `[Given]`, `[When]`, `[Then]`, or
+`[StepDefinition]` gets the `step_definition` role (SpecFlow and Reqnroll). The
+scenario lives in a `.feature` file, so a step is neither a case nor a hook: it
+sets `test_role = "step_definition"` in `metadata_json` and leaves `is_test`,
+`test_container`, and `test_lifecycle` at `0`. The same attributes on a method
+of any other class publish no role. See the
+[decision](../decisions/2026-09-23-step-definition-test-role.md).
 
 ## Declarations and scopes
 

@@ -405,6 +405,11 @@ fn flags_written_for_role(role: &str) -> Option<TestRoleFlags> {
             lifecycle: false,
             container: true,
         }),
+        "step_definition" => Some(TestRoleFlags {
+            is_test: false,
+            lifecycle: false,
+            container: false,
+        }),
         _ => None,
     }
 }

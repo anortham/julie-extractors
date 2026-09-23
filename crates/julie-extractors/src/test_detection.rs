@@ -53,6 +53,9 @@ pub(crate) fn apply_test_role(metadata: &mut HashMap<String, serde_json::Value>,
         TestRole::TestCase | TestRole::ParameterizedTest => {
             metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
         }
+        // `is_test = 1` means a test case or a hook in the schema contract, so
+        // consumers that count cases must not see step definitions there.
+        TestRole::StepDefinition => {}
     }
     metadata.insert(
         "test_role".to_string(),
@@ -844,6 +847,7 @@ pub(crate) fn mark_dotnet_test_containers(symbols: &mut [Symbol]) {
         .collect();
 
     let mut test_container_ids: HashSet<String> = HashSet::new();
+    let mut binding_ids: HashSet<String> = HashSet::new();
     for symbol in symbols
         .iter_mut()
         .filter(|symbol| matches!(symbol.kind, SymbolKind::Class | SymbolKind::Struct))
@@ -856,9 +860,18 @@ pub(crate) fn mark_dotnet_test_containers(symbols: &mut [Symbol]) {
             mark_class_test_container(symbol);
             test_container_ids.insert(symbol.id.clone());
         }
+        if has_dotnet_annotation(symbol, |key| key == "binding") {
+            binding_ids.insert(symbol.id.clone());
+        }
     }
 
-    apply_dotnet_member_test_roles(symbols, &test_container_ids);
+    apply_dotnet_member_test_roles(symbols, &test_container_ids, &binding_ids);
+}
+
+/// SpecFlow and Reqnroll step attributes. `[Given]` and its peers are common
+/// words, so they bind a step only on a method of a `[Binding]` class.
+fn is_dotnet_step_annotation(annotation: &str) -> bool {
+    matches!(annotation, "given" | "when" | "then" | "stepdefinition")
 }
 
 /// Upgrade data-driven cases and classify the xUnit lifecycle members that
@@ -868,25 +881,40 @@ pub(crate) fn mark_dotnet_test_containers(symbols: &mut [Symbol]) {
 /// `IAsyncLifetime`/`IDisposable` members are the fixture hooks. Those names are
 /// ordinary C# elsewhere, so they only earn a role inside a type the attribute
 /// or member pass already marked as a test container.
-fn apply_dotnet_member_test_roles(symbols: &mut [Symbol], test_container_ids: &HashSet<String>) {
+fn apply_dotnet_member_test_roles(
+    symbols: &mut [Symbol],
+    test_container_ids: &HashSet<String>,
+    binding_ids: &HashSet<String>,
+) {
     for symbol in symbols
         .iter_mut()
         .filter(|symbol| is_callable(&symbol.kind))
     {
-        let inside_container = symbol
-            .parent_id
-            .as_ref()
-            .is_some_and(|parent_id| test_container_ids.contains(parent_id));
-        let Some(role) = dotnet_member_test_role(symbol, inside_container) else {
+        let parent_in = |ids: &HashSet<String>| {
+            symbol
+                .parent_id
+                .as_ref()
+                .is_some_and(|parent_id| ids.contains(parent_id))
+        };
+        let inside_container = parent_in(test_container_ids);
+        let inside_binding = parent_in(binding_ids);
+        let Some(role) = dotnet_member_test_role(symbol, inside_container, inside_binding) else {
             continue;
         };
         apply_test_role(symbol.metadata.get_or_insert_with(Default::default), role);
     }
 }
 
-fn dotnet_member_test_role(symbol: &Symbol, inside_container: bool) -> Option<TestRole> {
+fn dotnet_member_test_role(
+    symbol: &Symbol,
+    inside_container: bool,
+    inside_binding: bool,
+) -> Option<TestRole> {
     if has_dotnet_annotation(symbol, is_dotnet_parameterized_test_annotation) {
         return Some(TestRole::ParameterizedTest);
+    }
+    if inside_binding && has_dotnet_annotation(symbol, is_dotnet_step_annotation) {
+        return Some(TestRole::StepDefinition);
     }
     let carries_own_role = has_dotnet_annotation(symbol, is_dotnet_test_case_annotation)
         || has_dotnet_annotation(symbol, |key| {
@@ -1575,6 +1603,10 @@ enum PhpSuiteFramework {
     /// PHPSpec: an `ObjectBehavior` subclass. `it_*` and `its_*` methods are
     /// examples; `let` and `letGo` are the hooks.
     PhpSpec,
+    /// Behat: a class that implements a Behat `Context` interface. Its step
+    /// methods bind to `.feature` steps; its hook methods wrap suites,
+    /// features, scenarios, and steps.
+    Behat,
 }
 
 fn php_suite_framework(class: &Symbol, file_path: &str) -> Option<PhpSuiteFramework> {
@@ -1582,9 +1614,14 @@ fn php_suite_framework(class: &Symbol, file_path: &str) -> Option<PhpSuiteFramew
     if class.name.ends_with("Cest") && file_name.ends_with("Cest.php") {
         return Some(PhpSuiteFramework::Codeception);
     }
-    php_base_types(class)
-        .any(|base_type| base_type == "ObjectBehavior")
-        .then_some(PhpSuiteFramework::PhpSpec)
+    php_base_types(class).find_map(|base_type| match base_type {
+        "ObjectBehavior" => Some(PhpSuiteFramework::PhpSpec),
+        "Context"
+        | "SnippetAcceptingContext"
+        | "CustomSnippetAcceptingContext"
+        | "TranslatableContext" => Some(PhpSuiteFramework::Behat),
+        _ => None,
+    })
 }
 
 fn php_base_types(symbol: &Symbol) -> impl Iterator<Item = &str> {
@@ -1634,11 +1671,46 @@ fn apply_php_framework_member_roles(
                 }
                 _ => None,
             },
+            PhpSuiteFramework::Behat => behat_member_role(symbol),
         };
         if let Some(role) = role {
             apply_test_role(symbol.metadata.get_or_insert_with(Default::default), role);
         }
     }
+}
+
+/// A Behat context member's role from its attributes (`#[Given]`,
+/// `#[BeforeScenario]`) or its docblock tags (`@Given`, `@BeforeScenario`).
+fn behat_member_role(method: &Symbol) -> Option<TestRole> {
+    let carries = |tag: &str| {
+        let key = tag.to_ascii_lowercase();
+        method
+            .annotations
+            .iter()
+            .any(|annotation| annotation.annotation_key == key)
+            || method
+                .doc_comment
+                .as_deref()
+                .is_some_and(|doc| has_phpdoc_tag(doc, tag))
+    };
+    if ["Given", "When", "Then"].into_iter().any(carries) {
+        return Some(TestRole::StepDefinition);
+    }
+    if [
+        "BeforeSuite",
+        "BeforeFeature",
+        "BeforeScenario",
+        "BeforeStep",
+    ]
+    .into_iter()
+    .any(carries)
+    {
+        return Some(TestRole::FixtureSetup);
+    }
+    ["AfterSuite", "AfterFeature", "AfterScenario", "AfterStep"]
+        .into_iter()
+        .any(carries)
+        .then_some(TestRole::FixtureTeardown)
 }
 
 /// Codeception actors are generated `*Tester` classes (`AcceptanceTester`,

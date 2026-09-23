@@ -29,6 +29,11 @@ The fixed capability units map to the only emitted classification fields:
 lifecycle hooks to also set `is_test = 1`, so consumers counting test cases
 must exclude rows where `test_lifecycle = 1`.
 
+A BDD step definition (SpecFlow, Reqnroll, Behat) is not a capability unit.
+It carries `test_role = "step_definition"` in `symbols.metadata_json` and sets
+no role column, so it never counts as a `test_case`. See the
+[step-definition decision](../decisions/2026-09-23-step-definition-test-role.md).
+
 A true role column is positive evidence for that symbol. Consumers must not
 create a second classifier from names, paths, annotations, framework guesses,
 or runner configuration.

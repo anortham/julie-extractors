@@ -9,6 +9,9 @@ pub enum TestRole {
     FixtureSetup,
     FixtureTeardown,
     TestContainer,
+    /// A method a BDD runner binds to a scenario step. The scenario lives in a
+    /// `.feature` file, so the step is neither a test case nor a fixture hook.
+    StepDefinition,
 }
 
 impl TestRole {
@@ -24,6 +27,7 @@ impl TestRole {
             TestRole::FixtureSetup => "fixture_setup",
             TestRole::FixtureTeardown => "fixture_teardown",
             TestRole::TestContainer => "test_container",
+            TestRole::StepDefinition => "step_definition",
         }
     }
 }

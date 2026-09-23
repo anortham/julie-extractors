@@ -19,10 +19,11 @@ cargo xtask test golden
 
 ## Test-role contract
 
-Four frameworks are adopted. PHPUnit declares a suite as a class and a case as
+Five frameworks are adopted. PHPUnit declares a suite as a class and a case as
 a method. Pest declares a case as a top-level `test()` or `it()` call.
 Codeception declares a suite as a `*Cest` class. PHPSpec declares a suite as an
-`ObjectBehavior` subclass.
+`ObjectBehavior` subclass. Behat declares step definitions and hooks on a
+context class.
 
 | Idiom | Role | Source of the rule |
 | --- | --- | --- |
@@ -45,6 +46,10 @@ Codeception declares a suite as a `*Cest` class. PHPSpec declares a suite as an
 | class extending `ObjectBehavior` | `test_container` | PHPSpec base class |
 | `let` / `letGo` method of a spec | `fixture_setup` / `fixture_teardown` | PHPSpec hooks |
 | `it_*` / `its_*` method of a spec | `test_case` | PHPSpec example prefix |
+| class implementing `Context`, `SnippetAcceptingContext`, `CustomSnippetAcceptingContext`, or `TranslatableContext` | `test_container` | Behat context |
+| `#[Given]`, `#[When]`, `#[Then]`, or a `@Given`, `@When`, `@Then` docblock tag on a context method | `step_definition` | Behat step |
+| `BeforeSuite`, `BeforeFeature`, `BeforeScenario`, `BeforeStep` attribute or docblock tag on a context method | `fixture_setup` | Behat hooks |
+| `AfterSuite`, `AfterFeature`, `AfterScenario`, `AfterStep` attribute or docblock tag on a context method | `fixture_teardown` | Behat hooks |
 
 ### Attributes and docblocks are one vocabulary
 
@@ -99,19 +104,17 @@ survives only inside a container. `production_roles.php` calls `describe`,
 `it`, `test`, and `beforeEach` at file scope from a production path and
 publishes no role at all.
 
-## Recorded gaps
+## Step definitions
 
-One PHP test framework stays recorded as an `open_gap` on the php row in
-`fixtures/extraction/capabilities.json`, under
-`kind_coverage.structural_facts.open_gaps`.
+A Behat step sets `test_role = "step_definition"` in `metadata_json` and leaves
+`is_test`, `test_container`, and `test_lifecycle` at `0`: the scenario lives in
+a `.feature` file, so a step is neither a case nor a hook. Step attributes and
+tags on a class that implements no Behat context interface publish no role.
+See the [decision](../decisions/2026-09-23-step-definition-test-role.md).
 
-- `behat.step_definition_roles`. Behat binds steps with `#[Given]`, `#[When]`,
-  and `#[Then]` on a context class. A step definition is neither a case nor a
-  hook, and the frozen role vocabulary has no step role. The closure needs a
-  product decision on a new role first.
-
-Codeception (`LoginCest.php`) and PHPSpec (`MoneySpec.php`) closed in wave 2.
-Each fixture carries a helper method with no role as the control.
+Codeception (`LoginCest.php`), PHPSpec (`MoneySpec.php`), and Behat
+(`FeatureContext.php`) each carry a class or method with no role as the
+control.
 
 ## Members, types, and references
 
