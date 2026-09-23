@@ -86,11 +86,12 @@ class UserController {
     assert_eq!(metadata_array(get, "dynamic_segments"), vec!["id"]);
     assert_eq!(binding_symbol_name(&results, get), Some("getUser"));
 
-    let search_verbs = facts
+    let mut search_verbs = facts
         .iter()
         .filter(|fact| metadata_str(fact, "route_template") == Some("/search/{term}"))
         .filter_map(|fact| metadata_str(fact, "verb"))
         .collect::<Vec<_>>();
+    search_verbs.sort_unstable();
     assert_eq!(search_verbs, vec!["GET", "POST"]);
 }
 

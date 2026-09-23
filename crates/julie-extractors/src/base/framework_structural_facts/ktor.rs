@@ -106,6 +106,7 @@ fn walk(
     if node.kind() == "call_expression"
         && let Some((verb, path)) = try_verb_route_call(node, content)
         && let Some(enclosing_prefix) = enclosing_route_prefix(node, content)
+        && (!path.is_empty() || enclosing_prefix.is_some())
     {
         let spec = RouteFactSpec {
             framework: "ktor",
@@ -152,11 +153,13 @@ fn walk(
 }
 
 /// `(VERB, path)` when `node` is a trailing-lambda verb call with a static arg0.
+/// A pathless `get { }` yields an empty path; the caller accepts it only under
+/// a static `route("/prefix")` scope.
 fn try_verb_route_call<'a>(node: Node<'_>, content: &'a str) -> Option<(&'static str, &'a str)> {
     trailing_lambda(node)?;
 
-    let head = call_head(node)?;
-    let name = bare_identifier_callee(head, content)?;
+    let head = call_head(node);
+    let name = bare_identifier_callee(head.unwrap_or(node), content)?;
     let verb = match name {
         "get" => "GET",
         "post" => "POST",
@@ -166,6 +169,11 @@ fn try_verb_route_call<'a>(node: Node<'_>, content: &'a str) -> Option<(&'static
         "head" => "HEAD",
         "options" => "OPTIONS",
         _ => return None,
+    };
+    let Some(head) = head else {
+        return child_of_kind(node, "value_arguments")
+            .is_none()
+            .then_some((verb, ""));
     };
     let arg0 = first_value_argument_expr(head)?;
     let path = static_route_arg(arg0, content, StaticArgLang::Kotlin)?;

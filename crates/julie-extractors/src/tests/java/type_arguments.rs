@@ -180,8 +180,8 @@ fn basic_fixture_emits_nested_type_arguments_via_canonical_pipeline() {
     let results = extract_fixture(FIXTURE_SOURCE);
     assert_eq!(
         results.type_argument_usages.len(),
-        3,
-        "fixture should emit one Map<String, List<Integer>> usage and two BinaryOperator<Integer> usages, got {:?}",
+        7,
+        "fixture should emit Map<String, List<Integer>>, two BinaryOperator<Integer>, Map.Entry<String, Integer>, java.util.Map<String, java.util.List<Money>>, java.util.ArrayList<String> and java.util.List<Order> usages, got {:?}",
         results.type_argument_usages
     );
     let operator_usages: Vec<_> = results

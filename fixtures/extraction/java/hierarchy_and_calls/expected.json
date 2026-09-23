@@ -12,15 +12,8 @@
       "end_column": 23,
       "start_byte": 1737,
       "end_byte": 1752,
-      "body_span": {
-        "start_line": 69,
-        "start_column": 11,
-        "end_line": 69,
-        "end_column": 23,
-        "start_byte": 1740,
-        "end_byte": 1752
-      },
-      "body_hash": "e5d706b95d611626c30f9964ffe42d17",
+      "body_span": null,
+      "body_hash": null,
       "signature": "ADD(Ops.plus())",
       "doc_comment": null,
       "visibility": "Public",
@@ -160,15 +153,8 @@
       "end_column": 82,
       "start_byte": 992,
       "end_byte": 1070,
-      "body_span": {
-        "start_line": 42,
-        "start_column": 61,
-        "end_line": 42,
-        "end_column": 81,
-        "start_byte": 1049,
-        "end_byte": 1069
-      },
-      "body_hash": "232559a2a04493bebc84e23ea4caf2f9",
+      "body_span": null,
+      "body_hash": null,
       "signature": "private static final Logger LOG = LoggerFactory.getLogger(OrderService.class)",
       "doc_comment": null,
       "visibility": "Private",
@@ -641,15 +627,8 @@
       "end_column": 41,
       "start_byte": 1754,
       "end_byte": 1770,
-      "body_span": {
-        "start_line": 69,
-        "start_column": 28,
-        "end_line": 69,
-        "end_column": 41,
-        "start_byte": 1757,
-        "end_byte": 1770
-      },
-      "body_hash": "899d4ffd1a8a53c730efaff32e37fdeb",
+      "body_span": null,
+      "body_hash": null,
       "signature": "SUB(Ops.minus())",
       "doc_comment": null,
       "visibility": "Public",
@@ -863,15 +842,8 @@
       "end_column": 32,
       "start_byte": 132,
       "end_byte": 146,
-      "body_span": {
-        "start_line": 7,
-        "start_column": 29,
-        "end_line": 7,
-        "end_column": 31,
-        "start_byte": 143,
-        "end_byte": 145
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "double area()",
       "doc_comment": null,
       "visibility": "Public",
@@ -920,15 +892,8 @@
       "end_column": 30,
       "start_byte": 659,
       "end_byte": 685,
-      "body_span": {
-        "start_line": 26,
-        "start_column": 17,
-        "end_line": 26,
-        "end_column": 29,
-        "start_byte": 672,
-        "end_byte": 684
-      },
-      "body_hash": "3c5b1d39f7919ba5a8ba9704a128b42d",
+      "body_span": null,
+      "body_hash": null,
       "signature": "Result charge(long cents)",
       "doc_comment": null,
       "visibility": "Public",
@@ -1111,15 +1076,8 @@
       "end_column": 47,
       "start_byte": 1075,
       "end_byte": 1118,
-      "body_span": {
-        "start_line": 43,
-        "start_column": 44,
-        "end_line": 43,
-        "end_column": 46,
-        "start_byte": 1115,
-        "end_byte": 1117
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "private final Helper helper = new Helper()",
       "doc_comment": null,
       "visibility": "Private",
@@ -1142,15 +1100,8 @@
       "end_column": 63,
       "start_byte": 1326,
       "end_byte": 1374,
-      "body_span": {
-        "start_line": 52,
-        "start_column": 61,
-        "end_line": 52,
-        "end_column": 63,
-        "start_byte": 1372,
-        "end_byte": 1374
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "Object index = new java.util.HashMap<String, Integer>()",
       "doc_comment": null,
       "visibility": null,
@@ -1173,15 +1124,8 @@
       "end_column": 45,
       "start_byte": 1396,
       "end_byte": 1421,
-      "body_span": {
-        "start_line": 53,
-        "start_column": 43,
-        "end_line": 53,
-        "end_column": 45,
-        "start_byte": 1419,
-        "end_byte": 1421
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "Outer.Inner inner = new Outer.Inner()",
       "doc_comment": null,
       "visibility": null,
@@ -1204,15 +1148,8 @@
       "end_column": 52,
       "start_byte": 1278,
       "end_byte": 1309,
-      "body_span": {
-        "start_line": 51,
-        "start_column": 50,
-        "end_line": 51,
-        "end_column": 52,
-        "start_byte": 1307,
-        "end_byte": 1309
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "List<String> names = new ArrayList<String>()",
       "doc_comment": null,
       "visibility": null,
@@ -1378,15 +1315,8 @@
       "end_column": 67,
       "start_byte": 205,
       "end_byte": 217,
-      "body_span": {
-        "start_line": 9,
-        "start_column": 64,
-        "end_line": 9,
-        "end_column": 66,
-        "start_byte": 214,
-        "end_byte": 216
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "int sides()",
       "doc_comment": null,
       "visibility": "Public",
@@ -3532,86 +3462,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:io:type_usage:15:55",
-      "name": "io",
-      "kind": "type_usage",
-      "language": "java",
-      "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
-      "start_line": 15,
-      "start_column": 55,
-      "end_line": 15,
-      "end_column": 57,
-      "start_byte": 382,
-      "end_byte": 384,
-      "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Repo:15:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:java:type_usage:15:50",
-      "name": "java",
-      "kind": "type_usage",
-      "language": "java",
-      "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
-      "start_line": 15,
-      "start_column": 50,
-      "end_line": 15,
-      "end_column": 54,
-      "start_byte": 377,
-      "end_byte": 381,
-      "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Repo:15:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:java:type_usage:19:21",
-      "name": "java",
-      "kind": "type_usage",
-      "language": "java",
-      "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
-      "start_line": 19,
-      "start_column": 21,
-      "end_line": 19,
-      "end_column": 25,
-      "start_byte": 491,
-      "end_byte": 495,
-      "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Worker:19:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:java:type_usage:52:27",
-      "name": "java",
-      "kind": "type_usage",
-      "language": "java",
-      "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
-      "start_line": 52,
-      "start_column": 27,
-      "end_line": 52,
-      "end_column": 31,
-      "start_byte": 1338,
-      "end_byte": 1342,
-      "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:OrderService:49:4",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:lang:type_usage:19:26",
-      "name": "lang",
-      "kind": "type_usage",
-      "language": "java",
-      "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
-      "start_line": 19,
-      "start_column": 26,
-      "end_line": 19,
-      "end_column": 30,
-      "start_byte": 496,
-      "end_byte": 500,
-      "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Worker:19:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:map:call:60:23",
       "name": "map",
       "kind": "call",
@@ -3788,22 +3638,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:util:type_usage:52:32",
-      "name": "util",
-      "kind": "type_usage",
-      "language": "java",
-      "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
-      "start_line": 52,
-      "start_column": 32,
-      "end_line": 52,
-      "end_column": 36,
-      "start_byte": 1343,
-      "end_byte": 1347,
-      "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:OrderService:49:4",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:warmUp:call:45:42",
       "name": "warmUp",
       "kind": "call",
@@ -3905,15 +3739,6 @@
       }
     },
     {
-      "symbol_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:handle:64:4",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:helper:43:4",
       "resolved_type": "Helper",
       "generic_params": null,
@@ -3990,15 +3815,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:run:58:4",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:sides:9:55",
       "resolved_type": "int",
       "generic_params": null,
@@ -4026,15 +3842,6 @@
       "metadata": {
         "declared": "List<User>"
       }
-    },
-    {
-      "symbol_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:warmUp:56:4",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "java",
-      "metadata": null
     },
     {
       "symbol_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:x:33:10",
@@ -4188,17 +3995,17 @@
       "language": "java",
       "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
       "covered_lines": 1,
-      "covered_bytes": 2,
+      "covered_bytes": 14,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
       "start_line": 7,
-      "start_column": 29,
+      "start_column": 18,
       "end_line": 7,
-      "end_column": 31,
-      "start_byte": 143,
-      "end_byte": 145,
+      "end_column": 32,
+      "start_byte": 132,
+      "end_byte": 146,
       "metadata": {
         "metric_version": 1
       }
@@ -4210,17 +4017,17 @@
       "language": "java",
       "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
       "covered_lines": 1,
-      "covered_bytes": 12,
+      "covered_bytes": 26,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 1,
       "start_line": 26,
-      "start_column": 17,
+      "start_column": 4,
       "end_line": 26,
-      "end_column": 29,
-      "start_byte": 672,
-      "end_byte": 684,
+      "end_column": 30,
+      "start_byte": 659,
+      "end_byte": 685,
       "metadata": {
         "metric_version": 1
       }
@@ -4342,17 +4149,17 @@
       "language": "java",
       "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
       "covered_lines": 1,
-      "covered_bytes": 2,
+      "covered_bytes": 12,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
       "start_line": 9,
-      "start_column": 64,
+      "start_column": 55,
       "end_line": 9,
-      "end_column": 66,
-      "start_byte": 214,
-      "end_byte": 216,
+      "end_column": 67,
+      "start_byte": 205,
+      "end_byte": 217,
       "metadata": {
         "metric_version": 1
       }
@@ -4471,6 +4278,40 @@
         {
           "ordinal": 0,
           "type_name": "Polygon",
+          "children": []
+        }
+      ]
+    },
+    {
+      "identifier_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Entry:type_usage:15:76",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "String",
+          "children": []
+        },
+        {
+          "ordinal": 1,
+          "type_name": "Integer",
+          "children": []
+        }
+      ]
+    },
+    {
+      "identifier_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:HashMap:type_usage:52:37",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "String",
+          "children": []
+        },
+        {
+          "ordinal": 1,
+          "type_name": "Integer",
           "children": []
         }
       ]

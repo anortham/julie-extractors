@@ -80,6 +80,7 @@ pub(super) fn extract_trait(
 ) -> Option<Symbol> {
     let name = helpers::get_name(base, node)?;
     let modifiers = helpers::extract_modifiers(base, node);
+    let annotations = helpers::extract_annotations(base, node);
     let type_params = helpers::extract_type_parameters(base, node);
     let extends = helpers::extract_extends(base, node);
 
@@ -124,7 +125,7 @@ pub(super) fn extract_trait(
                 ("modifiers".to_string(), Value::String(modifiers.join(","))),
             ])),
             doc_comment,
-            annotations: Vec::new(),
+            annotations,
         },
     ))
 }
@@ -206,12 +207,17 @@ pub(super) fn extract_enum(
 ) -> Option<Symbol> {
     let name = helpers::get_name(base, node)?;
     let modifiers = helpers::extract_modifiers(base, node);
+    let annotations = helpers::extract_annotations(base, node);
     let type_params = helpers::extract_type_parameters(base, node);
+    let params = helpers::extract_parameters(base, node);
     let extends = helpers::extract_extends(base, node);
 
     let mut signature = format!("enum {}", name);
     if let Some(tp) = type_params {
         signature.push_str(&tp);
+    }
+    if let Some(p) = params {
+        signature.push_str(&p);
     }
     if let Some(ext) = extends {
         signature.push_str(&format!(" {}", ext));
@@ -233,7 +239,7 @@ pub(super) fn extract_enum(
                 ("modifiers".to_string(), Value::String(modifiers.join(","))),
             ])),
             doc_comment,
-            annotations: Vec::new(),
+            annotations,
         },
     ))
 }
@@ -252,7 +258,24 @@ pub(super) fn extract_enum_case(
         signature.push_str(&p);
     }
 
-    let doc_comment = base.find_doc_comment(node);
+    // `/** doc */ @ann case A` puts the comment and annotations on the
+    // enclosing `enum_case_definitions`, which holds one or more cases.
+    let definitions = node
+        .parent()
+        .filter(|parent| parent.kind() == "enum_case_definitions");
+    let first_case_in_definitions = definitions.is_some_and(|definitions| {
+        definitions
+            .named_children(&mut definitions.walk())
+            .find(|child| matches!(child.kind(), "simple_enum_case" | "full_enum_case"))
+            .is_some_and(|first| first.id() == node.id())
+    });
+    let doc_comment = match definitions {
+        Some(definitions) if first_case_in_definitions => base.find_doc_comment(&definitions),
+        _ => base.find_doc_comment(node),
+    };
+    let annotations = definitions
+        .map(|definitions| helpers::extract_annotations(base, &definitions))
+        .unwrap_or_default();
 
     Some(base.create_symbol(
         node,
@@ -267,7 +290,7 @@ pub(super) fn extract_enum_case(
                 Value::String("enum-member".to_string()),
             )])),
             doc_comment,
-            annotations: Vec::new(),
+            annotations,
         },
     ))
 }

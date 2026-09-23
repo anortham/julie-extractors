@@ -324,7 +324,7 @@ fun buildGreeting(): String = ""
         ("appModule", "createRepo"),
         ("handler", "logMessage"),
         ("config", "loadConfig"),
-        ("greeting", "buildGreeting"),
+        ("get", "buildGreeting"),
     ] {
         assert!(
             calls.contains(&pair(from, to)),

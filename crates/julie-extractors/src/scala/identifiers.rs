@@ -116,6 +116,26 @@ fn extract_identifier_from_node(
             }
         }
 
+        // `a plus b`, `xs map f`: an alphanumeric infix operator is a method
+        // call. Symbolic operators (`+`, `::`, `!`) stay operators.
+        "infix_expression" => {
+            if let Some(operator) = node
+                .child_by_field_name("operator")
+                .filter(|operator| operator.kind() == "identifier")
+            {
+                let name = base.get_node_text(&operator);
+                let containing = find_containing_symbol_id(node, containing_symbols);
+                base.create_identifier(&operator, name, IdentifierKind::Call, containing);
+            }
+        }
+
+        // `sql"..."`, `fr"..."`, `uri"..."`: a custom interpolator is the
+        // literal's carrier. `s`, `f` and `raw` strings are only captured as
+        // call arguments.
+        "interpolated_string_expression" => {
+            record_interpolator_literal(base, node, containing_symbols);
+        }
+
         // Type references in type positions: val x: Foo, def f(a: Foo): Bar,
         // class Foo extends Bar, type A = Foo
         // Scala uses `type_identifier` for both declaration names and references.
@@ -228,7 +248,13 @@ fn is_scala_value_read_identifier(base: &BaseExtractor, node: Node) -> bool {
         | "parameter"
         | "class_parameter"
         | "binding" => !is_field("name"),
+        "package_object" | "simple_enum_case" | "full_enum_case" => !is_field("name"),
         "lambda_expression" => !is_field("parameters"),
+        // `val a, b = 1` names its bindings.
+        "identifiers" => false,
+        // Package segments of a qualified type (`java.io.Serializable`).
+        "stable_type_identifier" => false,
+        "stable_identifier" => !is_in_type_path(parent),
         "self_type" => false,
 
         // Rule 3: the qualifier of `private[core]` names a scope, not a value.
@@ -266,6 +292,22 @@ fn is_scala_value_read_identifier(base: &BaseExtractor, node: Node) -> bool {
         // branch, interpolation body, generator collection — is a read.
         _ => true,
     }
+}
+
+/// Is this `stable_identifier` the package prefix of a qualified type or
+/// import path, rather than a stable reference in an expression or pattern?
+fn is_in_type_path(stable_identifier: Node) -> bool {
+    let mut current = stable_identifier;
+    while let Some(parent) = current.parent() {
+        match parent.kind() {
+            "stable_identifier" => current = parent,
+            "stable_type_identifier" | "import_declaration" | "package_identifier" => {
+                return true;
+            }
+            _ => return false,
+        }
+    }
+    false
 }
 
 /// Find the ID of the symbol that contains this node
@@ -309,7 +351,10 @@ fn record_scala_call_arg_literals(
         args.named_children(&mut cursor).collect()
     };
     for (pos, arg) in arg_nodes.into_iter().enumerate() {
-        if let Some(text) = base.decode_string_literal(&arg) {
+        if custom_interpolator(base, arg).is_some() {
+            continue;
+        }
+        if let Some(text) = decode_scala_string(base, arg) {
             base.record_literal(
                 &arg,
                 text,
@@ -319,6 +364,69 @@ fn record_scala_call_arg_literals(
             );
         }
     }
+}
+
+/// Standard interpolators whose strings carry no domain of their own.
+const PLAIN_INTERPOLATORS: &[&str] = &["s", "f", "raw"];
+
+/// The interpolator of a `name"..."` string when it is not `s`, `f` or `raw`.
+fn custom_interpolator(base: &BaseExtractor, node: Node) -> Option<String> {
+    if node.kind() != "interpolated_string_expression" {
+        return None;
+    }
+    let interpolator = base.get_node_text(&node.child_by_field_name("interpolator")?);
+    (!PLAIN_INTERPOLATORS.contains(&interpolator.as_str())).then_some(interpolator)
+}
+
+fn record_interpolator_literal(
+    base: &mut BaseExtractor,
+    node: Node,
+    containing_symbols: &ContainingSymbolIndex<'_>,
+) {
+    let Some(interpolator) = custom_interpolator(base, node) else {
+        return;
+    };
+    let Some(text) = decode_scala_string(base, node) else {
+        return;
+    };
+    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+    base.record_literal(&node, text, Some(interpolator), 0, containing_symbol_id);
+}
+
+/// Decode a Scala `string` or interpolated string. Each `$x` / `${...}` hole
+/// becomes `{}`, as the shared decoder does for other languages' templates.
+fn decode_scala_string(base: &BaseExtractor, node: Node) -> Option<String> {
+    let string = match node.kind() {
+        "string" => return base.decode_string_literal(&node),
+        "interpolated_string_expression" => node
+            .named_children(&mut node.walk())
+            .find(|child| child.kind() == "interpolated_string")?,
+        _ => return None,
+    };
+    let raw = base.get_node_text(&string);
+    let offset = string.start_byte();
+    let mut text = String::new();
+    let mut cursor = offset;
+    let mut children = string.walk();
+    for hole in string
+        .named_children(&mut children)
+        .filter(|child| child.kind() == "interpolation")
+    {
+        text.push_str(raw.get(cursor - offset..hole.start_byte() - offset)?);
+        text.push_str("{}");
+        cursor = hole.end_byte();
+    }
+    text.push_str(raw.get(cursor - offset..)?);
+    let delimiter = if text.starts_with("\"\"\"") {
+        "\"\"\""
+    } else {
+        "\""
+    };
+    Some(
+        text.strip_prefix(delimiter)?
+            .strip_suffix(delimiter)?
+            .to_string(),
+    )
 }
 
 /// Derive a Scala call's carrier from its (generic-unwrapped) callee.
@@ -466,10 +574,21 @@ fn record_outermost_scala_type_arguments(
     name_node: Node,
     identifier: &Identifier,
 ) {
-    let Some(parent) = name_node.parent() else {
+    let Some(mut named_type) = name_node.parent() else {
         return;
     };
-    if parent.kind() != "generic_type" {
+    let mut parent = named_type;
+    if named_type.kind() == "stable_type_identifier" {
+        let Some(holder) = named_type.parent() else {
+            return;
+        };
+        parent = holder;
+    } else {
+        named_type = name_node;
+    }
+    if parent.kind() != "generic_type"
+        || parent.child_by_field_name("type").map(|t| t.id()) != Some(named_type.id())
+    {
         return;
     }
     // Skip if this generic_type is itself nested inside type_arguments (it's not outermost)

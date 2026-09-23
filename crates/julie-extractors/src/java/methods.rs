@@ -26,25 +26,9 @@ pub(super) fn extract_method(
         .collect();
     let visibility = helpers::determine_visibility(&modifiers, node);
 
-    // Get return type (comes before the method name in the AST)
-    let children: Vec<Node> = node.children(&mut node.walk()).collect();
-    let name_index = children.iter().position(|c| c.id() == name_node.id())?;
-
-    let return_type_node = children[0..name_index].iter().find(|c| {
-        matches!(
-            c.kind(),
-            "type_identifier"
-                | "generic_type"
-                | "void_type"
-                | "array_type"
-                | "primitive_type"
-                | "integral_type"
-                | "floating_point_type"
-                | "boolean_type"
-        )
-    });
-    let return_type = return_type_node
-        .map(|n| extractor.base().get_node_text(n))
+    let return_type = node
+        .child_by_field_name("type")
+        .map(|type_node| extractor.base().get_node_text(&type_node))
         .unwrap_or_else(|| "void".to_string());
 
     // Get parameters
@@ -132,15 +116,14 @@ pub(super) fn extract_constructor(
         .collect();
     let visibility = helpers::determine_visibility(&modifiers, node);
 
-    // Get parameters
-    let param_list = node
-        .children(&mut node.walk())
-        .find(|c| c.kind() == "formal_parameters");
-    let params = param_list
-        .map(|p| extractor.base().get_node_text(&p))
-        .unwrap_or_else(|| "()".to_string());
+    let params = match node.kind() {
+        "compact_constructor_declaration" => String::new(),
+        _ => node
+            .child_by_field_name("parameters")
+            .map(|p| extractor.base().get_node_text(&p))
+            .unwrap_or_else(|| "()".to_string()),
+    };
 
-    // Build signature (constructors don't have return types)
     let modifier_str = if modifiers.is_empty() {
         String::new()
     } else {
@@ -180,4 +163,48 @@ pub(super) fn extract_constructor(
             .base_mut()
             .create_symbol(&node, name, SymbolKind::Constructor, options),
     )
+}
+
+/// Extract an annotation-type element (`String level() default "info";`) as a
+/// method: the element is declared and read like a no-argument method.
+pub(super) fn extract_annotation_element(
+    extractor: &mut JavaExtractor,
+    node: Node,
+    parent_id: Option<&str>,
+) -> Option<Symbol> {
+    let name = extractor
+        .base()
+        .get_node_text(&node.child_by_field_name("name")?);
+    let modifiers = helpers::extract_modifiers(extractor.base(), node);
+    let visibility = helpers::determine_visibility(&modifiers, node);
+    let type_node = node.child_by_field_name("type");
+    let element_type = type_node
+        .map(|type_node| extractor.base().get_node_text(&type_node))
+        .unwrap_or_default();
+    let default_value = node
+        .child_by_field_name("value")
+        .map(|value| format!(" default {}", extractor.base().get_node_text(&value)))
+        .unwrap_or_default();
+    let modifier_str = if modifiers.is_empty() {
+        String::new()
+    } else {
+        format!("{} ", modifiers.join(" "))
+    };
+    let options = SymbolOptions {
+        signature: Some(format!(
+            "{modifier_str}{element_type} {name}(){default_value}"
+        )),
+        visibility: Some(visibility),
+        parent_id: parent_id.map(|s| s.to_string()),
+        doc_comment: extractor.base().find_doc_comment(&node),
+        annotations: helpers::extract_annotations(extractor.base(), node),
+        ..Default::default()
+    };
+    let symbol = extractor
+        .base_mut()
+        .create_symbol(&node, name, SymbolKind::Method, options);
+    if let Some(type_node) = type_node {
+        super::type_facts::record_return_type(extractor.base_mut(), &symbol.id, type_node);
+    }
+    Some(symbol)
 }

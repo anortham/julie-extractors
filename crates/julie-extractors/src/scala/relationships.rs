@@ -12,7 +12,8 @@ use serde_json::Value;
 use std::collections::HashMap;
 use tree_sitter::Node;
 
-/// Extract inheritance relationships from extends clauses
+/// Extract inheritance relationships from extends clauses, and from the type
+/// a given instance with a template body implements.
 pub(super) fn extract_inheritance_relationships(
     extractor: &mut ScalaExtractor,
     node: &Node,
@@ -20,22 +21,24 @@ pub(super) fn extract_inheritance_relationships(
     relationships: &mut Vec<Relationship>,
 ) {
     let base = extractor.base();
-    let class_symbol = find_type_symbol(base, node, symbols);
-    let Some(class_symbol) = class_symbol else {
+    let Some(class_symbol) = find_type_symbol(base, node, symbols) else {
         return;
     };
 
-    // Collect base type names
     let base_types = collect_extends_types(extractor.base(), node);
     let file_path = extractor.base().file_path.clone();
     let line_number = (node.start_position().row + 1) as u32;
 
-    for (base_type_name, syntax_relationship_kind) in base_types {
+    for (target, syntax_relationship_kind) in base_types {
         let base_type_symbol = symbols.iter().find(|s| {
-            s.name == base_type_name
+            target.receiver.is_none()
+                && s.name == target.terminal_name
                 && matches!(
                     s.kind,
-                    SymbolKind::Class | SymbolKind::Trait | SymbolKind::Interface
+                    SymbolKind::Class
+                        | SymbolKind::Trait
+                        | SymbolKind::Interface
+                        | SymbolKind::Enum
                 )
         });
 
@@ -64,11 +67,10 @@ pub(super) fn extract_inheritance_relationships(
                 confidence: 1.0,
                 metadata: Some(HashMap::from([(
                     "baseType".to_string(),
-                    Value::String(base_type_name),
+                    Value::String(target.terminal_name.clone()),
                 )])),
             });
         } else {
-            // Pending relationship for cross-file resolution
             let pending_kind = if class_symbol.kind == SymbolKind::Trait {
                 RelationshipKind::Extends
             } else {
@@ -77,7 +79,7 @@ pub(super) fn extract_inheritance_relationships(
 
             let pending = extractor.base().create_pending_relationship(
                 class_symbol.id.clone(),
-                UnresolvedTarget::simple(base_type_name),
+                target,
                 pending_kind,
                 node,
                 Some(class_symbol.id.clone()),
@@ -88,10 +90,38 @@ pub(super) fn extract_inheritance_relationships(
     }
 }
 
-/// Collect type names from extends clause
-fn collect_extends_types(base: &BaseExtractor, node: &Node) -> Vec<(String, RelationshipKind)> {
-    let mut types = Vec::new();
+/// The supertypes of a definition, without type arguments, split into
+/// terminal name, receiver and namespace: `play.api.libs.json.Reads[Money]`
+/// targets `Reads`. A given with a template body (`given Show[Int] with`)
+/// implements its type; an alias given (`given ec: EC = ...`) implements
+/// nothing.
+fn collect_extends_types(
+    base: &BaseExtractor,
+    node: &Node,
+) -> Vec<(UnresolvedTarget, RelationshipKind)> {
+    let target = |type_node: Node| {
+        let type_node = if type_node.kind() == "generic_type" {
+            type_node.child_by_field_name("type").unwrap_or(type_node)
+        } else {
+            type_node
+        };
+        let text = base.get_node_text(&type_node);
+        UnresolvedTarget::from_qualified_text(&text, &["."])
+            .unwrap_or_else(|| UnresolvedTarget::simple(text))
+    };
 
+    if node.kind() == "given_definition" {
+        let implements = node
+            .child_by_field_name("body")
+            .is_some_and(|body| body.kind() == "with_template_body");
+        return node
+            .child_by_field_name("return_type")
+            .filter(|_| implements)
+            .map(|given_type| vec![(target(given_type), RelationshipKind::Implements)])
+            .unwrap_or_default();
+    }
+
+    let mut types = Vec::new();
     let extends_clause = node
         .children(&mut node.walk())
         .find(|n| n.kind() == "extends_clause");
@@ -101,19 +131,11 @@ fn collect_extends_types(base: &BaseExtractor, node: &Node) -> Vec<(String, Rela
         for child in ec.children(&mut ec.walk()) {
             if child.kind() == "with" {
                 next_kind = RelationshipKind::Implements;
-            } else if child.kind() == "type_identifier" {
-                types.push((base.get_node_text(&child), next_kind.clone()));
-                next_kind = RelationshipKind::Implements;
-            } else if child.kind() == "generic_type" || child.kind() == "stable_type_identifier" {
-                let type_name = if let Some(name_node) = child
-                    .children(&mut child.walk())
-                    .find(|n| n.kind() == "type_identifier")
-                {
-                    base.get_node_text(&name_node)
-                } else {
-                    base.get_node_text(&child)
-                };
-                types.push((type_name, next_kind.clone()));
+            } else if matches!(
+                child.kind(),
+                "type_identifier" | "generic_type" | "stable_type_identifier"
+            ) {
+                types.push((target(child), next_kind.clone()));
                 next_kind = RelationshipKind::Implements;
             }
         }
@@ -122,27 +144,25 @@ fn collect_extends_types(base: &BaseExtractor, node: &Node) -> Vec<(String, Rela
     types
 }
 
-/// Find the symbol for a type definition node
+/// The symbol a definition node declared: the same name at the same start
+/// byte, so a companion object and its class keep their own edges.
 fn find_type_symbol<'a>(
     base: &BaseExtractor,
     node: &Node,
     symbols: &'a [Symbol],
 ) -> Option<&'a Symbol> {
-    let name = node
-        .child_by_field_name("name")
-        .or_else(|| {
-            node.children(&mut node.walk())
-                .find(|n| n.kind() == "identifier")
-        })
-        .map(|n| base.get_node_text(&n))?;
-
     symbols.iter().find(|s| {
-        s.name == name
+        s.start_byte as usize == node.start_byte()
+            && s.file_path == base.file_path
             && matches!(
                 s.kind,
-                SymbolKind::Class | SymbolKind::Trait | SymbolKind::Interface | SymbolKind::Enum
+                SymbolKind::Class
+                    | SymbolKind::Trait
+                    | SymbolKind::Interface
+                    | SymbolKind::Enum
+                    | SymbolKind::EnumMember
+                    | SymbolKind::Variable
             )
-            && s.file_path == base.file_path
     })
 }
 
@@ -181,6 +201,7 @@ fn walk_tree_for_calls(
     let call = match node.kind() {
         "call_expression" => call_target(extractor, node),
         "instance_expression" => instance_target(extractor, node),
+        "infix_expression" => infix_target(extractor, node),
         _ => None,
     };
     if let Some(call) = call {
@@ -231,6 +252,12 @@ fn call_target(extractor: &ScalaExtractor, node: Node) -> Option<CallSite> {
         function = function.child_by_field_name("function")?;
     }
     match function.kind() {
+        // `def this() = this(0)` delegates to the primary constructor, which
+        // is the class itself.
+        "identifier" if base.get_node_text(&function) == "this" => {
+            super::helpers::enclosing_type_name(base, &node)
+                .map(|class_name| CallSite::Constructor(UnresolvedTarget::simple(class_name)))
+        }
         "identifier" => Some(CallSite::Method {
             target: UnresolvedTarget::simple(base.get_node_text(&function)),
             receiver_is_expression: false,
@@ -280,6 +307,28 @@ fn call_target(extractor: &ScalaExtractor, node: Node) -> Option<CallSite> {
         }
         _ => None,
     }
+}
+
+/// `a plus b` calls `plus` on `a`; `xs map f filter g` calls `filter` on an
+/// expression. Symbolic operators are not method calls here.
+fn infix_target(extractor: &ScalaExtractor, node: Node) -> Option<CallSite> {
+    let base = extractor.base();
+    let operator = node
+        .child_by_field_name("operator")
+        .filter(|operator| operator.kind() == "identifier")?;
+    let method = base.get_node_text(&operator);
+    let left = node.child_by_field_name("left")?;
+    Some(if left.kind() == "identifier" {
+        CallSite::Method {
+            target: UnresolvedTarget::from_chain(vec![base.get_node_text(&left), method]),
+            receiver_is_expression: false,
+        }
+    } else {
+        CallSite::Method {
+            target: UnresolvedTarget::simple(method),
+            receiver_is_expression: true,
+        }
+    })
 }
 
 fn instance_target(extractor: &ScalaExtractor, node: Node) -> Option<CallSite> {
@@ -415,8 +464,12 @@ fn is_test_clause_callee(caller: &Symbol, node: Node) -> bool {
     };
     spans(node)
         || node.parent().is_some_and(|parent| {
-            parent.kind() == "call_expression"
-                && parent.child_by_field_name("function").map(|f| f.id()) == Some(node.id())
+            let callee_field = match parent.kind() {
+                "call_expression" => "function",
+                "infix_expression" => "left",
+                _ => return false,
+            };
+            parent.child_by_field_name(callee_field).map(|f| f.id()) == Some(node.id())
                 && spans(parent)
         })
 }

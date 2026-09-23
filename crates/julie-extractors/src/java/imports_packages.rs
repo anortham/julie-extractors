@@ -96,3 +96,36 @@ pub(super) fn extract_import(
             .create_symbol(&node, symbol_name, SymbolKind::Import, options),
     )
 }
+
+/// Extract a `module-info.java` module declaration as a namespace symbol.
+/// Its directives are published as `java.module_directive.v1` facts.
+pub(super) fn extract_module(
+    extractor: &mut JavaExtractor,
+    node: Node,
+    parent_id: Option<&str>,
+) -> Option<Symbol> {
+    let name = extractor
+        .base()
+        .get_node_text(&node.child_by_field_name("name")?);
+    let is_open = node
+        .children(&mut node.walk())
+        .any(|child| child.kind() == "open");
+    let signature = if is_open {
+        format!("open module {name}")
+    } else {
+        format!("module {name}")
+    };
+    let options = SymbolOptions {
+        signature: Some(signature),
+        visibility: Some(Visibility::Public),
+        parent_id: parent_id.map(|s| s.to_string()),
+        doc_comment: extractor.base().find_doc_comment(&node),
+        annotations: super::helpers::extract_annotations(extractor.base(), node),
+        ..Default::default()
+    };
+    Some(
+        extractor
+            .base_mut()
+            .create_symbol(&node, name, SymbolKind::Namespace, options),
+    )
+}

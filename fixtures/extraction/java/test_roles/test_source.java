@@ -154,3 +154,27 @@ class LedgerTestHelpers {
         LedgerSupport.total(16, 16);
     }
 }
+
+interface StackContract {
+    Stack create();
+
+    @org.junit.jupiter.api.BeforeEach
+    default void resetStack() {}
+
+    @org.junit.jupiter.api.Test
+    default void pushThenPop() {
+        create().push(1);
+    }
+}
+
+class ArrayStackTest implements StackContract {
+    public Stack create() {
+        return new ArrayStack();
+    }
+}
+
+@org.junit.platform.suite.api.Suite
+@org.junit.platform.suite.api.SelectClasses({ArrayStackTest.class, LedgerJUnit5Test.class})
+class LedgerSuite {}
+
+class LedgerAggregator {}

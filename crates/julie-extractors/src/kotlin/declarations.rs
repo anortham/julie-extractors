@@ -16,6 +16,7 @@ pub(super) fn extract_function(
     base: &mut BaseExtractor,
     node: &Node,
     parent_id: Option<&str>,
+    parent_kind: Option<SymbolKind>,
 ) -> Option<Symbol> {
     let (name, raw_name) = helpers::declared_name(base, node)?;
 
@@ -70,28 +71,22 @@ pub(super) fn extract_function(
         }
     }
 
-    // Determine symbol kind based on modifiers and context
+    let is_local = parent_kind.as_ref().is_some_and(helpers::is_callable_kind);
+    let is_member = parent_id.is_some() && !is_local;
     let symbol_kind = if modifiers.contains(&"operator".to_string()) {
         SymbolKind::Operator
-    } else if parent_id.is_some() {
+    } else if is_member {
         SymbolKind::Method
     } else {
         SymbolKind::Function
     };
 
-    let visibility = helpers::determine_visibility(&modifiers);
+    let visibility = (!is_local).then(|| helpers::determine_visibility(&modifiers));
 
     let mut metadata = HashMap::from([
         (
             "type".to_string(),
-            Value::String(
-                if parent_id.is_some() {
-                    "method"
-                } else {
-                    "function"
-                }
-                .to_string(),
-            ),
+            Value::String(if is_member { "method" } else { "function" }.to_string()),
         ),
         ("modifiers".to_string(), Value::String(modifiers.join(","))),
     ]);
@@ -124,7 +119,7 @@ pub(super) fn extract_function(
         symbol_kind,
         SymbolOptions {
             signature: Some(signature),
-            visibility: Some(visibility),
+            visibility,
             parent_id: parent_id.map(|s| s.to_string()),
             metadata: Some(metadata),
             doc_comment,
@@ -332,37 +327,58 @@ pub(super) fn extract_package(
     ))
 }
 
-/// Extract a Kotlin import statement
+/// Extract a Kotlin import statement. `import a.B as C` keeps the alias in
+/// the signature and publishes `alias`, `local_name` and `importedName`;
+/// `import a.b.*` publishes `isWildcard`.
 pub(super) fn extract_import(
     base: &mut BaseExtractor,
     node: &Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    // Look for qualified_identifier which contains the full import name
     let name = node
         .children(&mut node.walk())
         .find(|n| n.kind() == "qualified_identifier")
         .map(|n| base.get_node_text(&n))?;
+    let alias = node
+        .children(&mut node.walk())
+        .skip_while(|child| child.kind() != "as")
+        .find(|child| child.kind() == "identifier")
+        .map(|alias| base.get_node_text(&alias));
+    let is_wildcard = node
+        .children(&mut node.walk())
+        .any(|child| child.kind() == "*");
 
-    // Extract KDoc comment
+    let mut signature = format!("import {name}");
+    let mut metadata = HashMap::from([("type".to_string(), Value::String("import".to_string()))]);
+    if is_wildcard {
+        signature.push_str(".*");
+        metadata.insert("isWildcard".to_string(), Value::Bool(true));
+    }
+    if let Some(alias) = &alias {
+        signature.push_str(&format!(" as {alias}"));
+        let imported_name = name.rsplit('.').next().unwrap_or(&name).to_string();
+        metadata.insert("alias".to_string(), Value::String(alias.clone()));
+        metadata.insert("local_name".to_string(), Value::String(alias.clone()));
+        metadata.insert("importedName".to_string(), Value::String(imported_name));
+    }
+
     let doc_comment = base.find_doc_comment(node);
-
-    Some(base.create_symbol(
+    let mut symbol = base.create_symbol(
         node,
-        name.clone(),
+        name,
         SymbolKind::Import,
         SymbolOptions {
-            signature: Some(format!("import {}", name)),
+            signature: Some(signature),
             visibility: Some(Visibility::Public),
             parent_id: parent_id.map(|s| s.to_string()),
-            metadata: Some(HashMap::from([(
-                "type".to_string(),
-                Value::String("import".to_string()),
-            )])),
+            metadata: Some(metadata),
             doc_comment,
             annotations: Vec::new(),
         },
-    ))
+    );
+    symbol.body_span = None;
+    symbol.body_hash = None;
+    Some(symbol)
 }
 
 /// Extract a Kotlin type alias

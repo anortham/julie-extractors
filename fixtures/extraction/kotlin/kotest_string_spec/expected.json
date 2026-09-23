@@ -1581,22 +1581,6 @@
       "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:shares a case with every including spec:12:4",
       "target_key": null,
       "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:true:variable_ref:27:43",
-      "name": "true",
-      "kind": "variable_ref",
-      "language": "kotlin",
-      "file_path": "fixtures/extraction/kotlin/kotest_string_spec/source.kt",
-      "start_line": 27,
-      "start_column": 43,
-      "end_line": 27,
-      "end_column": 47,
-      "start_byte": 623,
-      "end_byte": 627,
-      "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:startsWith matches a prefix:26:4",
-      "target_key": null,
-      "confidence": "1.000"
     }
   ],
   "types": [

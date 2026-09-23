@@ -11,6 +11,7 @@ mod powershell;
 mod python;
 mod ruby;
 mod rust;
+mod scala;
 mod swift;
 mod vbnet;
 
@@ -49,6 +50,7 @@ pub(super) fn collect_backend_http_client_requests(
         }
         "swift" => swift::collect_swift_http_client_requests(language, tree, file_path, content),
         "dart" => dart::collect_dart_http_client_requests(language, tree, file_path, content),
+        "scala" => scala::collect_scala_http_client_requests(language, tree, file_path, content),
         _ => Vec::new(),
     }
 }

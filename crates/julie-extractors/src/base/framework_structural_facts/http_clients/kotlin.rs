@@ -37,7 +37,6 @@ fn retrofit_verb(name: &str) -> Option<&'static str> {
         "DELETE" => Some("DELETE"),
         "HEAD" => Some("HEAD"),
         "OPTIONS" => Some("OPTIONS"),
-        "HTTP" => None, // needs method= element; unsupported without static method
         _ => None,
     }
 }
@@ -245,8 +244,28 @@ fn property_declared_name<'a>(property: Node, content: &'a str) -> Option<&'a st
 }
 
 fn property_initializer_is_http_client(property: Node, content: &str) -> bool {
-    child_of_kind(property, "call_expression")
-        .is_some_and(|initializer| call_roots_at_http_client(initializer, content))
+    property_declared_type_is(property, content, "HttpClient")
+        || child_of_kind(property, "call_expression")
+            .is_some_and(|initializer| call_roots_at_http_client(initializer, content))
+}
+
+/// `val name: TypeName` or `lateinit var name: pkg.TypeName?` declares the
+/// exact client type; `TypeNameFactory` or `TypeName.Builder` does not.
+fn property_declared_type_is(property: Node, content: &str, type_name: &str) -> bool {
+    let Some(declaration) = child_of_kind(property, "variable_declaration") else {
+        return false;
+    };
+    let declared = child_of_kind(declaration, "nullable_type")
+        .and_then(|nullable| child_of_kind(nullable, "user_type"))
+        .or_else(|| child_of_kind(declaration, "user_type"));
+    declared
+        .and_then(|user_type| node_text(content, user_type))
+        .is_some_and(|text| {
+            text == type_name
+                || text
+                    .strip_suffix(type_name)
+                    .is_some_and(|qualifier| qualifier.ends_with('.'))
+        })
 }
 
 fn okhttp_request(
@@ -420,8 +439,14 @@ fn retrofit_annotation(
     content: &str,
 ) -> Option<StructuralFact> {
     let name = annotation_name(annotation, content)?;
-    let verb = retrofit_verb(name)?;
-    let target_path = annotation_static_path(annotation, content)?;
+    let (verb, target_path) = if name == "HTTP" {
+        retrofit_http_elements(annotation, content)?
+    } else {
+        (
+            retrofit_verb(name)?,
+            annotation_static_path(annotation, content)?,
+        )
+    };
     client_fact(
         language,
         tree,
@@ -435,6 +460,41 @@ fn retrofit_annotation(
         "attested",
         None,
     )
+}
+
+/// `@HTTP(method = "DELETE", path = "users/{id}")` or the positional
+/// `@HTTP("DELETE", "users/{id}")`: both elements must be static.
+fn retrofit_http_elements<'a>(
+    annotation: Node,
+    content: &'a str,
+) -> Option<(&'static str, &'a str)> {
+    let invocation = child_of_kind(annotation, "constructor_invocation")?;
+    let arguments = child_of_kind(invocation, "value_arguments")?;
+    let mut method = None;
+    let mut path = None;
+    let mut cursor = arguments.walk();
+    for (position, argument) in arguments
+        .named_children(&mut cursor)
+        .filter(|child| child.kind() == "value_argument")
+        .enumerate()
+    {
+        let mut argument_cursor = argument.walk();
+        let parts: Vec<Node> = argument.named_children(&mut argument_cursor).collect();
+        let (element, value) = match parts.as_slice() {
+            [name, value] if name.kind() == "identifier" => (node_text(content, *name)?, *value),
+            [value] => (
+                ["method", "path"].get(position).copied().unwrap_or(""),
+                *value,
+            ),
+            _ => continue,
+        };
+        match element {
+            "method" => method = static_route_arg(value, content, StaticArgLang::Kotlin),
+            "path" => path = static_route_arg(value, content, StaticArgLang::Kotlin),
+            _ => {}
+        }
+    }
+    Some((retrofit_verb(method?)?, path?))
 }
 
 /// Trailing identifier of the annotation constructor — `GET` for both `@GET`
@@ -674,6 +734,9 @@ fn spring_local_is_client(name: &str, from: Node, content: &str, type_name: &str
 }
 
 fn property_initializer_is_spring_client(property: Node, content: &str, type_name: &str) -> bool {
+    if property_declared_type_is(property, content, type_name) {
+        return true;
+    }
     let Some(initializer) = child_of_kind(property, "call_expression") else {
         return false;
     };

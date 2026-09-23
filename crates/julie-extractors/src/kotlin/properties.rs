@@ -5,7 +5,7 @@
 
 use super::helpers;
 use super::type_facts;
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
@@ -92,15 +92,7 @@ pub(super) fn extract_property(
     }
 
     let is_const = modifiers.contains(&"const".to_string());
-    let symbol_kind = if matches!(
-        parent_kind,
-        Some(
-            SymbolKind::Function
-                | SymbolKind::Method
-                | SymbolKind::Constructor
-                | SymbolKind::Operator
-        )
-    ) {
+    let symbol_kind = if parent_kind.as_ref().is_some_and(helpers::is_callable_kind) {
         SymbolKind::Variable
     } else if is_const && is_val {
         SymbolKind::Constant
@@ -108,7 +100,8 @@ pub(super) fn extract_property(
         SymbolKind::Property
     };
 
-    let visibility = helpers::determine_visibility(&modifiers);
+    let visibility =
+        (symbol_kind != SymbolKind::Variable).then(|| helpers::determine_visibility(&modifiers));
 
     let mut metadata = HashMap::from([
         (
@@ -138,7 +131,7 @@ pub(super) fn extract_property(
         symbol_kind,
         SymbolOptions {
             signature: Some(signature),
-            visibility: Some(visibility),
+            visibility,
             parent_id: parent_id.map(|s| s.to_string()),
             metadata: Some(metadata),
             doc_comment,
@@ -172,30 +165,27 @@ pub(super) fn extract_constructor_parameters(
                 };
                 let name = helpers::strip_backticks(&raw_name).to_string();
 
-                // Get binding pattern (val/var)
-                let binding_node = child
+                // A parameter without `val`/`var` is a constructor parameter,
+                // not a stored property; its signature carries no binding.
+                let binding = child
                     .children(&mut child.walk())
-                    .find(|n| matches!(n.kind(), "val" | "var"));
-                let binding = binding_node
-                    .map(|n| base.get_node_text(&n))
-                    .unwrap_or_else(|| "val".to_string());
+                    .find(|n| matches!(n.kind(), "val" | "var"))
+                    .map(|n| base.get_node_text(&n));
 
-                // Get type (handle various type node structures including nullable)
                 let type_node = child.children(&mut child.walk()).find(|n| {
                     matches!(
                         n.kind(),
-                        "user_type" | "type" | "nullable_type" | "type_reference"
+                        "user_type" | "type" | "nullable_type" | "type_reference" | "function_type"
                     )
                 });
                 let param_type = type_node
                     .map(|n| base.get_node_text(&n))
                     .unwrap_or_default();
 
-                // Get modifiers (like private)
-                let modifiers_node = child
+                let modifier_list = helpers::extract_modifiers(base, &child);
+                let modifiers = child
                     .children(&mut child.walk())
-                    .find(|n| n.kind() == "modifiers");
-                let modifiers = modifiers_node
+                    .find(|n| n.kind() == "modifiers")
                     .map(|n| base.get_node_text(&n))
                     .unwrap_or_default();
 
@@ -216,7 +206,10 @@ pub(super) fn extract_constructor_parameters(
 
                 // Build the base signature: [modifiers] binding name[: type][ = default]
                 let final_signature = {
-                    let mut signature = format!("{} {}", binding, raw_name);
+                    let mut signature = match &binding {
+                        Some(binding) => format!("{binding} {raw_name}"),
+                        None => raw_name.clone(),
+                    };
                     if !param_type.is_empty() {
                         signature.push_str(&format!(": {}", param_type));
                     }
@@ -244,13 +237,10 @@ pub(super) fn extract_constructor_parameters(
                     }
                 };
 
-                // Determine visibility
-                let visibility = if modifiers.contains("private") {
-                    Visibility::Private
-                } else if modifiers.contains("protected") {
-                    Visibility::Protected
+                let visibility = if binding.is_some() {
+                    helpers::determine_visibility(&modifier_list)
                 } else {
-                    Visibility::Public
+                    crate::base::Visibility::Private
                 };
 
                 // Extract KDoc comment
@@ -259,7 +249,10 @@ pub(super) fn extract_constructor_parameters(
 
                 let mut metadata = HashMap::from([
                     ("type".to_string(), Value::String("property".to_string())),
-                    ("binding".to_string(), Value::String(binding)),
+                    (
+                        "binding".to_string(),
+                        Value::String(binding.unwrap_or_else(|| "none".to_string())),
+                    ),
                     ("dataType".to_string(), Value::String(param_type)),
                     (
                         "hasDefaultValue".to_string(),
@@ -288,4 +281,64 @@ pub(super) fn extract_constructor_parameters(
             }
         }
     }
+}
+
+/// Extract a property `get()` or `set(value)` accessor as a method named `get`
+/// or `set`, parented to its property, so the code it runs has a caller.
+pub(super) fn extract_accessor(
+    base: &mut BaseExtractor,
+    node: &Node,
+    parent_id: Option<&str>,
+) -> Option<Symbol> {
+    let name = if node.kind() == "getter" {
+        "get"
+    } else {
+        "set"
+    };
+    let body = node
+        .children(&mut node.walk())
+        .find(|child| child.kind() == "function_body");
+    let head_end = body.map_or(node.end_byte(), |body| body.start_byte());
+    let head = base
+        .content
+        .get(node.start_byte()..head_end)
+        .unwrap_or_default()
+        .trim()
+        .to_string();
+    let signature = match body {
+        Some(body) if base.get_node_text(&body).starts_with('=') => {
+            format!("{head} {}", base.get_node_text(&body))
+        }
+        _ => head,
+    };
+    let modifiers = helpers::extract_modifiers(base, node);
+    let metadata = HashMap::from([
+        ("type".to_string(), Value::String("accessor".to_string())),
+        (
+            "accessor".to_string(),
+            Value::String(node.kind().to_string()),
+        ),
+    ]);
+    let mut symbol = base.create_symbol(
+        node,
+        name.to_string(),
+        SymbolKind::Method,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(helpers::determine_visibility(&modifiers)),
+            parent_id: parent_id.map(|s| s.to_string()),
+            metadata: Some(metadata),
+            doc_comment: None,
+            annotations: helpers::extract_annotations(base, node),
+        },
+    );
+    let body_node = body.and_then(|body| {
+        body.named_children(&mut body.walk())
+            .find(|child| !child.kind().contains("comment"))
+    });
+    symbol.body_span = body_node.map(|body| crate::base::NormalizedSpan::from_node(&body));
+    symbol.body_hash = symbol
+        .body_span
+        .and_then(|span| crate::base::body::body_hash(&base.content, span, &base.language));
+    Some(symbol)
 }

@@ -19,3 +19,4 @@ mod type_arguments;
 mod type_facts;
 mod types; // Phase 4: Type extraction verification tests
 mod wave1_gaps;
+mod wave2_gaps;

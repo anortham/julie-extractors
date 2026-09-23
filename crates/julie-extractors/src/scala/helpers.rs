@@ -8,26 +8,23 @@ use tree_sitter::Node;
 
 type Base = super::super::base::BaseExtractor;
 
-/// Extract modifiers from a Scala node (abstract, sealed, case, private, etc.)
+/// Extract modifiers from a Scala node (abstract, sealed, case, private, etc.).
+/// Annotations are not modifiers; [`extract_annotations`] reads them.
 pub(super) fn extract_modifiers(base: &Base, node: &Node) -> Vec<String> {
     let mut modifiers = Vec::new();
     for child in node.children(&mut node.walk()) {
-        if child.kind() == "modifiers" || child.kind() == "annotation" {
-            // Walk into modifiers container
+        if child.kind() == "modifiers" {
             for mod_child in child.children(&mut child.walk()) {
                 let text = base.get_node_text(&mod_child);
                 if mod_child.kind() == "access_modifier" {
                     // `private[core]` keeps its qualifier; visibility reads the prefix.
                     modifiers.push(text.split_whitespace().collect());
-                } else if is_modifier_keyword(&text) || text.starts_with('@') {
+                } else if is_modifier_keyword(&text) {
                     modifiers.push(text);
                 }
             }
-        }
-        // Some modifiers may appear as direct children
-        let text = base.get_node_text(&child);
-        if child.kind() != "modifiers" && is_direct_modifier(child.kind()) {
-            modifiers.push(text);
+        } else if is_direct_modifier(child.kind()) {
+            modifiers.push(base.get_node_text(&child));
         }
     }
     modifiers
@@ -38,18 +35,37 @@ pub(super) fn extract_annotations(base: &Base, node: &Node) -> Vec<AnnotationMar
 
     for child in node.children(&mut node.walk()) {
         if child.kind() == "annotation" {
-            raw_annotations.push(base.get_node_text(&child));
+            raw_annotations.push(annotation_text(base, child));
         } else if child.kind() == "modifiers" {
             raw_annotations.extend(
                 child
                     .children(&mut child.walk())
                     .filter(|mod_child| mod_child.kind() == "annotation")
-                    .map(|mod_child| base.get_node_text(&mod_child)),
+                    .map(|mod_child| annotation_text(base, mod_child)),
             );
         }
     }
 
     normalize_annotations(&raw_annotations, "scala")
+}
+
+/// The annotation source without the type arguments of its name:
+/// `@throws[java.io.IOException]` reads as `@throws`.
+fn annotation_text(base: &Base, annotation: Node) -> String {
+    let text = base.get_node_text(&annotation);
+    let Some(type_arguments) = annotation
+        .child_by_field_name("name")
+        .filter(|name| name.kind() == "generic_type")
+        .and_then(|name| name.child_by_field_name("type_arguments"))
+    else {
+        return text;
+    };
+    let start = type_arguments.start_byte() - annotation.start_byte();
+    let end = type_arguments.end_byte() - annotation.start_byte();
+    match (text.get(..start), text.get(end..)) {
+        (Some(head), Some(tail)) => format!("{head}{tail}"),
+        _ => text,
+    }
 }
 
 fn is_modifier_keyword(s: &str) -> bool {
@@ -96,12 +112,14 @@ pub(super) fn extract_type_parameters(base: &Base, node: &Node) -> Option<String
         .map(|tp| base.get_node_text(&tp))
 }
 
-/// Extract function parameters (e.g., `(x: Int, y: String)`)
+/// Extract every parameter list (e.g., `(x: Int)(using ec: Ec)`).
 pub(super) fn extract_parameters(base: &Base, node: &Node) -> Option<String> {
-    // Scala uses `parameters` or `class_parameters`
-    node.children(&mut node.walk())
-        .find(|n| n.kind() == "parameters" || n.kind() == "class_parameters")
+    let lists: Vec<String> = node
+        .children(&mut node.walk())
+        .filter(|n| n.kind() == "parameters" || n.kind() == "class_parameters")
         .map(|p| base.get_node_text(&p))
+        .collect();
+    (!lists.is_empty()).then(|| lists.concat())
 }
 
 /// Extract return type after `:` (e.g., `: String`)

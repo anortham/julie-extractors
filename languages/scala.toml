@@ -5,9 +5,14 @@ url = [
     "requests.post",
     "requests.put",
     "requests.delete",
+    "requests.patch",
+    "uri",
+    "url",
 ]
 sql = [
     "sql",
+    "fr",
+    "fr0",
     "executequery",
     "executeupdate",
     "preparestatement",

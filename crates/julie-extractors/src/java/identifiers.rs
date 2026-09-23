@@ -158,10 +158,12 @@ fn extract_identifier_from_node(
                 return;
             }
 
+            if super::type_facts::is_var_type(extractor.base(), node) {
+                return;
+            }
             let name = extractor.base().get_node_text(&node);
 
-            // Skip single-letter generics — they carry no cross-file signal.
-            if is_java_noise_type(&name) {
+            if is_java_noise_type(&name) || is_package_segment(node, &name) {
                 return;
             }
 
@@ -177,6 +179,34 @@ fn extract_identifier_from_node(
             // (e.g. `List` in `List<String>`), record the ordered type arguments.
             // Nested generics are skipped here — they ride along as `children`.
             record_outermost_java_type_arguments(extractor, node, &identifier);
+        }
+
+        "annotation" | "marker_annotation" => {
+            if let Some(name_node) = node.child_by_field_name("name") {
+                record_terminal_type_usage(extractor, name_node, containing_symbols);
+            }
+            record_java_annotation_value_literal(extractor, node, containing_symbols);
+        }
+
+        "record_pattern" => {
+            let mut cursor = node.walk();
+            let type_name = node
+                .named_children(&mut cursor)
+                .find(|child| child.kind() == "identifier");
+            if let Some(type_name) = type_name {
+                record_terminal_type_usage(extractor, type_name, containing_symbols);
+            }
+        }
+
+        "uses_module_directive" | "provides_module_directive" => {
+            let mut cursor = node.walk();
+            let type_names: Vec<Node> = node
+                .named_children(&mut cursor)
+                .filter(|child| matches!(child.kind(), "identifier" | "scoped_identifier"))
+                .collect();
+            for type_name in type_names {
+                record_terminal_type_usage(extractor, type_name, containing_symbols);
+            }
         }
 
         // `variable_ref` complement arm (locked contract — see the reference
@@ -252,8 +282,18 @@ fn is_java_value_read_identifier(node: Node) -> bool {
         "lambda_expression" => !is_field("parameters"),
         "inferred_parameters" => false,
 
-        // Rule 3: `instanceof` pattern bindings (`x instanceof Foo f`).
+        // Rule 3: `instanceof` pattern bindings (`x instanceof Foo f`), switch
+        // type-pattern bindings (`case Circle c`) and record-pattern components.
+        // A record pattern's own identifier is its type, owned by the type arm.
         "instanceof_expression" => !is_field("name"),
+        "type_pattern" | "record_pattern_component" | "record_pattern" => false,
+
+        // Module names, packages and service types in `module-info.java`.
+        "requires_module_directive"
+        | "exports_module_directive"
+        | "opens_module_directive"
+        | "uses_module_directive"
+        | "provides_module_directive" => false,
 
         // Rule 3: package/import segments and qualified names are not reads.
         "scoped_identifier" | "package_declaration" | "import_declaration" => false,
@@ -280,6 +320,51 @@ fn is_java_value_read_identifier(node: Node) -> bool {
         // array element/index, switch label constant, update expression (`i++` reads), annotation named-arg key — is a read.
         _ => true,
     }
+}
+
+/// Record a `type_usage` for the last segment of an `identifier` or
+/// `scoped_identifier` type name (`Audited`, `com.acme.Audited`).
+fn record_terminal_type_usage(
+    extractor: &mut JavaExtractor,
+    name_node: Node,
+    containing_symbols: &ContainingSymbolIndex<'_>,
+) {
+    let terminal = match name_node.kind() {
+        "scoped_identifier" => name_node.child_by_field_name("name"),
+        "identifier" => Some(name_node),
+        _ => None,
+    };
+    let Some(terminal) = terminal else {
+        return;
+    };
+    let name = extractor.base().get_node_text(&terminal);
+    let containing_symbol_id = find_containing_symbol_id(terminal, containing_symbols);
+    extractor.base_mut().create_identifier(
+        &terminal,
+        name,
+        IdentifierKind::TypeUsage,
+        containing_symbol_id,
+    );
+}
+
+/// A lower-case qualifier segment of a scoped type (`java` and `util` in
+/// `java.util.List`) names a package, not a type. Java package names are
+/// lower case by convention; an upper-case qualifier (`Map` in `Map.Entry`)
+/// is an enclosing type and stays a type usage.
+fn is_package_segment(node: Node, name: &str) -> bool {
+    if !name.starts_with(|c: char| c.is_ascii_lowercase()) {
+        return false;
+    }
+    let mut current = node;
+    while let Some(parent) = current.parent()
+        && parent.kind() == "scoped_type_identifier"
+    {
+        if current.next_named_sibling().is_some() {
+            return true;
+        }
+        current = parent;
+    }
+    false
 }
 
 /// Check if a `type_identifier` node is a declaration name rather than a type reference.
@@ -336,7 +421,14 @@ fn record_outermost_java_type_arguments(
     name_node: Node,
     identifier: &Identifier,
 ) {
-    let Some(generic_type) = name_node.parent() else {
+    let mut type_name = name_node;
+    while let Some(parent) = type_name.parent()
+        && parent.kind() == "scoped_type_identifier"
+        && type_name.next_named_sibling().is_none()
+    {
+        type_name = parent;
+    }
+    let Some(generic_type) = type_name.parent() else {
         return;
     };
     if generic_type.kind() != "generic_type" {
@@ -378,13 +470,7 @@ fn decompose_java_type_arg<'a>(
     match node.kind() {
         "generic_type" => {
             // Nested generic: name comes from the `type_identifier` child.
-            let name = {
-                let mut cursor = node.walk();
-                node.children(&mut cursor)
-                    .find(|c| c.kind() == "type_identifier")
-                    .map(|n| base.get_node_text(&n))
-                    .unwrap_or_else(|| base.get_node_text(&node))
-            };
+            let name = base.get_node_text(&helpers::generic_base_node(node));
             Some((name, type_arguments_child(node)))
         }
         _ => {
@@ -446,6 +532,47 @@ fn record_java_call_arg_literals(
             );
         }
     }
+}
+
+/// Capture the string `value` of an annotation (`@Query("select …")`,
+/// `@Query(value = "select …")`) as a literal whose carrier is the annotation's
+/// simple name. The carrier gate keeps only configured carriers.
+fn record_java_annotation_value_literal(
+    extractor: &mut JavaExtractor,
+    annotation: Node,
+    containing_symbols: &ContainingSymbolIndex<'_>,
+) {
+    let Some(name_node) = annotation.child_by_field_name("name") else {
+        return;
+    };
+    let carrier = match name_node.kind() {
+        "scoped_identifier" => name_node.child_by_field_name("name"),
+        _ => Some(name_node),
+    }
+    .map(|terminal| extractor.base().get_node_text(&terminal));
+    let Some(arguments) = annotation.child_by_field_name("arguments") else {
+        return;
+    };
+    let mut cursor = arguments.walk();
+    let value = arguments.named_children(&mut cursor).find_map(|argument| {
+        if argument.kind() != "element_value_pair" {
+            return Some(argument);
+        }
+        let key = argument.child_by_field_name("key")?;
+        (extractor.base().get_node_text(&key) == "value")
+            .then(|| argument.child_by_field_name("value"))
+            .flatten()
+    });
+    let Some(value) = value else {
+        return;
+    };
+    let Some(text) = extractor.base().decode_string_literal(&value) else {
+        return;
+    };
+    let containing_symbol_id = find_containing_symbol_id(annotation, containing_symbols);
+    extractor
+        .base_mut()
+        .record_literal(&value, text, carrier, 0, containing_symbol_id);
 }
 
 /// Derive a Java `method_invocation`'s carrier from its `object`/`name` fields.

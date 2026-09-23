@@ -68,7 +68,7 @@ fn scala_extension_extended_type_uses_receiver_not_return_type() {
 }
 
 #[test]
-fn scala_named_given_emits_given_name_not_given_type() {
+fn scala_named_given_emits_given_name_and_given_type() {
     let source = "given intOrdering: Ordering[Int] = Ordering.Int\n";
     let results = extract(source);
     let given = results
@@ -77,5 +77,5 @@ fn scala_named_given_emits_given_name_not_given_type() {
         .find(|fact| fact.pattern_id == "scala.given_definition.v1")
         .expect("expected given definition fact");
     assert_eq!(metadata_str(given, "given_name"), Some("intOrdering"));
-    assert_eq!(metadata_str(given, "given_type"), None);
+    assert_eq!(metadata_str(given, "given_type"), Some("Ordering[Int]"));
 }

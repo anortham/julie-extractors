@@ -2646,6 +2646,11 @@
           "name": "hierarchy_and_calls",
           "source": "fixtures/extraction/java/hierarchy_and_calls/source.java",
           "expected": "fixtures/extraction/java/hierarchy_and_calls/expected.json"
+        },
+        {
+          "name": "module_info",
+          "source": "fixtures/extraction/java/module_info/module-info.java",
+          "expected": "fixtures/extraction/java/module_info/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2678,7 +2683,8 @@
           "supported": [
             "calls",
             "extends",
-            "implements"
+            "implements",
+            "references"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2712,8 +2718,10 @@
             "java.annotation.v1",
             "java.lambda_expression.v1",
             "java.marker_annotation.v1",
+            "java.module_directive.v1",
             "java.synchronized_statement.v1",
             "java.try_with_resources_statement.v1",
+            "jaxrs.route.v1",
             "spring.request_mapping.v1"
           ],
           "not_applicable": [],
@@ -2723,12 +2731,6 @@
               "reason": "Cucumber-JVM binds step definitions with @Given/@When/@Then on methods of a glue class, and the executable scenario lives in a .feature file, not in Java. The extractor classifies neither the glue class nor its step methods, so a Cucumber-JVM suite publishes no test roles from its Java side.",
               "required_closure": "adopt the Cucumber-JVM glue contract as a named Java test framework, classify a glue class as a test container and step annotations as their own role, and register a golden fixture with a non-glue control class",
               "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 10 follow-up: Cucumber-JVM step binding roles"
-            },
-            {
-              "kind": "junit_platform.suite_container_roles",
-              "reason": "The JUnit Platform Suite engine declares an aggregating suite with @Suite plus selector annotations such as @SelectClasses and @SelectPackages. The class holds no test member of its own, so the container pass never marks it and the selected classes are never linked to it.",
-              "required_closure": "adopt the JUnit Platform Suite contract, classify a @Suite class as a test container, resolve @SelectClasses targets into edges, and register a golden fixture with a plain aggregator class as the control",
-              "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 10 follow-up: JUnit Platform @Suite containers"
             }
           ]
         },
@@ -2743,14 +2745,20 @@
         "annotations": {
           "supported": [
             "class",
-            "method"
+            "enum",
+            "interface",
+            "method",
+            "property"
           ],
           "not_applicable": [],
           "open_gaps": []
         },
         "doc_comments": {
           "supported": [
-            "method"
+            "constant",
+            "interface",
+            "method",
+            "namespace"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -3918,6 +3926,21 @@
           "name": "declarations_and_calls",
           "source": "fixtures/extraction/kotlin/declarations_and_calls/source.kt",
           "expected": "fixtures/extraction/kotlin/declarations_and_calls/expected.json"
+        },
+        {
+          "name": "members_and_literals",
+          "source": "fixtures/extraction/kotlin/members_and_literals/source.kt",
+          "expected": "fixtures/extraction/kotlin/members_and_literals/expected.json"
+        },
+        {
+          "name": "spring_functional_routes",
+          "source": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+          "expected": "fixtures/extraction/kotlin/spring_functional_routes/expected.json"
+        },
+        {
+          "name": "kotest_behavior_spec",
+          "source": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt",
+          "expected": "fixtures/extraction/kotlin/kotest_behavior_spec/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3940,6 +3963,7 @@
             "interface",
             "method",
             "namespace",
+            "operator",
             "property",
             "type",
             "variable"
@@ -3990,22 +4014,17 @@
             "kotlin.property_delegate.v1",
             "kotlin.annotation.v1",
             "spring.request_mapping.v1",
+            "spring.functional_route.v1",
             "http.client_request.v1",
             "ktor.route.v1"
           ],
           "not_applicable": [],
           "open_gaps": [
             {
-              "kind": "kotlin.functional_routing",
-              "reason": "The RouterFunction / coRouter functional DSL nests routes via nest()/path() closures that are not single-assignment same-file; annotation routing is the shipped Kotlin+Spring claim.",
-              "required_closure": "add a lexical-containment collector for coRouter/RouterFunction nesting once a same-file nesting model is designed",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2 (Kotlin RouterFunction/coRouter deferral)"
-            },
-            {
               "kind": "kotlin.http_client.instance_receiver",
-              "reason": "Ktor/WebClient/RestTemplate receivers are proven only via a typed function or primary-constructor parameter, an exact `WebClient.create()`/`RestTemplate` builder chain, or (Ktor) a same-file `HttpClient(...)` local — class-property, DI-provided, or cross-file receivers are syntactically identical to non-HTTP fluent calls and stay silent by M2. Retrofit `@HTTP(method = ...)` annotations also stay silent (no static verb element support).",
-              "required_closure": "extend receiver proofs to class-property/field receivers if in-file type resolution becomes available; add `@HTTP` static-element parsing if demanded",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
+              "reason": "Ktor/WebClient/RestTemplate receivers are proven by a typed function, primary-constructor, or class-body property declaration, an exact `WebClient.create()`/`RestTemplate` builder chain, or (Ktor) a same-file `HttpClient(...)` local. An untyped receiver whose client type comes from another file (a factory call, an injected value with an inferred type, or a supertype member) is syntactically identical to a non-HTTP fluent call and stays silent.",
+              "required_closure": "prove receivers whose client type is declared in another file once workspace-global type resolution is available to the extractor",
+              "planned_closure_task": "docs/plans/2026-09-22-language-gap-closure.md later waves"
             },
             {
               "kind": "kotest.data_driven_test_roles",
@@ -4082,7 +4101,8 @@
       "parser_crate": "tree-sitter-scala",
       "extensions": [
         "scala",
-        "sc"
+        "sc",
+        "sbt"
       ],
       "dependency_status": "current",
       "capabilities": {
@@ -4122,6 +4142,21 @@
           "name": "test_suites",
           "source": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala",
           "expected": "fixtures/extraction/scala/test_suites/expected.json"
+        },
+        {
+          "name": "members_and_literals",
+          "source": "fixtures/extraction/scala/members_and_literals/source.scala",
+          "expected": "fixtures/extraction/scala/members_and_literals/expected.json"
+        },
+        {
+          "name": "web_routes",
+          "source": "fixtures/extraction/scala/web_routes/source.scala",
+          "expected": "fixtures/extraction/scala/web_routes/expected.json"
+        },
+        {
+          "name": "sbt_build",
+          "source": "fixtures/extraction/scala/sbt_build/build.sbt",
+          "expected": "fixtures/extraction/scala/sbt_build/expected.json"
         }
       ],
       "target_capabilities": {
@@ -4136,10 +4171,14 @@
         "symbols": {
           "supported": [
             "class",
+            "constant",
             "constructor",
+            "enum",
+            "enum_member",
             "function",
             "import",
             "method",
+            "module",
             "namespace",
             "property",
             "trait",
@@ -4171,12 +4210,20 @@
         "body_spans": {
           "supported": [
             "class",
+            "constant",
+            "constructor",
+            "enum",
+            "enum_member",
+            "function",
             "method",
-            "trait"
+            "module",
+            "namespace",
+            "property",
+            "trait",
+            "variable"
           ],
           "not_applicable": [
-            "import",
-            "namespace"
+            "import"
           ],
           "open_gaps": []
         },
@@ -4185,7 +4232,10 @@
             "scala.extension_definition.v1",
             "scala.given_definition.v1",
             "scala.for_expression.v1",
-            "scala.annotation.v1"
+            "scala.annotation.v1",
+            "akka_http.route.v1",
+            "http4s.route.v1",
+            "http.client_request.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -4201,9 +4251,12 @@
         "annotations": {
           "supported": [
             "class",
+            "enum",
+            "enum_member",
             "function",
             "method",
             "property",
+            "trait",
             "type"
           ],
           "not_applicable": [],
@@ -4212,6 +4265,8 @@
         "doc_comments": {
           "supported": [
             "class",
+            "enum",
+            "enum_member",
             "method"
           ],
           "not_applicable": [],

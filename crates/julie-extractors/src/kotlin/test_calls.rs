@@ -65,47 +65,71 @@ use tree_sitter::Node;
 ///
 /// **Tests** (`is_test = true`):
 /// - `test` — Kotest FunSpec
-/// - `it` — Kotest DescribeSpec, BehaviorSpec, Spek
+/// - `it` — Kotest DescribeSpec, Spek
 /// - `should` — Kotest ShouldSpec
-/// - `then` — Kotest BehaviorSpec (innermost leaf assertion step)
+/// - `then` / `Then` — Kotest BehaviorSpec leaf step, Spek Gherkin step
 /// - `scenario` — Kotest FeatureSpec leaf step
 /// - `expect` — Kotest ExpectSpec leaf step
-/// - `xit` / `xtest` — the disabled spellings of `it` and `test`
+/// - the `x`-prefixed disabled spellings of each
 ///
 /// **Containers** (`test_container = true`):
 /// - `describe` — Kotest DescribeSpec, Spek
-/// - `context` — Kotest FunSpec / ShouldSpec / Spek
-/// - `given` — Kotest BehaviorSpec, Spek BDD form
-/// - `When` — Kotest BehaviorSpec intermediate step (capital W: `when` is a
-///   reserved Kotlin keyword; Kotest uses `When`)
-/// - `and` — Kotest BehaviorSpec continuation step
+/// - `context` — Kotest FunSpec / ShouldSpec / ExpectSpec / DescribeSpec, Spek
+/// - `given` / `Given`, `when` / `When`, `and` / `And` — Kotest BehaviorSpec
+///   groups (`when` and `and` are Kotlin keywords, so Kotest code writes them
+///   backticked; the backticks are stripped before matching)
 /// - `feature` — Kotest FeatureSpec group
-/// - `xdescribe` / `xcontext` — the disabled spellings of `describe` and
-///   `context`
+/// - `Feature` / `Scenario` — Spek Gherkin groups
+/// - the `x`-prefixed disabled spellings of each
 ///
 /// A disabled step still declares a case or a group; the runner reports it as
 /// skipped rather than dropping it, so it earns the same role as the enabled
 /// spelling.
 ///
 /// **Lifecycle** (`is_test = true` + `test_lifecycle = true`):
-/// - `beforeEach` / `afterEach` — Kotest
-/// - `beforeAll` / `afterAll` — Kotest
-/// - `beforeTest` / `afterTest` — Kotest
-/// - `beforeEachTest` / `afterEachTest` — Spek
-/// - `beforeGroup` / `afterGroup` — Spek
+/// - `beforeEach` / `afterEach`, `beforeTest` / `afterTest`, `beforeAll` /
+///   `afterAll`, `beforeSpec` / `afterSpec`, `beforeContainer` /
+///   `afterContainer`, `beforeAny` / `afterAny` — Kotest
+/// - `beforeEachTest` / `afterEachTest`, `beforeGroup` / `afterGroup`,
+///   `beforeEachGroup` / `afterEachGroup` — Spek
 pub(crate) const KOTLIN_VOCAB: TestCallVocab = TestCallVocab {
     test: &[
-        "test", "it", "should", "then", "scenario", "expect", "xit", "xtest",
+        "test",
+        "it",
+        "should",
+        "then",
+        "Then",
+        "scenario",
+        "expect",
+        "xit",
+        "xtest",
+        "xshould",
+        "xthen",
+        "xThen",
+        "xscenario",
+        "xexpect",
     ],
     container: &[
         "describe",
         "context",
         "given",
+        "Given",
+        "when",
         "When",
         "and",
+        "And",
         "feature",
+        "Feature",
+        "Scenario",
         "xdescribe",
         "xcontext",
+        "xgiven",
+        "xGiven",
+        "xwhen",
+        "xWhen",
+        "xand",
+        "xAnd",
+        "xfeature",
     ],
     lifecycle: &[
         "beforeEach",
@@ -114,12 +138,37 @@ pub(crate) const KOTLIN_VOCAB: TestCallVocab = TestCallVocab {
         "afterAll",
         "beforeTest",
         "afterTest",
+        "beforeSpec",
+        "afterSpec",
+        "beforeContainer",
+        "afterContainer",
+        "beforeAny",
+        "afterAny",
         "beforeEachTest",
         "afterEachTest",
         "beforeGroup",
         "afterGroup",
+        "beforeEachGroup",
+        "afterEachGroup",
     ],
 };
+
+/// Kotest data-driven testing: `withData(rows) { row -> … }` runs its lambda
+/// once per row and reports one test per row.
+const KOTEST_DATA_DRIVEN: &str = "withData";
+
+/// Whether this Kotlin file may hold Kotest or Spek DSL calls: a test source
+/// path, an import of either framework, or a constructor call of a named spec
+/// base type (`DescribeSpec({ … })`, `FunSpec() { … }`). Elsewhere
+/// `context("x") { }` and `feature("x") { }` are ordinary DSL calls, not tests.
+pub(super) fn test_dsl_is_active(base: &BaseExtractor) -> bool {
+    crate::test_detection::is_test_path(&base.file_path)
+        || base.content.contains("io.kotest")
+        || base.content.contains("org.spekframework")
+        || crate::test_detection::KOTLIN_SPEC_BASE_TYPES
+            .iter()
+            .any(|base_type| base.content.contains(&format!("{base_type}(")))
+}
 
 /// Materialize a Kotest / Spek `call_expression` as a test/container/lifecycle
 /// symbol. Returns `None` for any call that is not a recognized DSL call so the
@@ -198,7 +247,12 @@ pub(super) fn extract_kotlin_test_call(
                 .children(&mut cursor)
                 .find(|c| matches!(c.kind(), "identifier" | "simple_identifier"))?
         };
-        full_callee = base.get_node_text(&callee_node);
+        full_callee =
+            super::helpers::strip_backticks(&base.get_node_text(&callee_node)).to_string();
+
+        if full_callee == KOTEST_DATA_DRIVEN {
+            return Some(data_driven_symbol(base, node, inner, parent_id));
+        }
 
         // String arg: inner call's value_arguments → first value_argument →
         // first string_literal named child.
@@ -254,6 +308,30 @@ pub(super) fn extract_kotlin_test_call(
         category,
         parent_id,
     ))
+}
+
+/// A `withData(…) { … }` block: one symbol with the `parameterized_test` role,
+/// because the runner reports one result per row.
+fn data_driven_symbol(
+    base: &mut BaseExtractor,
+    node: &Node,
+    inner: Node,
+    parent_id: Option<&str>,
+) -> Symbol {
+    let mut symbol = build_test_call_symbol(
+        base,
+        node,
+        KOTEST_DATA_DRIVEN,
+        KOTEST_DATA_DRIVEN.to_string(),
+        TestCallCategory::Test,
+        parent_id,
+    );
+    symbol.signature = Some(base.get_node_text(&inner));
+    crate::test_detection::apply_test_role(
+        symbol.metadata.get_or_insert_with(Default::default),
+        crate::base::TestRole::ParameterizedTest,
+    );
+    symbol
 }
 
 /// WordSpec behaviour verbs. Kotest declares each as an infix extension on

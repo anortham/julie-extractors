@@ -187,6 +187,19 @@ fn extract_identifier_from_node(
                 return;
             }
 
+            // `Foo::class` is a class literal: a type usage of `Foo`.
+            if let Some(type_name) = class_literal_type(base, node) {
+                let name = identifier_name(base, &type_name);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                base.create_identifier(
+                    &type_name,
+                    name,
+                    IdentifierKind::TypeUsage,
+                    containing_symbol_id,
+                );
+                return;
+            }
+
             // Extract the rightmost identifier (the member name)
             if let Some((name_node, name)) = extract_rightmost_identifier(base, &node) {
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
@@ -203,6 +216,11 @@ fn extract_identifier_from_node(
                 base.create_identifier(&name_node, name, kind, containing_symbol_id);
             }
         }
+
+        // `@Query("select …")`: the annotation's value string is a literal
+        // whose carrier is the annotation name; the carrier gate keeps only
+        // configured carriers.
+        "annotation" => record_kotlin_annotation_value_literal(base, node, containing_symbols),
 
         // Infix call: `a plusTax 20` calls `plusTax`.
         "infix_expression" => {
@@ -233,13 +251,15 @@ fn extract_identifier_from_node(
         // used as a value or as the object/receiver of a navigation — the reads the
         // Call/MemberAccess/TypeUsage arms above do not own. Kotlin type positions
         // live inside `user_type`, which the predicate excludes.
-        "identifier" if is_kotlin_value_read_identifier(node) => {
+        "identifier" if is_kotlin_value_read_identifier(base, node) => {
             let name = identifier_name(base, &node);
             // Rule 5: reuse the existing noise filter, plus the `it`/`field`
             // soft keywords (implicit lambda parameter / property backing
-            // field), which parse as plain identifiers in kotlin-ng.
-            // (`this`/`super`/`true`/`null` are distinct grammar nodes.)
-            if !is_kotlin_noise_type(&name) && name != "it" && name != "field" {
+            // field), and the `null`/`true`/`false` literals, which all parse
+            // as plain identifiers in kotlin-ng.
+            if !is_kotlin_noise_type(&name)
+                && !matches!(name.as_str(), "it" | "field" | "null" | "true" | "false")
+            {
                 let containing = find_containing_symbol_id(node, containing_symbols);
                 base.create_identifier(&node, name, IdentifierKind::VariableRef, containing);
             }
@@ -257,7 +277,7 @@ fn extract_identifier_from_node(
 /// the vendored tree-sitter-kotlin-ng 1.1.0 grammar (which differs from older
 /// kotlin grammars — e.g. simple `$name` string interpolation is lexed as
 /// `string_content` and never reaches identifier extraction).
-fn is_kotlin_value_read_identifier(node: Node) -> bool {
+fn is_kotlin_value_read_identifier(base: &BaseExtractor, node: Node) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
@@ -271,8 +291,11 @@ fn is_kotlin_value_read_identifier(node: Node) -> bool {
         "call_expression" => false,
 
         // Rule 1/2: only the leading receiver of a navigation is a read this arm
-        // owns; the member name is owned by the MemberAccess/Call arms.
-        "navigation_expression" => parent.child(0).map(|c| c.id()) == Some(node.id()),
+        // owns; the member name is owned by the MemberAccess/Call arms. The
+        // type of a `Foo::class` literal is owned by the navigation arm.
+        "navigation_expression" => {
+            parent.child(0).map(|c| c.id()) == Some(node.id()) && !is_class_literal(base, parent)
+        }
 
         // Rule 3: declaration names. `variable_declaration` also covers lambda
         // parameters and `for` loop variables in kotlin-ng.
@@ -324,6 +347,27 @@ fn is_kotlin_value_read_identifier(node: Node) -> bool {
         // constant — is a read.
         _ => true,
     }
+}
+
+/// `Foo::class`: a navigation of `identifier`, `::`, and the `class` keyword.
+fn is_class_literal(base: &BaseExtractor, node: Node) -> bool {
+    let mut cursor = node.walk();
+    let children: Vec<Node> = node.children(&mut cursor).collect();
+    matches!(
+        children.as_slice(),
+        [receiver, separator, member]
+            if receiver.kind() == "identifier"
+                && separator.kind() == "::"
+                && member.kind() == "identifier"
+                && base.get_node_text(member) == "class"
+    )
+}
+
+/// The type name of a `Foo::class` literal.
+fn class_literal_type<'a>(base: &BaseExtractor, node: Node<'a>) -> Option<Node<'a>> {
+    is_class_literal(base, node)
+        .then(|| node.child(0))
+        .flatten()
 }
 
 /// Is `node` the label of a named argument (`bar` in `f(bar = seed)`)? The
@@ -536,6 +580,61 @@ fn record_kotlin_call_arg_literals(
     }
 }
 
+fn record_kotlin_annotation_value_literal(
+    base: &mut BaseExtractor,
+    annotation: Node,
+    containing_symbols: &ContainingSymbolIndex<'_>,
+) {
+    let Some(invocation) = annotation
+        .children(&mut annotation.walk())
+        .find(|child| child.kind() == "constructor_invocation")
+    else {
+        return;
+    };
+    let carrier = invocation
+        .children(&mut invocation.walk())
+        .find(|child| child.kind() == "user_type")
+        .and_then(|user_type| {
+            user_type
+                .children(&mut user_type.walk())
+                .filter(|child| child.kind() == "identifier")
+                .last()
+        })
+        .map(|name| base.get_node_text(&name));
+    let Some(arguments) = invocation
+        .children(&mut invocation.walk())
+        .find(|child| child.kind() == "value_arguments")
+    else {
+        return;
+    };
+    let value = arguments
+        .named_children(&mut arguments.walk())
+        .filter(|argument| argument.kind() == "value_argument")
+        .find_map(|argument| {
+            if !is_named_argument(argument) {
+                return kotlin_argument_value(argument);
+            }
+            let label = argument.named_child(0)?;
+            (base.get_node_text(&label) == "value")
+                .then(|| kotlin_argument_value(argument))
+                .flatten()
+        });
+    let Some(value) = value else {
+        return;
+    };
+    let Some(text) = base.decode_string_literal(&value) else {
+        return;
+    };
+    let containing_symbol_id = find_containing_symbol_id(annotation, containing_symbols);
+    base.record_literal(&value, text, carrier, 0, containing_symbol_id);
+}
+
+fn is_named_argument(argument: Node) -> bool {
+    argument
+        .children(&mut argument.walk())
+        .any(|child| !child.is_named() && child.kind() == "=")
+}
+
 /// The value expression of a Kotlin `value_argument`. A named argument
 /// (`name = expr`) has the name as a leading `identifier`, so the value is the
 /// last named child; a positional argument's single named child is the value.
@@ -641,6 +740,10 @@ fn identifier_name(base: &BaseExtractor, node: &Node) -> String {
 }
 
 pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
+    self_receiver_type_at(base, node)
+}
+
+fn self_receiver_type_at(base: &BaseExtractor, node: Node) -> Option<String> {
     let nav = {
         let mut cursor = node.walk();
         node.children(&mut cursor)
@@ -657,14 +760,28 @@ pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<Str
     }
 }
 
+/// The type `this` names at `node`: the receiver type of the nearest enclosing
+/// extension function or property, else the nearest enclosing type.
 fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
     let mut current = node.parent();
     while let Some(candidate) = current {
-        if matches!(
-            candidate.kind(),
-            "class_declaration" | "object_declaration" | "companion_object"
-        ) {
-            return super::helpers::declared_name(base, &candidate).map(|(name, _)| name);
+        match candidate.kind() {
+            "function_declaration" | "property_declaration" => {
+                if let Some(receiver) = super::helpers::extract_receiver_type(base, &candidate) {
+                    let base_name = receiver
+                        .split('<')
+                        .next()
+                        .unwrap_or(&receiver)
+                        .trim()
+                        .trim_end_matches('?')
+                        .to_string();
+                    return Some(base_name);
+                }
+            }
+            "class_declaration" | "object_declaration" | "companion_object" => {
+                return super::helpers::declared_name(base, &candidate).map(|(name, _)| name);
+            }
+            _ => {}
         }
         current = candidate.parent();
     }

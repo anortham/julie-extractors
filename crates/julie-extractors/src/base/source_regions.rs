@@ -762,7 +762,7 @@ fn config_for_language(language: &str) -> Option<RegionLanguageConfig> {
         }),
         "scala" => Some(RegionLanguageConfig {
             comment_node_kinds: &["comment", "block_comment"],
-            string_literal_node_kinds: &["string"],
+            string_literal_node_kinds: &["string", "interpolated_string_expression"],
             quoted_string_literal_node_kinds: &[],
             html_comment_node_kinds: &[],
             embedded_node_kinds: &[],

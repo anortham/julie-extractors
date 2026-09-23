@@ -386,11 +386,12 @@
       "end_byte": 48,
       "body_span": null,
       "body_hash": null,
-      "signature": "import org.springframework.web.bind.annotation",
+      "signature": "import org.springframework.web.bind.annotation.*",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "isWildcard": true,
         "type": "import"
       },
       "annotations": [],
@@ -1429,7 +1430,72 @@
       }
     }
   ],
-  "literals": [],
+  "literals": [
+    {
+      "literal_text": "$base/dynamic",
+      "kind": "other",
+      "carrier": "GetMapping",
+      "arg_position": 0,
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_routes/source.kt",
+      "start_line": 22,
+      "start_column": 16,
+      "end_line": 22,
+      "end_column": 31,
+      "start_byte": 602,
+      "end_byte": 617,
+      "containing_key": "fixtures/extraction/kotlin/spring_routes/source.kt:interpolated:22:4",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/healthz",
+      "kind": "other",
+      "carrier": "GetMapping",
+      "arg_position": 0,
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_routes/source.kt",
+      "start_line": 31,
+      "start_column": 16,
+      "end_line": 31,
+      "end_column": 26,
+      "start_byte": 798,
+      "end_byte": 808,
+      "containing_key": "fixtures/extraction/kotlin/spring_routes/source.kt:health:31:4",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/users",
+      "kind": "other",
+      "carrier": "PostMapping",
+      "arg_position": 0,
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_routes/source.kt",
+      "start_line": 9,
+      "start_column": 17,
+      "end_line": 9,
+      "end_column": 25,
+      "start_byte": 197,
+      "end_byte": 205,
+      "containing_key": "fixtures/extraction/kotlin/spring_routes/source.kt:createUser:9:4",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/users/{id}",
+      "kind": "other",
+      "carrier": "GetMapping",
+      "arg_position": 0,
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_routes/source.kt",
+      "start_line": 6,
+      "start_column": 16,
+      "end_line": 6,
+      "end_column": 29,
+      "start_byte": 129,
+      "end_byte": 142,
+      "containing_key": "fixtures/extraction/kotlin/spring_routes/source.kt:getUser:6:4",
+      "confidence": "1.000"
+    }
+  ],
   "source_regions": [
     {
       "kind": "comment",

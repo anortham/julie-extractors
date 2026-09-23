@@ -11,7 +11,6 @@
 /// - annotations: Annotation extraction
 /// - imports_packages: Import and package declaration extraction
 /// - relationships: Inheritance and implementation relationship extraction
-/// - types: Type inference from signatures
 /// - type_facts: Declared-type fact recording
 /// - identifiers: LSP identifier tracking for references
 mod annotations;
@@ -25,7 +24,6 @@ mod methods;
 mod parameters;
 mod relationships;
 mod type_facts;
-mod types;
 
 use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
@@ -98,7 +96,7 @@ impl JavaExtractor {
             return;
         }
 
-        if node.kind() == "field_declaration" {
+        if matches!(node.kind(), "field_declaration" | "constant_declaration") {
             let field_symbols = fields::extract_fields(self, node, parent_id);
             let first_symbol_id = field_symbols.first().map(|symbol| symbol.id.clone());
             symbols.extend(field_symbols);
@@ -138,24 +136,7 @@ impl JavaExtractor {
             ));
         }
 
-        if let Some(symbol) = self.extract_symbol(node, parent_id) {
-            let symbol_id = symbol.id.clone();
-            symbols.push(symbol);
-
-            if matches!(
-                node.kind(),
-                "method_declaration" | "constructor_declaration"
-            ) {
-                symbols.extend(parameters::extract_parameter_symbols(
-                    self, node, &symbol_id,
-                ));
-            }
-
-            if node.kind() == "record_declaration" {
-                let components = classes::extract_record_components(self, node, Some(&symbol_id));
-                symbols.extend(components);
-            }
-
+        if let Some(symbol_id) = self.push_symbol(node, parent_id, symbols) {
             // Walk children with this symbol as parent
             let Some(child_depth) = child_tree_depth(depth) else {
                 return;
@@ -174,6 +155,36 @@ impl JavaExtractor {
         }
     }
 
+    /// Extract the symbol this node declares, with its parameters and record
+    /// components, and return its id. Kept out of `walk_tree` so the recursive
+    /// frame never holds a `Symbol`.
+    #[inline(never)]
+    fn push_symbol(
+        &mut self,
+        node: Node,
+        parent_id: Option<&str>,
+        symbols: &mut Vec<Symbol>,
+    ) -> Option<String> {
+        let symbol = self.extract_symbol(node, parent_id)?;
+        let symbol_id = symbol.id.clone();
+        symbols.push(symbol);
+
+        if matches!(
+            node.kind(),
+            "method_declaration" | "constructor_declaration"
+        ) {
+            symbols.extend(parameters::extract_parameter_symbols(
+                self, node, &symbol_id,
+            ));
+        }
+
+        if node.kind() == "record_declaration" {
+            let components = classes::extract_record_components(self, node, Some(&symbol_id));
+            symbols.extend(components);
+        }
+        Some(symbol_id)
+    }
+
     fn extract_symbol(&mut self, node: Node, parent_id: Option<&str>) -> Option<Symbol> {
         match node.kind() {
             "package_declaration" => imports_packages::extract_package(self, node, parent_id),
@@ -181,7 +192,13 @@ impl JavaExtractor {
             "class_declaration" => classes::extract_class(self, node, parent_id),
             "interface_declaration" => classes::extract_interface(self, node, parent_id),
             "method_declaration" => methods::extract_method(self, node, parent_id),
-            "constructor_declaration" => methods::extract_constructor(self, node, parent_id),
+            "constructor_declaration" | "compact_constructor_declaration" => {
+                methods::extract_constructor(self, node, parent_id)
+            }
+            "annotation_type_element_declaration" => {
+                methods::extract_annotation_element(self, node, parent_id)
+            }
+            "module_declaration" => imports_packages::extract_module(self, node, parent_id),
             "field_declaration" => fields::extract_field(self, node, parent_id),
             "enum_declaration" => classes::extract_enum(self, node, parent_id),
             "enum_constant" => classes::extract_enum_constant(self, node, parent_id),
@@ -240,9 +257,10 @@ impl JavaExtractor {
         }
     }
 
-    /// Infer types from Java type signatures
-    pub fn infer_types(&self, symbols: &[Symbol]) -> HashMap<String, String> {
-        types::infer_types(self, symbols)
+    /// Java records every stated type from the tree during extraction, so
+    /// nothing is inferred from signature text.
+    pub fn infer_types(&self, _symbols: &[Symbol]) -> HashMap<String, String> {
+        HashMap::new()
     }
 
     /// Extract all identifier usages (function calls, member access, etc.)

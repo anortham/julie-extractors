@@ -281,7 +281,9 @@ pub(super) fn extract_companion_object(
         SymbolKind::Class,
         SymbolOptions {
             signature: Some(signature),
-            visibility: Some(Visibility::Public),
+            visibility: Some(helpers::determine_visibility(&helpers::extract_modifiers(
+                base, node,
+            ))),
             parent_id: parent_id.map(|s| s.to_string()),
             metadata: Some(HashMap::from([(
                 "type".to_string(),

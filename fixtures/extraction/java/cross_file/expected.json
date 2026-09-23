@@ -153,15 +153,8 @@
       "end_column": 29,
       "start_byte": 432,
       "end_byte": 447,
-      "body_span": {
-        "start_line": 13,
-        "start_column": 27,
-        "end_line": 13,
-        "end_column": 29,
-        "start_byte": 445,
-        "end_byte": 447
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "Other o = new Other()",
       "doc_comment": null,
       "visibility": null,

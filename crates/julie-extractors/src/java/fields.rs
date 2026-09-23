@@ -25,22 +25,9 @@ pub(super) fn extract_fields(
     let visibility = helpers::determine_visibility(&modifiers, node);
     let annotations = helpers::extract_annotations(extractor.base(), node);
 
-    // Get type
-    let type_node = node.children(&mut node.walk()).find(|c| {
-        matches!(
-            c.kind(),
-            "type_identifier"
-                | "generic_type"
-                | "array_type"
-                | "primitive_type"
-                | "boolean_type"
-                | "integral_type"
-                | "floating_point_type"
-                | "void_type"
-        )
-    });
-    let field_type = type_node
-        .map(|n| extractor.base().get_node_text(&n))
+    let field_type = node
+        .child_by_field_name("type")
+        .map(|type_node| extractor.base().get_node_text(&type_node))
         .unwrap_or_else(|| "Object".to_string());
 
     // Get variable declarator(s) - there can be multiple fields in one declaration
@@ -49,9 +36,8 @@ pub(super) fn extract_fields(
         .filter(|c| c.kind() == "variable_declarator")
         .collect();
 
-    // Check if it's a constant (static final)
-    let is_constant =
-        modifiers.contains(&"static".to_string()) && modifiers.contains(&"final".to_string());
+    let is_constant = node.kind() == "constant_declaration"
+        || (modifiers.contains(&"static".to_string()) && modifiers.contains(&"final".to_string()));
     let symbol_kind = if is_constant {
         SymbolKind::Constant
     } else {

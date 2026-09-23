@@ -1,0 +1,2573 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:Routes:4:0",
+      "name": "Routes",
+      "kind": "class",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 27,
+      "end_column": 1,
+      "start_byte": 121,
+      "end_byte": 751,
+      "body_span": {
+        "start_line": 4,
+        "start_column": 47,
+        "end_line": 27,
+        "end_column": 1,
+        "start_byte": 168,
+        "end_byte": 751
+      },
+      "body_hash": "1e884476fc2f6caa936276e4f4d1d219",
+      "signature": "class Routes(private val handler: UserHandler)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "name": "api",
+      "kind": "method",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 5,
+      "start_column": 4,
+      "end_line": 20,
+      "end_column": 5,
+      "start_byte": 174,
+      "end_byte": 618,
+      "body_span": {
+        "start_line": 5,
+        "start_column": 16,
+        "end_line": 20,
+        "end_column": 5,
+        "start_byte": 186,
+        "end_byte": 618
+      },
+      "body_hash": "fe72b59f286b60e9e3bc150193a94e7d",
+      "signature": "fun api() = coRouter {\n        \"/api/users\".nest {\n            GET(\"\", handler::list)\n            GET(\"/{id}\", handler::get)\n        }\n        GET(\"/health\") {\n            ok().bodyValueAndAwait(\"up\")\n        }\n        path(\"/v2\").nest {\n            PUT(\"/items/{id}\", handler::update)\n        }\n        // Silent: an interpolated nest prefix is not static.\n        \"$base/dyn\".nest {\n            GET(\"/hidden\", handler::hidden)\n        }\n    }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:Routes:4:0",
+      "metadata": {
+        "modifiers": "",
+        "type": "method"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:handler:4:13",
+      "name": "handler",
+      "kind": "property",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 4,
+      "start_column": 13,
+      "end_line": 4,
+      "end_column": 45,
+      "start_byte": 134,
+      "end_byte": 166,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "private val handler: UserHandler",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:Routes:4:0",
+      "metadata": {
+        "binding": "val",
+        "dataType": "UserHandler",
+        "hasDefaultValue": "false",
+        "type": "property"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "name": "mvc",
+      "kind": "method",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 22,
+      "start_column": 4,
+      "end_line": 26,
+      "end_column": 5,
+      "start_byte": 624,
+      "end_byte": 749,
+      "body_span": {
+        "start_line": 22,
+        "start_column": 16,
+        "end_line": 26,
+        "end_column": 5,
+        "start_byte": 636,
+        "end_byte": 749
+      },
+      "body_hash": "b2d3ed0cd89baf6d1eef7b24b038a47a",
+      "signature": "fun mvc() = router {\n        accept(APPLICATION_JSON).nest {\n            DELETE(\"/mvc/{id}\", handler::delete)\n        }\n    }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:Routes:4:0",
+      "metadata": {
+        "modifiers": "",
+        "type": "method"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:org.springframework.web.reactive.function.server.coRouter:1:0",
+      "name": "org.springframework.web.reactive.function.server.coRouter",
+      "kind": "import",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 64,
+      "start_byte": 0,
+      "end_byte": 64,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "import org.springframework.web.reactive.function.server.coRouter",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "import"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:org.springframework.web.servlet.function.router:2:0",
+      "name": "org.springframework.web.servlet.function.router",
+      "kind": "import",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 54,
+      "start_byte": 65,
+      "end_byte": 119,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "import org.springframework.web.servlet.function.router",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "import"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "GET",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 10,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "GET",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 10,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "GET",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 18,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "GET",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 18,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "GET",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 7,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "GET",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 7,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "GET",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 8,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "GET",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 8,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "PUT",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 14,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "PUT",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 14,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "bodyValueAndAwait",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 11,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "bodyValueAndAwait",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 11,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "coRouter",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 5,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "coRouter",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 5,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "handler.get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 8,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "handler.get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 8,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "handler.hidden",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 18,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "handler.hidden",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 18,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "handler.list",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 7,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "handler.list",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 7,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "handler.update",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 14,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "handler.update",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 14,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "nest",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 13,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "nest",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 13,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "nest",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 17,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "nest",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 17,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "nest",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 6,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "nest",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 6,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "ok",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 11,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "ok",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 11,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "path",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 13,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "callee_name": "path",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 13,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "callee_name": "DELETE",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 24,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "callee_name": "DELETE",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 24,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "callee_name": "accept",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 23,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "callee_name": "accept",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 23,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "callee_name": "handler.delete",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 24,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "callee_name": "handler.delete",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 24,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "callee_name": "nest",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 23,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "callee_name": "nest",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 23,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "callee_name": "router",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 22,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "callee_name": "router",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "line_number": 22,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "GET",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 10,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "GET",
+        "terminal_name": "GET",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 10,
+        "start_column": 8,
+        "end_line": 10,
+        "end_column": 22,
+        "start_byte": 317,
+        "end_byte": 331
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "GET",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 10,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "GET",
+        "terminal_name": "GET",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 10,
+        "start_column": 8,
+        "end_line": 10,
+        "end_column": 22,
+        "start_byte": 317,
+        "end_byte": 331
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "GET",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 18,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "GET",
+        "terminal_name": "GET",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 18,
+        "start_column": 12,
+        "end_line": 18,
+        "end_column": 43,
+        "start_byte": 571,
+        "end_byte": 602
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "GET",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 18,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "GET",
+        "terminal_name": "GET",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 18,
+        "start_column": 12,
+        "end_line": 18,
+        "end_column": 43,
+        "start_byte": 571,
+        "end_byte": 602
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "GET",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 7,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "GET",
+        "terminal_name": "GET",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 7,
+        "start_column": 12,
+        "end_line": 7,
+        "end_column": 34,
+        "start_byte": 237,
+        "end_byte": 259
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "GET",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 7,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "GET",
+        "terminal_name": "GET",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 7,
+        "start_column": 12,
+        "end_line": 7,
+        "end_column": 34,
+        "start_byte": 237,
+        "end_byte": 259
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "GET",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 8,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "GET",
+        "terminal_name": "GET",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 8,
+        "start_column": 12,
+        "end_line": 8,
+        "end_column": 38,
+        "start_byte": 272,
+        "end_byte": 298
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "GET",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 8,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "GET",
+        "terminal_name": "GET",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 8,
+        "start_column": 12,
+        "end_line": 8,
+        "end_column": 38,
+        "start_byte": 272,
+        "end_byte": 298
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "PUT",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 14,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "PUT",
+        "terminal_name": "PUT",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 14,
+        "start_column": 12,
+        "end_line": 14,
+        "end_column": 47,
+        "start_byte": 424,
+        "end_byte": 459
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "PUT",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 14,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "PUT",
+        "terminal_name": "PUT",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 14,
+        "start_column": 12,
+        "end_line": 14,
+        "end_column": 47,
+        "start_byte": 424,
+        "end_byte": 459
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "bodyValueAndAwait",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 11,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "bodyValueAndAwait",
+        "terminal_name": "bodyValueAndAwait",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 11,
+        "start_column": 12,
+        "end_line": 11,
+        "end_column": 40,
+        "start_byte": 346,
+        "end_byte": 374
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "bodyValueAndAwait",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 11,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "bodyValueAndAwait",
+        "terminal_name": "bodyValueAndAwait",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 11,
+        "start_column": 12,
+        "end_line": 11,
+        "end_column": 40,
+        "start_byte": 346,
+        "end_byte": 374
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "coRouter",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 5,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "coRouter",
+        "terminal_name": "coRouter",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 5,
+        "start_column": 16,
+        "end_line": 20,
+        "end_column": 5,
+        "start_byte": 186,
+        "end_byte": 618
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "coRouter",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 5,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "coRouter",
+        "terminal_name": "coRouter",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 5,
+        "start_column": 16,
+        "end_line": 20,
+        "end_column": 5,
+        "start_byte": 186,
+        "end_byte": 618
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "handler.get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 8,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "handler.get",
+        "terminal_name": "get",
+        "receiver": "handler",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 8,
+        "start_column": 25,
+        "end_line": 8,
+        "end_column": 37,
+        "start_byte": 285,
+        "end_byte": 297
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "handler.get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 8,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "handler.get",
+        "terminal_name": "get",
+        "receiver": "handler",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 8,
+        "start_column": 25,
+        "end_line": 8,
+        "end_column": 37,
+        "start_byte": 285,
+        "end_byte": 297
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "handler.hidden",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 18,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "handler.hidden",
+        "terminal_name": "hidden",
+        "receiver": "handler",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 18,
+        "start_column": 27,
+        "end_line": 18,
+        "end_column": 42,
+        "start_byte": 586,
+        "end_byte": 601
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "handler.hidden",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 18,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "handler.hidden",
+        "terminal_name": "hidden",
+        "receiver": "handler",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 18,
+        "start_column": 27,
+        "end_line": 18,
+        "end_column": 42,
+        "start_byte": 586,
+        "end_byte": 601
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "handler.list",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 7,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "handler.list",
+        "terminal_name": "list",
+        "receiver": "handler",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 7,
+        "start_column": 20,
+        "end_line": 7,
+        "end_column": 33,
+        "start_byte": 245,
+        "end_byte": 258
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "handler.list",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 7,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "handler.list",
+        "terminal_name": "list",
+        "receiver": "handler",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 7,
+        "start_column": 20,
+        "end_line": 7,
+        "end_column": 33,
+        "start_byte": 245,
+        "end_byte": 258
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "handler.update",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 14,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "handler.update",
+        "terminal_name": "update",
+        "receiver": "handler",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 14,
+        "start_column": 31,
+        "end_line": 14,
+        "end_column": 46,
+        "start_byte": 443,
+        "end_byte": 458
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "handler.update",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 14,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "handler.update",
+        "terminal_name": "update",
+        "receiver": "handler",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 14,
+        "start_column": 31,
+        "end_line": 14,
+        "end_column": 46,
+        "start_byte": 443,
+        "end_byte": 458
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "nest",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 13,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "nest",
+        "terminal_name": "nest",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 13,
+        "start_column": 8,
+        "end_line": 15,
+        "end_column": 9,
+        "start_byte": 393,
+        "end_byte": 469
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "nest",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 13,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "nest",
+        "terminal_name": "nest",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 13,
+        "start_column": 8,
+        "end_line": 15,
+        "end_column": 9,
+        "start_byte": 393,
+        "end_byte": 469
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "nest",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 17,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "nest",
+        "terminal_name": "nest",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 17,
+        "start_column": 8,
+        "end_line": 19,
+        "end_column": 9,
+        "start_byte": 540,
+        "end_byte": 612
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "nest",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 17,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "nest",
+        "terminal_name": "nest",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 17,
+        "start_column": 8,
+        "end_line": 19,
+        "end_column": 9,
+        "start_byte": 540,
+        "end_byte": 612
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "nest",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 6,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "nest",
+        "terminal_name": "nest",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 6,
+        "start_column": 8,
+        "end_line": 9,
+        "end_column": 9,
+        "start_byte": 205,
+        "end_byte": 308
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "nest",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 6,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "nest",
+        "terminal_name": "nest",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 6,
+        "start_column": 8,
+        "end_line": 9,
+        "end_column": 9,
+        "start_byte": 205,
+        "end_byte": 308
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "ok",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 11,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "ok",
+        "terminal_name": "ok",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 11,
+        "start_column": 12,
+        "end_line": 11,
+        "end_column": 16,
+        "start_byte": 346,
+        "end_byte": 350
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "ok",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 11,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "ok",
+        "terminal_name": "ok",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 11,
+        "start_column": 12,
+        "end_line": 11,
+        "end_column": 16,
+        "start_byte": 346,
+        "end_byte": 350
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "path",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 13,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "path",
+        "terminal_name": "path",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 13,
+        "start_column": 8,
+        "end_line": 13,
+        "end_column": 19,
+        "start_byte": 393,
+        "end_byte": 404
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+        "callee_name": "path",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 13,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "path",
+        "terminal_name": "path",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "span": {
+        "start_line": 13,
+        "start_column": 8,
+        "end_line": 13,
+        "end_column": 19,
+        "start_byte": 393,
+        "end_byte": 404
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+        "callee_name": "DELETE",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 24,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "DELETE",
+        "terminal_name": "DELETE",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "span": {
+        "start_line": 24,
+        "start_column": 12,
+        "end_line": 24,
+        "end_column": 48,
+        "start_byte": 697,
+        "end_byte": 733
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+        "callee_name": "DELETE",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 24,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "DELETE",
+        "terminal_name": "DELETE",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "span": {
+        "start_line": 24,
+        "start_column": 12,
+        "end_line": 24,
+        "end_column": 48,
+        "start_byte": 697,
+        "end_byte": 733
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+        "callee_name": "accept",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 23,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "accept",
+        "terminal_name": "accept",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "span": {
+        "start_line": 23,
+        "start_column": 8,
+        "end_line": 23,
+        "end_column": 32,
+        "start_byte": 653,
+        "end_byte": 677
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+        "callee_name": "accept",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 23,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "accept",
+        "terminal_name": "accept",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "span": {
+        "start_line": 23,
+        "start_column": 8,
+        "end_line": 23,
+        "end_column": 32,
+        "start_byte": 653,
+        "end_byte": 677
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+        "callee_name": "handler.delete",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 24,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "handler.delete",
+        "terminal_name": "delete",
+        "receiver": "handler",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "span": {
+        "start_line": 24,
+        "start_column": 32,
+        "end_line": 24,
+        "end_column": 47,
+        "start_byte": 717,
+        "end_byte": 732
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+        "callee_name": "handler.delete",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 24,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "handler.delete",
+        "terminal_name": "delete",
+        "receiver": "handler",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "span": {
+        "start_line": 24,
+        "start_column": 32,
+        "end_line": 24,
+        "end_column": 47,
+        "start_byte": 717,
+        "end_byte": 732
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+        "callee_name": "nest",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 23,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "nest",
+        "terminal_name": "nest",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "span": {
+        "start_line": 23,
+        "start_column": 8,
+        "end_line": 25,
+        "end_column": 9,
+        "start_byte": 653,
+        "end_byte": 743
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+        "callee_name": "nest",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 23,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "nest",
+        "terminal_name": "nest",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "span": {
+        "start_line": 23,
+        "start_column": 8,
+        "end_line": 25,
+        "end_column": 9,
+        "start_byte": 653,
+        "end_byte": 743
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+        "callee_name": "router",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 22,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "router",
+        "terminal_name": "router",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "span": {
+        "start_line": 22,
+        "start_column": 16,
+        "end_line": 26,
+        "end_column": 5,
+        "start_byte": 636,
+        "end_byte": 749
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+        "callee_name": "router",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+        "line_number": 22,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "router",
+        "terminal_name": "router",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "span": {
+        "start_line": 22,
+        "start_column": 16,
+        "end_line": 26,
+        "end_column": 5,
+        "start_byte": 636,
+        "end_byte": 749
+      }
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:APPLICATION_JSON:variable_ref:23:15",
+      "name": "APPLICATION_JSON",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 23,
+      "start_column": 15,
+      "end_line": 23,
+      "end_column": 31,
+      "start_byte": 660,
+      "end_byte": 676,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:DELETE:call:24:12",
+      "name": "DELETE",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 24,
+      "start_column": 12,
+      "end_line": 24,
+      "end_column": 18,
+      "start_byte": 697,
+      "end_byte": 703,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:GET:call:10:8",
+      "name": "GET",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 10,
+      "start_column": 8,
+      "end_line": 10,
+      "end_column": 11,
+      "start_byte": 317,
+      "end_byte": 320,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:GET:call:18:12",
+      "name": "GET",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 18,
+      "start_column": 12,
+      "end_line": 18,
+      "end_column": 15,
+      "start_byte": 571,
+      "end_byte": 574,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:GET:call:7:12",
+      "name": "GET",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 7,
+      "start_column": 12,
+      "end_line": 7,
+      "end_column": 15,
+      "start_byte": 237,
+      "end_byte": 240,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:GET:call:8:12",
+      "name": "GET",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 8,
+      "start_column": 12,
+      "end_line": 8,
+      "end_column": 15,
+      "start_byte": 272,
+      "end_byte": 275,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:PUT:call:14:12",
+      "name": "PUT",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 14,
+      "start_column": 12,
+      "end_line": 14,
+      "end_column": 15,
+      "start_byte": 424,
+      "end_byte": 427,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:UserHandler:type_usage:4:34",
+      "name": "UserHandler",
+      "kind": "type_usage",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 4,
+      "start_column": 34,
+      "end_line": 4,
+      "end_column": 45,
+      "start_byte": 155,
+      "end_byte": 166,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:Routes:4:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:accept:call:23:8",
+      "name": "accept",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 23,
+      "start_column": 8,
+      "end_line": 23,
+      "end_column": 14,
+      "start_byte": 653,
+      "end_byte": 659,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:bodyValueAndAwait:call:11:17",
+      "name": "bodyValueAndAwait",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 11,
+      "start_column": 17,
+      "end_line": 11,
+      "end_column": 34,
+      "start_byte": 351,
+      "end_byte": 368,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:coRouter:call:5:16",
+      "name": "coRouter",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 5,
+      "start_column": 16,
+      "end_line": 5,
+      "end_column": 24,
+      "start_byte": 186,
+      "end_byte": 194,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:delete:call:24:41",
+      "name": "delete",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 24,
+      "start_column": 41,
+      "end_line": 24,
+      "end_column": 47,
+      "start_byte": 726,
+      "end_byte": 732,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:get:call:8:34",
+      "name": "get",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 8,
+      "start_column": 34,
+      "end_line": 8,
+      "end_column": 37,
+      "start_byte": 294,
+      "end_byte": 297,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:handler:variable_ref:14:31",
+      "name": "handler",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 14,
+      "start_column": 31,
+      "end_line": 14,
+      "end_column": 38,
+      "start_byte": 443,
+      "end_byte": 450,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:handler:variable_ref:18:27",
+      "name": "handler",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 18,
+      "start_column": 27,
+      "end_line": 18,
+      "end_column": 34,
+      "start_byte": 586,
+      "end_byte": 593,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:handler:variable_ref:24:32",
+      "name": "handler",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 24,
+      "start_column": 32,
+      "end_line": 24,
+      "end_column": 39,
+      "start_byte": 717,
+      "end_byte": 724,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:handler:variable_ref:7:20",
+      "name": "handler",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 7,
+      "start_column": 20,
+      "end_line": 7,
+      "end_column": 27,
+      "start_byte": 245,
+      "end_byte": 252,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:handler:variable_ref:8:25",
+      "name": "handler",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 8,
+      "start_column": 25,
+      "end_line": 8,
+      "end_column": 32,
+      "start_byte": 285,
+      "end_byte": 292,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:hidden:call:18:36",
+      "name": "hidden",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 18,
+      "start_column": 36,
+      "end_line": 18,
+      "end_column": 42,
+      "start_byte": 595,
+      "end_byte": 601,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:list:call:7:29",
+      "name": "list",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 7,
+      "start_column": 29,
+      "end_line": 7,
+      "end_column": 33,
+      "start_byte": 254,
+      "end_byte": 258,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:nest:call:13:20",
+      "name": "nest",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 13,
+      "start_column": 20,
+      "end_line": 13,
+      "end_column": 24,
+      "start_byte": 405,
+      "end_byte": 409,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:nest:call:17:20",
+      "name": "nest",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 17,
+      "start_column": 20,
+      "end_line": 17,
+      "end_column": 24,
+      "start_byte": 552,
+      "end_byte": 556,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:nest:call:23:33",
+      "name": "nest",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 23,
+      "start_column": 33,
+      "end_line": 23,
+      "end_column": 37,
+      "start_byte": 678,
+      "end_byte": 682,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:nest:call:6:21",
+      "name": "nest",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 6,
+      "start_column": 21,
+      "end_line": 6,
+      "end_column": 25,
+      "start_byte": 218,
+      "end_byte": 222,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:ok:call:11:12",
+      "name": "ok",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 11,
+      "start_column": 12,
+      "end_line": 11,
+      "end_column": 14,
+      "start_byte": 346,
+      "end_byte": 348,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:path:call:13:8",
+      "name": "path",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 13,
+      "start_column": 8,
+      "end_line": 13,
+      "end_column": 12,
+      "start_byte": 393,
+      "end_byte": 397,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:router:call:22:16",
+      "name": "router",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 22,
+      "start_column": 16,
+      "end_line": 22,
+      "end_column": 22,
+      "start_byte": 636,
+      "end_byte": 642,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:update:call:14:40",
+      "name": "update",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 14,
+      "start_column": 40,
+      "end_line": 14,
+      "end_column": 46,
+      "start_byte": 452,
+      "end_byte": 458,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:handler:4:13",
+      "resolved_type": "UserHandler",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "kotlin",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "spring.functional_route.v1",
+      "capture_name": "route",
+      "node_kind": "call_expression",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "start_line": 10,
+      "start_column": 8,
+      "end_line": 12,
+      "end_column": 9,
+      "start_byte": 317,
+      "end_byte": 384,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "functional_routing",
+        "framework": "spring",
+        "normalized_route_template": "/health",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/health",
+        "router": "coRouter",
+        "verb": "GET",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "spring.functional_route.v1",
+      "capture_name": "route",
+      "node_kind": "call_expression",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "start_line": 14,
+      "start_column": 12,
+      "end_line": 14,
+      "end_column": 47,
+      "start_byte": 424,
+      "end_byte": 459,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "functional_routing",
+        "dynamic_segments": [
+          "id"
+        ],
+        "effective_route_template": "/v2/items/{id}",
+        "framework": "spring",
+        "nest_route_template": "/v2",
+        "normalized_route_template": "/v2/items/:id",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/items/{id}",
+        "router": "coRouter",
+        "verb": "PUT",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "spring.functional_route.v1",
+      "capture_name": "route",
+      "node_kind": "call_expression",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "start_line": 7,
+      "start_column": 12,
+      "end_line": 7,
+      "end_column": 34,
+      "start_byte": 237,
+      "end_byte": 259,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "functional_routing",
+        "effective_route_template": "/api/users",
+        "framework": "spring",
+        "nest_route_template": "/api/users",
+        "normalized_route_template": "/api/users",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "",
+        "router": "coRouter",
+        "verb": "GET",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "spring.functional_route.v1",
+      "capture_name": "route",
+      "node_kind": "call_expression",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "start_line": 8,
+      "start_column": 12,
+      "end_line": 8,
+      "end_column": 38,
+      "start_byte": 272,
+      "end_byte": 298,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "functional_routing",
+        "dynamic_segments": [
+          "id"
+        ],
+        "effective_route_template": "/api/users/{id}",
+        "framework": "spring",
+        "nest_route_template": "/api/users",
+        "normalized_route_template": "/api/users/:id",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/{id}",
+        "router": "coRouter",
+        "verb": "GET",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "spring.functional_route.v1",
+      "capture_name": "route",
+      "node_kind": "call_expression",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "start_line": 24,
+      "start_column": 12,
+      "end_line": 24,
+      "end_column": 48,
+      "start_byte": 697,
+      "end_byte": 733,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "functional_routing",
+        "dynamic_segments": [
+          "id"
+        ],
+        "framework": "spring",
+        "normalized_route_template": "/mvc/:id",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/mvc/{id}",
+        "router": "router",
+        "verb": "DELETE",
+        "verb_source": "attested"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "covered_lines": 28,
+      "covered_bytes": 752,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 28,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 752,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "covered_lines": 16,
+      "covered_bytes": 432,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 5,
+      "start_column": 16,
+      "end_line": 20,
+      "end_column": 5,
+      "start_byte": 186,
+      "end_byte": 618,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "covered_lines": 5,
+      "covered_bytes": 113,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 22,
+      "start_column": 16,
+      "end_line": 26,
+      "end_column": 5,
+      "start_byte": 636,
+      "end_byte": 749,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "",
+      "kind": "other",
+      "carrier": "GET",
+      "arg_position": 0,
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 7,
+      "start_column": 16,
+      "end_line": 7,
+      "end_column": 18,
+      "start_byte": 241,
+      "end_byte": 243,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/health",
+      "kind": "other",
+      "carrier": "GET",
+      "arg_position": 0,
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 10,
+      "start_column": 12,
+      "end_line": 10,
+      "end_column": 21,
+      "start_byte": 321,
+      "end_byte": 330,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/hidden",
+      "kind": "other",
+      "carrier": "GET",
+      "arg_position": 0,
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 18,
+      "start_column": 16,
+      "end_line": 18,
+      "end_column": 25,
+      "start_byte": 575,
+      "end_byte": 584,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/items/{id}",
+      "kind": "other",
+      "carrier": "PUT",
+      "arg_position": 0,
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 14,
+      "start_column": 16,
+      "end_line": 14,
+      "end_column": 29,
+      "start_byte": 428,
+      "end_byte": 441,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/mvc/{id}",
+      "kind": "other",
+      "carrier": "DELETE",
+      "arg_position": 0,
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 24,
+      "start_column": 19,
+      "end_line": 24,
+      "end_column": 30,
+      "start_byte": 704,
+      "end_byte": 715,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/v2",
+      "kind": "other",
+      "carrier": "path",
+      "arg_position": 0,
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 13,
+      "start_column": 13,
+      "end_line": 13,
+      "end_column": 18,
+      "start_byte": 398,
+      "end_byte": 403,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/{id}",
+      "kind": "other",
+      "carrier": "GET",
+      "arg_position": 0,
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 8,
+      "start_column": 16,
+      "end_line": 8,
+      "end_column": 23,
+      "start_byte": 276,
+      "end_byte": 283,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "up",
+      "kind": "other",
+      "carrier": "ok().bodyValueAndAwait",
+      "arg_position": 0,
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "start_line": 11,
+      "start_column": 35,
+      "end_line": 11,
+      "end_column": 39,
+      "start_byte": 369,
+      "end_byte": 373,
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "comment",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "start_line": 16,
+      "start_column": 8,
+      "end_line": 16,
+      "end_column": 61,
+      "start_byte": 478,
+      "end_byte": 531,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "start_line": 10,
+      "start_column": 12,
+      "end_line": 10,
+      "end_column": 21,
+      "start_byte": 321,
+      "end_byte": 330,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "start_line": 11,
+      "start_column": 35,
+      "end_line": 11,
+      "end_column": 39,
+      "start_byte": 369,
+      "end_byte": 373,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "start_line": 13,
+      "start_column": 13,
+      "end_line": 13,
+      "end_column": 18,
+      "start_byte": 398,
+      "end_byte": 403,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "start_line": 14,
+      "start_column": 16,
+      "end_line": 14,
+      "end_column": 29,
+      "start_byte": 428,
+      "end_byte": 441,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "start_line": 17,
+      "start_column": 8,
+      "end_line": 17,
+      "end_column": 19,
+      "start_byte": 540,
+      "end_byte": 551,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "start_line": 18,
+      "start_column": 16,
+      "end_line": 18,
+      "end_column": 25,
+      "start_byte": 575,
+      "end_byte": 584,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "start_line": 6,
+      "start_column": 8,
+      "end_line": 6,
+      "end_column": 20,
+      "start_byte": 205,
+      "end_byte": 217,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "start_line": 7,
+      "start_column": 16,
+      "end_line": 7,
+      "end_column": 18,
+      "start_byte": 241,
+      "end_byte": 243,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
+      "start_line": 8,
+      "start_column": 16,
+      "end_line": 8,
+      "end_column": 23,
+      "start_byte": 276,
+      "end_byte": 283,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_functional_routes/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
+      "start_line": 24,
+      "start_column": 19,
+      "end_line": 24,
+      "end_column": 30,
+      "start_byte": 704,
+      "end_byte": 715,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

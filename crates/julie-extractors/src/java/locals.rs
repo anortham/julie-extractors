@@ -80,6 +80,11 @@ pub(super) fn extract_bindings(
         "instanceof_expression" => extract_instanceof_binding(extractor, node, parent_id)
             .into_iter()
             .collect(),
+        "type_pattern" | "record_pattern_component" => {
+            extract_pattern_binding(extractor, node, parent_id)
+                .into_iter()
+                .collect()
+        }
         _ => Vec::new(),
     }
 }
@@ -176,6 +181,32 @@ fn extract_instanceof_binding(
         type_node,
         parent_id,
         type_node.is_some(),
+    ))
+}
+
+/// `case Circle c` and the `double w` component of `Rect(double w, double h)`:
+/// a type followed by the bound name. A nested record pattern binds nothing.
+fn extract_pattern_binding(
+    extractor: &mut JavaExtractor,
+    node: Node,
+    parent_id: Option<&str>,
+) -> Option<Symbol> {
+    let mut cursor = node.walk();
+    let named: Vec<Node> = node.named_children(&mut cursor).collect();
+    let [type_node, name_node] = named.as_slice() else {
+        return None;
+    };
+    if name_node.kind() != "identifier" {
+        return None;
+    }
+    let record_type = !type_facts::is_var_type(extractor.base(), *type_node);
+    Some(binding_symbol(
+        extractor,
+        *name_node,
+        *name_node,
+        Some(*type_node),
+        parent_id,
+        record_type,
     ))
 }
 

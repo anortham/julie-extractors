@@ -438,7 +438,7 @@ fn is_testng_class_case_annotation(annotation: &str) -> bool {
 
 /// Annotations that declare a type to be a test container on their own.
 fn is_java_container_annotation(annotation: &str) -> bool {
-    annotation == "nested" || is_testng_class_case_annotation(annotation)
+    matches!(annotation, "nested" | "suite") || is_testng_class_case_annotation(annotation)
 }
 
 /// JUnit 4/5, TestNG, and kotlin.test hook annotations, keyed on the lower-cased
@@ -911,19 +911,23 @@ pub(crate) fn mark_java_test_containers(symbols: &mut [Symbol]) {
     let mut testng_class_ids: HashSet<String> = HashSet::new();
     for symbol in symbols
         .iter_mut()
-        .filter(|symbol| symbol.kind == SymbolKind::Class)
+        .filter(|symbol| matches!(symbol.kind, SymbolKind::Class | SymbolKind::Interface))
     {
+        if containers_with_test_members.contains(&symbol.id) {
+            mark_class_test_container(symbol);
+        }
+        if symbol.kind != SymbolKind::Class {
+            continue;
+        }
         let extends_testcase = metadata_string_list_contains(symbol, "base_types", "TestCase");
-        if has_java_annotation(symbol, is_java_container_annotation)
-            || extends_testcase
-            || containers_with_test_members.contains(&symbol.id)
-        {
+        if has_java_annotation(symbol, is_java_container_annotation) || extends_testcase {
             mark_class_test_container(symbol);
         }
         if has_java_annotation(symbol, is_testng_class_case_annotation) {
             testng_class_ids.insert(symbol.id.clone());
         }
     }
+    mark_test_interface_implementers(symbols);
 
     mark_ancestor_test_containers(symbols);
 
@@ -932,9 +936,47 @@ pub(crate) fn mark_java_test_containers(symbols: &mut [Symbol]) {
     apply_java_member_test_roles(symbols, &testng_class_ids);
 }
 
+/// JUnit 5 runs the `@Test` default methods of an interface on every class that
+/// implements it, so a class implementing a same-file test interface is a test
+/// container even when it declares no test of its own.
+fn mark_test_interface_implementers(symbols: &mut [Symbol]) {
+    let test_interfaces: Vec<String> = symbols
+        .iter()
+        .filter(|symbol| {
+            symbol.kind == SymbolKind::Interface && metadata_flag(symbol, "test_container")
+        })
+        .map(|symbol| symbol.name.clone())
+        .collect();
+    if test_interfaces.is_empty() {
+        return;
+    }
+    for symbol in symbols
+        .iter_mut()
+        .filter(|symbol| symbol.kind == SymbolKind::Class)
+    {
+        let implements_test_interface = symbol
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("base_types"))
+            .and_then(|value| value.as_array())
+            .into_iter()
+            .flatten()
+            .filter_map(|value| value.as_str())
+            .map(|base| base.split('<').next().unwrap_or(base).trim())
+            .any(|base| {
+                test_interfaces
+                    .iter()
+                    .any(|name| base == name || base.ends_with(&format!(".{name}")))
+            });
+        if implements_test_interface {
+            mark_class_test_container(symbol);
+        }
+    }
+}
+
 /// Kotest and Spek spec base classes. A class extending one of them is a spec
 /// even when its body is empty, because the base class is what the engine runs.
-const KOTLIN_SPEC_BASE_TYPES: &[&str] = &[
+pub(crate) const KOTLIN_SPEC_BASE_TYPES: &[&str] = &[
     "AnnotationSpec",
     "BehaviorSpec",
     "DescribeSpec",

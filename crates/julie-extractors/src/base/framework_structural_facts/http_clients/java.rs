@@ -7,9 +7,24 @@ use super::super::scan::{
 use super::client_fact;
 use crate::base::types::StructuralFact;
 
+mod spring;
+
 const BUILDER_NEEDLE: &str = "HttpRequest.newBuilder";
 
 pub(super) fn collect_java_http_client_requests(
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+) -> Vec<StructuralFact> {
+    let mut facts = collect_java_net_http_requests(language, tree, file_path, content);
+    facts.extend(spring::collect_spring_client_requests(
+        language, tree, file_path, content,
+    ));
+    facts
+}
+
+fn collect_java_net_http_requests(
     language: &str,
     tree: &Tree,
     file_path: &str,
