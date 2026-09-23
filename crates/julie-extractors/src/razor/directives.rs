@@ -2,7 +2,7 @@
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use regex::Regex;
 use std::collections::HashMap;
-use std::sync::{LazyLock, Mutex};
+use std::sync::LazyLock;
 use tree_sitter::Node;
 
 // Static regexes compiled once for performance
@@ -10,21 +10,6 @@ static DIRECTIVE_NAME_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"@(\w+)
 static ADD_TAG_HELPER_VALUE_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"@addTagHelper\s+(.+)").unwrap());
 static DIRECTIVE_VALUE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"@\w+\s+(.*)").unwrap());
-
-// Token-directive value patterns depend on the directive type (a small, fixed
-// set of tree-sitter node kinds), so cache each compiled variant once.
-static TOKEN_DIRECTIVE_VALUE_RES: LazyLock<Mutex<HashMap<String, Regex>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
-
-fn token_directive_value_regex(directive_type: &str) -> Regex {
-    let mut cache = TOKEN_DIRECTIVE_VALUE_RES
-        .lock()
-        .expect("token directive regex cache poisoned");
-    cache
-        .entry(directive_type.to_string())
-        .or_insert_with(|| Regex::new(&format!(r"@{}\s+(\S+)", directive_type)).unwrap())
-        .clone()
-}
 
 impl super::RazorExtractor {
     /// Extract Razor directives (@page, @model, @using, etc.)
@@ -47,10 +32,21 @@ impl super::RazorExtractor {
             self.get_directive_symbol_kind(&directive_name)
         };
 
+        let using_alias = (node.kind() == "razor_using_directive")
+            .then(|| node.child_by_field_name("name"))
+            .flatten()
+            .filter(|alias| alias.next_sibling().is_some_and(|next| next.kind() == "="))
+            .map(|alias| self.base.get_node_text(&alias));
+        let signature = match &using_alias {
+            Some(alias) => signature.replacen("@using ", &format!("@using {alias} = "), 1),
+            None => signature,
+        };
+
         // For certain directives, use the value as the symbol name
         let symbol_name = match directive_name.as_str() {
-            "using" => directive_value
+            "using" => using_alias
                 .clone()
+                .or_else(|| directive_value.clone())
                 .unwrap_or_else(|| format!("@{}", directive_name)),
             "inject" => {
                 // Extract property name from "@inject IService PropertyName"
@@ -72,7 +68,7 @@ impl super::RazorExtractor {
         // Extract Razor doc comment
         let doc_comment = self.base.find_doc_comment(&node);
 
-        let symbol = self.base.create_symbol(
+        let mut symbol = self.base.create_symbol(
             &node,
             symbol_name,
             symbol_kind,
@@ -96,12 +92,17 @@ impl super::RazorExtractor {
                             serde_json::Value::String(value),
                         );
                     }
+                    if let Some(alias) = using_alias {
+                        metadata.insert("alias".to_string(), serde_json::Value::String(alias));
+                    }
                     metadata
                 }),
                 doc_comment,
                 annotations: Vec::new(),
             },
         );
+        symbol.body_span = None;
+        symbol.body_hash = None;
         if let Some(type_node) = self.directive_declared_type_node(node) {
             super::type_facts::record_declared_type(&mut self.base, &symbol.id, type_node);
         }
@@ -153,9 +154,18 @@ impl super::RazorExtractor {
             "razor_model_directive" | "razor_inherits_directive" | "razor_implements_directive" => {
                 directive_type_operand(node).map(|n| self.base.get_node_text(&n))
             }
-            "razor_using_directive" | "razor_namespace_directive" => self
-                .find_child_by_types(node, &["qualified_name", "identifier"])
-                .map(|n| self.base.get_node_text(&n)),
+            "razor_using_directive" | "razor_namespace_directive" => {
+                let mut cursor = node.walk();
+                node.named_children(&mut cursor)
+                    .filter(|child| {
+                        matches!(
+                            child.kind(),
+                            "qualified_name" | "identifier" | "generic_name"
+                        )
+                    })
+                    .last()
+                    .map(|n| self.base.get_node_text(&n))
+            }
             "razor_inject_directive" => self
                 .find_child_by_type(node, "variable_declaration")
                 .map(|n| self.base.get_node_text(&n)),
@@ -188,74 +198,11 @@ impl super::RazorExtractor {
         match directive_name.to_lowercase().as_str() {
             "model" | "layout" => SymbolKind::Class,
             "page" | "using" | "namespace" => SymbolKind::Import,
-            "inherits" => SymbolKind::Import,
-            "implements" => SymbolKind::Interface,
+            "inherits" | "implements" => SymbolKind::Import,
             "inject" | "attribute" => SymbolKind::Property,
             "code" | "functions" => SymbolKind::Function,
             _ => SymbolKind::Variable,
         }
-    }
-
-    /// Extract token-based directives (@inherits, @namespace, @implements)
-    pub(super) fn extract_token_directive(
-        &mut self,
-        node: Node,
-        parent_id: Option<&str>,
-    ) -> Option<Symbol> {
-        let directive_type = node.kind().replace("at_", "");
-        let directive_name = format!("@{}", directive_type);
-
-        // Look for the directive value in siblings
-        let directive_value = if let Some(parent) = node.parent() {
-            let text = self.base.get_node_text(&parent);
-            token_directive_value_regex(&directive_type)
-                .captures(&text)
-                .map(|captures| captures[1].to_string())
-        } else {
-            None
-        };
-
-        let signature = if let Some(ref value) = directive_value {
-            format!("{} {}", directive_name, value)
-        } else {
-            directive_name.clone()
-        };
-
-        let symbol_kind = self.get_directive_symbol_kind(&directive_type);
-
-        // Extract Razor doc comment
-        let doc_comment = self.base.find_doc_comment(&node);
-
-        Some(self.base.create_symbol(
-            &node,
-            directive_name,
-            symbol_kind,
-            SymbolOptions {
-                signature: Some(signature),
-                visibility: Some(Visibility::Public),
-                parent_id: parent_id.map(|s| s.to_string()),
-                metadata: Some({
-                    let mut metadata = HashMap::new();
-                    metadata.insert(
-                        "type".to_string(),
-                        serde_json::Value::String("razor-token-directive".to_string()),
-                    );
-                    metadata.insert(
-                        "directiveType".to_string(),
-                        serde_json::Value::String(directive_type.clone()),
-                    );
-                    if let Some(value) = directive_value {
-                        metadata.insert(
-                            "directiveValue".to_string(),
-                            serde_json::Value::String(value),
-                        );
-                    }
-                    metadata
-                }),
-                doc_comment,
-                annotations: Vec::new(),
-            },
-        ))
     }
 
     /// Extract section (@section) directives

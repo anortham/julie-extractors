@@ -10,7 +10,6 @@ use std::sync::LazyLock;
 use tree_sitter::Node;
 
 static BIND_PROPERTY_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"@bind-(\w+)").unwrap());
-static EVENT_BINDING_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"@on(\w+)").unwrap());
 
 impl super::RazorExtractor {
     /// Extract relationships between symbols
@@ -54,12 +53,15 @@ impl super::RazorExtractor {
                 self.extract_element_relationships(node, symbols, relationships, pending)
             }
             "identifier" => {
-                self.extract_identifier_component_relationships(node, symbols, relationships)
+                self.extract_identifier_component_relationships(node, symbols, relationships);
+                self.extract_method_group_relationship(node, symbols, relationships, pending);
             }
             "invocation_expression" => {
                 self.extract_invocation_relationships(node, symbols, relationships, pending)
             }
-            "razor_inherits_directive" | "razor_implements_directive" => {
+            "razor_inherits_directive"
+            | "razor_implements_directive"
+            | "razor_layout_directive" => {
                 self.extract_directive_base_relationship(node, symbols, pending)
             }
             "class_declaration"
@@ -80,7 +82,8 @@ impl super::RazorExtractor {
         }
     }
 
-    /// `@inherits Base` and `@implements IFace` declare the component's bases.
+    /// `@inherits Base` and `@implements IFace` declare the component's bases;
+    /// `@layout MainLayout` names the layout component it renders inside.
     fn extract_directive_base_relationship(
         &self,
         node: Node,
@@ -93,10 +96,10 @@ impl super::RazorExtractor {
         let Some(type_node) = super::directives::directive_type_operand(node) else {
             return;
         };
-        let kind = if node.kind() == "razor_implements_directive" {
-            RelationshipKind::Implements
-        } else {
-            RelationshipKind::Extends
+        let kind = match node.kind() {
+            "razor_implements_directive" => RelationshipKind::Implements,
+            "razor_layout_directive" => RelationshipKind::Uses,
+            _ => RelationshipKind::Extends,
         };
         pending.push(self.base.create_pending_relationship_at_target(
             component_id.clone(),
@@ -106,6 +109,47 @@ impl super::RazorExtractor {
             Some(component_id),
             Some(0.9),
         ));
+    }
+
+    /// A method group bound in markup (`@onclick="Refresh"`,
+    /// `OnDelete="DeleteAsync"`, `@bind:after="Search"`) is a call from the
+    /// markup's owner to that method. A name that no enclosing scope declares
+    /// stays pending when the attribute is an event binding.
+    fn extract_method_group_relationship(
+        &self,
+        node: Node,
+        symbols: &[Symbol],
+        relationships: &mut Vec<Relationship>,
+        pending: &mut Vec<StructuredPendingRelationship>,
+    ) {
+        let Some(attribute) = super::method_group_attribute(node) else {
+            return;
+        };
+        let name = self.base.get_node_text(&node);
+        let Some(caller) = self.resolve_calling_symbol(node, symbols) else {
+            return;
+        };
+        match self.resolve_scoped_callee(node, &name, false, symbols) {
+            Some(handler) => relationships.push(self.base.create_relationship_at_target(
+                caller.id.clone(),
+                handler.id.clone(),
+                RelationshipKind::Calls,
+                &node,
+                None,
+                None,
+            )),
+            None if super::is_event_attribute(attribute, &self.base.content) => {
+                pending.push(self.base.create_pending_relationship_at_target(
+                    caller.id.clone(),
+                    UnresolvedTarget::simple(name),
+                    RelationshipKind::Calls,
+                    &node,
+                    Some(caller.id.clone()),
+                    Some(0.7),
+                ));
+            }
+            None => {}
+        }
     }
 
     /// Base types of a type declared in a code block. A same-file base resolves
@@ -433,32 +477,6 @@ impl super::RazorExtractor {
                     }),
                 ));
             }
-        }
-
-        // Check for event binding attributes (e.g., @onclick)
-        if element_text.contains("@on")
-            && let Some(from_symbol) = symbols.iter().find(|s| s.kind == SymbolKind::Class)
-            && let Some(captures) = EVENT_BINDING_RE.captures(&element_text)
-            && let Some(event_match) = captures.get(1)
-        {
-            let event_name = event_match.as_str().to_string();
-
-            relationships.push(self.base.create_relationship(
-                from_symbol.id.clone(),
-                format!("event-{}", event_name), // Create synthetic ID for events
-                RelationshipKind::Uses,
-                &node,
-                Some(0.9),
-                Some({
-                    let mut metadata = HashMap::new();
-                    metadata.insert("event".to_string(), serde_json::Value::String(event_name));
-                    metadata.insert(
-                        "type".to_string(),
-                        serde_json::Value::String("event-binding".to_string()),
-                    );
-                    metadata
-                }),
-            ));
         }
     }
 }

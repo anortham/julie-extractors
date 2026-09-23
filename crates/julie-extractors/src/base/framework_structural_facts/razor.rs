@@ -4,6 +4,7 @@ use serde_json::{Number, Value};
 use tree_sitter::{Node, Tree};
 
 use super::helpers::{base_metadata, fact_for_node, fact_for_span, insert_string, node_text};
+use super::razor_mvc;
 use super::{
     BLAZOR_COMPONENT_REFERENCE_PATTERN_ID, RAZOR_CODE_BLOCK_PATTERN_ID,
     RAZOR_PAGE_DIRECTIVE_PATTERN_ID, RAZOR_TEMPLATE_EXPRESSION_PATTERN_ID,
@@ -93,6 +94,16 @@ fn collect_razor_node(
             {
                 facts.push(fact);
             }
+            facts.extend(razor_mvc::element_facts(node, file_path, content));
+        }
+        "invocation_expression" => {
+            facts.extend(razor_mvc::invocation_fact(node, file_path, content));
+        }
+        "assignment_expression" => {
+            facts.extend(razor_mvc::layout_assignment_fact(node, file_path, content));
+        }
+        "razor_layout_directive" => {
+            facts.extend(razor_mvc::layout_directive_fact(node, file_path, content));
         }
         _ => {}
     }

@@ -14,19 +14,20 @@
       "end_byte": 65,
       "body_span": {
         "start_line": 1,
-        "start_column": 13,
-        "end_line": 1,
-        "end_column": 64,
-        "start_byte": 13,
-        "end_byte": 64
+        "start_column": 0,
+        "end_line": 2,
+        "end_column": 0,
+        "start_byte": 0,
+        "end_byte": 65
       },
-      "body_hash": "2adc0b565eda8c306aa75baf2292d610",
+      "body_hash": "a0eb4d03e6b78288d9ffe8dab116e0d2",
       "signature": "component source",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "qualifiedName": "source",
+        "renderMode": "@(new InteractiveServerRenderMode(prerender: false))",
         "type": "razor-component"
       },
       "annotations": [],

@@ -17,6 +17,7 @@ mod phoenix;
 mod python_web;
 mod rails;
 mod razor;
+mod razor_mvc;
 mod scan;
 mod sinatra;
 mod spring;
@@ -96,6 +97,12 @@ pub(super) const RAZOR_PAGE_DIRECTIVE_PATTERN_ID: &str = "razor.page_directive.v
 pub(super) const RAZOR_ROUTE_REFERENCE_PATTERN_ID: &str = "razor.route_reference.v1";
 pub(super) const RAZOR_CODE_BLOCK_PATTERN_ID: &str = "razor.code_block.v1";
 pub(super) const RAZOR_TEMPLATE_EXPRESSION_PATTERN_ID: &str = "razor.template_expression.v1";
+pub(super) const RAZOR_MVC_LINK_PATTERN_ID: &str = "razor.mvc_link.v1";
+pub(super) const RAZOR_PARTIAL_REFERENCE_PATTERN_ID: &str = "razor.partial_reference.v1";
+pub(super) const RAZOR_VIEW_COMPONENT_REFERENCE_PATTERN_ID: &str =
+    "razor.view_component_reference.v1";
+pub(super) const RAZOR_LAYOUT_REFERENCE_PATTERN_ID: &str = "razor.layout_reference.v1";
+pub(super) const RAZOR_MODEL_BINDING_PATTERN_ID: &str = "razor.model_binding.v1";
 pub(super) const BLAZOR_COMPONENT_REFERENCE_PATTERN_ID: &str = "blazor.component_reference.v1";
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -197,9 +204,14 @@ const RAZOR_FRAMEWORK_PATTERN_IDS: &[&str] = &[
     HTMX_ATTRIBUTE_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
     RAZOR_CODE_BLOCK_PATTERN_ID,
+    RAZOR_LAYOUT_REFERENCE_PATTERN_ID,
+    RAZOR_MODEL_BINDING_PATTERN_ID,
+    RAZOR_MVC_LINK_PATTERN_ID,
     RAZOR_PAGE_DIRECTIVE_PATTERN_ID,
+    RAZOR_PARTIAL_REFERENCE_PATTERN_ID,
     RAZOR_ROUTE_REFERENCE_PATTERN_ID,
     RAZOR_TEMPLATE_EXPRESSION_PATTERN_ID,
+    RAZOR_VIEW_COMPONENT_REFERENCE_PATTERN_ID,
 ];
 
 pub fn collect_framework_structural_facts(

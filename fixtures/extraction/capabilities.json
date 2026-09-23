@@ -6158,6 +6158,21 @@
           "name": "razor_pages",
           "source": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml",
           "expected": "fixtures/extraction/razor/razor_pages/expected.json"
+        },
+        {
+          "name": "wave2_component",
+          "source": "fixtures/extraction/razor/wave2_component/OrderPage.razor",
+          "expected": "fixtures/extraction/razor/wave2_component/expected.json"
+        },
+        {
+          "name": "mvc_view",
+          "source": "fixtures/extraction/razor/mvc_views/Views/Home/Index.cshtml",
+          "expected": "fixtures/extraction/razor/mvc_views/expected.view.json"
+        },
+        {
+          "name": "mvc_page",
+          "source": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml",
+          "expected": "fixtures/extraction/razor/mvc_views/expected.page.json"
         }
       ],
       "target_capabilities": {
@@ -6192,6 +6207,7 @@
         "relationships": {
           "supported": [
             "calls",
+            "extends",
             "implements",
             "uses"
           ],
@@ -6209,7 +6225,9 @@
         },
         "body_spans": {
           "supported": [
+            "class",
             "method",
+            "property",
             "variable"
           ],
           "not_applicable": [
@@ -6226,9 +6244,14 @@
             "htmx.attribute.v1",
             "http.client_request.v1",
             "razor.code_block.v1",
+            "razor.layout_reference.v1",
+            "razor.model_binding.v1",
+            "razor.mvc_link.v1",
             "razor.page_directive.v1",
+            "razor.partial_reference.v1",
             "razor.route_reference.v1",
-            "razor.template_expression.v1"
+            "razor.template_expression.v1",
+            "razor.view_component_reference.v1"
           ],
           "not_applicable": [],
           "open_gaps": []

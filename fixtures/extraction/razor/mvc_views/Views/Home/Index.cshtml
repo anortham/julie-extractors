@@ -1,0 +1,21 @@
+@model List<Product>
+@{
+    Layout = "_Layout";
+    string Price(decimal value) => value.ToString("C");
+}
+<a asp-controller="Products" asp-action="Create" asp-area="Admin">New</a>
+<a asp-page="/Orders/Details" asp-route-id="@Model[0].Id">Details</a>
+<form method="post" asp-page-handler="Save">
+    <input asp-for="Input.Email" />
+    <span asp-validation-for="Input.Email"></span>
+</form>
+<partial name="_OrderLines" model="Model" />
+@await Html.PartialAsync("_Summary")
+@await Component.InvokeAsync("Cart", new { count = 3 })
+<vc:shopping-cart count="3"></vc:shopping-cart>
+@Html.ActionLink("Edit", "Edit", "Products", new { id = 1 })
+<a href="@Url.Action("Index", "Home")">Home</a>
+@foreach (var product in Model)
+{
+    <p>@product.Name @Price(product.Price)</p>
+}

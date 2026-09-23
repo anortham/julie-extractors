@@ -1,1 +1,1 @@
-{"symbols":["LookupAsync","ValueUpdated","SetValue"],"variable_refs":["LookupAsync","value","ValueUpdated","SetValue"]}
+{"symbols":["LookupAsync","ValueUpdated","SetValue"],"variable_refs":["value"],"calls":["LookupAsync","ValueUpdated","SetValue"]}

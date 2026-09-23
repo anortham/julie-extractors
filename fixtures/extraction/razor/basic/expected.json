@@ -507,7 +507,7 @@
       "body_hash": null,
       "signature": "int i = 1",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": "fixtures/extraction/razor/basic/source.razor:Evaluate:30:8",
       "metadata": {
         "initializer": "1",
@@ -636,14 +636,14 @@
       "start_byte": 0,
       "end_byte": 1443,
       "body_span": {
-        "start_line": 8,
-        "start_column": 6,
-        "end_line": 70,
-        "end_column": 1,
-        "start_byte": 111,
-        "end_byte": 1442
+        "start_line": 1,
+        "start_column": 0,
+        "end_line": 71,
+        "end_column": 0,
+        "start_byte": 0,
+        "end_byte": 1443
       },
-      "body_hash": "7258b9b7469f49fe219d8ddd5d25ea2f",
+      "body_hash": "95ca5fb74b2acd1f8903aec23e803516",
       "signature": "component source",
       "doc_comment": null,
       "visibility": "Public",
@@ -673,7 +673,7 @@
       "body_hash": null,
       "signature": "int total = 0",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": "fixtures/extraction/razor/basic/source.razor:Evaluate:30:8",
       "metadata": {
         "initializer": "0",
@@ -848,26 +848,6 @@
     },
     {
       "from_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
-      "to_key": "fixtures/extraction/razor/basic/source.razor:Format:25:8",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/razor/basic/source.razor",
-      "line_number": 3,
-      "span": {
-        "start_line": 3,
-        "start_column": 5,
-        "end_line": 3,
-        "end_column": 18,
-        "start_byte": 22,
-        "end_byte": 35
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": {
-        "method": "Format"
-      }
-    },
-    {
-      "from_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
       "to_key": "unresolved:property-Value",
       "kind": "uses",
       "file_path": "fixtures/extraction/razor/basic/source.razor",
@@ -903,6 +883,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/razor/basic/source.razor",
       "line_number": 21,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
+      "callee_name": "Format",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/razor/basic/source.razor",
+      "line_number": 3,
       "confidence": "0.700"
     },
     {
@@ -967,6 +955,32 @@
         "end_byte": 420
       },
       "receiver_type": "WorkerPage"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
+        "callee_name": "Format",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/razor/basic/source.razor",
+        "line_number": 3,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Format",
+        "terminal_name": "Format",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
+      "span": {
+        "start_line": 3,
+        "start_column": 5,
+        "end_line": 3,
+        "end_column": 11,
+        "start_byte": 22,
+        "end_byte": 28
+      }
     },
     {
       "pending": {

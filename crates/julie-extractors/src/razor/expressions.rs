@@ -77,7 +77,7 @@ impl super::RazorExtractor {
                 SymbolKind::Variable,
                 SymbolOptions {
                     signature: Some(signature_parts.join(" ")),
-                    visibility: Some(Visibility::Public),
+                    visibility: Some(Visibility::Private),
                     parent_id: parent_id.map(|s| s.to_string()),
                     metadata: Some({
                         let mut metadata = HashMap::new();

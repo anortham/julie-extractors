@@ -12,7 +12,6 @@ use super::super::scan::{
     find_top_level_comma_or_end_with_angles,
 };
 use super::client_fact;
-use crate::base::http_boundary::classify_url;
 use crate::base::types::StructuralFact;
 
 const HTTPCLIENT_METHODS: &[(&str, &str)] = &[
@@ -137,9 +136,6 @@ fn collect_method_calls(
             continue;
         };
         if skip_ascii_whitespace_until(content, literal_end, first_end) != first_end {
-            continue;
-        }
-        if classify_url(&target_path) == "relative" {
             continue;
         }
         if let Some(fact) = client_fact(
@@ -315,9 +311,6 @@ fn collect_http_request_messages(
             continue;
         };
         if skip_ascii_whitespace_until(content, literal_end, url_end) != url_end {
-            continue;
-        }
-        if classify_url(&target_path) == "relative" {
             continue;
         }
         if let Some(fact) = client_fact(

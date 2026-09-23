@@ -91,7 +91,7 @@ impl super::RazorExtractor {
                     metadata
                 }),
                 doc_comment: None,
-                annotations: Vec::new(),
+                annotations: crate::base::normalize_annotations(&attributes, "csharp"),
             },
         );
         if let Some(type_node) = type_node {

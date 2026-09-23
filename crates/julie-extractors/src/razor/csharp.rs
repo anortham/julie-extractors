@@ -237,6 +237,10 @@ impl super::RazorExtractor {
             signature_parts.push(modifiers.join(" "));
         }
         signature_parts.push(format!("class {}", name));
+        if let Some(base_list) = self.find_child_by_type(node, "base_list") {
+            let bases = self.base.get_node_text(&base_list);
+            signature_parts.push(format!(": {}", bases.trim_start_matches(':').trim()));
+        }
         let signature = signature_parts.join(" ");
 
         // Extract C# XML doc comment

@@ -236,7 +236,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
         pattern_id: "razor.route_reference.v1",
         languages: &["csharp", "razor"],
         query_family: "frontend_navigation",
-        description: "A Blazor NavigationManager call or static Razor href route reference.",
+        description: "A Blazor NavigationManager call or Razor `<a>`/`<NavLink>` href route reference.",
         metadata_keys: &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
@@ -245,7 +245,9 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "target_path",
                 STR,
                 ALWAYS,
-                "Raw static route path from the navigation target.",
+                "Route path the target names. A base-relative target is \
+                 resolved against the `/` app base path. Razor expressions \
+                 and interpolation holes stay as `{expression}` segments.",
             ),
             key(
                 "source_kind",
@@ -257,7 +259,21 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "route_source",
                 STR,
                 ALWAYS,
-                "Origin of the parsed route (string_literal).",
+                "Origin of the parsed route: string_literal, interpolated_string \
+                 (C# `$\"...\"`), or template_expression (href with `@expr`).",
+            ),
+            key(
+                "base_relative",
+                BOOL,
+                OPT,
+                "True when the written target has no leading `/` and resolves \
+                 against the app base path.",
+            ),
+            key(
+                "raw_target",
+                STR,
+                OPT,
+                "The target as written, present when base_relative is true.",
             ),
         ],
     },
@@ -282,6 +298,159 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 ALWAYS,
                 "True for implicit expressions (vs explicit @(...)).",
             ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "razor.mvc_link.v1",
+        languages: &["razor"],
+        query_family: "server_navigation",
+        description: "An ASP.NET Core MVC or Razor Pages link to a page or controller action: \
+                      an `asp-page`/`asp-controller`/`asp-action` tag helper, \
+                      `Html.ActionLink`, `Html.BeginForm`, `Url.Action`, or `Url.Page`.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key(
+                "target_kind",
+                STR,
+                ALWAYS,
+                "`page` for a Razor Pages target, `action` for a controller action.",
+            ),
+            key(
+                "source_kind",
+                STR,
+                ALWAYS,
+                "Link origin: tag_helper, html_helper, or url_helper.",
+            ),
+            key(
+                "page",
+                STR,
+                OPT,
+                "Static page path (`asp-page`, `Url.Page`).",
+            ),
+            key(
+                "page_handler",
+                STR,
+                OPT,
+                "Static page handler name (`asp-page-handler`).",
+            ),
+            key("controller", STR, OPT, "Static controller name."),
+            key("action", STR, OPT, "Static action name."),
+            key("area", STR, OPT, "Static area name (`asp-area`)."),
+            key(
+                "tag",
+                STR,
+                OPT,
+                "Element tag name, present for tag-helper links.",
+            ),
+            key(
+                "route_value_names",
+                ARR,
+                OPT,
+                "Route value names from `asp-route-*` attributes, in source order; \
+                 present for tag-helper links.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "razor.partial_reference.v1",
+        languages: &["razor"],
+        query_family: "view_composition",
+        description: "A partial view reference: `<partial name>` or an `Html.Partial`, \
+                      `PartialAsync`, `RenderPartial`, or `RenderPartialAsync` call with a \
+                      static name.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key(
+                "partial_name",
+                STR,
+                ALWAYS,
+                "Partial view name or path as written.",
+            ),
+            key(
+                "source_kind",
+                STR,
+                ALWAYS,
+                "Reference origin: tag_helper or html_helper.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "razor.view_component_reference.v1",
+        languages: &["razor"],
+        query_family: "view_composition",
+        description: "A view component reference: `Component.InvokeAsync(\"Name\")`, \
+                      `Component.InvokeAsync<T>()`, or a `<vc:name>` tag helper.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key(
+                "component_name",
+                STR,
+                ALWAYS,
+                "View component name. A `<vc:shopping-cart>` tag gives the \
+                 PascalCase form (`ShoppingCart`); other forms keep the name as written.",
+            ),
+            key(
+                "source_kind",
+                STR,
+                ALWAYS,
+                "Reference origin: tag_helper or component_invoke.",
+            ),
+            key(
+                "tag",
+                STR,
+                OPT,
+                "The `vc:` tag as written, for tag-helper references.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "razor.layout_reference.v1",
+        languages: &["razor"],
+        query_family: "view_composition",
+        description: "A layout reference: a `Layout = \"_Layout\"` assignment or a Blazor \
+                      `@layout` directive.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key("layout", STR, ALWAYS, "Layout name or type as written."),
+            key(
+                "source_kind",
+                STR,
+                ALWAYS,
+                "Reference origin: assignment or directive.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "razor.model_binding.v1",
+        languages: &["razor"],
+        query_family: "form_binding",
+        description: "A tag-helper model binding: an `asp-for` or `asp-validation-for` \
+                      attribute.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key(
+                "model_expression",
+                STR,
+                ALWAYS,
+                "Bound model expression as written, without a leading `@`.",
+            ),
+            key(
+                "attribute",
+                STR,
+                ALWAYS,
+                "Binding attribute: asp-for or asp-validation-for.",
+            ),
+            key("tag", STR, ALWAYS, "Element tag name."),
         ],
     },
 ];

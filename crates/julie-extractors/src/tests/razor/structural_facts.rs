@@ -341,7 +341,7 @@ fn razor_navigation_skips_dynamic_arguments_and_unproven_receivers() {
     string OrderUrl = "/orders";
     void OpenProven() => Navigation.NavigateTo("/orders");
     void SkipDynamic() => Navigation.NavigateTo(OrderUrl);
-    void SkipInterpolated() => Navigation.NavigateTo($"/orders/{OrderId}");
+    void SkipLeadingHole() => Navigation.NavigateTo($"{Base}/orders");
     void SkipUnproven() => router.NavigateTo("/admin");
     void SkipShadowed(Router Navigation) => Navigation.NavigateTo("/shadowed");
 }
