@@ -80,6 +80,11 @@ fn extract_new_expression_relationships(
                 {
                     Some(*type_symbol)
                 }
+                LocalTargetResolution::Resolved(function)
+                    if is_constructor_function(symbols, function) =>
+                {
+                    Some(*function)
+                }
                 _ if target.receiver.is_none() => {
                     unique_constructable_symbol(symbols, &target.terminal_name)
                 }
@@ -135,13 +140,23 @@ fn extract_new_expression_relationships(
     }
 }
 
+/// A function with members assigned to it (`Queue.prototype.clear = ...`):
+/// a pre-class constructor, so `new Queue()` instantiates it.
+fn is_constructor_function(symbols: &[Symbol], function: &Symbol) -> bool {
+    function.kind == SymbolKind::Function
+        && symbols.iter().any(|symbol| {
+            symbol.parent_id.as_deref() == Some(function.id.as_str())
+                && symbol.kind == SymbolKind::Method
+        })
+}
+
 fn unique_constructable_symbol<'a>(symbols: &'a [Symbol], name: &str) -> Option<&'a Symbol> {
     let mut matches = symbols.iter().filter(|symbol| {
         symbol.name == name
-            && matches!(
+            && (matches!(
                 symbol.kind,
                 SymbolKind::Class | SymbolKind::Type | SymbolKind::Interface
-            )
+            ) || is_constructor_function(symbols, symbol))
     });
     let symbol = matches.next()?;
     matches.next().is_none().then_some(symbol)
@@ -175,6 +190,9 @@ fn extract_call_relationships(
                 target.receiver.as_deref(),
             ) {
                 LocalTargetResolution::Resolved(symbol) => Some(symbol),
+                _ if target.receiver.as_deref() == Some("this") => {
+                    constructor_function_member(symbols, caller_symbol, &target.terminal_name)
+                }
                 _ if target.receiver.is_none() => {
                     unique_callable_symbol(symbols, &target.terminal_name)
                 }
@@ -226,6 +244,25 @@ fn extract_call_relationships(
             child_depth,
         );
     }
+}
+
+/// `this.m()` inside a pre-class constructor function resolves to a method
+/// assigned to that function's prototype.
+fn constructor_function_member<'a>(
+    symbols: &'a [Symbol],
+    caller: &Symbol,
+    name: &str,
+) -> Option<&'a Symbol> {
+    if caller.kind != SymbolKind::Function {
+        return None;
+    }
+    let mut matches = symbols.iter().filter(|symbol| {
+        symbol.kind == SymbolKind::Method
+            && symbol.name == name
+            && symbol.parent_id.as_deref() == Some(caller.id.as_str())
+    });
+    let symbol = matches.next()?;
+    matches.next().is_none().then_some(symbol)
 }
 
 fn unique_callable_symbol<'a>(symbols: &'a [Symbol], name: &str) -> Option<&'a Symbol> {
@@ -413,15 +450,14 @@ fn collect_heritage_data(
     symbols: &[Symbol],
 ) -> Option<HeritageData> {
     let mut parent = node.parent()?;
-    while parent.kind() != "class_declaration" {
+    while !matches!(parent.kind(), "class_declaration" | "class") {
         parent = parent.parent()?;
     }
-
-    let class_name_node = parent.child_by_field_name("name")?;
-    let class_name = extractor.base().get_node_text(&class_name_node);
-    let class_symbol = symbols
-        .iter()
-        .find(|s| s.name == class_name && s.kind == SymbolKind::Class)?;
+    let class_symbol = symbols.iter().find(|s| {
+        s.kind == SymbolKind::Class
+            && s.start_byte == parent.start_byte() as u32
+            && s.end_byte == parent.end_byte() as u32
+    })?;
 
     let mut base_types = Vec::new();
     match node.kind() {

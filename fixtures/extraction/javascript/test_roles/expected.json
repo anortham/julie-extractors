@@ -254,7 +254,7 @@
       "body_hash": "3912353bcdac8aa547b3222741cdaeff",
       "signature": "const ordinary = {\n  test(_name, callback) {\n    callback();\n  },\n}",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "declarationType": "const",
@@ -370,7 +370,7 @@
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "function testNamedButOrdinary()",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "isArrowFunction": false,

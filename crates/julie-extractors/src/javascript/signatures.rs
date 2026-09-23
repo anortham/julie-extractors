@@ -10,12 +10,10 @@ use tree_sitter::Node;
 impl super::JavaScriptExtractor {
     /// Build class signature - direct Implementation of buildClassSignature
     pub(super) fn build_class_signature(&self, node: &Node) -> String {
-        let name_node = node.child_by_field_name("name");
-        let name = name_node
-            .map(|n| self.base.get_node_text(&n))
-            .unwrap_or_default();
-
-        let mut signature = format!("class {}", name);
+        let mut signature = match node.child_by_field_name("name") {
+            Some(name) => format!("class {}", self.base.get_node_text(&name)),
+            None => "class".to_string(),
+        };
 
         // Look for extends clause (reference logic)
         let heritage = node.child_by_field_name("superclass").or_else(|| {

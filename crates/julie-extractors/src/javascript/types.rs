@@ -8,11 +8,40 @@ use serde_json::json;
 use std::collections::HashMap;
 use tree_sitter::Node;
 
-fn is_exported_declaration(node: Node) -> bool {
-    // Only a direct wrapping export_statement counts. Searching all ancestors
-    // would mark classes nested inside exported functions as public.
-    node.parent()
-        .is_some_and(|parent| parent.kind() == "export_statement")
+/// The name a class declaration or class expression binds: its own name,
+/// else the variable or member it is assigned to, else `default` for an
+/// anonymous default export. Other anonymous class expressions bind nothing.
+pub(crate) fn class_binding_name(base: &crate::base::BaseExtractor, class: Node) -> Option<String> {
+    if let Some(name) = class.child_by_field_name("name") {
+        return Some(base.get_node_text(&name));
+    }
+    let mut value = class;
+    while let Some(parent) = value
+        .parent()
+        .filter(|p| p.kind() == "parenthesized_expression")
+    {
+        value = parent;
+    }
+    let parent = value.parent()?;
+    match parent.kind() {
+        "variable_declarator" => parent
+            .child_by_field_name("name")
+            .filter(|name| name.kind() == "identifier")
+            .map(|name| base.get_node_text(&name)),
+        "assignment_expression" => {
+            let left = parent.child_by_field_name("left")?;
+            match left.kind() {
+                "identifier" => Some(base.get_node_text(&left)),
+                "member_expression" => left
+                    .child_by_field_name("property")
+                    .map(|property| base.get_node_text(&property))
+                    .filter(|name| name != "exports"),
+                _ => None,
+            }
+        }
+        "export_statement" => Some("default".to_string()),
+        _ => None,
+    }
 }
 
 impl super::JavaScriptExtractor {
@@ -22,8 +51,7 @@ impl super::JavaScriptExtractor {
         node: Node,
         parent_id: Option<String>,
     ) -> Option<Symbol> {
-        let name_node = node.child_by_field_name("name");
-        let name = name_node.map(|n| self.base.get_node_text(&n))?;
+        let name = class_binding_name(&self.base, node)?;
 
         // Extract extends clause (reference logic)
         let heritage = node.child_by_field_name("heritage").or_else(|| {
@@ -56,22 +84,13 @@ impl super::JavaScriptExtractor {
         // export_statement when the class is exported.
         let annotations = self.extract_decorator_annotations(node);
 
-        // Exported classes are public for cross-file static-type reachability;
-        // non-exported classes stay private so bare type-name access cannot
-        // resolve across files without an import.
-        let visibility = if is_exported_declaration(node) {
-            Visibility::Public
-        } else {
-            Visibility::Private
-        };
-
         Some(self.base.create_symbol(
             &node,
             name,
             SymbolKind::Class,
             SymbolOptions {
                 signature: Some(signature),
-                visibility: Some(visibility),
+                visibility: Some(Visibility::Public),
                 parent_id,
                 metadata: Some(metadata),
                 doc_comment,
@@ -128,7 +147,7 @@ impl super::JavaScriptExtractor {
                     parent_id,
                     metadata: Some(metadata),
                     doc_comment,
-                    annotations: Vec::new(),
+                    annotations: self.extract_decorator_annotations(node),
                 },
             ));
         }
@@ -159,7 +178,12 @@ impl super::JavaScriptExtractor {
         // Extract JSDoc comment
         let doc_comment = self.base.find_doc_comment(&node);
 
-        Some(self.base.create_symbol(
+        let annotations = if node.kind() == "pair" {
+            Vec::new()
+        } else {
+            self.extract_decorator_annotations(node)
+        };
+        let symbol = self.base.create_symbol(
             &node,
             name,
             symbol_kind,
@@ -169,108 +193,17 @@ impl super::JavaScriptExtractor {
                 parent_id,
                 metadata: Some(metadata),
                 doc_comment,
-                annotations: Vec::new(),
-            },
-        ))
-    }
-
-    /// Extract export declarations - implementation's extractExport
-    pub(super) fn extract_export(
-        &mut self,
-        node: Node,
-        parent_id: Option<String>,
-    ) -> Option<Symbol> {
-        let exported_name = self.extract_exported_name(&node)?;
-        let signature = self.base.get_node_text(&node);
-
-        let mut metadata = HashMap::new();
-        metadata.insert("exportedName".to_string(), json!(exported_name));
-        metadata.insert(
-            "isDefault".to_string(),
-            json!(self.is_default_export(&node)),
-        );
-        metadata.insert("isNamed".to_string(), json!(self.is_named_export(&node)));
-
-        let mut export_symbol = self.base.create_symbol(
-            &node,
-            exported_name.clone(),
-            SymbolKind::Export,
-            SymbolOptions {
-                signature: Some(signature),
-                visibility: None,
-                parent_id,
-                metadata: Some(metadata),
-                ..Default::default()
+                annotations,
             },
         );
-        if node.child_by_field_name("declaration").is_some() {
-            export_symbol.doc_comment = None;
+        if let Some(value) = value_node {
+            super::type_facts::record_new_expression_fact(
+                &mut self.base,
+                &symbol.id,
+                value,
+                &super::type_facts::TYPE_NAME_RULES,
+            );
         }
-        Some(export_symbol)
-    }
-
-    /// Extract exported name - implementation's extractExportedName
-    pub(super) fn extract_exported_name(&self, node: &Node) -> Option<String> {
-        // Handle different export patterns (reference logic)
-        for child in node.children(&mut node.walk()) {
-            match child.kind() {
-                // Direct exports: export const Component = ..., export function foo() {}, export class Bar {}
-                "variable_declaration" | "lexical_declaration" => {
-                    let declarator = child
-                        .children(&mut child.walk())
-                        .find(|c| c.kind() == "variable_declarator");
-                    if let Some(decl) = declarator
-                        && let Some(name_node) = decl.child_by_field_name("name")
-                    {
-                        return Some(self.base.get_node_text(&name_node));
-                    }
-                }
-                "class_declaration" | "function_declaration" => {
-                    if let Some(name_node) = child.child_by_field_name("name") {
-                        return Some(self.base.get_node_text(&name_node));
-                    }
-                }
-                "identifier" => {
-                    // Simple export: export identifier
-                    return Some(self.base.get_node_text(&child));
-                }
-                "export_clause" => {
-                    // Handle export { default as Component } patterns (reference logic)
-                    for clause_child in child.children(&mut child.walk()) {
-                        if clause_child.kind() == "export_specifier" {
-                            let children: Vec<_> =
-                                clause_child.children(&mut clause_child.walk()).collect();
-                            for i in 0..children.len() {
-                                if self.base.get_node_text(&children[i]) == "as"
-                                    && i + 1 < children.len()
-                                {
-                                    return Some(self.base.get_node_text(&children[i + 1]));
-                                }
-                            }
-                            // If no "as", return the export name
-                            if let Some(name_node) =
-                                children.iter().find(|c| c.kind() == "identifier")
-                            {
-                                return Some(self.base.get_node_text(name_node));
-                            }
-                        }
-                    }
-                }
-                "export_specifier" => {
-                    // Named export specifier (direct child)
-                    if let Some(name_node) = child.child_by_field_name("name") {
-                        return Some(self.base.get_node_text(&name_node));
-                    }
-                }
-                _ => {}
-            }
-        }
-
-        // Look for default exports (reference logic)
-        if self.is_default_export(node) {
-            return Some("default".to_string());
-        }
-
-        None
+        Some(symbol)
     }
 }

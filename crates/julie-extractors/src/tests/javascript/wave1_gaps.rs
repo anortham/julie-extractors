@@ -339,7 +339,7 @@ exports.helper = function helper() {};
         ("UserService", SymbolKind::Class, "/** Service class. */"),
         ("config", SymbolKind::Variable, "/** @type {Config} */"),
         ("legacy", SymbolKind::Method, "/** Proto method. */"),
-        ("helper", SymbolKind::Method, "/** Member assigned. */"),
+        ("helper", SymbolKind::Function, "/** Member assigned. */"),
     ] {
         let symbol = symbols_named(&results, name)
             .into_iter()

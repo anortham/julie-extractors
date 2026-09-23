@@ -89,17 +89,6 @@ impl super::JavaScriptExtractor {
             .unwrap_or(false)
     }
 
-    /// Check if export is default - direct Implementation of isDefaultExport
-    pub(super) fn is_default_export(&self, node: &Node) -> bool {
-        node.children(&mut node.walk())
-            .any(|c| c.kind() == "default")
-    }
-
-    /// Check if export is named - direct Implementation of isNamedExport
-    pub(super) fn is_named_export(&self, node: &Node) -> bool {
-        !self.is_default_export(node)
-    }
-
     /// Extract function parameters - direct Implementation of extractParameters
     pub(super) fn extract_parameters(&self, node: &Node) -> Vec<String> {
         // Look for formal_parameters node (reference logic)

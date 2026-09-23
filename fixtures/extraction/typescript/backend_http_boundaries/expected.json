@@ -1,6 +1,68 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:Hapi:17:0",
+      "name": "Hapi",
+      "kind": "import",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "start_line": 17,
+      "start_column": 0,
+      "end_line": 17,
+      "end_column": 30,
+      "start_byte": 483,
+      "end_byte": 513,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "import Hapi from \"@hapi/hapi\";",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "importedName": "default",
+        "isDefault": true,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "source": "@hapi/hapi",
+        "specifier": "Hapi"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:Router:16:0",
+      "name": "Router",
+      "kind": "import",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "start_line": 16,
+      "start_column": 0,
+      "end_line": 16,
+      "end_column": 33,
+      "start_byte": 449,
+      "end_byte": 482,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "import Router from \"@koa/router\";",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "importedName": "default",
+        "isDefault": true,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "source": "@koa/router",
+        "specifier": "Router"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:app:5:8",
       "name": "app",
       "kind": "variable",
@@ -123,6 +185,178 @@
         "isGenerator": false,
         "isStatic": false,
         "parameters": [],
+        "typeParameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:handler:23:54",
+      "name": "handler",
+      "kind": "method",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "start_line": 23,
+      "start_column": 54,
+      "end_line": 23,
+      "end_column": 73,
+      "start_byte": 759,
+      "end_byte": 778,
+      "body_span": {
+        "start_line": 23,
+        "start_column": 63,
+        "end_line": 23,
+        "end_column": 65,
+        "start_byte": 768,
+        "end_byte": 770
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "handler()",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
+      "metadata": {
+        "isAsync": false,
+        "isGenerator": false,
+        "isStatic": false,
+        "parameters": [],
+        "typeParameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:hapi:22:8",
+      "name": "hapi",
+      "kind": "variable",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "start_line": 22,
+      "start_column": 8,
+      "end_line": 22,
+      "end_column": 42,
+      "start_byte": 669,
+      "end_byte": 703,
+      "body_span": {
+        "start_line": 22,
+        "start_column": 27,
+        "end_line": 22,
+        "end_column": 41,
+        "start_byte": 688,
+        "end_byte": 702
+      },
+      "body_hash": "ffc4bd6c875dbce20750fcbf3d6711a6",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koa:20:8",
+      "name": "koa",
+      "kind": "variable",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "start_line": 20,
+      "start_column": 8,
+      "end_line": 20,
+      "end_column": 43,
+      "start_byte": 566,
+      "end_byte": 601,
+      "body_span": {
+        "start_line": 20,
+        "start_column": 25,
+        "end_line": 20,
+        "end_column": 42,
+        "start_byte": 583,
+        "end_byte": 600
+      },
+      "body_hash": "5c1b8b4c1d5034057dff965030737901",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:0",
+      "name": "koaAndHapiRoutes",
+      "kind": "export",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "start_line": 19,
+      "start_column": 0,
+      "end_line": 24,
+      "end_column": 1,
+      "start_byte": 515,
+      "end_byte": 784,
+      "body_span": {
+        "start_line": 19,
+        "start_column": 41,
+        "end_line": 24,
+        "end_column": 1,
+        "start_byte": 556,
+        "end_byte": 784
+      },
+      "body_hash": "884c6a42980860779ebb87a45ef92027",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "exportedName": "koaAndHapiRoutes",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "koaAndHapiRoutes"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
+      "name": "koaAndHapiRoutes",
+      "kind": "function",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "start_line": 19,
+      "start_column": 7,
+      "end_line": 24,
+      "end_column": 1,
+      "start_byte": 522,
+      "end_byte": 784,
+      "body_span": {
+        "start_line": 19,
+        "start_column": 41,
+        "end_line": 24,
+        "end_column": 1,
+        "start_byte": 556,
+        "end_byte": 784
+      },
+      "body_hash": "884c6a42980860779ebb87a45ef92027",
+      "signature": "koaAndHapiRoutes(): void",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "isAsync": false,
+        "isGenerator": false,
+        "parameters": [],
+        "returnType": "void",
         "typeParameters": []
       },
       "annotations": [],
@@ -267,9 +501,77 @@
     }
   ],
   "relationships": [],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
+      "callee_name": "Router",
+      "kind": "instantiates",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "line_number": 20,
+      "confidence": "0.900"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
+        "callee_name": "Router",
+        "kind": "instantiates",
+        "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+        "line_number": 20,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "Router",
+        "terminal_name": "Router",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
+      "span": {
+        "start_line": 20,
+        "start_column": 14,
+        "end_line": 20,
+        "end_column": 43,
+        "start_byte": 572,
+        "end_byte": 601
+      }
+    }
+  ],
   "identifiers": [
+    {
+      "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:Hapi:variable_ref:22:15",
+      "name": "Hapi",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "start_line": 22,
+      "start_column": 15,
+      "end_line": 22,
+      "end_column": 19,
+      "start_byte": 676,
+      "end_byte": 680,
+      "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:Router:call:20:18",
+      "name": "Router",
+      "kind": "call",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "start_line": 20,
+      "start_column": 18,
+      "end_line": 20,
+      "end_column": 24,
+      "start_byte": 576,
+      "end_byte": 582,
+      "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
+      "target_key": null,
+      "confidence": "1.000"
+    },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:Router:call:6:25",
       "name": "Router",
@@ -315,6 +617,38 @@
       "start_byte": 159,
       "end_byte": 162,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:body:member_access:21:43",
+      "name": "body",
+      "kind": "member_access",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "start_line": 21,
+      "start_column": 43,
+      "end_line": 21,
+      "end_column": 47,
+      "start_byte": 646,
+      "end_byte": 650,
+      "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:ctx:variable_ref:21:39",
+      "name": "ctx",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "start_line": 21,
+      "start_column": 39,
+      "end_line": 21,
+      "end_column": 42,
+      "start_byte": 642,
+      "end_byte": 645,
+      "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -399,6 +733,54 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:hapi:variable_ref:23:2",
+      "name": "hapi",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "start_line": 23,
+      "start_column": 2,
+      "end_line": 23,
+      "end_column": 6,
+      "start_byte": 707,
+      "end_byte": 711,
+      "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koa:variable_ref:21:2",
+      "name": "koa",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "start_line": 21,
+      "start_column": 2,
+      "end_line": 21,
+      "end_column": 5,
+      "start_byte": 605,
+      "end_byte": 608,
+      "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:post:call:21:6",
+      "name": "post",
+      "kind": "call",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "start_line": 21,
+      "start_column": 6,
+      "end_line": 21,
+      "end_column": 10,
+      "start_byte": 609,
+      "end_byte": 613,
+      "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:res:variable_ref:10:53",
       "name": "res",
       "kind": "variable_ref",
@@ -459,6 +841,22 @@
       "start_byte": 355,
       "end_byte": 360,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:route:call:23:7",
+      "name": "route",
+      "kind": "call",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "start_line": 23,
+      "start_column": 7,
+      "end_line": 23,
+      "end_column": 12,
+      "start_byte": 712,
+      "end_byte": 717,
+      "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -527,6 +925,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:server:call:22:20",
+      "name": "server",
+      "kind": "call",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "start_line": 22,
+      "start_column": 20,
+      "end_line": 22,
+      "end_column": 26,
+      "start_byte": 681,
+      "end_byte": 687,
+      "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:server:variable_ref:13:2",
       "name": "server",
       "kind": "variable_ref",
@@ -559,7 +973,17 @@
       "confidence": "1.000"
     }
   ],
-  "types": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koa:20:8",
+      "resolved_type": "Router",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "typescript",
+      "metadata": null
+    }
+  ],
   "parse_diagnostics": [],
   "structural_facts": [
     {
@@ -698,6 +1122,61 @@
         "verb": "POST",
         "verb_source": "attested"
       }
+    },
+    {
+      "pattern_id": "hapi.route.v1",
+      "capture_name": "route_call",
+      "node_kind": "object",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
+      "start_line": 23,
+      "start_column": 13,
+      "end_line": 23,
+      "end_column": 75,
+      "start_byte": 718,
+      "end_byte": 780,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "call_routing",
+        "dynamic_segments": [
+          "id"
+        ],
+        "framework": "hapi",
+        "normalized_route_template": "/items/:id",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/items/{id}",
+        "verb": "DELETE",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "koa.route.v1",
+      "capture_name": "route_call",
+      "node_kind": "call_expression",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
+      "start_line": 21,
+      "start_column": 2,
+      "end_line": 21,
+      "end_column": 56,
+      "start_byte": 605,
+      "end_byte": 659,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "call_routing",
+        "effective_route_template": "/v1/orders",
+        "framework": "koa",
+        "normalized_route_template": "/v1/orders",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_group_prefix": "/v1",
+        "route_template": "/orders",
+        "verb": "POST",
+        "verb_source": "attested"
+      }
     }
   ],
   "complexity_metrics": [
@@ -707,18 +1186,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "typescript",
       "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
-      "covered_lines": 15,
-      "covered_bytes": 448,
+      "covered_lines": 25,
+      "covered_bytes": 785,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 15,
+      "end_line": 25,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 448,
+      "end_byte": 785,
       "metadata": {
         "metric_version": 1
       }
@@ -741,6 +1220,50 @@
       "end_column": 94,
       "start_byte": 428,
       "end_byte": 440,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:handler:23:54",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 23,
+      "start_column": 63,
+      "end_line": 23,
+      "end_column": 65,
+      "start_byte": 768,
+      "end_byte": 770,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "covered_lines": 6,
+      "covered_bytes": 228,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 19,
+      "start_column": 41,
+      "end_line": 24,
+      "end_column": 1,
+      "start_byte": 556,
+      "end_byte": 784,
       "metadata": {
         "metric_version": 1
       }
@@ -783,6 +1306,22 @@
       "start_byte": 167,
       "end_byte": 173,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/orders",
+      "kind": "other",
+      "carrier": "koa.post",
+      "arg_position": 0,
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "start_line": 21,
+      "start_column": 11,
+      "end_line": 21,
+      "end_column": 20,
+      "start_byte": 614,
+      "end_byte": 623,
+      "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
       "confidence": "1.000"
     },
     {
@@ -855,6 +1394,32 @@
       "kind": "string_literal",
       "language": "typescript",
       "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:Hapi:17:0",
+      "start_line": 17,
+      "start_column": 17,
+      "end_line": 17,
+      "end_column": 29,
+      "start_byte": 500,
+      "end_byte": 512,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:Router:16:0",
+      "start_line": 16,
+      "start_column": 19,
+      "end_line": 16,
+      "end_column": 32,
+      "start_byte": 468,
+      "end_byte": 481,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:express:1:0",
       "start_line": 1,
       "start_column": 20,
@@ -875,6 +1440,58 @@
       "end_column": 29,
       "start_byte": 51,
       "end_byte": 60,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koa:20:8",
+      "start_line": 20,
+      "start_column": 35,
+      "end_line": 20,
+      "end_column": 40,
+      "start_byte": 593,
+      "end_byte": 598,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
+      "start_line": 21,
+      "start_column": 11,
+      "end_line": 21,
+      "end_column": 20,
+      "start_byte": 614,
+      "end_byte": 623,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
+      "start_line": 23,
+      "start_column": 23,
+      "end_line": 23,
+      "end_column": 31,
+      "start_byte": 728,
+      "end_byte": 736,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
+      "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
+      "start_line": 23,
+      "start_column": 39,
+      "end_line": 23,
+      "end_column": 52,
+      "start_byte": 744,
+      "end_byte": 757,
       "metadata": null
     },
     {

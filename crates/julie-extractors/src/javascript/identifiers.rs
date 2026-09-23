@@ -93,12 +93,10 @@ impl super::JavaScriptExtractor {
                                 let name = self.base.get_node_text(&property_node);
                                 let containing_symbol_id =
                                     self.find_containing_symbol_id(node, containing_symbols);
-                                let receiver_type = function_node
-                                    .child_by_field_name("object")
-                                    .filter(|object| object.kind() == "this")
-                                    .and_then(|_| {
-                                        ecmascript_enclosing_class_name(&self.base, node)
-                                    });
+                                let receiver_type =
+                                    function_node.child_by_field_name("object").and_then(
+                                        |object| ecmascript_self_receiver_type(&self.base, object),
+                                    );
 
                                 self.base.create_identifier_with_receiver_type(
                                     &property_node,
@@ -323,26 +321,44 @@ impl super::JavaScriptExtractor {
 // node kinds in both grammars (never `identifier`), so keywords are structurally
 // excluded and no name-based builtin filter is needed.
 
-/// The enclosing class name for a `this.`-receiver call: the nearest class-like
-/// ancestor's declared name. Shared by the JavaScript and TypeScript extractors;
-/// an anonymous class expression yields nothing.
+/// The enclosing class name for a `this.`-receiver call: the name the nearest
+/// class-like ancestor binds, or `X` for a function assigned to
+/// `X.prototype.m`. Shared by the JavaScript and TypeScript extractors; an
+/// unbound anonymous class expression yields nothing.
 pub(crate) fn ecmascript_enclosing_class_name(
     base: &crate::base::BaseExtractor,
     node: Node,
 ) -> Option<String> {
     let mut current = node.parent();
     while let Some(candidate) = current {
-        if matches!(
-            candidate.kind(),
-            "class_declaration" | "abstract_class_declaration" | "class"
-        ) {
-            return candidate
-                .child_by_field_name("name")
-                .map(|name_node| base.get_node_text(&name_node));
+        match candidate.kind() {
+            "class_declaration" | "abstract_class_declaration" | "class" => {
+                return super::types::class_binding_name(base, candidate);
+            }
+            "function_expression" | "function" | "generator_function" => {
+                if let Some(owner) = prototype_owner(base, candidate) {
+                    return Some(owner);
+                }
+            }
+            _ => {}
         }
         current = candidate.parent();
     }
     None
+}
+
+/// `X` for a function assigned to `X.prototype.m`.
+fn prototype_owner(base: &crate::base::BaseExtractor, function: Node) -> Option<String> {
+    let assignment = function
+        .parent()
+        .filter(|parent| parent.kind() == "assignment_expression")?;
+    let left = assignment
+        .child_by_field_name("left")
+        .filter(|left| left.kind() == "member_expression")?;
+    let object = left.child_by_field_name("object")?;
+    base.get_node_text(&object)
+        .strip_suffix(".prototype")
+        .map(str::to_string)
 }
 
 /// The `receiver_type` of a `this`/`super` receiver: the enclosing class name

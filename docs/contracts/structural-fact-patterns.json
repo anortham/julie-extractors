@@ -2795,6 +2795,71 @@
     "query_family": "framework"
   },
   {
+    "description": "A static Hapi `server.route` object-form route on a server built by `Hapi.server` or `new Hapi.Server`.",
+    "languages": [
+      "javascript",
+      "typescript"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"call_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static `path` of the route object.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key with Hapi {param} segments normalized to :param.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "HTTP method from the `method` property; omitted for `*`.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested (\"attested\" for the method property).",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "hapi.route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "An HTML image-map area link (`<area href>`).",
     "languages": [
       "html"
@@ -3877,6 +3942,83 @@
     ],
     "pattern_id": "jsx.await_expression.v1",
     "query_family": "async"
+  },
+  {
+    "description": "A static Koa Router route registration on a router built from `@koa/router` or `koa-router`.",
+    "languages": [
+      "javascript",
+      "typescript"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"call_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path passed to the router method.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key with the router prefix applied and :param segments preserved.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "HTTP method for verb-restricted registrations; omitted for router.all.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested (\"attested\" for router verb methods).",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Literal `prefix` option of the router constructor.",
+        "key": "route_group_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Router prefix joined with the route template.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "koa.route.v1",
+    "query_family": "framework"
   },
   {
     "description": "A Kotlin annotation use.",

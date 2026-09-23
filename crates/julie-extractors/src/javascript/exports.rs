@@ -50,6 +50,11 @@ pub(crate) fn extract_export_rows(
     } else if let Some(value) = node.child_by_field_name("value") {
         let local_name = match value.kind() {
             "identifier" => Some(base.get_node_text(&value)),
+            "class" | "function_expression" | "arrow_function" | "generator_function" => Some(
+                value
+                    .child_by_field_name("name")
+                    .map_or_else(|| "default".to_string(), |name| base.get_node_text(&name)),
+            ),
             _ => value
                 .child_by_field_name("name")
                 .map(|name| base.get_node_text(&name)),

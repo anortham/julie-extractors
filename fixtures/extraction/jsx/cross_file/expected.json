@@ -59,14 +59,15 @@
         "end_byte": 423
       },
       "body_hash": "e9669344b96c72d02e1896000d944368",
-      "signature": "export function entry() {\n    const x = new Foo();\n    return <Foo>{local_helper()}</Foo>;\n}",
+      "signature": null,
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "exportedName": "entry",
         "isDefault": false,
-        "isNamed": true
+        "isNamed": true,
+        "localName": "entry"
       },
       "annotations": [],
       "semantic_group": null,
@@ -97,7 +98,7 @@
       "signature": "function entry()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/jsx/cross_file/source.jsx:entry:12:0",
+      "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
         "isAsync": false,
@@ -133,7 +134,7 @@
       "body_hash": "d2eca0a1521da9f57d8eeb7ec054d1bf",
       "signature": "function local_helper()",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
@@ -170,7 +171,7 @@
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
       "signature": "const x = new Foo()",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/jsx/cross_file/source.jsx:entry:12:7",
       "metadata": {
         "declarationType": "const",

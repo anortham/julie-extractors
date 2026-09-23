@@ -21,14 +21,15 @@
         "end_byte": 468
       },
       "body_hash": "4290018b481bebf98fe4424efdc091c0",
-      "signature": "export function entry() {\n    foo();\n    return local_helper();\n}",
+      "signature": null,
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "exportedName": "entry",
         "isDefault": false,
-        "isNamed": true
+        "isNamed": true,
+        "localName": "entry"
       },
       "annotations": [],
       "semantic_group": null,
@@ -59,7 +60,7 @@
       "signature": "function entry()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/javascript/cross_file/source.js:entry:13:0",
+      "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
         "isAsync": false,
@@ -133,7 +134,7 @@
       "body_hash": "d2eca0a1521da9f57d8eeb7ec054d1bf",
       "signature": "function local_helper()",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "isArrowFunction": false,

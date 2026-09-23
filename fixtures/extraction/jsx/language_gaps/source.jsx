@@ -17,3 +17,7 @@ export function List({ items }) {
     </UI.Panel>
   );
 }
+
+export const Price = memo(({ value }) => <span style={{ color: "red" }}>{format(value)}</span>);
+const Panel = class extends React.Component { render() { return <Price value={1} />; } };
+export { Panel as DefaultPanel };

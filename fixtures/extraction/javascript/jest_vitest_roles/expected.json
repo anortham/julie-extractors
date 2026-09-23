@@ -949,7 +949,7 @@
       "body_hash": "a3c99993b4dc0c62adf87e270e875da9",
       "signature": "const reporter = {\n  test(name, run) {\n    return run(name);\n  },\n}",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "declarationType": "const",
@@ -1123,14 +1123,15 @@
         "end_byte": 1013
       },
       "body_hash": "caa44a59f49535d6e9184764c2752765",
-      "signature": "export function testTotalsHelper(items) {\n  return total(items);\n}",
+      "signature": null,
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "exportedName": "testTotalsHelper",
         "isDefault": false,
-        "isNamed": true
+        "isNamed": true,
+        "localName": "testTotalsHelper"
       },
       "annotations": [],
       "semantic_group": null,
@@ -1161,7 +1162,7 @@
       "signature": "function testTotalsHelper(items)",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:testTotalsHelper:40:0",
+      "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
         "isAsync": false,
@@ -1199,7 +1200,7 @@
       "body_hash": "b1c07bb7ef1fe3bf9f273a9a94105da5",
       "signature": "function total(items)",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "isArrowFunction": false,

@@ -30,7 +30,10 @@ impl super::JavaScriptExtractor {
                     name = Some(self.base.get_node_text(&var_name_node));
                 }
             } else if parent.kind() == "assignment_expression" {
-                if let Some(left_node) = parent.child_by_field_name("left") {
+                if let Some(left_node) = parent
+                    .child_by_field_name("left")
+                    .filter(|left| left.kind() == "identifier")
+                {
                     name = Some(self.base.get_node_text(&left_node));
                 }
             } else if parent.kind() == "pair"
@@ -40,6 +43,13 @@ impl super::JavaScriptExtractor {
             }
         }
 
+        if name.is_none()
+            && node
+                .parent()
+                .is_some_and(|parent| parent.kind() == "export_statement")
+        {
+            name = Some("default".to_string());
+        }
         let name = name?;
 
         let signature = match node.parent() {

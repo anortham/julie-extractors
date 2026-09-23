@@ -1,35 +1,6 @@
 {
   "symbols": [
     {
-      "key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:body:6:47",
-      "name": "body",
-      "kind": "property",
-      "language": "jsx",
-      "file_path": "fixtures/extraction/jsx/http_client_fetch/source.jsx",
-      "start_line": 6,
-      "start_column": 47,
-      "end_line": 6,
-      "end_column": 60,
-      "start_byte": 160,
-      "end_byte": 173,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "body: payload",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:createUser:5:7",
-      "metadata": {
-        "isComputed": false,
-        "isPrivate": false,
-        "isStatic": false,
-        "value": "payload"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:createUser:5:0",
       "name": "createUser",
       "kind": "export",
@@ -50,14 +21,15 @@
         "end_byte": 179
       },
       "body_hash": "a9a2b68a22bfb50068a7f339023d9a70",
-      "signature": "export async function createUser(payload) {\n  return fetch(\"/api/users\", { method: \"POST\", body: payload });\n}",
+      "signature": null,
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "exportedName": "createUser",
         "isDefault": false,
-        "isNamed": true
+        "isNamed": true,
+        "localName": "createUser"
       },
       "annotations": [],
       "semantic_group": null,
@@ -88,7 +60,7 @@
       "signature": "async function createUser(payload)",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:createUser:5:0",
+      "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
         "isAsync": true,
@@ -124,14 +96,15 @@
         "end_byte": 239
       },
       "body_hash": "2fad6eefb803700caa5678066e4b0f03",
-      "signature": "export function dynamicFetch(url) {\n  return fetch(url);\n}",
+      "signature": null,
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "exportedName": "dynamicFetch",
         "isDefault": false,
-        "isNamed": true
+        "isNamed": true,
+        "localName": "dynamicFetch"
       },
       "annotations": [],
       "semantic_group": null,
@@ -162,7 +135,7 @@
       "signature": "function dynamicFetch(url)",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:dynamicFetch:9:0",
+      "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
         "isAsync": false,
@@ -198,14 +171,15 @@
         "end_byte": 67
       },
       "body_hash": "e116c159a7b679cc17bc99b850ea5a32",
-      "signature": "export async function loadUsers() {\n  return fetch(\"/api/users\");\n}",
+      "signature": null,
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "exportedName": "loadUsers",
         "isDefault": false,
-        "isNamed": true
+        "isNamed": true,
+        "localName": "loadUsers"
       },
       "annotations": [],
       "semantic_group": null,
@@ -236,42 +210,13 @@
       "signature": "async function loadUsers()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:loadUsers:1:0",
+      "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
         "isAsync": true,
         "isExpression": false,
         "isGenerator": false,
         "parameters": []
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:method:6:31",
-      "name": "method",
-      "kind": "property",
-      "language": "jsx",
-      "file_path": "fixtures/extraction/jsx/http_client_fetch/source.jsx",
-      "start_line": 6,
-      "start_column": 31,
-      "end_line": 6,
-      "end_column": 45,
-      "start_byte": 144,
-      "end_byte": 158,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "method: \"POST\"",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:createUser:5:7",
-      "metadata": {
-        "isComputed": false,
-        "isPrivate": false,
-        "isStatic": false,
-        "value": "\"POST\""
       },
       "annotations": [],
       "semantic_group": null,
@@ -395,7 +340,7 @@
       "end_column": 60,
       "start_byte": 166,
       "end_byte": 173,
-      "containing_key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:body:6:47",
+      "containing_key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:createUser:5:7",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -612,6 +557,19 @@
       "kind": "string_literal",
       "language": "jsx",
       "file_path": "fixtures/extraction/jsx/http_client_fetch/source.jsx",
+      "containing_key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:createUser:5:7",
+      "start_line": 6,
+      "start_column": 39,
+      "end_line": 6,
+      "end_column": 45,
+      "start_byte": 152,
+      "end_byte": 158,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/http_client_fetch/source.jsx",
       "containing_key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:loadUsers:1:7",
       "start_line": 2,
       "start_column": 15,
@@ -619,19 +577,6 @@
       "end_column": 27,
       "start_byte": 51,
       "end_byte": 63,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "jsx",
-      "file_path": "fixtures/extraction/jsx/http_client_fetch/source.jsx",
-      "containing_key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:method:6:31",
-      "start_line": 6,
-      "start_column": 39,
-      "end_line": 6,
-      "end_column": 45,
-      "start_byte": 152,
-      "end_byte": 158,
       "metadata": null
     }
   ],

@@ -21,14 +21,15 @@
         "end_byte": 136
       },
       "body_hash": "4e5fb85eb7d0509012c37a0bcb216c98",
-      "signature": "@registered\nexport class Worker {\n    constructor(id) {\n        this.id = id;\n    }\n\n    run() {\n        return helper(this.id);\n    }\n}",
+      "signature": null,
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "exportedName": "Worker",
         "isDefault": false,
-        "isNamed": true
+        "isNamed": true,
+        "localName": "Worker"
       },
       "annotations": [],
       "semantic_group": null,
@@ -59,7 +60,7 @@
       "signature": "class Worker",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/javascript/basic/source.js:Worker:1:0",
+      "parent_key": null,
       "metadata": {
         "extends": null,
         "hasPrivateFields": false,
@@ -192,7 +193,7 @@
       "body_hash": "7eb8b04fb752d85fa4e289b3db991f4e",
       "signature": "function evaluate(count, enabled)",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
@@ -232,7 +233,7 @@
       "body_hash": "9d7bfc03ef03477a6cc1004df50e77c5",
       "signature": "function helper(value)",
       "doc_comment": "/**\n * Increment a worker id.\n * @returns {number}\n */",
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
@@ -264,7 +265,7 @@
       "body_hash": null,
       "signature": "let i = 0",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/javascript/basic/source.js:evaluate:20:0",
       "metadata": {
         "declarationType": "let",
@@ -297,6 +298,32 @@
       "parent_key": "fixtures/extraction/javascript/basic/source.js:constructor:3:4",
       "metadata": {
         "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/javascript/basic/source.js:id:4:8",
+      "name": "id",
+      "kind": "property",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/basic/source.js",
+      "start_line": 4,
+      "start_column": 8,
+      "end_line": 4,
+      "end_column": 20,
+      "start_byte": 64,
+      "end_byte": 76,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "this.id = id",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/javascript/basic/source.js:Worker:2:7",
+      "metadata": {
+        "isConstructorAssigned": true
       },
       "annotations": [],
       "semantic_group": null,
@@ -358,7 +385,7 @@
       "body_hash": null,
       "signature": "let total = 0",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/javascript/basic/source.js:evaluate:20:0",
       "metadata": {
         "declarationType": "let",
@@ -529,7 +556,7 @@
       "end_column": 15,
       "start_byte": 69,
       "end_byte": 71,
-      "containing_key": "fixtures/extraction/javascript/basic/source.js:constructor:3:4",
+      "containing_key": "fixtures/extraction/javascript/basic/source.js:id:4:8",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -561,7 +588,7 @@
       "end_column": 20,
       "start_byte": 74,
       "end_byte": 76,
-      "containing_key": "fixtures/extraction/javascript/basic/source.js:constructor:3:4",
+      "containing_key": "fixtures/extraction/javascript/basic/source.js:id:4:8",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -636,7 +663,7 @@
       "resolved_type": "number",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "javascript",
       "metadata": null
     }

@@ -88,7 +88,7 @@
       "body_hash": "5db60f686f2634241e5d56992c42e1e3",
       "signature": "function clamp(value, min, max)",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
@@ -181,7 +181,7 @@
       "body_hash": "d07c4639488a39f34e4f2177a2096ba9",
       "signature": "var n = Number(value)",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/javascript/qml_directives/source.js:clamp:6:0",
       "metadata": {
         "declarationType": "var",
@@ -243,7 +243,7 @@
       "body_hash": "ffef212b0c9d20ed3f21e88b9c4ac56a",
       "signature": "function screenWidth(screen)",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "isArrowFunction": false,

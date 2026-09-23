@@ -21,14 +21,15 @@
         "end_byte": 357
       },
       "body_hash": "9ac49fc72bcd767f50629c3709b63262",
-      "signature": "export function Badge({ label }) {\n    function handleClick() {\n        fetch(\"/api/workers\");\n        return format(label);\n    }\n\n    return (\n        <button data-action=\"run\" onClick={handleClick}>\n            {format(label)}\n        </button>\n    );\n}",
+      "signature": null,
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "exportedName": "Badge",
         "isDefault": false,
-        "isNamed": true
+        "isNamed": true,
+        "localName": "Badge"
       },
       "annotations": [],
       "semantic_group": null,
@@ -59,7 +60,7 @@
       "signature": "function Badge({ label })",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/jsx/basic/source.jsx:Badge:8:0",
+      "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
         "isAsync": false,
@@ -95,14 +96,15 @@
         "end_byte": 99
       },
       "body_hash": "6e46960adef29421f337455f75f8521b",
-      "signature": "@registered\nexport class WorkerModel {\n    constructor(label) {\n        this.label = label;\n    }\n}",
+      "signature": null,
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "exportedName": "WorkerModel",
         "isDefault": false,
-        "isNamed": true
+        "isNamed": true,
+        "localName": "WorkerModel"
       },
       "annotations": [],
       "semantic_group": null,
@@ -133,7 +135,7 @@
       "signature": "class WorkerModel",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/jsx/basic/source.jsx:WorkerModel:1:0",
+      "parent_key": null,
       "metadata": {
         "extends": null,
         "hasPrivateFields": false,
@@ -266,7 +268,7 @@
       "body_hash": "0d61c5c9950c9a877d638c6a5522fcd9",
       "signature": "function evaluate(count, enabled)",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
@@ -306,7 +308,7 @@
       "body_hash": "610fbeb731a13af644329e41367482b9",
       "signature": "function format(value)",
       "doc_comment": "/**\n * Format the badge label.\n * @returns {string}\n */",
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
@@ -345,7 +347,7 @@
       "body_hash": "f3a619f51e844c16bc6068fe4439ca11",
       "signature": "function handleClick()",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/jsx/basic/source.jsx:Badge:8:7",
       "metadata": {
         "isArrowFunction": false,
@@ -375,7 +377,7 @@
       "body_hash": null,
       "signature": "let i = 1",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/jsx/basic/source.jsx:evaluate:29:0",
       "metadata": {
         "declarationType": "let",
@@ -408,6 +410,32 @@
       "parent_key": "fixtures/extraction/jsx/basic/source.jsx:constructor:3:4",
       "metadata": {
         "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/jsx/basic/source.jsx:label:4:8",
+      "name": "label",
+      "kind": "property",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/basic/source.jsx",
+      "start_line": 4,
+      "start_column": 8,
+      "end_line": 4,
+      "end_column": 26,
+      "start_byte": 72,
+      "end_byte": 90,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "this.label = label",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/jsx/basic/source.jsx:WorkerModel:2:7",
+      "metadata": {
+        "isConstructorAssigned": true
       },
       "annotations": [],
       "semantic_group": null,
@@ -456,7 +484,7 @@
       "body_hash": null,
       "signature": "let total = 0",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/jsx/basic/source.jsx:evaluate:29:0",
       "metadata": {
         "declarationType": "let",
@@ -709,7 +737,7 @@
       "end_column": 18,
       "start_byte": 77,
       "end_byte": 82,
-      "containing_key": "fixtures/extraction/jsx/basic/source.jsx:constructor:3:4",
+      "containing_key": "fixtures/extraction/jsx/basic/source.jsx:label:4:8",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -757,7 +785,7 @@
       "end_column": 26,
       "start_byte": 85,
       "end_byte": 90,
-      "containing_key": "fixtures/extraction/jsx/basic/source.jsx:constructor:3:4",
+      "containing_key": "fixtures/extraction/jsx/basic/source.jsx:label:4:8",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -848,7 +876,7 @@
       "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "jsx",
       "metadata": null
     }

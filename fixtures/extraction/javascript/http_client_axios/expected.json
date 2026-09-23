@@ -51,14 +51,15 @@
         "end_byte": 211
       },
       "body_hash": "a7345368c3fa506718e36162f8834b0b",
-      "signature": "export async function createUser(payload) {\n  return axios(\"/api/users\", { method: \"post\", data: payload });\n}",
+      "signature": null,
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "exportedName": "createUser",
         "isDefault": false,
-        "isNamed": true
+        "isNamed": true,
+        "localName": "createUser"
       },
       "annotations": [],
       "semantic_group": null,
@@ -89,7 +90,7 @@
       "signature": "async function createUser(payload)",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/javascript/http_client_axios/source.js:createUser:7:0",
+      "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
         "isAsync": true,
@@ -98,35 +99,6 @@
         "parameters": [
           "payload"
         ]
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/javascript/http_client_axios/source.js:data:8:47",
-      "name": "data",
-      "kind": "property",
-      "language": "javascript",
-      "file_path": "fixtures/extraction/javascript/http_client_axios/source.js",
-      "start_line": 8,
-      "start_column": 47,
-      "end_line": 8,
-      "end_column": 60,
-      "start_byte": 192,
-      "end_byte": 205,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "data: payload",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/javascript/http_client_axios/source.js:createUser:7:7",
-      "metadata": {
-        "isComputed": false,
-        "isPrivate": false,
-        "isStatic": false,
-        "value": "payload"
       },
       "annotations": [],
       "semantic_group": null,
@@ -154,14 +126,15 @@
         "end_byte": 277
       },
       "body_hash": "e36b48215f3a7dd0dece22bb2871ab5a",
-      "signature": "export function dynamicRequest(url) {\n  return axios.get(url);\n}",
+      "signature": null,
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "exportedName": "dynamicRequest",
         "isDefault": false,
-        "isNamed": true
+        "isNamed": true,
+        "localName": "dynamicRequest"
       },
       "annotations": [],
       "semantic_group": null,
@@ -192,7 +165,7 @@
       "signature": "function dynamicRequest(url)",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/javascript/http_client_axios/source.js:dynamicRequest:11:0",
+      "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
         "isAsync": false,
@@ -228,14 +201,15 @@
         "end_byte": 99
       },
       "body_hash": "248045d8ec235cc10becb8f699536b7e",
-      "signature": "export async function loadUsers() {\n  return axios.get(\"/api/users\");\n}",
+      "signature": null,
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "exportedName": "loadUsers",
         "isDefault": false,
-        "isNamed": true
+        "isNamed": true,
+        "localName": "loadUsers"
       },
       "annotations": [],
       "semantic_group": null,
@@ -266,42 +240,13 @@
       "signature": "async function loadUsers()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/javascript/http_client_axios/source.js:loadUsers:3:0",
+      "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
         "isAsync": true,
         "isExpression": false,
         "isGenerator": false,
         "parameters": []
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/javascript/http_client_axios/source.js:method:8:31",
-      "name": "method",
-      "kind": "property",
-      "language": "javascript",
-      "file_path": "fixtures/extraction/javascript/http_client_axios/source.js",
-      "start_line": 8,
-      "start_column": 31,
-      "end_line": 8,
-      "end_column": 45,
-      "start_byte": 176,
-      "end_byte": 190,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "method: \"post\"",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/javascript/http_client_axios/source.js:createUser:7:7",
-      "metadata": {
-        "isComputed": false,
-        "isPrivate": false,
-        "isStatic": false,
-        "value": "\"post\""
       },
       "annotations": [],
       "semantic_group": null,
@@ -457,7 +402,7 @@
       "end_column": 60,
       "start_byte": 198,
       "end_byte": 205,
-      "containing_key": "fixtures/extraction/javascript/http_client_axios/source.js:data:8:47",
+      "containing_key": "fixtures/extraction/javascript/http_client_axios/source.js:createUser:7:7",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -689,6 +634,19 @@
       "kind": "string_literal",
       "language": "javascript",
       "file_path": "fixtures/extraction/javascript/http_client_axios/source.js",
+      "containing_key": "fixtures/extraction/javascript/http_client_axios/source.js:createUser:7:7",
+      "start_line": 8,
+      "start_column": 39,
+      "end_line": 8,
+      "end_column": 45,
+      "start_byte": 184,
+      "end_byte": 190,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/http_client_axios/source.js",
       "containing_key": "fixtures/extraction/javascript/http_client_axios/source.js:loadUsers:3:7",
       "start_line": 4,
       "start_column": 19,
@@ -696,19 +654,6 @@
       "end_column": 31,
       "start_byte": 83,
       "end_byte": 95,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "javascript",
-      "file_path": "fixtures/extraction/javascript/http_client_axios/source.js",
-      "containing_key": "fixtures/extraction/javascript/http_client_axios/source.js:method:8:31",
-      "start_line": 8,
-      "start_column": 39,
-      "end_line": 8,
-      "end_column": 45,
-      "start_byte": 184,
-      "end_byte": 190,
       "metadata": null
     }
   ],

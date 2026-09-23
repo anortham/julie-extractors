@@ -138,8 +138,9 @@ The JavaScript extractor follows the TypeScript contract in
 
 - A function value bound by `const`/`let`/`var` is one `function` symbol
   named by the binding. A function value bound by an object key
-  (`post: function () {}`), a member assignment
-  (`A.prototype.m = function () {}`, `exports.m = ...`), or a class field
+  (`post: function () {}`), a prototype or static member assignment
+  (`A.prototype.m = function () {}`, `A.create = () => {}`), a
+  `this.m = function () {}` inside a constructor function, or a class field
   (`handle = () => {}`) is one `method` symbol. Its parameters hang off that
   symbol.
 - Calls inside function expressions and generators belong to the nearest
@@ -153,6 +154,51 @@ The JavaScript extractor follows the TypeScript contract in
 - Renamed, defaulted, nested, and rest destructuring bindings are variables.
   Destructured parameters are parameter symbols, one per binding.
 - Test-DSL call sites (`describe`, `it`, hooks) emit no call edges.
+
+## Declarations, visibility, and types (wave 2)
+
+- Prototype and static members are parented to the same-file constructor
+  function or class, carry `className`, and have a header-only signature
+  (`Queue.prototype.clear = function clear()`). `this.m()` between them is a
+  `calls` edge, `new Queue()` on a constructor function is an
+  `instantiates` edge, and `this`/`super` call identifiers carry
+  `receiver_type`.
+- `module.exports = function auth() {}` is the function `auth` (`default`
+  when anonymous). `exports.x = fn` and `module.exports.x = fn` are the
+  function `x`. None of them is a method of a fake `module` or `exports`
+  class.
+- Class expressions are classes named by their own name, their binding, or
+  `default` for `export default class {}`. Heritage belongs to the nearest
+  class, so a class expression inside a method adds no edge to the outer
+  class.
+- `this.x = value` in a class constructor is a `property` of the class
+  unless the class declares `x`.
+- Type facts: `@param {T} name` on parameters, `@returns {T}` on callables,
+  `@type {T}` on variables, properties, and fields, and `new T()` field and
+  constructor-property initializers. `resolved_type` is the base name
+  (`Promise`, `Repo`); the JSDoc text is in `metadata.declared`.
+- Visibility: in a module (a file with `import`, `export`, `require`, or
+  CommonJS export assignments) a top-level class, function, or variable is
+  `public` when the module exports it by any form (`export` wrapper,
+  `export { x }`, `export default x`, `module.exports = X`,
+  `module.exports = { X }`, `module.exports.x = X`, `exports.x = X`) and
+  `private` otherwise. In a script every top-level declaration is `public`.
+  Locals of a callable carry no visibility.
+- Every exported name has its own `export` row, shared with TypeScript
+  (see [`docs/languages/typescript.md`](typescript.md)). Export rows never
+  parent or own the declaration they export.
+- Object literals emit `property` symbols only when a declaration binds
+  them (`const config = {...}`, `export default {...}`,
+  `module.exports = {...}`, a class field), including nested literals.
+  Literals in call arguments, JSX attributes, return values, arrays, and
+  decorator arguments emit none. Function-valued pairs are always
+  `method` symbols.
+- Class field decorators are annotations, the same as method and class
+  decorators.
+- `koa.route.v1`: verb-method routes on a router built from `@koa/router` or
+  `koa-router`, with the constructor `prefix` joined into
+  `effective_route_template`. `hapi.route.v1`: `server.route` objects on a
+  server built by `Hapi.server` or `new Hapi.Server`.
 
 The `javascript/language_gaps` and `jsx/language_gaps` goldens hold the
 evidence, together with Express mounts for imported, required, and

@@ -1,6 +1,42 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/jsx/language_gaps/source.jsx:DefaultPanel:23:0",
+      "name": "DefaultPanel",
+      "kind": "export",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+      "start_line": 23,
+      "start_column": 0,
+      "end_line": 23,
+      "end_column": 33,
+      "start_byte": 590,
+      "end_byte": 623,
+      "body_span": {
+        "start_line": 23,
+        "start_column": 7,
+        "end_line": 23,
+        "end_column": 32,
+        "start_byte": 597,
+        "end_byte": 622
+      },
+      "body_hash": "f121cc8e2a6ad72e355c37873ecfa556",
+      "signature": "export { Panel as DefaultPanel };",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "exportedName": "DefaultPanel",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "Panel"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/jsx/language_gaps/source.jsx:EmptyState:5:0",
       "name": "EmptyState",
       "kind": "function",
@@ -23,7 +59,7 @@
       "body_hash": "c82b8c0f2d744825f15b186d3cf7ac3c",
       "signature": "function EmptyState({ message })",
       "doc_comment": "/** Empty list notice. */",
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
@@ -60,14 +96,15 @@
         "end_byte": 401
       },
       "body_hash": "5ef2324c379af87aa7fe5feffebb401c",
-      "signature": "export function List({ items }) {\n  if (!items.length) return <EmptyState message=\"none\" />;\n  return (\n    <UI.Panel>\n      {items.map((item) => (\n        <TodoItem key={item.id} todo={item} />\n      ))}\n    </UI.Panel>\n  );\n}",
+      "signature": null,
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "exportedName": "List",
         "isDefault": false,
-        "isNamed": true
+        "isNamed": true,
+        "localName": "List"
       },
       "annotations": [],
       "semantic_group": null,
@@ -98,7 +135,7 @@
       "signature": "function List({ items })",
       "doc_comment": "/** Item list. */",
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/jsx/language_gaps/source.jsx:List:10:0",
+      "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
         "isAsync": false,
@@ -107,6 +144,113 @@
         "parameters": [
           "{ items }"
         ]
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/jsx/language_gaps/source.jsx:Panel:22:14",
+      "name": "Panel",
+      "kind": "class",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+      "start_line": 22,
+      "start_column": 14,
+      "end_line": 22,
+      "end_column": 88,
+      "start_byte": 514,
+      "end_byte": 588,
+      "body_span": {
+        "start_line": 22,
+        "start_column": 44,
+        "end_line": 22,
+        "end_column": 88,
+        "start_byte": 544,
+        "end_byte": 588
+      },
+      "body_hash": "aa586267d688473d6d2ce63d4c1f1350",
+      "signature": "class",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "extends": null,
+        "hasPrivateFields": false,
+        "isGenerator": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/jsx/language_gaps/source.jsx:Price:21:0",
+      "name": "Price",
+      "kind": "export",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+      "start_line": 21,
+      "start_column": 0,
+      "end_line": 21,
+      "end_column": 96,
+      "start_byte": 403,
+      "end_byte": 499,
+      "body_span": {
+        "start_line": 21,
+        "start_column": 27,
+        "end_line": 21,
+        "end_column": 87,
+        "start_byte": 430,
+        "end_byte": 490
+      },
+      "body_hash": "e3448899cc230cf1a4a73bc4436fe9ef",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "exportedName": "Price",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "Price"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/jsx/language_gaps/source.jsx:Price:21:13",
+      "name": "Price",
+      "kind": "variable",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+      "start_line": 21,
+      "start_column": 13,
+      "end_line": 21,
+      "end_column": 95,
+      "start_byte": 416,
+      "end_byte": 498,
+      "body_span": {
+        "start_line": 21,
+        "start_column": 27,
+        "end_line": 21,
+        "end_column": 87,
+        "start_byte": 430,
+        "end_byte": 490
+      },
+      "body_hash": "e3448899cc230cf1a4a73bc4436fe9ef",
+      "signature": "const Price = memo(({ value }) => <span style={{ color: \"red\" }}...",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "declarationType": "const",
+        "initializer": "memo(({ value }) => <span style={{ color: \"red\" }}>{format(value)}</span>)",
+        "isConst": true,
+        "isLet": false
       },
       "annotations": [],
       "semantic_group": null,
@@ -232,6 +376,45 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/jsx/language_gaps/source.jsx:render:22:46",
+      "name": "render",
+      "kind": "method",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+      "start_line": 22,
+      "start_column": 46,
+      "end_line": 22,
+      "end_column": 86,
+      "start_byte": 546,
+      "end_byte": 586,
+      "body_span": {
+        "start_line": 22,
+        "start_column": 55,
+        "end_line": 22,
+        "end_column": 86,
+        "start_byte": 555,
+        "end_byte": 586
+      },
+      "body_hash": "f4ebe37deb23ae5c6262ae0ea2c9c224",
+      "signature": "render()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/jsx/language_gaps/source.jsx:Panel:22:14",
+      "metadata": {
+        "isAsync": false,
+        "isGenerator": false,
+        "isGetter": false,
+        "isPrivate": false,
+        "isSetter": false,
+        "isStatic": false,
+        "parameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [
@@ -269,6 +452,30 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
       "line_number": 13,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/jsx/language_gaps/source.jsx:Panel:22:14",
+      "callee_name": "Component",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+      "line_number": 22,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/jsx/language_gaps/source.jsx:Price:21:13",
+      "callee_name": "format",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+      "line_number": 21,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/jsx/language_gaps/source.jsx:Price:21:13",
+      "callee_name": "memo",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+      "line_number": 21,
       "confidence": "0.700"
     }
   ],
@@ -324,9 +531,105 @@
         "start_byte": 282,
         "end_byte": 292
       }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/jsx/language_gaps/source.jsx:Panel:22:14",
+        "callee_name": "Component",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+        "line_number": 22,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "React.Component",
+        "terminal_name": "Component",
+        "receiver": null,
+        "namespace_path": [
+          "React"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/jsx/language_gaps/source.jsx:Panel:22:14",
+      "span": {
+        "start_line": 22,
+        "start_column": 20,
+        "end_line": 22,
+        "end_column": 43,
+        "start_byte": 520,
+        "end_byte": 543
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/jsx/language_gaps/source.jsx:Price:21:13",
+        "callee_name": "format",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+        "line_number": 21,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "format",
+        "terminal_name": "format",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/jsx/language_gaps/source.jsx:Price:21:13",
+      "span": {
+        "start_line": 21,
+        "start_column": 73,
+        "end_line": 21,
+        "end_column": 86,
+        "start_byte": 476,
+        "end_byte": 489
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/jsx/language_gaps/source.jsx:Price:21:13",
+        "callee_name": "memo",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+        "line_number": 21,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "memo",
+        "terminal_name": "memo",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/jsx/language_gaps/source.jsx:Price:21:13",
+      "span": {
+        "start_line": 21,
+        "start_column": 21,
+        "end_line": 21,
+        "end_column": 95,
+        "start_byte": 424,
+        "end_byte": 498
+      }
     }
   ],
   "identifiers": [
+    {
+      "key": "fixtures/extraction/jsx/language_gaps/source.jsx:Component:member_access:22:34",
+      "name": "Component",
+      "kind": "member_access",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+      "start_line": 22,
+      "start_column": 34,
+      "end_line": 22,
+      "end_column": 43,
+      "start_byte": 534,
+      "end_byte": 543,
+      "containing_key": "fixtures/extraction/jsx/language_gaps/source.jsx:Panel:22:14",
+      "target_key": null,
+      "confidence": "1.000"
+    },
     {
       "key": "fixtures/extraction/jsx/language_gaps/source.jsx:EmptyState:call:11:29",
       "name": "EmptyState",
@@ -392,6 +695,54 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/jsx/language_gaps/source.jsx:Panel:variable_ref:23:9",
+      "name": "Panel",
+      "kind": "variable_ref",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+      "start_line": 23,
+      "start_column": 9,
+      "end_line": 23,
+      "end_column": 14,
+      "start_byte": 599,
+      "end_byte": 604,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/jsx/language_gaps/source.jsx:Price:call:22:65",
+      "name": "Price",
+      "kind": "call",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+      "start_line": 22,
+      "start_column": 65,
+      "end_line": 22,
+      "end_column": 70,
+      "start_byte": 565,
+      "end_byte": 570,
+      "containing_key": "fixtures/extraction/jsx/language_gaps/source.jsx:render:22:46",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/jsx/language_gaps/source.jsx:React:variable_ref:22:28",
+      "name": "React",
+      "kind": "variable_ref",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+      "start_line": 22,
+      "start_column": 28,
+      "end_line": 22,
+      "end_column": 33,
+      "start_byte": 528,
+      "end_byte": 533,
+      "containing_key": "fixtures/extraction/jsx/language_gaps/source.jsx:Panel:22:14",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/jsx/language_gaps/source.jsx:TodoItem:call:15:9",
       "name": "TodoItem",
       "kind": "call",
@@ -436,6 +787,22 @@
       "start_byte": 385,
       "end_byte": 387,
       "containing_key": "fixtures/extraction/jsx/language_gaps/source.jsx:List:10:7",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/jsx/language_gaps/source.jsx:format:call:21:73",
+      "name": "format",
+      "kind": "call",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+      "start_line": 21,
+      "start_column": 73,
+      "end_line": 21,
+      "end_column": 79,
+      "start_byte": 476,
+      "end_byte": 482,
+      "containing_key": "fixtures/extraction/jsx/language_gaps/source.jsx:Price:21:13",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -552,6 +919,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/jsx/language_gaps/source.jsx:memo:call:21:21",
+      "name": "memo",
+      "kind": "call",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+      "start_line": 21,
+      "start_column": 21,
+      "end_line": 21,
+      "end_column": 25,
+      "start_byte": 424,
+      "end_byte": 428,
+      "containing_key": "fixtures/extraction/jsx/language_gaps/source.jsx:Price:21:13",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/jsx/language_gaps/source.jsx:message:variable_ref:6:13",
       "name": "message",
       "kind": "variable_ref",
@@ -566,6 +949,22 @@
       "containing_key": "fixtures/extraction/jsx/language_gaps/source.jsx:EmptyState:5:0",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/jsx/language_gaps/source.jsx:value:variable_ref:21:80",
+      "name": "value",
+      "kind": "variable_ref",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+      "start_line": 21,
+      "start_column": 80,
+      "end_line": 21,
+      "end_column": 85,
+      "start_byte": 483,
+      "end_byte": 488,
+      "containing_key": "fixtures/extraction/jsx/language_gaps/source.jsx:Price:21:13",
+      "target_key": null,
+      "confidence": "1.000"
     }
   ],
   "types": [],
@@ -578,18 +977,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "jsx",
       "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
-      "covered_lines": 20,
-      "covered_bytes": 402,
+      "covered_lines": 24,
+      "covered_bytes": 624,
       "decision_count": 1,
       "loop_count": 0,
       "max_nesting_depth": 1,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 20,
+      "end_line": 24,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 402,
+      "end_byte": 624,
       "metadata": {
         "metric_version": 1
       }
@@ -637,6 +1036,28 @@
       "metadata": {
         "metric_version": 1
       }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/jsx/language_gaps/source.jsx:render:22:46",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+      "covered_lines": 1,
+      "covered_bytes": 31,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 22,
+      "start_column": 55,
+      "end_line": 22,
+      "end_column": 86,
+      "start_byte": 555,
+      "end_byte": 586,
+      "metadata": {
+        "metric_version": 1
+      }
     }
   ],
   "literals": [],
@@ -678,6 +1099,19 @@
       "end_column": 54,
       "start_byte": 256,
       "end_byte": 262,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+      "containing_key": "fixtures/extraction/jsx/language_gaps/source.jsx:Price:21:13",
+      "start_line": 21,
+      "start_column": 63,
+      "end_line": 21,
+      "end_column": 68,
+      "start_byte": 466,
+      "end_byte": 471,
       "metadata": null
     },
     {

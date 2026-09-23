@@ -23,7 +23,7 @@
       "body_hash": "ef5ff494ec61367df177352391643236",
       "signature": "function Panel({ label })",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
@@ -687,7 +687,7 @@
       "body_hash": "17385d911f373cc0ed3dcb4f6be091c4",
       "signature": "function renderPanel(label)",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
@@ -786,7 +786,7 @@
       "body_hash": "ee768b01694eb127b101d68ddfc3b32f",
       "signature": "const runner = {\n  it(name, run) {\n    return run(name);\n  },\n}",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "declarationType": "const",

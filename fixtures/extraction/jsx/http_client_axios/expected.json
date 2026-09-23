@@ -21,14 +21,15 @@
         "end_byte": 280
       },
       "body_hash": "83416345456c51cbf4cb43d5b86642da",
-      "signature": "export function UserList() {\n  const load = () => axios.get(\"/api/users\");\n  const create = (payload) => axios(\"/api/users\", { method: \"post\", data: payload });\n  const dynamic = (url) => axios.get(url);\n  return <button onClick={load}>load</button>;\n}",
+      "signature": null,
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "exportedName": "UserList",
         "isDefault": false,
-        "isNamed": true
+        "isNamed": true,
+        "localName": "UserList"
       },
       "annotations": [],
       "semantic_group": null,
@@ -59,7 +60,7 @@
       "signature": "function UserList()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:UserList:3:0",
+      "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
         "isAsync": false,
@@ -125,7 +126,7 @@
       "body_hash": "e489d67e13e183803a61de11ba173620",
       "signature": "const create = (payload) =>",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:UserList:3:7",
       "metadata": {
         "isArrowFunction": true,
@@ -135,35 +136,6 @@
         "parameters": [
           "payload"
         ]
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/jsx/http_client_axios/source.jsx:data:5:68",
-      "name": "data",
-      "kind": "property",
-      "language": "jsx",
-      "file_path": "fixtures/extraction/jsx/http_client_axios/source.jsx",
-      "start_line": 5,
-      "start_column": 68,
-      "end_line": 5,
-      "end_column": 81,
-      "start_byte": 171,
-      "end_byte": 184,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "data: payload",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:create:5:17",
-      "metadata": {
-        "isComputed": false,
-        "isPrivate": false,
-        "isStatic": false,
-        "value": "payload"
       },
       "annotations": [],
       "semantic_group": null,
@@ -193,7 +165,7 @@
       "body_hash": "53724c90cf026398d122b79161afbecc",
       "signature": "const dynamic = (url) => axios.get(url)",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:UserList:3:7",
       "metadata": {
         "isArrowFunction": true,
@@ -232,7 +204,7 @@
       "body_hash": "0c2cbae3364221b52cd8aa8267032117",
       "signature": "const load = () => axios.get(\"/api/users\")",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:UserList:3:7",
       "metadata": {
         "isArrowFunction": true,
@@ -240,35 +212,6 @@
         "isExpression": false,
         "isGenerator": false,
         "parameters": []
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/jsx/http_client_axios/source.jsx:method:5:52",
-      "name": "method",
-      "kind": "property",
-      "language": "jsx",
-      "file_path": "fixtures/extraction/jsx/http_client_axios/source.jsx",
-      "start_line": 5,
-      "start_column": 52,
-      "end_line": 5,
-      "end_column": 66,
-      "start_byte": 155,
-      "end_byte": 169,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "method: \"post\"",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:create:5:17",
-      "metadata": {
-        "isComputed": false,
-        "isPrivate": false,
-        "isStatic": false,
-        "value": "\"post\""
       },
       "annotations": [],
       "semantic_group": null,
@@ -440,7 +383,7 @@
       "end_column": 81,
       "start_byte": 177,
       "end_byte": 184,
-      "containing_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:data:5:68",
+      "containing_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:create:5:17",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -694,6 +637,19 @@
       "kind": "string_literal",
       "language": "jsx",
       "file_path": "fixtures/extraction/jsx/http_client_axios/source.jsx",
+      "containing_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:create:5:17",
+      "start_line": 5,
+      "start_column": 60,
+      "end_line": 5,
+      "end_column": 66,
+      "start_byte": 163,
+      "end_byte": 169,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/http_client_axios/source.jsx",
       "containing_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:load:4:15",
       "start_line": 4,
       "start_column": 31,
@@ -701,19 +657,6 @@
       "end_column": 43,
       "start_byte": 88,
       "end_byte": 100,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "jsx",
-      "file_path": "fixtures/extraction/jsx/http_client_axios/source.jsx",
-      "containing_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:method:5:52",
-      "start_line": 5,
-      "start_column": 60,
-      "end_line": 5,
-      "end_column": 66,
-      "start_byte": 163,
-      "end_byte": 169,
       "metadata": null
     }
   ],

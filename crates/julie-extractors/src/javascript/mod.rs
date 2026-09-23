@@ -37,16 +37,8 @@ use crate::ecmascript_imports::{
     is_ecmascript_global_direct_target,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use regex::Regex;
 use std::collections::{HashMap, HashSet};
-use std::sync::LazyLock;
 use tree_sitter::Tree;
-
-// Static regexes compiled once for performance
-static JSDOC_RETURNS_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"@returns?\s*\{([^}]+)\}").unwrap());
-static JSDOC_TYPE_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"@type\s*\{([^}]+)\}").unwrap());
 
 /// The function value a member-shaped declaration (`key: function () {}`,
 /// `A.prototype.m = function () {}`, `handler = () => {}` in a class body)
@@ -64,6 +56,40 @@ fn member_function_value(node: tree_sitter::Node) -> Option<tree_sitter::Node> {
         "arrow_function" | "function_expression" | "generator_function"
     )
     .then_some(value)
+}
+
+/// An object literal whose pairs are named declarations: the value of a
+/// variable, an `export default`, an assignment (`module.exports = {...}`), or
+/// a class field, directly or through enclosing object literals. Object
+/// literals in call arguments, JSX attributes, return values, and decorator
+/// arguments are anonymous data.
+fn is_declaration_bound_object(object: tree_sitter::Node) -> bool {
+    if object.kind() != "object" {
+        return false;
+    }
+    let mut current = object;
+    loop {
+        let Some(parent) = current.parent() else {
+            return false;
+        };
+        match parent.kind() {
+            "parenthesized_expression" => current = parent,
+            "pair" => match parent.parent() {
+                Some(enclosing) if enclosing.kind() == "object" => current = enclosing,
+                _ => return false,
+            },
+            "variable_declarator" | "export_statement" => return true,
+            "assignment_expression" => {
+                return parent
+                    .child_by_field_name("right")
+                    .is_some_and(|right| right.id() == current.id());
+            }
+            "field_definition" | "public_field_definition" | "property_definition" => {
+                return true;
+            }
+            _ => return false,
+        }
+    }
 }
 
 /// The owner index every ECMAScript pass uses to find the declaration that
@@ -160,6 +186,7 @@ impl JavaScriptExtractor {
         let mut symbols = qml_directives::import_symbols(&self.base);
         self.test_dsl_active = test_symbols::test_dsl_is_active(&self.base, tree.root_node());
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
+        visibility::apply_module_visibility(&self.base, tree.root_node(), &mut symbols);
         symbols
     }
 
@@ -675,45 +702,98 @@ impl JavaScriptExtractor {
     }
 
     /// Infer types from JSDoc comments (@returns, @type)
-    pub fn infer_types(&self, symbols: &[Symbol]) -> std::collections::HashMap<String, String> {
-        let mut type_map = std::collections::HashMap::new();
-
-        for symbol in symbols {
-            if let Some(ref doc_comment) = symbol.doc_comment {
-                // Extract type from JSDoc
-                if let Some(inferred_type) = self.extract_jsdoc_type(doc_comment, &symbol.kind) {
-                    type_map.insert(symbol.id.clone(), inferred_type);
-                }
-            }
-        }
-
-        type_map
+    /// JSDoc and constructor type facts are recorded during symbol
+    /// extraction, so nothing is inferred afterwards.
+    pub fn infer_types(&self, _symbols: &[Symbol]) -> std::collections::HashMap<String, String> {
+        std::collections::HashMap::new()
     }
 
-    fn extract_jsdoc_type(
-        &self,
-        doc_comment: &str,
-        kind: &crate::base::SymbolKind,
-    ) -> Option<String> {
-        use crate::base::SymbolKind;
-
-        match kind {
-            SymbolKind::Function | SymbolKind::Method => {
-                // Extract return type from @returns {Type} or @return {Type}
-                if let Some(captures) = JSDOC_RETURNS_RE.captures(doc_comment) {
-                    return Some(captures[1].trim().to_string());
-                }
+    /// The symbol `node` declares, if any. Symbols that never open a scope
+    /// (import and export rows, destructured bindings) go straight into
+    /// `symbols`. Kept out of the recursive frame so the walker stays small.
+    #[inline(never)]
+    fn extract_node_symbol(
+        &mut self,
+        node: tree_sitter::Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<&str>,
+    ) -> Option<Symbol> {
+        let parent = || parent_id.map(str::to_string);
+        match node.kind() {
+            "class_declaration" | "class" => self.extract_class(node, parent()),
+            "function_declaration"
+            | "function"
+            | "arrow_function"
+            | "function_expression"
+            | "generator_function"
+            | "generator_function_declaration"
+                if !self.member_callables.contains(&node.id()) =>
+            {
+                self.extract_function(node, parent())
             }
-            SymbolKind::Variable | SymbolKind::Property => {
-                // Extract type from @type {Type}
-                if let Some(captures) = JSDOC_TYPE_RE.captures(doc_comment) {
-                    return Some(captures[1].trim().to_string());
-                }
+            "method_definition" => self.extract_method(node, parent()),
+            "variable_declarator"
+                if node.child_by_field_name("name").is_some_and(|name| {
+                    matches!(name.kind(), "object_pattern" | "array_pattern")
+                }) =>
+            {
+                symbols.extend(self.extract_destructuring_variables(node, parent()));
+                None
             }
-            _ => {}
+            "variable_declarator" => self.extract_variable(node, parent()),
+            "import_statement" | "import_declaration" => {
+                let import_symbols = self.extract_import_specifiers(&node);
+                for specifier in import_symbols {
+                    let import_symbol = self.create_import_symbol(node, &specifier, parent());
+                    symbols.push(import_symbol);
+                }
+                None
+            }
+            "export_statement" | "export_declaration" => {
+                symbols.extend(exports::extract_export_rows(
+                    &mut self.base,
+                    node,
+                    parent_id,
+                ));
+                None
+            }
+            "call_expression"
+                if node
+                    .child_by_field_name("function")
+                    .is_some_and(|function| function.kind() == "import") =>
+            {
+                exports::dynamic_import_row(&mut self.base, node, parent_id)
+            }
+            "property_definition" | "public_field_definition" | "field_definition" => {
+                self.extract_property(node, parent())
+            }
+            "pair"
+                if member_function_value(node).is_some()
+                    || node.parent().is_some_and(is_declaration_bound_object) =>
+            {
+                self.extract_property(node, parent())
+            }
+            "assignment_expression" => self.extract_assignment(node, parent(), symbols),
+            "call_expression"
+                if self.test_dsl_active && test_symbols::is_test_dsl_call(&self.base, node) =>
+            {
+                let container = symbols
+                    .iter()
+                    .rev()
+                    .find(|s| {
+                        s.metadata
+                            .as_ref()
+                            .and_then(|m| m.get("test_container"))
+                            .and_then(|v| v.as_bool())
+                            == Some(true)
+                            && s.start_byte <= node.start_byte() as u32
+                            && s.end_byte >= node.end_byte() as u32
+                    })
+                    .map(|s| s.id.as_str());
+                test_symbols::extract_test_call(&mut self.base, node, container)
+            }
+            _ => None,
         }
-
-        None
     }
 
     /// Main tree traversal - ports visitNode function exactly
@@ -728,89 +808,16 @@ impl JavaScriptExtractor {
             return;
         }
 
-        let mut symbol: Option<Symbol> = None;
-
-        // Port switch statement exactly
-        match node.kind() {
-            "class_declaration" => {
-                symbol = self.extract_class(node, parent_id.clone());
-            }
-            "function_declaration"
-            | "function"
-            | "arrow_function"
-            | "function_expression"
-            | "generator_function"
-            | "generator_function_declaration"
-                if !self.member_callables.contains(&node.id()) =>
-            {
-                symbol = self.extract_function(node, parent_id.clone());
-            }
-            "method_definition" => {
-                symbol = self.extract_method(node, parent_id.clone());
-            }
-            "variable_declarator" => {
-                // Handle destructuring patterns that create multiple symbols (reference logic)
-                let name_node = node.child_by_field_name("name");
-                if let Some(name) = name_node {
-                    if name.kind() == "object_pattern" || name.kind() == "array_pattern" {
-                        let destructured_symbols =
-                            self.extract_destructuring_variables(node, parent_id.clone());
-                        symbols.extend(destructured_symbols);
-                    } else {
-                        symbol = self.extract_variable(node, parent_id.clone());
-                    }
-                } else {
-                    symbol = self.extract_variable(node, parent_id.clone());
-                }
-            }
-            "import_statement" | "import_declaration" => {
-                // Handle multiple import specifiers (reference logic)
-                let import_symbols = self.extract_import_specifiers(&node);
-                for specifier in import_symbols {
-                    let import_symbol =
-                        self.create_import_symbol(node, &specifier, parent_id.clone());
-                    symbols.push(import_symbol);
-                }
-            }
-            "export_statement" | "export_declaration" => {
-                symbol = self.extract_export(node, parent_id.clone());
-            }
-            "property_definition" | "public_field_definition" | "field_definition" | "pair" => {
-                symbol = self.extract_property(node, parent_id.clone());
-            }
-            "assignment_expression" => {
-                if let Some(assignment_symbol) = self.extract_assignment(node, parent_id.clone()) {
-                    symbol = Some(assignment_symbol);
-                }
-            }
-            // Test call expressions (describe, it, test, beforeEach, etc.)
-            "call_expression"
-                if self.test_dsl_active && test_symbols::is_test_dsl_call(&self.base, node) =>
-            {
-                let parent = symbols
-                    .iter()
-                    .rev()
-                    .find(|s| {
-                        s.metadata
-                            .as_ref()
-                            .and_then(|m| m.get("test_container"))
-                            .and_then(|v| v.as_bool())
-                            == Some(true)
-                            && s.start_byte <= node.start_byte() as u32
-                            && s.end_byte >= node.end_byte() as u32
-                    })
-                    .map(|s| s.id.as_str());
-                symbol = test_symbols::extract_test_call(&mut self.base, node, parent);
-            }
-            _ => {}
-        }
+        let symbol = self.extract_node_symbol(node, symbols, parent_id.as_deref());
 
         let current_parent_id = if let Some(sym) = &symbol {
+            type_facts::record_jsdoc_symbol_fact(&mut self.base, sym);
             symbols.push(sym.clone());
             let callable_node = if parameters::is_parameter_owner(node.kind()) {
                 Some(node)
             } else {
-                member_function_value(node).filter(|_| sym.kind == SymbolKind::Method)
+                member_function_value(node)
+                    .filter(|_| matches!(sym.kind, SymbolKind::Method | SymbolKind::Function))
             };
             if let Some(callable_node) = callable_node
                 && matches!(
@@ -822,6 +829,11 @@ impl JavaScriptExtractor {
                 for (param_symbol, _) in
                     parameters::extract_parameter_symbols(&mut self.base, callable_node, &sym.id)
                 {
+                    type_facts::record_jsdoc_param_fact(
+                        &mut self.base,
+                        &param_symbol,
+                        sym.doc_comment.as_deref(),
+                    );
                     symbols.push(param_symbol);
                 }
             }
