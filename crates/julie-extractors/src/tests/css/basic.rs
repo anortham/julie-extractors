@@ -138,7 +138,7 @@ input[type="password"] {
 
         let universal_selector = symbols.iter().find(|s| s.name == "*");
         assert!(universal_selector.is_some());
-        assert_eq!(universal_selector.unwrap().kind, SymbolKind::Variable);
+        assert_eq!(universal_selector.unwrap().kind, SymbolKind::Property);
 
         let body = symbols.iter().find(|s| s.name == "body");
         assert!(body.is_some());

@@ -1336,6 +1336,12 @@
         "key": "at_rule",
         "presence": "always",
         "value_type": "string"
+      },
+      {
+        "description": "The unquoted `font-family` descriptor, when present.",
+        "key": "font_family",
+        "presence": "optional",
+        "value_type": "string"
       }
     ],
     "pattern_id": "css.font_face.v1",
@@ -1498,6 +1504,42 @@
     "query_family": "stylesheet_structure"
   },
   {
+    "description": "A CSS `@scope` rule.",
+    "languages": [
+      "css",
+      "vue",
+      "html"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The scoping root selector, when present.",
+        "key": "root",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The scoping limit selector after `to`, when present.",
+        "key": "limit",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "css.scope.v1",
+    "query_family": "stylesheet_structure"
+  },
+  {
     "description": "A CSS selector rule set.",
     "languages": [
       "css",
@@ -1524,13 +1566,13 @@
         "value_type": "string"
       },
       {
-        "description": "Coarse selector classification (class/id/pseudo/selector_list/compound).",
+        "description": "Coarse selector classification (class/id/pseudo/type/selector_list/compound).",
         "key": "selector_kind",
         "presence": "always",
         "value_type": "string"
       },
       {
-        "description": "Count of declarations inside the rule block.",
+        "description": "Count of declarations directly inside the rule block; nested rules are not counted.",
         "key": "declaration_count",
         "presence": "always",
         "value_type": "number"
@@ -1568,6 +1610,72 @@
     ],
     "pattern_id": "css.supports.v1",
     "query_family": "feature_query"
+  },
+  {
+    "description": "A Tailwind CSS `@apply` of utility or component classes.",
+    "languages": [
+      "css",
+      "vue",
+      "html"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The applied class names in source order.",
+        "key": "classes",
+        "presence": "always",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "css.tailwind_apply.v1",
+    "query_family": "directives"
+  },
+  {
+    "description": "A Tailwind CSS at-rule directive such as `@tailwind`, `@utility`, or `@theme`.",
+    "languages": [
+      "css",
+      "vue",
+      "html"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The directive keyword without `@` (`tailwind`, `utility`, `theme`).",
+        "key": "directive",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The directive prelude (`base`, a utility name), when present.",
+        "key": "argument",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "css.tailwind_directive.v1",
+    "query_family": "directives"
   },
   {
     "description": "A Dart annotation use.",
@@ -3833,6 +3941,52 @@
     "query_family": "document_attributes"
   },
   {
+    "description": "An embedded document or object (`<iframe>`, `<embed>`, `<object>`).",
+    "languages": [
+      "html"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Embedding element tag name (iframe/embed/object).",
+        "key": "tag_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Embedded resource URL (src, or data for object).",
+        "key": "src",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The MIME type attribute, when present.",
+        "key": "type",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The title attribute, when present.",
+        "key": "title",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "html.embed.v1",
+    "query_family": "document_assets"
+  },
+  {
     "description": "An HTML `<form>` element.",
     "languages": [
       "html"
@@ -4189,6 +4343,52 @@
     "query_family": "document_assets"
   },
   {
+    "description": "An HTML `<link>` element with an href.",
+    "languages": [
+      "html"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The link target from the href attribute.",
+        "key": "href",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The rel attribute token list, when present.",
+        "key": "rel",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The preload destination (`as`), when present.",
+        "key": "as",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The MIME type attribute, when present.",
+        "key": "type",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "html.resource_link.v1",
+    "query_family": "document_assets"
+  },
+  {
     "description": "An HTML `<script>` element.",
     "languages": [
       "html"
@@ -4393,7 +4593,7 @@
         "value_type": "string"
       },
       {
-        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, invoke-restmethod, invoke-webrequest, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, spring_restclient, openfeign, requests_scala, sttp, play_ws, req, tesla, httpoison, finch, httpc, wget, urlsession, alamofire, dart_http, dio, hackney, gun).",
+        "description": "HTTP client label (for example fetch, axios, ofetch (`$fetch`), nuxt (`useFetch`, `useLazyFetch`), requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, invoke-restmethod, invoke-webrequest, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, spring_restclient, openfeign, requests_scala, sttp, play_ws, req, tesla, httpoison, finch, httpc, wget, urlsession, alamofire, dart_http, dio, hackney, gun).",
         "key": "client",
         "presence": "always",
         "value_type": "string"
@@ -6884,7 +7084,7 @@
         "value_type": "string"
       },
       {
-        "description": "Static route path from the `to` attribute.",
+        "description": "Static route path from the `to` attribute or the `navigateTo` argument.",
         "key": "target_path",
         "presence": "always",
         "value_type": "string"
@@ -6896,15 +7096,15 @@
         "value_type": "string"
       },
       {
-        "description": "The source attribute name (\"to\").",
+        "description": "The source attribute name (\"to\"); absent for `navigateTo` calls.",
         "key": "attribute_name",
-        "presence": "always",
+        "presence": "optional",
         "value_type": "string"
       },
       {
-        "description": "The NuxtLink tag name.",
+        "description": "The NuxtLink tag name; absent for `navigateTo` calls.",
         "key": "component_name",
-        "presence": "always",
+        "presence": "optional",
         "value_type": "string"
       },
       {
@@ -6914,7 +7114,7 @@
         "value_type": "string"
       },
       {
-        "description": "Reference origin (\"nuxt_link\").",
+        "description": "Reference origin (\"nuxt_link\" or \"navigate_to\").",
         "key": "source_kind",
         "presence": "always",
         "value_type": "string"
@@ -12651,7 +12851,7 @@
         "value_type": "string"
       },
       {
-        "description": "Reference origin (router_link or router_navigation_expression).",
+        "description": "Reference origin (router_link, router_navigation_expression in a template attribute, or router_navigation_call for a script `router.push`/`router.replace`).",
         "key": "source_kind",
         "presence": "always",
         "value_type": "string"
@@ -12669,9 +12869,9 @@
         "value_type": "string"
       },
       {
-        "description": "The source attribute name (e.g. `to`, `@click`).",
+        "description": "The source attribute name (e.g. `to`, `@click`); absent for script calls.",
         "key": "attribute_name",
-        "presence": "always",
+        "presence": "optional",
         "value_type": "string"
       },
       {

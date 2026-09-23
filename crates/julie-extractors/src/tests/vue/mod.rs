@@ -13,6 +13,7 @@ pub mod type_arguments;
 
 mod complexity;
 mod gap_closure;
+mod wave2_gaps;
 
 use crate::base::SymbolKind;
 use crate::vue::VueExtractor;
@@ -255,14 +256,10 @@ export default {
         assert_eq!(actions.start_byte, slot_offset);
         assert_eq!(actions.end_byte, slot_offset + "actions".len() as u32);
 
-        let form_name = symbols
-            .iter()
-            .find(|symbol| symbol.name == "form.name")
-            .expect("v-model binding should be extracted as a symbol");
-        assert_eq!(form_name.kind, SymbolKind::Property);
-        let model_offset = vue_code.find("form.name").unwrap() as u32;
-        assert_eq!(form_name.start_byte, model_offset);
-        assert_eq!(form_name.end_byte, model_offset + "form.name".len() as u32);
+        assert!(
+            !symbols.iter().any(|symbol| symbol.name == "form.name"),
+            "a v-model member path writes existing state and declares nothing"
+        );
 
         assert!(
             !symbols.iter().any(|symbol| symbol.name == "UserProfile"),
@@ -317,7 +314,7 @@ export default {
             .expect("component-level symbol should be extracted");
 
         assert_eq!(component.start_line, 1);
-        assert_eq!(component.start_column, 1);
+        assert_eq!(component.start_column, 0);
         assert_eq!(component.start_byte, 0);
         assert!(component.end_byte > vue_code.find("name: 'BroadSpanComponent'").unwrap() as u32);
     }
@@ -471,9 +468,12 @@ export default {
             "Template component usages should NOT be extracted"
         );
 
-        // Style symbols — canonical: class selectors keep their dot prefix
-        assert!(symbols.iter().find(|s| s.name == ".app").is_some());
-        assert!(symbols.iter().find(|s| s.name == ".header").is_some());
+        assert!(
+            !symbols
+                .iter()
+                .any(|s| s.name == ".app" || s.name == ".header"),
+            "scss blocks do not go through the CSS grammar"
+        );
     }
 
     // Test removed: Vue now properly extracts types (no longer returns empty map)
@@ -1377,13 +1377,12 @@ mod vue_style_enhanced_tests {
         let mut extractor = create_extractor("id-selectors.vue", vue_code);
         let symbols = extractor.extract_symbols(None);
 
-        // Canonical contract: ID selector → name with '#' prefix, kind Variable
         let app = symbols
             .iter()
-            .find(|s| s.name == "#app" && s.kind == SymbolKind::Variable);
+            .find(|s| s.name == "#app" && s.kind == SymbolKind::Property);
         assert!(
             app.is_some(),
-            "Should extract #app ID selector with hash prefix and Variable kind"
+            "Should extract #app ID selector with hash prefix and Property kind"
         );
         assert!(
             app.unwrap().signature.as_ref().unwrap().starts_with("#app"),
@@ -1392,10 +1391,10 @@ mod vue_style_enhanced_tests {
 
         let sidebar = symbols
             .iter()
-            .find(|s| s.name == "#sidebar" && s.kind == SymbolKind::Variable);
+            .find(|s| s.name == "#sidebar" && s.kind == SymbolKind::Property);
         assert!(
             sidebar.is_some(),
-            "Should extract #sidebar ID selector with hash prefix and Variable kind"
+            "Should extract #sidebar ID selector with hash prefix and Property kind"
         );
         assert!(
             sidebar
@@ -1497,13 +1496,12 @@ mod vue_style_enhanced_tests {
             "Signature should start with class selector"
         );
 
-        // ID selector — canonical: prefixed name '#', kind Variable
         let main_content = symbols
             .iter()
-            .find(|s| s.name == "#main-content" && s.kind == SymbolKind::Variable);
+            .find(|s| s.name == "#main-content" && s.kind == SymbolKind::Property);
         assert!(
             main_content.is_some(),
-            "Should extract #main-content ID selector with hash prefix and Variable kind"
+            "Should extract #main-content ID selector with hash prefix and Property kind"
         );
         assert!(
             main_content

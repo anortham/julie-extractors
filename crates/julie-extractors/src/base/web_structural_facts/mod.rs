@@ -17,7 +17,7 @@ mod vue;
 use super::attach_containing_symbols;
 use css::collect_css_structural_facts;
 use html::collect_html_structural_facts;
-use http_client::collect_http_client_requests;
+use http_client::{collect_http_client_requests, collect_nuxt_client_requests};
 use js_imports::collect_js_imports;
 use js_object_scan::ScriptSyntaxMask;
 use nextjs_nuxt::{
@@ -39,6 +39,9 @@ const CSS_LAYER_PATTERN_ID: &str = "css.layer.v1";
 const CSS_CHARSET_PATTERN_ID: &str = "css.charset.v1";
 const CSS_NAMESPACE_PATTERN_ID: &str = "css.namespace.v1";
 const CSS_IMPORT_PATTERN_ID: &str = "css.import.v1";
+const CSS_SCOPE_PATTERN_ID: &str = "css.scope.v1";
+const CSS_TAILWIND_APPLY_PATTERN_ID: &str = "css.tailwind_apply.v1";
+const CSS_TAILWIND_DIRECTIVE_PATTERN_ID: &str = "css.tailwind_directive.v1";
 const HTML_LINK_PATTERN_ID: &str = "html.link.v1";
 const HTML_SCRIPT_PATTERN_ID: &str = "html.script.v1";
 const HTML_FORM_PATTERN_ID: &str = "html.form.v1";
@@ -47,6 +50,8 @@ const HTML_AREA_LINK_PATTERN_ID: &str = "html.area_link.v1";
 const HTML_MEDIA_PATTERN_ID: &str = "html.media.v1";
 const HTML_LANDMARK_PATTERN_ID: &str = "html.landmark.v1";
 const HTML_DATA_ATTRIBUTE_PATTERN_ID: &str = "html.data_attribute.v1";
+const HTML_RESOURCE_LINK_PATTERN_ID: &str = "html.resource_link.v1";
+const HTML_EMBED_PATTERN_ID: &str = "html.embed.v1";
 const VUE_SFC_SECTION_PATTERN_ID: &str = "vue.sfc_section.v1";
 const VUE_TEMPLATE_DIRECTIVE_PATTERN_ID: &str = "vue.template_directive.v1";
 const VUE_ROUTE_REFERENCE_PATTERN_ID: &str = "vue.route_reference.v1";
@@ -72,19 +77,24 @@ const CSS_WEB_PATTERN_IDS: &[&str] = &[
     CSS_LAYER_PATTERN_ID,
     CSS_MEDIA_QUERY_PATTERN_ID,
     CSS_NAMESPACE_PATTERN_ID,
+    CSS_SCOPE_PATTERN_ID,
     CSS_SELECTOR_RULE_PATTERN_ID,
     CSS_SUPPORTS_PATTERN_ID,
+    CSS_TAILWIND_APPLY_PATTERN_ID,
+    CSS_TAILWIND_DIRECTIVE_PATTERN_ID,
 ];
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const HTML_WEB_PATTERN_IDS: &[&str] = &[
     HTML_AREA_LINK_PATTERN_ID,
     HTML_DATA_ATTRIBUTE_PATTERN_ID,
+    HTML_EMBED_PATTERN_ID,
     HTML_FORM_CONTROL_PATTERN_ID,
     HTML_FORM_PATTERN_ID,
     HTML_LANDMARK_PATTERN_ID,
     HTML_LINK_PATTERN_ID,
     HTML_MEDIA_PATTERN_ID,
+    HTML_RESOURCE_LINK_PATTERN_ID,
     HTML_SCRIPT_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
@@ -163,6 +173,14 @@ pub fn collect_web_structural_facts(
                     section_start..section_end,
                     Some(&syntax_mask),
                 ));
+                facts.extend(collect_nuxt_client_requests(
+                    language,
+                    tree,
+                    file_path,
+                    content,
+                    section_start..section_end,
+                    Some(&syntax_mask),
+                ));
             }
             facts
         }
@@ -173,8 +191,24 @@ pub fn collect_web_structural_facts(
     };
 
     attach_containing_symbols(&mut facts, symbols);
+    if language == "html" {
+        bind_to_element_symbols(&mut facts, symbols);
+    }
     sort_structural_facts(&mut facts);
     facts
+}
+
+/// An HTML element fact belongs to the symbol built from the same element,
+/// whatever that symbol's kind (an `<img>` is a variable).
+fn bind_to_element_symbols(facts: &mut [StructuralFact], symbols: &[Symbol]) {
+    for fact in facts {
+        if let Some(symbol) = symbols
+            .iter()
+            .find(|symbol| symbol.start_byte == fact.start_byte && symbol.end_byte == fact.end_byte)
+        {
+            fact.containing_symbol_id = Some(symbol.id.clone());
+        }
+    }
 }
 
 #[cfg(all(test, feature = "test-capability-matrix"))]

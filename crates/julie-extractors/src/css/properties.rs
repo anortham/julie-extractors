@@ -92,7 +92,7 @@ impl PropertyExtractor {
         Some(base.create_symbol(
             &node,
             condition,
-            SymbolKind::Variable,
+            SymbolKind::Namespace,
             SymbolOptions {
                 signature: Some(signature),
                 visibility: Some(Visibility::Public),

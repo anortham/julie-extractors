@@ -103,7 +103,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "source_kind",
                 STR,
                 ALWAYS,
-                "Reference origin (router_link or router_navigation_expression).",
+                "Reference origin (router_link, router_navigation_expression in a template attribute, or router_navigation_call for a script `router.push`/`router.replace`).",
             ),
             key(
                 "target_path",
@@ -120,8 +120,8 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
             key(
                 "attribute_name",
                 STR,
-                ALWAYS,
-                "The source attribute name (e.g. `to`, `@click`).",
+                OPT,
+                "The source attribute name (e.g. `to`, `@click`); absent for script calls.",
             ),
             key(
                 "expression",

@@ -1,6 +1,43 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/css/basic/source.css:&:hover:95:4",
+      "name": "&:hover",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 95,
+      "start_column": 4,
+      "end_line": 95,
+      "end_column": 27,
+      "start_byte": 1716,
+      "end_byte": 1739,
+      "body_span": {
+        "start_line": 95,
+        "start_column": 12,
+        "end_line": 95,
+        "end_column": 27,
+        "start_byte": 1724,
+        "end_byte": 1739
+      },
+      "body_hash": "883eb9c55eca82e8d086daa5fade39af",
+      "signature": "&:hover { color: red }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/css/basic/source.css:.panel:93:0",
+      "metadata": {
+        "properties": [
+          "color: red;"
+        ],
+        "selector": "&:hover",
+        "type": "css-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/css/basic/source.css:--accent:5:4",
       "name": "--accent",
       "kind": "property",
@@ -141,6 +178,76 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/css/basic/source.css:--space-1:72:4",
+      "name": "--space-1",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 72,
+      "start_column": 4,
+      "end_line": 72,
+      "end_column": 19,
+      "start_byte": 1158,
+      "end_byte": 1173,
+      "body_span": {
+        "start_line": 72,
+        "start_column": 4,
+        "end_line": 72,
+        "end_column": 19,
+        "start_byte": 1158,
+        "end_byte": 1173
+      },
+      "body_hash": "299388cdb5b1f8088316517ec4b66c69",
+      "signature": "--space-1: 4px",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/css/basic/source.css::root:71:0",
+      "metadata": {
+        "property": "--space-1",
+        "type": "custom-property",
+        "value": "4px"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:--space-2:73:4",
+      "name": "--space-2",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 73,
+      "start_column": 4,
+      "end_line": 73,
+      "end_column": 19,
+      "start_byte": 1187,
+      "end_byte": 1202,
+      "body_span": {
+        "start_line": 73,
+        "start_column": 4,
+        "end_line": 73,
+        "end_column": 19,
+        "start_byte": 1187,
+        "end_byte": 1202
+      },
+      "body_hash": "4b6ab566915c28a4b09b999ff9612c6c",
+      "signature": "--space-2: 8px",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/css/basic/source.css::root:71:0",
+      "metadata": {
+        "property": "--space-2",
+        "type": "custom-property",
+        "value": "8px"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/css/basic/source.css:--space:8:4",
       "name": "--space",
       "kind": "property",
@@ -169,6 +276,113 @@
         "property": "--space",
         "type": "custom-property",
         "value": "0.25rem"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:.base:104:0",
+      "name": ".base",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 104,
+      "start_column": 0,
+      "end_line": 104,
+      "end_column": 23,
+      "start_byte": 1872,
+      "end_byte": 1895,
+      "body_span": {
+        "start_line": 104,
+        "start_column": 6,
+        "end_line": 104,
+        "end_column": 23,
+        "start_byte": 1878,
+        "end_byte": 1895
+      },
+      "body_hash": "8bf98263751a170f62004b54c32ade79",
+      "signature": ".base { padding: 4px }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "properties": [
+          "padding: 4px;"
+        ],
+        "selector": ".base",
+        "type": "css-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:.btn-card:87:0",
+      "name": ".btn-card",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 87,
+      "start_column": 0,
+      "end_line": 89,
+      "end_column": 1,
+      "start_byte": 1583,
+      "end_byte": 1630,
+      "body_span": {
+        "start_line": 87,
+        "start_column": 10,
+        "end_line": 89,
+        "end_column": 1,
+        "start_byte": 1593,
+        "end_byte": 1630
+      },
+      "body_hash": "1f8a29ce20c34310269b975a403190f2",
+      "signature": ".btn-card",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "properties": [],
+        "selector": ".btn-card",
+        "type": "css-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:.btn-primary:84:0",
+      "name": ".btn-primary",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 84,
+      "start_column": 0,
+      "end_line": 86,
+      "end_column": 1,
+      "start_byte": 1536,
+      "end_byte": 1582,
+      "body_span": {
+        "start_line": 84,
+        "start_column": 13,
+        "end_line": 86,
+        "end_column": 1,
+        "start_byte": 1549,
+        "end_byte": 1582
+      },
+      "body_hash": "0b1e6532d7ef70f92540d55d4d1f4ddd",
+      "signature": ".btn-primary",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "properties": [],
+        "selector": ".btn-primary",
+        "type": "css-rule"
       },
       "annotations": [],
       "semantic_group": null,
@@ -274,7 +488,7 @@
       "signature": ".card { color: navy }",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/css/basic/source.css:@container (min-width::45:0",
+      "parent_key": "fixtures/extraction/css/basic/source.css:@container (min-width: 20rem):45:0",
       "metadata": {
         "properties": [
           "color: navy;"
@@ -317,6 +531,43 @@
           "display: grid;"
         ],
         "selector": ".grid",
+        "type": "css-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:.hero:69:0",
+      "name": ".hero",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 69,
+      "start_column": 0,
+      "end_line": 69,
+      "end_column": 49,
+      "start_byte": 1095,
+      "end_byte": 1144,
+      "body_span": {
+        "start_line": 69,
+        "start_column": 6,
+        "end_line": 69,
+        "end_column": 49,
+        "start_byte": 1101,
+        "end_byte": 1144
+      },
+      "body_hash": "1c2aed81fa92bec7ab0c0cde8afa41f2",
+      "signature": ".hero { background-image: url(images/hero.png) }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "properties": [
+          "background-image: url(images/hero.png);"
+        ],
+        "selector": ".hero",
         "type": "css-rule"
       },
       "annotations": [],
@@ -391,6 +642,192 @@
           "margin: 0;"
         ],
         "selector": ".m-0",
+        "type": "css-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:.note-a:75:0",
+      "name": ".note-a",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 75,
+      "start_column": 0,
+      "end_line": 75,
+      "end_column": 24,
+      "start_byte": 1214,
+      "end_byte": 1238,
+      "body_span": {
+        "start_line": 75,
+        "start_column": 8,
+        "end_line": 75,
+        "end_column": 24,
+        "start_byte": 1222,
+        "end_byte": 1238
+      },
+      "body_hash": "1598a1a4af9d811decbca2d7811dc29e",
+      "signature": ".note-a { color: blue }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "properties": [
+          "color: blue;"
+        ],
+        "selector": ".note-a",
+        "type": "css-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:.note-b:76:0",
+      "name": ".note-b",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 76,
+      "start_column": 0,
+      "end_line": 76,
+      "end_column": 25,
+      "start_byte": 1265,
+      "end_byte": 1290,
+      "body_span": {
+        "start_line": 76,
+        "start_column": 8,
+        "end_line": 76,
+        "end_column": 25,
+        "start_byte": 1273,
+        "end_byte": 1290
+      },
+      "body_hash": "d5059f967eb89bbbb57b50c2c21a3142",
+      "signature": ".note-b { color: green }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "properties": [
+          "color: green;"
+        ],
+        "selector": ".note-b",
+        "type": "css-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:.panel:93:0",
+      "name": ".panel",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 93,
+      "start_column": 0,
+      "end_line": 96,
+      "end_column": 1,
+      "start_byte": 1684,
+      "end_byte": 1741,
+      "body_span": {
+        "start_line": 93,
+        "start_column": 7,
+        "end_line": 96,
+        "end_column": 1,
+        "start_byte": 1691,
+        "end_byte": 1741
+      },
+      "body_hash": "e2c59a6aa85bb11ec31316b7d6525954",
+      "signature": ".panel { padding: 1rem }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "properties": [
+          "padding: 1rem;"
+        ],
+        "selector": ".panel",
+        "type": "css-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:.primary:105:0",
+      "name": ".primary",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 105,
+      "start_column": 0,
+      "end_line": 108,
+      "end_column": 1,
+      "start_byte": 1896,
+      "end_byte": 1977,
+      "body_span": {
+        "start_line": 105,
+        "start_column": 9,
+        "end_line": 108,
+        "end_column": 1,
+        "start_byte": 1905,
+        "end_byte": 1977
+      },
+      "body_hash": "45a6c3282b7a15ac219b43e2a4f19199",
+      "signature": ".primary { composes: base; composes: shadow from \"./shared.module.css\" }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "properties": [
+          "composes: base;",
+          "composes: shadow from \"./shared.module.css\";"
+        ],
+        "selector": ".primary",
+        "type": "css-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:.swatch:81:0",
+      "name": ".swatch",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 81,
+      "start_column": 0,
+      "end_line": 81,
+      "end_column": 49,
+      "start_byte": 1463,
+      "end_byte": 1512,
+      "body_span": {
+        "start_line": 81,
+        "start_column": 8,
+        "end_line": 81,
+        "end_column": 49,
+        "start_byte": 1471,
+        "end_byte": 1512
+      },
+      "body_hash": "a96b879c997e118fbd576ddb0a38909c",
+      "signature": ".swatch { color: hsl(var(--brand-hue) 50% 50%) }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "properties": [
+          "color: hsl(var(--brand-hue) 50% 50%);"
+        ],
+        "selector": ".swatch",
         "type": "css-rule"
       },
       "annotations": [],
@@ -550,8 +987,154 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/css/basic/source.css:@charset:36:0",
-      "name": "@charset",
+      "key": "fixtures/extraction/css/basic/source.css::root:71:0",
+      "name": ":root",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 71,
+      "start_column": 0,
+      "end_line": 74,
+      "end_column": 1,
+      "start_byte": 1146,
+      "end_byte": 1213,
+      "body_span": {
+        "start_line": 71,
+        "start_column": 6,
+        "end_line": 74,
+        "end_column": 1,
+        "start_byte": 1152,
+        "end_byte": 1213
+      },
+      "body_hash": "f3d0ca4f3e2a5ebf654881a57cc2aea8",
+      "signature": ":root { --space-1: 4px; --space-2: 8px }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "properties": [
+          "--space-1: 4px;",
+          "--space-2: 8px;"
+        ],
+        "selector": ":root",
+        "type": "css-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css::scope:100:4",
+      "name": ":scope",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 100,
+      "start_column": 4,
+      "end_line": 100,
+      "end_column": 33,
+      "start_byte": 1807,
+      "end_byte": 1836,
+      "body_span": {
+        "start_line": 100,
+        "start_column": 11,
+        "end_line": 100,
+        "end_column": 33,
+        "start_byte": 1814,
+        "end_byte": 1836
+      },
+      "body_hash": "5e28f98766943e2ed7e16b991adcd6e2",
+      "signature": ":scope { border: 1px solid }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/css/basic/source.css:@scope (.card) to (.card-content):99:0",
+      "metadata": {
+        "properties": [
+          "border: 1px solid;"
+        ],
+        "selector": ":scope",
+        "type": "css-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css::where(.btn, .link):hover:110:0",
+      "name": ":where(.btn, .link):hover",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 110,
+      "start_column": 0,
+      "end_line": 110,
+      "end_column": 42,
+      "start_byte": 1979,
+      "end_byte": 2021,
+      "body_span": {
+        "start_line": 110,
+        "start_column": 26,
+        "end_line": 110,
+        "end_column": 42,
+        "start_byte": 2005,
+        "end_byte": 2021
+      },
+      "body_hash": "1598a1a4af9d811decbca2d7811dc29e",
+      "signature": ":where(.btn, .link):hover { color: blue }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "properties": [
+          "color: blue;"
+        ],
+        "selector": ":where(.btn, .link):hover",
+        "type": "css-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:@-webkit-keyframes pulse:113:0",
+      "name": "@-webkit-keyframes pulse",
+      "kind": "function",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 113,
+      "start_column": 0,
+      "end_line": 113,
+      "end_column": 49,
+      "start_byte": 2078,
+      "end_byte": 2127,
+      "body_span": {
+        "start_line": 113,
+        "start_column": 25,
+        "end_line": 113,
+        "end_column": 49,
+        "start_byte": 2103,
+        "end_byte": 2127
+      },
+      "body_hash": "0b5bc01be6b770ea571e1d31665f82ac",
+      "signature": "@-webkit-keyframes pulse { 50% { opacity: .5; } }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "animationName": "pulse",
+        "type": "keyframes"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:@charset \"UTF-8\":36:0",
+      "name": "@charset \"UTF-8\"",
       "kind": "variable",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
@@ -569,7 +1152,8 @@
       "parent_key": null,
       "metadata": {
         "atRuleType": "charset",
-        "ruleName": "@charset",
+        "prelude": "\"UTF-8\"",
+        "ruleName": "@charset \"UTF-8\"",
         "type": "at-rule"
       },
       "annotations": [],
@@ -578,9 +1162,9 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/css/basic/source.css:@container (min-width::45:0",
-      "name": "@container (min-width:",
-      "kind": "variable",
+      "key": "fixtures/extraction/css/basic/source.css:@container (min-width: 20rem):45:0",
+      "name": "@container (min-width: 20rem)",
+      "kind": "namespace",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
       "start_line": 45,
@@ -603,8 +1187,9 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "atRuleType": "container (min-width:",
-        "ruleName": "@container (min-width:",
+        "atRuleType": "container",
+        "prelude": "(min-width: 20rem)",
+        "ruleName": "@container (min-width: 20rem)",
         "type": "at-rule"
       },
       "annotations": [],
@@ -613,9 +1198,45 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/css/basic/source.css:@font-face:51:0",
-      "name": "@font-face",
-      "kind": "variable",
+      "key": "fixtures/extraction/css/basic/source.css:@counter-style thumbs:79:0",
+      "name": "@counter-style thumbs",
+      "kind": "namespace",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 79,
+      "start_column": 0,
+      "end_line": 79,
+      "end_column": 55,
+      "start_byte": 1324,
+      "end_byte": 1379,
+      "body_span": {
+        "start_line": 79,
+        "start_column": 22,
+        "end_line": 79,
+        "end_column": 55,
+        "start_byte": 1346,
+        "end_byte": 1379
+      },
+      "body_hash": "2e5731b35e4c15304a9ebef639a47533",
+      "signature": "@counter-style thumbs { system: cyclic; symbols: \"*\"; }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "atRuleType": "counter-style",
+        "prelude": "thumbs",
+        "ruleName": "@counter-style thumbs",
+        "type": "at-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:@font-face Worker:51:0",
+      "name": "@font-face Worker",
+      "kind": "namespace",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
       "start_line": 51,
@@ -639,7 +1260,8 @@
       "parent_key": null,
       "metadata": {
         "atRuleType": "font-face",
-        "ruleName": "@font-face",
+        "fontFamily": "Worker",
+        "ruleName": "@font-face Worker",
         "type": "at-rule"
       },
       "annotations": [],
@@ -682,9 +1304,38 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/css/basic/source.css:@layer reset, base, components:78:0",
+      "name": "@layer reset, base, components",
+      "kind": "namespace",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 78,
+      "start_column": 0,
+      "end_line": 78,
+      "end_column": 31,
+      "start_byte": 1292,
+      "end_byte": 1323,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "@layer reset, base, components;",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "atRuleType": "layer",
+        "prelude": "reset, base, components",
+        "ruleName": "@layer reset, base, components",
+        "type": "at-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/css/basic/source.css:@layer utilities:56:0",
       "name": "@layer utilities",
-      "kind": "variable",
+      "kind": "namespace",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
       "start_line": 56,
@@ -707,7 +1358,8 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "atRuleType": "layer utilities",
+        "atRuleType": "layer",
+        "prelude": "utilities",
         "ruleName": "@layer utilities",
         "type": "at-rule"
       },
@@ -719,7 +1371,7 @@
     {
       "key": "fixtures/extraction/css/basic/source.css:@media (min-width: 40rem):21:0",
       "name": "@media (min-width: 40rem)",
-      "kind": "variable",
+      "kind": "namespace",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
       "start_line": 21,
@@ -751,9 +1403,9 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/css/basic/source.css:@namespace:37:0",
-      "name": "@namespace",
-      "kind": "variable",
+      "key": "fixtures/extraction/css/basic/source.css:@namespace url(http://www.w3.org/1999/xhtml):37:0",
+      "name": "@namespace url(http://www.w3.org/1999/xhtml)",
+      "kind": "namespace",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
       "start_line": 37,
@@ -777,7 +1429,81 @@
       "parent_key": null,
       "metadata": {
         "atRuleType": "namespace",
-        "ruleName": "@namespace",
+        "prelude": "url(http://www.w3.org/1999/xhtml)",
+        "ruleName": "@namespace url(http://www.w3.org/1999/xhtml)",
+        "type": "at-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:@property --brand-hue:80:0",
+      "name": "@property --brand-hue",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 80,
+      "start_column": 0,
+      "end_line": 80,
+      "end_column": 82,
+      "start_byte": 1380,
+      "end_byte": 1462,
+      "body_span": {
+        "start_line": 80,
+        "start_column": 22,
+        "end_line": 80,
+        "end_column": 82,
+        "start_byte": 1402,
+        "end_byte": 1462
+      },
+      "body_hash": "483d6872de9daeb73d367023aa92b472",
+      "signature": "@property --brand-hue { syntax: \"<number>\"; inherits: false; initial-value: 200; }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "atRuleType": "property",
+        "prelude": "--brand-hue",
+        "property": "--brand-hue",
+        "ruleName": "@property --brand-hue",
+        "type": "at-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:@scope (.card) to (.card-content):99:0",
+      "name": "@scope (.card) to (.card-content)",
+      "kind": "namespace",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 99,
+      "start_column": 0,
+      "end_line": 102,
+      "end_column": 1,
+      "start_byte": 1767,
+      "end_byte": 1870,
+      "body_span": {
+        "start_line": 99,
+        "start_column": 34,
+        "end_line": 102,
+        "end_column": 1,
+        "start_byte": 1801,
+        "end_byte": 1870
+      },
+      "body_hash": "ee9c94cb86f54a5c05416d17fe96724d",
+      "signature": "@scope (.card) to (.card-content) {\n    :scope { border: 1px solid; }\n    img { border-radius: 4px; }\n}",
+      "doc_comment": "/* Card-local styles */",
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "atRuleType": "scope",
+        "prelude": "(.card) to (.card-content)",
+        "ruleName": "@scope (.card) to (.card-content)",
         "type": "at-rule"
       },
       "annotations": [],
@@ -788,7 +1514,7 @@
     {
       "key": "fixtures/extraction/css/basic/source.css:@supports (display: grid):39:0",
       "name": "@supports (display: grid)",
-      "kind": "variable",
+      "kind": "namespace",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
       "start_line": 39,
@@ -820,9 +1546,74 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/css/basic/source.css:@tailwind components:83:0",
+      "name": "@tailwind components",
+      "kind": "namespace",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 83,
+      "start_column": 0,
+      "end_line": 83,
+      "end_column": 21,
+      "start_byte": 1514,
+      "end_byte": 1535,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "@tailwind components;",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "atRuleType": "tailwind",
+        "prelude": "components",
+        "ruleName": "@tailwind components",
+        "type": "at-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:@utility tab-4:90:0",
+      "name": "@utility tab-4",
+      "kind": "namespace",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 90,
+      "start_column": 0,
+      "end_line": 90,
+      "end_column": 31,
+      "start_byte": 1631,
+      "end_byte": 1662,
+      "body_span": {
+        "start_line": 90,
+        "start_column": 15,
+        "end_line": 90,
+        "end_column": 31,
+        "start_byte": 1646,
+        "end_byte": 1662
+      },
+      "body_hash": "94478bfa9d56b4ce15fbbab52e7df33a",
+      "signature": "@utility tab-4 { tab-size: 4; }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "atRuleType": "utility",
+        "prelude": "tab-4",
+        "ruleName": "@utility tab-4",
+        "type": "at-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/css/basic/source.css:[data-theme=\"dark\"]:62:0",
       "name": "[data-theme=\"dark\"]",
-      "kind": "variable",
+      "kind": "property",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
       "start_line": 62,
@@ -857,9 +1648,83 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/css/basic/source.css:body:92:0",
+      "name": "body",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 92,
+      "start_column": 0,
+      "end_line": 92,
+      "end_column": 19,
+      "start_byte": 1664,
+      "end_byte": 1683,
+      "body_span": {
+        "start_line": 92,
+        "start_column": 5,
+        "end_line": 92,
+        "end_column": 19,
+        "start_byte": 1669,
+        "end_byte": 1683
+      },
+      "body_hash": "5e35f90ce54df848e6361b1513bd5691",
+      "signature": "body { margin: 0 }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "properties": [
+          "margin: 0;"
+        ],
+        "selector": "body",
+        "type": "css-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:body:not(:has(.prevent-scroll)):111:0",
+      "name": "body:not(:has(.prevent-scroll))",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 111,
+      "start_column": 0,
+      "end_line": 111,
+      "end_column": 54,
+      "start_byte": 2022,
+      "end_byte": 2076,
+      "body_span": {
+        "start_line": 111,
+        "start_column": 32,
+        "end_line": 111,
+        "end_column": 54,
+        "start_byte": 2054,
+        "end_byte": 2076
+      },
+      "body_hash": "9fe0a6d502b1fbf2c8c53facf93855ac",
+      "signature": "body:not(:has(.prevent-scroll)) { overflow: visible }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "properties": [
+          "overflow: visible;"
+        ],
+        "selector": "body:not(:has(.prevent-scroll))",
+        "type": "css-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/css/basic/source.css:button.primary, div#main-content, .btn.btn-large, .sm\\:flex:66:0",
       "name": "button.primary, div#main-content, .btn.btn-large, .sm\\:flex",
-      "kind": "variable",
+      "kind": "property",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
       "start_line": 66,
@@ -886,6 +1751,43 @@
           "gap: var(--gap);"
         ],
         "selector": "button.primary, div#main-content, .btn.btn-large, .sm\\:flex",
+        "type": "css-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:img:101:4",
+      "name": "img",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 101,
+      "start_column": 4,
+      "end_line": 101,
+      "end_column": 31,
+      "start_byte": 1841,
+      "end_byte": 1868,
+      "body_span": {
+        "start_line": 101,
+        "start_column": 8,
+        "end_line": 101,
+        "end_column": 31,
+        "start_byte": 1845,
+        "end_byte": 1868
+      },
+      "body_hash": "51a334e4ea8f2cb0789bf266856589a2",
+      "signature": "img { border-radius: 4px }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/css/basic/source.css:@scope (.card) to (.card-content):99:0",
+      "metadata": {
+        "properties": [
+          "border-radius: 4px;"
+        ],
+        "selector": "img",
         "type": "css-rule"
       },
       "annotations": [],
@@ -1039,6 +1941,48 @@
       }
     },
     {
+      "from_key": "fixtures/extraction/css/basic/source.css:.primary:105:0",
+      "to_key": "fixtures/extraction/css/basic/source.css:.base:104:0",
+      "kind": "references",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "line_number": 106,
+      "span": {
+        "start_line": 106,
+        "start_column": 14,
+        "end_line": 106,
+        "end_column": 18,
+        "start_byte": 1921,
+        "end_byte": 1925
+      },
+      "reference_site_is_exact": true,
+      "confidence": "1.000",
+      "metadata": {
+        "referenceName": "base",
+        "referenceType": "composes"
+      }
+    },
+    {
+      "from_key": "fixtures/extraction/css/basic/source.css:.swatch:81:0",
+      "to_key": "fixtures/extraction/css/basic/source.css:@property --brand-hue:80:0",
+      "kind": "references",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "line_number": 81,
+      "span": {
+        "start_line": 81,
+        "start_column": 25,
+        "end_line": 81,
+        "end_column": 36,
+        "start_byte": 1488,
+        "end_byte": 1499
+      },
+      "reference_site_is_exact": true,
+      "confidence": "1.000",
+      "metadata": {
+        "referenceName": "--brand-hue",
+        "referenceType": "custom-property"
+      }
+    },
+    {
       "from_key": "fixtures/extraction/css/basic/source.css:.w:67:48",
       "to_key": "fixtures/extraction/css/basic/source.css:@keyframes spin:27:0",
       "kind": "references",
@@ -1146,6 +2090,14 @@
   ],
   "pending_relationships": [
     {
+      "from_key": "fixtures/extraction/css/basic/source.css:.primary:105:0",
+      "callee_name": "./shared.module.css",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "line_number": 107,
+      "confidence": "0.900"
+    },
+    {
       "from_key": "fixtures/extraction/css/basic/source.css:reset.css:1:0",
       "callee_name": "reset.css",
       "kind": "imports",
@@ -1163,6 +2115,25 @@
     }
   ],
   "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/css/basic/source.css:.primary:105:0",
+        "callee_name": "./shared.module.css",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/css/basic/source.css",
+        "line_number": 107,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "./shared.module.css",
+        "terminal_name": "./shared.module.css",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "css-modules-composes"
+      },
+      "caller_scope_key": "fixtures/extraction/css/basic/source.css:.primary:105:0",
+      "span": null
+    },
     {
       "pending": {
         "from_key": "fixtures/extraction/css/basic/source.css:reset.css:1:0",
@@ -1236,6 +2207,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/css/basic/source.css:--brand-hue:variable_ref:81:25",
+      "name": "--brand-hue",
+      "kind": "variable_ref",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 81,
+      "start_column": 25,
+      "end_line": 81,
+      "end_column": 36,
+      "start_byte": 1488,
+      "end_byte": 1499,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.swatch:81:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/css/basic/source.css:--gap:variable_ref:66:71",
       "name": "--gap",
       "kind": "variable_ref",
@@ -1284,6 +2271,54 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/css/basic/source.css:base:member_access:104:1",
+      "name": "base",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 104,
+      "start_column": 1,
+      "end_line": 104,
+      "end_column": 5,
+      "start_byte": 1873,
+      "end_byte": 1877,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.base:104:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:base:member_access:106:14",
+      "name": "base",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 106,
+      "start_column": 14,
+      "end_line": 106,
+      "end_column": 18,
+      "start_byte": 1921,
+      "end_byte": 1925,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.primary:105:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:btn-card:member_access:87:1",
+      "name": "btn-card",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 87,
+      "start_column": 1,
+      "end_line": 87,
+      "end_column": 9,
+      "start_byte": 1584,
+      "end_byte": 1592,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.btn-card:87:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/css/basic/source.css:btn-large:member_access:66:39",
       "name": "btn-large",
       "kind": "member_access",
@@ -1296,6 +2331,54 @@
       "start_byte": 980,
       "end_byte": 989,
       "containing_key": "fixtures/extraction/css/basic/source.css:button.primary, div#main-content, .btn.btn-large, .sm\\:flex:66:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:btn-primary:member_access:84:1",
+      "name": "btn-primary",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 84,
+      "start_column": 1,
+      "end_line": 84,
+      "end_column": 12,
+      "start_byte": 1537,
+      "end_byte": 1548,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.btn-primary:84:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:btn-primary:member_access:88:11",
+      "name": "btn-primary",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 88,
+      "start_column": 11,
+      "end_line": 88,
+      "end_column": 22,
+      "start_byte": 1606,
+      "end_byte": 1617,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.btn-card:87:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:btn:member_access:110:8",
+      "name": "btn",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 110,
+      "start_column": 8,
+      "end_line": 110,
+      "end_column": 11,
+      "start_byte": 1987,
+      "end_byte": 1990,
+      "containing_key": "fixtures/extraction/css/basic/source.css::where(.btn, .link):hover:110:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1364,6 +2447,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/css/basic/source.css:card-content:member_access:99:20",
+      "name": "card-content",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 99,
+      "start_column": 20,
+      "end_line": 99,
+      "end_column": 32,
+      "start_byte": 1787,
+      "end_byte": 1799,
+      "containing_key": "fixtures/extraction/css/basic/source.css:@scope (.card) to (.card-content):99:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/css/basic/source.css:card:member_access:46:5",
       "name": "card",
       "kind": "member_access",
@@ -1380,6 +2479,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/css/basic/source.css:card:member_access:99:9",
+      "name": "card",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 99,
+      "start_column": 9,
+      "end_line": 99,
+      "end_column": 13,
+      "start_byte": 1776,
+      "end_byte": 1780,
+      "containing_key": "fixtures/extraction/css/basic/source.css:@scope (.card) to (.card-content):99:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/css/basic/source.css:grid:member_access:40:5",
       "name": "grid",
       "kind": "member_access",
@@ -1392,6 +2507,70 @@
       "start_byte": 642,
       "end_byte": 646,
       "containing_key": "fixtures/extraction/css/basic/source.css:.grid:40:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:has:call:111:10",
+      "name": "has",
+      "kind": "call",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 111,
+      "start_column": 10,
+      "end_line": 111,
+      "end_column": 13,
+      "start_byte": 2032,
+      "end_byte": 2035,
+      "containing_key": "fixtures/extraction/css/basic/source.css:body:not(:has(.prevent-scroll)):111:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:hero:member_access:69:1",
+      "name": "hero",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 69,
+      "start_column": 1,
+      "end_line": 69,
+      "end_column": 5,
+      "start_byte": 1096,
+      "end_byte": 1100,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.hero:69:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:hsl:call:81:17",
+      "name": "hsl",
+      "kind": "call",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 81,
+      "start_column": 17,
+      "end_line": 81,
+      "end_column": 20,
+      "start_byte": 1480,
+      "end_byte": 1483,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.swatch:81:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:link:member_access:110:14",
+      "name": "link",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 110,
+      "start_column": 14,
+      "end_line": 110,
+      "end_column": 18,
+      "start_byte": 1993,
+      "end_byte": 1997,
+      "containing_key": "fixtures/extraction/css/basic/source.css::where(.btn, .link):hover:110:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1444,6 +2623,102 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/css/basic/source.css:not:call:111:5",
+      "name": "not",
+      "kind": "call",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 111,
+      "start_column": 5,
+      "end_line": 111,
+      "end_column": 8,
+      "start_byte": 2027,
+      "end_byte": 2030,
+      "containing_key": "fixtures/extraction/css/basic/source.css:body:not(:has(.prevent-scroll)):111:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:note-a:member_access:75:1",
+      "name": "note-a",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 75,
+      "start_column": 1,
+      "end_line": 75,
+      "end_column": 7,
+      "start_byte": 1215,
+      "end_byte": 1221,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.note-a:75:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:note-b:member_access:76:1",
+      "name": "note-b",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 76,
+      "start_column": 1,
+      "end_line": 76,
+      "end_column": 7,
+      "start_byte": 1266,
+      "end_byte": 1272,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.note-b:76:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:panel:member_access:93:1",
+      "name": "panel",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 93,
+      "start_column": 1,
+      "end_line": 93,
+      "end_column": 6,
+      "start_byte": 1685,
+      "end_byte": 1690,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.panel:93:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:prevent-scroll:member_access:111:15",
+      "name": "prevent-scroll",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 111,
+      "start_column": 15,
+      "end_line": 111,
+      "end_column": 29,
+      "start_byte": 2037,
+      "end_byte": 2051,
+      "containing_key": "fixtures/extraction/css/basic/source.css:body:not(:has(.prevent-scroll)):111:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:primary:member_access:105:1",
+      "name": "primary",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 105,
+      "start_column": 1,
+      "end_line": 105,
+      "end_column": 8,
+      "start_byte": 1897,
+      "end_byte": 1904,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.primary:105:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/css/basic/source.css:primary:member_access:66:7",
       "name": "primary",
       "kind": "member_access",
@@ -1456,6 +2731,54 @@
       "start_byte": 948,
       "end_byte": 955,
       "containing_key": "fixtures/extraction/css/basic/source.css:button.primary, div#main-content, .btn.btn-large, .sm\\:flex:66:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:px-4:member_access:85:11",
+      "name": "px-4",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 85,
+      "start_column": 11,
+      "end_line": 85,
+      "end_column": 15,
+      "start_byte": 1562,
+      "end_byte": 1566,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.btn-primary:84:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:py-2:member_access:85:16",
+      "name": "py-2",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 85,
+      "start_column": 16,
+      "end_line": 85,
+      "end_column": 20,
+      "start_byte": 1567,
+      "end_byte": 1571,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.btn-primary:84:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:rounded:member_access:85:21",
+      "name": "rounded",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 85,
+      "start_column": 21,
+      "end_line": 85,
+      "end_column": 28,
+      "start_byte": 1572,
+      "end_byte": 1579,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.btn-primary:84:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1476,6 +2799,38 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/css/basic/source.css:shadow-md:member_access:88:23",
+      "name": "shadow-md",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 88,
+      "start_column": 23,
+      "end_line": 88,
+      "end_column": 32,
+      "start_byte": 1618,
+      "end_byte": 1627,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.btn-card:87:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:shadow:member_access:107:14",
+      "name": "shadow",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 107,
+      "start_column": 14,
+      "end_line": 107,
+      "end_column": 20,
+      "start_byte": 1941,
+      "end_byte": 1947,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.primary:105:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/css/basic/source.css:sm:flex:member_access:66:51",
       "name": "sm:flex",
       "kind": "member_access",
@@ -1488,6 +2843,22 @@
       "start_byte": 992,
       "end_byte": 1000,
       "containing_key": "fixtures/extraction/css/basic/source.css:button.primary, div#main-content, .btn.btn-large, .sm\\:flex:66:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:swatch:member_access:81:1",
+      "name": "swatch",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 81,
+      "start_column": 1,
+      "end_line": 81,
+      "end_column": 7,
+      "start_byte": 1464,
+      "end_byte": 1470,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.swatch:81:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1535,7 +2906,7 @@
       "end_column": 14,
       "start_byte": 573,
       "end_byte": 576,
-      "containing_key": "fixtures/extraction/css/basic/source.css:@namespace:37:0",
+      "containing_key": "fixtures/extraction/css/basic/source.css:@namespace url(http://www.w3.org/1999/xhtml):37:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1551,7 +2922,23 @@
       "end_column": 12,
       "start_byte": 804,
       "end_byte": 807,
-      "containing_key": "fixtures/extraction/css/basic/source.css:@font-face:51:0",
+      "containing_key": "fixtures/extraction/css/basic/source.css:@font-face Worker:51:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:url:call:69:26",
+      "name": "url",
+      "kind": "call",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 69,
+      "start_column": 26,
+      "end_line": 69,
+      "end_column": 29,
+      "start_byte": 1121,
+      "end_byte": 1124,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.hero:69:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1636,6 +3023,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/css/basic/source.css:var:call:81:21",
+      "name": "var",
+      "kind": "call",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 81,
+      "start_column": 21,
+      "end_line": 81,
+      "end_column": 24,
+      "start_byte": 1484,
+      "end_byte": 1487,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.swatch:81:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/css/basic/source.css:w:member_access:67:49",
       "name": "w",
       "kind": "member_access",
@@ -1648,6 +3051,22 @@
       "start_byte": 1071,
       "end_byte": 1072,
       "containing_key": "fixtures/extraction/css/basic/source.css:.w:67:48",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/basic/source.css:where:call:110:1",
+      "name": "where",
+      "kind": "call",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 110,
+      "start_column": 1,
+      "end_line": 110,
+      "end_column": 6,
+      "start_byte": 1980,
+      "end_byte": 1985,
+      "containing_key": "fixtures/extraction/css/basic/source.css::where(.btn, .link):hover:110:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1713,7 +3132,7 @@
       "node_kind": "at_rule",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/css/basic/source.css:@container (min-width: 20rem):45:0",
       "start_line": 45,
       "start_column": 0,
       "end_line": 49,
@@ -1813,6 +3232,46 @@
       "node_kind": "property_name",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:--space-1:72:4",
+      "start_line": 72,
+      "start_column": 4,
+      "end_line": 72,
+      "end_column": 13,
+      "start_byte": 1158,
+      "end_byte": 1167,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "property_name": "--space-1",
+        "query_family": "stylesheet_structure"
+      }
+    },
+    {
+      "pattern_id": "css.custom_property.v1",
+      "capture_name": "custom_property",
+      "node_kind": "property_name",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:--space-2:73:4",
+      "start_line": 73,
+      "start_column": 4,
+      "end_line": 73,
+      "end_column": 13,
+      "start_byte": 1187,
+      "end_byte": 1196,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "property_name": "--space-2",
+        "query_family": "stylesheet_structure"
+      }
+    },
+    {
+      "pattern_id": "css.custom_property.v1",
+      "capture_name": "custom_property",
+      "node_kind": "property_name",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
       "containing_key": "fixtures/extraction/css/basic/source.css:--space:8:4",
       "start_line": 8,
       "start_column": 4,
@@ -1833,7 +3292,7 @@
       "node_kind": "at_rule",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/css/basic/source.css:@font-face Worker:51:0",
       "start_line": 51,
       "start_column": 0,
       "end_line": 54,
@@ -1843,6 +3302,7 @@
       "confidence": "1.000",
       "metadata": {
         "at_rule": "@font-face",
+        "font_family": "Worker",
         "pattern_version": 1,
         "query_family": "stylesheet_structure"
       }
@@ -1894,6 +3354,26 @@
       "node_kind": "keyframes_statement",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:@-webkit-keyframes pulse:113:0",
+      "start_line": 113,
+      "start_column": 0,
+      "end_line": 113,
+      "end_column": 49,
+      "start_byte": 2078,
+      "end_byte": 2127,
+      "confidence": "1.000",
+      "metadata": {
+        "animation_name": "pulse",
+        "pattern_version": 1,
+        "query_family": "animation"
+      }
+    },
+    {
+      "pattern_id": "css.keyframes.v1",
+      "capture_name": "keyframes",
+      "node_kind": "keyframes_statement",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
       "containing_key": "fixtures/extraction/css/basic/source.css:@keyframes spin:27:0",
       "start_line": 27,
       "start_column": 0,
@@ -1914,7 +3394,27 @@
       "node_kind": "at_rule",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/css/basic/source.css:@layer reset, base, components:78:0",
+      "start_line": 78,
+      "start_column": 0,
+      "end_line": 78,
+      "end_column": 31,
+      "start_byte": 1292,
+      "end_byte": 1323,
+      "confidence": "1.000",
+      "metadata": {
+        "layer_name": "reset, base, components",
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure"
+      }
+    },
+    {
+      "pattern_id": "css.layer.v1",
+      "capture_name": "layer",
+      "node_kind": "at_rule",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:@layer utilities:56:0",
       "start_line": 56,
       "start_column": 0,
       "end_line": 60,
@@ -1934,7 +3434,7 @@
       "node_kind": "media_statement",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/css/basic/source.css:@media (min-width: 40rem):21:0",
       "start_line": 21,
       "start_column": 0,
       "end_line": 25,
@@ -1954,7 +3454,7 @@
       "node_kind": "namespace_statement",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/css/basic/source.css:@namespace url(http://www.w3.org/1999/xhtml):37:0",
       "start_line": 37,
       "start_column": 0,
       "end_line": 37,
@@ -1966,6 +3466,115 @@
         "namespace": "url(http://www.w3.org/1999/xhtml)",
         "pattern_version": 1,
         "query_family": "stylesheet_structure"
+      }
+    },
+    {
+      "pattern_id": "css.scope.v1",
+      "capture_name": "scope",
+      "node_kind": "scope_statement",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:@scope (.card) to (.card-content):99:0",
+      "start_line": 99,
+      "start_column": 0,
+      "end_line": 102,
+      "end_column": 1,
+      "start_byte": 1767,
+      "end_byte": 1870,
+      "confidence": "1.000",
+      "metadata": {
+        "limit": ".card-content",
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "root": ".card"
+      }
+    },
+    {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:&:hover:95:4",
+      "start_line": 95,
+      "start_column": 4,
+      "end_line": 95,
+      "end_column": 27,
+      "start_byte": 1716,
+      "end_byte": 1739,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 1,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": "&:hover",
+        "selector_kind": "compound"
+      }
+    },
+    {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:.base:104:0",
+      "start_line": 104,
+      "start_column": 0,
+      "end_line": 104,
+      "end_column": 23,
+      "start_byte": 1872,
+      "end_byte": 1895,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 1,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": ".base",
+        "selector_kind": "class"
+      }
+    },
+    {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:.btn-card:87:0",
+      "start_line": 87,
+      "start_column": 0,
+      "end_line": 89,
+      "end_column": 1,
+      "start_byte": 1583,
+      "end_byte": 1630,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 0,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": ".btn-card",
+        "selector_kind": "class"
+      }
+    },
+    {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:.btn-primary:84:0",
+      "start_line": 84,
+      "start_column": 0,
+      "end_line": 86,
+      "end_column": 1,
+      "start_byte": 1536,
+      "end_byte": 1582,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 0,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": ".btn-primary",
+        "selector_kind": "class"
       }
     },
     {
@@ -2062,6 +3671,28 @@
       "node_kind": "rule_set",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:.hero:69:0",
+      "start_line": 69,
+      "start_column": 0,
+      "end_line": 69,
+      "end_column": 49,
+      "start_byte": 1095,
+      "end_byte": 1144,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 1,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": ".hero",
+        "selector_kind": "class"
+      }
+    },
+    {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
       "containing_key": "fixtures/extraction/css/basic/source.css:.logo:11:0",
       "start_line": 11,
       "start_column": 0,
@@ -2097,6 +3728,116 @@
         "pattern_version": 1,
         "query_family": "stylesheet_structure",
         "selector": ".m-0",
+        "selector_kind": "class"
+      }
+    },
+    {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:.note-a:75:0",
+      "start_line": 75,
+      "start_column": 0,
+      "end_line": 75,
+      "end_column": 24,
+      "start_byte": 1214,
+      "end_byte": 1238,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 1,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": ".note-a",
+        "selector_kind": "class"
+      }
+    },
+    {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:.note-b:76:0",
+      "start_line": 76,
+      "start_column": 0,
+      "end_line": 76,
+      "end_column": 25,
+      "start_byte": 1265,
+      "end_byte": 1290,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 1,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": ".note-b",
+        "selector_kind": "class"
+      }
+    },
+    {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:.panel:93:0",
+      "start_line": 93,
+      "start_column": 0,
+      "end_line": 96,
+      "end_column": 1,
+      "start_byte": 1684,
+      "end_byte": 1741,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 1,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": ".panel",
+        "selector_kind": "class"
+      }
+    },
+    {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:.primary:105:0",
+      "start_line": 105,
+      "start_column": 0,
+      "end_line": 108,
+      "end_column": 1,
+      "start_byte": 1896,
+      "end_byte": 1977,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 2,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": ".primary",
+        "selector_kind": "class"
+      }
+    },
+    {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:.swatch:81:0",
+      "start_line": 81,
+      "start_column": 0,
+      "end_line": 81,
+      "end_column": 49,
+      "start_byte": 1463,
+      "end_byte": 1512,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 1,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": ".swatch",
         "selector_kind": "class"
       }
     },
@@ -2194,7 +3935,73 @@
       "node_kind": "rule_set",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/css/basic/source.css::root:71:0",
+      "start_line": 71,
+      "start_column": 0,
+      "end_line": 74,
+      "end_column": 1,
+      "start_byte": 1146,
+      "end_byte": 1213,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 2,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": ":root",
+        "selector_kind": "pseudo"
+      }
+    },
+    {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css::scope:100:4",
+      "start_line": 100,
+      "start_column": 4,
+      "end_line": 100,
+      "end_column": 33,
+      "start_byte": 1807,
+      "end_byte": 1836,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 1,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": ":scope",
+        "selector_kind": "pseudo"
+      }
+    },
+    {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css::where(.btn, .link):hover:110:0",
+      "start_line": 110,
+      "start_column": 0,
+      "end_line": 110,
+      "end_column": 42,
+      "start_byte": 1979,
+      "end_byte": 2021,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 1,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": ":where(.btn, .link):hover",
+        "selector_kind": "pseudo"
+      }
+    },
+    {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:[data-theme=\"dark\"]:62:0",
       "start_line": 62,
       "start_column": 0,
       "end_line": 64,
@@ -2216,7 +4023,51 @@
       "node_kind": "rule_set",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/css/basic/source.css:body:92:0",
+      "start_line": 92,
+      "start_column": 0,
+      "end_line": 92,
+      "end_column": 19,
+      "start_byte": 1664,
+      "end_byte": 1683,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 1,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": "body",
+        "selector_kind": "type"
+      }
+    },
+    {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:body:not(:has(.prevent-scroll)):111:0",
+      "start_line": 111,
+      "start_column": 0,
+      "end_line": 111,
+      "end_column": 54,
+      "start_byte": 2022,
+      "end_byte": 2076,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 1,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": "body:not(:has(.prevent-scroll))",
+        "selector_kind": "compound"
+      }
+    },
+    {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:button.primary, div#main-content, .btn.btn-large, .sm\\:flex:66:0",
       "start_line": 66,
       "start_column": 0,
       "end_line": 66,
@@ -2233,12 +4084,34 @@
       }
     },
     {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:img:101:4",
+      "start_line": 101,
+      "start_column": 4,
+      "end_line": 101,
+      "end_column": 31,
+      "start_byte": 1841,
+      "end_byte": 1868,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 1,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": "img",
+        "selector_kind": "type"
+      }
+    },
+    {
       "pattern_id": "css.supports.v1",
       "capture_name": "supports",
       "node_kind": "supports_statement",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/css/basic/source.css:@supports (display: grid):39:0",
       "start_line": 39,
       "start_column": 0,
       "end_line": 43,
@@ -2250,6 +4123,95 @@
         "condition": "(display: grid)",
         "pattern_version": 1,
         "query_family": "feature_query"
+      }
+    },
+    {
+      "pattern_id": "css.tailwind_apply.v1",
+      "capture_name": "tailwind_apply",
+      "node_kind": "postcss_statement",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:.btn-card:87:0",
+      "start_line": 88,
+      "start_column": 4,
+      "end_line": 88,
+      "end_column": 33,
+      "start_byte": 1599,
+      "end_byte": 1628,
+      "confidence": "1.000",
+      "metadata": {
+        "classes": [
+          "btn-primary",
+          "shadow-md"
+        ],
+        "pattern_version": 1,
+        "query_family": "directives"
+      }
+    },
+    {
+      "pattern_id": "css.tailwind_apply.v1",
+      "capture_name": "tailwind_apply",
+      "node_kind": "postcss_statement",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:.btn-primary:84:0",
+      "start_line": 85,
+      "start_column": 4,
+      "end_line": 85,
+      "end_column": 29,
+      "start_byte": 1555,
+      "end_byte": 1580,
+      "confidence": "1.000",
+      "metadata": {
+        "classes": [
+          "px-4",
+          "py-2",
+          "rounded"
+        ],
+        "pattern_version": 1,
+        "query_family": "directives"
+      }
+    },
+    {
+      "pattern_id": "css.tailwind_directive.v1",
+      "capture_name": "tailwind_directive",
+      "node_kind": "at_rule",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:@tailwind components:83:0",
+      "start_line": 83,
+      "start_column": 0,
+      "end_line": 83,
+      "end_column": 21,
+      "start_byte": 1514,
+      "end_byte": 1535,
+      "confidence": "1.000",
+      "metadata": {
+        "argument": "components",
+        "directive": "tailwind",
+        "pattern_version": 1,
+        "query_family": "directives"
+      }
+    },
+    {
+      "pattern_id": "css.tailwind_directive.v1",
+      "capture_name": "tailwind_directive",
+      "node_kind": "at_rule",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:@utility tab-4:90:0",
+      "start_line": 90,
+      "start_column": 0,
+      "end_line": 90,
+      "end_column": 31,
+      "start_byte": 1631,
+      "end_byte": 1662,
+      "confidence": "1.000",
+      "metadata": {
+        "argument": "tab-4",
+        "directive": "utility",
+        "pattern_version": 1,
+        "query_family": "directives"
       }
     }
   ],
@@ -2284,7 +4246,39 @@
       "end_column": 34,
       "start_byte": 808,
       "end_byte": 829,
-      "containing_key": "fixtures/extraction/css/basic/source.css:@font-face:51:0",
+      "containing_key": "fixtures/extraction/css/basic/source.css:@font-face Worker:51:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "http://www.w3.org/1999/xhtml",
+      "kind": "other",
+      "carrier": "url",
+      "arg_position": 0,
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 37,
+      "start_column": 15,
+      "end_line": 37,
+      "end_column": 43,
+      "start_byte": 577,
+      "end_byte": 605,
+      "containing_key": "fixtures/extraction/css/basic/source.css:@namespace url(http://www.w3.org/1999/xhtml):37:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "images/hero.png",
+      "kind": "other",
+      "carrier": "url",
+      "arg_position": 0,
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 69,
+      "start_column": 30,
+      "end_line": 69,
+      "end_column": 45,
+      "start_byte": 1125,
+      "end_byte": 1140,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.hero:69:0",
       "confidence": "1.000"
     },
     {
@@ -2305,6 +4299,58 @@
     }
   ],
   "source_regions": [
+    {
+      "kind": "doc_comment",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css::root:71:0",
+      "start_line": 72,
+      "start_column": 20,
+      "end_line": 72,
+      "end_column": 28,
+      "start_byte": 1174,
+      "end_byte": 1182,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css::root:71:0",
+      "start_line": 73,
+      "start_column": 20,
+      "end_line": 73,
+      "end_column": 28,
+      "start_byte": 1203,
+      "end_byte": 1211,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:@scope (.card) to (.card-content):99:0",
+      "start_line": 98,
+      "start_column": 0,
+      "end_line": 98,
+      "end_column": 23,
+      "start_byte": 1743,
+      "end_byte": 1766,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": null,
+      "start_line": 75,
+      "start_column": 25,
+      "end_line": 75,
+      "end_column": 50,
+      "start_byte": 1239,
+      "end_byte": 1264,
+      "metadata": null
+    },
     {
       "kind": "string_literal",
       "language": "css",
@@ -2335,7 +4381,20 @@
       "kind": "string_literal",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
-      "containing_key": "fixtures/extraction/css/basic/source.css:@charset:36:0",
+      "containing_key": "fixtures/extraction/css/basic/source.css:.primary:105:0",
+      "start_line": 107,
+      "start_column": 26,
+      "end_line": 107,
+      "end_column": 47,
+      "start_byte": 1953,
+      "end_byte": 1974,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:@charset \"UTF-8\":36:0",
       "start_line": 36,
       "start_column": 9,
       "end_line": 36,
@@ -2348,7 +4407,20 @@
       "kind": "string_literal",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
-      "containing_key": "fixtures/extraction/css/basic/source.css:@font-face:51:0",
+      "containing_key": "fixtures/extraction/css/basic/source.css:@counter-style thumbs:79:0",
+      "start_line": 79,
+      "start_column": 49,
+      "end_line": 79,
+      "end_column": 52,
+      "start_byte": 1373,
+      "end_byte": 1376,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:@font-face Worker:51:0",
       "start_line": 52,
       "start_column": 17,
       "end_line": 52,
@@ -2361,13 +4433,26 @@
       "kind": "string_literal",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
-      "containing_key": "fixtures/extraction/css/basic/source.css:@font-face:51:0",
+      "containing_key": "fixtures/extraction/css/basic/source.css:@font-face Worker:51:0",
       "start_line": 53,
       "start_column": 13,
       "end_line": 53,
       "end_column": 34,
       "start_byte": 808,
       "end_byte": 829,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "containing_key": "fixtures/extraction/css/basic/source.css:@property --brand-hue:80:0",
+      "start_line": 80,
+      "start_column": 32,
+      "end_line": 80,
+      "end_column": 42,
+      "start_byte": 1412,
+      "end_byte": 1422,
       "metadata": null
     },
     {

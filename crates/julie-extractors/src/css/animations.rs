@@ -2,11 +2,7 @@
 
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use std::collections::HashMap;
-use std::sync::LazyLock;
 use tree_sitter::Node;
-
-static KEYFRAMES_NAME_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"@keyframes\s+([^\s{]+)").unwrap());
 
 pub(super) struct AnimationExtractor;
 
@@ -17,9 +13,10 @@ impl AnimationExtractor {
         node: Node,
         parent_id: Option<&str>,
     ) -> Option<Symbol> {
+        let keyword = super::at_rules::at_rule_keyword(base, node)?;
         let keyframes_name = Self::extract_keyframes_name(base, &node)?;
         let signature = base.get_node_text(&node);
-        let symbol_name = format!("@keyframes {}", keyframes_name);
+        let symbol_name = format!("{keyword} {keyframes_name}");
 
         // Create metadata
         let mut metadata = HashMap::new();
@@ -67,8 +64,9 @@ impl AnimationExtractor {
 
     /// Extract keyframes name - port of extractKeyframesName
     pub(super) fn extract_keyframes_name(base: &BaseExtractor, node: &Node) -> Option<String> {
-        let text = base.get_node_text(node);
-        let captures = KEYFRAMES_NAME_RE.captures(&text)?;
-        captures.get(1).map(|m| m.as_str().to_string())
+        let mut cursor = node.walk();
+        node.children(&mut cursor)
+            .find(|child| child.kind() == "keyframes_name")
+            .map(|name| base.get_node_text(&name))
     }
 }

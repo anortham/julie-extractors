@@ -147,6 +147,11 @@ impl<'a> ContainingSymbolIndex<'a> {
         Self::from_iter_ranked(symbols, symbol_priority)
     }
 
+    /// An index that ignores symbol kind: the innermost span always wins.
+    pub(crate) fn innermost(symbols: impl IntoIterator<Item = &'a Symbol>) -> Self {
+        Self::from_iter_ranked(symbols, |_| 0)
+    }
+
     /// Build the index with a language's own container ranking.
     pub(crate) fn from_iter_ranked(
         symbols: impl IntoIterator<Item = &'a Symbol>,

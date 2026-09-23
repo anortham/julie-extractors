@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "macros.html" import field %}
+<HTML>
+<HEAD>
+<TITLE>Orders</TITLE>
+<SCRIPT SRC="legacy.js"></SCRIPT>
+<LINK REL="stylesheet" HREF="legacy.css">
+<link rel="canonical" href="https://example.com/orders">
+<link rel="modulepreload" href="./app.js">
+</HEAD>
+<BODY onLoad="init()">
+<header id="top"></header><!-- /header -->
+<!-- <div id="legacy-banner">Old promo</div> -->
+<nav id="menu"><a href="#pricing">Pricing</a> <a href="/about.html">About</a></nav>
+<!-- Order search form -->
+<form id="search" action="/orders/search" method="get">
+  <label for="q">Query</label>
+  <input id="q" name="q" list="suggestions" aria-describedby="q-help" title="say 'hello'">
+  <datalist id="suggestions"></datalist>
+  <p id="q-help">Search by order number.</p>
+</form>
+{% block content %}
+  {% include "partials/order_table.html" %}
+  <section id="orders" class="panel {% if active %}is-active{% endif %}">
+    <app-order-row *ngFor="let order of orders; trackBy: trackById" [order]="order" (selected)="onSelect(order)"></app-order-row>
+    <p *ngIf="error">{{ error.message | uppercase }}</p>
+    <button popovertarget="order-menu" hx-get="/orders/more" hx-target="#orders">More</button>
+  </section>
+{% endblock %}
+{% macro badge(label) %}<span class="badge">{{ label }}</span>{% endmacro %}
+<iframe src="/embed/map.html" title="Map"></iframe>
+<object data="/docs/manual.pdf" type="application/pdf"></object>
+<DIV ID="footer" CLASS="foot">Bye</DIV>
+<script type="text/babel">
+  function Greeting({ name }) { return <h1>Hello, {name}</h1>; }
+</script>
+</BODY>
+</HTML>

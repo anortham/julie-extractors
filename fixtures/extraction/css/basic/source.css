@@ -65,3 +65,49 @@
 
 button.primary, div#main-content, .btn.btn-large, .sm\:flex { gap: var(--gap); }
 .x{margin:var(--space)}.y{padding:var(--accent)}.w{animation-name:spin}
+
+.hero { background-image: url(images/hero.png); }
+
+:root {
+    --space-1: 4px; /* xs */
+    --space-2: 8px; /* sm */
+}
+.note-a { color: blue; } /* trailing note for a */
+.note-b { color: green; }
+
+@layer reset, base, components;
+@counter-style thumbs { system: cyclic; symbols: "*"; }
+@property --brand-hue { syntax: "<number>"; inherits: false; initial-value: 200; }
+.swatch { color: hsl(var(--brand-hue) 50% 50%); }
+
+@tailwind components;
+.btn-primary {
+    @apply px-4 py-2 rounded;
+}
+.btn-card {
+    @apply btn-primary shadow-md;
+}
+@utility tab-4 { tab-size: 4; }
+
+body { margin: 0; }
+.panel {
+    padding: 1rem;
+    &:hover { color: red; }
+}
+
+/* Card-local styles */
+@scope (.card) to (.card-content) {
+    :scope { border: 1px solid; }
+    img { border-radius: 4px; }
+}
+
+.base { padding: 4px; }
+.primary {
+    composes: base;
+    composes: shadow from "./shared.module.css";
+}
+
+:where(.btn, .link):hover { color: blue; }
+body:not(:has(.prevent-scroll)) { overflow: visible; }
+
+@-webkit-keyframes pulse { 50% { opacity: .5; } }

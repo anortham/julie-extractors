@@ -1,7 +1,11 @@
 // CSS Extractor Rules - Extract CSS rules and their properties
 
 use super::helpers::PropertyHelper;
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use super::identifiers::composes_module_source;
+use crate::base::{
+    BaseExtractor, NormalizedSpan, RelationshipKind, StructuredPendingRelationship, Symbol,
+    SymbolKind, SymbolOptions, UnresolvedTarget, Visibility,
+};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -32,17 +36,6 @@ impl RuleExtractor {
 
         let signature = Self::build_rule_signature(base, &node, &selector_text);
 
-        // Determine symbol kind based on selector type
-        let symbol_kind = if selector_text.starts_with('.') {
-            SymbolKind::Property // Class selectors (CSS classes, not OOP classes)
-        } else if selector_text.starts_with('#') {
-            SymbolKind::Variable // ID selectors (treated as variables)
-        } else if selector_text == ":root" {
-            SymbolKind::Property // :root pseudo-class (document-level property scope)
-        } else {
-            SymbolKind::Variable // Other selectors
-        };
-
         // Create metadata
         let mut metadata = HashMap::new();
         metadata.insert(
@@ -68,10 +61,10 @@ impl RuleExtractor {
         // Extract CSS comment
         let doc_comment = base.find_doc_comment(&node);
 
-        Some(base.create_symbol(
+        let symbol = base.create_symbol(
             &node,
             selector_text,
-            symbol_kind,
+            SymbolKind::Property,
             SymbolOptions {
                 signature: Some(signature),
                 visibility: Some(Visibility::Public),
@@ -80,7 +73,36 @@ impl RuleExtractor {
                 doc_comment,
                 annotations: Vec::new(),
             },
-        ))
+        );
+        if let Some(block) = declaration_block {
+            Self::add_composes_imports(base, block, &symbol.id);
+        }
+        Some(symbol)
+    }
+
+    /// `composes: name from "./other.module.css"` imports that CSS Module.
+    fn add_composes_imports(base: &mut BaseExtractor, block: Node, rule_id: &str) {
+        let mut cursor = block.walk();
+        let declarations: Vec<Node> = block
+            .named_children(&mut cursor)
+            .filter(|child| child.kind() == "declaration")
+            .collect();
+        for declaration in declarations {
+            let Some((source, path)) = composes_module_source(base, declaration) else {
+                continue;
+            };
+            let mut target = UnresolvedTarget::simple(path);
+            target.import_context = Some("css-modules-composes".to_string());
+            base.add_structured_pending_relationship(StructuredPendingRelationship::new(
+                rule_id.to_string(),
+                target,
+                Some(rule_id.to_string()),
+                RelationshipKind::Imports,
+                base.file_path.clone(),
+                NormalizedSpan::from_node(&source).start_line,
+                0.9,
+            ));
+        }
     }
 
     /// Build rule signaimplementation's buildRuleSignature

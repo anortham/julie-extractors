@@ -201,6 +201,27 @@
       }
     },
     {
+      "from_key": "fixtures/extraction/css/cross_file/source.css:.entry:16:0",
+      "to_key": "fixtures/extraction/css/cross_file/source.css:.local_helper:11:0",
+      "kind": "references",
+      "file_path": "fixtures/extraction/css/cross_file/source.css",
+      "line_number": 17,
+      "span": {
+        "start_line": 17,
+        "start_column": 12,
+        "end_line": 17,
+        "end_column": 24,
+        "start_byte": 294,
+        "end_byte": 306
+      },
+      "reference_site_is_exact": true,
+      "confidence": "1.000",
+      "metadata": {
+        "referenceName": "local_helper",
+        "referenceType": "composes"
+      }
+    },
+    {
       "from_key": "fixtures/extraction/css/cross_file/source.css:.local_helper:11:0",
       "to_key": "fixtures/extraction/css/cross_file/source.css:--primary:8:2",
       "kind": "references",
@@ -315,6 +336,22 @@
       "start_byte": 211,
       "end_byte": 223,
       "containing_key": "fixtures/extraction/css/cross_file/source.css:.local_helper:11:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/cross_file/source.css:local_helper:member_access:17:12",
+      "name": "local_helper",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/cross_file/source.css",
+      "start_line": 17,
+      "start_column": 12,
+      "end_line": 17,
+      "end_column": 24,
+      "start_byte": 294,
+      "end_byte": 306,
+      "containing_key": "fixtures/extraction/css/cross_file/source.css:.entry:16:0",
       "target_key": null,
       "confidence": "1.000"
     },

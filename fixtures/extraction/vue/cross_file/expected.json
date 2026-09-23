@@ -1,28 +1,28 @@
 {
   "symbols": [
     {
-      "key": "fixtures/extraction/vue/cross_file/source.vue:Source:1:1",
+      "key": "fixtures/extraction/vue/cross_file/source.vue:Source:1:0",
       "name": "Source",
       "kind": "class",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/cross_file/source.vue",
       "start_line": 1,
-      "start_column": 1,
+      "start_column": 0,
       "end_line": 21,
-      "end_column": 12,
+      "end_column": 11,
       "start_byte": 0,
       "end_byte": 488,
       "body_span": {
-        "start_line": 7,
-        "start_column": 7,
-        "end_line": 20,
-        "end_column": 22,
-        "start_byte": 298,
-        "end_byte": 470
+        "start_line": 1,
+        "start_column": 0,
+        "end_line": 21,
+        "end_column": 11,
+        "start_byte": 0,
+        "end_byte": 488
       },
-      "body_hash": "796303aa4112a94db519ffdf6b47548b",
+      "body_hash": "69d3b256473d8102463a0e959795c2fc",
       "signature": "<Source />",
-      "doc_comment": "Vue Single File Component: Source",
+      "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
@@ -149,7 +149,7 @@
   ],
   "relationships": [
     {
-      "from_key": "fixtures/extraction/vue/cross_file/source.vue:Source:1:1",
+      "from_key": "fixtures/extraction/vue/cross_file/source.vue:Source:1:0",
       "to_key": "fixtures/extraction/vue/cross_file/source.vue:entry:13:0",
       "kind": "calls",
       "file_path": "fixtures/extraction/vue/cross_file/source.vue",
@@ -238,7 +238,7 @@
       "end_column": 17,
       "start_byte": 460,
       "end_byte": 465,
-      "containing_key": "fixtures/extraction/vue/cross_file/source.vue:Source:1:1",
+      "containing_key": "fixtures/extraction/vue/cross_file/source.vue:Source:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -275,17 +275,7 @@
       "confidence": "1.000"
     }
   ],
-  "types": [
-    {
-      "symbol_key": "fixtures/extraction/vue/cross_file/source.vue:Source:1:1",
-      "resolved_type": "vue-sfc",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "vue",
-      "metadata": null
-    }
-  ],
+  "types": [],
   "parse_diagnostics": [],
   "structural_facts": [
     {
@@ -294,7 +284,7 @@
       "node_kind": "sfc_section",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/cross_file/source.vue",
-      "containing_key": "fixtures/extraction/vue/cross_file/source.vue:Source:1:1",
+      "containing_key": "fixtures/extraction/vue/cross_file/source.vue:Source:1:0",
       "start_line": 1,
       "start_column": 0,
       "end_line": 17,
@@ -316,7 +306,7 @@
       "node_kind": "sfc_section",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/cross_file/source.vue",
-      "containing_key": "fixtures/extraction/vue/cross_file/source.vue:Source:1:1",
+      "containing_key": "fixtures/extraction/vue/cross_file/source.vue:Source:1:0",
       "start_line": 19,
       "start_column": 0,
       "end_line": 21,

@@ -63,28 +63,60 @@ pub(super) fn collect_http_client_requests(
         end: range.end,
         syntax_mask,
     };
-    collect_fetch_requests(&scan, range.start, &mut facts);
+    collect_global_requests(&scan, range.start, FETCH_IDENTIFIER, "fetch", &mut facts);
     for (local, source) in &imports.axios_clients {
         collect_axios_requests(&scan, local, source, range.start, &mut facts);
     }
     facts
 }
 
-fn collect_fetch_requests(
+/// Nuxt's auto-imported request helpers: `$fetch` (ofetch) and the
+/// `useFetch` / `useLazyFetch` composables, with the same static-path rules as
+/// `fetch`.
+pub(super) fn collect_nuxt_client_requests(
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    range: Range<usize>,
+    syntax_mask: Option<&ScriptSyntaxMask>,
+) -> Vec<StructuralFact> {
+    let mut facts = Vec::new();
+    let scan = HttpClientScan {
+        language,
+        tree,
+        file_path,
+        content,
+        end: range.end,
+        syntax_mask,
+    };
+    for (identifier, client) in [
+        ("$fetch", "ofetch"),
+        ("useFetch", "nuxt"),
+        ("useLazyFetch", "nuxt"),
+    ] {
+        collect_global_requests(&scan, range.start, identifier, client, &mut facts);
+    }
+    facts
+}
+
+fn collect_global_requests(
     scan: &HttpClientScan<'_>,
     start: usize,
+    identifier: &str,
+    client: &str,
     facts: &mut Vec<StructuralFact>,
 ) {
     let mut cursor = start;
 
     while cursor < scan.end {
-        let Some(relative_start) = scan.content[cursor..scan.end].find(FETCH_IDENTIFIER) else {
+        let Some(relative_start) = scan.content[cursor..scan.end].find(identifier) else {
             break;
         };
         let name_start = cursor + relative_start;
-        cursor = name_start + FETCH_IDENTIFIER.len();
+        cursor = name_start + identifier.len();
 
-        if !is_identifier_boundary(scan.content, name_start, FETCH_IDENTIFIER.len()) {
+        if !is_identifier_boundary(scan.content, name_start, identifier.len()) {
             continue;
         }
         if scan
@@ -102,7 +134,7 @@ fn collect_fetch_requests(
             continue;
         }
 
-        push_client_request_fact(scan, name_start, open_paren, "fetch", None, facts);
+        push_client_request_fact(scan, name_start, open_paren, client, None, facts);
     }
 }
 

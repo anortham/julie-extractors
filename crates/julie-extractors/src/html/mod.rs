@@ -17,6 +17,7 @@ mod helpers;
 mod identifiers;
 mod relationships;
 mod scripts;
+mod templates;
 mod types;
 
 pub struct HTMLExtractor {
@@ -74,6 +75,7 @@ impl HTMLExtractor {
         if has_only_errors || symbols.is_empty() {
             fallback::FallbackExtractor::extract_basic_structure(&mut self.base, tree)
         } else {
+            templates::add_template_symbols(&mut self.base, root_node, &mut symbols);
             self.handler_rows = handlers::collect_handler_rows(&self.base, tree, &symbols);
             symbols
         }
@@ -166,7 +168,7 @@ impl HTMLExtractor {
                 parent_id,
                 &mut self.embedded,
             ),
-            "doctype" => vec![elements::ElementExtractor::extract_doctype(
+            "doctype" if node.is_named() => vec![elements::ElementExtractor::extract_doctype(
                 &mut self.base,
                 node,
                 parent_id,
@@ -176,13 +178,12 @@ impl HTMLExtractor {
         }
     }
 
-    pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
-        let mut relationships = Vec::new();
-
-        self.visit_node_for_relationships(tree.root_node(), symbols, &mut relationships, 0);
-        relationships.append(&mut self.handler_rows.relationships);
-
-        relationships
+    pub fn extract_relationships(
+        &mut self,
+        _tree: &Tree,
+        _symbols: &[Symbol],
+    ) -> Vec<Relationship> {
+        std::mem::take(&mut self.handler_rows.relationships)
     }
 
     /// Phase 4b.html — emit StructuredPendingRelationship for external
@@ -201,48 +202,9 @@ impl HTMLExtractor {
             symbols,
             &mut pending,
         );
+        pending.extend(templates::template_imports(&self.base, symbols));
         pending.append(&mut self.handler_rows.pending);
         pending
-    }
-
-    fn visit_node_for_relationships(
-        &self,
-        node: Node,
-        symbols: &[Symbol],
-        relationships: &mut Vec<Relationship>,
-        depth: u32,
-    ) {
-        if !should_visit_tree_depth(depth) {
-            return;
-        }
-
-        match node.kind() {
-            "element" => {
-                relationships::RelationshipExtractor::extract_element_relationships(
-                    &self.base,
-                    node,
-                    symbols,
-                    relationships,
-                );
-            }
-            "script_element" => {
-                relationships::RelationshipExtractor::extract_script_relationships(
-                    &self.base,
-                    node,
-                    symbols,
-                    relationships,
-                );
-            }
-            _ => {}
-        }
-
-        let Some(child_depth) = child_tree_depth(depth) else {
-            return;
-        };
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            self.visit_node_for_relationships(child, symbols, relationships, child_depth);
-        }
     }
 
     pub fn infer_types(&self, symbols: &[Symbol]) -> HashMap<String, String> {
@@ -261,7 +223,12 @@ impl HTMLExtractor {
     }
 
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
-        let containing_symbols = self.base.containing_symbol_index(symbols);
+        let file_path = self.base.file_path.clone();
+        let containing_symbols = crate::base::ContainingSymbolIndex::innermost(
+            symbols
+                .iter()
+                .filter(|symbol| symbol.file_path == file_path),
+        );
 
         // Walk the tree and extract identifiers
         identifiers::IdentifierExtractor::extract_identifiers(

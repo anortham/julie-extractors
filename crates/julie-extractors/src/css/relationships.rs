@@ -1,3 +1,4 @@
+use super::identifiers::composed_class_nodes;
 use crate::base::{BaseExtractor, NormalizedSpan, Relationship, RelationshipKind, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
@@ -7,6 +8,7 @@ use tree_sitter::{Node, Tree};
 struct Targets<'a> {
     custom_properties: HashMap<String, Vec<&'a Symbol>>,
     keyframes: HashMap<String, Vec<&'a Symbol>>,
+    class_rules: HashMap<String, Vec<&'a Symbol>>,
 }
 
 /// One `references` edge per `var(--x)` or animation name node, from the
@@ -20,6 +22,7 @@ pub(super) fn extract_relationships(
     let targets = Targets {
         custom_properties: symbols_by_metadata(symbols, "property"),
         keyframes: symbols_by_metadata(symbols, "animationName"),
+        class_rules: class_rules_by_name(symbols),
     };
     let mut relationships = Vec::new();
     let mut seen = HashSet::new();
@@ -71,6 +74,19 @@ fn collect_references<'t, 's>(
                 }
             }
         }
+        "declaration" => {
+            let composed = composed_class_nodes(base, node);
+            let is_local = composed
+                .last()
+                .and_then(|last| last.next_named_sibling())
+                .is_none_or(|next| base.get_node_text(&next) != "from");
+            for class_node in composed.into_iter().filter(|_| is_local) {
+                if let Some(candidates) = targets.class_rules.get(&base.get_node_text(&class_node))
+                {
+                    references.push((class_node, candidates, "composes"));
+                }
+            }
+        }
         _ => {}
     }
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -114,6 +130,21 @@ fn innermost_symbol_containing<'a>(symbols: &'a [Symbol], node: Node<'_>) -> Opt
         .iter()
         .filter(|symbol| symbol.start_byte <= start && end <= symbol.end_byte)
         .min_by_key(|symbol| symbol.end_byte - symbol.start_byte)
+}
+
+/// Rules whose whole selector is one class (`.base`), keyed by class name.
+fn class_rules_by_name(symbols: &[Symbol]) -> HashMap<String, Vec<&Symbol>> {
+    let mut by_name: HashMap<String, Vec<&Symbol>> = HashMap::new();
+    for (selector, symbol) in symbols_by_metadata(symbols, "selector") {
+        if let Some(class) = selector.strip_prefix('.').filter(|class| {
+            class
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+        }) {
+            by_name.entry(class.to_string()).or_default().extend(symbol);
+        }
+    }
+    by_name
 }
 
 fn symbols_by_metadata<'a>(symbols: &'a [Symbol], key: &str) -> HashMap<String, Vec<&'a Symbol>> {

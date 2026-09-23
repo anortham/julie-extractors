@@ -91,4 +91,14 @@ defineExpose({ format, evaluate });
 @layer utilities {
   .m-0 { margin: 0; }
 }
+
+@tailwind utilities;
+
+@scope (.worker) to (.worker-body) {
+  .title { font-weight: 600; }
+}
+
+.worker-button {
+  @apply px-4 rounded;
+}
 </style>

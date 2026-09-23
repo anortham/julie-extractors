@@ -137,33 +137,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/html/basic/source.html:DOCTYPE:1:2",
-      "name": "DOCTYPE",
-      "kind": "namespace",
-      "language": "html",
-      "file_path": "fixtures/extraction/html/basic/source.html",
-      "start_line": 1,
-      "start_column": 2,
-      "end_line": 1,
-      "end_column": 9,
-      "start_byte": 2,
-      "end_byte": 9,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "doctype",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/html/basic/source.html:DOCTYPE:1:0",
-      "metadata": {
-        "declaration": "doctype",
-        "type": "doctype"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/html/basic/source.html:WorkerCard:30:6",
       "name": "WorkerCard",
       "kind": "class",
@@ -251,14 +224,14 @@
       "start_byte": 70,
       "end_byte": 1000,
       "body_span": {
-        "start_line": 16,
-        "start_column": 12,
-        "end_line": 33,
-        "end_column": 7,
-        "start_byte": 462,
-        "end_byte": 976
+        "start_line": 6,
+        "start_column": 8,
+        "end_line": 35,
+        "end_column": 2,
+        "start_byte": 76,
+        "end_byte": 993
       },
-      "body_hash": "8d6539b86b9c12b0bd13fa6cf0ae9e18",
+      "body_hash": "97da4177567dac54b309cfe68e1bc608",
       "signature": "<body>",
       "doc_comment": null,
       "visibility": "Public",
@@ -328,13 +301,13 @@
       "end_byte": 332,
       "body_span": {
         "start_line": 12,
-        "start_column": 62,
+        "start_column": 78,
         "end_line": 12,
         "end_column": 82,
-        "start_byte": 303,
+        "start_byte": 319,
         "end_byte": 323
       },
-      "body_hash": "0d1ae89e50747fa2ca8cd4aa1f5fe83b",
+      "body_hash": "c9cc8cce247e49bae79f15173ce97354",
       "signature": "<button data-action=\"click->worker#refresh\" onclick=\"saveWorker(event)\">Save",
       "doc_comment": null,
       "visibility": "Public",
@@ -586,14 +559,14 @@
       "start_byte": 16,
       "end_byte": 1008,
       "body_span": {
-        "start_line": 16,
-        "start_column": 12,
-        "end_line": 33,
-        "end_column": 7,
-        "start_byte": 462,
-        "end_byte": 976
+        "start_line": 2,
+        "start_column": 6,
+        "end_line": 36,
+        "end_column": 0,
+        "start_byte": 22,
+        "end_byte": 1001
       },
-      "body_hash": "8d6539b86b9c12b0bd13fa6cf0ae9e18",
+      "body_hash": "7f34dd3458888cb7185391693c247876",
       "signature": "<html>",
       "doc_comment": null,
       "visibility": "Public",
@@ -768,14 +741,14 @@
       "start_byte": 442,
       "end_byte": 535,
       "body_span": {
-        "start_line": 16,
-        "start_column": 12,
-        "end_line": 17,
-        "end_column": 38,
-        "start_byte": 462,
-        "end_byte": 522
+        "start_line": 15,
+        "start_column": 11,
+        "end_line": 18,
+        "end_column": 4,
+        "start_byte": 449,
+        "end_byte": 527
       },
-      "body_hash": "7e80f5401452a67cab82ac596b0ff909",
+      "body_hash": "4cf0e72a43ac74f23b3f10c55d8f85f7",
       "signature": "<style>:root { --brand: #0f766e; }\n      .worker { color: var(--brand); }",
       "doc_comment": null,
       "visibility": "Public",
@@ -877,26 +850,6 @@
       }
     },
     {
-      "from_key": "fixtures/extraction/html/basic/source.html:a:10:6",
-      "to_key": "unresolved:url:/workers",
-      "kind": "references",
-      "file_path": "fixtures/extraction/html/basic/source.html",
-      "line_number": 10,
-      "span": {
-        "start_line": 10,
-        "start_column": 6,
-        "end_line": 10,
-        "end_column": 36,
-        "start_byte": 165,
-        "end_byte": 195
-      },
-      "reference_site_is_exact": false,
-      "confidence": "1.000",
-      "metadata": {
-        "href": "/workers"
-      }
-    },
-    {
       "from_key": "fixtures/extraction/html/basic/source.html:button:12:6",
       "to_key": "fixtures/extraction/html/basic/source.html:saveWorker:24:6",
       "kind": "calls",
@@ -963,6 +916,14 @@
       "confidence": "0.900"
     },
     {
+      "from_key": "fixtures/extraction/html/basic/source.html:a:10:6",
+      "callee_name": "/workers",
+      "kind": "references",
+      "file_path": "fixtures/extraction/html/basic/source.html",
+      "line_number": 10,
+      "confidence": "0.900"
+    },
+    {
       "from_key": "fixtures/extraction/html/basic/source.html:button:13:6",
       "callee_name": "notifyReset",
       "kind": "calls",
@@ -1021,6 +982,25 @@
         "start_byte": 853,
         "end_byte": 872
       }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/html/basic/source.html:a:10:6",
+        "callee_name": "/workers",
+        "kind": "references",
+        "file_path": "fixtures/extraction/html/basic/source.html",
+        "line_number": 10,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "/workers",
+        "terminal_name": "/workers",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "html-anchor-href"
+      },
+      "caller_scope_key": "fixtures/extraction/html/basic/source.html:a:10:6",
+      "span": null
     },
     {
       "pending": {
@@ -1467,15 +1447,6 @@
     },
     {
       "symbol_key": "fixtures/extraction/html/basic/source.html:DOCTYPE:1:0",
-      "resolved_type": "doctype",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "html",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/html/basic/source.html:DOCTYPE:1:2",
       "resolved_type": "doctype",
       "generic_params": null,
       "constraints": null,
@@ -2028,7 +1999,7 @@
       "end_column": 77,
       "start_byte": 295,
       "end_byte": 318,
-      "containing_key": "fixtures/extraction/html/basic/source.html:section:8:4",
+      "containing_key": "fixtures/extraction/html/basic/source.html:button:12:6",
       "confidence": "1.000"
     },
     {
@@ -2060,7 +2031,7 @@
       "end_column": 73,
       "start_byte": 386,
       "end_byte": 406,
-      "containing_key": "fixtures/extraction/html/basic/source.html:section:8:4",
+      "containing_key": "fixtures/extraction/html/basic/source.html:button:13:6",
       "confidence": "1.000"
     },
     {
@@ -2076,7 +2047,7 @@
       "end_column": 31,
       "start_byte": 222,
       "end_byte": 227,
-      "containing_key": "fixtures/extraction/html/basic/source.html:section:8:4",
+      "containing_key": "fixtures/extraction/html/basic/source.html:button:11:6",
       "confidence": "1.000"
     },
     {
@@ -2092,7 +2063,7 @@
       "end_column": 41,
       "start_byte": 263,
       "end_byte": 282,
-      "containing_key": "fixtures/extraction/html/basic/source.html:section:8:4",
+      "containing_key": "fixtures/extraction/html/basic/source.html:button:12:6",
       "confidence": "1.000"
     },
     {
@@ -2108,7 +2079,7 @@
       "end_column": 31,
       "start_byte": 354,
       "end_byte": 364,
-      "containing_key": "fixtures/extraction/html/basic/source.html:section:8:4",
+      "containing_key": "fixtures/extraction/html/basic/source.html:button:13:6",
       "confidence": "1.000"
     },
     {

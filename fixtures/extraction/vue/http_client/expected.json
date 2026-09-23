@@ -1,28 +1,28 @@
 {
   "symbols": [
     {
-      "key": "fixtures/extraction/vue/http_client/source.vue:Source:1:1",
+      "key": "fixtures/extraction/vue/http_client/source.vue:Source:1:0",
       "name": "Source",
       "kind": "class",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/http_client/source.vue",
       "start_line": 1,
-      "start_column": 1,
+      "start_column": 0,
       "end_line": 13,
-      "end_column": 10,
+      "end_column": 9,
       "start_byte": 0,
       "end_byte": 269,
       "body_span": {
-        "start_line": 8,
-        "start_column": 22,
-        "end_line": 12,
-        "end_column": 1,
-        "start_byte": 143,
-        "end_byte": 259
+        "start_line": 1,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 9,
+        "start_byte": 0,
+        "end_byte": 269
       },
-      "body_hash": "a4023967b94ff4ab8ff6174a58a5a01f",
+      "body_hash": "616fad87580e03c1f2289a7908a542b7",
       "signature": "<Source />",
-      "doc_comment": "Vue Single File Component: Source",
+      "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
@@ -104,7 +104,7 @@
   ],
   "relationships": [
     {
-      "from_key": "fixtures/extraction/vue/http_client/source.vue:Source:1:1",
+      "from_key": "fixtures/extraction/vue/http_client/source.vue:Source:1:0",
       "to_key": "fixtures/extraction/vue/http_client/source.vue:load:8:0",
       "kind": "calls",
       "file_path": "fixtures/extraction/vue/http_client/source.vue",
@@ -203,21 +203,12 @@
       "end_column": 22,
       "start_byte": 29,
       "end_byte": 33,
-      "containing_key": "fixtures/extraction/vue/http_client/source.vue:Source:1:1",
+      "containing_key": "fixtures/extraction/vue/http_client/source.vue:Source:1:0",
       "target_key": null,
       "confidence": "1.000"
     }
   ],
   "types": [
-    {
-      "symbol_key": "fixtures/extraction/vue/http_client/source.vue:Source:1:1",
-      "resolved_type": "vue-sfc",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "vue",
-      "metadata": null
-    },
     {
       "symbol_key": "fixtures/extraction/vue/http_client/source.vue:load:8:0",
       "resolved_type": "Promise<any>",
@@ -313,7 +304,7 @@
       "node_kind": "sfc_section",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/http_client/source.vue",
-      "containing_key": "fixtures/extraction/vue/http_client/source.vue:Source:1:1",
+      "containing_key": "fixtures/extraction/vue/http_client/source.vue:Source:1:0",
       "start_line": 1,
       "start_column": 0,
       "end_line": 3,
@@ -335,7 +326,7 @@
       "node_kind": "sfc_section",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/http_client/source.vue",
-      "containing_key": "fixtures/extraction/vue/http_client/source.vue:Source:1:1",
+      "containing_key": "fixtures/extraction/vue/http_client/source.vue:Source:1:0",
       "start_line": 5,
       "start_column": 0,
       "end_line": 13,
@@ -358,7 +349,7 @@
       "node_kind": "template_attribute",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/http_client/source.vue",
-      "containing_key": "fixtures/extraction/vue/http_client/source.vue:Source:1:1",
+      "containing_key": "fixtures/extraction/vue/http_client/source.vue:Source:1:0",
       "start_line": 2,
       "start_column": 10,
       "end_line": 2,
@@ -497,7 +488,7 @@
       "kind": "string_literal",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/http_client/source.vue",
-      "containing_key": "fixtures/extraction/vue/http_client/source.vue:Source:1:1",
+      "containing_key": "fixtures/extraction/vue/http_client/source.vue:Source:1:0",
       "start_line": 2,
       "start_column": 17,
       "end_line": 2,
@@ -510,7 +501,7 @@
       "kind": "string_literal",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/http_client/source.vue",
-      "containing_key": "fixtures/extraction/vue/http_client/source.vue:Source:1:1",
+      "containing_key": "fixtures/extraction/vue/http_client/source.vue:Source:1:0",
       "start_line": 5,
       "start_column": 19,
       "end_line": 5,

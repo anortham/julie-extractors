@@ -1,4 +1,4 @@
-use crate::base::BaseExtractor;
+use crate::base::{BaseExtractor, NormalizedSpan};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -15,7 +15,7 @@ impl HTMLHelpers {
                 let mut inner_cursor = child.walk();
                 for inner_child in child.children(&mut inner_cursor) {
                     if inner_child.kind() == "tag_name" {
-                        return Some(base.get_node_text(&inner_child));
+                        return Some(normalize_tag_name(base.get_node_text(&inner_child)));
                     }
                 }
             }
@@ -25,7 +25,7 @@ impl HTMLHelpers {
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
             if child.kind() == "tag_name" {
-                return Some(base.get_node_text(&child));
+                return Some(normalize_tag_name(base.get_node_text(&child)));
             }
         }
 
@@ -80,8 +80,32 @@ impl HTMLHelpers {
     }
 }
 
-/// Extract attribute name and value from attribute node
-fn extract_attribute_name_value(
+/// The content between an element's start and end tags. Void and
+/// self-closing elements, and elements with no content, have none.
+pub(super) fn element_body_span(base: &BaseExtractor, node: Node) -> Option<NormalizedSpan> {
+    let mut cursor = node.walk();
+    let children: Vec<Node> = node.children(&mut cursor).collect();
+    let start_tag = children.iter().find(|child| child.kind() == "start_tag")?;
+    let end_tag = children.iter().find(|child| child.kind() == "end_tag")?;
+    (start_tag.end_byte() < end_tag.start_byte())
+        .then(|| base.span_for_byte_range(start_tag.end_byte(), end_tag.start_byte()))
+        .flatten()
+}
+
+/// HTML tag and attribute names are ASCII case-insensitive, so `<DIV>` is
+/// `div`. A name with any lowercase letter keeps its spelling: SVG uses
+/// camelCase names such as `linearGradient` and `viewBox`.
+pub(super) fn normalize_tag_name(name: String) -> String {
+    if name.bytes().any(|byte| byte.is_ascii_lowercase()) {
+        name
+    } else {
+        name.to_ascii_lowercase()
+    }
+}
+
+/// The normalized attribute name and its unquoted value; `""` for a bare
+/// attribute such as `disabled`.
+pub(super) fn extract_attribute_name_value(
     base: &BaseExtractor,
     attr_node: Node,
 ) -> (Option<String>, Option<String>) {
@@ -92,12 +116,18 @@ fn extract_attribute_name_value(
     for child in attr_node.children(&mut cursor) {
         match child.kind() {
             "attribute_name" => {
-                name = Some(base.get_node_text(&child));
+                name = Some(normalize_tag_name(base.get_node_text(&child)));
             }
-            "attribute_value" | "quoted_attribute_value" => {
-                let text = base.get_node_text(&child);
-                // Remove quotes if present
-                value = Some(text.trim_matches(|c| c == '"' || c == '\'').to_string());
+            "attribute_value" => value = Some(base.get_node_text(&child)),
+            "quoted_attribute_value" => {
+                let mut inner = child.walk();
+                value = Some(
+                    child
+                        .named_children(&mut inner)
+                        .find(|part| part.kind() == "attribute_value")
+                        .map(|part| base.get_node_text(&part))
+                        .unwrap_or_default(),
+                );
             }
             _ => {}
         }

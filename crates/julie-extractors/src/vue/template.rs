@@ -65,47 +65,50 @@ fn extract_attribute_symbol(
         };
         let value_end = value_start + value_end_relative;
         let name = &line[value_start..value_end];
-        if !name.is_empty() {
+        if is_declared_name(attribute, name) {
             let start_byte = absolute_line_start + value_start;
             let end_byte = absolute_line_start + value_end;
-            if let (Some((start_line, start_col)), Some((end_line, end_col))) = (
-                line_column_for_byte(&base.content, start_byte),
-                line_column_for_byte(&base.content, end_byte),
+            let metadata = HashMap::from([(
+                "type".to_string(),
+                Value::String(format!("template-{}", attribute)),
+            )]);
+            if let Some(mut symbol) = create_symbol_manual(
+                base,
+                name,
+                kind.clone(),
+                start_byte,
+                end_byte,
+                Some(format!("{}=\"{}\"", attribute, name)),
+                None,
+                Some(metadata),
             ) {
-                let mut metadata = HashMap::new();
-                metadata.insert(
-                    "type".to_string(),
-                    Value::String(format!("template-{}", attribute)),
-                );
-                symbols.push(create_symbol_manual(
-                    base,
-                    name,
-                    kind.clone(),
-                    start_line,
-                    start_col,
-                    end_line,
-                    end_col,
-                    Some(format!("{}=\"{}\"", attribute, name)),
-                    None,
-                    Some(metadata),
-                ));
+                symbol.body_span = None;
+                symbol.body_hash = None;
+                symbols.push(symbol);
             }
         }
         search_start = value_end.saturating_add(1);
     }
 }
 
-fn line_column_for_byte(content: &str, target: usize) -> Option<(usize, usize)> {
-    let mut line = 1usize;
-    let mut line_start = 0usize;
-    for (idx, byte) in content.bytes().enumerate() {
-        if idx == target {
-            return Some((line, idx - line_start + 1));
-        }
-        if byte == b'\n' {
-            line += 1;
-            line_start = idx + 1;
-        }
-    }
-    (target == content.len()).then_some((line, target - line_start + 1))
+/// A template `ref` or `v-model` declares a plain identifier; a slot name may
+/// also hold dashes. Expressions such as `form.email` declare nothing.
+fn is_declared_name(attribute: &str, name: &str) -> bool {
+    let mut chars = name.chars();
+    chars
+        .next()
+        .is_some_and(|first| first.is_ascii_alphabetic() || first == '_' || first == '$')
+        && chars.all(|c| {
+            c.is_ascii_alphanumeric() || c == '_' || c == '$' || (attribute == "name" && c == '-')
+        })
+}
+
+/// Whether a template symbol declares a name that a script binding owns.
+pub(super) fn declares_script_binding(symbol: &Symbol) -> bool {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get("type"))
+        .and_then(Value::as_str)
+        .is_some_and(|kind| matches!(kind, "template-ref" | "template-v-model"))
 }

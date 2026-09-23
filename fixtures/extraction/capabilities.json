@@ -1928,6 +1928,11 @@
           "name": "agent_usefulness",
           "source": "fixtures/extraction/html/agent_usefulness/source.html",
           "expected": "fixtures/extraction/html/agent_usefulness/expected.json"
+        },
+        {
+          "name": "documents_and_templates",
+          "source": "fixtures/extraction/html/documents_and_templates/source.html",
+          "expected": "fixtures/extraction/html/documents_and_templates/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1954,7 +1959,8 @@
           "supported": [
             "calls",
             "imports",
-            "references"
+            "references",
+            "uses"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1973,11 +1979,10 @@
             "class",
             "field",
             "function",
-            "import"
-          ],
-          "not_applicable": [
+            "import",
             "namespace"
           ],
+          "not_applicable": [],
           "open_gaps": []
         },
         "structural_facts": {
@@ -1992,15 +1997,20 @@
             "css.layer.v1",
             "css.media_query.v1",
             "css.namespace.v1",
+            "css.scope.v1",
             "css.selector_rule.v1",
             "css.supports.v1",
+            "css.tailwind_apply.v1",
+            "css.tailwind_directive.v1",
             "html.area_link.v1",
             "html.data_attribute.v1",
+            "html.embed.v1",
             "html.form.v1",
             "html.form_control.v1",
             "html.landmark.v1",
             "html.link.v1",
             "html.media.v1",
+            "html.resource_link.v1",
             "html.script.v1",
             "htmx.attribute.v1",
             "http.client_request.v1"
@@ -2118,6 +2128,7 @@
           "supported": [
             "function",
             "import",
+            "namespace",
             "property",
             "variable"
           ],
@@ -2145,6 +2156,7 @@
           "supported": [
             "function",
             "import",
+            "namespace",
             "property",
             "variable"
           ],
@@ -2162,8 +2174,11 @@
             "css.layer.v1",
             "css.media_query.v1",
             "css.namespace.v1",
+            "css.scope.v1",
             "css.selector_rule.v1",
-            "css.supports.v1"
+            "css.supports.v1",
+            "css.tailwind_apply.v1",
+            "css.tailwind_directive.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2188,7 +2203,8 @@
         },
         "doc_comments": {
           "supported": [
-            "import"
+            "import",
+            "namespace"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2293,6 +2309,16 @@
           "name": "language_gaps",
           "source": "fixtures/extraction/vue/language_gaps/source.vue",
           "expected": "fixtures/extraction/vue/language_gaps/expected.json"
+        },
+        {
+          "name": "script_setup_macros",
+          "source": "fixtures/extraction/vue/script_setup_macros/source.vue",
+          "expected": "fixtures/extraction/vue/script_setup_macros/expected.json"
+        },
+        {
+          "name": "options_api",
+          "source": "fixtures/extraction/vue/options_api/source.vue",
+          "expected": "fixtures/extraction/vue/options_api/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2309,11 +2335,13 @@
             "class",
             "enum",
             "enum_member",
+            "event",
             "export",
             "function",
             "import",
             "interface",
             "method",
+            "namespace",
             "property",
             "type",
             "variable"
@@ -2324,6 +2352,8 @@
         "relationships": {
           "supported": [
             "calls",
+            "extends",
+            "imports",
             "references"
           ],
           "not_applicable": [],
@@ -2343,11 +2373,13 @@
           "supported": [
             "class",
             "enum",
+            "event",
             "export",
             "function",
             "import",
             "interface",
             "method",
+            "namespace",
             "property",
             "type",
             "variable"
@@ -2366,8 +2398,11 @@
             "css.layer.v1",
             "css.media_query.v1",
             "css.namespace.v1",
+            "css.scope.v1",
             "css.selector_rule.v1",
             "css.supports.v1",
+            "css.tailwind_apply.v1",
+            "css.tailwind_directive.v1",
             "htmx.attribute.v1",
             "http.client_request.v1",
             "nuxt.file_route.v1",
@@ -2400,7 +2435,8 @@
           "supported": [
             "class",
             "function",
-            "interface"
+            "interface",
+            "property"
           ],
           "not_applicable": [],
           "open_gaps": []

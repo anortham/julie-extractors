@@ -15,6 +15,7 @@ use tree_sitter::Tree;
 
 mod component;
 mod identifiers;
+mod macros;
 mod manual_symbols;
 pub(crate) mod parsing;
 mod relationships;
@@ -25,6 +26,7 @@ mod template;
 use manual_symbols::create_symbol_manual;
 use parsing::ParsedVueSfc;
 use relationships::ComponentRows;
+pub(crate) use script::is_plain_css as is_plain_css_style;
 
 /// Vue Single File Component (SFC) Extractor
 pub struct VueExtractor {
@@ -91,6 +93,15 @@ impl VueExtractor {
                 _ => {}
             }
         }
+        let script_bindings: HashSet<String> = symbols
+            .iter()
+            .filter(|symbol| symbol.parent_id.is_none())
+            .filter(|symbol| self.script_symbol_ids.contains(&symbol.id))
+            .map(|symbol| symbol.name.clone())
+            .collect();
+        symbols.retain(|symbol| {
+            !(template::declares_script_binding(symbol) && script_bindings.contains(&symbol.name))
+        });
         for results in &mut self.embedded {
             self.base.literals.append(&mut results.literals);
             self.base
@@ -104,7 +115,7 @@ impl VueExtractor {
         if let Some(component_name) =
             component::extract_component_name(&self.base.file_path, &self.parsed_sfc)
         {
-            symbols.push(self.component_symbol(&component_name));
+            symbols.extend(self.component_symbol(&component_name));
         }
 
         script_setup::apply_script_setup_annotations(&mut symbols, &self.parsed_sfc);
@@ -112,20 +123,9 @@ impl VueExtractor {
         symbols
     }
 
-    fn component_symbol(&self, component_name: &str) -> Symbol {
-        let doc_comment = extract_component_doc_comment(&self.base.content);
-
-        // Span the component over the file's real lines: end on the last
-        // line, one past its final byte, so byte-based containment of
-        // section facts covers the whole file without reporting a line that
-        // does not exist.
-        let component_end_line = self.base.content.lines().count().max(1);
-        let component_end_column = self
-            .base
-            .content
-            .lines()
-            .next_back()
-            .map_or(1, |line| line.len() + 1);
+    /// The component spans the whole file, which is also its body.
+    fn component_symbol(&self, component_name: &str) -> Option<Symbol> {
+        let end = self.base.content.trim_end().len();
         let mut metadata = HashMap::new();
         metadata.insert("type".to_string(), Value::String("vue-sfc".to_string()));
         metadata.insert(
@@ -139,18 +139,19 @@ impl VueExtractor {
                     .join(","),
             ),
         );
-        create_symbol_manual(
+        let mut symbol = create_symbol_manual(
             &self.base,
             component_name,
             SymbolKind::Class,
-            1,
-            1,
-            component_end_line,
-            component_end_column,
+            0,
+            end,
             Some(format!("<{} />", component_name)),
-            doc_comment.or_else(|| Some(format!("Vue Single File Component: {}", component_name))),
+            extract_component_doc_comment(&self.base.content),
             Some(metadata),
-        )
+        )?;
+        let body = self.base.span_for_byte_range(0, end);
+        self.base.set_body_span(&mut symbol, body);
+        Some(symbol)
     }
 
     fn component_rows(&mut self, symbols: &[Symbol]) -> &mut ComponentRows {
@@ -208,29 +209,10 @@ impl VueExtractor {
         pending
     }
 
-    /// Infer types from Vue SFC
-    pub fn infer_types(&mut self, symbols: &[Symbol]) -> HashMap<String, String> {
-        let mut types = HashMap::new();
-        for symbol in symbols {
-            let metadata = &symbol.metadata;
-            if let Some(return_type) = metadata.as_ref().and_then(|m| m.get("returnType")) {
-                if let Some(type_str) = return_type.as_str() {
-                    types.insert(symbol.id.clone(), type_str.to_string());
-                }
-            } else if let Some(property_type) =
-                metadata.as_ref().and_then(|m| m.get("propertyType"))
-            {
-                if let Some(type_str) = property_type.as_str() {
-                    types.insert(symbol.id.clone(), type_str.to_string());
-                }
-            } else if let Some(type_val) = metadata.as_ref().and_then(|m| m.get("type"))
-                && let Some(type_str) = type_val.as_str()
-                && !matches!(type_str, "function" | "property" | "method")
-            {
-                types.insert(symbol.id.clone(), type_str.to_string());
-            }
-        }
-        types
+    /// Declared types come from the script blocks; component, template, and
+    /// style symbols have none.
+    pub fn infer_types(&mut self, _symbols: &[Symbol]) -> HashMap<String, String> {
+        HashMap::new()
     }
 
     pub fn get_type_argument_usages(&self) -> Vec<crate::base::TypeArgumentUsage> {
@@ -282,6 +264,14 @@ impl VueExtractor {
             .collect();
         crate::embedded::merge_file_complexity(&mut metrics, &self.base.file_path, "vue");
         metrics
+    }
+
+    /// `code.marker.v1` facts from the comments of the script blocks.
+    pub(crate) fn take_embedded_marker_facts(&mut self) -> Vec<crate::base::StructuralFact> {
+        self.embedded
+            .iter_mut()
+            .flat_map(|results| std::mem::take(&mut results.structural_facts))
+            .collect()
     }
 
     /// Source regions and parse diagnostics of the script and style blocks.
