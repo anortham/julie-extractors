@@ -23,7 +23,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "target_path",
                 STR,
                 ALWAYS,
-                "Static route path from the `to` attribute.",
+                "Static route path from the `to` attribute or the `navigateTo` argument.",
             ),
             key(
                 "verb",
@@ -34,10 +34,15 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
             key(
                 "attribute_name",
                 STR,
-                ALWAYS,
-                "The source attribute name (\"to\").",
+                OPT,
+                "The source attribute name (\"to\"); absent for `navigateTo` calls.",
             ),
-            key("component_name", STR, ALWAYS, "The NuxtLink tag name."),
+            key(
+                "component_name",
+                STR,
+                OPT,
+                "The NuxtLink tag name; absent for `navigateTo` calls.",
+            ),
             key(
                 "route_source",
                 STR,
@@ -48,7 +53,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "source_kind",
                 STR,
                 ALWAYS,
-                "Reference origin (\"nuxt_link\").",
+                "Reference origin (\"nuxt_link\" or \"navigate_to\").",
             ),
         ],
     },

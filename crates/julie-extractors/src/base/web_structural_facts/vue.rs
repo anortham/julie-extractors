@@ -90,6 +90,7 @@ pub(super) fn collect_vue_structural_facts(
             facts.extend(collect_vue_route_definitions(
                 "vue", tree, file_path, content, &section,
             ));
+            facts.extend(collect_script_navigation(file_path, content, &section));
         } else if section.section_type == "style" {
             facts.extend(collect_vue_style_css_facts(file_path, content, &section));
         }
@@ -103,7 +104,10 @@ fn collect_vue_style_css_facts(
     content: &str,
     section: &VueSectionSpan,
 ) -> Vec<StructuralFact> {
-    if section.content_start >= section.content_end || section.content_end > content.len() {
+    if section.content_start >= section.content_end
+        || section.content_end > content.len()
+        || !crate::vue::is_plain_css_style(section.lang.as_deref())
+    {
         return Vec::new();
     }
     let style_content = &content[section.content_start..section.content_end];
@@ -174,6 +178,106 @@ fn vue_template_directive_fact(
         attribute.span,
         metadata,
     )
+}
+
+/// Static-path navigation calls in a script block: Vue Router
+/// `router.push('/x')` / `router.replace` (also `$router` and
+/// `this.$router`) and Nuxt `navigateTo('/x')`.
+fn collect_script_navigation(
+    file_path: &str,
+    content: &str,
+    section: &VueSectionSpan,
+) -> Vec<StructuralFact> {
+    let (start, end) = (
+        section.content_start,
+        section.content_end.min(content.len()),
+    );
+    let mask = ScriptSyntaxMask::for_js_ranges(content, &[(start, end)]);
+    let mut facts = Vec::new();
+    for callee in ["router.push", "router.replace", "navigateTo"] {
+        let is_nuxt = callee == "navigateTo";
+        let mut cursor = start;
+        while let Some(relative) = content.get(cursor..end).and_then(|rest| rest.find(callee)) {
+            let name_start = cursor + relative;
+            cursor = name_start + callee.len();
+            let before = name_start
+                .checked_sub(1)
+                .and_then(|index| content.as_bytes().get(index))
+                .copied();
+            let bounded = before.is_none_or(|byte| {
+                let identifier = byte.is_ascii_alphanumeric() || byte == b'_';
+                if is_nuxt {
+                    !(identifier || byte == b'$' || byte == b'.')
+                } else {
+                    !identifier
+                }
+            });
+            let after_is_identifier = content
+                .as_bytes()
+                .get(cursor)
+                .is_some_and(|byte| byte.is_ascii_alphanumeric() || *byte == b'_' || *byte == b'$');
+            if !bounded || after_is_identifier || mask.is_ignored(name_start) {
+                continue;
+            }
+            let open_paren = skip_ascii_whitespace_until(content, cursor, end);
+            if content.as_bytes().get(open_paren) != Some(&b'(') {
+                continue;
+            }
+            let Some(close_paren) = find_matching_paren(content, open_paren, end) else {
+                continue;
+            };
+            let argument_start = skip_ascii_whitespace_until(content, open_paren + 1, close_paren);
+            let Some((target_path, literal_end)) = parse_js_string_literal(content, argument_start)
+            else {
+                continue;
+            };
+            let after = skip_ascii_whitespace_until(content, literal_end, close_paren);
+            if !matches!(content.as_bytes().get(after), Some(b',') | Some(b')')) {
+                continue;
+            }
+            let routable = if is_nuxt {
+                is_nuxt_route_path(&target_path)
+            } else {
+                is_vue_route_path(&target_path)
+            };
+            let Some(span) =
+                NormalizedSpan::from_content_range(content, name_start, close_paren + 1)
+            else {
+                continue;
+            };
+            if !routable {
+                continue;
+            }
+            let mut metadata = base_metadata("frontend_navigation");
+            insert_string(&mut metadata, "target_path", &target_path);
+            insert_string(&mut metadata, "verb", "GET");
+            let pattern_id = if is_nuxt {
+                insert_string(&mut metadata, "framework", "nuxt");
+                insert_string(&mut metadata, "route_source", "string_literal");
+                insert_string(&mut metadata, "source_kind", "navigate_to");
+                NUXT_ROUTE_REFERENCE_PATTERN_ID
+            } else {
+                insert_string(&mut metadata, "framework", "vue");
+                insert_string(&mut metadata, "source_kind", "router_navigation_call");
+                insert_string(
+                    &mut metadata,
+                    "expression",
+                    &content[name_start..=close_paren],
+                );
+                VUE_ROUTE_REFERENCE_PATTERN_ID
+            };
+            facts.push(fact_for_span(
+                file_path,
+                "vue",
+                pattern_id,
+                "route_reference",
+                "call_expression",
+                span,
+                metadata,
+            ));
+        }
+    }
+    facts
 }
 
 fn vue_route_reference_fact(

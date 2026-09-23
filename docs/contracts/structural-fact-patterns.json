@@ -3557,7 +3557,7 @@
         "value_type": "string"
       },
       {
-        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, req, tesla, httpoison, finch, httpc).",
+        "description": "HTTP client label (for example fetch, axios, ofetch (`$fetch`), nuxt (`useFetch`, `useLazyFetch`), requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, req, tesla, httpoison, finch, httpc).",
         "key": "client",
         "presence": "always",
         "value_type": "string"
@@ -5215,7 +5215,7 @@
         "value_type": "string"
       },
       {
-        "description": "Static route path from the `to` attribute.",
+        "description": "Static route path from the `to` attribute or the `navigateTo` argument.",
         "key": "target_path",
         "presence": "always",
         "value_type": "string"
@@ -5227,15 +5227,15 @@
         "value_type": "string"
       },
       {
-        "description": "The source attribute name (\"to\").",
+        "description": "The source attribute name (\"to\"); absent for `navigateTo` calls.",
         "key": "attribute_name",
-        "presence": "always",
+        "presence": "optional",
         "value_type": "string"
       },
       {
-        "description": "The NuxtLink tag name.",
+        "description": "The NuxtLink tag name; absent for `navigateTo` calls.",
         "key": "component_name",
-        "presence": "always",
+        "presence": "optional",
         "value_type": "string"
       },
       {
@@ -5245,7 +5245,7 @@
         "value_type": "string"
       },
       {
-        "description": "Reference origin (\"nuxt_link\").",
+        "description": "Reference origin (\"nuxt_link\" or \"navigate_to\").",
         "key": "source_kind",
         "presence": "always",
         "value_type": "string"
@@ -9374,7 +9374,7 @@
         "value_type": "string"
       },
       {
-        "description": "Reference origin (router_link or router_navigation_expression).",
+        "description": "Reference origin (router_link, router_navigation_expression in a template attribute, or router_navigation_call for a script `router.push`/`router.replace`).",
         "key": "source_kind",
         "presence": "always",
         "value_type": "string"
@@ -9392,9 +9392,9 @@
         "value_type": "string"
       },
       {
-        "description": "The source attribute name (e.g. `to`, `@click`).",
+        "description": "The source attribute name (e.g. `to`, `@click`); absent for script calls.",
         "key": "attribute_name",
-        "presence": "always",
+        "presence": "optional",
         "value_type": "string"
       },
       {

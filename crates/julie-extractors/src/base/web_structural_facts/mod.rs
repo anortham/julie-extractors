@@ -17,7 +17,7 @@ mod vue;
 use super::attach_containing_symbols;
 use css::collect_css_structural_facts;
 use html::collect_html_structural_facts;
-use http_client::collect_http_client_requests;
+use http_client::{collect_http_client_requests, collect_nuxt_client_requests};
 use js_imports::collect_js_imports;
 use js_object_scan::ScriptSyntaxMask;
 use nextjs_nuxt::{
@@ -170,6 +170,14 @@ pub fn collect_web_structural_facts(
                     file_path,
                     content,
                     &section_imports,
+                    section_start..section_end,
+                    Some(&syntax_mask),
+                ));
+                facts.extend(collect_nuxt_client_requests(
+                    language,
+                    tree,
+                    file_path,
+                    content,
                     section_start..section_end,
                     Some(&syntax_mask),
                 ));

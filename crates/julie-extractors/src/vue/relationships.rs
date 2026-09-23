@@ -8,6 +8,7 @@ use crate::base::{
     BaseExtractor, Identifier, Literal, NormalizedSpan, Relationship, RelationshipKind, Symbol,
     SymbolKind,
 };
+use crate::ecmascript_imports::{ImportSourceKind, import_source_from_symbol, import_source_kind};
 use crate::embedded::{extract_expression, link_expression_identifiers, unique_by_name};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
@@ -42,7 +43,12 @@ pub(super) fn collect_component_rows(
         return rows;
     };
     let bindings = component_bindings(symbols, script_symbol_ids);
-    let binding_map = unique_by_name(bindings.iter().copied());
+    let (props, locals): (Vec<&Symbol>, Vec<&Symbol>) =
+        bindings.iter().copied().partition(|symbol| is_prop(symbol));
+    let mut binding_map = unique_by_name(locals);
+    for (name, prop) in unique_by_name(props) {
+        binding_map.entry(name).or_insert(prop);
+    }
     let callables = unique_by_name(bindings.iter().copied().filter(|symbol| {
         matches!(
             symbol.kind,
@@ -118,6 +124,7 @@ pub(super) fn collect_component_rows(
         }
         component_tag_pending(base, component, symbols, start, end, &mut rows.pending);
     }
+    options_extends_pending(base, sfc, component, symbols, &mut rows.pending);
     rows
 }
 
@@ -145,8 +152,11 @@ pub(super) fn is_component(symbol: &Symbol) -> bool {
         })
 }
 
-/// Script names the template can see: top-level value declarations and the
-/// members of the Options API groups of `export default`. Type-literal members
+/// Script names the template can see: top-level value declarations (not the
+/// statement symbols of bare compiler macros such as `defineOptions()`), the
+/// members of the Options API groups, and the locals of `setup()` (ponytail:
+/// all locals, not only the returned ones; read the return object if unreturned
+/// names collide with real bindings). Type-literal members
 /// such as the fields of `defineProps<{ title: string }>()` have no parent but
 /// are not bindings.
 fn component_bindings<'a>(
@@ -165,11 +175,18 @@ fn component_bindings<'a>(
     let groups: HashSet<&str> = script
         .iter()
         .filter(|symbol| {
-            OPTION_GROUPS.contains(&symbol.name.as_str())
-                && symbol
-                    .parent_id
-                    .as_deref()
-                    .is_some_and(|parent| default_exports.contains(parent))
+            let option = symbol
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("vueOption"))
+                .and_then(|value| value.as_str());
+            option == Some("setup")
+                || (OPTION_GROUPS.contains(&symbol.name.as_str())
+                    && (option == Some(symbol.name.as_str())
+                        || symbol
+                            .parent_id
+                            .as_deref()
+                            .is_some_and(|parent| default_exports.contains(parent))))
         })
         .map(|symbol| symbol.id.as_str())
         .collect();
@@ -179,10 +196,14 @@ fn component_bindings<'a>(
             let is_parameter = symbol.metadata.as_ref().is_some_and(|metadata| {
                 metadata.get("role").and_then(|value| value.as_str()) == Some("parameter")
             });
-            if is_parameter {
+            let is_macro_statement = symbol.metadata.as_ref().is_some_and(|metadata| {
+                metadata.get("type").and_then(|value| value.as_str()) == Some("vue-macro")
+            });
+            if is_parameter || is_macro_statement {
                 return false;
             }
             match symbol.parent_id.as_deref() {
+                Some(_) if is_prop(symbol) => true,
                 Some(parent) => groups.contains(parent),
                 None => matches!(
                     symbol.kind,
@@ -196,6 +217,17 @@ fn component_bindings<'a>(
             }
         })
         .collect()
+}
+
+/// Setup bindings shadow props of the same name in the template.
+fn is_prop(symbol: &Symbol) -> bool {
+    symbol.kind == SymbolKind::Property
+        && symbol.metadata.as_ref().is_some_and(|metadata| {
+            matches!(
+                metadata.get("vueOption").and_then(|value| value.as_str()),
+                Some("props" | "model")
+            )
+        })
 }
 
 /// `(value start, value text, is event handler)` for directive attributes.
@@ -287,7 +319,9 @@ fn interpolations(content: &str, start: usize, end: usize) -> Vec<(usize, &str, 
 }
 
 /// A PascalCase or kebab-case tag with no local definition is a pending
-/// reference to a component defined elsewhere.
+/// reference to a component defined elsewhere, named in PascalCase. An import
+/// from a project path binds it, as the JavaScript extractor binds imported
+/// callees.
 fn component_tag_pending(
     base: &BaseExtractor,
     component: &Symbol,
@@ -296,10 +330,10 @@ fn component_tag_pending(
     end: usize,
     pending: &mut Vec<StructuredPendingRelationship>,
 ) {
-    let local: HashMap<&str, ()> = symbols
+    let local: HashSet<&str> = symbols
         .iter()
         .filter(|symbol| symbol.kind != SymbolKind::Import)
-        .map(|symbol| (symbol.name.as_str(), ()))
+        .map(|symbol| symbol.name.as_str())
         .collect();
     let mut seen = HashSet::new();
     let Some(template) = base.content.get(start..end) else {
@@ -309,13 +343,15 @@ fn component_tag_pending(
         let Some(tag) = captures.get(1) else {
             continue;
         };
-        let name = tag.as_str();
-        let is_component_tag = name
-            .chars()
-            .next()
-            .is_some_and(|ch| ch.is_ascii_uppercase())
-            || name.contains('-');
-        if !is_component_tag || name == "template" || local.contains_key(name) {
+        let raw = tag.as_str();
+        let is_component_tag =
+            raw.chars().next().is_some_and(|ch| ch.is_ascii_uppercase()) || raw.contains('-');
+        let name = pascal_case(raw);
+        if !is_component_tag
+            || raw == "template"
+            || local.contains(raw)
+            || local.contains(name.as_str())
+        {
             continue;
         }
         let Some(span) = NormalizedSpan::from_content_range(
@@ -325,12 +361,14 @@ fn component_tag_pending(
         ) else {
             continue;
         };
-        if !seen.insert((name.to_string(), span.start_line)) {
+        if !seen.insert((name.clone(), span.start_line)) {
             continue;
         }
+        let mut target = UnresolvedTarget::simple(name.clone());
+        target.import_context = project_import_binding(symbols, &name);
         let mut row = StructuredPendingRelationship::new(
             component.id.clone(),
-            UnresolvedTarget::simple(name),
+            target,
             Some(component.id.clone()),
             RelationshipKind::References,
             base.file_path.clone(),
@@ -340,5 +378,101 @@ fn component_tag_pending(
         row.span = Some(span);
         row.reference_site_is_exact = true;
         pending.push(row);
+    }
+}
+
+/// `user-card` is `UserCard`; a PascalCase tag keeps its spelling.
+fn pascal_case(tag: &str) -> String {
+    if !tag.contains('-') {
+        return tag.to_string();
+    }
+    tag.split('-')
+        .map(|part| {
+            let mut chars = part.chars();
+            chars.next().map_or_else(String::new, |first| {
+                first.to_ascii_uppercase().to_string() + chars.as_str()
+            })
+        })
+        .collect()
+}
+
+/// The binding name when `name` is imported from a project-relative path.
+fn project_import_binding(symbols: &[Symbol], name: &str) -> Option<String> {
+    symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Import && symbol.name == name)
+        .filter_map(import_source_from_symbol)
+        .any(|source| {
+            matches!(
+                import_source_kind(source),
+                ImportSourceKind::ProjectRelative
+            )
+        })
+        .then(|| name.to_string())
+}
+
+/// `extends: Base` and `mixins: [a, b]` in the options object make the
+/// component extend each named component.
+fn options_extends_pending(
+    base: &BaseExtractor,
+    sfc: &ParsedVueSfc,
+    component: &Symbol,
+    symbols: &[Symbol],
+    pending: &mut Vec<StructuredPendingRelationship>,
+) {
+    for (index, section) in sfc.sections.iter().enumerate() {
+        let Some(tree) = sfc.script_tree(index) else {
+            continue;
+        };
+        let source = section.content.as_str();
+        for object in super::component::options_objects(tree.root_node(), source) {
+            let mut cursor = object.walk();
+            for pair in object.named_children(&mut cursor) {
+                let (Some(key), Some(value)) = (
+                    pair.child_by_field_name("key"),
+                    pair.child_by_field_name("value"),
+                ) else {
+                    continue;
+                };
+                let targets: Vec<tree_sitter::Node<'_>> = match source.get(key.byte_range()) {
+                    Some("extends") => vec![value],
+                    Some("mixins") if value.kind() == "array" => {
+                        let mut items = value.walk();
+                        value.named_children(&mut items).collect()
+                    }
+                    _ => continue,
+                };
+                for target in targets {
+                    if !matches!(target.kind(), "identifier" | "member_expression") {
+                        continue;
+                    }
+                    let Some(name) = source.get(target.byte_range()) else {
+                        continue;
+                    };
+                    let Some(span) = NormalizedSpan::from_content_range(
+                        &base.content,
+                        section.content_start + target.start_byte(),
+                        section.content_start + target.end_byte(),
+                    ) else {
+                        continue;
+                    };
+                    let mut unresolved = UnresolvedTarget::simple(name);
+                    let binding = name.split('.').next().unwrap_or(name);
+                    unresolved.import_context = project_import_binding(symbols, binding);
+                    let mut row = StructuredPendingRelationship::new(
+                        component.id.clone(),
+                        unresolved,
+                        Some(component.id.clone()),
+                        RelationshipKind::Extends,
+                        base.file_path.clone(),
+                        span.start_line,
+                        1.0,
+                    );
+                    row.span = Some(span);
+                    row.reference_site_is_exact = true;
+                    pending.push(row);
+                }
+            }
+        }
     }
 }

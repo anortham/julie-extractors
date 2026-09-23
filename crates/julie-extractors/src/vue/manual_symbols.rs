@@ -3,19 +3,19 @@ use crate::base::{BaseExtractor, NormalizedSpan, Symbol, SymbolKind, SymbolOptio
 use serde_json::Value;
 use std::collections::HashMap;
 
-#[allow(clippy::too_many_arguments)] // Matches API for compatibility
+/// A symbol over the host byte range `start..end`, with 0-based columns and a
+/// body span inferred from its braces.
+#[allow(clippy::too_many_arguments)]
 pub(super) fn create_symbol_manual(
     base: &BaseExtractor,
     name: &str,
     kind: SymbolKind,
-    start_line: usize,
-    start_column: usize,
-    end_line: usize,
-    end_column: usize,
+    start: usize,
+    end: usize,
     signature: Option<String>,
     documentation: Option<String>,
     metadata: Option<HashMap<String, Value>>,
-) -> Symbol {
+) -> Option<Symbol> {
     let options = SymbolOptions {
         signature,
         doc_comment: documentation,
@@ -24,37 +24,22 @@ pub(super) fn create_symbol_manual(
         metadata,
         annotations: Vec::new(),
     };
-
-    let start_byte = byte_for_position(&base.content, start_line, start_column).unwrap_or(0);
-    let mut end_byte = byte_for_position(&base.content, end_line, end_column).unwrap_or(start_byte);
-    if end_byte <= start_byte {
-        end_byte = start_byte.saturating_add(name.len() as u32);
-    }
-
-    let span = NormalizedSpan {
-        start_line: start_line as u32,
-        start_column: start_column as u32,
-        end_line: end_line as u32,
-        end_column: end_column as u32,
-        start_byte,
-        end_byte,
-    };
-    let id = base.generate_id_for_span(name, &span);
+    let span = NormalizedSpan::from_content_range(&base.content, start, end.max(start))?;
     let body_span = infer_body_span_from_span(&base.content, span);
     let body_hash = body_span.and_then(|span| body_hash(&base.content, span, &base.language));
 
-    Symbol {
-        id,
+    Some(Symbol {
+        id: base.generate_id_for_span(name, &span),
         name: name.to_string(),
         kind,
         language: base.language.clone(),
         file_path: base.file_path.clone(),
-        start_line: start_line as u32,
-        start_column: start_column as u32,
-        end_line: end_line as u32,
-        end_column: end_column as u32,
-        start_byte,
-        end_byte,
+        start_line: span.start_line,
+        start_column: span.start_column,
+        end_line: span.end_line,
+        end_column: span.end_column,
+        start_byte: span.start_byte,
+        end_byte: span.end_byte,
         body_span,
         body_hash,
         signature: options.signature,
@@ -66,21 +51,5 @@ pub(super) fn create_symbol_manual(
         semantic_group: None,
         confidence: None,
         content_type: None,
-    }
-}
-
-fn byte_for_position(content: &str, line: usize, column: usize) -> Option<u32> {
-    let mut byte = 0usize;
-    for (idx, current_line) in content.split_inclusive('\n').enumerate() {
-        if idx + 1 == line {
-            return Some((byte + column.saturating_sub(1).min(current_line.len())) as u32);
-        }
-        byte += current_line.len();
-    }
-
-    if line == content.lines().count() + 1 {
-        Some(content.len() as u32)
-    } else {
-        None
-    }
+    })
 }

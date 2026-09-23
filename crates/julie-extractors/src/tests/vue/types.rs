@@ -56,7 +56,7 @@ export default {
         if !results.types.is_empty() {
             for type_info in results.types.values() {
                 assert_eq!(type_info.language, "vue");
-                assert!(type_info.is_inferred);
+                assert!(!type_info.is_inferred);
                 assert!(!type_info.resolved_type.is_empty());
             }
         }

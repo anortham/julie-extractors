@@ -1,28 +1,28 @@
 {
   "symbols": [
     {
-      "key": "fixtures/extraction/vue/nuxt_file_route/app/pages/(marketing)/blog/[slug].vue:[slug]:1:1",
+      "key": "fixtures/extraction/vue/nuxt_file_route/app/pages/(marketing)/blog/[slug].vue:[slug]:1:0",
       "name": "[slug]",
       "kind": "class",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/nuxt_file_route/app/pages/(marketing)/blog/[slug].vue",
       "start_line": 1,
-      "start_column": 1,
+      "start_column": 0,
       "end_line": 5,
-      "end_column": 12,
+      "end_column": 11,
       "start_byte": 0,
       "end_byte": 64,
       "body_span": {
         "start_line": 1,
-        "start_column": 10,
+        "start_column": 0,
         "end_line": 5,
-        "end_column": 0,
-        "start_byte": 10,
-        "end_byte": 53
+        "end_column": 11,
+        "start_byte": 0,
+        "end_byte": 64
       },
-      "body_hash": "a010b8307b9fee8ec1003ad41158d348",
+      "body_hash": "80edc7e5562bca92343631960438a2bf",
       "signature": "<[slug] />",
-      "doc_comment": "Vue Single File Component: [slug]",
+      "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
@@ -39,17 +39,7 @@
   "pending_relationships": [],
   "structured_pending_relationships": [],
   "identifiers": [],
-  "types": [
-    {
-      "symbol_key": "fixtures/extraction/vue/nuxt_file_route/app/pages/(marketing)/blog/[slug].vue:[slug]:1:1",
-      "resolved_type": "vue-sfc",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "vue",
-      "metadata": null
-    }
-  ],
+  "types": [],
   "parse_diagnostics": [],
   "structural_facts": [
     {
@@ -89,7 +79,7 @@
       "node_kind": "sfc_section",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/nuxt_file_route/app/pages/(marketing)/blog/[slug].vue",
-      "containing_key": "fixtures/extraction/vue/nuxt_file_route/app/pages/(marketing)/blog/[slug].vue:[slug]:1:1",
+      "containing_key": "fixtures/extraction/vue/nuxt_file_route/app/pages/(marketing)/blog/[slug].vue:[slug]:1:0",
       "start_line": 1,
       "start_column": 0,
       "end_line": 5,

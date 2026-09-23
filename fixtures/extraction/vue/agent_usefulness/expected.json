@@ -124,28 +124,28 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:1",
+      "key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:0",
       "name": "Source",
       "kind": "class",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/agent_usefulness/source.vue",
       "start_line": 1,
-      "start_column": 1,
+      "start_column": 0,
       "end_line": 5,
-      "end_column": 58,
+      "end_column": 57,
       "start_byte": 0,
       "end_byte": 233,
       "body_span": {
-        "start_line": 2,
-        "start_column": 14,
-        "end_line": 3,
-        "end_column": 45,
-        "start_byte": 29,
-        "end_byte": 164
+        "start_line": 1,
+        "start_column": 0,
+        "end_line": 5,
+        "end_column": 57,
+        "start_byte": 0,
+        "end_byte": 233
       },
-      "body_hash": "cea02b482f45f9b8d7b3651afd9bcc51",
+      "body_hash": "fe2e2df07c82f2e86dbc356a79148187",
       "signature": "<Source />",
-      "doc_comment": "Vue Single File Component: Source",
+      "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
@@ -232,7 +232,7 @@
   ],
   "relationships": [
     {
-      "from_key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:1",
+      "from_key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:0",
       "to_key": "fixtures/extraction/vue/agent_usefulness/source.vue:attrs:2:6",
       "kind": "references",
       "file_path": "fixtures/extraction/vue/agent_usefulness/source.vue",
@@ -267,7 +267,7 @@
       "end_column": 31,
       "start_byte": 202,
       "end_byte": 207,
-      "containing_key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:1",
+      "containing_key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -288,17 +288,7 @@
       "confidence": "1.000"
     }
   ],
-  "types": [
-    {
-      "symbol_key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:1",
-      "resolved_type": "vue-sfc",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "vue",
-      "metadata": null
-    }
-  ],
+  "types": [],
   "parse_diagnostics": [],
   "structural_facts": [
     {
@@ -307,7 +297,7 @@
       "node_kind": "attribute",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/agent_usefulness/source.vue",
-      "containing_key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:1",
+      "containing_key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:0",
       "start_line": 5,
       "start_column": 18,
       "end_line": 5,
@@ -350,7 +340,7 @@
       "node_kind": "attribute",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/agent_usefulness/source.vue",
-      "containing_key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:1",
+      "containing_key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:0",
       "start_line": 5,
       "start_column": 18,
       "end_line": 5,
@@ -378,7 +368,7 @@
       "node_kind": "attribute",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/agent_usefulness/source.vue",
-      "containing_key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:1",
+      "containing_key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:0",
       "start_line": 5,
       "start_column": 18,
       "end_line": 5,
@@ -404,7 +394,7 @@
       "node_kind": "sfc_section",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/agent_usefulness/source.vue",
-      "containing_key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:1",
+      "containing_key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:0",
       "start_line": 1,
       "start_column": 0,
       "end_line": 4,
@@ -426,7 +416,7 @@
       "node_kind": "sfc_section",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/agent_usefulness/source.vue",
-      "containing_key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:1",
+      "containing_key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:0",
       "start_line": 5,
       "start_column": 0,
       "end_line": 5,
@@ -448,7 +438,7 @@
       "node_kind": "template_attribute",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/agent_usefulness/source.vue",
-      "containing_key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:1",
+      "containing_key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:0",
       "start_line": 5,
       "start_column": 18,
       "end_line": 5,
@@ -618,7 +608,7 @@
       "kind": "string_literal",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/agent_usefulness/source.vue",
-      "containing_key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:1",
+      "containing_key": "fixtures/extraction/vue/agent_usefulness/source.vue:Source:1:0",
       "start_line": 5,
       "start_column": 25,
       "end_line": 5,
