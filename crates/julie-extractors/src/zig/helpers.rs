@@ -25,7 +25,8 @@ pub(super) fn is_inside_struct(node: Node) -> bool {
     let mut current = node.parent();
     while let Some(parent) = current {
         match parent.kind() {
-            "struct_declaration" | "union_declaration" | "enum_declaration" => {
+            "struct_declaration" | "union_declaration" | "enum_declaration"
+            | "opaque_declaration" => {
                 return true;
             }
             _ => {
@@ -49,10 +50,22 @@ pub(super) fn extract_function_declaration_annotations(
     if is_inline_function(base, node) && seen.insert("inline".to_string()) {
         markers.push(zig_annotation("inline", "inline"));
     }
+    if has_declaration_keyword(base, node, "noinline") && seen.insert("noinline".to_string()) {
+        markers.push(zig_annotation("noinline", "noinline"));
+    }
     if let Some(marker) = extern_convention_annotation(base, node)
         && seen.insert(marker.annotation_key.clone())
     {
         markers.push(marker);
+    }
+    if let Some(convention) = base.find_child_by_type(&node, "calling_convention") {
+        let raw = base.get_node_text(&convention);
+        markers.push(AnnotationMarker {
+            annotation: raw.clone(),
+            annotation_key: "callconv".to_string(),
+            raw_text: Some(raw),
+            carrier: None,
+        });
     }
 
     markers
@@ -107,12 +120,14 @@ fn has_declaration_keyword(base: &BaseExtractor, node: Node, keyword: &str) -> b
 
 fn extern_convention_annotation(base: &BaseExtractor, node: Node) -> Option<AnnotationMarker> {
     base.find_child_by_type(&node, "extern")?;
-    let linkage = base
+    let raw = match base
         .find_child_by_type(&node, "string")
         .map(|string_node| base.get_node_text(&string_node))
-        .filter(|text| !text.is_empty())?;
-    let linkage = linkage.trim_matches('"');
-    let raw = format!("extern {linkage}");
+        .filter(|text| !text.is_empty())
+    {
+        Some(linkage) => format!("extern {}", linkage.trim_matches('"')),
+        None => "extern".to_string(),
+    };
     Some(AnnotationMarker {
         annotation: raw.clone(),
         annotation_key: "extern".to_string(),
@@ -121,11 +136,10 @@ fn extern_convention_annotation(base: &BaseExtractor, node: Node) -> Option<Anno
     })
 }
 
+/// The declaration's own `align(N)`; an alignment inside the value
+/// (`[]align(a) T`) belongs to that type, not to the declaration.
 fn align_annotation(base: &BaseExtractor, node: Node) -> Option<AnnotationMarker> {
-    let node_text = base.get_node_text(&node);
-    let start = node_text.find("align(")?;
-    let end = node_text[start..].find(')')? + start;
-    let raw = node_text[start..=end].to_string();
+    let raw = base.get_node_text(&base.find_child_by_type(&node, "byte_alignment")?);
     Some(AnnotationMarker {
         annotation: raw.clone(),
         annotation_key: "align".to_string(),
@@ -178,4 +192,50 @@ pub(super) fn unwrap_logical_not(mut node: Node) -> Node {
         }
     }
     node
+}
+
+/// Zig doc comments: the `///` lines directly above a declaration. A container
+/// declaration without them takes the `//!` lines that open its member list.
+pub(crate) fn find_zig_doc_comment(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut lines = Vec::new();
+    let mut current = node.prev_sibling();
+    let mut next_row = node.start_position().row;
+    while let Some(comment) = current.filter(|comment| comment.kind() == "comment") {
+        let text = base.get_node_text(&comment);
+        if !text.trim_start().starts_with("///")
+            || text.trim_start().starts_with("////")
+            || comment.end_position().row + 1 < next_row
+        {
+            break;
+        }
+        lines.push(text);
+        next_row = comment.start_position().row;
+        current = comment.prev_sibling();
+    }
+    if lines.is_empty() {
+        return container_doc_comment(base, node);
+    }
+    lines.reverse();
+    Some(lines.join("\n"))
+}
+
+fn container_doc_comment(base: &BaseExtractor, node: Node) -> Option<String> {
+    if node.kind() != "variable_declaration" {
+        return None;
+    }
+    let container = super::type_facts::initializer_node(node).filter(|value| {
+        matches!(
+            value.kind(),
+            "struct_declaration" | "union_declaration" | "enum_declaration" | "opaque_declaration"
+        )
+    })?;
+    let lines: Vec<String> = container
+        .children(&mut container.walk())
+        .skip_while(|child| child.kind() != "{")
+        .skip(1)
+        .take_while(|child| child.kind() == "comment")
+        .map(|comment| base.get_node_text(&comment))
+        .take_while(|text| text.trim_start().starts_with("//!"))
+        .collect();
+    (!lines.is_empty()).then(|| lines.join("\n"))
 }

@@ -28,22 +28,11 @@ const debug_mode = @import("builtin").mode == .Debug;
     let debug_mode = symbols
         .iter()
         .find(|s| s.name == "debug_mode")
-        .expect("debug_mode import expression should be extracted as a symbol");
-    assert_eq!(debug_mode.kind, SymbolKind::Import);
-    assert!(
-        debug_mode
-            .signature
-            .as_ref()
-            .is_some_and(|sig| sig.contains("@import(\"builtin\").mode")),
-        "non-declaration @import forms should keep expression context in signature"
-    );
+        .expect("debug_mode should be extracted as a symbol");
+    assert_eq!(debug_mode.kind, SymbolKind::Constant);
     assert_eq!(
-        debug_mode
-            .metadata
-            .as_ref()
-            .and_then(|m| m.get("source"))
-            .and_then(|v| v.as_str()),
-        Some("builtin")
+        debug_mode.signature.as_deref(),
+        Some("const debug_mode = @import(\"builtin\").mode == .Debug")
     );
 
     let is_usingnamespace = |symbol: &&Symbol| {

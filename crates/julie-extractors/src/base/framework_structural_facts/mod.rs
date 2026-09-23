@@ -24,6 +24,7 @@ mod sinatra;
 mod spring;
 mod static_arg;
 mod symfony;
+mod zig;
 
 use tree_sitter::Tree;
 
@@ -53,6 +54,7 @@ use self::rocket::collect_rocket_routes;
 use self::sinatra::collect_sinatra_routes;
 use self::spring::collect_spring_request_mappings;
 use self::symfony::collect_symfony_routes;
+use self::zig::collect_zig_facts;
 use super::attach_containing_symbols;
 use super::structural_facts::sort_structural_facts;
 use super::types::{StructuralFact, Symbol};
@@ -79,6 +81,12 @@ pub(super) const ACTIX_SCOPE_ROUTE_PATTERN_ID: &str = "actix.scope_route.v1";
 pub(super) const ACTIX_MOUNT_PATTERN_ID: &str = "actix.mount.v1";
 pub(super) const ROCKET_ROUTE_PATTERN_ID: &str = "rocket.route.v1";
 pub(super) const ROCKET_MOUNT_PATTERN_ID: &str = "rocket.mount.v1";
+pub(super) const HTTPZ_ROUTE_PATTERN_ID: &str = "httpz.route.v1";
+pub(super) const ZIG_BUILD_ARTIFACT_PATTERN_ID: &str = "zig.build_artifact.v1";
+pub(super) const ZIG_BUILD_DEPENDENCY_PATTERN_ID: &str = "zig.build_dependency.v1";
+pub(super) const ZIG_BUILD_MODULE_PATTERN_ID: &str = "zig.build_module.v1";
+pub(super) const ZIG_BUILD_MODULE_IMPORT_PATTERN_ID: &str = "zig.build_module_import.v1";
+pub(super) const ZIG_BUILD_STEP_PATTERN_ID: &str = "zig.build_step.v1";
 pub(super) const GO_NET_HTTP_ROUTE_PATTERN_ID: &str = "go.net_http.route.v1";
 pub(super) const GIN_ROUTE_PATTERN_ID: &str = "gin.route.v1";
 pub(super) const ECHO_ROUTE_PATTERN_ID: &str = "echo.route.v1";
@@ -189,6 +197,16 @@ const ELIXIR_PATTERN_IDS: &[&str] = &[
     PHOENIX_ROUTE_PATTERN_ID,
     PHOENIX_RESOURCE_ROUTE_PATTERN_ID,
     PHOENIX_FORWARD_PATTERN_ID,
+    HTTP_CLIENT_REQUEST_PATTERN_ID,
+];
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const ZIG_PATTERN_IDS: &[&str] = &[
+    HTTPZ_ROUTE_PATTERN_ID,
+    ZIG_BUILD_ARTIFACT_PATTERN_ID,
+    ZIG_BUILD_DEPENDENCY_PATTERN_ID,
+    ZIG_BUILD_MODULE_PATTERN_ID,
+    ZIG_BUILD_MODULE_IMPORT_PATTERN_ID,
+    ZIG_BUILD_STEP_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
 // The shared `rust` server arm. Task 5 declares axum + the rust client; Task 6
@@ -346,6 +364,13 @@ pub fn collect_framework_structural_facts(
             ));
             rust_facts
         }
+        "zig" => {
+            let mut zig_facts = collect_zig_facts(language, tree, file_path, content);
+            zig_facts.extend(collect_backend_http_client_requests(
+                language, tree, file_path, content,
+            ));
+            zig_facts
+        }
         "vue" => collect_vue_template_htmx_attributes(language, tree, file_path, content),
         _ => Vec::new(),
     };
@@ -385,6 +410,7 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
         "php" => LARAVEL_PATTERN_IDS,
         "elixir" => ELIXIR_PATTERN_IDS,
         "rust" => RUST_PATTERN_IDS,
+        "zig" => ZIG_PATTERN_IDS,
         "vue" => COMPONENT_MARKUP_FRAMEWORK_PATTERN_IDS,
         _ => &[],
     }

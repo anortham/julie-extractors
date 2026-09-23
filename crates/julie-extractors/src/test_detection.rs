@@ -199,6 +199,7 @@ pub fn is_test_symbol(
         "qml" => detect_qml(name, file_path),
         "lua" => detect_lua(name, file_path),
         "r" => detect_r(name, file_path),
+        "zig" => false,
         _ => detect_generic(name, file_path),
     }
 }

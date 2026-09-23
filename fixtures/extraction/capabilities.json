@@ -844,6 +844,26 @@
           "name": "return_types",
           "source": "fixtures/extraction/zig/return_types/source.zig",
           "expected": "fixtures/extraction/zig/return_types/expected.json"
+        },
+        {
+          "name": "declarations",
+          "source": "fixtures/extraction/zig/declarations/source.zig",
+          "expected": "fixtures/extraction/zig/declarations/expected.json"
+        },
+        {
+          "name": "file_struct",
+          "source": "fixtures/extraction/zig/file_struct/Tokenizer.zig",
+          "expected": "fixtures/extraction/zig/file_struct/expected.json"
+        },
+        {
+          "name": "build_graph",
+          "source": "fixtures/extraction/zig/build_graph/build.zig",
+          "expected": "fixtures/extraction/zig/build_graph/expected.json"
+        },
+        {
+          "name": "web",
+          "source": "fixtures/extraction/zig/web/source.zig",
+          "expected": "fixtures/extraction/zig/web/expected.json"
         }
       ],
       "target_capabilities": {
@@ -858,11 +878,14 @@
         "symbols": {
           "supported": [
             "constant",
+            "enum",
+            "enum_member",
             "field",
             "function",
             "import",
             "method",
             "struct",
+            "type",
             "variable"
           ],
           "not_applicable": [],
@@ -870,7 +893,8 @@
         },
         "relationships": {
           "supported": [
-            "calls"
+            "calls",
+            "composition"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -887,6 +911,8 @@
         },
         "body_spans": {
           "supported": [
+            "constant",
+            "enum",
             "function",
             "import",
             "method",
@@ -900,11 +926,18 @@
         },
         "structural_facts": {
           "supported": [
+            "http.client_request.v1",
+            "httpz.route.v1",
+            "zig.build_artifact.v1",
+            "zig.build_dependency.v1",
+            "zig.build_module.v1",
+            "zig.build_module_import.v1",
+            "zig.build_step.v1",
             "zig.builtin_call.v1",
-            "zig.threadlocal_variable.v1",
-            "zig.inline_function.v1",
+            "zig.comptime_parameter.v1",
             "zig.exported_function.v1",
-            "zig.comptime_parameter.v1"
+            "zig.inline_function.v1",
+            "zig.threadlocal_variable.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -919,6 +952,7 @@
         },
         "annotations": {
           "supported": [
+            "constant",
             "function",
             "variable"
           ],
@@ -927,7 +961,11 @@
         },
         "doc_comments": {
           "supported": [
-            "function"
+            "constant",
+            "enum",
+            "enum_member",
+            "function",
+            "struct"
           ],
           "not_applicable": [],
           "open_gaps": []

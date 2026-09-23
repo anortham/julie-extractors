@@ -3,6 +3,7 @@ use crate::base::{
     extract_type_arguments,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
+use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 /// Extract all identifier usages (function calls, member access, etc.)
@@ -122,12 +123,22 @@ fn extract_identifier_from_node(
                 let name = base.get_node_text(member_node);
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
-                base.create_identifier(
-                    member_node,
-                    name,
-                    IdentifierKind::MemberAccess,
-                    containing_symbol_id,
-                );
+                if node.child_by_field_name("object").is_some() {
+                    base.create_identifier(
+                        member_node,
+                        name,
+                        IdentifierKind::MemberAccess,
+                        containing_symbol_id,
+                    );
+                } else {
+                    base.create_identifier_with_metadata(
+                        member_node,
+                        name,
+                        IdentifierKind::MemberAccess,
+                        containing_symbol_id,
+                        HashMap::from([("receiver".to_string(), serde_json::Value::Null)]),
+                    );
+                }
             }
         }
 
@@ -155,7 +166,19 @@ fn extract_identifier_from_node(
                 }
                 let is_type_position = match parent.kind() {
                     "error_union_type" => !super::helpers::is_logical_not(parent),
-                    "pointer_type" | "optional_type" => true,
+                    "pointer_type" | "optional_type" | "nullable_type" => true,
+                    "slice_type" | "array_type" => parent
+                        .named_children(&mut parent.walk())
+                        .last()
+                        .is_some_and(|element| element.id() == node.id()),
+                    "struct_initializer" => parent
+                        .named_child(0)
+                        .is_some_and(|type_node| type_node.id() == node.id()),
+                    "call_expression" => {
+                        is_zig_call_in_type_position(parent)
+                            && parent.child_by_field_name("function").map(|f| f.id())
+                                != Some(node.id())
+                    }
                     "function_declaration" => parent
                         .child_by_field_name("type")
                         .is_some_and(|ty| ty.id() == node.id()),

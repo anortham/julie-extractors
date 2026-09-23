@@ -50,7 +50,7 @@ pub(super) fn extract_function(
         &mut metadata,
     );
 
-    let symbol = base.create_symbol(
+    let mut symbol = base.create_symbol(
         &node,
         name,
         symbol_kind,
@@ -67,6 +67,9 @@ pub(super) fn extract_function(
             annotations,
         },
     );
+    if node.child_by_field_name("body").is_none() {
+        base.set_body_span(&mut symbol, None);
+    }
     if let Some(return_type) = node
         .child_by_field_name("type")
         .filter(|return_type| names_a_value_type(base, *return_type))
@@ -168,15 +171,22 @@ fn extract_function_signature(
     if is_inline {
         modifier_prefix.push_str("inline ");
     }
-
-    // Check for extern prefix
-    let extern_node = base.find_child_by_type(&node, "extern");
-    let string_node = base.find_child_by_type(&node, "string");
-    let mut extern_prefix = String::new();
-    if let (Some(_extern), Some(string_n)) = (extern_node, string_node) {
-        let linkage = base.get_node_text(&string_n);
-        extern_prefix = format!("extern {} ", linkage);
+    if base.find_child_by_type(&node, "noinline").is_some() {
+        modifier_prefix.push_str("noinline ");
     }
+
+    let extern_prefix = match (
+        base.find_child_by_type(&node, "extern"),
+        base.find_child_by_type(&node, "string"),
+    ) {
+        (Some(_), Some(linkage)) => format!("extern {} ", base.get_node_text(&linkage)),
+        (Some(_), None) => "extern ".to_string(),
+        _ => String::new(),
+    };
+    let calling_convention = base
+        .find_child_by_type(&node, "calling_convention")
+        .map(|convention| format!("{} ", base.get_node_text(&convention)))
+        .unwrap_or_default();
 
     // Extract parameters
     let mut params = Vec::new();
@@ -241,11 +251,12 @@ fn extract_function_signature(
         .unwrap_or_else(|| "void".to_string());
 
     Some(format!(
-        "{}{}fn {}({}) {}",
+        "{}{}fn {}({}) {}{}",
         modifier_prefix,
         extern_prefix,
         name,
         params.join(", "),
+        calling_convention,
         return_type
     ))
 }

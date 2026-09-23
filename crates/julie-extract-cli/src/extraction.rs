@@ -724,6 +724,13 @@ fn map_identifiers(
             for (key, value) in identifier.metadata.iter().flatten() {
                 metadata.insert(key.clone(), value.clone());
             }
+            if metadata
+                .get("receiver")
+                .is_some_and(serde_json::Value::is_null)
+            {
+                metadata.remove("receiver");
+                metadata.remove("receiver_qualifier");
+            }
             Ok(ArtifactIdentifier {
                 identifier_id: identifier.id.clone(),
                 reference_site_id: exact_reference_site_id(
@@ -1780,6 +1787,14 @@ mod tests {
 
         assert_eq!(metadata["qml_binding"], Value::String("width".to_string()));
         assert_eq!(metadata["receiver"], Value::String("Rectangle".to_string()));
+    }
+
+    #[test]
+    fn extractor_null_receiver_suppresses_the_mapper_receiver_detection() {
+        let mut identifier = call_identifier("info", 13);
+        identifier.metadata = Some(HashMap::from([("receiver".to_string(), Value::Null)]));
+
+        assert_eq!(mapped_metadata_json(identifier, "else a else .info"), None);
     }
 
     #[test]

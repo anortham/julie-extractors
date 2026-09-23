@@ -12,6 +12,7 @@ mod kotlin_elixir;
 mod php;
 mod python;
 mod rust;
+mod zig;
 
 #[cfg(test)]
 pub(super) fn frontend_specs() -> &'static [StructuralFactPatternSpec] {
@@ -26,6 +27,7 @@ pub(super) fn specs() -> Vec<StructuralFactPatternSpec> {
         php::SPECS,
         kotlin_elixir::SPECS,
         rust::SPECS,
+        zig::SPECS,
         frontend::SPECS,
     ]
     .concat()

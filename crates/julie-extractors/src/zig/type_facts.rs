@@ -70,17 +70,17 @@ pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<Str
     }
     let receiver_name = base.get_node_text(&object);
     let func_decl = enclosing_function(node)?;
-    if !super::helpers::is_inside_struct(func_decl) {
-        return None;
-    }
     let first_param = first_parameter(func_decl)?;
     let param_name = first_param.child_by_field_name("name")?;
     if base.get_node_text(&param_name) != receiver_name {
         return None;
     }
     let type_node = first_param.child_by_field_name("type")?;
-    if is_this_type(base, type_node) {
-        return enclosing_container_name(base, func_decl);
+    if let Some(this_type) = this_type_name(base, type_node) {
+        return Some(this_type);
+    }
+    if !super::helpers::is_inside_struct(func_decl) {
+        return None;
     }
     let name_node = base_type_name_node(type_node)?;
     let name = base.get_node_text(&name_node);
@@ -104,10 +104,15 @@ fn record_inferred_same_file_container(
 }
 
 fn record_type_node(base: &mut BaseExtractor, symbol_id: &str, type_node: Node, is_inferred: bool) {
-    let Some(name_node) = base_type_name_node(type_node) else {
-        return;
+    let base_name = match this_type_name(base, type_node) {
+        Some(this_type) => this_type,
+        None => {
+            let Some(name_node) = base_type_name_node(type_node) else {
+                return;
+            };
+            base.get_node_text(&name_node)
+        }
     };
-    let base_name = base.get_node_text(&name_node);
     let declared = base.get_node_text(&type_node);
     base.record_declared_type_fact_with_declared(
         symbol_id,
@@ -233,29 +238,67 @@ fn first_parameter(func_decl: Node) -> Option<Node> {
         .find(|child| child.kind() == "parameter")
 }
 
-fn enclosing_container_name(base: &BaseExtractor, node: Node) -> Option<String> {
-    let mut current = node.parent();
-    while let Some(parent) = current {
+/// The container a `@This()` type, or a same-container alias of it
+/// (`const Self = @This();`), names at `type_node`. A file is itself a struct,
+/// so at file scope the name is the file stem (`Tokenizer.zig` -> `Tokenizer`).
+fn this_type_name(base: &BaseExtractor, type_node: Node) -> Option<String> {
+    let container = nearest_container(type_node);
+    if is_this_type(base, type_node) {
+        return container_type_name(base, container);
+    }
+    let name_node = base_type_name_node(type_node).filter(|name| name.kind() == "identifier")?;
+    let alias = base.get_node_text(&name_node);
+    let is_alias = container
+        .children(&mut container.walk())
+        .filter(|child| child.kind() == "variable_declaration")
+        .any(|declaration| {
+            declaration
+                .children(&mut declaration.walk())
+                .find(|child| child.kind() == "identifier")
+                .is_some_and(|name| base.get_node_text(&name) == alias)
+                && initializer_node(declaration).is_some_and(|value| is_this_type(base, value))
+        });
+    if is_alias {
+        container_type_name(base, container)
+    } else {
+        None
+    }
+}
+
+fn nearest_container(node: Node) -> Node {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
         if matches!(
             parent.kind(),
-            "struct_declaration" | "union_declaration" | "enum_declaration"
+            "struct_declaration" | "union_declaration" | "enum_declaration" | "opaque_declaration"
         ) {
-            if let Some(decl) = parent.parent()
-                && decl.kind() == "variable_declaration"
-            {
-                let mut cursor = decl.walk();
-                if let Some(name) = decl
-                    .named_children(&mut cursor)
-                    .find(|child| child.kind() == "identifier")
-                {
-                    return Some(base.get_node_text(&name));
-                }
-            }
-            return None;
+            return parent;
         }
-        current = parent.parent();
+        current = parent;
     }
-    None
+    current
+}
+
+fn container_type_name(base: &BaseExtractor, container: Node) -> Option<String> {
+    if container.parent().is_none() {
+        return Some(file_struct_name(&base.file_path));
+    }
+    let declaration = container
+        .parent()
+        .filter(|parent| parent.kind() == "variable_declaration")?;
+    let name = declaration
+        .children(&mut declaration.walk())
+        .find(|child| child.kind() == "identifier")?;
+    Some(base.get_node_text(&name))
+}
+
+/// The struct a Zig file declares: its file stem.
+pub(super) fn file_struct_name(file_path: &str) -> String {
+    let file_name = file_path.rsplit(['/', '\\']).next().unwrap_or(file_path);
+    file_name
+        .strip_suffix(".zig")
+        .unwrap_or(file_name)
+        .to_string()
 }
 
 fn file_root(mut node: Node) -> Node {
@@ -285,7 +328,10 @@ fn find_container_declaration(node: Node, name: &str, base: &BaseExtractor, dept
             if node.named_children(&mut kind_cursor).any(|child| {
                 matches!(
                     child.kind(),
-                    "struct_declaration" | "union_declaration" | "enum_declaration"
+                    "struct_declaration"
+                        | "union_declaration"
+                        | "enum_declaration"
+                        | "opaque_declaration"
                 )
             }) {
                 return true;

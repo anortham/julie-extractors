@@ -36,7 +36,7 @@ const Sample = struct {
         local = 7; // plain write LHS -> NOT a read
         local += seed; // compound assignment -> read local
         self.bar = local; // self receiver -> read; bar owned by MemberAccess
-        const w = Sample{ .bar = seed }; // Sample struct-literal type -> read
+        const w = Sample{ .bar = seed }; // Sample struct-literal type -> type_usage
         const got = reach(); // reach owned by the Call arm
         return local + got + w.bar + VISIBILITY_UNKNOWN;
     }
@@ -61,7 +61,6 @@ fn reach() i32 {
         "seed",               // initializer / compound-assignment value reads
         "local",              // compound-assignment target + RHS read
         "self",               // member-write receiver `self.bar = ...`
-        "Sample",             // struct-initializer type read `Sample{ ... }`
         "w",                  // field-access receiver `w.bar`
         "got",                // bare return read
         "VISIBILITY_UNKNOWN", // bare return read
@@ -87,6 +86,13 @@ fn reach() i32 {
             "{forbidden} must NOT be a Zig variable_ref; got {var_refs:?}"
         );
     }
+
+    assert!(
+        identifiers.iter().any(|id| id.name == "Sample"
+            && id.kind == IdentifierKind::TypeUsage
+            && id.start_line == 13),
+        "the struct-literal type Sample must be a type_usage"
+    );
 
     // Receiver + call coexist: reach() must still yield a Call identifier.
     assert!(
