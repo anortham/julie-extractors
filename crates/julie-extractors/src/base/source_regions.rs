@@ -421,7 +421,13 @@ fn containing_symbol_id(region: &SourceRegion, symbols: &[Symbol]) -> Option<Str
         .map(|symbol| symbol.id.clone())
 }
 
+/// Rust inner docs (`//!`, `/*!`) and Zig container docs (`//!`) document the
+/// enclosing item. Doxygen reads the same markers in C and C++ as ordinary
+/// preceding docs.
 fn is_inner_doc_comment(region: &SourceRegion, content: &str) -> bool {
+    if !matches!(region.language.as_str(), "rust" | "zig") {
+        return false;
+    }
     let text = content
         .get(region.start_byte as usize..region.end_byte as usize)
         .unwrap_or_default()
