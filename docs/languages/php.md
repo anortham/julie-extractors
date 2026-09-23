@@ -46,7 +46,7 @@ context class.
 | class extending `ObjectBehavior` | `test_container` | PHPSpec base class |
 | `let` / `letGo` method of a spec | `fixture_setup` / `fixture_teardown` | PHPSpec hooks |
 | `it_*` / `its_*` method of a spec | `test_case` | PHPSpec example prefix |
-| class implementing `Context`, `SnippetAcceptingContext`, `CustomSnippetAcceptingContext`, or `TranslatableContext` | `test_container` | Behat context |
+| class implementing `Context`, `SnippetAcceptingContext`, `CustomSnippetAcceptingContext`, or `TranslatableContext` from the `Behat\` namespace, written qualified or bound by a `use Behat\...` import | `test_container` | Behat context |
 | `#[Given]`, `#[When]`, `#[Then]`, or a `@Given`, `@When`, `@Then` docblock tag on a context method | `step_definition` | Behat step |
 | `BeforeSuite`, `BeforeFeature`, `BeforeScenario`, `BeforeStep` attribute or docblock tag on a context method | `fixture_setup` | Behat hooks |
 | `AfterSuite`, `AfterFeature`, `AfterScenario`, `AfterStep` attribute or docblock tag on a context method | `fixture_teardown` | Behat hooks |
@@ -107,9 +107,13 @@ publishes no role at all.
 ## Step definitions
 
 A Behat step sets `test_role = "step_definition"` in `metadata_json` and leaves
-`is_test`, `test_container`, and `test_lifecycle` at `0`: the scenario lives in
-a `.feature` file, so a step is neither a case nor a hook. Step attributes and
-tags on a class that implements no Behat context interface publish no role.
+`is_test`, `test_container`, and `test_lifecycle` at `0`, even when a path or
+name rule flagged the method first: the scenario lives in a `.feature` file, so
+a step is neither a case nor a hook. PHPUnit's `testXxx` and `setUp` name rules
+do not apply inside a Behat context. `Context` is a common class name, so a
+class whose `Context` base type is not in the `Behat\` namespace, such as
+`App\Context` or a `use App\Support\Context` import, is not a Behat context,
+and step attributes and tags on it publish no role.
 See the [decision](../decisions/2026-09-23-step-definition-test-role.md).
 
 Codeception (`LoginCest.php`), PHPSpec (`MoneySpec.php`), and Behat

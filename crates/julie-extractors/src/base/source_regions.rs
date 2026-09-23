@@ -73,6 +73,9 @@ pub fn collect_source_regions(
         &mut regions,
         0,
     );
+    if language == "gomod" {
+        promote_gomod_doc_comments(&mut regions, tree, file_path, content);
+    }
     if ADJACENT_DOC_REGION_LANGUAGES.contains(&language) {
         demote_detached_doc_comments(&mut regions, symbols, content);
     }
@@ -85,6 +88,35 @@ pub fn collect_source_regions(
             .then(left.id.cmp(&right.id))
     });
     regions
+}
+
+fn promote_gomod_doc_comments(
+    regions: &mut [SourceRegion],
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+) {
+    let doc_starts = crate::gomod::doc_comment_starts(tree.root_node(), content);
+    for region in regions.iter_mut().filter(|region| {
+        region.kind == SourceRegionKind::Comment
+            && doc_starts.contains(&(region.start_byte as usize))
+    }) {
+        let span = NormalizedSpan {
+            start_line: region.start_line,
+            start_column: region.start_column,
+            end_line: region.end_line,
+            end_column: region.end_column,
+            start_byte: region.start_byte,
+            end_byte: region.end_byte,
+        };
+        *region = region_for_span(
+            file_path,
+            &region.language,
+            span,
+            SourceRegionKind::DocComment,
+            None,
+        );
+    }
 }
 
 fn collect_node(
@@ -179,12 +211,6 @@ fn collect_node(
             }
         } else if language == "xml" {
             if crate::xml::comment_documents_following_element(content, node) {
-                SourceRegionKind::DocComment
-            } else {
-                SourceRegionKind::Comment
-            }
-        } else if language == "gomod" {
-            if crate::gomod::comment_documents_following_directive(content, node) {
                 SourceRegionKind::DocComment
             } else {
                 SourceRegionKind::Comment

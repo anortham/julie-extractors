@@ -103,8 +103,9 @@ changes.
 `symbols.metadata_json.test_role` gains the value `step_definition`. `csharp`,
 `vbnet`, `fsharp`, and `razor` methods of a `[Binding]` class with a `[Given]`,
 `[When]`, `[Then]`, or `[StepDefinition]` attribute carry it. `php` methods of
-a class that implements a Behat context interface carry it when they have a
-`Given`, `When`, or `Then` attribute or docblock tag. The same PHP class becomes
+a class that implements a Behat context interface (written qualified in the
+`Behat\` namespace, or bound by a `use Behat\...` import) carry it when they
+have a `Given`, `When`, or `Then` attribute or docblock tag. The same PHP class becomes
 a `test_container`, and its `Before*` and `After*` hook methods become
 `fixture_setup` and `fixture_teardown`. A step definition sets none of the
 `is_test`, `test_container`, and `test_lifecycle` columns. See
@@ -122,11 +123,16 @@ module and tool is an `imports` relationship from the module symbol, and a
 ecosystem `go`, group `require`, and a new optional boolean key `indirect`. The
 new pattern ids are `gomod.module.v1`, `gomod.go.v1`, `gomod.toolchain.v1`,
 `gomod.godebug.v1`, `gomod.replace.v1`, `gomod.exclude.v1`, `gomod.retract.v1`,
-`gomod.tool.v1`, and `gomod.ignore.v1`. The `gosum` row publishes no symbols
+`gomod.tool.v1`, and `gomod.ignore.v1`. A `gomod.retract.v1` rationale keeps
+at most 500 bytes and sets `rationale_truncated` when it was cut. The `gosum`
+row publishes no symbols
 or edges. Each checksum line is a `gosum.checksum.v1` fact with `module_path`,
 `version`, `go_mod`, `hash_algorithm`, `hash`, `incompatible`, and
 `pseudo_version`, plus `timestamp` and `revision` for a pseudo-version.
 `julie-extract languages --json` lists 42 languages.
+
+Rust API: the public `TestRole` enum gains `StepDefinition`, so an exhaustive
+`match` on it needs a new arm.
 
 Consumer action: accept the new `test_role` string and the new `gomod` and
 `gosum` languages, replace the binary, and rebuild every affected artifact. No

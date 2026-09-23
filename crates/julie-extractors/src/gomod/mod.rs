@@ -26,7 +26,7 @@ use crate::base::{
 };
 use directives::{Directive, Entry, entries};
 
-pub(crate) use directives::comment_documents_following_directive;
+pub(crate) use directives::doc_comment_starts;
 
 pub struct GoModExtractor {
     pub(crate) base: BaseExtractor,

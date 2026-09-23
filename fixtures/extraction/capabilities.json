@@ -3785,7 +3785,11 @@
         {
           "name": "behat_context",
           "source": "fixtures/extraction/php/behat_context/FeatureContext.php",
-          "expected": "fixtures/extraction/php/behat_context/expected.json"
+          "expected": "fixtures/extraction/php/behat_context/expected.json",
+          "sources": [
+            "fixtures/extraction/php/behat_context/FeatureContext.php",
+            "fixtures/extraction/php/behat_context/settings.php"
+          ]
         }
       ],
       "target_capabilities": {

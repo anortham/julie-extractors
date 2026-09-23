@@ -54,8 +54,13 @@ pub(crate) fn apply_test_role(metadata: &mut HashMap<String, serde_json::Value>,
             metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
         }
         // `is_test = 1` means a test case or a hook in the schema contract, so
-        // consumers that count cases must not see step definitions there.
-        TestRole::StepDefinition => {}
+        // consumers that count cases must not see step definitions there, even
+        // when a path or name rule flagged the method first.
+        TestRole::StepDefinition => {
+            metadata.remove("is_test");
+            metadata.remove("test_lifecycle");
+            metadata.remove("test_container");
+        }
     }
     metadata.insert(
         "test_role".to_string(),
@@ -1566,13 +1571,14 @@ pub(crate) fn mark_php_test_containers(symbols: &mut [Symbol], file_path: &str) 
         .filter_map(|symbol| symbol.parent_id.clone())
         .collect();
 
+    let behat_imports = php_behat_imports(symbols);
     let mut test_container_ids: HashSet<String> = HashSet::new();
     let mut framework_containers: HashMap<String, PhpSuiteFramework> = HashMap::new();
     for symbol in symbols
         .iter_mut()
         .filter(|symbol| symbol.kind == SymbolKind::Class)
     {
-        let framework = php_suite_framework(symbol, file_path);
+        let framework = php_suite_framework(symbol, file_path, &behat_imports);
         if framework.is_some()
             || extends_php_test_case(symbol)
             || containers_with_test_members.contains(&symbol.id)
@@ -1586,7 +1592,17 @@ pub(crate) fn mark_php_test_containers(symbols: &mut [Symbol], file_path: &str) 
     }
 
     apply_php_framework_member_roles(symbols, &framework_containers);
-    apply_php_member_test_roles(symbols, &test_container_ids);
+    let phpunit_container_ids: HashSet<String> = test_container_ids
+        .iter()
+        .filter(|id| {
+            !matches!(
+                framework_containers.get(*id),
+                Some(PhpSuiteFramework::Behat)
+            )
+        })
+        .cloned()
+        .collect();
+    apply_php_member_test_roles(symbols, &phpunit_container_ids);
 
     if !is_test_path(file_path) {
         normalize_scoped_test_roles(symbols, &test_container_ids);
@@ -1609,19 +1625,78 @@ enum PhpSuiteFramework {
     Behat,
 }
 
-fn php_suite_framework(class: &Symbol, file_path: &str) -> Option<PhpSuiteFramework> {
+fn php_suite_framework(
+    class: &Symbol,
+    file_path: &str,
+    behat_imports: &HashMap<String, String>,
+) -> Option<PhpSuiteFramework> {
     let file_name = file_path.rsplit(['/', '\\']).next().unwrap_or(file_path);
     if class.name.ends_with("Cest") && file_name.ends_with("Cest.php") {
         return Some(PhpSuiteFramework::Codeception);
     }
-    php_base_types(class).find_map(|base_type| match base_type {
-        "ObjectBehavior" => Some(PhpSuiteFramework::PhpSpec),
-        "Context"
-        | "SnippetAcceptingContext"
-        | "CustomSnippetAcceptingContext"
-        | "TranslatableContext" => Some(PhpSuiteFramework::Behat),
-        _ => None,
-    })
+    if php_base_types(class).any(|base_type| base_type == "ObjectBehavior") {
+        return Some(PhpSuiteFramework::PhpSpec);
+    }
+    implements_behat_context(class, behat_imports).then_some(PhpSuiteFramework::Behat)
+}
+
+/// Behat's context interfaces, by their last name segment.
+const BEHAT_CONTEXT_INTERFACES: &[&str] = &[
+    "Context",
+    "SnippetAcceptingContext",
+    "CustomSnippetAcceptingContext",
+    "TranslatableContext",
+];
+
+/// `Context` is a common class name, so a base type counts only when it
+/// resolves into the `Behat\` namespace: written qualified, or bound by a
+/// `use Behat\...` import.
+fn implements_behat_context(class: &Symbol, behat_imports: &HashMap<String, String>) -> bool {
+    class
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get("base_types"))
+        .and_then(|value| value.as_array())
+        .into_iter()
+        .flatten()
+        .filter_map(|value| value.as_str())
+        .filter_map(|base_type| {
+            let written = base_type.trim_start_matches('\\');
+            if written.contains('\\') {
+                Some(written)
+            } else {
+                behat_imports.get(written).map(String::as_str)
+            }
+        })
+        .any(|qualified| {
+            qualified.starts_with("Behat\\")
+                && qualified
+                    .rsplit('\\')
+                    .next()
+                    .is_some_and(|name| BEHAT_CONTEXT_INTERFACES.contains(&name))
+        })
+}
+
+/// The local names that `use Behat\...` imports bind, mapped to the
+/// qualified name.
+fn php_behat_imports(symbols: &[Symbol]) -> HashMap<String, String> {
+    symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Import)
+        .filter_map(|symbol| {
+            let qualified = symbol.name.trim_start_matches('\\');
+            if !qualified.starts_with("Behat\\") {
+                return None;
+            }
+            let local = symbol
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("alias"))
+                .and_then(|value| value.as_str())
+                .or_else(|| qualified.rsplit('\\').next())?;
+            Some((local.to_string(), qualified.to_string()))
+        })
+        .collect()
 }
 
 fn php_base_types(symbol: &Symbol) -> impl Iterator<Item = &str> {

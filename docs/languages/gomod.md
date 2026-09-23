@@ -66,7 +66,10 @@ Every fact has `query_family` `dependencies`.
 - `gomod.exclude.v1`: `module_path` and `version`.
 - `gomod.retract.v1`: `low`, `high` (both the version for a single version),
   `range`, and `rationale`. The rationale is the line's leading and suffix
-  comments, else those of its block, as `modfile` reads it.
+  comments, else those of its block, as `modfile` reads it. It keeps at most
+  500 bytes, cut at a character boundary; a cut rationale also sets
+  `rationale_truncated`. Every line of a block shares the block comment, so the
+  cut keeps one long comment from being copied whole into every fact.
 - `gomod.tool.v1`: `package_path`. `gomod.ignore.v1`: `path`.
 - `gomod.godebug.v1`: `key` and `value` of one `key=value` setting.
 

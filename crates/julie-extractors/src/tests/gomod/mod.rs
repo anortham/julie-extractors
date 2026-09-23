@@ -368,6 +368,34 @@ fn module_deprecation_reads_the_deprecated_paragraph_of_leading_or_suffix_commen
 }
 
 #[test]
+fn quoted_values_decode_every_go_escape() {
+    let source = "module \"example.com/\\u0061\\x62\\143\\U00000064\"\n\nreplace example.com/lib => \"../l\\x69b\"\n";
+    let results = extract(source);
+
+    assert_eq!(
+        metadata_str(fact(&results, "gomod.module.v1"), "module_path"),
+        Some("example.com/abcd")
+    );
+    assert_eq!(
+        results.structured_pending_relationships[0]
+            .target
+            .display_name,
+        "../lib/go.mod"
+    );
+}
+
+#[test]
+fn a_quoted_value_with_an_invalid_escape_keeps_its_written_text() {
+    let source = "module \"example.com/\\x+f\\400\"\n";
+    let results = extract(source);
+
+    assert_eq!(
+        metadata_str(fact(&results, "gomod.module.v1"), "module_path"),
+        Some("example.com/\\x+f\\400")
+    );
+}
+
+#[test]
 fn quoted_values_are_unquoted_names_literals_and_string_regions() {
     let source = "module \"gopkg.in/yaml.v3\"\n\nrequire (\n\t\"gopkg.in/check.v1\" v0.0.0-20161208181325-20d25e280405\n\t`example.com/raw` v1.0.0\n)\n";
     let results = extract(source);
@@ -542,5 +570,57 @@ fn crlf_line_endings_keep_comments_and_the_indirect_marker() {
     assert_eq!(
         metadata_bool(fact(&results, "manifest.dependency.v1"), "indirect"),
         Some(true)
+    );
+}
+
+#[test]
+fn every_comment_of_a_long_block_documents_the_directive_below() {
+    let block_lines = 20_000;
+    let source = format!(
+        "// stray\n\n{}module example.com/app\n",
+        "//\n".repeat(block_lines)
+    );
+    let results = extract(&source);
+
+    let kinds: Vec<SourceRegionKind> = results
+        .source_regions
+        .iter()
+        .map(|region| region.kind.clone())
+        .collect();
+    assert_eq!(kinds.len(), block_lines + 1);
+    assert_eq!(kinds[0], SourceRegionKind::Comment);
+    assert!(
+        kinds[1..]
+            .iter()
+            .all(|kind| *kind == SourceRegionKind::DocComment)
+    );
+}
+
+#[test]
+fn a_long_block_rationale_is_cut_once_and_shared_by_every_retraction() {
+    let rationale = "é".repeat(400);
+    let source = format!(
+        "module example.com/app\n\n// {rationale}\nretract (\n\tv1.0.0\n\tv1.0.1\n\t// own reason\n\tv1.0.2\n)\n"
+    );
+    let results = extract(&source);
+
+    let facts = facts_with_pattern(&results, "gomod.retract.v1");
+    let rationales: Vec<(Option<&str>, Option<bool>)> = facts
+        .iter()
+        .map(|fact| {
+            (
+                metadata_str(fact, "rationale"),
+                metadata_bool(fact, "rationale_truncated"),
+            )
+        })
+        .collect();
+    let cut = "é".repeat(250);
+    assert_eq!(
+        rationales,
+        vec![
+            (Some(cut.as_str()), Some(true)),
+            (Some(cut.as_str()), Some(true)),
+            (Some("own reason"), None),
+        ]
     );
 }

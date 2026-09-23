@@ -315,3 +315,28 @@ function helper(): void {
         "no is_test metadata should come from non-DSL calls: {syms:?}"
     );
 }
+
+#[test]
+fn a_behat_step_in_a_test_path_is_only_a_step_definition() {
+    let code = r#"<?php
+use Behat\Behat\Context\Context;
+
+class FeatureContext implements Context
+{
+    #[Given('the service answers')]
+    public function testConnection(): void {}
+
+    /** @When the user signs in */
+    public function setUp(): void {}
+}
+"#;
+    let symbols = symbols_at("tests/Behat/FeatureContext.php", code);
+
+    for name in ["testConnection", "setUp"] {
+        let step = symbols.iter().find(|s| s.name == name).unwrap();
+        assert_eq!(role(&symbols, name), Some("step_definition"), "{name}");
+        assert!(!meta_bool(step, "is_test"), "{name}");
+        assert!(!meta_bool(step, "test_lifecycle"), "{name}");
+    }
+    assert_eq!(role(&symbols, "FeatureContext"), Some("test_container"));
+}

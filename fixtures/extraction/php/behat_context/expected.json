@@ -1,6 +1,44 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:AppContext:99:0",
+      "name": "AppContext",
+      "kind": "class",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
+      "start_line": 99,
+      "start_column": 0,
+      "end_line": 110,
+      "end_column": 1,
+      "start_byte": 1644,
+      "end_byte": 1834,
+      "body_span": {
+        "start_line": 100,
+        "start_column": 0,
+        "end_line": 110,
+        "end_column": 1,
+        "start_byte": 1681,
+        "end_byte": 1834
+      },
+      "body_hash": "4ff2a8293d51c480dbd6be5146ab0496",
+      "signature": "class AppContext extends App\\Context",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "base_types": [
+          "App\\Context"
+        ],
+        "extends": "extends App\\Context",
+        "modifiers": [],
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/php/behat_context/FeatureContext.php:Behat\\Behat\\Context\\Context:3:0",
       "name": "Behat\\Behat\\Context\\Context",
       "kind": "import",
@@ -164,19 +202,19 @@
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
       "start_line": 10,
       "start_column": 0,
-      "end_line": 48,
+      "end_line": 58,
       "end_column": 1,
       "start_byte": 166,
-      "end_byte": 925,
+      "end_byte": 1090,
       "body_span": {
         "start_line": 11,
         "start_column": 0,
-        "end_line": 48,
+        "end_line": 58,
         "end_column": 1,
         "start_byte": 212,
-        "end_byte": 925
+        "end_byte": 1090
       },
-      "body_hash": "5457a33c1dadb85bf2ea06ab8bb996d5",
+      "body_hash": "5d278b2bc521dc7bcd032f9fd00b73d4",
       "signature": "final class FeatureContext implements Context",
       "doc_comment": null,
       "visibility": "Public",
@@ -199,24 +237,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:LegacyContext:50:0",
+      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:LegacyContext:60:0",
       "name": "LegacyContext",
       "kind": "class",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-      "start_line": 50,
+      "start_line": 60,
       "start_column": 0,
-      "end_line": 72,
+      "end_line": 82,
       "end_column": 1,
-      "start_byte": 927,
-      "end_byte": 1285,
+      "start_byte": 1092,
+      "end_byte": 1450,
       "body_span": {
-        "start_line": 51,
+        "start_line": 61,
         "start_column": 0,
-        "end_line": 72,
+        "end_line": 82,
         "end_column": 1,
-        "start_byte": 1002,
-        "end_byte": 1285
+        "start_byte": 1167,
+        "end_byte": 1450
       },
       "body_hash": "9591f501c69f837c339d915353af4c92",
       "signature": "class LegacyContext implements Behat\\Behat\\Context\\SnippetAcceptingContext",
@@ -239,24 +277,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:WorkflowRules:74:0",
+      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:WorkflowRules:84:0",
       "name": "WorkflowRules",
       "kind": "class",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-      "start_line": 74,
+      "start_line": 84,
       "start_column": 0,
-      "end_line": 87,
+      "end_line": 97,
       "end_column": 1,
-      "start_byte": 1287,
-      "end_byte": 1477,
+      "start_byte": 1452,
+      "end_byte": 1642,
       "body_span": {
-        "start_line": 75,
+        "start_line": 85,
         "start_column": 0,
-        "end_line": 87,
+        "end_line": 97,
         "end_column": 1,
-        "start_byte": 1307,
-        "end_byte": 1477
+        "start_byte": 1472,
+        "end_byte": 1642
       },
       "body_hash": "21310cd195b8f2ecdac9f4e770928858",
       "signature": "class WorkflowRules",
@@ -273,30 +311,30 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:aSignedInCustomer:55:4",
+      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:aSignedInCustomer:65:4",
       "name": "aSignedInCustomer",
       "kind": "method",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-      "start_line": 55,
+      "start_line": 65,
       "start_column": 4,
-      "end_line": 57,
+      "end_line": 67,
       "end_column": 5,
-      "start_byte": 1063,
-      "end_byte": 1110,
+      "start_byte": 1228,
+      "end_byte": 1275,
       "body_span": {
-        "start_line": 56,
+        "start_line": 66,
         "start_column": 4,
-        "end_line": 57,
+        "end_line": 67,
         "end_column": 5,
-        "start_byte": 1103,
-        "end_byte": 1110
+        "start_byte": 1268,
+        "end_byte": 1275
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "public function aSignedInCustomer()",
       "doc_comment": "/**\n     * @Given /^a signed-in customer$/\n     */",
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/php/behat_context/FeatureContext.php:LegacyContext:50:0",
+      "parent_key": "fixtures/extraction/php/behat_context/FeatureContext.php:LegacyContext:60:0",
       "metadata": {
         "modifiers": "public",
         "parameters": "()",
@@ -304,6 +342,48 @@
         "type": "function"
       },
       "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:aTenant:101:4",
+      "name": "aTenant",
+      "kind": "method",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
+      "start_line": 101,
+      "start_column": 4,
+      "end_line": 104,
+      "end_column": 5,
+      "start_byte": 1687,
+      "end_byte": 1755,
+      "body_span": {
+        "start_line": 103,
+        "start_column": 4,
+        "end_line": 104,
+        "end_column": 5,
+        "start_byte": 1748,
+        "end_byte": 1755
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "#[Given('a tenant')]\npublic function aTenant(): void",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/php/behat_context/FeatureContext.php:AppContext:99:0",
+      "metadata": {
+        "modifiers": "public",
+        "parameters": "()",
+        "returnType": "void",
+        "type": "function"
+      },
+      "annotations": [
+        {
+          "annotation": "Given",
+          "annotation_key": "given",
+          "raw_text": "Given('a tenant')"
+        }
+      ],
       "semantic_group": null,
       "confidence": null,
       "content_type": null
@@ -380,30 +460,30 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:cleanup:69:4",
+      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:cleanup:79:4",
       "name": "cleanup",
       "kind": "method",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-      "start_line": 69,
+      "start_line": 79,
       "start_column": 4,
-      "end_line": 71,
+      "end_line": 81,
       "end_column": 5,
-      "start_byte": 1239,
-      "end_byte": 1283,
+      "start_byte": 1404,
+      "end_byte": 1448,
       "body_span": {
-        "start_line": 70,
+        "start_line": 80,
         "start_column": 4,
-        "end_line": 71,
+        "end_line": 81,
         "end_column": 5,
-        "start_byte": 1276,
-        "end_byte": 1283
+        "start_byte": 1441,
+        "end_byte": 1448
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "public static function cleanup()",
       "doc_comment": "/**\n     * @AfterFeature\n     */",
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/php/behat_context/FeatureContext.php:LegacyContext:50:0",
+      "parent_key": "fixtures/extraction/php/behat_context/FeatureContext.php:LegacyContext:60:0",
       "metadata": {
         "is_test": true,
         "modifiers": "public,static",
@@ -513,30 +593,30 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:notify:84:4",
+      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:notify:94:4",
       "name": "notify",
       "kind": "method",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-      "start_line": 84,
+      "start_line": 94,
       "start_column": 4,
-      "end_line": 86,
+      "end_line": 96,
       "end_column": 5,
-      "start_byte": 1433,
-      "end_byte": 1475,
+      "start_byte": 1598,
+      "end_byte": 1640,
       "body_span": {
-        "start_line": 85,
+        "start_line": 95,
         "start_column": 4,
-        "end_line": 86,
+        "end_line": 96,
         "end_column": 5,
-        "start_byte": 1468,
-        "end_byte": 1475
+        "start_byte": 1633,
+        "end_byte": 1640
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "public function notify(): void",
       "doc_comment": "/**\n     * @Then notify\n     */",
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/php/behat_context/FeatureContext.php:WorkflowRules:74:0",
+      "parent_key": "fixtures/extraction/php/behat_context/FeatureContext.php:WorkflowRules:84:0",
       "metadata": {
         "modifiers": "public",
         "parameters": "()",
@@ -549,30 +629,30 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:onOrderPlaced:76:4",
+      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:onOrderPlaced:86:4",
       "name": "onOrderPlaced",
       "kind": "method",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-      "start_line": 76,
+      "start_line": 86,
       "start_column": 4,
-      "end_line": 79,
+      "end_line": 89,
       "end_column": 5,
-      "start_byte": 1313,
-      "end_byte": 1391,
+      "start_byte": 1478,
+      "end_byte": 1556,
       "body_span": {
-        "start_line": 78,
+        "start_line": 88,
         "start_column": 4,
-        "end_line": 79,
+        "end_line": 89,
         "end_column": 5,
-        "start_byte": 1384,
-        "end_byte": 1391
+        "start_byte": 1549,
+        "end_byte": 1556
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "#[Given('order.placed')]\npublic function onOrderPlaced(): void",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/php/behat_context/FeatureContext.php:WorkflowRules:74:0",
+      "parent_key": "fixtures/extraction/php/behat_context/FeatureContext.php:WorkflowRules:84:0",
       "metadata": {
         "modifiers": "public",
         "parameters": "()",
@@ -591,30 +671,30 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:prepare:62:4",
+      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:prepare:72:4",
       "name": "prepare",
       "kind": "method",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-      "start_line": 62,
+      "start_line": 72,
       "start_column": 4,
-      "end_line": 64,
+      "end_line": 74,
       "end_column": 5,
-      "start_byte": 1152,
-      "end_byte": 1196,
+      "start_byte": 1317,
+      "end_byte": 1361,
       "body_span": {
-        "start_line": 63,
+        "start_line": 73,
         "start_column": 4,
-        "end_line": 64,
+        "end_line": 74,
         "end_column": 5,
-        "start_byte": 1189,
-        "end_byte": 1196
+        "start_byte": 1354,
+        "end_byte": 1361
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "public static function prepare()",
       "doc_comment": "/**\n     * @BeforeSuite\n     */",
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/php/behat_context/FeatureContext.php:LegacyContext:50:0",
+      "parent_key": "fixtures/extraction/php/behat_context/FeatureContext.php:LegacyContext:60:0",
       "metadata": {
         "is_test": true,
         "modifiers": "public,static",
@@ -669,6 +749,121 @@
           "raw_text": "BeforeScenario"
         }
       ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:testConnection:106:4",
+      "name": "testConnection",
+      "kind": "method",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
+      "start_line": 106,
+      "start_column": 4,
+      "end_line": 109,
+      "end_column": 5,
+      "start_byte": 1761,
+      "end_byte": 1832,
+      "body_span": {
+        "start_line": 107,
+        "start_column": 4,
+        "end_line": 109,
+        "end_column": 5,
+        "start_byte": 1804,
+        "end_byte": 1832
+      },
+      "body_hash": "8e2aff1f6248400cca87fec0fc559c3c",
+      "signature": "public function testConnection(): bool",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/php/behat_context/FeatureContext.php:AppContext:99:0",
+      "metadata": {
+        "modifiers": "public",
+        "parameters": "()",
+        "returnType": "bool",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:testConnection:44:4",
+      "name": "testConnection",
+      "kind": "method",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
+      "start_line": 44,
+      "start_column": 4,
+      "end_line": 47,
+      "end_column": 5,
+      "start_byte": 848,
+      "end_byte": 934,
+      "body_span": {
+        "start_line": 46,
+        "start_column": 4,
+        "end_line": 47,
+        "end_column": 5,
+        "start_byte": 927,
+        "end_byte": 934
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "#[Given('the service answers')]\npublic function testConnection(): void",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/php/behat_context/FeatureContext.php:FeatureContext:10:0",
+      "metadata": {
+        "modifiers": "public",
+        "parameters": "()",
+        "returnType": "void",
+        "test_role": "step_definition",
+        "type": "function"
+      },
+      "annotations": [
+        {
+          "annotation": "Given",
+          "annotation_key": "given",
+          "raw_text": "Given('the service answers')"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:testHelper:49:4",
+      "name": "testHelper",
+      "kind": "method",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
+      "start_line": 49,
+      "start_column": 4,
+      "end_line": 52,
+      "end_column": 5,
+      "start_byte": 940,
+      "end_byte": 1007,
+      "body_span": {
+        "start_line": 50,
+        "start_column": 4,
+        "end_line": 52,
+        "end_column": 5,
+        "start_byte": 979,
+        "end_byte": 1007
+      },
+      "body_hash": "8e2aff1f6248400cca87fec0fc559c3c",
+      "signature": "public function testHelper(): bool",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/php/behat_context/FeatureContext.php:FeatureContext:10:0",
+      "metadata": {
+        "modifiers": "public",
+        "parameters": "()",
+        "returnType": "bool",
+        "type": "function"
+      },
+      "annotations": [],
       "semantic_group": null,
       "confidence": null,
       "content_type": null
@@ -762,24 +957,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:total:44:4",
+      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:total:54:4",
       "name": "total",
       "kind": "method",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-      "start_line": 44,
+      "start_line": 54,
       "start_column": 4,
-      "end_line": 47,
+      "end_line": 57,
       "end_column": 5,
-      "start_byte": 848,
-      "end_byte": 923,
+      "start_byte": 1013,
+      "end_byte": 1088,
       "body_span": {
-        "start_line": 45,
+        "start_line": 55,
         "start_column": 4,
-        "end_line": 47,
+        "end_line": 57,
         "end_column": 5,
-        "start_byte": 881,
-        "end_byte": 923
+        "start_byte": 1046,
+        "end_byte": 1088
       },
       "body_hash": "97130282517a63aaeeb3e04af12e3ea8",
       "signature": "public function total(): int",
@@ -796,10 +991,186 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/behat_context/settings.php:App\\Settings:3:0",
+      "name": "App\\Settings",
+      "kind": "namespace",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/settings.php",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 23,
+      "start_byte": 7,
+      "end_byte": 30,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "namespace App\\Settings",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "namespace"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/behat_context/settings.php:App\\Support\\Context:5:0",
+      "name": "App\\Support\\Context",
+      "kind": "import",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/settings.php",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 24,
+      "start_byte": 32,
+      "end_byte": 56,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "use App\\Support\\Context",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "use"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/behat_context/settings.php:Settings:7:0",
+      "name": "Settings",
+      "kind": "class",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/settings.php",
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 18,
+      "end_column": 1,
+      "start_byte": 58,
+      "end_byte": 246,
+      "body_span": {
+        "start_line": 8,
+        "start_column": 0,
+        "end_line": 18,
+        "end_column": 1,
+        "start_byte": 92,
+        "end_byte": 246
+      },
+      "body_hash": "3e786e6e9be9c0ef5b4d4607174d5df8",
+      "signature": "class Settings implements Context",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "base_types": [
+          "Context"
+        ],
+        "implements": "implements Context",
+        "modifiers": [],
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/behat_context/settings.php:defaults:9:4",
+      "name": "defaults",
+      "kind": "method",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/settings.php",
+      "start_line": 9,
+      "start_column": 4,
+      "end_line": 12,
+      "end_column": 5,
+      "start_byte": 98,
+      "end_byte": 167,
+      "body_span": {
+        "start_line": 11,
+        "start_column": 4,
+        "end_line": 12,
+        "end_column": 5,
+        "start_byte": 160,
+        "end_byte": 167
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "#[Given('defaults')]\npublic function defaults(): void",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/php/behat_context/settings.php:Settings:7:0",
+      "metadata": {
+        "modifiers": "public",
+        "parameters": "()",
+        "returnType": "void",
+        "type": "function"
+      },
+      "annotations": [
+        {
+          "annotation": "Given",
+          "annotation_key": "given",
+          "raw_text": "Given('defaults')"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/behat_context/settings.php:testConnection:14:4",
+      "name": "testConnection",
+      "kind": "method",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/settings.php",
+      "start_line": 14,
+      "start_column": 4,
+      "end_line": 17,
+      "end_column": 5,
+      "start_byte": 173,
+      "end_byte": 244,
+      "body_span": {
+        "start_line": 15,
+        "start_column": 4,
+        "end_line": 17,
+        "end_column": 5,
+        "start_byte": 216,
+        "end_byte": 244
+      },
+      "body_hash": "8e2aff1f6248400cca87fec0fc559c3c",
+      "signature": "public function testConnection(): bool",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/php/behat_context/settings.php:Settings:7:0",
+      "metadata": {
+        "modifiers": "public",
+        "parameters": "()",
+        "returnType": "bool",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [],
   "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/php/behat_context/FeatureContext.php:AppContext:99:0",
+      "callee_name": "App\\Context",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
+      "line_number": 99,
+      "confidence": "0.900"
+    },
     {
       "from_key": "fixtures/extraction/php/behat_context/FeatureContext.php:FeatureContext:10:0",
       "callee_name": "Context",
@@ -809,11 +1180,11 @@
       "confidence": "0.900"
     },
     {
-      "from_key": "fixtures/extraction/php/behat_context/FeatureContext.php:LegacyContext:50:0",
+      "from_key": "fixtures/extraction/php/behat_context/FeatureContext.php:LegacyContext:60:0",
       "callee_name": "Behat\\Behat\\Context\\SnippetAcceptingContext",
       "kind": "implements",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-      "line_number": 50,
+      "line_number": 60,
       "confidence": "0.900"
     },
     {
@@ -841,15 +1212,51 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/php/behat_context/FeatureContext.php:total:44:4",
+      "from_key": "fixtures/extraction/php/behat_context/FeatureContext.php:total:54:4",
       "callee_name": "count",
       "kind": "calls",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-      "line_number": 46,
+      "line_number": 56,
       "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/php/behat_context/settings.php:Settings:7:0",
+      "callee_name": "Context",
+      "kind": "implements",
+      "file_path": "fixtures/extraction/php/behat_context/settings.php",
+      "line_number": 7,
+      "confidence": "0.900"
     }
   ],
   "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/php/behat_context/FeatureContext.php:AppContext:99:0",
+        "callee_name": "App\\Context",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
+        "line_number": 99,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "App\\Context",
+        "terminal_name": "Context",
+        "receiver": null,
+        "namespace_path": [
+          "App"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/php/behat_context/FeatureContext.php:AppContext:99:0",
+      "span": {
+        "start_line": 99,
+        "start_column": 0,
+        "end_line": 110,
+        "end_column": 1,
+        "start_byte": 1644,
+        "end_byte": 1834
+      }
+    },
     {
       "pending": {
         "from_key": "fixtures/extraction/php/behat_context/FeatureContext.php:FeatureContext:10:0",
@@ -870,19 +1277,19 @@
       "span": {
         "start_line": 10,
         "start_column": 0,
-        "end_line": 48,
+        "end_line": 58,
         "end_column": 1,
         "start_byte": 166,
-        "end_byte": 925
+        "end_byte": 1090
       }
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/php/behat_context/FeatureContext.php:LegacyContext:50:0",
+        "from_key": "fixtures/extraction/php/behat_context/FeatureContext.php:LegacyContext:60:0",
         "callee_name": "Behat\\Behat\\Context\\SnippetAcceptingContext",
         "kind": "implements",
         "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-        "line_number": 50,
+        "line_number": 60,
         "confidence": "0.900"
       },
       "target": {
@@ -896,14 +1303,14 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/php/behat_context/FeatureContext.php:LegacyContext:50:0",
+      "caller_scope_key": "fixtures/extraction/php/behat_context/FeatureContext.php:LegacyContext:60:0",
       "span": {
-        "start_line": 50,
+        "start_line": 60,
         "start_column": 0,
-        "end_line": 72,
+        "end_line": 82,
         "end_column": 1,
-        "start_byte": 927,
-        "end_byte": 1285
+        "start_byte": 1092,
+        "end_byte": 1450
       }
     },
     {
@@ -986,11 +1393,11 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/php/behat_context/FeatureContext.php:total:44:4",
+        "from_key": "fixtures/extraction/php/behat_context/FeatureContext.php:total:54:4",
         "callee_name": "count",
         "kind": "calls",
         "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-        "line_number": 46,
+        "line_number": 56,
         "confidence": "0.700"
       },
       "target": {
@@ -1000,14 +1407,40 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/php/behat_context/FeatureContext.php:total:44:4",
+      "caller_scope_key": "fixtures/extraction/php/behat_context/FeatureContext.php:total:54:4",
       "span": {
-        "start_line": 46,
+        "start_line": 56,
         "start_column": 15,
-        "end_line": 46,
+        "end_line": 56,
         "end_column": 33,
-        "start_byte": 898,
-        "end_byte": 916
+        "start_byte": 1063,
+        "end_byte": 1081
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/php/behat_context/settings.php:Settings:7:0",
+        "callee_name": "Context",
+        "kind": "implements",
+        "file_path": "fixtures/extraction/php/behat_context/settings.php",
+        "line_number": 7,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "Context",
+        "terminal_name": "Context",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/php/behat_context/settings.php:Settings:7:0",
+      "span": {
+        "start_line": 7,
+        "start_column": 0,
+        "end_line": 18,
+        "end_column": 1,
+        "start_byte": 58,
+        "end_byte": 246
       }
     }
   ],
@@ -1125,18 +1558,18 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:cart:member_access:46:28",
+      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:cart:member_access:56:28",
       "name": "cart",
       "kind": "member_access",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-      "start_line": 46,
+      "start_line": 56,
       "start_column": 28,
-      "end_line": 46,
+      "end_line": 56,
       "end_column": 32,
-      "start_byte": 911,
-      "end_byte": 915,
-      "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:total:44:4",
+      "start_byte": 1076,
+      "end_byte": 1080,
+      "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:total:54:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1157,18 +1590,18 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:count:call:46:15",
+      "key": "fixtures/extraction/php/behat_context/FeatureContext.php:count:call:56:15",
       "name": "count",
       "kind": "call",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-      "start_line": 46,
+      "start_line": 56,
       "start_column": 15,
-      "end_line": 46,
+      "end_line": 56,
       "end_column": 20,
-      "start_byte": 898,
-      "end_byte": 903,
-      "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:total:44:4",
+      "start_byte": 1063,
+      "end_byte": 1068,
+      "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:total:54:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1206,6 +1639,15 @@
     }
   ],
   "types": [
+    {
+      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:aTenant:101:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "php",
+      "metadata": null
+    },
     {
       "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:anEmptyCart:14:4",
       "resolved_type": "void",
@@ -1252,7 +1694,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:notify:84:4",
+      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:notify:94:4",
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
@@ -1261,7 +1703,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:onOrderPlaced:76:4",
+      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:onOrderPlaced:86:4",
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
@@ -1272,6 +1714,33 @@
     {
       "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:reset:32:4",
       "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:testConnection:106:4",
+      "resolved_type": "bool",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:testConnection:44:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:testHelper:49:4",
+      "resolved_type": "bool",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
@@ -1297,8 +1766,26 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:total:44:4",
+      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:total:54:4",
       "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/behat_context/settings.php:defaults:9:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/behat_context/settings.php:testConnection:14:4",
+      "resolved_type": "bool",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
@@ -1308,6 +1795,26 @@
   ],
   "parse_diagnostics": [],
   "structural_facts": [
+    {
+      "pattern_id": "php.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
+      "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:aTenant:101:4",
+      "start_line": 101,
+      "start_column": 6,
+      "end_line": 101,
+      "end_column": 23,
+      "start_byte": 1689,
+      "end_byte": 1706,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "Given",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
     {
       "pattern_id": "php.attribute.v1",
       "capture_name": "attribute",
@@ -1354,13 +1861,13 @@
       "node_kind": "attribute",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-      "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:onOrderPlaced:76:4",
-      "start_line": 76,
+      "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:onOrderPlaced:86:4",
+      "start_line": 86,
       "start_column": 6,
-      "end_line": 76,
+      "end_line": 86,
       "end_column": 27,
-      "start_byte": 1315,
-      "end_byte": 1336,
+      "start_byte": 1480,
+      "end_byte": 1501,
       "confidence": "1.000",
       "metadata": {
         "attribute_name": "Given",
@@ -1384,6 +1891,26 @@
       "confidence": "1.000",
       "metadata": {
         "attribute_name": "BeforeScenario",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "php.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
+      "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:testConnection:44:4",
+      "start_line": 44,
+      "start_column": 6,
+      "end_line": 44,
+      "end_column": 34,
+      "start_byte": 850,
+      "end_byte": 878,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "Given",
         "pattern_version": 1,
         "query_family": "metadata"
       }
@@ -1426,6 +1953,46 @@
         "attribute_name": "AfterScenario",
         "pattern_version": 1,
         "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "php.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/settings.php",
+      "containing_key": "fixtures/extraction/php/behat_context/settings.php:defaults:9:4",
+      "start_line": 9,
+      "start_column": 6,
+      "end_line": 9,
+      "end_column": 23,
+      "start_byte": 100,
+      "end_byte": 117,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "Given",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "php.namespace_definition.v1",
+      "capture_name": "namespace_definition",
+      "node_kind": "namespace_definition",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/settings.php",
+      "containing_key": "fixtures/extraction/php/behat_context/settings.php:App\\Settings:3:0",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 23,
+      "start_byte": 7,
+      "end_byte": 30,
+      "confidence": "1.000",
+      "metadata": {
+        "namespace_name": "App\\Settings",
+        "pattern_version": 1,
+        "query_family": "module"
       }
     },
     {
@@ -1547,6 +2114,26 @@
         "pattern_version": 1,
         "query_family": "imports"
       }
+    },
+    {
+      "pattern_id": "php.namespace_use_declaration.v1",
+      "capture_name": "namespace_use_declaration",
+      "node_kind": "namespace_use_clause",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/settings.php",
+      "containing_key": null,
+      "start_line": 5,
+      "start_column": 4,
+      "end_line": 5,
+      "end_column": 23,
+      "start_byte": 36,
+      "end_byte": 55,
+      "confidence": "1.000",
+      "metadata": {
+        "import_target": "App\\Support\\Context",
+        "pattern_version": 1,
+        "query_family": "imports"
+      }
     }
   ],
   "complexity_metrics": [
@@ -1556,25 +2143,47 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-      "covered_lines": 88,
-      "covered_bytes": 1478,
+      "covered_lines": 111,
+      "covered_bytes": 1835,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 88,
+      "end_line": 111,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 1478,
+      "end_byte": 1835,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/settings.php",
+      "covered_lines": 19,
+      "covered_bytes": 247,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 19,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 247,
       "metadata": {
         "metric_version": 1
       }
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:aSignedInCustomer:55:4",
+      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:aSignedInCustomer:65:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
@@ -1584,12 +2193,34 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
-      "start_line": 56,
+      "start_line": 66,
       "start_column": 4,
-      "end_line": 57,
+      "end_line": 67,
       "end_column": 5,
-      "start_byte": 1103,
-      "end_byte": 1110,
+      "start_byte": 1268,
+      "end_byte": 1275,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:aTenant:101:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
+      "covered_lines": 2,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 103,
+      "start_column": 4,
+      "end_line": 104,
+      "end_column": 5,
+      "start_byte": 1748,
+      "end_byte": 1755,
       "metadata": {
         "metric_version": 1
       }
@@ -1618,7 +2249,7 @@
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:cleanup:69:4",
+      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:cleanup:79:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
@@ -1628,12 +2259,12 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
-      "start_line": 70,
+      "start_line": 80,
       "start_column": 4,
-      "end_line": 71,
+      "end_line": 81,
       "end_column": 5,
-      "start_byte": 1276,
-      "end_byte": 1283,
+      "start_byte": 1441,
+      "end_byte": 1448,
       "metadata": {
         "metric_version": 1
       }
@@ -1662,7 +2293,7 @@
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:notify:84:4",
+      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:notify:94:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
@@ -1672,19 +2303,19 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
-      "start_line": 85,
+      "start_line": 95,
       "start_column": 4,
-      "end_line": 86,
+      "end_line": 96,
       "end_column": 5,
-      "start_byte": 1468,
-      "end_byte": 1475,
+      "start_byte": 1633,
+      "end_byte": 1640,
       "metadata": {
         "metric_version": 1
       }
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:onOrderPlaced:76:4",
+      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:onOrderPlaced:86:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
@@ -1694,19 +2325,19 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
-      "start_line": 78,
+      "start_line": 88,
       "start_column": 4,
-      "end_line": 79,
+      "end_line": 89,
       "end_column": 5,
-      "start_byte": 1384,
-      "end_byte": 1391,
+      "start_byte": 1549,
+      "end_byte": 1556,
       "metadata": {
         "metric_version": 1
       }
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:prepare:62:4",
+      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:prepare:72:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
@@ -1716,12 +2347,12 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
-      "start_line": 63,
+      "start_line": 73,
       "start_column": 4,
-      "end_line": 64,
+      "end_line": 74,
       "end_column": 5,
-      "start_byte": 1189,
-      "end_byte": 1196,
+      "start_byte": 1354,
+      "end_byte": 1361,
       "metadata": {
         "metric_version": 1
       }
@@ -1744,6 +2375,72 @@
       "end_column": 5,
       "start_byte": 716,
       "end_byte": 749,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:testConnection:106:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
+      "covered_lines": 3,
+      "covered_bytes": 28,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 107,
+      "start_column": 4,
+      "end_line": 109,
+      "end_column": 5,
+      "start_byte": 1804,
+      "end_byte": 1832,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:testConnection:44:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
+      "covered_lines": 2,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 46,
+      "start_column": 4,
+      "end_line": 47,
+      "end_column": 5,
+      "start_byte": 927,
+      "end_byte": 934,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:testHelper:49:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
+      "covered_lines": 3,
+      "covered_bytes": 28,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 50,
+      "start_column": 4,
+      "end_line": 52,
+      "end_column": 5,
+      "start_byte": 979,
+      "end_byte": 1007,
       "metadata": {
         "metric_version": 1
       }
@@ -1794,7 +2491,7 @@
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:total:44:4",
+      "symbol_key": "fixtures/extraction/php/behat_context/FeatureContext.php:total:54:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
@@ -1804,12 +2501,56 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
-      "start_line": 45,
+      "start_line": 55,
       "start_column": 4,
-      "end_line": 47,
+      "end_line": 57,
       "end_column": 5,
-      "start_byte": 881,
-      "end_byte": 923,
+      "start_byte": 1046,
+      "end_byte": 1088,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/behat_context/settings.php:defaults:9:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/settings.php",
+      "covered_lines": 2,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 11,
+      "start_column": 4,
+      "end_line": 12,
+      "end_column": 5,
+      "start_byte": 160,
+      "end_byte": 167,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/behat_context/settings.php:testConnection:14:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/settings.php",
+      "covered_lines": 3,
+      "covered_bytes": 28,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 15,
+      "start_column": 4,
+      "end_line": 17,
+      "end_column": 5,
+      "start_byte": 216,
+      "end_byte": 244,
       "metadata": {
         "metric_version": 1
       }
@@ -1838,52 +2579,65 @@
       "kind": "doc_comment",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-      "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:aSignedInCustomer:55:4",
-      "start_line": 52,
+      "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:aSignedInCustomer:65:4",
+      "start_line": 62,
       "start_column": 4,
-      "end_line": 54,
+      "end_line": 64,
       "end_column": 7,
-      "start_byte": 1008,
-      "end_byte": 1058,
+      "start_byte": 1173,
+      "end_byte": 1223,
       "metadata": null
     },
     {
       "kind": "doc_comment",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-      "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:cleanup:69:4",
-      "start_line": 66,
+      "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:cleanup:79:4",
+      "start_line": 76,
       "start_column": 4,
-      "end_line": 68,
+      "end_line": 78,
       "end_column": 7,
-      "start_byte": 1202,
-      "end_byte": 1234,
+      "start_byte": 1367,
+      "end_byte": 1399,
       "metadata": null
     },
     {
       "kind": "doc_comment",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-      "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:notify:84:4",
-      "start_line": 81,
+      "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:notify:94:4",
+      "start_line": 91,
       "start_column": 4,
-      "end_line": 83,
+      "end_line": 93,
       "end_column": 7,
-      "start_byte": 1397,
-      "end_byte": 1428,
+      "start_byte": 1562,
+      "end_byte": 1593,
       "metadata": null
     },
     {
       "kind": "doc_comment",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-      "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:prepare:62:4",
-      "start_line": 59,
+      "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:prepare:72:4",
+      "start_line": 69,
       "start_column": 4,
-      "end_line": 61,
+      "end_line": 71,
       "end_column": 7,
-      "start_byte": 1116,
-      "end_byte": 1147,
+      "start_byte": 1281,
+      "end_byte": 1312,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
+      "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:aTenant:101:4",
+      "start_line": 101,
+      "start_column": 12,
+      "end_line": 101,
+      "end_column": 22,
+      "start_byte": 1695,
+      "end_byte": 1705,
       "metadata": null
     },
     {
@@ -1929,13 +2683,26 @@
       "kind": "string_literal",
       "language": "php",
       "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
-      "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:onOrderPlaced:76:4",
-      "start_line": 76,
+      "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:onOrderPlaced:86:4",
+      "start_line": 86,
       "start_column": 12,
-      "end_line": 76,
+      "end_line": 86,
       "end_column": 26,
-      "start_byte": 1321,
-      "end_byte": 1335,
+      "start_byte": 1486,
+      "end_byte": 1500,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/FeatureContext.php",
+      "containing_key": "fixtures/extraction/php/behat_context/FeatureContext.php:testConnection:44:4",
+      "start_line": 44,
+      "start_column": 12,
+      "end_line": 44,
+      "end_column": 33,
+      "start_byte": 856,
+      "end_byte": 877,
       "metadata": null
     },
     {
@@ -1949,6 +2716,19 @@
       "end_column": 40,
       "start_byte": 513,
       "end_byte": 542,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/behat_context/settings.php",
+      "containing_key": "fixtures/extraction/php/behat_context/settings.php:defaults:9:4",
+      "start_line": 9,
+      "start_column": 12,
+      "end_line": 9,
+      "end_column": 22,
+      "start_byte": 106,
+      "end_byte": 116,
       "metadata": null
     }
   ],

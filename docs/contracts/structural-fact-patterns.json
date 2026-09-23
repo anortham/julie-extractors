@@ -4376,10 +4376,16 @@
         "value_type": "bool"
       },
       {
-        "description": "The line's leading and suffix comments, else its block's, without `//`.",
+        "description": "The line's leading and suffix comments, else its block's, without `//`, cut to at most 500 bytes.",
         "key": "rationale",
         "presence": "optional",
         "value_type": "string"
+      },
+      {
+        "description": "True when the rationale was cut to 500 bytes.",
+        "key": "rationale_truncated",
+        "presence": "optional",
+        "value_type": "bool"
       }
     ],
     "pattern_id": "gomod.retract.v1",

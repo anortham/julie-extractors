@@ -10,6 +10,8 @@
 //! line are its leading comments, a `//` comment after the values on the same
 //! line is its suffix comment, and a blank line detaches a comment block.
 
+use std::collections::{HashMap, HashSet};
+
 use tree_sitter::Node;
 
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -268,7 +270,8 @@ fn node_text<'a>(content: &'a str, node: Node<'_>) -> &'a str {
 
 /// The value of a Go string literal, or `None` for an unquoted token. The
 /// grammar lexes a quoted value without spaces as a plain identifier, so this
-/// reads the text, not the node kind. An unknown escape is kept as written.
+/// reads the text, not the node kind. Escapes follow the Go specification; an
+/// invalid escape or a result that is not UTF-8 keeps the token as written.
 fn unquote(token: &str) -> Option<String> {
     if token.len() < 2 {
         return None;
@@ -277,26 +280,61 @@ fn unquote(token: &str) -> Option<String> {
         return Some(raw.to_string());
     }
     let inner = token.strip_prefix('"')?.strip_suffix('"')?;
-    let mut out = String::with_capacity(inner.len());
+    Some(decode_interpreted(inner).unwrap_or_else(|| inner.to_string()))
+}
+
+fn decode_interpreted(inner: &str) -> Option<String> {
+    let mut out: Vec<u8> = Vec::with_capacity(inner.len());
     let mut chars = inner.chars();
     while let Some(ch) = chars.next() {
         if ch != '\\' {
-            out.push(ch);
+            let mut buffer = [0; 4];
+            out.extend_from_slice(ch.encode_utf8(&mut buffer).as_bytes());
             continue;
         }
-        match chars.next() {
-            Some('n') => out.push('\n'),
-            Some('t') => out.push('\t'),
-            Some('r') => out.push('\r'),
-            Some(escaped @ ('\\' | '"')) => out.push(escaped),
-            Some(other) => {
-                out.push('\\');
-                out.push(other);
-            }
-            None => out.push('\\'),
+        let escaped = chars.next()?;
+        let simple = match escaped {
+            'a' => Some(0x07),
+            'b' => Some(0x08),
+            'f' => Some(0x0c),
+            'n' => Some(b'\n'),
+            'r' => Some(b'\r'),
+            't' => Some(b'\t'),
+            'v' => Some(0x0b),
+            '\\' => Some(b'\\'),
+            '"' => Some(b'"'),
+            _ => None,
+        };
+        if let Some(byte) = simple {
+            out.push(byte);
+            continue;
+        }
+        let (digits, radix) = match escaped {
+            '0'..='7' => (2, 8),
+            'x' => (2, 16),
+            'u' => (4, 16),
+            'U' => (8, 16),
+            _ => return None,
+        };
+        let mut text = String::new();
+        if radix == 8 {
+            text.push(escaped);
+        }
+        for _ in 0..digits {
+            text.push(chars.next()?);
+        }
+        if !text.chars().all(|digit| digit.is_digit(radix)) {
+            return None;
+        }
+        let value = u32::from_str_radix(&text, radix).ok()?;
+        if matches!(escaped, 'u' | 'U') {
+            let mut buffer = [0; 4];
+            out.extend_from_slice(char::from_u32(value)?.encode_utf8(&mut buffer).as_bytes());
+        } else {
+            out.push(u8::try_from(value).ok()?);
         }
     }
-    Some(out)
+    String::from_utf8(out).ok()
 }
 
 /// The `//` lines directly above the line that starts at `start`, markers
@@ -333,16 +371,63 @@ pub(crate) fn doc_comment(content: &str, entry: &Entry<'_>) -> Option<String> {
 /// comments of the line, else those of its block, each without `//` and
 /// trimmed, joined with newlines.
 pub(crate) fn directive_comment(content: &str, entry: &Entry<'_>) -> String {
+    let own = own_comment(content, entry);
+    match entry.block {
+        Some(block) if own.is_empty() => block_comment(content, block),
+        _ => own,
+    }
+}
+
+/// The longest retraction rationale a fact keeps.
+pub(crate) const MAX_RATIONALE_BYTES: usize = 500;
+
+/// A retraction rationale as [`directive_comment`] reads it, cut to
+/// [`MAX_RATIONALE_BYTES`] at a character boundary, and whether it was cut.
+/// Every line of a block shares the block comment, so `block_rationales`
+/// reads it once per block, and the cut stops one long comment from being
+/// copied whole into every fact of a long block.
+pub(crate) fn retract_rationale(
+    content: &str,
+    entry: &Entry<'_>,
+    block_rationales: &mut HashMap<usize, (String, bool)>,
+) -> (String, bool) {
+    let own = own_comment(content, entry);
+    match entry.block {
+        Some(block) if own.is_empty() => block_rationales
+            .entry(block.start_byte())
+            .or_insert_with(|| bounded_rationale(block_comment(content, block)))
+            .clone(),
+        _ => bounded_rationale(own),
+    }
+}
+
+fn bounded_rationale(mut text: String) -> (String, bool) {
+    if text.len() <= MAX_RATIONALE_BYTES {
+        return (text, false);
+    }
+    let mut cut = MAX_RATIONALE_BYTES;
+    while !text.is_char_boundary(cut) {
+        cut -= 1;
+    }
+    text.truncate(cut);
+    (text, true)
+}
+
+fn own_comment(content: &str, entry: &Entry<'_>) -> String {
     let mut lines = leading_comment_lines(content, entry.start_byte);
     lines.extend(suffix_comment(content, entry.end_byte));
-    if lines.is_empty()
-        && let Some(block) = entry.block
-    {
-        lines = leading_comment_lines(content, block.start_byte());
-        if let Some(open) = child_end(block, "(") {
-            lines.extend(suffix_comment(content, open));
-        }
+    comment_text(&lines)
+}
+
+fn block_comment(content: &str, block: Node<'_>) -> String {
+    let mut lines = leading_comment_lines(content, block.start_byte());
+    if let Some(open) = child_end(block, "(") {
+        lines.extend(suffix_comment(content, open));
     }
+    comment_text(&lines)
+}
+
+fn comment_text(lines: &[&str]) -> String {
     lines
         .iter()
         .map(|line| line.trim_start_matches("//").trim())
@@ -372,39 +457,46 @@ pub(crate) fn deprecation(content: &str, entry: &Entry<'_>) -> Option<String> {
         .map(|message| message.trim_start_matches(' ').to_string())
 }
 
-/// True when `comment` starts its line and belongs to the leading comment
-/// block of the directive line that follows it.
-pub(crate) fn comment_documents_following_directive(content: &str, comment: Node<'_>) -> bool {
-    let start = comment.start_byte();
-    let line_start = content[..start].rfind('\n').map_or(0, |index| index + 1);
-    if !content[line_start..start].trim().is_empty() {
-        return false;
-    }
-    let mut offset = content[start..]
-        .find('\n')
-        .map_or(content.len(), |index| start + index + 1);
-    while offset < content.len() {
-        let line_end = content[offset..]
-            .find('\n')
-            .map_or(content.len(), |index| offset + index);
-        let line = &content[offset..line_end];
-        let trimmed = line.trim_start();
-        if trimmed.trim_end().is_empty() {
-            return false;
-        }
+/// Start bytes of the comments that document the directive line below them:
+/// each comment starts its line, and only `//` lines lie between it and a
+/// directive line. One pass runs from the last line up, so a comment block
+/// costs its length once, however many comments it holds.
+pub(crate) fn doc_comment_starts(root: Node<'_>, content: &str) -> HashSet<usize> {
+    let mut line_starts = vec![0];
+    line_starts.extend(content.match_indices('\n').map(|(index, _)| index + 1));
+    let line = |index: usize| {
+        let end = line_starts
+            .get(index + 1)
+            .map_or(content.len(), |next| next - 1);
+        &content[line_starts[index]..end]
+    };
+    let mut documents_below = vec![false; line_starts.len()];
+    let mut starts = HashSet::new();
+    for index in (0..line_starts.len()).rev() {
+        let text = line(index);
+        let trimmed = text.trim_start();
         if !trimmed.starts_with("//") {
-            return starts_directive_line(comment, offset + (line.len() - trimmed.len()));
+            continue;
         }
-        offset = line_end + 1;
+        documents_below[index] = line_starts.get(index + 1).is_some_and(|&next_start| {
+            let next = line(index + 1);
+            let next_trimmed = next.trim_start();
+            if next_trimmed.trim_end().is_empty() {
+                false
+            } else if next_trimmed.starts_with("//") {
+                documents_below[index + 1]
+            } else {
+                starts_directive_line(root, next_start + (next.len() - next_trimmed.len()))
+            }
+        });
+        if documents_below[index] {
+            starts.insert(line_starts[index] + (text.len() - trimmed.len()));
+        }
     }
-    false
+    starts
 }
 
-fn starts_directive_line(anchor: Node<'_>, byte: usize) -> bool {
-    let mut root = anchor;
-    while let Some(parent) = root.parent() {
-        root = parent;
-    }
+fn starts_directive_line(root: Node<'_>, byte: usize) -> bool {
     let mut node = root.descendant_for_byte_range(byte, byte);
     while let Some(current) = node.filter(|current| current.start_byte() == byte) {
         let kind = current.kind();

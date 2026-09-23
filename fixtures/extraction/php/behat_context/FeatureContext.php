@@ -41,6 +41,16 @@ final class FeatureContext implements Context
         $this->cart = [];
     }
 
+    #[Given('the service answers')]
+    public function testConnection(): void
+    {
+    }
+
+    public function testHelper(): bool
+    {
+        return true;
+    }
+
     public function total(): int
     {
         return count($this->cart);
@@ -83,5 +93,18 @@ class WorkflowRules
      */
     public function notify(): void
     {
+    }
+}
+
+class AppContext extends App\Context
+{
+    #[Given('a tenant')]
+    public function aTenant(): void
+    {
+    }
+
+    public function testConnection(): bool
+    {
+        return true;
     }
 }

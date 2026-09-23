@@ -17,7 +17,8 @@ it, so both frameworks published no role for their step methods.
 - `TestRole` gains `step_definition`. The value appears as
   `test_role = "step_definition"` in `symbols.metadata_json`.
 - A step definition sets none of the `is_test`, `test_container`, or
-  `test_lifecycle` columns. The schema contract defines `is_test = 1` as a test
+  `test_lifecycle` columns, and assigning the role clears any flag an earlier
+  path or name rule set. The schema contract defines `is_test = 1` as a test
   case or a hook, and consumers count test cases as `is_test = 1` and
   `test_lifecycle = 0`. A step with `is_test = 1` would count as a case.
 - The `test_detection` capability units stay `test_case`, `test_container`, and
@@ -27,9 +28,11 @@ it, so both frameworks published no role for their step methods.
   The attribute names are common words, so outside a `[Binding]` class they
   publish no role.
 - Behat: a class that implements `Context`, `SnippetAcceptingContext`,
-  `CustomSnippetAcceptingContext`, or `TranslatableContext` is a test
-  container. Its methods with a `Given`, `When`, or `Then` attribute or
-  docblock tag are step definitions. Its `Before*` hooks (suite, feature,
+  `CustomSnippetAcceptingContext`, or `TranslatableContext` from the `Behat\`
+  namespace is a test container. The base type must be written qualified or
+  bound by a `use Behat\...` import, because `Context` is a common class name.
+  PHPUnit name rules do not apply to its members. Its methods with a `Given`,
+  `When`, or `Then` attribute or docblock tag are step definitions. Its `Before*` hooks (suite, feature,
   scenario, step) are `fixture_setup`, and its `After*` hooks are
   `fixture_teardown`.
 
@@ -37,6 +40,8 @@ it, so both frameworks published no role for their step methods.
 
 - A reader that knows only the five earlier values must accept a sixth
   `test_role` string. The typed columns do not change.
+- Rust callers: the public `TestRole` enum gains `StepDefinition`, so an
+  exhaustive `match` on it needs a new arm.
 - Golden evidence: `csharp:step_definitions`, `csharp:language_idioms`, and
   `php:behat_context`. Each fixture has a class with step attributes outside a
   binding or context class as the control.

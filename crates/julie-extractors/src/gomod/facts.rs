@@ -26,13 +26,19 @@ pub(crate) const PATTERN_IDS: &[&str] = &[
 ];
 
 pub(crate) fn structural_facts(tree: &Tree, file_path: &str, content: &str) -> Vec<StructuralFact> {
+    let mut block_rationales = HashMap::new();
     entries(tree.root_node(), content)
         .iter()
-        .filter_map(|entry| fact(entry, file_path, content))
+        .filter_map(|entry| fact(entry, file_path, content, &mut block_rationales))
         .collect()
 }
 
-fn fact(entry: &Entry<'_>, file_path: &str, content: &str) -> Option<StructuralFact> {
+fn fact(
+    entry: &Entry<'_>,
+    file_path: &str,
+    content: &str,
+    block_rationales: &mut HashMap<usize, (String, bool)>,
+) -> Option<StructuralFact> {
     let mut metadata = base_metadata("dependencies");
     let copy = |metadata: &mut HashMap<String, Value>, roles: &[&str]| {
         for role in roles {
@@ -94,9 +100,13 @@ fn fact(entry: &Entry<'_>, file_path: &str, content: &str) -> Option<StructuralF
             insert_string(&mut metadata, "low", low);
             insert_string(&mut metadata, "high", high);
             metadata.insert("range".to_string(), Value::Bool(entry.range));
-            let rationale = directives::directive_comment(content, entry);
+            let (rationale, truncated) =
+                directives::retract_rationale(content, entry, block_rationales);
             if !rationale.is_empty() {
                 insert_string(&mut metadata, "rationale", &rationale);
+            }
+            if truncated {
+                metadata.insert("rationale_truncated".to_string(), Value::Bool(true));
             }
             ("gomod.retract.v1", "retract")
         }
