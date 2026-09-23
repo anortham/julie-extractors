@@ -64,15 +64,8 @@
       "end_column": 57,
       "start_byte": 472,
       "end_byte": 492,
-      "body_span": {
-        "start_line": 16,
-        "start_column": 53,
-        "end_line": 16,
-        "end_column": 57,
-        "start_byte": 488,
-        "end_byte": 492
-      },
-      "body_hash": "2b65a3dfd98c4d3f63d3b707de05eba9",
+      "body_span": null,
+      "body_hash": null,
       "signature": "@Entity NVARCHAR(50)",
       "doc_comment": null,
       "visibility": "Public",
@@ -97,15 +90,8 @@
       "end_column": 24,
       "start_byte": 630,
       "end_byte": 650,
-      "body_span": {
-        "start_line": 24,
-        "start_column": 18,
-        "end_line": 24,
-        "end_column": 24,
-        "start_byte": 644,
-        "end_byte": 650
-      },
-      "body_hash": "a5bf03cf5fea28f1c13e26198d047d55",
+      "body_span": null,
+      "body_hash": null,
       "signature": "@Total DECIMAL(18,2)",
       "doc_comment": null,
       "visibility": "Public",
@@ -408,14 +394,14 @@
         "end_byte": 1248
       },
       "body_hash": "e84c15d4c7052aa12976baa89ef94a30",
-      "signature": "ALTER FUNCTION fn_Label(@x INT)",
+      "signature": "ALTER FUNCTION fn_Label(@x INT) RETURNS NVARCHAR(20)",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "bodySpanSource": "function_body",
         "isFunction": true,
-        "isStoredProcedure": true,
+        "isStoredProcedure": false,
         "schema": "dbo"
       },
       "annotations": [],
@@ -620,6 +606,28 @@
       }
     },
     {
+      "from_key": "fixtures/extraction/sql/tsql_routines/source.sql:trg_Orders_Audit:50:0",
+      "to_key": "fixtures/extraction/sql/tsql_routines/source.sql:Orders:6:0",
+      "kind": "references",
+      "file_path": "fixtures/extraction/sql/tsql_routines/source.sql",
+      "line_number": 50,
+      "span": {
+        "start_line": 50,
+        "start_column": 39,
+        "end_line": 50,
+        "end_column": 45,
+        "start_byte": 1292,
+        "end_byte": 1298
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.950",
+      "metadata": {
+        "isExternal": false,
+        "relationshipType": "trigger_target",
+        "targetTable": "Orders"
+      }
+    },
+    {
       "from_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
       "to_key": "fixtures/extraction/sql/tsql_routines/source.sql:Customers:1:0",
       "kind": "references",
@@ -804,9 +812,9 @@
   ],
   "identifiers": [
     {
-      "key": "fixtures/extraction/sql/tsql_routines/source.sql:@CustomerId:member_access:27:55",
+      "key": "fixtures/extraction/sql/tsql_routines/source.sql:@CustomerId:variable_ref:27:55",
       "name": "@CustomerId",
-      "kind": "member_access",
+      "kind": "variable_ref",
       "language": "sql",
       "file_path": "fixtures/extraction/sql/tsql_routines/source.sql",
       "start_line": 27,
@@ -820,9 +828,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/sql/tsql_routines/source.sql:@CustomerId:member_access:28:62",
+      "key": "fixtures/extraction/sql/tsql_routines/source.sql:@CustomerId:variable_ref:28:62",
       "name": "@CustomerId",
-      "kind": "member_access",
+      "kind": "variable_ref",
       "language": "sql",
       "file_path": "fixtures/extraction/sql/tsql_routines/source.sql",
       "start_line": 28,
@@ -836,9 +844,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/sql/tsql_routines/source.sql:@CustomerId:member_access:29:51",
+      "key": "fixtures/extraction/sql/tsql_routines/source.sql:@CustomerId:variable_ref:29:51",
       "name": "@CustomerId",
-      "kind": "member_access",
+      "kind": "variable_ref",
       "language": "sql",
       "file_path": "fixtures/extraction/sql/tsql_routines/source.sql",
       "start_line": 29,
@@ -852,9 +860,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/sql/tsql_routines/source.sql:@CustomerId:member_access:31:31",
+      "key": "fixtures/extraction/sql/tsql_routines/source.sql:@CustomerId:variable_ref:31:31",
       "name": "@CustomerId",
-      "kind": "member_access",
+      "kind": "variable_ref",
       "language": "sql",
       "file_path": "fixtures/extraction/sql/tsql_routines/source.sql",
       "start_line": 31,
@@ -868,9 +876,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/sql/tsql_routines/source.sql:@Day:member_access:40:44",
+      "key": "fixtures/extraction/sql/tsql_routines/source.sql:@Day:variable_ref:40:44",
       "name": "@Day",
-      "kind": "member_access",
+      "kind": "variable_ref",
       "language": "sql",
       "file_path": "fixtures/extraction/sql/tsql_routines/source.sql",
       "start_line": 40,
@@ -884,9 +892,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/sql/tsql_routines/source.sql:@Entity:member_access:19:48",
+      "key": "fixtures/extraction/sql/tsql_routines/source.sql:@Entity:variable_ref:19:48",
       "name": "@Entity",
-      "kind": "member_access",
+      "kind": "variable_ref",
       "language": "sql",
       "file_path": "fixtures/extraction/sql/tsql_routines/source.sql",
       "start_line": 19,
@@ -900,9 +908,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/sql/tsql_routines/source.sql:@Total:member_access:27:68",
+      "key": "fixtures/extraction/sql/tsql_routines/source.sql:@Total:variable_ref:27:68",
       "name": "@Total",
-      "kind": "member_access",
+      "kind": "variable_ref",
       "language": "sql",
       "file_path": "fixtures/extraction/sql/tsql_routines/source.sql",
       "start_line": 27,
@@ -916,9 +924,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/sql/tsql_routines/source.sql:@Total:member_access:31:44",
+      "key": "fixtures/extraction/sql/tsql_routines/source.sql:@Total:variable_ref:31:44",
       "name": "@Total",
-      "kind": "member_access",
+      "kind": "variable_ref",
       "language": "sql",
       "file_path": "fixtures/extraction/sql/tsql_routines/source.sql",
       "start_line": 31,
@@ -948,6 +956,23 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/sql/tsql_routines/source.sql:CustomerId:member_access:27:28",
+      "name": "CustomerId",
+      "kind": "member_access",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/tsql_routines/source.sql",
+      "start_line": 27,
+      "start_column": 28,
+      "end_line": 27,
+      "end_column": 38,
+      "start_byte": 688,
+      "end_byte": 698,
+      "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "Orders"
+    },
+    {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:CustomerId:member_access:28:49",
       "name": "CustomerId",
       "kind": "member_access",
@@ -961,7 +986,8 @@
       "end_byte": 796,
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "Customers"
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:CustomerId:member_access:29:38",
@@ -977,7 +1003,8 @@
       "end_byte": 860,
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "OrderDrafts"
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:Customers:type_usage:28:15",
@@ -1025,7 +1052,8 @@
       "end_byte": 1141,
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_NightlyTotals:37:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "DailyTotals"
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:Email:member_access:28:29",
@@ -1041,7 +1069,8 @@
       "end_byte": 771,
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "Customers"
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:Email:member_access:28:37",
@@ -1057,7 +1086,25 @@
       "end_byte": 779,
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "receiver_type": "Customers"
+    },
+    {
+      "key": "fixtures/extraction/sql/tsql_routines/source.sql:Entity:member_access:19:32",
+      "name": "Entity",
+      "kind": "member_access",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/tsql_routines/source.sql",
+      "start_line": 19,
+      "start_column": 32,
+      "end_line": 19,
+      "end_column": 38,
+      "start_byte": 535,
+      "end_byte": 541,
+      "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_WriteAudit:16:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "AuditLog"
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:OrderDrafts:type_usage:29:20",
@@ -1090,6 +1137,23 @@
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/sql/tsql_routines/source.sql:Total:member_access:27:40",
+      "name": "Total",
+      "kind": "member_access",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/tsql_routines/source.sql",
+      "start_line": 27,
+      "start_column": 40,
+      "end_line": 27,
+      "end_column": 45,
+      "start_byte": 700,
+      "end_byte": 705,
+      "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "Orders"
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_Charge:call:31:20",
@@ -1130,7 +1194,7 @@
       "resolved_type": "INT",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
     },
@@ -1139,25 +1203,38 @@
       "resolved_type": "DATE",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/sql/tsql_routines/source.sql:@Entity:16:37",
+      "resolved_type": "NVARCHAR",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "sql",
+      "metadata": {
+        "declared": "NVARCHAR(50)"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/sql/tsql_routines/source.sql:@Total:24:4",
       "resolved_type": "DECIMAL",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
-      "metadata": null
+      "metadata": {
+        "declared": "DECIMAL(18,2)"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/sql/tsql_routines/source.sql:@x:43:29",
       "resolved_type": "INT",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
     },
@@ -1166,7 +1243,7 @@
       "resolved_type": "INT",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
     },
@@ -1175,7 +1252,7 @@
       "resolved_type": "INT",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
     },
@@ -1189,11 +1266,22 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/sql/tsql_routines/source.sql:Email:3:4",
+      "resolved_type": "NVARCHAR",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "sql",
+      "metadata": {
+        "declared": "NVARCHAR(256)"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/sql/tsql_routines/source.sql:OrderId:7:4",
       "resolved_type": "INT",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
     },
@@ -1207,22 +1295,35 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/sql/tsql_routines/source.sql:Total:9:4",
-      "resolved_type": "DECIMAL",
+      "symbol_key": "fixtures/extraction/sql/tsql_routines/source.sql:PlacedAt:14:27",
+      "resolved_type": "DATETIME2",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/sql/tsql_routines/source.sql:fn_Label:43:0",
-      "resolved_type": "PROCEDURE",
+      "symbol_key": "fixtures/extraction/sql/tsql_routines/source.sql:Total:9:4",
+      "resolved_type": "DECIMAL",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "sql",
-      "metadata": null
+      "metadata": {
+        "declared": "DECIMAL(18,2)"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/sql/tsql_routines/source.sql:fn_Label:43:0",
+      "resolved_type": "NVARCHAR",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "sql",
+      "metadata": {
+        "declared": "NVARCHAR(20)"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_NightlyTotals:37:0",
@@ -1745,9 +1846,15 @@
       "end_byte": 1338,
       "confidence": "1.000",
       "metadata": {
+        "event": "insert",
+        "events": [
+          "insert"
+        ],
         "pattern_version": 1,
         "query_family": "schema_structure",
-        "trigger_name": "dbo"
+        "target_table": "Orders",
+        "timing": "after",
+        "trigger_name": "trg_Orders_Audit"
       }
     },
     {
@@ -1792,7 +1899,7 @@
       "start_byte": 0,
       "end_byte": 1342,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     },
@@ -1807,7 +1914,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": null,
+      "parameter_count": 1,
       "start_line": 43,
       "start_column": 0,
       "end_line": 48,
@@ -1815,7 +1922,7 @@
       "start_byte": 1158,
       "end_byte": 1248,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     },
@@ -1838,7 +1945,7 @@
       "start_byte": 1253,
       "end_byte": 1338,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     },
@@ -1853,7 +1960,7 @@
       "decision_count": 1,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": null,
+      "parameter_count": 1,
       "start_line": 38,
       "start_column": 0,
       "end_line": 41,
@@ -1861,7 +1968,7 @@
       "start_byte": 1091,
       "end_byte": 1153,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     },
@@ -1876,7 +1983,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": null,
+      "parameter_count": 0,
       "start_line": 35,
       "start_column": 0,
       "end_line": 35,
@@ -1884,7 +1991,7 @@
       "start_byte": 1000,
       "end_byte": 1027,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     },
@@ -1899,7 +2006,7 @@
       "decision_count": 2,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": null,
+      "parameter_count": 2,
       "start_line": 25,
       "start_column": 0,
       "end_line": 32,
@@ -1907,7 +2014,7 @@
       "start_byte": 651,
       "end_byte": 969,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     },
@@ -1922,7 +2029,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": null,
+      "parameter_count": 1,
       "start_line": 17,
       "start_column": 0,
       "end_line": 20,
@@ -1930,12 +2037,45 @@
       "start_byte": 494,
       "end_byte": 564,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     }
   ],
-  "literals": [],
+  "literals": [
+    {
+      "literal_text": "label",
+      "kind": "other",
+      "carrier": "value",
+      "arg_position": 0,
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/tsql_routines/source.sql",
+      "start_line": 47,
+      "start_column": 11,
+      "end_line": 47,
+      "end_column": 19,
+      "start_byte": 1236,
+      "end_byte": 1244,
+      "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:fn_Label:43:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "order",
+      "kind": "other",
+      "carrier": "usp_WriteAudit",
+      "arg_position": 0,
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/tsql_routines/source.sql",
+      "start_line": 30,
+      "start_column": 28,
+      "end_line": 30,
+      "end_column": 36,
+      "start_byte": 904,
+      "end_byte": 912,
+      "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
+      "confidence": "1.000"
+    }
+  ],
   "source_regions": [
     {
       "kind": "doc_comment",
@@ -1948,6 +2088,32 @@
       "end_column": 26,
       "start_byte": 973,
       "end_byte": 999,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/tsql_routines/source.sql",
+      "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:fn_Label:43:0",
+      "start_line": 47,
+      "start_column": 11,
+      "end_line": 47,
+      "end_column": 19,
+      "start_byte": 1236,
+      "end_byte": 1244,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/tsql_routines/source.sql",
+      "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
+      "start_line": 30,
+      "start_column": 28,
+      "end_line": 30,
+      "end_column": 36,
+      "start_byte": 904,
+      "end_byte": 912,
       "metadata": null
     }
   ],

@@ -5123,6 +5123,11 @@
           "name": "ui_form",
           "source": "fixtures/extraction/qml/ui_form/Screen01.ui.qml",
           "expected": "fixtures/extraction/qml/ui_form/expected.json"
+        },
+        {
+          "name": "semantics",
+          "source": "fixtures/extraction/qml/semantics/Dashboard.qml",
+          "expected": "fixtures/extraction/qml/semantics/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5140,6 +5145,7 @@
             "enum",
             "enum_member",
             "event",
+            "export",
             "field",
             "function",
             "import",
@@ -5192,7 +5198,8 @@
             "qml.binding.v1",
             "qml.object_instantiation.v1",
             "qml.typeinfo_declaration.v1",
-            "qml.pragma.v1"
+            "qml.pragma.v1",
+            "qml.component_url.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -5206,24 +5213,28 @@
           "open_gaps": []
         },
         "annotations": {
-          "supported": [],
-          "not_applicable": [
+          "supported": [
             "class",
             "event",
             "field",
             "function",
-            "import",
             "property"
+          ],
+          "not_applicable": [
+            "import"
           ],
           "open_gaps": []
         },
         "doc_comments": {
           "supported": [
-            "function"
+            "class",
+            "enum",
+            "event",
+            "field",
+            "function",
+            "property"
           ],
-          "not_applicable": [
-            "field"
-          ],
+          "not_applicable": [],
           "open_gaps": []
         },
         "literals": {
@@ -5374,6 +5385,8 @@
             "qmldir.plugin.v1",
             "qmldir.prefer.v1",
             "qmldir.singleton_type.v1",
+            "qmldir.static.v1",
+            "qmldir.system.v1",
             "qmldir.typeinfo.v1"
           ],
           "not_applicable": [],
@@ -5411,9 +5424,10 @@
           "open_gaps": []
         },
         "source_regions": {
-          "supported": [],
+          "supported": [
+            "comment"
+          ],
           "not_applicable": [
-            "comment",
             "string_literal"
           ],
           "open_gaps": []
@@ -6350,6 +6364,16 @@
           "name": "pg_dump",
           "source": "fixtures/extraction/sql/pg_dump/source.sql",
           "expected": "fixtures/extraction/sql/pg_dump/expected.json"
+        },
+        {
+          "name": "pg_semantics",
+          "source": "fixtures/extraction/sql/pg_semantics/source.sql",
+          "expected": "fixtures/extraction/sql/pg_semantics/expected.json"
+        },
+        {
+          "name": "tsql_semantics",
+          "source": "fixtures/extraction/sql/tsql_semantics/source.sql",
+          "expected": "fixtures/extraction/sql/tsql_semantics/expected.json"
         }
       ],
       "target_capabilities": {
@@ -6383,11 +6407,10 @@
           "supported": [
             "call",
             "member_access",
-            "type_usage"
-          ],
-          "not_applicable": [
+            "type_usage",
             "variable_ref"
           ],
+          "not_applicable": [],
           "open_gaps": []
         },
         "body_spans": {
@@ -6407,17 +6430,22 @@
             "sql.constraint.v1",
             "sql.cte.v1",
             "sql.delete_statement.v1",
+            "sql.extension.v1",
             "sql.foreign_key.v1",
             "sql.function_definition.v1",
             "sql.index_definition.v1",
             "sql.insert_statement.v1",
             "sql.join.v1",
             "sql.merge_statement.v1",
+            "sql.policy_definition.v1",
             "sql.procedure_definition.v1",
+            "sql.role_definition.v1",
             "sql.select_query.v1",
+            "sql.sequence_definition.v1",
             "sql.table_definition.v1",
             "sql.transaction.v1",
             "sql.trigger_definition.v1",
+            "sql.type_definition.v1",
             "sql.update_statement.v1",
             "sql.view_definition.v1",
             "sql.window_definition.v1"
@@ -6447,7 +6475,8 @@
           "supported": [
             "class",
             "field",
-            "function"
+            "function",
+            "interface"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -6482,7 +6511,8 @@
       "language": "regex",
       "parser_crate": "tree-sitter-regex",
       "extensions": [
-        "regex"
+        "regex",
+        "regexp"
       ],
       "dependency_status": "current",
       "capabilities": {
@@ -6497,6 +6527,11 @@
           "name": "basic",
           "source": "fixtures/extraction/regex/basic/source.regex",
           "expected": "fixtures/extraction/regex/basic/expected.json"
+        },
+        {
+          "name": "advanced",
+          "source": "fixtures/extraction/regex/advanced/source.regex",
+          "expected": "fixtures/extraction/regex/advanced/expected.json"
         },
         {
           "name": "cross_file",
@@ -6570,19 +6605,22 @@
           "supported": [
             "regex.alternation.v1",
             "regex.anchor.v1",
+            "regex.backreference.v1",
             "regex.capture_group.v1",
             "regex.character_class.v1",
+            "regex.inline_flags.v1",
             "regex.lookaround.v1",
             "regex.named_capture.v1",
-            "regex.quantifier.v1"
+            "regex.quantifier.v1",
+            "regex.quoted_literal.v1"
           ],
           "not_applicable": [],
           "open_gaps": [
             {
-              "kind": "regex_advanced_constructs",
-              "reason": "Regex structural facts cover capture groups, named captures, lookaround, character classes, quantifiers, alternation, and anchors, but do not yet emit dedicated facts for numeric/named backreferences, possessive quantifiers, quoted literals such as `\\Q...\\E`, or conditional patterns.",
-              "required_closure": "add grammar- or scanner-backed facts and fixtures for backreferences, possessive quantifiers, quoted literal spans, and conditional patterns",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: Regex advanced constructs"
+              "kind": "regex_conditional_patterns",
+              "reason": "The pinned tree-sitter-regex grammar (ECMAScript syntax) has no conditional node: `(?(1)a|b)` parses as an ERROR token followed by a regrouped alternation in which the condition `(1)` becomes a capture group, so neither the condition, the branches, nor the capture numbering after it can be read from the tree.",
+              "required_closure": "pin or patch a grammar that parses `(?(cond)yes|no)` groups, then emit a conditional fact with the condition and branch count, count conditionals as complexity decisions, and add fixture evidence",
+              "planned_closure_task": "docs/plans/2026-09-22-language-gap-closure.md later waves"
             }
           ]
         },
@@ -6620,9 +6658,10 @@
           "open_gaps": []
         },
         "source_regions": {
-          "supported": [],
+          "supported": [
+            "comment"
+          ],
           "not_applicable": [
-            "comment",
             "doc_comment",
             "embedded",
             "string_literal"
@@ -7881,7 +7920,6 @@
         "json",
         "markdown",
         "regex",
-        "sql",
         "toml"
       ]
     },

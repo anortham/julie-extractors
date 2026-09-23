@@ -22,8 +22,9 @@
 //! - `base/web_structural_facts/`: css, html, vue, react, nextjs, nuxt, http client.
 //!
 //! SPECS live in sibling family modules (`builtins`, `markdown`, `data`,
-//! `regex`, `manifest`, `xml`, `sql`, `framework`, `web`, `http_client`); this
-//! file owns types, authoring helpers, and JSON serialization only.
+//! `regex`, `manifest`, `xml`, `sql`, `sql_ddl`, `framework`, `web`,
+//! `http_client`); this file owns types, authoring helpers, and JSON
+//! serialization only.
 //!
 //! Presence semantics (the conformance rule Task 2 enforces over the golden
 //! corpus): an `Always` key is present on every emitted fact of its pattern; an
@@ -148,6 +149,7 @@ mod markdown;
 mod marker;
 mod regex;
 mod sql;
+mod sql_ddl;
 mod web;
 mod xml;
 
@@ -163,6 +165,7 @@ fn all_specs() -> Vec<StructuralFactPatternSpec> {
     specs.extend_from_slice(manifest::SPECS);
     specs.extend_from_slice(xml::SPECS);
     specs.extend_from_slice(sql::SPECS);
+    specs.extend_from_slice(sql_ddl::SPECS);
     specs.extend(framework::specs());
     specs.extend(web::specs());
     specs.extend_from_slice(http_client::SPECS);

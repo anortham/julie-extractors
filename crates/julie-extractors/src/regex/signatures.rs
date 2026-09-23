@@ -35,10 +35,5 @@ pub(super) fn build_unicode_property_signature(property_text: &str, property: &s
     format!("Unicode property ({}): {}", property, property_text)
 }
 
-/// Build signature for a conditional
-pub(super) fn build_conditional_signature(conditional_text: &str, condition: &str) -> String {
-    format!("Conditional ({}): {}", condition, conditional_text)
-}
-
 // REMOVED (2025-10-31): build_atomic_group_signature() - Dead code
 // extract_atomic_group() was unreachable, so this helper is also unreachable

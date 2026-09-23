@@ -5,7 +5,7 @@ use crate::base::{
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
-pub(crate) const STRUCTURAL_FACT_PATTERN_IDS: [&str; 13] = [
+pub(crate) const STRUCTURAL_FACT_PATTERN_IDS: [&str; 15] = [
     "qmldir.module.v1",
     "qmldir.object_type.v1",
     "qmldir.singleton_type.v1",
@@ -19,6 +19,8 @@ pub(crate) const STRUCTURAL_FACT_PATTERN_IDS: [&str; 13] = [
     "qmldir.designer_supported.v1",
     "qmldir.prefer.v1",
     "qmldir.linktarget.v1",
+    "qmldir.static.v1",
+    "qmldir.system.v1",
 ];
 
 pub struct QmldirExtractor {
@@ -129,6 +131,18 @@ impl QmldirExtractor {
                     "designersupported",
                     [("supported", serde_json::Value::Bool(true))],
                 ),
+            ),
+            "static" if args.is_empty() => self.push_fact(
+                node,
+                "qmldir.static.v1",
+                "static",
+                base_metadata("static", []),
+            ),
+            "system" if args.is_empty() => self.push_fact(
+                node,
+                "qmldir.system.v1",
+                "system",
+                base_metadata("system", []),
             ),
             "prefer" => self.extract_path_fact(node, &args, "prefer", "path"),
             "linktarget" => self.extract_path_fact(node, &args, "linktarget", "target"),
@@ -475,8 +489,9 @@ fn is_qml_file(value: &str) -> bool {
     value.ends_with(".qml")
 }
 
+/// Qt's qmldir parser treats both `.js` and `.mjs` entries as script resources.
 fn is_js_file(value: &str) -> bool {
-    value.ends_with(".js")
+    value.ends_with(".js") || value.ends_with(".mjs")
 }
 
 fn symbol_metadata(

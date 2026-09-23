@@ -28,6 +28,15 @@ static CREATE_TRIGGER_TARGET_RE: LazyLock<Regex> = LazyLock::new(|| {
     .unwrap()
 });
 
+/// T-SQL names the table before the timing: `CREATE TRIGGER dbo.t ON
+/// dbo.Orders AFTER INSERT`.
+static CREATE_TSQL_TRIGGER_TARGET_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r#"(?is)\bCREATE\s+(?:OR\s+ALTER\s+)?TRIGGER\s+([\w\.\[\]"]+)\s+ON\s+([\w\.\[\]"]+)\s+(?:AFTER|FOR|INSTEAD\s+OF)\b"#,
+    )
+    .unwrap()
+});
+
 pub(super) fn extract_error_relationships(
     base: &mut BaseExtractor,
     node: Node,
@@ -68,7 +77,10 @@ pub(super) fn extract_error_relationships(
         );
     }
 
-    for captures in CREATE_TRIGGER_TARGET_RE.captures_iter(&error_text) {
+    for captures in CREATE_TRIGGER_TARGET_RE
+        .captures_iter(&error_text)
+        .chain(CREATE_TSQL_TRIGGER_TARGET_RE.captures_iter(&error_text))
+    {
         let Some(trigger_match) = captures.get(1) else {
             continue;
         };
@@ -120,7 +132,7 @@ fn symbol_by_name_and_metadata<'a>(
 }
 
 fn unqualified_name(name: &str) -> String {
-    name.rsplit('.').next().unwrap_or(name).to_string()
+    super::helpers::normalize_sql_identifier(name.rsplit('.').next().unwrap_or(name))
 }
 
 fn push_table_relationship_at_byte(

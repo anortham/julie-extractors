@@ -31,6 +31,11 @@ const DELETE_STATEMENT_PATTERN_ID: &str = "sql.delete_statement.v1";
 const PROCEDURE_DEFINITION_PATTERN_ID: &str = "sql.procedure_definition.v1";
 const FUNCTION_DEFINITION_PATTERN_ID: &str = "sql.function_definition.v1";
 const WINDOW_DEFINITION_PATTERN_ID: &str = "sql.window_definition.v1";
+const POLICY_DEFINITION_PATTERN_ID: &str = "sql.policy_definition.v1";
+const EXTENSION_PATTERN_ID: &str = "sql.extension.v1";
+const SEQUENCE_DEFINITION_PATTERN_ID: &str = "sql.sequence_definition.v1";
+const TYPE_DEFINITION_PATTERN_ID: &str = "sql.type_definition.v1";
+const ROLE_DEFINITION_PATTERN_ID: &str = "sql.role_definition.v1";
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const SQL_STRUCTURAL_PATTERN_IDS: &[&str] = &[
@@ -38,28 +43,43 @@ const SQL_STRUCTURAL_PATTERN_IDS: &[&str] = &[
     CONSTRAINT_PATTERN_ID,
     CTE_PATTERN_ID,
     DELETE_STATEMENT_PATTERN_ID,
+    EXTENSION_PATTERN_ID,
     FOREIGN_KEY_PATTERN_ID,
     FUNCTION_DEFINITION_PATTERN_ID,
     INDEX_DEFINITION_PATTERN_ID,
     INSERT_STATEMENT_PATTERN_ID,
     JOIN_PATTERN_ID,
     MERGE_STATEMENT_PATTERN_ID,
+    POLICY_DEFINITION_PATTERN_ID,
     PROCEDURE_DEFINITION_PATTERN_ID,
+    ROLE_DEFINITION_PATTERN_ID,
     SELECT_QUERY_PATTERN_ID,
+    SEQUENCE_DEFINITION_PATTERN_ID,
     TABLE_DEFINITION_PATTERN_ID,
     TRANSACTION_PATTERN_ID,
     TRIGGER_DEFINITION_PATTERN_ID,
+    TYPE_DEFINITION_PATTERN_ID,
     UPDATE_STATEMENT_PATTERN_ID,
     VIEW_DEFINITION_PATTERN_ID,
     WINDOW_DEFINITION_PATTERN_ID,
 ];
 
 static ERROR_TRIGGER_RE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r"(?i)CREATE\s+TRIGGER\s+([a-zA-Z_][a-zA-Z0-9_]*)").unwrap()
+    Regex::new(r#"(?i)CREATE\s+(?:OR\s+ALTER\s+)?TRIGGER\s+(?:[\[\]"\w]+\.)?[\["]?(\w+)[\]"]?"#)
+        .unwrap()
 });
 static ERROR_TRIGGER_DETAILS_RE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(
         r"(?i)CREATE\s+TRIGGER\s+[a-zA-Z_][a-zA-Z0-9_]*\s+(BEFORE|AFTER)\s+(INSERT|UPDATE|DELETE)\s+ON\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+    )
+    .unwrap()
+});
+
+/// T-SQL names the table before the timing: `CREATE TRIGGER dbo.t ON
+/// dbo.Orders AFTER INSERT, UPDATE AS`.
+static ERROR_TSQL_TRIGGER_DETAILS_RE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(
+        r#"(?i)\bTRIGGER\s+\S+\s+ON\s+(?:[\[\]"\w]+\.)?[\["]?(\w+)[\]"]?\s+(AFTER|FOR|INSTEAD\s+OF)\s+((?:INSERT|UPDATE|DELETE)(?:\s*,\s*(?:INSERT|UPDATE|DELETE))*)"#,
     )
     .unwrap()
 });
@@ -109,8 +129,19 @@ fn collect_sql_node(
                 facts.push(fact);
             }
         }
-        "create_view" => {
+        "create_view" | "create_materialized_view" => {
             if let Some(fact) = view_definition_fact(file_path, content, node) {
+                facts.push(fact);
+            }
+        }
+        "create_policy" | "create_extension" | "create_sequence" | "create_type"
+        | "create_role" => {
+            if let Some(fact) = ddl_object_fact(file_path, content, node) {
+                facts.push(fact);
+            }
+        }
+        "statement" if find_child(node, "keyword_merge").is_some() => {
+            if let Some(fact) = inline_merge_statement_fact(file_path, content, node) {
                 facts.push(fact);
             }
         }
@@ -267,6 +298,10 @@ fn view_definition_fact(file_path: &str, content: &str, node: Node<'_>) -> Optio
         .unwrap_or_default();
     let mut metadata = base_metadata("schema_structure");
     insert_string(&mut metadata, "view_name", &view_name);
+    metadata.insert(
+        "materialized".to_string(),
+        Value::Bool(node.kind() == "create_materialized_view"),
+    );
     if let Some(schema) = schema_name {
         insert_string(&mut metadata, "schema_name", &schema);
     }
@@ -299,9 +334,15 @@ fn trigger_definition_fact(
 ) -> Option<StructuralFact> {
     let (schema_name, trigger_name) =
         object_reference_parts(content, find_object_reference(node)?)?;
-    let timing = first_child_kind(node, &["keyword_before", "keyword_after"])
-        .map(|kind| kind.strip_prefix("keyword_").unwrap_or(&kind).to_string());
-    let event = first_child_kind(
+    let timing = first_child_kind(
+        node,
+        &["keyword_before", "keyword_after", "keyword_instead"],
+    )
+    .map(|kind| match kind.as_str() {
+        "keyword_instead" => "instead_of".to_string(),
+        _ => kind.strip_prefix("keyword_").unwrap_or(&kind).to_string(),
+    });
+    let events = direct_child_kinds(
         node,
         &[
             "keyword_insert",
@@ -310,7 +351,13 @@ fn trigger_definition_fact(
             "keyword_truncate",
         ],
     )
-    .map(|kind| kind.strip_prefix("keyword_").unwrap_or(&kind).to_string());
+    .into_iter()
+    .map(|kind| kind.strip_prefix("keyword_").unwrap_or(kind).to_string())
+    .collect::<Vec<_>>();
+    let function_name = find_child(node, "keyword_execute")
+        .and_then(|keyword| find_descendant_after(node, "object_reference", keyword.end_byte(), 0))
+        .and_then(|reference| object_reference_parts(content, reference))
+        .map(|(_, function)| function);
     let target_table = find_child(node, "keyword_on")
         .and_then(|keyword| find_descendant_after(node, "object_reference", keyword.end_byte(), 0))
         .and_then(|reference| object_reference_parts(content, reference))
@@ -324,8 +371,14 @@ fn trigger_definition_fact(
     if let Some(timing) = timing {
         insert_string(&mut metadata, "timing", &timing);
     }
-    if let Some(event) = event {
-        insert_string(&mut metadata, "event", &event);
+    if let Some(event) = events.first() {
+        insert_string(&mut metadata, "event", event);
+    }
+    if !events.is_empty() {
+        insert_string_array(&mut metadata, "events", events);
+    }
+    if let Some(function) = function_name {
+        insert_string(&mut metadata, "function_name", &function);
     }
     if let Some(table) = target_table {
         insert_string(&mut metadata, "target_table", &table);
@@ -358,6 +411,30 @@ fn trigger_definition_from_error_fact(
         }
         if let Some(table) = details.get(3) {
             insert_string(&mut metadata, "target_table", table.as_str());
+        }
+    } else if let Some(details) = ERROR_TSQL_TRIGGER_DETAILS_RE.captures(text) {
+        if let Some(table) = details.get(1) {
+            insert_string(&mut metadata, "target_table", table.as_str());
+        }
+        if let Some(timing) = details.get(2) {
+            let timing = timing.as_str().to_ascii_lowercase();
+            let timing = match timing.split_whitespace().next() {
+                Some("instead") => "instead_of",
+                Some("for") => "after",
+                _ => "after",
+            };
+            insert_string(&mut metadata, "timing", timing);
+        }
+        if let Some(events) = details.get(3) {
+            let events = events
+                .as_str()
+                .split(',')
+                .map(|event| event.trim().to_ascii_lowercase())
+                .collect::<Vec<_>>();
+            if let Some(event) = events.first() {
+                insert_string(&mut metadata, "event", event);
+            }
+            insert_string_array(&mut metadata, "events", events);
         }
     }
     Some(fact_for_node(
@@ -834,16 +911,22 @@ fn function_definition_fact(
     ))
 }
 
-/// Count `@`-prefixed T-SQL routine parameters.
+/// Count a routine's declared parameters: the `function_argument` nodes of a
+/// parenthesized list.
 ///
-/// The vendored SQL grammar does not wrap parenless procedure parameters
-/// (`CREATE PROCEDURE p @Id INT AS ...`) in `function_argument` nodes — they
-/// surface as `ERROR` siblings — so structural counting misses them. Counting
-/// the parameter sigils in the header region (before the body, and before a
-/// function's `RETURNS` clause so a table-valued `RETURNS @r TABLE` return
-/// variable is not miscounted) is robust across both parenthesized and bare
-/// parameter lists.
+/// The vendored SQL grammar does not wrap parenless T-SQL procedure
+/// parameters (`CREATE PROCEDURE p @Id INT AS ...`) in `function_argument`
+/// nodes, so a routine without an argument list counts the parameter sigils
+/// in its header region (before the body, and before a function's `RETURNS`
+/// clause so a table-valued `RETURNS @r TABLE` return variable is not
+/// miscounted).
 fn count_routine_parameters(content: &str, node: Node<'_>) -> usize {
+    if let Some(arguments) = find_child(node, "function_arguments") {
+        let declared = count_direct_children(arguments, "function_argument");
+        if declared > 0 || !arguments.has_error() {
+            return declared;
+        }
+    }
     let body_start = find_child(node, "function_body").map(|child| child.start_byte());
     let returns_start = find_child(node, "keyword_returns").map(|child| child.start_byte());
     let region_end = [body_start, returns_start]
@@ -973,6 +1056,148 @@ fn merge_statement_fact(file_path: &str, content: &str, node: Node<'_>) -> Optio
         "merge",
         node,
         metadata,
+    ))
+}
+
+/// `MERGE` with a table or query source: the grammar inlines this form into
+/// its `statement` node.
+fn inline_merge_statement_fact(
+    file_path: &str,
+    content: &str,
+    node: Node<'_>,
+) -> Option<StructuralFact> {
+    let mut cursor = node.walk();
+    let references = node
+        .children(&mut cursor)
+        .filter(|child| child.kind() == "object_reference")
+        .collect::<Vec<_>>();
+    let target_table = object_reference_parts(content, *references.first()?)?.1;
+    let (source_kind, source_table) = match find_child(node, "subquery") {
+        Some(_) => ("query", None),
+        None => (
+            "table",
+            references
+                .get(1)
+                .and_then(|reference| object_reference_parts(content, *reference))
+                .map(|(_, table)| table),
+        ),
+    };
+    let mut when_matched = false;
+    let mut when_not_matched = false;
+    let mut cursor = node.walk();
+    for clause in node
+        .children(&mut cursor)
+        .filter(|child| child.kind() == "when_clause")
+    {
+        if find_child(clause, "keyword_not").is_some() {
+            when_not_matched = true;
+        } else {
+            when_matched = true;
+        }
+    }
+    let mut metadata = base_metadata("mutation_structure");
+    insert_string(&mut metadata, "target_table", &target_table);
+    insert_string(&mut metadata, "source_kind", source_kind);
+    if let Some(source_table) = source_table {
+        insert_string(&mut metadata, "source_table", &source_table);
+    }
+    metadata.insert("has_when_matched".to_string(), Value::Bool(when_matched));
+    metadata.insert(
+        "has_when_not_matched".to_string(),
+        Value::Bool(when_not_matched),
+    );
+    Some(fact_for_node(
+        file_path,
+        MERGE_STATEMENT_PATTERN_ID,
+        "merge",
+        node,
+        metadata,
+    ))
+}
+
+/// Facts for PostgreSQL DDL objects: policies, extensions, sequences,
+/// types, and roles.
+fn ddl_object_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<StructuralFact> {
+    let mut cursor = node.walk();
+    let references = node
+        .children(&mut cursor)
+        .filter(|child| child.kind() == "object_reference")
+        .collect::<Vec<_>>();
+    let named = |reference: Option<&Node<'_>>| {
+        reference.and_then(|reference| object_reference_parts(content, *reference))
+    };
+    let identifier = || {
+        find_child(node, "identifier")
+            .and_then(|name| node_text(content, name))
+            .map(normalize_sql_identifier)
+    };
+    let mut metadata = base_metadata("schema_structure");
+    let (pattern_id, capture) = match node.kind() {
+        "create_policy" => {
+            let (_, policy) = named(references.first())?;
+            insert_string(&mut metadata, "policy_name", &policy);
+            if let Some((schema, table)) = named(references.get(1)) {
+                insert_string(&mut metadata, "table_name", &table);
+                if let Some(schema) = schema {
+                    insert_string(&mut metadata, "schema_name", &schema);
+                }
+            }
+            (POLICY_DEFINITION_PATTERN_ID, "create_policy")
+        }
+        "create_extension" => {
+            insert_string(&mut metadata, "extension_name", &identifier()?);
+            metadata.insert(
+                "if_not_exists".to_string(),
+                Value::Bool(find_child(node, "keyword_exists").is_some()),
+            );
+            (EXTENSION_PATTERN_ID, "create_extension")
+        }
+        "create_sequence" => {
+            let (schema, sequence) = named(references.first())?;
+            insert_string(&mut metadata, "sequence_name", &sequence);
+            if let Some(schema) = schema {
+                insert_string(&mut metadata, "schema_name", &schema);
+            }
+            if let Some(start) = node
+                .child_by_field_name("start")
+                .and_then(|start| node_text(content, start))
+                .and_then(|start| start.trim().parse::<i64>().ok())
+            {
+                metadata.insert("start".to_string(), Value::Number(Number::from(start)));
+            }
+            (SEQUENCE_DEFINITION_PATTERN_ID, "create_sequence")
+        }
+        "create_type" => {
+            let (schema, type_name) = named(references.first())?;
+            insert_string(&mut metadata, "type_name", &type_name);
+            if let Some(schema) = schema {
+                insert_string(&mut metadata, "schema_name", &schema);
+            }
+            let type_kind = if let Some(elements) = find_child(node, "enum_elements") {
+                let mut cursor = elements.walk();
+                let values = elements
+                    .children_by_field_name("enum_element", &mut cursor)
+                    .filter_map(|value| node_text(content, value))
+                    .filter_map(crate::sql::helpers::sql_string_literal_text)
+                    .collect::<Vec<_>>();
+                insert_string_array(&mut metadata, "enum_values", values);
+                "enum"
+            } else if find_child(node, "column_definitions").is_some() {
+                "composite"
+            } else {
+                "other"
+            };
+            insert_string(&mut metadata, "type_kind", type_kind);
+            (TYPE_DEFINITION_PATTERN_ID, "create_type")
+        }
+        "create_role" => {
+            insert_string(&mut metadata, "role_name", &identifier()?);
+            (ROLE_DEFINITION_PATTERN_ID, "create_role")
+        }
+        _ => return None,
+    };
+    Some(fact_for_node(
+        file_path, pattern_id, capture, node, metadata,
     ))
 }
 
@@ -1126,14 +1351,20 @@ fn collect_source_tables_in_node(node: Node<'_>, content: &str) -> Vec<String> {
     tables
 }
 
+/// Collect the tables a query reads: `relation` nodes, and table references
+/// written directly in a `FROM` or `JOIN`. Column qualifiers, function names,
+/// and cast types are not tables.
 fn collect_relation_names(node: Node<'_>, content: &str, tables: &mut Vec<String>, depth: u32) {
     if !should_visit_tree_depth(depth) {
         return;
     }
 
-    if (node.kind() == "relation" || node.kind() == "object_reference")
-        && let Some(name) = relation_table_name(content, node)
-    {
+    let is_table_reference = node.kind() == "relation"
+        || (node.kind() == "object_reference"
+            && node
+                .parent()
+                .is_some_and(|parent| matches!(parent.kind(), "from" | "join")));
+    if is_table_reference && let Some(name) = relation_table_name(content, node) {
         tables.push(name);
     }
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -1340,6 +1571,20 @@ fn first_child_kind(node: Node<'_>, kinds: &[&str]) -> Option<String> {
         }
     }
     None
+}
+
+fn direct_child_kinds<'a>(node: Node<'_>, kinds: &[&'a str]) -> Vec<&'a str> {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .filter_map(|child| kinds.iter().copied().find(|kind| *kind == child.kind()))
+        .collect()
+}
+
+fn insert_string_array(metadata: &mut HashMap<String, Value>, key: &str, values: Vec<String>) {
+    metadata.insert(
+        key.to_string(),
+        Value::Array(values.into_iter().map(Value::String).collect()),
+    );
 }
 
 fn has_child_kind(node: Node<'_>, child_kind: &str) -> bool {

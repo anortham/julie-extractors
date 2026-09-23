@@ -82,11 +82,13 @@ pub(crate) fn source_kind(node: &Node<'_>) -> Option<&'static str> {
     }
 }
 
-/// Classifies quoted `.js` paths case-insensitively; every other quoted path is a directory.
+/// Classifies quoted `.js` and `.mjs` paths case-insensitively; every other
+/// quoted path is a directory.
 pub(crate) fn import_kind(source_kind: &str, source: &str) -> &'static str {
+    let source = source.to_ascii_lowercase();
     if source_kind == "uri" {
         "module"
-    } else if source.to_ascii_lowercase().ends_with(".js") {
+    } else if source.ends_with(".js") || source.ends_with(".mjs") {
         "javascript"
     } else {
         "directory"

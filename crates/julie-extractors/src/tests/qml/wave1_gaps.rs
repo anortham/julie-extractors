@@ -283,14 +283,14 @@ fn id_receiver_calls_resolve_by_component_scope() {
         .iter()
         .find(|symbol| symbol.name == "refresh" && symbol.start_line == 8)
         .unwrap();
-    let component = symbol(&results, "IdReceiver", SymbolKind::Class);
+    let completed = symbol(&results, "Component.onCompleted", SymbolKind::Function);
     assert!(
         has_calls(&results, handler_refresh, root_refresh),
         "{:#?}",
         results.relationships
     );
     assert!(
-        has_calls(&results, component, root_refresh),
+        has_calls(&results, completed, root_refresh),
         "{:#?}",
         results.relationships
     );

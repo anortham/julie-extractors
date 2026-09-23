@@ -29,7 +29,7 @@ pub(super) fn object_reference_role(node: Node) -> Option<ObjectReferenceRole> {
     let parent = node.parent()?;
     let previous = node.prev_named_sibling().map(|sibling| sibling.kind());
     match parent.kind() {
-        "relation" | "from" | "insert" => Some(ObjectReferenceRole::Table),
+        "relation" | "from" | "insert" | "create_index" => Some(ObjectReferenceRole::Table),
         "invocation" | "execute_statement" => Some(ObjectReferenceRole::Call),
         "statement" => {
             let opener = parent.named_child(0)?.kind();
@@ -149,6 +149,9 @@ fn record_reference(
     let Some(terminal_name) = parts.last().cloned() else {
         return;
     };
+    if terminal_name.starts_with('@') {
+        return;
+    }
     let (kind, target) = match role {
         ObjectReferenceRole::Call => (
             RelationshipKind::Calls,
@@ -226,18 +229,24 @@ fn table_relationship_type(owner: &Symbol, role: ObjectReferenceRole) -> &'stati
         "trigger_target"
     } else if metadata_flag(owner, "isView") {
         "view_source"
+    } else if metadata_flag(owner, "isIndex") {
+        "index_table"
     } else {
         "table_reference"
     }
 }
 
-/// The innermost routine, view, trigger, or table whose span holds `node`.
+/// The innermost routine, view, trigger, index, or table whose span holds
+/// `node`.
 fn owning_object<'a>(symbols: &'a [Symbol], node: Node) -> Option<&'a Symbol> {
     let (start, end) = (node.start_byte() as u32, node.end_byte() as u32);
     symbols
         .iter()
         .filter(|symbol| {
-            (is_routine(symbol) || is_table_like(symbol) || metadata_flag(symbol, "isTrigger"))
+            (is_routine(symbol)
+                || is_table_like(symbol)
+                || metadata_flag(symbol, "isTrigger")
+                || metadata_flag(symbol, "isIndex"))
                 && !metadata_flag(symbol, "isCte")
                 && symbol.start_byte <= start
                 && end <= symbol.end_byte

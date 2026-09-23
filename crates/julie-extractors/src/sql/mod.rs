@@ -14,9 +14,11 @@
 //!
 //! This enables full-stack symbol tracing from frontend -> API -> database schema.
 
+mod aliases;
 mod body_spans;
 pub(crate) mod complexity_metrics;
 mod constraints;
+pub(crate) mod doc_comments;
 mod error_handling;
 pub(crate) mod helpers;
 mod identifiers;
@@ -26,6 +28,7 @@ mod routines;
 mod schema_relationships;
 mod schemas;
 mod test_detection;
+mod types;
 mod views;
 
 use crate::base::{
@@ -45,6 +48,7 @@ use tree_sitter::Tree;
 /// - Query patterns and table references
 pub struct SqlExtractor {
     pub(crate) base: BaseExtractor,
+    routine_variables: HashMap<String, std::collections::HashSet<String>>,
 }
 
 impl SqlExtractor {
@@ -56,6 +60,7 @@ impl SqlExtractor {
     ) -> Self {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
+            routine_variables: HashMap::new(),
         }
     }
 
@@ -84,14 +89,18 @@ impl SqlExtractor {
         let mut symbols = Vec::new();
         let pgtap_context = test_detection::PgTapContext::from_tree(&self.base, tree);
         self.visit_node(tree.root_node(), &mut symbols, None, 0, &pgtap_context);
-        for column in symbols
-            .iter_mut()
-            .filter(|symbol| symbol.kind == crate::base::SymbolKind::Field)
-        {
+        for column in symbols.iter_mut().filter(|symbol| {
+            matches!(
+                symbol.kind,
+                crate::base::SymbolKind::Field | crate::base::SymbolKind::Variable
+            )
+        }) {
             column.body_span = None;
             column.body_hash = None;
         }
         test_detection::mark_pgtap_schema_containers(&pgtap_context, &mut symbols);
+        doc_comments::apply_catalog_comments(&self.base, tree.root_node(), &mut symbols);
+        self.record_declared_types(tree.root_node(), &symbols);
         let containing_symbols = self.base.containing_symbol_index(&symbols);
         self.walk_for_string_literals(tree.root_node(), &containing_symbols, 0);
         symbols
@@ -128,6 +137,9 @@ impl SqlExtractor {
     }
 
     fn sql_literal_carrier(&self, node: &tree_sitter::Node) -> Option<String> {
+        if let Some(carrier) = self.dynamic_sql_carrier(node) {
+            return Some(carrier);
+        }
         if self.literal_is_in_default_clause(node) {
             return Some("DEFAULT".to_string());
         }
@@ -147,10 +159,40 @@ impl SqlExtractor {
                 "insert" | "insert_statement" | "values" => {
                     return Some("INSERT".to_string());
                 }
+                "list"
+                    if parent
+                        .parent()
+                        .is_some_and(|insert| insert.kind() == "insert") =>
+                {
+                    return Some("INSERT".to_string());
+                }
                 _ => {}
             }
         }
         Some("value".to_string())
+    }
+
+    /// `EXEC(N'...')` carries `EXEC`; a string argument of `EXEC proc 'x'`
+    /// carries the procedure name, so `sp_executesql` strings classify as SQL.
+    fn dynamic_sql_carrier(&self, node: &tree_sitter::Node) -> Option<String> {
+        let parent = node.parent()?;
+        match parent.kind() {
+            "parenthesized_expression" => parent
+                .parent()
+                .filter(|execute| execute.kind() == "execute_statement")
+                .filter(|execute| {
+                    execute
+                        .child_by_field_name("command")
+                        .is_some_and(|command| command.id() == parent.id())
+                })
+                .map(|_| "EXEC".to_string()),
+            "execute_statement" => {
+                let reference = self.base.find_child_by_type(&parent, "object_reference")?;
+                let parts = references::object_reference_parts(&self.base, reference);
+                parts.last().cloned()
+            }
+            _ => None,
+        }
     }
 
     fn find_ancestor<'a>(
@@ -188,16 +230,8 @@ impl SqlExtractor {
 
     fn decode_sql_string_literal(&self, node: &tree_sitter::Node) -> Option<String> {
         if node.kind() == "literal" {
-            let raw = self.base.get_node_text(node);
-            if !raw.trim_start().starts_with('\'') && !raw.trim_start().starts_with('"') {
-                return None;
-            }
-            let trimmed = raw.trim().trim_matches(|c| c == '\'' || c == '"').trim();
-            if trimmed.is_empty() {
-                None
-            } else {
-                Some(trimmed.to_string())
-            }
+            helpers::sql_string_literal_text(&self.base.get_node_text(node))
+                .map(|text| text.trim().to_string())
         } else {
             self.base.decode_string_literal(node)
         }
@@ -221,57 +255,54 @@ impl SqlExtractor {
         relationships
     }
 
+    /// Object kinds for tables, views, and procedures. Declared types from the
+    /// grammar's type nodes are recorded on the base during extraction and win
+    /// over these rows.
     pub fn infer_types(&self, symbols: &[Symbol]) -> HashMap<String, String> {
-        use crate::sql::helpers::SQL_TYPE_RE;
-
         let mut types = HashMap::new();
-
-        // SQL type inference based on symbol metadata and signatures
         for symbol in symbols {
-            if let Some(ref signature) = symbol.signature {
-                // Extract SQL data types from signatures like "CREATE TABLE users (id INT, name VARCHAR(100))"
-                if let Some(type_match) = SQL_TYPE_RE.find(signature) {
-                    types.insert(symbol.id.clone(), type_match.as_str().to_uppercase());
-                }
-            }
-
-            // Use metadata for SQL-specific types
-            if symbol
-                .metadata
-                .as_ref()
-                .and_then(|m| m.get("isTable"))
-                .and_then(|v| v.as_bool())
-                .unwrap_or(false)
-            {
-                types.insert(symbol.id.clone(), "TABLE".to_string());
-            }
-            if symbol
-                .metadata
-                .as_ref()
-                .and_then(|m| m.get("isView"))
-                .and_then(|v| v.as_bool())
-                .unwrap_or(false)
-            {
-                types.insert(symbol.id.clone(), "VIEW".to_string());
-            }
-            if symbol
-                .metadata
-                .as_ref()
-                .and_then(|m| m.get("isStoredProcedure"))
-                .and_then(|v| v.as_bool())
-                .unwrap_or(false)
-            {
-                types.insert(symbol.id.clone(), "PROCEDURE".to_string());
+            let flag = |key: &str| {
+                symbol
+                    .metadata
+                    .as_ref()
+                    .and_then(|m| m.get(key))
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false)
+            };
+            let inferred = if flag("isTable") {
+                Some("TABLE".to_string())
+            } else if flag("isView") {
+                Some("VIEW".to_string())
+            } else if flag("isStoredProcedure") {
+                Some("PROCEDURE".to_string())
+            } else if flag("extractedFromError") {
+                symbol
+                    .metadata
+                    .as_ref()
+                    .and_then(|m| m.get("returnType"))
+                    .and_then(|v| v.as_str())
+                    .filter(|ty| !ty.is_empty())
+                    .map(str::to_string)
+                    .or_else(|| {
+                        let signature = symbol.signature.as_deref()?;
+                        helpers::SQL_TYPE_RE
+                            .find(signature)
+                            .map(|found| found.as_str().to_uppercase())
+                    })
+            } else {
+                None
+            };
+            if let Some(inferred) = inferred {
+                types.insert(symbol.id.clone(), inferred);
             }
         }
-
         types
     }
 
     /// Extract all identifier usages (function calls, member access, etc.)
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
         let containing_symbols = self.base.containing_symbol_index(symbols);
-
+        self.routine_variables = identifiers::routine_variables(symbols);
         self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, 0);
         self.base.identifiers.clone()
     }
@@ -307,7 +338,7 @@ impl SqlExtractor {
                     pgtap_context,
                 );
             }
-            "create_view" => {
+            "create_view" | "create_materialized_view" => {
                 symbol = schemas::extract_view(&mut self.base, node, parent_id);
             }
             "create_index" => {
@@ -334,7 +365,7 @@ impl SqlExtractor {
             "alter_table" => {
                 constraints::extract_constraints_from_alter_table(&mut self.base, node, symbols);
             }
-            "select" => {
+            "select" if views::alias_owner_kind(node) == Some("cte") => {
                 self.extract_select_aliases(node, symbols, parent_id);
             }
             "ERROR" => {
@@ -387,7 +418,7 @@ impl SqlExtractor {
                         &symbol.id,
                     );
                 }
-                "create_view" => {
+                "create_view" | "create_materialized_view" => {
                     self.extract_view_columns(node, symbols, &symbol.id);
                 }
                 "ERROR" => {

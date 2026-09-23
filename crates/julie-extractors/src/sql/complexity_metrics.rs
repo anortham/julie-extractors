@@ -23,6 +23,7 @@ struct MetricScopeInput {
     scope: &'static str,
     symbol_id: Option<String>,
     span: NormalizedSpan,
+    parameter_count: Option<u32>,
 }
 
 pub fn collect_complexity_metrics(
@@ -40,19 +41,23 @@ pub fn collect_complexity_metrics(
             scope: "file",
             symbol_id: None,
             span: file_span,
+            parameter_count: None,
         },
         source,
         &root,
     ));
 
-    for symbol in symbols.iter().filter(|symbol| is_callable(&symbol.kind)) {
+    for symbol in symbols.iter().filter(|symbol| has_symbol_metric(symbol)) {
         let span = metric_span_for_symbol(tree, source, symbol);
+        let parameter_count =
+            (symbol.kind == SymbolKind::Function).then(|| routine_parameter_count(symbols, symbol));
         metrics.push(metric_for_scope(
             file_path,
             MetricScopeInput {
                 scope: "symbol",
                 symbol_id: Some(symbol.id.clone()),
                 span,
+                parameter_count,
             },
             source,
             &root,
@@ -87,7 +92,8 @@ fn metric_for_scope(
         (
             "decision_signal_kinds".to_string(),
             serde_json::Value::String(
-                "join,set_operation,case,where,having,error_where".to_string(),
+                "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where"
+                    .to_string(),
             ),
         ),
     ]);
@@ -108,7 +114,7 @@ fn metric_for_scope(
         decision_count: stats.decision_count,
         loop_count: stats.loop_count,
         max_nesting_depth: stats.max_nesting_depth,
-        parameter_count: None,
+        parameter_count: input.parameter_count,
         start_line: input.span.start_line,
         start_column: input.span.start_column,
         end_line: input.span.end_line,
@@ -136,18 +142,21 @@ fn collect_stats(
     }
 
     let kind = node.kind();
-    let query_container = matches!(kind, "select" | "subquery" | "cte" | "with_clause");
+    let nesting_container = matches!(
+        kind,
+        "select" | "subquery" | "cte" | "with_clause" | "if_statement" | "while_statement"
+    );
     let mut next_depth = current_depth;
 
     if contains(span, node) {
         let text = node.utf8_text(source.as_bytes()).unwrap_or("");
-        if is_leaf_decision_signal(node, source, span, kind, text) {
+        if is_leaf_decision_signal(node, source, span, kind, text) || is_branch_signal(node) {
             stats.decision_count += 1;
         }
-        if kind == "while" {
+        if matches!(kind, "while" | "while_statement") {
             stats.loop_count += 1;
         }
-        if query_container {
+        if nesting_container {
             next_depth = current_depth + 1;
             stats.max_nesting_depth = stats.max_nesting_depth.max(next_depth);
         }
@@ -165,8 +174,23 @@ fn collect_stats(
 
 fn is_decision_signal(kind: &str, text: &str) -> bool {
     match kind {
-        "join" | "union" | "intersect" | "except" | "case" | "when" | "where" | "having" => true,
+        "join" | "union" | "intersect" | "except" | "where" | "having" | "if_statement"
+        | "when_clause" => true,
         "ERROR" => is_error_predicate_fragment(text),
+        _ => false,
+    }
+}
+
+/// Each `WHEN` of a `CASE` and each `AND`/`OR` operator adds a branch.
+fn is_branch_signal(node: Node<'_>) -> bool {
+    match node.kind() {
+        "keyword_when" => node.parent().is_some_and(|parent| parent.kind() == "case"),
+        "keyword_and" | "keyword_or" => node.parent().is_some_and(|parent| {
+            parent.kind() == "binary_expression"
+                && parent
+                    .child_by_field_name("operator")
+                    .is_some_and(|operator| operator.id() == node.id())
+        }),
         _ => false,
     }
 }
@@ -202,11 +226,30 @@ fn is_leaf_decision_signal(
     true
 }
 
-fn is_callable(kind: &SymbolKind) -> bool {
+fn has_symbol_metric(symbol: &Symbol) -> bool {
     matches!(
-        kind,
+        symbol.kind,
         SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
-    )
+    ) || metadata_flag(symbol, "isView")
+}
+
+fn routine_parameter_count(symbols: &[Symbol], routine: &Symbol) -> u32 {
+    symbols
+        .iter()
+        .filter(|symbol| {
+            symbol.parent_id.as_deref() == Some(routine.id.as_str())
+                && metadata_flag(symbol, "isParameter")
+        })
+        .count() as u32
+}
+
+fn metadata_flag(symbol: &Symbol, key: &str) -> bool {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get(key))
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false)
 }
 
 fn metric_span_for_symbol(tree: &Tree, source: &str, symbol: &Symbol) -> NormalizedSpan {

@@ -96,6 +96,20 @@ fn extract_identifier_from_node(
             // Note: Numeric backreferences (\1, \2) don't have names to track
         }
 
+        // Python-style named backreference: (?P=name)
+        "named_group_backreference" => {
+            if let Some(name_node) = groups::group_name_node(node) {
+                let group_name = base.get_node_text(&name_node);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                base.create_identifier(
+                    &node,
+                    group_name,
+                    IdentifierKind::Call,
+                    containing_symbol_id,
+                );
+            }
+        }
+
         // Named groups: (?<name>...) (these are "member access" in regex context)
         "named_capturing_group" => {
             if let Some(name_node) = groups::group_name_node(node) {

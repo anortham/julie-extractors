@@ -155,22 +155,6 @@
       }
     },
     {
-      "key": "fixtures/extraction/qml/return_types/source.qml:QtQuick:variable_ref:1:7",
-      "name": "QtQuick",
-      "kind": "variable_ref",
-      "language": "qml",
-      "file_path": "fixtures/extraction/qml/return_types/source.qml",
-      "start_line": 1,
-      "start_column": 7,
-      "end_line": 1,
-      "end_column": 14,
-      "start_byte": 7,
-      "end_byte": 14,
-      "containing_key": "fixtures/extraction/qml/return_types/source.qml:QtQuick:1:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/qml/return_types/source.qml:Result:type_usage:2:28",
       "name": "Result",
       "kind": "type_usage",

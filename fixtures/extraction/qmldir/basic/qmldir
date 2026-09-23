@@ -15,3 +15,7 @@ designersupported
 prefer :/qt/qml/Example/Module
 linktarget ExampleModule
 not_a_directive not-a-version not-a-file
+# Script modules and module flags
+Utils 1.0 Utils.mjs
+static
+system

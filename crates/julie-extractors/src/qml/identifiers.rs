@@ -80,6 +80,40 @@ fn extract_identifier_from_node(
             }
         }
 
+        // `Behavior on opacity {}` instantiates `Behavior` and targets `opacity`.
+        "ui_object_definition_binding" => {
+            if let Some(type_name_node) = node.child_by_field_name("type_name") {
+                record_qualified_type_usage(
+                    extractor,
+                    type_name_node,
+                    None,
+                    containing_symbols.find(node),
+                );
+            }
+            if let Some(name_node) = node.child_by_field_name("name") {
+                let receiver = semantics::enclosing_object_type(&extractor.base, node);
+                let name = extractor.base.get_node_text(&name_node);
+                extractor.base.create_identifier_with_metadata(
+                    &name_node,
+                    name,
+                    IdentifierKind::MemberAccess,
+                    containing_symbols.find(node),
+                    identifier_metadata(Some("value_source_target"), receiver, false),
+                );
+            }
+        }
+
+        "ui_annotation" => {
+            if let Some(type_name_node) = node.child_by_field_name("type_name") {
+                record_qualified_type_usage(
+                    extractor,
+                    type_name_node,
+                    Some("annotation"),
+                    containing_symbols.find(node),
+                );
+            }
+        }
+
         // Attached properties (Layout.fillWidth) and signal handlers (onClicked)
         "ui_binding" => {
             if let Some(name_node) = node.child_by_field_name("name") {
@@ -148,42 +182,37 @@ fn extract_identifier_from_node(
             if let Some(property_node) = node.child_by_field_name("property") {
                 let name = extractor.base.get_node_text(&property_node);
                 let containing_symbol_id = containing_symbols.find(node);
-
-                extractor.base.create_identifier(
-                    &property_node,
-                    name,
-                    IdentifierKind::MemberAccess,
-                    containing_symbol_id,
-                );
+                if is_connected_signal(&extractor.base, node) {
+                    let receiver = node
+                        .child_by_field_name("object")
+                        .map(|object| extractor.base.get_node_text(&object));
+                    extractor.base.create_identifier_with_metadata(
+                        &property_node,
+                        name,
+                        IdentifierKind::MemberAccess,
+                        containing_symbol_id,
+                        identifier_metadata(Some("signal_handler"), receiver, false),
+                    );
+                } else {
+                    extractor.base.create_identifier(
+                        &property_node,
+                        name,
+                        IdentifierKind::MemberAccess,
+                        containing_symbol_id,
+                    );
+                }
             }
         }
 
-        // Variable references in expressions
-        "identifier" => {
-            // Only create variable reference if not already handled by call or member access
-            if let Some(parent) = node.parent() {
-                match parent.kind() {
-                    "call_expression"
-                    | "member_expression"
-                    | "function_declaration"
-                    | "ui_object_definition"
-                    | "ui_property"
-                    | "ui_signal" => { // Skip - handled elsewhere or is a definition
-                    }
-                    _ => {
-                        // This is a variable reference
-                        let name = extractor.base.get_node_text(&node);
-                        let containing_symbol_id = containing_symbols.find(node);
-
-                        extractor.base.create_identifier(
-                            &node,
-                            name,
-                            IdentifierKind::VariableRef,
-                            containing_symbol_id,
-                        );
-                    }
-                }
-            }
+        "identifier" if is_qml_value_read_identifier(&extractor.base, node) => {
+            let name = extractor.base.get_node_text(&node);
+            let containing_symbol_id = containing_symbols.find(node);
+            extractor.base.create_identifier(
+                &node,
+                name,
+                IdentifierKind::VariableRef,
+                containing_symbol_id,
+            );
         }
 
         // Construction with generic type args: `new Map<string, User>()`
@@ -191,10 +220,20 @@ fn extract_identifier_from_node(
         // `type_arguments` as direct fields (not wrapped in `generic_type`).
         // Only fire when `type_arguments` is present; plain `new Foo()` is skipped.
         "new_expression" => {
-            let Some(type_args) = node.child_by_field_name("type_arguments") else {
+            let Some(constructor) = node.child_by_field_name("constructor") else {
                 return;
             };
-            let Some(constructor) = node.child_by_field_name("constructor") else {
+            let Some(type_args) = node.child_by_field_name("type_arguments") else {
+                if constructor.kind() == "identifier" {
+                    let name = extractor.base.get_node_text(&constructor);
+                    let containing_symbol_id = containing_symbols.find(node);
+                    extractor.base.create_identifier(
+                        &constructor,
+                        name,
+                        IdentifierKind::Call,
+                        containing_symbol_id,
+                    );
+                }
                 return;
             };
             let name = extractor.base.get_node_text(&constructor);
@@ -213,8 +252,31 @@ fn extract_identifier_from_node(
         // Type references in TypeScript-style annotations (QML-JS shares the TS grammar):
         //   function f(x: Array<User>): Map<K, V> {}
         // `type_identifier` is the name node of a `generic_type` or a plain type ref.
+        // `Kirigami.Action`: one type usage for the terminal segment.
+        "nested_type_identifier" => {
+            let (Some(module), Some(name_node)) = (
+                node.child_by_field_name("module"),
+                node.child_by_field_name("name"),
+            ) else {
+                return;
+            };
+            let name = extractor.base.get_node_text(&name_node);
+            let receiver = extractor.base.get_node_text(&module);
+            extractor.base.create_identifier_with_metadata(
+                &name_node,
+                name,
+                IdentifierKind::TypeUsage,
+                containing_symbols.find(node),
+                identifier_metadata(None, Some(receiver), false),
+            );
+        }
+
         "type_identifier" => {
-            if is_qml_type_declaration_name(node) {
+            if is_qml_type_declaration_name(node)
+                || node
+                    .parent()
+                    .is_some_and(|parent| parent.kind() == "nested_type_identifier")
+            {
                 return;
             }
             let name = extractor.base.get_node_text(&node);
@@ -251,6 +313,58 @@ fn extract_identifier_from_node(
             // Skip other node types
         }
     }
+}
+
+/// `recv.signal` in `recv.signal.connect(handler)`.
+fn is_connected_signal(base: &BaseExtractor, member: Node) -> bool {
+    member
+        .parent()
+        .filter(|parent| parent.kind() == "member_expression")
+        .and_then(|callee| semantics::connected_signal_node(base, callee))
+        .is_some_and(|signal| {
+            member
+                .child_by_field_name("property")
+                .is_some_and(|property| property.id() == signal.id())
+        })
+}
+
+/// A bare identifier read as a value. QML declaration names (imports, ids,
+/// signals and their parameters, enums, binding names, object types) are not
+/// reads; the JavaScript rules decide everything inside expressions. Member
+/// receivers stay out: the member access row already names them.
+fn is_qml_value_read_identifier(base: &BaseExtractor, node: Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    match parent.kind() {
+        "call_expression" | "member_expression" | "nested_identifier" => false,
+        "ui_import"
+        | "ui_pragma"
+        | "ui_signal"
+        | "ui_signal_parameter"
+        | "ui_property"
+        | "ui_required"
+        | "ui_inline_component"
+        | "ui_object_definition"
+        | "ui_object_definition_binding"
+        | "ui_annotation"
+        | "ui_binding"
+        | "enum_body"
+        | "enum_assignment"
+        | "enum_declaration" => false,
+        "expression_statement" => !is_id_binding_value(base, parent),
+        _ => crate::javascript::identifiers::is_ecmascript_value_read_identifier(node),
+    }
+}
+
+/// `root` in `id: root` declares the id; it is not a read.
+fn is_id_binding_value(base: &BaseExtractor, statement: Node) -> bool {
+    statement.parent().is_some_and(|binding| {
+        binding.kind() == "ui_binding"
+            && binding
+                .child_by_field_name("name")
+                .is_some_and(|name| base.get_node_text(&name) == "id")
+    })
 }
 
 /// Record a QML type reference under its terminal segment, keeping the dotted
@@ -454,10 +568,17 @@ fn record_qml_call_arg_literals(
     }
     let carrier = qml_carrier(&extractor.base, func_node);
     let containing_symbol_id = containing_symbols.find(node);
+    let opens_request = carrier
+        .as_deref()
+        .is_some_and(|carrier| carrier.rsplit('.').next() == Some("open"));
 
     let mut cursor = args.walk();
     for (pos, arg) in args.named_children(&mut cursor).enumerate() {
         if let Some(text) = extractor.base.decode_string_literal(&arg) {
+            // `xhr.open("GET", url)`: the HTTP method is not a URL.
+            if opens_request && pos == 0 && is_http_method(&text) {
+                continue;
+            }
             extractor.base.record_literal(
                 &arg,
                 text,
@@ -467,6 +588,13 @@ fn record_qml_call_arg_literals(
             );
         }
     }
+}
+
+fn is_http_method(text: &str) -> bool {
+    matches!(
+        text.to_ascii_uppercase().as_str(),
+        "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS"
+    )
 }
 
 /// Derive a QML call's carrier. Plain `identifier` → its text; `member_expression`
@@ -593,7 +721,8 @@ fn is_qml_type_declaration_name(node: Node) -> bool {
 fn is_qml_builtin_type(name: &str) -> bool {
     matches!(
         name,
-        "bool"
+        "alias"
+            | "bool"
             | "int"
             | "double"
             | "real"

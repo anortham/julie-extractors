@@ -1,8 +1,12 @@
-/// Check if a group is a capturing group
+/// Check if a group is a capturing group: a plain `(...)` or a named group.
 pub(crate) fn is_capturing_group(group_text: &str) -> bool {
-    !group_text.starts_with("(?:")
-        && !group_text.starts_with("(?<")
-        && !group_text.starts_with("(?P<")
+    match group_text.strip_prefix("(?") {
+        None => group_text.starts_with('('),
+        Some(rest) => {
+            rest.starts_with("P<")
+                || (rest.starts_with('<') && !rest.starts_with("<=") && !rest.starts_with("<!"))
+        }
+    }
 }
 
 /// Extract the name from a named group

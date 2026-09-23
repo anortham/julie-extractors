@@ -86,7 +86,7 @@ fn metric_for_scope(
         ),
         (
             "decision_signal_kinds".to_string(),
-            serde_json::Value::String("alternation,conditional".to_string()),
+            serde_json::Value::String("alternation".to_string()),
         ),
         (
             "loop_signal_kinds".to_string(),
@@ -141,35 +141,21 @@ fn collect_stats(
     }
 
     let kind = node.kind();
-    let group_like = matches!(
-        kind,
-        "group"
-            | "capturing_group"
-            | "anonymous_capturing_group"
-            | "named_capturing_group"
-            | "non_capturing_group"
-            | "lookahead_assertion"
-            | "lookbehind_assertion"
-            | "positive_lookahead"
-            | "negative_lookahead"
-            | "positive_lookbehind"
-            | "negative_lookbehind"
-    );
+    let group_like = match kind {
+        "anonymous_capturing_group"
+        | "named_capturing_group"
+        | "non_capturing_group"
+        | "lookaround_assertion" => true,
+        "inline_flags_group" => is_scoped_inline_flags_group(node),
+        _ => false,
+    };
     let mut next_depth = current_depth;
 
     if contains(span, node) {
-        if matches!(kind, "alternation" | "disjunction" | "conditional") {
+        if kind == "alternation" {
             stats.decision_count += 1;
         }
-        if matches!(
-            kind,
-            "quantifier"
-                | "quantified_expression"
-                | "zero_or_more"
-                | "one_or_more"
-                | "optional"
-                | "count_quantifier"
-        ) {
+        if super::is_quantifier_kind(kind) {
             stats.loop_count += 1;
         }
     }
@@ -186,6 +172,13 @@ fn collect_stats(
     for child in node.children(&mut cursor) {
         collect_stats(child, span, next_depth, child_depth, stats);
     }
+}
+
+/// A `(?i:...)` group scopes its flags to a sub-pattern; a bare `(?i)` does not nest.
+pub(crate) fn is_scoped_inline_flags_group(node: Node<'_>) -> bool {
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .any(|child| child.kind() == "pattern")
 }
 
 fn is_callable(kind: &SymbolKind) -> bool {

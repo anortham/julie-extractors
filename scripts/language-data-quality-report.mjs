@@ -114,7 +114,7 @@ const DOMAIN_APPLICABILITY = {
     quality_debt: [],
   },
   source_regions: {
-    not_applicable: ["regex"],
+    not_applicable: [],
     convention_only: [],
     native_debt: [],
     quality_debt: [],
@@ -145,7 +145,6 @@ const DOMAIN_APPLICABILITY = {
       "json",
       "lua",
       "markdown",
-      "qml",
       "r",
       "regex",
       "sql",

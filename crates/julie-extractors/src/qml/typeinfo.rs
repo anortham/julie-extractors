@@ -30,13 +30,13 @@ fn walk(extractor: &mut QmlExtractor, node: Node, parent_id: Option<String>, dep
         && let Some(symbol) = extract_object(extractor, &node, parent_id.clone())
     {
         let child_parent = Some(symbol.id.clone());
-        let enum_members = if symbol.kind == SymbolKind::Enum {
-            enum_members(extractor, &node, symbol.id.clone())
-        } else {
-            Vec::new()
+        let members = match symbol.kind {
+            SymbolKind::Enum => enum_members(extractor, &node, symbol.id.clone()),
+            SymbolKind::Class => export_symbols(extractor, &node, symbol.id.clone()),
+            _ => Vec::new(),
         };
         extractor.symbols.push(symbol);
-        extractor.symbols.extend(enum_members);
+        extractor.symbols.extend(members);
         walk_children(extractor, node, child_parent, depth);
         return;
     }
@@ -90,13 +90,116 @@ fn extract_object(
         }
     }
 
+    let type_key = match role {
+        TypeInfoRole::Property | TypeInfoRole::Parameter => Some("type"),
+        TypeInfoRole::Method if metadata.contains_key("returnType") => Some("returnType"),
+        TypeInfoRole::Method => Some("type"),
+        _ => None,
+    };
+    let declared_type = type_key
+        .and_then(|key| metadata.get(key))
+        .and_then(Value::as_str)
+        .map(str::to_owned);
     let options = SymbolOptions {
         parent_id,
         visibility: Some(Visibility::Public),
         metadata: Some(metadata),
         ..Default::default()
     };
-    Some(extractor.base.create_symbol(node, name, kind, options))
+    let symbol = extractor.base.create_symbol(node, name, kind, options);
+    if let Some(declared_type) = declared_type {
+        super::type_facts::record_named_type(&mut extractor.base, &symbol.id, &declared_type);
+    }
+    Some(symbol)
+}
+
+/// One `export` row per QML name a component exports:
+/// `"org.kde.plasma.core/Svg 2.0"` exports `Svg` from `org.kde.plasma.core`.
+fn export_symbols(extractor: &mut QmlExtractor, node: &Node, parent_id: String) -> Vec<Symbol> {
+    let Some(exports_node) = direct_binding_value(extractor, node, "exports") else {
+        return Vec::new();
+    };
+    let mut exports: Vec<(String, String, Vec<Value>)> = Vec::new();
+    for entry in string_values(&extractor.base.get_node_text(&exports_node)) {
+        let (path, version) = entry.split_once(' ').unwrap_or((entry.as_str(), ""));
+        let Some((module, name)) = path.rsplit_once('/') else {
+            continue;
+        };
+        match exports
+            .iter_mut()
+            .find(|(existing_module, existing, _)| existing == name && existing_module == module)
+        {
+            Some((_, _, versions)) => versions.push(Value::String(version.to_string())),
+            None => exports.push((
+                module.to_string(),
+                name.to_string(),
+                vec![Value::String(version.to_string())],
+            )),
+        }
+    }
+    exports
+        .into_iter()
+        .map(|(module, name, versions)| {
+            let metadata = HashMap::from([
+                (
+                    "typeinfo_kind".to_string(),
+                    Value::String("export".to_string()),
+                ),
+                ("module".to_string(), Value::String(module.clone())),
+                ("versions".to_string(), Value::Array(versions)),
+            ]);
+            extractor.base.create_symbol(
+                &exports_node,
+                name,
+                SymbolKind::Export,
+                SymbolOptions {
+                    parent_id: Some(parent_id.clone()),
+                    signature: Some(format!("export {module}")),
+                    visibility: Some(Visibility::Public),
+                    metadata: Some(metadata),
+                    ..Default::default()
+                },
+            )
+        })
+        .collect()
+}
+
+/// A pending `extends` edge from each typeinfo `Component` to its `prototype`.
+pub(super) fn extract_prototype_relationships(
+    extractor: &mut QmlExtractor,
+    node: Node,
+    symbols: &[Symbol],
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    if node.kind() == "ui_object_definition"
+        && let Some(prototype) = direct_binding_value(extractor, &node, "prototype")
+        && let Some(component) = symbols.iter().find(|symbol| {
+            symbol.kind == SymbolKind::Class && symbol.start_byte == node.start_byte() as u32
+        })
+    {
+        let target = normalize_string(&extractor.base.get_node_text(&prototype));
+        if !target.is_empty() {
+            let pending = extractor.base.create_pending_relationship(
+                component.id.clone(),
+                crate::base::UnresolvedTarget::simple(target),
+                crate::base::RelationshipKind::Extends,
+                &prototype,
+                Some(component.id.clone()),
+                Some(0.9),
+            );
+            extractor.add_structured_pending_relationship(pending);
+        }
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        extract_prototype_relationships(extractor, child, symbols, child_depth);
+    }
 }
 
 fn direct_bindings(extractor: &QmlExtractor, node: &Node) -> HashMap<String, Value> {
@@ -141,9 +244,8 @@ fn enum_members(extractor: &mut QmlExtractor, node: &Node, parent_id: String) ->
         return Vec::new();
     };
     let values_text = extractor.base.get_node_text(&values_node);
-    let names = string_values(&values_text);
     let mut members = Vec::new();
-    for name in names {
+    for (name, value) in enum_values(&values_text) {
         if name.is_empty() {
             continue;
         }
@@ -152,7 +254,7 @@ fn enum_members(extractor: &mut QmlExtractor, node: &Node, parent_id: String) ->
             "typeinfo_kind".to_string(),
             Value::String("enum_value".to_string()),
         );
-        metadata.insert("value".to_string(), Value::String(name.clone()));
+        metadata.insert("value".to_string(), value);
         members.push(extractor.base.create_symbol(
             &values_node,
             name,
@@ -166,6 +268,18 @@ fn enum_members(extractor: &mut QmlExtractor, node: &Node, parent_id: String) ->
         ));
     }
     members
+}
+
+/// Enum values in either qmltypes form: the Qt 6 array of names (each value is
+/// its name) or the Qt 5 object of name to number.
+fn enum_values(text: &str) -> Vec<(String, Value)> {
+    if let Ok(Value::Object(entries)) = serde_json::from_str::<Value>(text.trim()) {
+        return entries.into_iter().collect();
+    }
+    string_values(text)
+        .into_iter()
+        .map(|name| (name.clone(), Value::String(name)))
+        .collect()
 }
 
 fn string_values(text: &str) -> Vec<String> {

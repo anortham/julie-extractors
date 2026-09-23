@@ -5,7 +5,7 @@
 
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
 use crate::sql::body_spans;
-use crate::sql::helpers::{DECLARE_VAR_RE, VAR_DECL_RE, normalize_sql_identifier};
+use crate::sql::helpers::normalize_sql_identifier;
 use crate::sql::test_detection::{PgTapContext, classify_routine};
 use crate::test_detection::apply_test_role;
 use regex::Regex;
@@ -53,7 +53,7 @@ pub(super) fn extract_stored_procedure(
 
     let mut metadata = HashMap::new();
     metadata.insert("isFunction".to_string(), Value::Bool(is_function));
-    metadata.insert("isStoredProcedure".to_string(), Value::Bool(true));
+    metadata.insert("isStoredProcedure".to_string(), Value::Bool(!is_function));
 
     let doc_comment = base.find_doc_comment(&node);
 
@@ -225,31 +225,8 @@ pub(super) fn extract_procedure_signature(base: &BaseExtractor, node: &Node) -> 
     let mut return_clause = String::new();
     let mut language_clause = String::new();
     if is_function {
-        // Look for decimal node for RETURNS DECIMAL(10,2) - search recursively
-        let decimal_nodes = base.find_nodes_by_type(node, "decimal");
-        if !decimal_nodes.is_empty() {
-            let decimal_text = base.get_node_text(&decimal_nodes[0]);
-            return_clause = format!(" RETURNS {}", decimal_text);
-        } else {
-            // Look for other return types as direct children
-            let return_type_nodes = [
-                "keyword_boolean",
-                "keyword_bigint",
-                "keyword_int",
-                "keyword_varchar",
-                "keyword_text",
-                "keyword_jsonb",
-            ];
-            for type_str in &return_type_nodes {
-                if let Some(type_node) = base.find_child_by_type(node, type_str) {
-                    let type_text = base
-                        .get_node_text(&type_node)
-                        .replace("keyword_", "")
-                        .to_uppercase();
-                    return_clause = format!(" RETURNS {}", type_text);
-                    break;
-                }
-            }
+        if let Some(return_type) = super::types::routine_return_type(base, node) {
+            return_clause = format!(" RETURNS {}", return_type);
         }
 
         // Look for LANGUAGE clause (PostgreSQL functions)
@@ -333,152 +310,81 @@ pub(super) fn extract_parameters_from_routine_node(
     }
 }
 
-/// Extract declared variables from function/procedure body
+/// Extract declared variables from a function or procedure body: PL/pgSQL
+/// `function_declaration` nodes and T-SQL/MySQL `var_declaration` nodes, one
+/// symbol per declaration. A routine recovered from an ERROR node has no
+/// declaration nodes, so its text is scanned instead.
 pub(super) fn extract_declare_variables(
     base: &mut BaseExtractor,
     function_node: Node,
     symbols: &mut Vec<Symbol>,
     parent_id: &str,
 ) {
-    // Port extractDeclareVariables logic
-    let function_text = base.get_node_text(&function_node);
-
-    // Look for DECLARE statements within function bodies
-    // Replaced closure with iterative approach to avoid borrow checker issues
-    let mut nodes_to_process = vec![function_node];
-    while let Some(node) = nodes_to_process.pop() {
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            nodes_to_process.push(child);
-        }
-        // PostgreSQL style: function_declaration nodes like "v_current_prefs JSONB;"
-        if node.kind() == "function_declaration" {
-            // Parse the declaration text to extract variable name and type
-            let declaration_raw = base.get_node_text(&node);
-            let declaration_text = declaration_raw.trim();
-            // Match patterns like "v_current_prefs JSONB;" or "v_score DECIMAL(10,2) DEFAULT 0.0;"
-            if let Some(captures) = VAR_DECL_RE.captures(declaration_text) {
-                let variable_name = captures.get(1).map_or("", |m| m.as_str());
-                let variable_type_full = captures.get(2).map_or("", |m| m.as_str());
-                let variable_type = match variable_type_full.split_whitespace().next() {
-                    Some(t) => t,
-                    None => continue,
-                };
-
-                // Skip if variable name is empty
-                if variable_name.is_empty() {
-                    continue;
-                }
-
-                let mut metadata = HashMap::new();
-                metadata.insert("isLocalVariable".to_string(), serde_json::Value::Bool(true));
-                metadata.insert(
-                    "isDeclaredVariable".to_string(),
-                    serde_json::Value::Bool(true),
-                );
-
-                let options = SymbolOptions {
-                    signature: Some(format!("DECLARE {} {}", variable_name, variable_type)),
-                    visibility: Some(crate::base::Visibility::Private),
-                    parent_id: Some(parent_id.to_string()),
-                    doc_comment: None,
-                    metadata: Some(metadata),
-                    annotations: Vec::new(),
-                };
-
-                let variable_symbol = base.create_symbol(
-                    &node,
-                    variable_name.to_string(),
-                    SymbolKind::Variable,
-                    options,
-                );
-                symbols.push(variable_symbol);
-            }
-        }
-        // MySQL style: keyword_declare followed by identifier and type
-        else if node.kind() == "keyword_declare" {
-            // For MySQL DECLARE statements, look for the pattern in the surrounding text
-            if let Some(parent) = node.parent() {
-                let parent_text = base.get_node_text(&parent);
-
-                // Look for DECLARE patterns in the parent text
-                for captures in DECLARE_VAR_RE.captures_iter(&parent_text) {
-                    let variable_name = captures.get(1).map_or("", |m| m.as_str());
-                    let variable_type = captures.get(2).map_or("", |m| m.as_str());
-
-                    // Skip if variable name or type is empty
-                    if variable_name.is_empty() || variable_type.is_empty() {
-                        continue;
-                    }
-
-                    let mut metadata = HashMap::new();
-                    metadata.insert("isLocalVariable".to_string(), serde_json::Value::Bool(true));
-                    metadata.insert(
-                        "isDeclaredVariable".to_string(),
-                        serde_json::Value::Bool(true),
-                    );
-
-                    let options = SymbolOptions {
-                        signature: Some(format!("DECLARE {} {}", variable_name, variable_type)),
-                        visibility: Some(crate::base::Visibility::Private),
-                        parent_id: Some(parent_id.to_string()),
-                        doc_comment: None,
-                        metadata: Some(metadata),
-                        annotations: Vec::new(),
-                    };
-
-                    let variable_symbol = base.create_symbol(
-                        &node,
-                        variable_name.to_string(),
-                        SymbolKind::Variable,
-                        options,
-                    );
-                    symbols.push(variable_symbol);
-                }
-            }
-        }
+    let declarations = base
+        .find_nodes_by_type(&function_node, "function_declaration")
+        .into_iter()
+        .chain(base.find_nodes_by_type(&function_node, "var_declaration"))
+        .collect::<Vec<_>>();
+    for declaration in &declarations {
+        let Some(name_node) = base.find_child_by_type(declaration, "identifier") else {
+            continue;
+        };
+        let name = normalize_sql_identifier(&base.get_node_text(&name_node));
+        let declared_type = super::types::named_declaration_type(base, *declaration);
+        let signature = match declared_type {
+            Some(declared_type) => format!("DECLARE {name} {declared_type}"),
+            None => format!("DECLARE {name}"),
+        };
+        push_declared_variable(base, declaration, name, signature, symbols, parent_id);
+    }
+    if !declarations.is_empty() || function_node.kind() != "ERROR" {
+        return;
     }
 
-    // Also extract DECLARE variables directly from function text using regex
+    let function_text = base.get_node_text(&function_node);
     for captures in DECLARE_VARIABLE_RE.captures_iter(&function_text) {
         let variable_name = captures.get(1).map_or("", |m| m.as_str());
         let variable_type = captures.get(2).map_or("", |m| m.as_str());
-
-        // Skip if variable name or type is empty
         if variable_name.is_empty() || variable_type.is_empty() {
             continue;
         }
-
-        // Only add if not already added from tree traversal
-        if !symbols
+        if symbols
             .iter()
             .any(|s| s.name == variable_name && s.parent_id.as_deref() == Some(parent_id))
         {
-            let mut metadata = HashMap::new();
-            metadata.insert("isLocalVariable".to_string(), serde_json::Value::Bool(true));
-            metadata.insert(
-                "isDeclaredVariable".to_string(),
-                serde_json::Value::Bool(true),
-            );
-
-            let options = SymbolOptions {
-                signature: Some(format!("DECLARE {} {}", variable_name, variable_type)),
-                visibility: Some(crate::base::Visibility::Private),
-                parent_id: Some(parent_id.to_string()),
-                doc_comment: None,
-                metadata: Some(metadata),
-                annotations: Vec::new(),
-            };
-
-            let variable_symbol = base.create_symbol(
-                &function_node,
-                variable_name.to_string(),
-                SymbolKind::Variable,
-                options,
-            );
-            symbols.push(variable_symbol);
+            continue;
         }
+        push_declared_variable(
+            base,
+            &function_node,
+            variable_name.to_string(),
+            format!("DECLARE {} {}", variable_name, variable_type),
+            symbols,
+            parent_id,
+        );
     }
+}
+
+fn push_declared_variable(
+    base: &mut BaseExtractor,
+    node: &Node,
+    name: String,
+    signature: String,
+    symbols: &mut Vec<Symbol>,
+    parent_id: &str,
+) {
+    let mut metadata = HashMap::new();
+    metadata.insert("isLocalVariable".to_string(), Value::Bool(true));
+    metadata.insert("isDeclaredVariable".to_string(), Value::Bool(true));
+    let options = SymbolOptions {
+        signature: Some(signature),
+        visibility: Some(crate::base::Visibility::Private),
+        parent_id: Some(parent_id.to_string()),
+        doc_comment: None,
+        metadata: Some(metadata),
+        annotations: Vec::new(),
+    };
+    symbols.push(base.create_symbol(node, name, SymbolKind::Variable, options));
 }
 
 /// Extract procedures from ERROR node text

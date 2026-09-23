@@ -14,8 +14,8 @@ pub(crate) use imports::{import_kind, source_kind as import_source_kind};
 pub(crate) use typeinfo::is_typeinfo_path;
 
 use crate::base::{
-    BaseExtractor, ContainingSymbolIndex, Identifier, PendingRelationship, Relationship,
-    StructuredPendingRelationship, Symbol, SymbolKind,
+    AnnotationMarker, BaseExtractor, ContainingSymbolIndex, Identifier, PendingRelationship,
+    Relationship, StructuredPendingRelationship, Symbol, SymbolKind,
 };
 use crate::test_detection::{apply_callable_test_metadata, mark_base_type_test_containers};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -25,6 +25,10 @@ use tree_sitter::Tree;
 pub struct QmlExtractor {
     pub(crate) base: BaseExtractor,
     symbols: Vec<Symbol>,
+    /// Annotations keyed by the start byte of the declaration they precede.
+    annotations: HashMap<u32, Vec<AnnotationMarker>>,
+    /// Handler function name to the signal a `.connect(handler)` call wires it to.
+    connected_handlers: HashMap<String, String>,
 }
 
 impl QmlExtractor {
@@ -37,17 +41,26 @@ impl QmlExtractor {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
             symbols: Vec::new(),
+            annotations: HashMap::new(),
+            connected_handlers: HashMap::new(),
         }
     }
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let root_node = tree.root_node();
         self.symbols.clear();
+        self.annotations.clear();
 
         if is_typeinfo_path(&self.base.file_path) {
             typeinfo::extract(self, root_node);
         } else {
+            self.connected_handlers = semantics::connected_handlers(&self.base, root_node);
             self.traverse_node(root_node, None, 0);
+            for symbol in &mut self.symbols {
+                if let Some(markers) = self.annotations.get(&symbol.start_byte) {
+                    symbol.annotations = markers.clone();
+                }
+            }
         }
         mark_base_type_test_containers(&mut self.symbols, "TestCase");
 
@@ -136,23 +149,49 @@ impl QmlExtractor {
                     self.push_object_symbol(node, parent_id.clone(), value_source_property);
             }
 
+            "ui_annotated_object" | "ui_annotated_object_member" => {
+                if let Some(definition) = node.child_by_field_name("definition") {
+                    let mut cursor = node.walk();
+                    let texts: Vec<String> = node
+                        .children_by_field_name("annotation", &mut cursor)
+                        .map(|annotation| self.base.get_node_text(&annotation))
+                        .collect();
+                    self.annotations.insert(
+                        definition.start_byte() as u32,
+                        crate::base::normalize_annotations(&texts, "qml"),
+                    );
+                }
+            }
+
             // QML properties (property int age: 42, property alias foo: bar.baz)
             "ui_property" => {
                 if let Some(name_node) = node.child_by_field_name("name") {
                     let name = self.base.get_node_text(&name_node);
                     let signature = Some(semantics::property_signature(&self.base, node));
+                    let modifiers = semantics::property_modifiers(&self.base, node);
                     let options = SymbolOptions {
                         parent_id: parent_id.clone(),
                         signature,
                         visibility: Some(semantics::infer_visibility(&name, false)),
+                        metadata: (!modifiers.is_empty()).then(|| {
+                            modifiers
+                                .into_iter()
+                                .map(|modifier| (modifier, serde_json::Value::Bool(true)))
+                                .collect()
+                        }),
                         doc_comment: semantics::extract_qml_doc_comment(self, &node),
                         ..Default::default()
                     };
-                    let symbol =
+                    let mut symbol =
                         self.base
                             .create_symbol(&node, name, SymbolKind::Property, options);
+                    let value = node.child_by_field_name("value");
+                    self.set_body(&mut symbol, value.and_then(semantics::property_body));
                     type_facts::record_property_type(&mut self.base, &symbol.id, node);
-                    self.symbols.push(symbol);
+                    self.symbols.push(symbol.clone());
+                    if value.is_some_and(|value| value.kind() == "ui_object_definition") {
+                        current_symbol = Some(symbol);
+                    }
                 }
             }
 
@@ -213,7 +252,11 @@ impl QmlExtractor {
                     } else if semantics::is_signal_handler_binding_name(&binding_name) {
                         let options = SymbolOptions {
                             parent_id: parent_id.clone(),
-                            signature: Some(self.base.get_node_text(&node)),
+                            signature: Some(semantics::handler_signature(
+                                &self.base,
+                                node,
+                                &binding_name,
+                            )),
                             visibility: Some(crate::base::Visibility::Private),
                             metadata: Some({
                                 let mut meta = HashMap::new();
@@ -234,12 +277,16 @@ impl QmlExtractor {
                             doc_comment: semantics::extract_qml_doc_comment(self, &node),
                             ..Default::default()
                         };
-                        let symbol = self.base.create_symbol(
+                        let mut symbol = self.base.create_symbol(
                             &node,
                             binding_name,
                             SymbolKind::Function,
                             options,
                         );
+                        let body = node
+                            .child_by_field_name("value")
+                            .map(semantics::unwrap_expression_statement);
+                        self.set_body(&mut symbol, body);
                         self.symbols.push(symbol);
                     }
                 }
@@ -261,13 +308,33 @@ impl QmlExtractor {
                     let enum_id = enum_symbol.id.clone();
                     self.symbols.push(enum_symbol);
 
-                    // Extract enum members from the enum_body
                     if let Some(body) = node.child_by_field_name("body") {
                         let mut body_cursor = body.walk();
-                        for member in body.children_by_field_name("name", &mut body_cursor) {
+                        let members: Vec<_> = body
+                            .named_children(&mut body_cursor)
+                            .filter_map(|member| match member.kind() {
+                                "identifier" => Some((member, None)),
+                                "enum_assignment" => Some((
+                                    member.child_by_field_name("name")?,
+                                    member.child_by_field_name("value"),
+                                )),
+                                _ => None,
+                            })
+                            .collect();
+                        for (member, value) in members {
                             let member_name = self.base.get_node_text(&member);
+                            let metadata = value.map(|value| {
+                                let text = self.base.get_node_text(&value);
+                                let value = text
+                                    .parse::<i64>()
+                                    .map(serde_json::Value::from)
+                                    .unwrap_or(serde_json::Value::String(text));
+                                HashMap::from([("value".to_string(), value)])
+                            });
                             let member_options = SymbolOptions {
                                 parent_id: Some(enum_id.clone()),
+                                visibility: Some(crate::base::Visibility::Public),
+                                metadata,
                                 ..Default::default()
                             };
                             let member_symbol = self.base.create_symbol(
@@ -297,7 +364,9 @@ impl QmlExtractor {
                     let options = SymbolOptions {
                         parent_id: parent_id.clone(),
                         signature: Some(self.base.get_node_text(&node)),
+                        visibility: Some(semantics::infer_visibility(&name, false)),
                         metadata: (!metadata.is_empty()).then_some(metadata),
+                        doc_comment: semantics::extract_qml_doc_comment(self, &node),
                         ..Default::default()
                     };
                     let symbol = self
@@ -385,12 +454,22 @@ impl QmlExtractor {
                             serde_json::Value::String(signal),
                         );
                     }
+                    if let Some(signal) = self.connected_handlers.get(&name) {
+                        metadata
+                            .entry("handled_signal".to_string())
+                            .or_insert_with(|| serde_json::Value::String(signal.clone()));
+                    }
+                    let nested = parent_id.as_deref().is_some_and(|parent| {
+                        self.symbols.iter().any(|symbol| {
+                            symbol.id == parent && symbol.kind == SymbolKind::Function
+                        })
+                    });
                     let options = SymbolOptions {
                         parent_id: parent_id.clone(),
                         signature: Some(semantics::function_signature(
                             self.base.get_node_text(&node),
                         )),
-                        visibility: Some(semantics::infer_visibility(&name, false)),
+                        visibility: Some(semantics::infer_visibility(&name, nested)),
                         metadata: if metadata.is_empty() {
                             None
                         } else {
@@ -430,7 +509,8 @@ impl QmlExtractor {
                         &function_id,
                         depth,
                     ));
-                    self.symbols.push(symbol);
+                    self.symbols.push(symbol.clone());
+                    current_symbol = Some(symbol);
                 }
             }
 
@@ -482,6 +562,12 @@ impl QmlExtractor {
                 serde_json::Value::String(property),
             );
         }
+        if let Some(property) = semantics::bound_property(&self.base, node) {
+            metadata.insert(
+                "bound_property".to_string(),
+                serde_json::Value::String(property),
+            );
+        }
         let options = SymbolOptions {
             parent_id,
             signature: Some(signature),
@@ -502,6 +588,14 @@ impl QmlExtractor {
         }
         self.symbols.push(symbol.clone());
         Some(symbol)
+    }
+
+    /// Point a symbol's body at `body`, or clear it when there is none.
+    fn set_body(&self, symbol: &mut Symbol, body: Option<tree_sitter::Node>) {
+        symbol.body_span = body.map(|body| crate::base::NormalizedSpan::from_node(&body));
+        symbol.body_hash = symbol.body_span.and_then(|span| {
+            crate::base::body::body_hash(&self.base.content, span, &self.base.language)
+        });
     }
 
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
@@ -583,15 +677,20 @@ impl QmlExtractor {
                 )
                 .is_some();
                 if !resolves_locally {
+                    let mut target = semantics::build_unresolved_target(
+                        &self.base,
+                        function_node,
+                        &function_name,
+                    );
+                    target.import_context = target
+                        .receiver
+                        .as_deref()
+                        .and_then(|receiver| relationships::alias_import_source(receiver, symbols));
                     let pending = self
                         .base
                         .create_pending_relationship(
                             caller_symbol.id.clone(),
-                            semantics::build_unresolved_target(
-                                &self.base,
-                                function_node,
-                                &function_name,
-                            ),
+                            target,
                             crate::base::RelationshipKind::Calls,
                             &node,
                             Some(caller_symbol.id.clone()),

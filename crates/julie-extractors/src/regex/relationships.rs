@@ -183,6 +183,10 @@ fn named_backreference_name(base: &BaseExtractor, node: Node) -> Option<String> 
             let text = base.get_node_text(&node);
             flags::extract_backref_group_name(&text)
         }
+        "named_group_backreference" => {
+            let name = base.get_node_text(&super::groups::group_name_node(node)?);
+            (!name.is_empty()).then_some(name)
+        }
         _ => None,
     }
 }

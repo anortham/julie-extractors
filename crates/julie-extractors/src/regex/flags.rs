@@ -15,7 +15,7 @@ pub(crate) fn get_anchor_type(anchor_text: &str) -> Option<String> {
 
 /// Get the direction of a lookaround (lookahead vs lookbehind)
 pub(crate) fn get_lookaround_direction(lookaround_text: &str) -> String {
-    if lookaround_text.contains("(?<=") || lookaround_text.contains("(?<!") {
+    if lookaround_text.starts_with("(?<=") || lookaround_text.starts_with("(?<!") {
         "lookbehind".to_string()
     } else {
         "lookahead".to_string()
@@ -24,7 +24,7 @@ pub(crate) fn get_lookaround_direction(lookaround_text: &str) -> String {
 
 /// Check if a lookaround is positive (vs negative)
 pub(crate) fn is_positive_lookaround(lookaround_text: &str) -> bool {
-    lookaround_text.contains("(?=") || lookaround_text.contains("(?<=")
+    lookaround_text.starts_with("(?=") || lookaround_text.starts_with("(?<=")
 }
 
 /// Extract alternation options separated by |
@@ -107,19 +107,4 @@ pub(crate) fn extract_backref_group_name(backref_text: &str) -> Option<String> {
         }
     }
     None
-}
-
-/// Extract the condition from a conditional pattern like (?(1)...)
-pub(crate) fn extract_condition(conditional_text: &str) -> Option<String> {
-    let start = conditional_text.find("(?(")?;
-    let end = conditional_text[start + 3..].find(')')?;
-    let cond_start = start + 3;
-    let cond_end = start + 3 + end;
-    // SAFETY: Check char boundary before slicing to prevent UTF-8 panic
-    if conditional_text.is_char_boundary(cond_start) && conditional_text.is_char_boundary(cond_end)
-    {
-        Some(conditional_text[cond_start..cond_end].to_string())
-    } else {
-        None
-    }
 }

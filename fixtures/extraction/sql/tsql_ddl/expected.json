@@ -438,6 +438,24 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/sql/tsql_ddl/source.sql:ChildId:15:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "sql",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/sql/tsql_ddl/source.sql:Id:5:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "sql",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/sql/tsql_ddl/source.sql:Items:4:0",
       "resolved_type": "TABLE",
       "generic_params": null,
@@ -454,6 +472,48 @@
       "is_inferred": true,
       "language": "sql",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/sql/tsql_ddl/source.sql:Note:8:4",
+      "resolved_type": "nvarchar",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "sql",
+      "metadata": {
+        "declared": "nvarchar(max)"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/sql/tsql_ddl/source.sql:ParentId:14:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "sql",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/sql/tsql_ddl/source.sql:Payload:7:4",
+      "resolved_type": "varbinary",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "sql",
+      "metadata": {
+        "declared": "varbinary(max)"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/sql/tsql_ddl/source.sql:Status:6:4",
+      "resolved_type": "nvarchar",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "sql",
+      "metadata": {
+        "declared": "nvarchar(50)"
+      }
     }
   ],
   "parse_diagnostics": [],
@@ -760,9 +820,9 @@
       "file_path": "fixtures/extraction/sql/tsql_ddl/source.sql",
       "covered_lines": 19,
       "covered_bytes": 560,
-      "decision_count": 0,
+      "decision_count": 1,
       "loop_count": 0,
-      "max_nesting_depth": 0,
+      "max_nesting_depth": 1,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
@@ -771,12 +831,72 @@
       "start_byte": 0,
       "end_byte": 560,
       "metadata": {
-        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "decision_signal_kinds": "join,set_operation,case_when,where,having,if,merge_when,and_or,error_where",
         "metric_version": 1
       }
     }
   ],
-  "literals": [],
-  "source_regions": [],
+  "literals": [
+    {
+      "literal_text": "CREATE SCHEMA [app];",
+      "kind": "other",
+      "carrier": "EXEC",
+      "arg_position": 0,
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/tsql_ddl/source.sql",
+      "start_line": 1,
+      "start_column": 34,
+      "end_line": 1,
+      "end_column": 57,
+      "start_byte": 34,
+      "end_byte": 57,
+      "containing_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "app",
+      "kind": "other",
+      "carrier": "value",
+      "arg_position": 0,
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/tsql_ddl/source.sql",
+      "start_line": 1,
+      "start_column": 13,
+      "end_line": 1,
+      "end_column": 19,
+      "start_byte": 13,
+      "end_byte": 19,
+      "containing_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/tsql_ddl/source.sql",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 13,
+      "end_line": 1,
+      "end_column": 19,
+      "start_byte": 13,
+      "end_byte": 19,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/tsql_ddl/source.sql",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 34,
+      "end_line": 1,
+      "end_column": 57,
+      "start_byte": 34,
+      "end_byte": 57,
+      "metadata": null
+    }
+  ],
   "type_argument_usages": []
 }

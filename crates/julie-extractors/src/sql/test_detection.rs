@@ -5,10 +5,13 @@ use std::collections::HashSet;
 use std::collections::VecDeque;
 use tree_sitter::{Node, Tree};
 
+/// Test framework evidence found anywhere in the file: pgTAP runner calls
+/// and tSQLt test classes (`EXEC tSQLt.NewTestClass 'OrderTests'`).
 #[derive(Debug, Default)]
 pub(super) struct PgTapContext {
     runner_seen: bool,
     runner_schemas: HashSet<String>,
+    tsqlt_classes: HashSet<String>,
 }
 
 /// pgTAP name prefixes that select a fixture hook, and the half it runs on.
@@ -30,6 +33,9 @@ impl PgTapContext {
                     context.runner_schemas.insert(schema);
                 }
             }
+            if let Some(class) = tsqlt_new_test_class(base, node) {
+                context.tsqlt_classes.insert(class);
+            }
             let mut cursor = node.walk();
             pending.extend(node.named_children(&mut cursor));
         }
@@ -43,10 +49,14 @@ impl PgTapContext {
     fn runner_schemas(&self) -> &HashSet<String> {
         &self.runner_schemas
     }
+
+    fn is_test_schema(&self, schema: &str) -> bool {
+        self.runner_schemas.contains(schema) || self.tsqlt_classes.contains(schema)
+    }
 }
 
 pub(super) fn mark_pgtap_schema_containers(context: &PgTapContext, symbols: &mut [Symbol]) {
-    if context.runner_schemas().is_empty() {
+    if context.runner_schemas().is_empty() && context.tsqlt_classes.is_empty() {
         return;
     }
 
@@ -63,7 +73,7 @@ pub(super) fn mark_pgtap_schema_containers(context: &PgTapContext, symbols: &mut
         }
 
         let schema_name = normalize_sql_identifier(&symbol.name).to_ascii_lowercase();
-        if context.runner_schemas().contains(&schema_name) {
+        if context.is_test_schema(&schema_name) {
             apply_test_role(
                 symbol.metadata.get_or_insert_with(Default::default),
                 TestRole::TestContainer,
@@ -78,6 +88,9 @@ pub(super) fn classify_routine(
     name: &str,
     context: &PgTapContext,
 ) -> Option<TestRole> {
+    if let Some(role) = classify_tsqlt_procedure(base, node, name, context) {
+        return Some(role);
+    }
     if !context.runner_seen() || !returns_setof_text(base, node) {
         return None;
     }
@@ -90,6 +103,50 @@ pub(super) fn classify_routine(
         .iter()
         .find(|(prefix, _)| name.starts_with(prefix))
         .map(|(_, role)| *role)
+}
+
+/// tSQLt runs every procedure of a test class whose name starts with `test`,
+/// and runs the class's `SetUp` procedure before each test.
+fn classify_tsqlt_procedure(
+    base: &BaseExtractor,
+    node: Node,
+    name: &str,
+    context: &PgTapContext,
+) -> Option<TestRole> {
+    if !node.kind().ends_with("procedure") {
+        return None;
+    }
+    let reference = base.find_child_by_type(&node, "object_reference")?;
+    let schema = reference.child_by_field_name("schema")?;
+    let schema = normalize_sql_identifier(&base.get_node_text(&schema)).to_ascii_lowercase();
+    if !context.tsqlt_classes.contains(&schema) {
+        return None;
+    }
+    let name = normalize_sql_identifier(name).to_ascii_lowercase();
+    if name.starts_with("test") {
+        Some(TestRole::TestCase)
+    } else if name == "setup" {
+        Some(TestRole::FixtureSetup)
+    } else {
+        None
+    }
+}
+
+fn tsqlt_new_test_class(base: &BaseExtractor, node: Node) -> Option<String> {
+    if node.kind() != "execute_statement" {
+        return None;
+    }
+    let reference = base.find_child_by_type(&node, "object_reference")?;
+    let parts = super::references::object_reference_parts(base, reference);
+    let [schema, name] = parts.as_slice() else {
+        return None;
+    };
+    if !schema.eq_ignore_ascii_case("tsqlt") || !name.eq_ignore_ascii_case("newtestclass") {
+        return None;
+    }
+    let argument = node.child_by_field_name("parameter")?;
+    let class = crate::sql::helpers::sql_string_literal_text(&base.get_node_text(&argument))?;
+    Some(normalize_sql_identifier(class.trim()).to_ascii_lowercase())
 }
 
 fn is_pgtap_runner(base: &BaseExtractor, node: Node) -> bool {
@@ -109,7 +166,7 @@ fn pgtap_runner_schema(base: &BaseExtractor, node: Node) -> Option<String> {
         .named_children(&mut cursor)
         .find(|child| child.kind() != "object_reference")?;
     let raw = base.get_node_text(&argument);
-    let raw = raw.trim();
+    let raw = raw.split("::").next().unwrap_or_default().trim();
     let unquoted = raw
         .strip_prefix('\'')
         .and_then(|value| value.strip_suffix('\''))

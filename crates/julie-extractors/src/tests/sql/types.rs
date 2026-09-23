@@ -34,23 +34,20 @@ $$ LANGUAGE plpgsql;
             extract_symbols_and_relationships(&tree, "test.sql", code, "sql", &workspace_root)
                 .expect("Extraction failed");
 
-        assert!(
-            !results.types.is_empty(),
-            "SQL type extraction returned EMPTY types HashMap!"
-        );
-
-        println!("Extracted {} types from SQL code", results.types.len());
-        for (symbol_id, type_info) in &results.types {
-            println!(
-                "  {} -> {} (inferred: {})",
-                symbol_id, type_info.resolved_type, type_info.is_inferred
-            );
-        }
-
-        assert!(!results.types.is_empty());
-        for type_info in results.types.values() {
-            assert_eq!(type_info.language, "sql");
-            assert!(type_info.is_inferred);
-        }
+        let type_of = |name: &str| {
+            let symbol = results
+                .symbols
+                .iter()
+                .find(|symbol| symbol.name == name)
+                .unwrap_or_else(|| panic!("missing symbol {name}"));
+            let info = &results.types[&symbol.id];
+            assert_eq!(info.language, "sql");
+            (info.resolved_type.as_str(), info.is_inferred)
+        };
+        assert_eq!(type_of("id"), ("INT", false));
+        assert_eq!(type_of("name"), ("VARCHAR", false));
+        assert_eq!(type_of("created_at"), ("TIMESTAMP", false));
+        assert_eq!(type_of("get_user_count"), ("INTEGER", false));
+        assert_eq!(type_of("users"), ("TABLE", true));
     }
 }

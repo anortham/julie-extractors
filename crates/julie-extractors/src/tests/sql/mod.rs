@@ -60,4 +60,5 @@ pub mod security;
 pub mod structural_facts;
 pub mod test_detection;
 pub mod transactions;
-mod types; // Phase 4: Type extraction verification tests
+mod types;
+mod wave2_gaps; // Phase 4: Type extraction verification tests

@@ -5,11 +5,58 @@
 //! - Column references
 //! - Qualified names (schema.table.column)
 
-use crate::base::{ContainingSymbolIndex, IdentifierKind};
+use crate::base::{ContainingSymbolIndex, IdentifierKind, Symbol, SymbolKind};
 use crate::sql::helpers::normalize_sql_identifier;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
+use std::collections::{HashMap, HashSet};
 
-use super::SqlExtractor;
+use super::{SqlExtractor, aliases};
+
+/// Parameter and local variable names of each routine, lowercased.
+pub(super) fn routine_variables(symbols: &[Symbol]) -> HashMap<String, HashSet<String>> {
+    let routines: HashSet<&str> = symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Function)
+        .map(|symbol| symbol.id.as_str())
+        .collect();
+    let mut variables: HashMap<String, HashSet<String>> = HashMap::new();
+    for symbol in symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Variable)
+    {
+        if let Some(routine) = symbol
+            .parent_id
+            .as_deref()
+            .filter(|parent| routines.contains(parent))
+        {
+            variables
+                .entry(routine.to_string())
+                .or_default()
+                .insert(symbol.name.to_ascii_lowercase());
+        }
+    }
+    variables
+}
+
+/// An `EXEC proc @Name = value` argument name belongs to the callee.
+fn is_named_argument(field: tree_sitter::Node) -> bool {
+    field.parent().is_some_and(|assignment| {
+        assignment.kind() == "binary_expression"
+            && assignment
+                .child_by_field_name("left")
+                .is_some_and(|left| left.id() == field.id())
+            && assignment
+                .parent()
+                .is_some_and(|parent| parent.kind() == "execute_statement")
+    })
+}
+
+fn is_variable_declaration(parent: &str) -> bool {
+    matches!(
+        parent,
+        "function_argument" | "var_declaration" | "function_declaration" | "declare_statement"
+    )
+}
 
 impl SqlExtractor {
     /// Recursively walk tree extracting identifiers from each node
@@ -42,6 +89,21 @@ impl SqlExtractor {
     ) {
         match node.kind() {
             "object_reference" => {
+                if let Some(name_node) = node.child_by_field_name("name")
+                    && self.base.get_node_text(&name_node).starts_with('@')
+                {
+                    if node.parent().is_some_and(|parent| parent.kind() != "field") {
+                        let name = normalize_sql_identifier(&self.base.get_node_text(&name_node));
+                        let scope = self.find_containing_symbol_id(node, containing_symbols);
+                        self.base.create_identifier(
+                            &name_node,
+                            name,
+                            IdentifierKind::VariableRef,
+                            scope,
+                        );
+                    }
+                    return;
+                }
                 let kind = match super::references::object_reference_role(node) {
                     Some(
                         super::references::ObjectReferenceRole::Table
@@ -87,6 +149,37 @@ impl SqlExtractor {
                         containing_symbol_id,
                     );
                 }
+            }
+
+            "identifier"
+                if self.base.get_node_text(&node).starts_with('@')
+                    && node.parent().is_some_and(|parent| {
+                        !matches!(parent.kind(), "field" | "object_reference" | "ERROR")
+                            && !is_variable_declaration(parent.kind())
+                    }) =>
+            {
+                let name = normalize_sql_identifier(&self.base.get_node_text(&node));
+                let scope = self.find_containing_symbol_id(node, containing_symbols);
+                self.base
+                    .create_identifier(&node, name, IdentifierKind::VariableRef, scope);
+            }
+
+            "column"
+                if node.parent().is_some_and(|list| list.kind() == "list")
+                    && let Some(name_node) = self.base.find_child_by_type(&node, "identifier") =>
+            {
+                let name = normalize_sql_identifier(&self.base.get_node_text(&name_node));
+                let scope = self.find_containing_symbol_id(node, containing_symbols);
+                let table = node
+                    .parent()
+                    .and_then(|list| aliases::write_target_table(&self.base, list));
+                self.base.create_identifier_with_receiver_type(
+                    &name_node,
+                    name,
+                    IdentifierKind::MemberAccess,
+                    scope,
+                    table,
+                );
             }
 
             "identifier" => {
@@ -148,29 +241,45 @@ impl SqlExtractor {
                     return;
                 }
 
-                if let Some(name_node) = node.child_by_field_name("name") {
-                    let name = normalize_sql_identifier(&self.base.get_node_text(&name_node));
-                    let containing_symbol_id =
-                        self.find_containing_symbol_id(node, containing_symbols);
-
+                let name_node = node.child_by_field_name("name").unwrap_or(node);
+                let name = normalize_sql_identifier(&self.base.get_node_text(&name_node));
+                let containing_symbol_id = self.find_containing_symbol_id(node, containing_symbols);
+                let qualified = node
+                    .named_children(&mut node.walk())
+                    .any(|child| child.kind() == "object_reference");
+                if name.starts_with('@') {
+                    if !is_named_argument(node) {
+                        self.base.create_identifier(
+                            &name_node,
+                            name,
+                            IdentifierKind::VariableRef,
+                            containing_symbol_id,
+                        );
+                    }
+                    return;
+                }
+                if !qualified
+                    && containing_symbol_id
+                        .as_ref()
+                        .and_then(|routine| self.routine_variables.get(routine))
+                        .is_some_and(|variables| variables.contains(&name.to_ascii_lowercase()))
+                {
                     self.base.create_identifier(
                         &name_node,
                         name,
-                        IdentifierKind::MemberAccess,
+                        IdentifierKind::VariableRef,
                         containing_symbol_id,
                     );
-                } else {
-                    let name = normalize_sql_identifier(&self.base.get_node_text(&node));
-                    let containing_symbol_id =
-                        self.find_containing_symbol_id(node, containing_symbols);
-
-                    self.base.create_identifier(
-                        &node,
-                        name,
-                        IdentifierKind::MemberAccess,
-                        containing_symbol_id,
-                    );
+                    return;
                 }
+                let table = aliases::column_table(&self.base, node);
+                self.base.create_identifier_with_receiver_type(
+                    &name_node,
+                    name,
+                    IdentifierKind::MemberAccess,
+                    containing_symbol_id,
+                    table,
+                );
             }
 
             "qualified_name" => {

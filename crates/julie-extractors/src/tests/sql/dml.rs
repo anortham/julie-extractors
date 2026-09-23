@@ -93,11 +93,17 @@ DO UPDATE SET
                 .contains("RECURSIVE")
         );
 
-        let activity_level = symbols.iter().find(|s| s.name == "activity_level");
-        assert!(activity_level.is_some());
+        assert!(!symbols.iter().any(|s| s.name == "activity_level"));
+        assert!(!symbols.iter().any(|s| s.name == "activity_rank"));
 
-        let activity_rank = symbols.iter().find(|s| s.name == "activity_rank");
-        assert!(activity_rank.is_some());
+        let cumulative_users = symbols
+            .iter()
+            .find(|s| s.name == "cumulative_users")
+            .expect("CTE column alias");
+        assert_eq!(
+            cumulative_users.parent_id.as_deref(),
+            monthly_stats_function.map(|cte| cte.id.as_str())
+        );
 
         let window_functions = symbols
             .iter()

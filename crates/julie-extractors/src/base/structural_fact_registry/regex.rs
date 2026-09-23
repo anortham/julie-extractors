@@ -1,15 +1,10 @@
 //! Structural-fact pattern SPECS for the `regex` registry family.
-//!
-//! Authored metadata for [`super::StructuralFactPatternSpec`] entries emitted by
-//! the regex arm of `base/data_structural_facts.rs`. Public registry access remains through
-//! [`super::structural_fact_pattern_specs`].
 
 use super::{
-    ALWAYS, BOOL, K_PATTERN_VERSION, K_QUERY_FAMILY, NUM, STR, StructuralFactPatternSpec, key,
+    ALWAYS, BOOL, K_PATTERN_VERSION, K_QUERY_FAMILY, NUM, OPT, STR, StructuralFactPatternSpec, key,
 };
 
 pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
-    // Regex
     StructuralFactPatternSpec {
         pattern_id: "regex.capture_group.v1",
         languages: &["regex"],
@@ -94,7 +89,13 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "quantifier",
                 STR,
                 ALWAYS,
-                "Trimmed raw text of the quantifier (e.g. \"*\", \"+\", \"{2,4}\").",
+                "Trimmed raw text of the quantifier (e.g. \"*\", \"+\", \"{2,4}\", \"++\").",
+            ),
+            key(
+                "possessive",
+                BOOL,
+                OPT,
+                "True for a possessive quantifier (`a++`); absent otherwise.",
             ),
         ],
     },
@@ -127,6 +128,90 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 STR,
                 ALWAYS,
                 "Classified anchor kind (start/end/word_boundary/…).",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "regex.inline_flags.v1",
+        languages: &["regex"],
+        query_family: "pattern_structure",
+        description: "A regex inline flag group (`(?i)` or `(?i-s:...)`).",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "enabled_flags",
+                STR,
+                ALWAYS,
+                "Flag letters the group turns on, in source order (may be empty).",
+            ),
+            key(
+                "disabled_flags",
+                STR,
+                ALWAYS,
+                "Flag letters after `-` that the group turns off (may be empty).",
+            ),
+            key(
+                "scoped",
+                BOOL,
+                ALWAYS,
+                "True when the flags apply only to the group's own sub-pattern.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "regex.backreference.v1",
+        languages: &["regex"],
+        query_family: "pattern_structure",
+        description: "A regex backreference (`\\1`, `\\k<name>`, `(?P=name)`).",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "form",
+                STR,
+                ALWAYS,
+                "\"numeric\", \"named\" (`\\k<name>`) or \"python_named\" (`(?P=name)`).",
+            ),
+            key(
+                "capture_index",
+                NUM,
+                OPT,
+                "Target capture index of a numeric backreference.",
+            ),
+            key(
+                "capture_name",
+                STR,
+                OPT,
+                "Target group name of a named backreference.",
+            ),
+            key(
+                "resolved",
+                BOOL,
+                ALWAYS,
+                "Whether the same pattern declares the target group.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "regex.quoted_literal.v1",
+        languages: &["regex"],
+        query_family: "pattern_structure",
+        description: "A regex quoted literal span (`\\Q...\\E`).",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "literal_text",
+                STR,
+                ALWAYS,
+                "Text between `\\Q` and `\\E`, matched literally.",
+            ),
+            key(
+                "closed",
+                BOOL,
+                ALWAYS,
+                "False when no `\\E` closes the span before the end of its term.",
             ),
         ],
     },

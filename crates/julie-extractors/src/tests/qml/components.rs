@@ -712,7 +712,8 @@ Rectangle {
         assert!(
             results.structural_facts.iter().any(|fact| {
                 fact.pattern_id == "qml.binding.v1"
-                    && crate::tests::helpers::metadata_str(fact, "property_name") == Some("fill")
+                    && crate::tests::helpers::metadata_str(fact, "property_name")
+                        == Some("anchors.fill")
             }),
             "the fill binding inside a grouped block stays a qml.binding.v1 fact"
         );
