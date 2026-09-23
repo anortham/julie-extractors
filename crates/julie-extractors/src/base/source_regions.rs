@@ -224,7 +224,7 @@ fn documented_symbol_id(region: &SourceRegion, symbols: &[Symbol]) -> Option<Str
 /// `doc_comment` holds that comment; any other doc comment is a plain comment
 /// of its enclosing symbol.
 fn documents_by_adjacency(language: &str) -> bool {
-    matches!(language, "css")
+    matches!(language, "css" | "html")
 }
 
 fn adjacent_documented_symbol_id(
@@ -422,6 +422,9 @@ fn embedded_language_for_script_style(
             "application/ld+json" | "application/json" | "text/json"
         ) {
             return Some("json".to_string());
+        }
+        if matches!(script_type.as_str(), "text/babel" | "text/jsx") {
+            return Some("jsx".to_string());
         }
         if !matches!(
             script_type.as_str(),

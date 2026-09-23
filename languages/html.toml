@@ -1,0 +1,29 @@
+# Artifact-owned extraction policy only. Do not add search, embedding, watcher, or scoring config here.
+# Carriers are `<tag>.<attribute>`; a bare name matches that attribute on any tag.
+[literal_carriers]
+url = [
+    "a.href",
+    "area.href",
+    "link.href",
+    "base.href",
+    "script.src",
+    "img.src",
+    "iframe.src",
+    "embed.src",
+    "source.src",
+    "audio.src",
+    "video.src",
+    "track.src",
+    "video.poster",
+    "object.data",
+    "form.action",
+    "button.formaction",
+    "input.formaction",
+    "hx-get",
+    "hx-post",
+    "hx-put",
+    "hx-patch",
+    "hx-delete",
+]
+sql = []
+route = []

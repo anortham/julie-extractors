@@ -7,8 +7,9 @@ use super::fact_builders::{
     base_metadata, fact_for_node, fact_for_node_with_identity, insert_string, node_text,
 };
 use super::{
-    HTML_AREA_LINK_PATTERN_ID, HTML_DATA_ATTRIBUTE_PATTERN_ID, HTML_FORM_CONTROL_PATTERN_ID,
-    HTML_FORM_PATTERN_ID, HTML_LANDMARK_PATTERN_ID, HTML_LINK_PATTERN_ID, HTML_MEDIA_PATTERN_ID,
+    HTML_AREA_LINK_PATTERN_ID, HTML_DATA_ATTRIBUTE_PATTERN_ID, HTML_EMBED_PATTERN_ID,
+    HTML_FORM_CONTROL_PATTERN_ID, HTML_FORM_PATTERN_ID, HTML_LANDMARK_PATTERN_ID,
+    HTML_LINK_PATTERN_ID, HTML_MEDIA_PATTERN_ID, HTML_RESOURCE_LINK_PATTERN_ID,
     HTML_SCRIPT_PATTERN_ID,
 };
 use crate::base::types::StructuralFact;
@@ -106,6 +107,17 @@ fn collect_html_node(
                     "area" => {
                         if let Some(fact) =
                             html_area_link_fact(file_path, content, node, &tag_name, &attributes)
+                        {
+                            facts.push(fact);
+                        }
+                    }
+                    "link" => {
+                        if let Some(fact) = html_resource_link_fact(file_path, node, &attributes) {
+                            facts.push(fact);
+                        }
+                    }
+                    "iframe" | "embed" | "object" => {
+                        if let Some(fact) = html_embed_fact(file_path, node, &tag_name, &attributes)
                         {
                             facts.push(fact);
                         }
@@ -297,6 +309,50 @@ fn html_media_fact(
         "html",
         HTML_MEDIA_PATTERN_ID,
         "media",
+        node,
+        metadata,
+    ))
+}
+
+fn html_resource_link_fact(
+    file_path: &str,
+    node: Node<'_>,
+    attributes: &std::collections::HashMap<String, String>,
+) -> Option<StructuralFact> {
+    let href = attributes.get("href")?;
+    let mut metadata = base_metadata("document_assets");
+    insert_string(&mut metadata, "href", href);
+    insert_optional_string(&mut metadata, "rel", attributes.get("rel"));
+    insert_optional_string(&mut metadata, "as", attributes.get("as"));
+    insert_optional_string(&mut metadata, "type", attributes.get("type"));
+    Some(fact_for_node(
+        file_path,
+        "html",
+        HTML_RESOURCE_LINK_PATTERN_ID,
+        "resource_link",
+        node,
+        metadata,
+    ))
+}
+
+fn html_embed_fact(
+    file_path: &str,
+    node: Node<'_>,
+    tag_name: &str,
+    attributes: &std::collections::HashMap<String, String>,
+) -> Option<StructuralFact> {
+    let source_attribute = if tag_name == "object" { "data" } else { "src" };
+    let src = attributes.get(source_attribute)?;
+    let mut metadata = base_metadata("document_assets");
+    insert_string(&mut metadata, "tag_name", tag_name);
+    insert_string(&mut metadata, "src", src);
+    insert_optional_string(&mut metadata, "type", attributes.get("type"));
+    insert_optional_string(&mut metadata, "title", attributes.get("title"));
+    Some(fact_for_node(
+        file_path,
+        "html",
+        HTML_EMBED_PATTERN_ID,
+        "embed",
         node,
         metadata,
     ))

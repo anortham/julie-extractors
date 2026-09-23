@@ -362,7 +362,7 @@ impl BaseExtractor {
     }
 
     fn language_skips_trailing_comments(&self) -> bool {
-        matches!(self.language.as_str(), "css")
+        matches!(self.language.as_str(), "css" | "html")
     }
 
     pub(crate) fn previous_comment_texts<'a>(&self, mut current: Option<Node<'a>>) -> Vec<String> {
@@ -371,6 +371,10 @@ impl BaseExtractor {
         while let Some(sibling) = current {
             if is_comment_node(&sibling) {
                 if self.language_skips_trailing_comments() && is_trailing_comment(&sibling) {
+                    break;
+                }
+                if self.language == "html" && !is_html_prose_comment(&self.get_node_text(&sibling))
+                {
                     break;
                 }
                 comments.push(self.get_node_text(&sibling));
@@ -416,6 +420,17 @@ fn is_trailing_comment(comment: &Node) -> bool {
     comment
         .prev_sibling()
         .is_some_and(|previous| previous.end_position().row == comment.start_position().row)
+}
+
+/// Commented-out markup (`<!-- <div> -->`) and IE conditional comments
+/// (`<!--[if IE]>`) are not documentation.
+fn is_html_prose_comment(text: &str) -> bool {
+    let body = text
+        .trim()
+        .strip_prefix("<!--")
+        .unwrap_or(text)
+        .trim_start();
+    !body.starts_with('<') && !body.starts_with('[')
 }
 
 fn is_comment_node(node: &Node) -> bool {

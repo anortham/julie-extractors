@@ -336,8 +336,10 @@ mod script_style_tests {
 </head>
 </html>"#;
 
-        let (symbols, relationships) = extract_symbols_and_relationships(html);
-        let second_script = symbols
+        let result = crate::extract_canonical("page.html", html, std::path::Path::new("/tmp/test"))
+            .expect("canonical HTML extraction must succeed");
+        let second_script = result
+            .symbols
             .iter()
             .find(|symbol| {
                 symbol
@@ -350,18 +352,12 @@ mod script_style_tests {
             })
             .expect("second script symbol should be extracted");
 
-        let relationship = relationships
+        let pending = result
+            .structured_pending_relationships
             .iter()
-            .find(|relationship| relationship.to_symbol_id == "script:second.js")
-            .expect("second script import relationship should be extracted");
-        assert_eq!(relationship.from_symbol_id, second_script.id);
-        assert_eq!(
-            relationship
-                .metadata
-                .as_ref()
-                .and_then(|metadata| metadata.get("src"))
-                .and_then(|src| src.as_str()),
-            Some("second.js")
-        );
+            .find(|pending| pending.target.display_name == "second.js")
+            .expect("second script import should be extracted");
+        assert_eq!(pending.pending.from_symbol_id, second_script.id);
+        assert_eq!(pending.pending.kind, crate::base::RelationshipKind::Imports);
     }
 }

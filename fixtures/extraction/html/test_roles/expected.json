@@ -28,33 +28,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/html/test_roles/source.html:DOCTYPE:1:2",
-      "name": "DOCTYPE",
-      "kind": "namespace",
-      "language": "html",
-      "file_path": "fixtures/extraction/html/test_roles/source.html",
-      "start_line": 1,
-      "start_column": 2,
-      "end_line": 1,
-      "end_column": 9,
-      "start_byte": 2,
-      "end_byte": 9,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "doctype",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/html/test_roles/source.html:DOCTYPE:1:0",
-      "metadata": {
-        "declaration": "doctype",
-        "type": "doctype"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/html/test_roles/source.html:after:15:8",
       "name": "after",
       "kind": "function",
@@ -207,14 +180,14 @@
       "start_byte": 144,
       "end_byte": 587,
       "body_span": {
-        "start_line": 9,
-        "start_column": 36,
-        "end_line": 23,
-        "end_column": 40,
-        "start_byte": 198,
-        "end_byte": 565
+        "start_line": 7,
+        "start_column": 6,
+        "end_line": 25,
+        "end_column": 0,
+        "start_byte": 150,
+        "end_byte": 580
       },
-      "body_hash": "49b6c1157c7a84e8f1cca4396c9545f1",
+      "body_hash": "1900b7b4741e5fb9f7fd9956979bf79b",
       "signature": "<body>",
       "doc_comment": null,
       "visibility": "Public",
@@ -314,14 +287,14 @@
       "start_byte": 23,
       "end_byte": 143,
       "body_span": {
-        "start_line": 5,
-        "start_column": 22,
-        "end_line": 5,
-        "end_column": 35,
-        "start_byte": 111,
-        "end_byte": 124
+        "start_line": 3,
+        "start_column": 6,
+        "end_line": 6,
+        "end_column": 0,
+        "start_byte": 29,
+        "end_byte": 136
       },
-      "body_hash": "ae9113e81cb8dbe13bd79a8f4bbf9423",
+      "body_hash": "d7dd03afec2077fba691253f9f1c8725",
       "signature": "<head>",
       "doc_comment": null,
       "visibility": "Public",
@@ -350,14 +323,14 @@
       "start_byte": 16,
       "end_byte": 595,
       "body_span": {
-        "start_line": 5,
-        "start_column": 22,
-        "end_line": 23,
-        "end_column": 40,
-        "start_byte": 111,
-        "end_byte": 565
+        "start_line": 2,
+        "start_column": 6,
+        "end_line": 26,
+        "end_column": 0,
+        "start_byte": 22,
+        "end_byte": 588
       },
-      "body_hash": "820ba572611e89d88d3bc45b35c03913",
+      "body_hash": "c83e1659ac6917e854ad1eddaf99a1a7",
       "signature": "<html>",
       "doc_comment": null,
       "visibility": "Public",
@@ -453,15 +426,8 @@
       "end_column": 58,
       "start_byte": 32,
       "end_byte": 88,
-      "body_span": {
-        "start_line": 4,
-        "start_column": 49,
-        "end_line": 4,
-        "end_column": 49,
-        "start_byte": 79,
-        "end_byte": 79
-      },
-      "body_hash": "d41d8cd98f00b204e9800998ecf8427e",
+      "body_span": null,
+      "body_hash": null,
       "signature": "<script src=\"https://unpkg.com/mocha/mocha.js\">",
       "doc_comment": null,
       "visibility": "Public",
@@ -509,28 +475,7 @@
       "content_type": null
     }
   ],
-  "relationships": [
-    {
-      "from_key": "fixtures/extraction/html/test_roles/source.html:script:4:2",
-      "to_key": "unresolved:script:https://unpkg.com/mocha/mocha.js",
-      "kind": "imports",
-      "file_path": "fixtures/extraction/html/test_roles/source.html",
-      "line_number": 4,
-      "span": {
-        "start_line": 4,
-        "start_column": 2,
-        "end_line": 4,
-        "end_column": 58,
-        "start_byte": 32,
-        "end_byte": 88
-      },
-      "reference_site_is_exact": false,
-      "confidence": "1.000",
-      "metadata": {
-        "src": "https://unpkg.com/mocha/mocha.js"
-      }
-    }
-  ],
+  "relationships": [],
   "pending_relationships": [
     {
       "from_key": "fixtures/extraction/html/test_roles/source.html:script:4:2",
@@ -799,15 +744,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/html/test_roles/source.html:DOCTYPE:1:2",
-      "resolved_type": "doctype",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "html",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/html/test_roles/source.html:body:7:0",
       "resolved_type": "html-element",
       "generic_params": null,
@@ -895,6 +831,27 @@
       "language": "html",
       "file_path": "fixtures/extraction/html/test_roles/source.html",
       "containing_key": "fixtures/extraction/html/test_roles/source.html:head:3:0",
+      "start_line": 5,
+      "start_column": 2,
+      "end_line": 5,
+      "end_column": 46,
+      "start_byte": 91,
+      "end_byte": 135,
+      "confidence": "1.000",
+      "metadata": {
+        "inline": true,
+        "pattern_version": 1,
+        "query_family": "document_assets",
+        "tag_name": "script"
+      }
+    },
+    {
+      "pattern_id": "html.script.v1",
+      "capture_name": "script",
+      "node_kind": "script_element",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/test_roles/source.html",
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:script:4:2",
       "start_line": 4,
       "start_column": 2,
       "end_line": 4,
@@ -907,27 +864,6 @@
         "pattern_version": 1,
         "query_family": "document_assets",
         "src": "https://unpkg.com/mocha/mocha.js",
-        "tag_name": "script"
-      }
-    },
-    {
-      "pattern_id": "html.script.v1",
-      "capture_name": "script",
-      "node_kind": "script_element",
-      "language": "html",
-      "file_path": "fixtures/extraction/html/test_roles/source.html",
-      "containing_key": "fixtures/extraction/html/test_roles/source.html:head:3:0",
-      "start_line": 5,
-      "start_column": 2,
-      "end_line": 5,
-      "end_column": 46,
-      "start_byte": 91,
-      "end_byte": 135,
-      "confidence": "1.000",
-      "metadata": {
-        "inline": true,
-        "pattern_version": 1,
-        "query_family": "document_assets",
         "tag_name": "script"
       }
     }
@@ -1162,7 +1098,7 @@
       "end_column": 48,
       "start_byte": 44,
       "end_byte": 78,
-      "containing_key": "fixtures/extraction/html/test_roles/source.html:head:3:0",
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:script:4:2",
       "confidence": "1.000"
     },
     {

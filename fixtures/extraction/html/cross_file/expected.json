@@ -28,33 +28,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/html/cross_file/source.html:DOCTYPE:7:2",
-      "name": "DOCTYPE",
-      "kind": "namespace",
-      "language": "html",
-      "file_path": "fixtures/extraction/html/cross_file/source.html",
-      "start_line": 7,
-      "start_column": 2,
-      "end_line": 7,
-      "end_column": 9,
-      "start_byte": 310,
-      "end_byte": 317,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "DOCTYPE",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/html/cross_file/source.html:DOCTYPE:7:0",
-      "metadata": {
-        "declaration": "DOCTYPE",
-        "type": "doctype"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/html/cross_file/source.html:body:13:0",
       "name": "body",
       "kind": "class",
@@ -67,14 +40,14 @@
       "start_byte": 428,
       "end_byte": 594,
       "body_span": {
-        "start_line": 17,
-        "start_column": 28,
-        "end_line": 17,
-        "end_column": 42,
-        "start_byte": 560,
-        "end_byte": 574
+        "start_line": 13,
+        "start_column": 6,
+        "end_line": 19,
+        "end_column": 0,
+        "start_byte": 434,
+        "end_byte": 587
       },
-      "body_hash": "d2eca0a1521da9f57d8eeb7ec054d1bf",
+      "body_hash": "01fc63aaa00e1e2602a3cc53b1fa8a1b",
       "signature": "<body>",
       "doc_comment": null,
       "visibility": "Public",
@@ -102,15 +75,8 @@
       "end_column": 24,
       "start_byte": 437,
       "end_byte": 459,
-      "body_span": {
-        "start_line": 14,
-        "start_column": 18,
-        "end_line": 14,
-        "end_column": 18,
-        "start_byte": 453,
-        "end_byte": 453
-      },
-      "body_hash": "d41d8cd98f00b204e9800998ecf8427e",
+      "body_span": null,
+      "body_hash": null,
       "signature": "<div id=\"entry\">",
       "doc_comment": null,
       "visibility": "Public",
@@ -178,14 +144,14 @@
       "start_byte": 324,
       "end_byte": 602,
       "body_span": {
-        "start_line": 17,
-        "start_column": 28,
-        "end_line": 17,
-        "end_column": 42,
-        "start_byte": 560,
-        "end_byte": 574
+        "start_line": 8,
+        "start_column": 6,
+        "end_line": 20,
+        "end_column": 0,
+        "start_byte": 330,
+        "end_byte": 595
       },
-      "body_hash": "d2eca0a1521da9f57d8eeb7ec054d1bf",
+      "body_hash": "783222f7912b990e26cd2a1275897bb2",
       "signature": "<html>",
       "doc_comment": null,
       "visibility": "Public",
@@ -283,15 +249,8 @@
       "end_column": 36,
       "start_byte": 340,
       "end_byte": 374,
-      "body_span": {
-        "start_line": 10,
-        "start_column": 27,
-        "end_line": 10,
-        "end_column": 27,
-        "start_byte": 365,
-        "end_byte": 365
-      },
-      "body_hash": "d41d8cd98f00b204e9800998ecf8427e",
+      "body_span": null,
+      "body_hash": null,
       "signature": "<script src=\"./other.js\">",
       "doc_comment": null,
       "visibility": "Public",
@@ -310,48 +269,7 @@
       "content_type": null
     }
   ],
-  "relationships": [
-    {
-      "from_key": "fixtures/extraction/html/cross_file/source.html:link:11:2",
-      "to_key": "unresolved:url:./other.css",
-      "kind": "references",
-      "file_path": "fixtures/extraction/html/cross_file/source.html",
-      "line_number": 11,
-      "span": {
-        "start_line": 11,
-        "start_column": 2,
-        "end_line": 12,
-        "end_column": 0,
-        "start_byte": 377,
-        "end_byte": 420
-      },
-      "reference_site_is_exact": false,
-      "confidence": "1.000",
-      "metadata": {
-        "href": "./other.css"
-      }
-    },
-    {
-      "from_key": "fixtures/extraction/html/cross_file/source.html:script:10:2",
-      "to_key": "unresolved:script:./other.js",
-      "kind": "imports",
-      "file_path": "fixtures/extraction/html/cross_file/source.html",
-      "line_number": 10,
-      "span": {
-        "start_line": 10,
-        "start_column": 2,
-        "end_line": 10,
-        "end_column": 36,
-        "start_byte": 340,
-        "end_byte": 374
-      },
-      "reference_site_is_exact": false,
-      "confidence": "1.000",
-      "metadata": {
-        "src": "./other.js"
-      }
-    }
-  ],
+  "relationships": [],
   "pending_relationships": [
     {
       "from_key": "fixtures/extraction/html/cross_file/source.html:link:11:2",
@@ -439,15 +357,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/html/cross_file/source.html:DOCTYPE:7:2",
-      "resolved_type": "doctype",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "html",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/html/cross_file/source.html:body:13:0",
       "resolved_type": "html-element",
       "generic_params": null,
@@ -505,6 +414,27 @@
   "parse_diagnostics": [],
   "structural_facts": [
     {
+      "pattern_id": "html.resource_link.v1",
+      "capture_name": "resource_link",
+      "node_kind": "element",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/cross_file/source.html",
+      "containing_key": "fixtures/extraction/html/cross_file/source.html:link:11:2",
+      "start_line": 11,
+      "start_column": 2,
+      "end_line": 12,
+      "end_column": 0,
+      "start_byte": 377,
+      "end_byte": 420,
+      "confidence": "1.000",
+      "metadata": {
+        "href": "./other.css",
+        "pattern_version": 1,
+        "query_family": "document_assets",
+        "rel": "stylesheet"
+      }
+    },
+    {
       "pattern_id": "html.script.v1",
       "capture_name": "script",
       "node_kind": "script_element",
@@ -531,7 +461,7 @@
       "node_kind": "script_element",
       "language": "html",
       "file_path": "fixtures/extraction/html/cross_file/source.html",
-      "containing_key": "fixtures/extraction/html/cross_file/source.html:head:9:0",
+      "containing_key": "fixtures/extraction/html/cross_file/source.html:script:10:2",
       "start_line": 10,
       "start_column": 2,
       "end_line": 10,
@@ -608,7 +538,7 @@
       "end_column": 43,
       "start_byte": 405,
       "end_byte": 418,
-      "containing_key": "fixtures/extraction/html/cross_file/source.html:head:9:0",
+      "containing_key": "fixtures/extraction/html/cross_file/source.html:link:11:2",
       "confidence": "1.000"
     },
     {
@@ -624,7 +554,7 @@
       "end_column": 26,
       "start_byte": 352,
       "end_byte": 364,
-      "containing_key": "fixtures/extraction/html/cross_file/source.html:head:9:0",
+      "containing_key": "fixtures/extraction/html/cross_file/source.html:script:10:2",
       "confidence": "1.000"
     },
     {
@@ -656,7 +586,7 @@
       "end_column": 24,
       "start_byte": 387,
       "end_byte": 399,
-      "containing_key": "fixtures/extraction/html/cross_file/source.html:head:9:0",
+      "containing_key": "fixtures/extraction/html/cross_file/source.html:link:11:2",
       "confidence": "1.000"
     }
   ],

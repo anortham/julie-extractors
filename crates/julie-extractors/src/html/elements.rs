@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use tree_sitter::Node;
 
 use super::attributes::AttributeHandler;
-use super::helpers::HTMLHelpers;
+use super::helpers::{HTMLHelpers, element_body_span};
 use super::types::HTMLTypes;
 
 /// Check if an HTML element should be extracted as a symbol.
@@ -50,7 +50,7 @@ pub(super) fn should_extract_element(tag_name: &str, attributes: &HashMap<String
         // Meta/link/base
         | "meta" | "link" | "base"
         // Interactive/embedding elements
-        | "a" | "canvas" | "iframe" | "object" | "embed"
+        | "a" | "area" | "canvas" | "iframe" | "object" | "embed"
         // SVG elements
         | "svg" | "defs" | "linearGradient" | "rect" | "circle"
         | "path" | "text" | "animate" | "desc" | "stop"
@@ -123,7 +123,7 @@ impl ElementExtractor {
         // Extract HTML comment
         let doc_comment = base.find_doc_comment(&node);
 
-        Some(base.create_symbol(
+        let mut symbol = base.create_symbol(
             &node,
             tag_name,
             symbol_kind,
@@ -135,7 +135,9 @@ impl ElementExtractor {
                 doc_comment,
                 annotations: Vec::new(),
             },
-        ))
+        );
+        base.set_body_span(&mut symbol, element_body_span(base, node));
+        Some(symbol)
     }
 
     /// Extract DOCTYPE declaration

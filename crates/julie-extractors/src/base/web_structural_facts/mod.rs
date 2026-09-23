@@ -50,6 +50,8 @@ const HTML_AREA_LINK_PATTERN_ID: &str = "html.area_link.v1";
 const HTML_MEDIA_PATTERN_ID: &str = "html.media.v1";
 const HTML_LANDMARK_PATTERN_ID: &str = "html.landmark.v1";
 const HTML_DATA_ATTRIBUTE_PATTERN_ID: &str = "html.data_attribute.v1";
+const HTML_RESOURCE_LINK_PATTERN_ID: &str = "html.resource_link.v1";
+const HTML_EMBED_PATTERN_ID: &str = "html.embed.v1";
 const VUE_SFC_SECTION_PATTERN_ID: &str = "vue.sfc_section.v1";
 const VUE_TEMPLATE_DIRECTIVE_PATTERN_ID: &str = "vue.template_directive.v1";
 const VUE_ROUTE_REFERENCE_PATTERN_ID: &str = "vue.route_reference.v1";
@@ -86,11 +88,13 @@ const CSS_WEB_PATTERN_IDS: &[&str] = &[
 const HTML_WEB_PATTERN_IDS: &[&str] = &[
     HTML_AREA_LINK_PATTERN_ID,
     HTML_DATA_ATTRIBUTE_PATTERN_ID,
+    HTML_EMBED_PATTERN_ID,
     HTML_FORM_CONTROL_PATTERN_ID,
     HTML_FORM_PATTERN_ID,
     HTML_LANDMARK_PATTERN_ID,
     HTML_LINK_PATTERN_ID,
     HTML_MEDIA_PATTERN_ID,
+    HTML_RESOURCE_LINK_PATTERN_ID,
     HTML_SCRIPT_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
@@ -179,8 +183,24 @@ pub fn collect_web_structural_facts(
     };
 
     attach_containing_symbols(&mut facts, symbols);
+    if language == "html" {
+        bind_to_element_symbols(&mut facts, symbols);
+    }
     sort_structural_facts(&mut facts);
     facts
+}
+
+/// An HTML element fact belongs to the symbol built from the same element,
+/// whatever that symbol's kind (an `<img>` is a variable).
+fn bind_to_element_symbols(facts: &mut [StructuralFact], symbols: &[Symbol]) {
+    for fact in facts {
+        if let Some(symbol) = symbols
+            .iter()
+            .find(|symbol| symbol.start_byte == fact.start_byte && symbol.end_byte == fact.end_byte)
+        {
+            fact.containing_symbol_id = Some(symbol.id.clone());
+        }
+    }
 }
 
 #[cfg(all(test, feature = "test-capability-matrix"))]

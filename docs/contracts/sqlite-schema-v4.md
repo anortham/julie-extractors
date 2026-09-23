@@ -864,6 +864,8 @@ Supported patterns are advertised in
 | `html.landmark.v1` | `html` | `landmark` | `element` | `document_landmarks` | An HTML landmark element or element with a landmark role. |
 | `html.data_attribute.v1` | `html` | `data_attribute` | `element` | `document_attributes` | A generic HTML `data-*` attribute (excluding htmx/Alpine reserved prefixes). |
 | `html.script.v1` | `html` | `script` | `script_element` | `document_assets` | An HTML script element with inline/external metadata. |
+| `html.resource_link.v1` | `html` | `resource_link` | `element` | `document_assets` | An HTML `<link>` element (`href`, optional `rel`, `as`, `type`). |
+| `html.embed.v1` | `html` | `embed` | `element` | `document_assets` | An embedded document or object: `<iframe>`, `<embed>`, `<object>` (`tag_name`, `src`). |
 | `html.form.v1` | `html` | `form` | `element` | `document_forms` | An HTML form with action, method, and control-count metadata. |
 | `html.form_control.v1` | `html` | `form_control` | `element` | `document_forms` | An HTML form control and its resolved owner-form metadata when available. |
 | `vue.sfc_section.v1` | `vue` | `section` | `sfc_section` | `component_structure` | A Vue single-file component section (`template`, `script`, or `style`). |

@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use tree_sitter::Node;
 
 use super::attributes::AttributeHandler;
-use super::helpers::HTMLHelpers;
+use super::helpers::{HTMLHelpers, element_body_span};
 
 /// Script and style tag extraction
 pub(super) struct ScriptStyleExtractor;
@@ -31,7 +31,8 @@ impl ScriptStyleExtractor {
 
         if !attributes.contains_key("src")
             && is_javascript
-            && let Some(mut results) = extract_embedded_block(base, node, "javascript")
+            && let Some(mut results) =
+                extract_embedded_block(base, node, script_block_language(&attributes))
         {
             crate::embedded::retain_symbols(&mut results, |symbol| {
                 !has_test_role_metadata(symbol)
@@ -92,7 +93,7 @@ impl ScriptStyleExtractor {
         // Extract HTML comment
         let doc_comment = base.find_doc_comment(&node);
 
-        vec![base.create_symbol(
+        let mut symbol = base.create_symbol(
             &node,
             "script".to_string(),
             symbol_kind,
@@ -104,7 +105,9 @@ impl ScriptStyleExtractor {
                 doc_comment,
                 annotations: Vec::new(),
             },
-        )]
+        );
+        base.set_body_span(&mut symbol, element_body_span(base, node));
+        vec![symbol]
     }
 
     /// Extract a style element and create a symbol
@@ -158,7 +161,7 @@ impl ScriptStyleExtractor {
         // Extract HTML comment (e.g. <!-- Theme overrides for dark mode -->)
         let doc_comment = base.find_doc_comment(&node);
 
-        let style_symbol = base.create_symbol(
+        let mut style_symbol = base.create_symbol(
             &node,
             "style".to_string(),
             SymbolKind::Variable,
@@ -172,6 +175,7 @@ impl ScriptStyleExtractor {
             },
         );
 
+        base.set_body_span(&mut style_symbol, element_body_span(base, node));
         let mut result = vec![style_symbol];
         result.extend(embedded_css_symbols);
         result
@@ -189,6 +193,23 @@ pub(super) fn is_javascript_script_type(attributes: &HashMap<String, String>) ->
                 | "text/ecmascript"
                 | "application/ecmascript"
         )
+        || is_jsx_script_type(script_type)
+}
+
+/// In-browser Babel (`text/babel`) and `text/jsx` blocks hold JSX.
+fn is_jsx_script_type(script_type: &str) -> bool {
+    matches!(script_type, "text/babel" | "text/jsx")
+}
+
+fn script_block_language(attributes: &HashMap<String, String>) -> &'static str {
+    if attributes
+        .get("type")
+        .is_some_and(|script_type| is_jsx_script_type(script_type))
+    {
+        "jsx"
+    } else {
+        "javascript"
+    }
 }
 
 pub(super) fn is_mocha_script_source(source: &str) -> bool {
