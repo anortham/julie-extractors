@@ -102,6 +102,28 @@ Integration: 3.4.0 is not released, so wave 2 keeps the crate version, the
 entry. The branch gate, the real-repository comparison, the Windows default
 tier, and a new two-pass Codex review of the full branch run before release.
 
+Result: the 13 groups closed 673 gaps and 22 `open_gaps` entries, dropped 15
+that did not reproduce or that a decision intends, and deferred 5. The
+deferred gaps need an owner decision or a grammar change:
+
+- A step-definition test role for Behat and SpecFlow step bindings (a new
+  `TestRole` value).
+- JSON5 support (a new grammar dependency, or a decision that JSON5 is out of
+  scope).
+- A `go.mod` / `go.sum` language row (a new entry in the language registry and
+  file discovery).
+- Regex conditionals `(?(cond)yes|no)`: tree-sitter-regex has no node for them.
+
+The capability ledger's open-gap backlog fell from 43 to 25.
+
+The real-repository comparison found scan-time regressions against the wave-1
+build: zod took 22% longer and Newtonsoft.Json 28% longer. Wave 2 added symbols
+and owner lookups to code that found owners with upward `Node::parent` walks,
+per-call indexes, or scans of every symbol. The fix keeps every artifact row
+identical on 13 repositories and brings both scans below their wave-1 times.
+The [wave-2 evidence](../evidence/2026-09-23-language-gap-wave2-real-world.md)
+has the numbers.
+
 ## Later waves
 
 Gaps that wave 2 defers stay as `open_gaps` entries with a reason, the

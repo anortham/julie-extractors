@@ -191,32 +191,42 @@ Wave 2 row-family changes, by language family:
   constants, clean pending receiver paths, and Codeception and PHPSpec roles.
 - Data and markup. JSON `$ref` pointers resolve to `references` edges or
   structured pending rows, and JSONC comments become doc comments. TOML, YAML,
-  and XML comments before a key or element become doc comments. XML symbol
-  kinds follow the declared vocabulary (XSD, WSDL, XSLT, XAML, MSBuild, Ant,
-  Spring, MyBatis, TestNG, resx). Markdown heading names are plain text,
-  anchors use GitHub slugs, and reference links and footnotes give
-  `references` edges or structured pending rows.
+  and XML comments before a key or element become doc comments. YAML
+  flow-mapping pairs and anchored sequence items become symbols, leaf pairs
+  carry their first line as signature, and aliases bind to the nearest earlier
+  anchor. XML symbol kinds follow the declared vocabulary (XSD, WSDL, XSLT,
+  XAML, MSBuild, Ant, Spring, MyBatis, TestNG, resx). Markdown heading names
+  are plain text, anchors use GitHub slugs, and reference links and footnotes
+  give `references` edges or structured pending rows.
 - Dynamic. Lua class idioms become classes with `extends` rows and LuaLS
-  annotations give type facts. R emits S4, R6, RefClass, and S7 members and
-  more import forms. Bash drops duplicate declaration rows and prefix
-  assignments, honors declaration flags, and links wrapped commands and trap
-  handlers.
-- QML, SQL, and Regex. QML signal handlers own their calls and property and
-  handler body spans cover the value. SQL type facts come from grammar type
-  nodes with `is_inferred` false, docs stop bleeding into columns, and
-  unnamed constraints and top-level select aliases lose their symbols. Regex
-  lookarounds and property escapes are nested symbols.
+  annotations give type facts. Lua call-argument table fields are no longer
+  symbols, and `setmetatable` instances are no longer classes. R emits S4, R6,
+  RefClass, and S7 members and more import forms. Bash drops duplicate
+  declaration rows and prefix assignments, honors declaration flags, and links
+  wrapped commands and trap handlers.
+- QML, SQL, and Regex. QML signal handlers own their calls, property and
+  handler body spans cover the value, and declaration sites emit no
+  `variable_ref` rows. SQL type facts come from grammar type nodes with
+  `is_inferred` false, docs stop bleeding into columns, and unnamed constraints
+  and top-level select aliases lose their symbols. Regex lookarounds and
+  property escapes are nested symbols.
 - .NET. C# adds event, positional record property, and pattern-variable
-  symbols. VB.NET adds typed locals and `Implements` links. F# adds
-  constructors, properties, operators, active patterns, interfaces, and
-  `open`/`#load`/`#r` imports. Razor emits one file class per `.razor` or
-  `.cshtml` file that owns template calls, one row per directive, and private
-  default visibility. PowerShell parameters parent to the right function and
-  unexported `.psm1` functions are private.
+  symbols. Before the parse, C# blanks preprocessor directive lines and every
+  `#elif`/`#else` branch, so only the first branch of an `#if` group yields
+  rows and the parse diagnostics that split directives caused are gone. F#
+  rewrites `static member val` and `default val` to `member val` at the same
+  byte length before the parse. VB.NET adds typed locals and `Implements`
+  links. F# adds constructors, properties, operators, active patterns,
+  interfaces, and `open`/`#load`/`#r` imports. Razor emits one file class per
+  `.razor` or `.cshtml` file that owns template calls, one row per directive,
+  and private default visibility, and render-fragment tags such as `<Columns>`
+  are no longer component references. PowerShell parameters parent to the right
+  function and unexported `.psm1` functions are private.
 - JVM. Java adds interface constants, annotation elements, and module
-  namespaces. Kotlin accessors and operator functions own their calls, and
-  plain constructor parameters are private. Scala member `val`/`var` are
-  properties, and extensions and anonymous givens get stable names.
+  namespaces. Kotlin accessors and operator functions own their calls, plain
+  constructor parameters are private, and `null`, `true`, and `false` are no
+  longer `variable_ref` rows. Scala member `val`/`var` are properties, and
+  extensions and anonymous givens get stable names.
 - Apple, Dart, and Godot. Swift adds operator and macro symbols. Dart adds
   extension types, mixin applications, libraries, parts, and typedefs, and
   drops false body spans. GDScript visibility follows the underscore rule.
@@ -235,8 +245,9 @@ Wave 2 row-family changes, by language family:
 - ECMAScript. TypeScript and JavaScript emit one export row per exported name,
   and export rows no longer parent declarations. Visibility follows module
   exports. Calls inside field initializers, object methods, and initializer
-  variables belong to that declaration. The `string` keyword no longer yields
-  string regions.
+  variables belong to that declaration. JavaScript data object literals in
+  expressions no longer emit property symbols. The `string` keyword no longer
+  yields string regions.
 - Systems. Rust impl members parent to the implemented type and item macros
   yield real items. Go adds `extends` and `implements` rows and range and
   type-switch bindings. Zig declaration kinds follow the initializer node.
