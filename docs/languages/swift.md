@@ -51,6 +51,39 @@ The golden fixture `swift:structure` holds the evidence for these rules.
   complexity row. Enum cases, protocol requirements, and type aliases have no
   body.
 
+The golden fixture `swift:declarations` holds the evidence for these rules.
+
+- **Operators and macros.** `static func ==`, `prefix func -`, and a custom
+  `func <>` are `operator` symbols named by the operator, with parameters and
+  a body. `infix operator <>: AdditionPrecedence` is an `operator` symbol with
+  no body. A `macro` declaration is a `function` symbol with metadata type
+  `macro`; its signature stops before the `= #externalMacro(...)` definition.
+- **Functions.** A `func` inside a type, extension, or protocol body is a
+  `method`; a `func` inside a function body is a local `function`. `init?`
+  and `init!` keep their failable marker in the signature. A signature carries
+  a `where` clause only from the declaration's own constraints.
+- **Actors.** An actor is a `class` symbol whose signature starts with `actor`
+  and whose metadata type is `actor`.
+- **Implicit members and macro expansions.** `.retryPolicy(...)`,
+  `.init(...)`, and `#stringify(...)` are calls. An implicit member call
+  never resolves to a free function; when it initializes an annotated
+  property, the annotated type is its receiver. `Self.make()` is a call on
+  the enclosing type.
+- **Identifiers.** Compiler attributes such as `@available`, `@main`, and
+  `@discardableResult` are not type usages; property wrappers, global actors,
+  and macros such as `@Published` and `@MainActor` are. Associated-value
+  labels and `.self` are not references.
+- **Comments.** `/* */` blocks are comment regions and `/** */` blocks are
+  doc-comment regions, so a `TODO` inside a block comment is a marker fact.
+
+## Framework facts
+
+| Pattern | Evidence | Rule |
+| --- | --- | --- |
+| `vapor.route.v1` | `swift:vapor_http` | In a file that imports Vapor, a `get`/`post`/`put`/`patch`/`delete`/`on(.VERB, ...)` call with static path components and a `use:` handler or trailing closure. Same-file `grouped(...)` bindings and `group(...) { builder in }` closures supply the prefix. |
+| `http.client_request.v1` | `swift:vapor_http` | `AF.request("url", method: .verb)` (client `alamofire`) and a URLSession task whose first argument is `URL(string: "url")` or `URLRequest(url: URL(string: "url"))` (client `urlsession`, default `GET`). |
+| `swiftpm.package.v1`, `swiftpm.product.v1`, `swiftpm.target.v1`, `manifest.dependency.v1` | `swift:package_manifest` | A file named `Package.swift`: the `Package(name:)` call, each product, each target with its static dependencies, and each `.package(url:)` or `.package(path:)` dependency. |
+
 ## Test-role contract
 
 Swift ships three test frameworks and none of them marks a suite the same way.
@@ -60,6 +93,7 @@ a call. The contract reads all three.
 | Idiom | Role | Source of the rule |
 | --- | --- | --- |
 | `class X: XCTestCase` | `test_container` | XCTest base class |
+| `class X: QuickSpec`, `class X: AsyncSpec` | `test_container` | Quick spec base class |
 | `extension X` of a container in the same file | `test_container` | XCTest and Swift Testing split declarations |
 | `class Y: X` where `X` is a container in the same file | `test_container` | XCTest project base case |
 | `class Y: Base` with a parameterless `func testXxx`, in a file that imports `XCTest` | `test_container` | XCTest base case from another file |
@@ -93,7 +127,8 @@ rules take two guards together.
   production `func testConnection()` would carry a role.
 - **Container.** A callable must sit inside a test container. XCTest suites are
   found through the `base_types` metadata the type extractor emits, Swift
-  Testing suites through the `@Suite` macro, and Quick groups through the call
+  Testing suites through the `@Suite` macro, Quick spec classes through their
+  `QuickSpec` or `AsyncSpec` base type, and Quick groups through the call
   adapter. A `func testHelperNamedLikeACase()` in a support struct therefore
   earns no role, and neither does a `func setUp()` there.
 
@@ -142,20 +177,18 @@ site is where the examples run, so Swift publishes both rows.
 
 ## Recorded gaps
 
-Two surfaces are recorded as `open_gaps` on the swift row in
+One surface is recorded as an `open_gaps` entry on the swift row in
 `fixtures/extraction/capabilities.json`, under
 `kind_coverage.structural_facts.open_gaps`. The `test_detection` vocabulary is
 frozen to `test_case`, `test_container`, and `test_lifecycle`, and swift
 classifies each exactly once, so a swift-specific gap cannot live there.
 
-- `quick.quickspec_subclass_container`. Quick declares a spec as
-  `class CalculatorSpec: QuickSpec` whose `override func spec()` body holds the
-  `describe`/`it` tree. The groups and examples publish their roles, but the
-  subclass itself publishes no container row.
 - `swift_testing.test_traits`. `@Test(.tags(.slow))`, `@Test(.disabled("flaky"))`,
   and `@Suite(.serialized)` attach traits through extra macro arguments. The
   annotation normalizer keys on the macro name and drops its argument list, so a
-  skip, a tag, and a serialization constraint reach no channel.
+  skip, a tag, and a serialization constraint reach no channel. No language
+  publishes a test tag or skip channel yet: Ruby records RSpec metadata tags
+  as the same kind of gap, so the channel is a cross-language decision.
 
 ## Evidence
 
@@ -163,11 +196,11 @@ The golden fixture `swift:test_roles` registers two sources:
 
 | Source | What it proves |
 | --- | --- |
-| `test_source.swift` | the XCTest container, its four hooks, a case, a case in an extension, a non-test method, a subclass of a same-file base case, a subclass of a base case from another file with a helper that takes parameters, the Quick tree including the shared group and the suite and wrapping hooks, and the in-test-path controls |
+| `test_source.swift` | the XCTest container, its four hooks, a case, a case in an extension, a non-test method, a subclass of a same-file base case, a subclass of a base case from another file with a helper that takes parameters, the Quick tree including the shared group and the suite and wrapping hooks, `QuickSpec` and `AsyncSpec` subclasses beside a same-shaped `NSObject` subclass as the control, and the in-test-path controls |
 | `production_roles.swift` | the Swift Testing suite, case, parameterized case, `init`/`deinit` hooks, a top-level `@Test` function, and the production-path control, all outside a test path |
 
-The registered goldens observe 9 `test_case` rows, 10 `test_container` rows, and
-11 `test_lifecycle` rows for swift.
+The registered goldens observe 11 `test_case` rows, 12 `test_container` rows,
+and 11 `test_lifecycle` rows for swift.
 
 No real-world corpus scan was run for this contract. The evidence above is
 golden-fixture evidence only.

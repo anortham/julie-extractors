@@ -77,6 +77,39 @@ fn extract_identifier_from_node(
             base.create_identifier(&node, name, IdentifierKind::Call, containing_symbol_id);
         }
 
+        "attribute" if names_a_type(node) => {
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            let mut cursor = node.walk();
+            let segments: Vec<Node> = node
+                .named_children(&mut cursor)
+                .filter(|segment| segment.kind() == "identifier")
+                .collect();
+            for segment in segments {
+                let name = base.get_node_text(&segment);
+                base.create_identifier(
+                    &segment,
+                    name,
+                    IdentifierKind::TypeUsage,
+                    containing_symbol_id.clone(),
+                );
+            }
+        }
+
+        "binary_operator" => {
+            if let Some(type_node) = type_test_operand(node)
+                && type_node.kind() == "identifier"
+            {
+                let name = base.get_node_text(&type_node);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                base.create_identifier(
+                    &type_node,
+                    name,
+                    IdentifierKind::TypeUsage,
+                    containing_symbol_id,
+                );
+            }
+        }
+
         "attribute" if is_gdscript_type_position(node) => {
             if let Some(last_child) = rightmost_identifier_descendant(node) {
                 let name = base.get_node_text(&last_child);
@@ -233,11 +266,36 @@ fn is_gdscript_type_position(node: Node) -> bool {
     while let Some(parent) = current.parent() {
         match parent.kind() {
             "type" => return true,
+            "binary_operator" => {
+                return type_test_operand(parent)
+                    .is_some_and(|operand| operand.id() == current.id());
+            }
             "subscript" | "subscript_arguments" | "attribute" => current = parent,
             _ => return false,
         }
     }
     false
+}
+
+/// The type operand of an `x as T` cast or an `x is T` test.
+pub(super) fn type_test_operand(binary: Node) -> Option<Node> {
+    if binary.kind() != "binary_operator" {
+        return None;
+    }
+    let operator = binary.child_by_field_name("op")?;
+    if !matches!(operator.kind(), "as" | "is") {
+        return None;
+    }
+    binary.child_by_field_name("right")
+}
+
+/// A dotted type name (`Enemy.Kind`) written as a whole annotation or as the
+/// type operand of `as`/`is`: every segment names a type.
+fn names_a_type(attribute: Node) -> bool {
+    attribute.parent().is_some_and(|parent| {
+        parent.kind() == "type"
+            || type_test_operand(parent).is_some_and(|operand| operand.id() == attribute.id())
+    })
 }
 
 /// Rule 1/4 predicate: is this bare `identifier` a value read or an attribute

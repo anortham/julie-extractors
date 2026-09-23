@@ -15,10 +15,9 @@ impl SwiftExtractor {
         node: Node,
         parent_id: Option<&str>,
     ) -> Option<Symbol> {
-        let name_node = node
-            .children(&mut node.walk())
-            .find(|c| c.kind() == "simple_identifier");
-        let name = name_node.map(|n| self.base.get_node_text(&n))?;
+        let name_node = node.child_by_field_name("name")?;
+        let name = self.base.get_node_text(&name_node);
+        let is_operator = name_node.kind() != "simple_identifier";
 
         let modifiers = self.extract_modifiers(node);
         let annotations = self.extract_annotations(node);
@@ -48,9 +47,13 @@ impl SwiftExtractor {
         if let Some(ref return_type) = return_type {
             signature.push_str(&format!(" -> {return_type}"));
         }
+        if let Some(where_clause) = self.extract_where_clause(node) {
+            signature.push_str(&format!(" {where_clause}"));
+        }
 
-        // Functions inside classes/structs are methods
-        let symbol_kind = if parent_id.is_some() {
+        let symbol_kind = if is_operator {
+            SymbolKind::Operator
+        } else if self.is_type_member(node) {
             SymbolKind::Method
         } else {
             SymbolKind::Function
@@ -121,7 +124,7 @@ impl SwiftExtractor {
         let params_str = self
             .extract_parameters(node)
             .unwrap_or_else(|| "()".to_string());
-        let mut signature = format!("init{}", params_str);
+        let mut signature = format!("init{}{}", failable_marker(node), params_str);
         if let Some(effects) = self.extract_effects(node) {
             signature.push_str(&format!(" {effects}"));
         }
@@ -173,6 +176,112 @@ impl SwiftExtractor {
         )
     }
 
+    /// A declaration directly inside a type, extension, or protocol body is a
+    /// member; one inside a function body is a local.
+    pub(super) fn is_type_member(&self, node: Node) -> bool {
+        node.parent().is_some_and(|parent| {
+            matches!(
+                parent.kind(),
+                "class_body" | "enum_class_body" | "protocol_body"
+            )
+        })
+    }
+
+    /// `macro name(...) -> T = #externalMacro(...)`: a function-like symbol
+    /// whose signature stops before the `=` definition.
+    pub(super) fn extract_macro(&mut self, node: Node, parent_id: Option<&str>) -> Option<Symbol> {
+        let name_node = node
+            .children(&mut node.walk())
+            .find(|child| child.kind() == "simple_identifier")?;
+        let name = self.base.get_node_text(&name_node);
+        let modifiers = self.extract_modifiers(node);
+        let annotations = self.extract_annotations(node);
+        let header_end = node
+            .child_by_field_name("definition")
+            .map_or(node.end_byte(), |definition| definition.start_byte());
+        let header = self.base.content[name_node.start_byte()..header_end]
+            .trim_end()
+            .trim_end_matches('=')
+            .trim_end();
+        let mut signature = format!("macro {header}");
+        if !modifiers.is_empty() {
+            signature = format!("{} {signature}", modifiers.join(" "));
+        }
+        let metadata = HashMap::from([
+            (
+                "type".to_string(),
+                serde_json::Value::String("macro".to_string()),
+            ),
+            (
+                "modifiers".to_string(),
+                serde_json::Value::String(modifiers.join(", ")),
+            ),
+        ]);
+        let doc_comment = self.base.find_doc_comment(&node);
+        let mut symbol = self.base.create_symbol(
+            &node,
+            name,
+            SymbolKind::Function,
+            SymbolOptions {
+                signature: Some(signature),
+                visibility: Some(self.determine_visibility(&modifiers)),
+                parent_id: parent_id.map(|s| s.to_string()),
+                metadata: Some(metadata),
+                doc_comment,
+                annotations,
+            },
+        );
+        super::set_body(
+            &self.base,
+            &mut symbol,
+            node.child_by_field_name("definition"),
+        );
+        Some(symbol)
+    }
+
+    /// `infix operator <>: AdditionPrecedence` declares an operator's fixity.
+    pub(super) fn extract_operator_declaration(
+        &mut self,
+        node: Node,
+        parent_id: Option<&str>,
+    ) -> Option<Symbol> {
+        let name_node = node
+            .children(&mut node.walk())
+            .find(|child| child.kind() == "custom_operator")
+            .or_else(|| {
+                node.children(&mut node.walk())
+                    .skip_while(|child| child.kind() != "operator")
+                    .nth(1)
+            })?;
+        let name = self.base.get_node_text(&name_node);
+        let signature = self
+            .base
+            .get_node_text(&node)
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ");
+        let metadata = HashMap::from([(
+            "type".to_string(),
+            serde_json::Value::String("operator_declaration".to_string()),
+        )]);
+        let doc_comment = self.base.find_doc_comment(&node);
+        let mut symbol = self.base.create_symbol(
+            &node,
+            name,
+            SymbolKind::Operator,
+            SymbolOptions {
+                signature: Some(signature),
+                visibility: Some(Visibility::Internal),
+                parent_id: parent_id.map(|s| s.to_string()),
+                metadata: Some(metadata),
+                doc_comment,
+                annotations: Vec::new(),
+            },
+        );
+        super::clear_body(&mut symbol);
+        Some(symbol)
+    }
+
     /// Implementation of extractDeinitializer method
     pub(super) fn extract_deinitializer(&mut self, node: Node, parent_id: Option<&str>) -> Symbol {
         let name = "deinit".to_string();
@@ -201,4 +310,17 @@ impl SwiftExtractor {
             },
         )
     }
+}
+
+/// `init?` and `init!` declare failable initializers.
+fn failable_marker(node: Node) -> &'static str {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .take_while(|child| child.kind() != "parameter" && child.kind() != "(")
+        .find_map(|child| match child.kind() {
+            "?" => Some("?"),
+            "bang" | "!" => Some("!"),
+            _ => None,
+        })
+        .unwrap_or("")
 }

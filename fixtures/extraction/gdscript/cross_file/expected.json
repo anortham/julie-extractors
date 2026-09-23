@@ -291,6 +291,28 @@
         "pattern_version": 1,
         "query_family": "inheritance"
       }
+    },
+    {
+      "pattern_id": "godot.resource_reference.v1",
+      "capture_name": "resource_reference",
+      "node_kind": "extends_statement",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/cross_file/source.gd",
+      "containing_key": "fixtures/extraction/gdscript/cross_file/source.gd:source:6:0",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 24,
+      "start_byte": 295,
+      "end_byte": 319,
+      "confidence": "1.000",
+      "metadata": {
+        "framework": "godot",
+        "loader": "extends",
+        "pattern_version": 1,
+        "query_family": "imports",
+        "resource_path": "res://other.gd"
+      }
     }
   ],
   "complexity_metrics": [

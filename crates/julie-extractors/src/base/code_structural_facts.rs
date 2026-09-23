@@ -129,7 +129,7 @@ const DART_PATTERNS: &[CodeStructuralPattern] = &[
     CodeStructuralPattern {
         pattern_id: "dart.async_modifier.v1",
         capture_name: "async_modifier",
-        node_kinds: &["async"],
+        node_kinds: &["async", "async*", "sync*"],
         query_family: "async",
     },
     CodeStructuralPattern {
@@ -521,7 +521,7 @@ const GDSCRIPT_PATTERNS: &[CodeStructuralPattern] = &[
     CodeStructuralPattern {
         pattern_id: "gdscript.export_annotation.v1",
         capture_name: "export_annotation",
-        node_kinds: &["annotation"],
+        node_kinds: &["annotation", "export_variable_statement"],
         query_family: "metadata",
     },
     CodeStructuralPattern {
@@ -1148,7 +1148,8 @@ fn enrich_metadata(
             }
         }
         "gdscript.export_annotation.v1" => {
-            insert_string(metadata, "annotation_name", "export");
+            let annotation = gdscript_export_annotation_name(content, node);
+            insert_string(metadata, "annotation_name", &annotation.unwrap_or_default());
             if let Some(name) = gdscript_exported_variable_name(content, node) {
                 insert_string(metadata, "exported_variable", &name);
             }
@@ -1438,7 +1439,7 @@ fn matches_pattern(
         ("gdscript", "gdscript.extends_declaration.v1") => true,
         ("gdscript", "gdscript.signal_declaration.v1") => true,
         ("gdscript", "gdscript.export_annotation.v1") => {
-            gdscript_is_export_annotation(content, node)
+            gdscript_export_annotation_name(content, node).is_some()
         }
         ("gdscript", "gdscript.match_statement.v1") => true,
         _ => true,
@@ -2158,11 +2159,26 @@ fn powershell_class_name(content: &str, node: Node<'_>) -> Option<String> {
     None
 }
 
-fn gdscript_is_export_annotation(content: &str, node: Node<'_>) -> bool {
-    first_named_identifier(content, node, &["identifier"]).is_some_and(|name| name == "export")
+/// `export` for a Godot 3 `export var`, else the name of an `@export*`
+/// annotation that exports a variable. The `@export_group`, `@export_subgroup`,
+/// and `@export_category` annotations label the inspector and export nothing.
+fn gdscript_export_annotation_name(content: &str, node: Node<'_>) -> Option<String> {
+    if node.kind() == "export_variable_statement" {
+        return Some("export".to_string());
+    }
+    first_named_identifier(content, node, &["identifier"]).filter(|name| {
+        name.starts_with("export")
+            && !matches!(
+                name.as_str(),
+                "export_group" | "export_subgroup" | "export_category"
+            )
+    })
 }
 
 fn gdscript_exported_variable_name(content: &str, node: Node<'_>) -> Option<String> {
+    if node.kind() == "export_variable_statement" {
+        return gdscript_named_field(content, node, "name");
+    }
     if let Some(parent) = node.parent()
         && parent.kind() == "annotations"
         && let Some(variable) = parent.parent().filter(|grandparent| {

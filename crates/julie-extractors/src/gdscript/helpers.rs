@@ -1,86 +1,95 @@
 //! Shared helper functions for GDScript extraction
 
-use crate::base::{BaseExtractor, ContainingSymbolIndex, Symbol, SymbolKind};
+use crate::base::{BaseExtractor, ContainingSymbolIndex, Symbol, SymbolKind, Visibility};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
 pub(super) use crate::base::find_child_by_type;
 
-/// Helper to find multiple annotations preceding a node at the source level
-pub(super) fn extract_variable_annotations(
-    base: &mut BaseExtractor,
-    parent_node: Node,
-    signature: &str,
-) -> (Vec<String>, String) {
-    let mut annotations = Vec::new();
-    let mut full_signature = signature.to_string();
+/// Annotations that configure the whole script, never a single member.
+const SCRIPT_ANNOTATIONS: &[&str] = &["tool", "icon", "static_unload"];
 
-    // Check for annotations as children
-    for i in 0..parent_node.child_count() {
-        if let Some(child) = parent_node.child(i as u32)
-            && child.kind() == "annotations"
-        {
-            for j in 0..child.child_count() {
-                if let Some(annotation_child) = child.child(j as u32)
-                    && annotation_child.kind() == "annotation"
-                {
-                    let annotation_text = base.get_node_text(&annotation_child);
-                    annotations.push(annotation_text);
-                }
-            }
+/// The annotations of a declaration, in source order: the standalone
+/// annotation lines directly above it, then its inline `annotations`. The
+/// standalone lines come back separately so a signature can show them. A
+/// member never takes a script annotation (`@tool`, `@icon`); a script class
+/// header reads through its `extends` and `class_name` lines.
+pub(super) struct DeclarationAnnotations {
+    pub(super) standalone: Vec<String>,
+    pub(super) all: Vec<String>,
+}
+
+impl DeclarationAnnotations {
+    /// The declaration text with its standalone annotation lines above it.
+    pub(super) fn signature(&self, declaration: &str) -> String {
+        if self.standalone.is_empty() {
+            return declaration.to_string();
         }
+        format!("{}\n{declaration}", self.standalone.join("\n"))
     }
+}
 
-    // Also look for sibling annotations at source level
-    if let Some(grandparent) = parent_node.parent() {
-        // Find parent node index
-        let mut node_index = None;
-        for i in 0..grandparent.child_count() {
-            if let Some(child) = grandparent.child(i as u32)
-                && child.id() == parent_node.id()
-            {
-                node_index = Some(i);
-                break;
-            }
+pub(super) fn declaration_annotations(
+    base: &BaseExtractor,
+    node: Node,
+    script_header: bool,
+) -> DeclarationAnnotations {
+    let mut standalone = Vec::new();
+    let mut current = node.prev_named_sibling();
+    while let Some(sibling) = current {
+        match sibling.kind() {
+            "annotation" => standalone.push(sibling),
+            "comment" => {}
+            "extends_statement" | "class_name_statement" if script_header => {}
+            _ => break,
         }
-
-        if let Some(idx) = node_index {
-            let mut annotation_texts = Vec::new();
-
-            // Look backwards for annotations
-            for i in (0..idx).rev() {
-                if let Some(child) = grandparent.child(i as u32) {
-                    if child.kind() == "annotations" {
-                        for j in 0..child.child_count() {
-                            if let Some(annotation_child) = child.child(j as u32)
-                                && annotation_child.kind() == "annotation"
-                            {
-                                let annotation_text = base.get_node_text(&annotation_child);
-                                annotations.push(annotation_text.clone());
-                                annotation_texts.insert(0, annotation_text);
-                            }
-                        }
-                    } else if child.kind() == "annotation" {
-                        let annotation_text = base.get_node_text(&child);
-                        annotations.push(annotation_text.clone());
-                        annotation_texts.insert(0, annotation_text);
-                    } else if matches!(
-                        child.kind(),
-                        "variable_statement" | "constant_statement" | "var" | "const"
-                    ) {
-                        break;
-                    }
-                }
-            }
-
-            // Build full signature with annotations
-            if !annotation_texts.is_empty() {
-                full_signature = format!("{}\n{}", annotation_texts.join("\n"), signature);
-            }
-        }
+        current = sibling.prev_named_sibling();
     }
+    standalone.reverse();
+    let standalone: Vec<String> = standalone
+        .into_iter()
+        .filter(|annotation| script_header || !is_script_annotation(base, *annotation))
+        .map(|annotation| base.get_node_text(&annotation))
+        .collect();
 
-    (annotations, full_signature)
+    let mut all = standalone.clone();
+    let mut cursor = node.walk();
+    for group in node
+        .children(&mut cursor)
+        .filter(|child| child.kind() == "annotations")
+    {
+        let mut group_cursor = group.walk();
+        all.extend(
+            group
+                .named_children(&mut group_cursor)
+                .filter(|child| child.kind() == "annotation")
+                .map(|annotation| base.get_node_text(&annotation)),
+        );
+    }
+    DeclarationAnnotations { standalone, all }
+}
+
+/// The name of an `annotation` node (`export_range` for `@export_range(0, 1)`).
+pub(super) fn annotation_name(base: &BaseExtractor, annotation: Node) -> Option<String> {
+    let mut cursor = annotation.walk();
+    annotation
+        .named_children(&mut cursor)
+        .find(|child| child.kind() == "identifier")
+        .map(|identifier| base.get_node_text(&identifier))
+}
+
+fn is_script_annotation(base: &BaseExtractor, annotation: Node) -> bool {
+    annotation_name(base, annotation)
+        .is_some_and(|name| SCRIPT_ANNOTATIONS.contains(&name.as_str()))
+}
+
+/// `_name` is private and every other name is public, as Godot's convention.
+pub(super) fn member_visibility(name: &str) -> Visibility {
+    if name.starts_with('_') {
+        Visibility::Private
+    } else {
+        Visibility::Public
+    }
 }
 
 /// The `##` block directly above `node`, read through any annotation lines

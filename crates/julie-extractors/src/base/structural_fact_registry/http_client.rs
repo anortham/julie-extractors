@@ -33,6 +33,8 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
             "vbnet",
             "fsharp",
             "powershell",
+            "swift",
+            "dart",
         ],
         query_family: "web.http_client",
         description: "An outbound HTTP client request with a static URL literal.",
@@ -44,7 +46,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "client",
                 STR,
                 ALWAYS,
-                "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, invoke-restmethod, invoke-webrequest, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, req, tesla, httpoison, finch, httpc, wget).",
+                "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, invoke-restmethod, invoke-webrequest, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, req, tesla, httpoison, finch, httpc, wget, urlsession, alamofire, dart_http, dio).",
             ),
             key(
                 "target_path",

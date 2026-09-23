@@ -43,7 +43,10 @@ pub(super) fn extract_class(
     node: &Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let name_node = find_child_by_type(node, "identifier")?;
+    let name_node = find_child_by_type(node, "identifier").or_else(|| {
+        find_child_by_type(node, "mixin_application_class")
+            .and_then(|application| find_child_by_type(&application, "identifier"))
+    })?;
     let name = get_node_text(&name_node);
     let annotations = extract_annotation_markers(node);
 
@@ -117,7 +120,7 @@ fn extract_callable_with_kind(
         name,
         symbol_kind,
         SymbolOptions {
-            signature: signatures::extract_function_signature(&target, &base.content),
+            signature: signatures::extract_function_signature(&target),
             visibility: Some(if is_private {
                 Visibility::Private
             } else {
@@ -167,16 +170,12 @@ pub(super) fn extract_method(
     let annotation_keys = annotation_keys(&annotations);
 
     // Get the base function signature (return type + name + params)
-    let base_signature =
-        signatures::extract_function_signature(&target_node, &base.content).unwrap_or_default();
+    let base_signature = signatures::extract_function_signature(&target_node).unwrap_or_default();
 
     // Build method signature with modifiers
     let mut modifiers = Vec::new();
     if is_static {
         modifiers.push("static");
-    }
-    if is_async {
-        modifiers.push("async");
     }
     if is_override {
         modifiers.push("@override");
@@ -239,6 +238,44 @@ pub(super) fn extract_method(
     Some(symbol)
 }
 
+/// `T operator +(T other)`: an operator overload named by its operator token.
+pub(super) fn extract_operator(
+    base: &mut BaseExtractor,
+    node: &Node,
+    anchor: &Node,
+    parent_id: Option<&str>,
+) -> Option<Symbol> {
+    let keyword = find_child_by_type(node, "operator")?;
+    let parameters = node.child_by_field_name("parameters")?;
+    let name = base.content[keyword.end_byte()..parameters.start_byte()]
+        .trim()
+        .to_string();
+    if name.is_empty() {
+        return None;
+    }
+    let annotations = extract_annotation_markers(anchor);
+    let signature = get_node_text(node)
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    let mut symbol = base.create_symbol(
+        anchor,
+        name,
+        SymbolKind::Operator,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(Visibility::Public),
+            parent_id: parent_id.map(|id| id.to_string()),
+            metadata: Some(HashMap::new()),
+            annotations,
+            doc_comment: base.find_doc_comment(anchor),
+        },
+    );
+    record_return_type(base, &symbol.id, node);
+    clear_bodyless_span(&mut symbol, anchor);
+    Some(symbol)
+}
+
 /// Extract a constructor from its signature node. The symbol spans `anchor`:
 /// the whole member when the signature has a body or initializer list.
 pub(super) fn extract_constructor(
@@ -290,6 +327,9 @@ pub(super) fn extract_constructor(
 
     let is_factory = is_factory_constructor(node);
     let is_const = is_const_constructor(node);
+    let redirect_target = node
+        .child_by_field_name("target")
+        .map(|target| get_node_text(&target));
     let annotations = extract_annotation_markers(node);
     let annotation_keys = annotation_keys(&annotations);
 
@@ -318,6 +358,12 @@ pub(super) fn extract_constructor(
         .metadata
         .get_or_insert_with(HashMap::new)
         .insert("isConst".to_string(), serde_json::Value::Bool(is_const));
+    if let Some(redirect_target) = redirect_target {
+        symbol.metadata.get_or_insert_with(HashMap::new).insert(
+            "redirectTarget".to_string(),
+            serde_json::Value::String(redirect_target),
+        );
+    }
 
     // Test detection for Dart constructors
     merge_test_metadata(

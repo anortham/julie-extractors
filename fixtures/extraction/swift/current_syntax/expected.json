@@ -21,13 +21,13 @@
         "end_byte": 613
       },
       "body_hash": "fda1193b410677ed669764165e857a15",
-      "signature": "class Executor",
+      "signature": "actor Executor",
       "doc_comment": null,
       "visibility": "Internal",
       "parent_key": null,
       "metadata": {
         "modifiers": "",
-        "type": "class"
+        "type": "actor"
       },
       "annotations": [],
       "semantic_group": null,

@@ -37,6 +37,13 @@ pub(super) fn extract_variable_type(
         }
     }
 
+    if let Some(cast_type) = parent_node
+        .child_by_field_name("value")
+        .and_then(|value| super::type_facts::cast_type(base, value))
+    {
+        return Some(cast_type);
+    }
+
     // If no explicit type, try to infer from assignment
     for i in (name_index + 1)..parent_node.child_count() {
         if let Some(child) = parent_node.child(i as u32)

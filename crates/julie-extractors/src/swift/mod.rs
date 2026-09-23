@@ -96,68 +96,7 @@ impl SwiftExtractor {
             return;
         }
 
-        let mut extracted: Vec<Symbol> = Vec::new();
-        let mut symbol: Option<Symbol> = None;
-
-        match node.kind() {
-            "class_declaration" => {
-                symbol = self.extract_class(node, parent_id.as_deref());
-            }
-            "struct_declaration" => {
-                symbol = self.extract_struct(node, parent_id.as_deref());
-            }
-            "protocol_declaration" => {
-                symbol = self.extract_protocol(node, parent_id.as_deref());
-            }
-            "enum_declaration" => {
-                symbol = self.extract_enum(node, parent_id.as_deref());
-            }
-            "enum_case_declaration" => {
-                self.extract_enum_cases(node, &mut extracted, parent_id.as_deref());
-            }
-            "enum_entry" => {
-                extracted = self.extract_enum_case(node, parent_id.as_deref());
-            }
-            "function_declaration" => {
-                symbol = self.extract_function(node, parent_id.as_deref());
-            }
-            "protocol_function_declaration" => {
-                symbol = self.extract_protocol_function(node, parent_id.as_deref());
-            }
-            "protocol_property_declaration" => {
-                symbol = self.extract_protocol_property(node, parent_id.as_deref());
-            }
-            "associatedtype_declaration" => {
-                symbol = self.extract_associated_type(node, parent_id.as_deref());
-            }
-            "subscript_declaration" => {
-                symbol = Some(self.extract_subscript(node, parent_id.as_deref()));
-            }
-            "init_declaration" => {
-                symbol = Some(self.extract_initializer(node, parent_id.as_deref()));
-            }
-            "deinit_declaration" => {
-                symbol = Some(self.extract_deinitializer(node, parent_id.as_deref()));
-            }
-            "property_declaration" => {
-                extracted = self.extract_property(node, parent_id.as_deref());
-            }
-            "extension_declaration" => {
-                symbol = self.extract_extension(node, parent_id.as_deref());
-            }
-            "import_declaration" => {
-                symbol = self.extract_import(node, parent_id.as_deref());
-            }
-            "typealias_declaration" => {
-                symbol = self.extract_type_alias(node, parent_id.as_deref());
-            }
-            "call_expression" => {
-                symbol =
-                    test_calls::extract_quick_test_call(&mut self.base, node, parent_id.as_deref());
-            }
-            _ => {}
-        }
-        extracted.extend(symbol);
+        let mut extracted = self.extract_node_symbols(node, parent_id.as_deref());
 
         let parent = parent_id
             .as_deref()
@@ -187,6 +126,80 @@ impl SwiftExtractor {
         for child in node.children(&mut cursor) {
             self.visit_node(child, symbols, current_parent_id.clone(), child_depth);
         }
+    }
+
+    /// The symbols one node declares. Kept out of line so the recursive
+    /// walker's frame never holds a `Symbol`.
+    #[inline(never)]
+    fn extract_node_symbols(&mut self, node: Node, parent_id: Option<&str>) -> Vec<Symbol> {
+        let mut extracted: Vec<Symbol> = Vec::new();
+        let mut symbol: Option<Symbol> = None;
+
+        match node.kind() {
+            "class_declaration" => {
+                symbol = self.extract_class(node, parent_id);
+            }
+            "struct_declaration" => {
+                symbol = self.extract_struct(node, parent_id);
+            }
+            "protocol_declaration" => {
+                symbol = self.extract_protocol(node, parent_id);
+            }
+            "enum_declaration" => {
+                symbol = self.extract_enum(node, parent_id);
+            }
+            "enum_case_declaration" => {
+                self.extract_enum_cases(node, &mut extracted, parent_id);
+            }
+            "enum_entry" => {
+                extracted = self.extract_enum_case(node, parent_id);
+            }
+            "function_declaration" => {
+                symbol = self.extract_function(node, parent_id);
+            }
+            "macro_declaration" => {
+                symbol = self.extract_macro(node, parent_id);
+            }
+            "operator_declaration" => {
+                symbol = self.extract_operator_declaration(node, parent_id);
+            }
+            "protocol_function_declaration" => {
+                symbol = self.extract_protocol_function(node, parent_id);
+            }
+            "protocol_property_declaration" => {
+                symbol = self.extract_protocol_property(node, parent_id);
+            }
+            "associatedtype_declaration" => {
+                symbol = self.extract_associated_type(node, parent_id);
+            }
+            "subscript_declaration" => {
+                symbol = Some(self.extract_subscript(node, parent_id));
+            }
+            "init_declaration" => {
+                symbol = Some(self.extract_initializer(node, parent_id));
+            }
+            "deinit_declaration" => {
+                symbol = Some(self.extract_deinitializer(node, parent_id));
+            }
+            "property_declaration" => {
+                extracted = self.extract_property(node, parent_id);
+            }
+            "extension_declaration" => {
+                symbol = self.extract_extension(node, parent_id);
+            }
+            "import_declaration" => {
+                symbol = self.extract_import(node, parent_id);
+            }
+            "typealias_declaration" => {
+                symbol = self.extract_type_alias(node, parent_id);
+            }
+            "call_expression" => {
+                symbol = test_calls::extract_quick_test_call(&mut self.base, node, parent_id);
+            }
+            _ => {}
+        }
+        extracted.extend(symbol);
+        extracted
     }
 }
 

@@ -6,7 +6,9 @@
 use super::StructuralFactPatternSpec;
 
 mod aspnet_node;
+mod dart;
 mod frontend;
+mod godot;
 mod jvm_go_ruby;
 mod kotlin_elixir;
 mod lua;
@@ -14,6 +16,7 @@ mod php;
 mod python;
 mod r;
 mod rust;
+mod swift;
 
 #[cfg(test)]
 pub(super) fn frontend_specs() -> &'static [StructuralFactPatternSpec] {
@@ -30,6 +33,9 @@ pub(super) fn specs() -> Vec<StructuralFactPatternSpec> {
         rust::SPECS,
         lua::SPECS,
         r::SPECS,
+        swift::SPECS,
+        dart::SPECS,
+        godot::SPECS,
         frontend::SPECS,
     ]
     .concat()

@@ -63,46 +63,62 @@ where
     }
 }
 
-/// Check if a function is async
-pub(super) fn is_async_function(node: &Node, _content: &str) -> bool {
-    // Check if the node text contains async (fallback)
-    if get_node_text(node).contains("async") {
-        return true;
-    }
-
-    // For function_signature nodes, check the sibling function_body for async keyword
-    if node.kind() == "function_signature"
-        && let Some(function_body) = node.next_sibling()
-        && function_body.kind() == "function_body"
-        && find_child_by_type(&function_body, "async").is_some()
-    {
-        return true;
-    }
-
-    false
+/// The declaration's own `function_body`: `async`/`async*`/`sync*` sit there.
+fn declaration_body<'a>(node: &Node<'a>) -> Option<Node<'a>> {
+    let owner = match node.kind() {
+        "function_signature" | "method_signature" | "getter_signature" | "setter_signature" => {
+            let parent = node.parent()?;
+            if matches!(parent.kind(), "method_signature") {
+                parent.parent()?
+            } else if matches!(
+                parent.kind(),
+                "method_declaration" | "function_declaration" | "local_function_declaration"
+            ) {
+                parent
+            } else {
+                return node
+                    .next_sibling()
+                    .filter(|sibling| sibling.kind() == "function_body");
+            }
+        }
+        _ => *node,
+    };
+    owner
+        .child_by_field_name("body")
+        .or_else(|| find_child_by_type(&owner, "function_body"))
+        .filter(|body| body.kind() == "function_body")
 }
 
-/// Check if a method is static
+/// `async` or `async*` on the declaration's own body.
+pub(super) fn is_async_function(node: &Node, _content: &str) -> bool {
+    matches!(body_modifier(node), Some("async" | "async*"))
+}
+
+/// The `async`, `async*`, or `sync*` token of the declaration's own body.
+pub(super) fn body_modifier(node: &Node) -> Option<&'static str> {
+    let body = declaration_body(node)?;
+    let mut cursor = body.walk();
+    body.children(&mut cursor)
+        .find_map(|child| match child.kind() {
+            "async" => Some("async"),
+            "async*" => Some("async*"),
+            "sync*" => Some("sync*"),
+            _ => None,
+        })
+}
+
+/// A `static` token on the declaration's own signature.
 pub(super) fn is_static_method(node: &Node) -> bool {
-    // Check if the node text contains static
-    if get_node_text(node).contains("static") {
-        return true;
-    }
-
-    // Check if previous sibling is a static keyword (for parsing edge cases)
-    let mut current = node.prev_sibling();
-    while let Some(sibling) = current {
-        if sibling.kind() == "static" || get_node_text(&sibling) == "static" {
-            return true;
-        }
-        // Don't go too far back
-        if sibling.kind() == ";" || sibling.kind() == "}" {
-            break;
-        }
-        current = sibling.prev_sibling();
-    }
-
-    false
+    let signature = match node.kind() {
+        "method_declaration" => node
+            .child_by_field_name("signature")
+            .or_else(|| find_child_by_type(node, "method_signature")),
+        "function_signature" => node
+            .parent()
+            .filter(|parent| parent.kind() == "method_signature"),
+        _ => Some(*node),
+    };
+    signature.is_some_and(|signature| find_child_by_type(&signature, "static").is_some())
 }
 
 /// Check if a method is marked as @override
@@ -299,12 +315,12 @@ fn is_annotation_node(kind: &str) -> bool {
 
 /// Check if a constructor is a factory constructor
 pub(super) fn is_factory_constructor(node: &Node) -> bool {
-    get_node_text(node).contains("factory")
+    node.kind() == "factory_constructor_signature" || find_child_by_type(node, "factory").is_some()
 }
 
 /// Check if a constructor is const
 pub(super) fn is_const_constructor(node: &Node) -> bool {
-    get_node_text(node).contains("const")
+    node.kind() == "constant_constructor_signature" || find_child_by_type(node, "const").is_some()
 }
 
 /// Check if a variable is final

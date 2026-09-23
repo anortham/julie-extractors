@@ -86,3 +86,19 @@ final class RemoteTests: RemoteBaseTestCase {
     func testFetch() { }
     func testHelper(_ value: Int) { }
 }
+
+final class CalculatorSpec: QuickSpec {
+    override class func spec() {
+        it("adds") { expect(1 + 2).to(equal(3)) }
+    }
+}
+
+final class AsyncCalculatorSpec: AsyncSpec {
+    override class func spec() {
+        it("works") { await expect(1).to(equal(1)) }
+    }
+}
+
+final class SpecLookalike: NSObject {
+    override class func spec() { }
+}

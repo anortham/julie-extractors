@@ -160,7 +160,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
         pattern_id: "gdscript.export_annotation.v1",
         languages: &["gdscript"],
         query_family: "metadata",
-        description: "A GDScript `@export` annotation.",
+        description: "A GDScript variable export: an `@export` or `@export_*` annotation, or a Godot 3 `export var`.",
         metadata_keys: &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
@@ -168,7 +168,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "annotation_name",
                 STR,
                 ALWAYS,
-                "The annotation name (always \"export\").",
+                "The export annotation name (for example \"export\" or \"export_range\").",
             ),
             key(
                 "exported_variable",

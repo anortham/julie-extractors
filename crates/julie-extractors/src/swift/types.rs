@@ -16,14 +16,14 @@ impl SwiftExtractor {
             .child_by_field_name("name")
             .map(|n| self.base.get_node_text(&n))?;
 
-        // Check what type this actually is
-        let is_enum = node.children(&mut node.walk()).any(|c| c.kind() == "enum");
-        let is_struct = node
-            .children(&mut node.walk())
-            .any(|c| c.kind() == "struct");
-        let is_extension = node
-            .children(&mut node.walk())
-            .any(|c| c.kind() == "extension");
+        let declaration_kind = node
+            .child_by_field_name("declaration_kind")
+            .map(|kind| self.base.get_node_text(&kind))
+            .unwrap_or_default();
+        let is_enum = declaration_kind == "enum";
+        let is_struct = declaration_kind == "struct";
+        let is_extension = declaration_kind == "extension";
+        let is_actor = declaration_kind == "actor";
 
         let modifiers = self.extract_modifiers(node);
         let annotations = self.extract_annotations(node);
@@ -46,6 +46,8 @@ impl SwiftExtractor {
             ("struct", SymbolKind::Struct)
         } else if is_extension {
             ("extension", SymbolKind::Module)
+        } else if is_actor {
+            ("actor", SymbolKind::Class)
         } else {
             ("class", SymbolKind::Class)
         };
@@ -74,11 +76,16 @@ impl SwiftExtractor {
         let mut metadata = HashMap::from([
             (
                 "type".to_string(),
-                serde_json::Value::String(if is_extension {
-                    "extension".to_string()
-                } else {
-                    "class".to_string()
-                }),
+                serde_json::Value::String(
+                    if is_extension {
+                        "extension"
+                    } else if is_actor {
+                        "actor"
+                    } else {
+                        "class"
+                    }
+                    .to_string(),
+                ),
             ),
             (
                 "modifiers".to_string(),

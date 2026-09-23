@@ -8,6 +8,7 @@ use super::super::base::{
 use super::GDScriptExtractor;
 use super::helpers::DeclarationIndex;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
+use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 /// Extract relationships from GDScript code
@@ -19,15 +20,20 @@ pub(super) fn extract_relationships(
     let mut relationships = Vec::new();
     let scoped_index = ScopedSymbolIndex::new(symbols);
     let containing_symbols = DeclarationIndex::new(&extractor.base, symbols);
+    let class_members = ClassMembers::new(symbols);
 
     extract_metadata_inheritance_relationships(extractor, symbols, &mut relationships);
 
     // Recursively visit all nodes to extract relationships
+    let resolver = Resolver {
+        containing_symbols: &containing_symbols,
+        scoped_index: &scoped_index,
+        class_members: &class_members,
+    };
     visit_node_for_relationships(
         extractor,
         tree.root_node(),
-        &containing_symbols,
-        &scoped_index,
+        &resolver,
         &mut relationships,
         0,
     );
@@ -161,8 +167,7 @@ fn is_builtin_gdscript_base_class(name: &str) -> bool {
 fn visit_node_for_relationships(
     extractor: &mut GDScriptExtractor,
     node: Node,
-    containing_symbols: &DeclarationIndex<'_>,
-    scoped_index: &ScopedSymbolIndex<'_>,
+    resolver: &Resolver<'_>,
     relationships: &mut Vec<Relationship>,
     depth: u32,
 ) {
@@ -185,8 +190,7 @@ fn visit_node_for_relationships(
                         target,
                         receiver_type: None,
                     },
-                    containing_symbols,
-                    scoped_index,
+                    resolver,
                     relationships,
                 );
             }
@@ -200,20 +204,13 @@ fn visit_node_for_relationships(
                     target,
                     receiver_type: None,
                 },
-                containing_symbols,
-                scoped_index,
+                resolver,
                 relationships,
             );
         }
         "attribute" => {
             for call_site in attribute_call_sites(&extractor.base, node) {
-                extract_call_relationship(
-                    extractor,
-                    call_site,
-                    containing_symbols,
-                    scoped_index,
-                    relationships,
-                );
+                extract_call_relationship(extractor, call_site, resolver, relationships);
             }
         }
         _ => {}
@@ -224,14 +221,54 @@ fn visit_node_for_relationships(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        visit_node_for_relationships(
-            extractor,
-            child,
-            containing_symbols,
-            scoped_index,
-            relationships,
-            child_depth,
-        );
+        visit_node_for_relationships(extractor, child, resolver, relationships, child_depth);
+    }
+}
+
+struct Resolver<'a> {
+    containing_symbols: &'a DeclarationIndex<'a>,
+    scoped_index: &'a ScopedSymbolIndex<'a>,
+    class_members: &'a ClassMembers<'a>,
+}
+
+/// The callable members of each class, so a bare `name()` call inside a class
+/// resolves to that class's own method: GDScript calls it on `self`.
+struct ClassMembers<'a> {
+    by_id: HashMap<&'a str, &'a Symbol>,
+    callables: HashMap<(&'a str, &'a str), &'a Symbol>,
+}
+
+impl<'a> ClassMembers<'a> {
+    fn new(symbols: &'a [Symbol]) -> Self {
+        let by_id = symbols
+            .iter()
+            .map(|symbol| (symbol.id.as_str(), symbol))
+            .collect();
+        let callables = symbols
+            .iter()
+            .filter(|symbol| {
+                matches!(
+                    symbol.kind,
+                    SymbolKind::Method | SymbolKind::Function | SymbolKind::Constructor
+                )
+            })
+            .filter_map(|symbol| {
+                Some(((symbol.parent_id.as_deref()?, symbol.name.as_str()), symbol))
+            })
+            .collect();
+        Self { by_id, callables }
+    }
+
+    fn implicit_self_target(&self, caller: &Symbol, name: &str) -> Option<&'a Symbol> {
+        let mut owner = caller.parent_id.as_deref();
+        while let Some(id) = owner {
+            let symbol = self.by_id.get(id)?;
+            if symbol.kind == SymbolKind::Class {
+                return self.callables.get(&(id, name)).copied();
+            }
+            owner = symbol.parent_id.as_deref();
+        }
+        None
     }
 }
 
@@ -281,8 +318,7 @@ fn attribute_call_sites<'tree>(base: &BaseExtractor, node: Node<'tree>) -> Vec<C
 fn extract_call_relationship(
     extractor: &mut GDScriptExtractor,
     call_site: CallSite<'_>,
-    containing_symbols: &DeclarationIndex<'_>,
-    scoped_index: &ScopedSymbolIndex<'_>,
+    resolver: &Resolver<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
     let CallSite {
@@ -293,7 +329,7 @@ fn extract_call_relationship(
     if target.terminal_name.is_empty() {
         return;
     }
-    let Some(caller_symbol) = containing_symbols.find(node).filter(|symbol| {
+    let Some(caller_symbol) = resolver.containing_symbols.find(node).filter(|symbol| {
         matches!(
             symbol.kind,
             SymbolKind::Function
@@ -306,11 +342,22 @@ fn extract_call_relationship(
         return;
     };
 
-    match scoped_index.resolve_call_target(
-        &target.terminal_name,
-        Some(caller_symbol),
-        target.receiver.as_deref(),
-    ) {
+    let implicit_self = (target.receiver.is_none() && target.namespace_path.is_empty())
+        .then(|| {
+            resolver
+                .class_members
+                .implicit_self_target(caller_symbol, &target.terminal_name)
+        })
+        .flatten();
+    let resolution = match implicit_self {
+        Some(member) => LocalTargetResolution::Resolved(member),
+        None => resolver.scoped_index.resolve_call_target(
+            &target.terminal_name,
+            Some(caller_symbol),
+            target.receiver.as_deref(),
+        ),
+    };
+    match resolution {
         LocalTargetResolution::Resolved(called_symbol) => {
             relationships.push(Relationship {
                 id: format!(

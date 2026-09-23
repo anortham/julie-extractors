@@ -743,7 +743,7 @@ fn config_for_language(language: &str) -> Option<RegionLanguageConfig> {
             embedded_node_kinds: &[],
         }),
         "swift" => Some(RegionLanguageConfig {
-            comment_node_kinds: &["comment"],
+            comment_node_kinds: &["comment", "multiline_comment"],
             string_literal_node_kinds: &[
                 "line_string_literal",
                 "multi_line_string_literal",

@@ -36,11 +36,12 @@ impl SwiftExtractor {
 
     fn extract_identifier_from_node(&mut self, node: Node, owners: &OwnerIndex<'_>) {
         match node.kind() {
-            "call_expression" => {
+            "call_expression" | "macro_invocation" => {
                 if let Some(callee) = call_callee(&self.base, node) {
                     let name = self.base.get_node_text(&callee.name);
                     let containing_symbol_id = self.find_containing_symbol_id(node, owners);
-                    let receiver_type = self_receiver_type(&self.base, node);
+                    let receiver_type = self_receiver_type(&self.base, node)
+                        .or_else(|| implicit_member_type(&self.base, node));
                     self.base.create_identifier_with_receiver_type(
                         &callee.name,
                         name,
@@ -60,7 +61,9 @@ impl SwiftExtractor {
                     return;
                 }
 
-                if let Some((name_node, name)) = self.extract_rightmost_identifier(&node) {
+                if let Some((name_node, name)) = self.extract_rightmost_identifier(&node)
+                    && name != "self"
+                {
                     let containing_symbol_id = self.find_containing_symbol_id(node, owners);
 
                     self.base.create_identifier(
@@ -75,7 +78,7 @@ impl SwiftExtractor {
             "simple_identifier" | "type_identifier" => {
                 let name = self.base.get_node_text(&node);
                 if is_swift_type_usage_identifier(node) {
-                    if !is_swift_builtin_type(&name) {
+                    if !is_swift_builtin_type(&name) && !is_swift_compiler_attribute(node, &name) {
                         let containing_symbol_id = self.find_containing_symbol_id(node, owners);
                         let identifier = self.base.create_identifier(
                             &node,
@@ -368,6 +371,13 @@ fn is_swift_value_read_identifier(node: Node) -> bool {
         // Rule 2: the direct identifier child of a call is the callee (Call
         // arm). A subscript's base is a value read.
         "call_expression" => is_subscript(parent),
+        "macro_invocation" => false,
+        // `.member(...)`: an implicit member call is owned by the Call arm.
+        "prefix_expression" => !parent.parent().is_some_and(|call| {
+            call.kind() == "call_expression" && call.named_child(0) == Some(parent)
+        }),
+        // Associated-value labels in `case circle(radius: Double)`.
+        "enum_type_parameters" => false,
 
         // Rule 1/2: only the `target` receiver of a navigation is a read; the
         // suffix member name is owned by the MemberAccess/Call arms.
@@ -396,7 +406,11 @@ fn is_swift_value_read_identifier(node: Node) -> bool {
         | "enum_entry"
         | "type_parameter"
         | "protocol_function_declaration"
-        | "protocol_property_declaration" => false,
+        | "protocol_property_declaration"
+        | "macro_declaration"
+        | "operator_declaration"
+        | "precedence_group_declaration"
+        | "precedence_group_attribute" => false,
 
         // Rule 5-adjacent: attribute meta-arguments (`iOS`/`deprecated`/
         // `message` in `@available(iOS 17.0, *)`) are not value reads.
@@ -519,6 +533,9 @@ pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<Str
     })?;
     match receiver.kind() {
         "self_expression" => enclosing_type_name(base, navigation),
+        "simple_identifier" if base.get_node_text(&receiver) == "Self" => {
+            enclosing_type_name(base, navigation)
+        }
         "super_expression" => first_inheritance_name(base, navigation),
         _ => None,
     }
@@ -558,11 +575,25 @@ fn enclosing_class_declaration(node: Node) -> Option<Node> {
 pub(super) struct Callee<'a> {
     pub(super) name: Node<'a>,
     pub(super) receiver: Option<Node<'a>>,
+    /// `.member(...)`: the receiver is the contextual type, which the syntax
+    /// does not name.
+    pub(super) implicit_member: bool,
 }
 
-/// The callee of a real call. A subscript (`cache[id]`) and a `defer` block,
-/// which the grammar parses as calls, have none.
+/// The callee of a real call or a macro expansion (`#stringify(x)`). A
+/// subscript (`cache[id]`) and a `defer` block, which the grammar parses as
+/// calls, have none.
 pub(super) fn call_callee<'a>(base: &BaseExtractor, call: Node<'a>) -> Option<Callee<'a>> {
+    if call.kind() == "macro_invocation" {
+        return call
+            .named_child(0)
+            .filter(|name| name.kind() == "simple_identifier")
+            .map(|name| Callee {
+                name,
+                receiver: None,
+                implicit_member: false,
+            });
+    }
     if call.kind() != "call_expression" || is_subscript(call) {
         return None;
     }
@@ -571,7 +602,16 @@ pub(super) fn call_callee<'a>(base: &BaseExtractor, call: Node<'a>) -> Option<Ca
         "simple_identifier" if base.get_node_text(&callee) != "defer" => Some(Callee {
             name: callee,
             receiver: None,
+            implicit_member: false,
         }),
+        "prefix_expression" if base.get_node_text(&callee).starts_with('.') => callee
+            .child_by_field_name("target")
+            .filter(|name| name.kind() == "simple_identifier")
+            .map(|name| Callee {
+                name,
+                receiver: None,
+                implicit_member: true,
+            }),
         "navigation_expression" => {
             let name = callee
                 .child_by_field_name("suffix")?
@@ -583,7 +623,11 @@ pub(super) fn call_callee<'a>(base: &BaseExtractor, call: Node<'a>) -> Option<Ca
             {
                 receiver = wrapper.child_by_field_name("expr");
             }
-            Some(Callee { name, receiver })
+            Some(Callee {
+                name,
+                receiver,
+                implicit_member: false,
+            })
         }
         _ => None,
     }
@@ -598,4 +642,75 @@ fn is_subscript(call: Node) -> bool {
         .and_then(swift_value_arguments)
         .and_then(|arguments| arguments.child(0))
         .is_some_and(|open| open.kind() == "[")
+}
+
+/// The declared type an implicit member call builds, when the call initializes
+/// an annotated property: `Foo` in `let v: Foo = .init(x: 1)`.
+pub(super) fn implicit_member_type(base: &BaseExtractor, call: Node) -> Option<String> {
+    if !call_callee(base, call)?.implicit_member {
+        return None;
+    }
+    let declaration = call.parent()?;
+    if declaration.kind() != "property_declaration"
+        || declaration.child_by_field_name("value") != Some(call)
+    {
+        return None;
+    }
+    let type_node = super::type_facts::property_type_node(declaration)?;
+    super::type_facts::base_type_name(base, type_node)
+}
+
+/// Attributes the compiler defines. Property wrappers, global actors, result
+/// builders, and macros such as `@Published`, `@MainActor`, or `@Test` name
+/// real declarations and stay type usages.
+fn is_swift_compiler_attribute(node: Node, name: &str) -> bool {
+    let is_attribute_name = node
+        .parent()
+        .filter(|user_type| user_type.kind() == "user_type")
+        .and_then(|user_type| user_type.parent())
+        .is_some_and(|attribute| attribute.kind() == "attribute");
+    is_attribute_name
+        && matches!(
+            name,
+            "available"
+                | "attached"
+                | "autoclosure"
+                | "backDeployed"
+                | "convention"
+                | "discardableResult"
+                | "dynamicCallable"
+                | "dynamicMemberLookup"
+                | "escaping"
+                | "exclusivity"
+                | "freestanding"
+                | "frozen"
+                | "GKInspectable"
+                | "globalActor"
+                | "IBAction"
+                | "IBDesignable"
+                | "IBInspectable"
+                | "IBOutlet"
+                | "IBSegueAction"
+                | "inlinable"
+                | "inline"
+                | "main"
+                | "nonobjc"
+                | "NSApplicationMain"
+                | "NSCopying"
+                | "NSManaged"
+                | "objc"
+                | "objcMembers"
+                | "preconcurrency"
+                | "propertyWrapper"
+                | "requires_stored_property_inits"
+                | "resultBuilder"
+                | "retroactive"
+                | "Sendable"
+                | "testable"
+                | "UIApplicationMain"
+                | "unchecked"
+                | "unknown"
+                | "usableFromInline"
+                | "warn_unqualified_access"
+        )
 }

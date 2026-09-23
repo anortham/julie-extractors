@@ -4,7 +4,9 @@ mod aspnet_conventional;
 mod axum;
 mod blazor_navigation;
 mod consumed_attributes;
+mod dart;
 mod efcore;
+mod gdscript;
 mod giraffe;
 mod go_http;
 mod helpers;
@@ -27,6 +29,7 @@ mod scan;
 mod sinatra;
 mod spring;
 mod static_arg;
+mod swift;
 mod symfony;
 
 use tree_sitter::Tree;
@@ -105,6 +108,8 @@ pub(super) const LARAVEL_RESOURCE_ROUTE_PATTERN_ID: &str = "laravel.resource_rou
 pub(super) const LARAVEL_ROUTE_PREFIX_PATTERN_ID: &str = "laravel.route_prefix.v1";
 pub(super) const SYMFONY_ROUTE_PATTERN_ID: &str = "symfony.route.v1";
 pub(super) const KTOR_ROUTE_PATTERN_ID: &str = "ktor.route.v1";
+pub(super) const VAPOR_ROUTE_PATTERN_ID: &str = "vapor.route.v1";
+pub(super) const MANIFEST_DEPENDENCY_PATTERN_ID: &str = "manifest.dependency.v1";
 pub(super) const PHOENIX_ROUTE_PATTERN_ID: &str = "phoenix.route.v1";
 pub(super) const PHOENIX_RESOURCE_ROUTE_PATTERN_ID: &str = "phoenix.resource_route.v1";
 pub(super) const PHOENIX_FORWARD_PATTERN_ID: &str = "phoenix.forward.v1";
@@ -440,6 +445,25 @@ pub fn collect_framework_structural_facts(
             ));
             rust_facts
         }
+        "swift" => {
+            let mut swift_facts =
+                swift::collect_swift_framework_facts(language, tree, file_path, content);
+            swift_facts.extend(collect_backend_http_client_requests(
+                language, tree, file_path, content,
+            ));
+            swift_facts
+        }
+        "dart" => {
+            let mut dart_facts =
+                dart::collect_dart_framework_facts(language, tree, file_path, content);
+            dart_facts.extend(collect_backend_http_client_requests(
+                language, tree, file_path, content,
+            ));
+            dart_facts
+        }
+        "gdscript" => {
+            gdscript::collect_gdscript_framework_facts(language, tree, file_path, content)
+        }
         "vue" => collect_vue_template_htmx_attributes(language, tree, file_path, content),
         "lua" => collect_lua_framework_facts(language, tree, file_path, content),
         "r" => collect_r_framework_facts(language, tree, file_path, content),
@@ -492,6 +516,27 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
         "elixir" => ELIXIR_PATTERN_IDS,
         "rust" => RUST_PATTERN_IDS,
         "powershell" => &[HTTP_CLIENT_REQUEST_PATTERN_ID],
+        "swift" => &[
+            VAPOR_ROUTE_PATTERN_ID,
+            HTTP_CLIENT_REQUEST_PATTERN_ID,
+            MANIFEST_DEPENDENCY_PATTERN_ID,
+            "swiftpm.package.v1",
+            "swiftpm.product.v1",
+            "swiftpm.target.v1",
+        ],
+        "dart" => &[
+            "go_router.route_definition.v1",
+            "go_router.route_reference.v1",
+            "shelf_router.route.v1",
+            HTTP_CLIENT_REQUEST_PATTERN_ID,
+        ],
+        "gdscript" => &[
+            "godot.signal_connection.v1",
+            "godot.signal_emission.v1",
+            "godot.resource_reference.v1",
+            "godot.node_path.v1",
+            "godot.rpc_annotation.v1",
+        ],
         "vue" => COMPONENT_MARKUP_FRAMEWORK_PATTERN_IDS,
         "lua" => LUA_PATTERN_IDS,
         "r" => R_PATTERN_IDS,

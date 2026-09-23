@@ -70,7 +70,7 @@ impl SwiftExtractor {
                     relationships,
                 );
             }
-            "call_expression" | "constructor_expression" => {
+            "call_expression" | "constructor_expression" | "macro_invocation" => {
                 self.extract_call_relationship(node, scope, import_context, relationships);
             }
             _ => {}
@@ -348,23 +348,30 @@ impl SwiftExtractor {
         import_context: &SwiftImportContext,
         relationships: &mut Vec<Relationship>,
     ) {
-        let (function_name, receiver) = if node.kind() == "constructor_expression" {
+        let (function_name, receiver, implicit_member) = if node.kind() == "constructor_expression"
+        {
             let Some(name) = node
                 .child_by_field_name("constructed_type")
                 .and_then(|type_node| super::type_facts::base_type_name(&self.base, type_node))
             else {
                 return;
             };
-            (name, None)
+            (name, None, false)
         } else {
             let Some(callee) = call_callee(&self.base, node) else {
                 return;
             };
-            (
-                self.base.get_node_text(&callee.name),
+            let receiver = if callee.implicit_member {
+                super::identifiers::implicit_member_type(&self.base, node)
+            } else {
                 callee
                     .receiver
-                    .map(|receiver| self.base.get_node_text(&receiver)),
+                    .map(|receiver| self.base.get_node_text(&receiver))
+            };
+            (
+                self.base.get_node_text(&callee.name),
+                receiver,
+                callee.implicit_member,
             )
         };
 
@@ -378,7 +385,9 @@ impl SwiftExtractor {
         let line_number = node.start_position().row as u32 + 1;
         let file_path = self.base.file_path.clone();
 
-        let resolution = if target.namespace_path.is_empty() {
+        // An implicit member is a static member of a contextual type, never a
+        // free function, so a bare name must not resolve locally.
+        let resolution = if target.namespace_path.is_empty() && !implicit_member {
             scope.symbols.resolve_call_target(
                 target.terminal_name.as_str(),
                 Some(caller),

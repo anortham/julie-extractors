@@ -3676,6 +3676,21 @@
           "name": "structure",
           "source": "fixtures/extraction/swift/structure/source.swift",
           "expected": "fixtures/extraction/swift/structure/expected.json"
+        },
+        {
+          "name": "declarations",
+          "source": "fixtures/extraction/swift/declarations/source.swift",
+          "expected": "fixtures/extraction/swift/declarations/expected.json"
+        },
+        {
+          "name": "vapor_http",
+          "source": "fixtures/extraction/swift/vapor_http/source.swift",
+          "expected": "fixtures/extraction/swift/vapor_http/expected.json"
+        },
+        {
+          "name": "package_manifest",
+          "source": "fixtures/extraction/swift/package_manifest/Package.swift",
+          "expected": "fixtures/extraction/swift/package_manifest/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3699,6 +3714,7 @@
             "interface",
             "method",
             "module",
+            "operator",
             "property",
             "struct",
             "type",
@@ -3736,6 +3752,7 @@
             "interface",
             "method",
             "module",
+            "operator",
             "property",
             "struct"
           ],
@@ -3748,16 +3765,16 @@
           "supported": [
             "swift.await_expression.v1",
             "swift.actor_declaration.v1",
-            "swift.attribute.v1"
+            "swift.attribute.v1",
+            "vapor.route.v1",
+            "http.client_request.v1",
+            "manifest.dependency.v1",
+            "swiftpm.package.v1",
+            "swiftpm.product.v1",
+            "swiftpm.target.v1"
           ],
           "not_applicable": [],
           "open_gaps": [
-            {
-              "kind": "quick.quickspec_subclass_container",
-              "reason": "Quick declares a spec as `class CalculatorSpec: QuickSpec` whose `override func spec()` body holds the `describe`/`it` tree. The call adapter emits the group and example rows, and the scoping pass keeps them, but the `QuickSpec` subclass itself publishes no container row, so a consumer listing test containers misses the class the runner actually loads.",
-              "required_closure": "mark a class whose `base_types` metadata records `QuickSpec` or `AsyncSpec` as a test container, and register a golden fixture that carries such a class beside a same-shaped non-spec subclass as the control",
-              "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 14 follow-up: QuickSpec subclass containers"
-            },
             {
               "kind": "swift_testing.test_traits",
               "reason": "Swift Testing attaches traits to a case or a suite through extra macro arguments, such as `@Test(.tags(.slow))`, `@Test(.disabled(\"flaky\"))`, and `@Suite(.serialized)`. The annotation normalizer keys on the macro name and drops its argument list, so a skip, a tag, and a serialization constraint reach no channel and a runner filter such as `--filter-tag slow` has no published evidence.",
@@ -3793,6 +3810,7 @@
             "enum",
             "function",
             "interface",
+            "method",
             "property"
           ],
           "not_applicable": [],
@@ -4265,6 +4283,16 @@
           "name": "structure",
           "source": "fixtures/extraction/dart/structure/source.dart",
           "expected": "fixtures/extraction/dart/structure/expected.json"
+        },
+        {
+          "name": "declarations",
+          "source": "fixtures/extraction/dart/declarations/source.dart",
+          "expected": "fixtures/extraction/dart/declarations/expected.json"
+        },
+        {
+          "name": "frameworks",
+          "source": "fixtures/extraction/dart/frameworks/source.dart",
+          "expected": "fixtures/extraction/dart/frameworks/expected.json"
         }
       ],
       "target_capabilities": {
@@ -4281,11 +4309,18 @@
             "class",
             "constant",
             "constructor",
+            "enum",
+            "enum_member",
             "field",
             "function",
             "import",
+            "interface",
             "method",
+            "module",
+            "namespace",
+            "operator",
             "property",
+            "type",
             "variable"
           ],
           "not_applicable": [],
@@ -4294,7 +4329,9 @@
         "relationships": {
           "supported": [
             "calls",
-            "extends"
+            "extends",
+            "implements",
+            "uses"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -4313,8 +4350,12 @@
           "supported": [
             "class",
             "constructor",
+            "enum",
             "function",
+            "interface",
             "method",
+            "module",
+            "operator",
             "property"
           ],
           "not_applicable": [
@@ -4327,7 +4368,11 @@
           "supported": [
             "dart.await_expression.v1",
             "dart.async_modifier.v1",
-            "dart.annotation.v1"
+            "dart.annotation.v1",
+            "go_router.route_definition.v1",
+            "go_router.route_reference.v1",
+            "shelf_router.route.v1",
+            "http.client_request.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -4353,6 +4398,8 @@
             "constant",
             "field",
             "function",
+            "namespace",
+            "operator",
             "variable"
           ],
           "not_applicable": [],
@@ -6061,6 +6108,11 @@
           "name": "gdunit_roles",
           "source": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
           "expected": "fixtures/extraction/gdscript/gdunit_roles/expected.json"
+        },
+        {
+          "name": "godot",
+          "source": "fixtures/extraction/gdscript/godot/source.gd",
+          "expected": "fixtures/extraction/gdscript/godot/expected.json"
         }
       ],
       "target_capabilities": {
@@ -6126,7 +6178,12 @@
             "gdscript.extends_declaration.v1",
             "gdscript.signal_declaration.v1",
             "gdscript.export_annotation.v1",
-            "gdscript.match_statement.v1"
+            "gdscript.match_statement.v1",
+            "godot.signal_connection.v1",
+            "godot.signal_emission.v1",
+            "godot.resource_reference.v1",
+            "godot.node_path.v1",
+            "godot.rpc_annotation.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -6141,7 +6198,9 @@
         },
         "annotations": {
           "supported": [
-            "field"
+            "class",
+            "field",
+            "method"
           ],
           "not_applicable": [],
           "open_gaps": []

@@ -30,6 +30,7 @@ impl<'a> OwnerIndex<'a> {
                 | SymbolKind::Method
                 | SymbolKind::Constructor
                 | SymbolKind::Destructor
+                | SymbolKind::Operator
                 | SymbolKind::Property
                 | SymbolKind::Field
                 | SymbolKind::Constant => true,
@@ -73,6 +74,7 @@ fn is_callable(kind: &SymbolKind) -> bool {
             | SymbolKind::Method
             | SymbolKind::Constructor
             | SymbolKind::Destructor
+            | SymbolKind::Operator
     )
 }
 

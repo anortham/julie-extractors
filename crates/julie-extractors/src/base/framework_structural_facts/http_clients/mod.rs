@@ -1,5 +1,6 @@
 mod bash;
 mod csharp;
+mod dart;
 mod elixir;
 mod fsharp;
 mod go;
@@ -10,6 +11,7 @@ mod powershell;
 mod python;
 mod ruby;
 mod rust;
+mod swift;
 mod vbnet;
 
 use std::ops::Range;
@@ -45,6 +47,8 @@ pub(super) fn collect_backend_http_client_requests(
         "powershell" => {
             powershell::collect_powershell_http_client_requests(language, tree, file_path, content)
         }
+        "swift" => swift::collect_swift_http_client_requests(language, tree, file_path, content),
+        "dart" => dart::collect_dart_http_client_requests(language, tree, file_path, content),
         _ => Vec::new(),
     }
 }

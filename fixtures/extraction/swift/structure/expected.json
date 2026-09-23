@@ -2213,22 +2213,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/swift/structure/source.swift:left:variable_ref:18:27",
-      "name": "left",
-      "kind": "variable_ref",
-      "language": "swift",
-      "file_path": "fixtures/extraction/swift/structure/source.swift",
-      "start_line": 18,
-      "start_column": 27,
-      "end_line": 18,
-      "end_column": 31,
-      "start_byte": 380,
-      "end_byte": 384,
-      "containing_key": "fixtures/extraction/swift/structure/source.swift:leaf:18:4",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/swift/structure/source.swift:makeSession:call:42:8",
       "name": "makeSession",
       "kind": "call",
@@ -2289,22 +2273,6 @@
       "start_byte": 788,
       "end_byte": 794,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:sent:33:4",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/swift/structure/source.swift:right:variable_ref:18:39",
-      "name": "right",
-      "kind": "variable_ref",
-      "language": "swift",
-      "file_path": "fixtures/extraction/swift/structure/source.swift",
-      "start_line": 18,
-      "start_column": 39,
-      "end_line": 18,
-      "end_column": 44,
-      "start_byte": 392,
-      "end_byte": 397,
-      "containing_key": "fixtures/extraction/swift/structure/source.swift:leaf:18:4",
       "target_key": null,
       "confidence": "1.000"
     },

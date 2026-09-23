@@ -79,6 +79,60 @@ pub struct DartExtractor {
     same_file_calls: Vec<(String, String, u32, crate::base::NormalizedSpan)>,
     same_file_type_names: HashSet<String>,
     consumed_blocks: HashSet<usize>,
+    /// Whether test DSL calls (`test`, `group`) are tests in this file.
+    is_test_file: bool,
+}
+
+/// The URIs of the file's import directives.
+fn import_uris(root: Node) -> Vec<String> {
+    let mut cursor = root.walk();
+    root.named_children(&mut cursor)
+        .filter(|child| child.kind() == "import_or_export")
+        .filter_map(|directive| {
+            let text = helpers::get_node_text(&directive);
+            let start = text.find(['\'', '"'])? + 1;
+            let end = start + text[start..].find(['\'', '"'])?;
+            Some(text[start..end].to_string())
+        })
+        .collect()
+}
+
+/// Dart privacy is lexical: a declared name that starts with `_` is private
+/// to its library. A named constructor is private when either segment is.
+fn apply_library_privacy(symbols: &mut [Symbol]) {
+    for symbol in symbols.iter_mut().filter(|symbol| {
+        symbol.visibility.is_some()
+            && symbol.kind != SymbolKind::Import
+            && !crate::base::is_test_call_symbol(symbol)
+    }) {
+        if symbol
+            .name
+            .split('.')
+            .any(|segment| segment.starts_with('_'))
+        {
+            symbol.visibility = Some(crate::base::Visibility::Private);
+        }
+    }
+}
+
+/// Directives, bindings, and aliases have no body. The shared textual
+/// fallback would otherwise read one from a parenthesis or an `as` keyword.
+fn clear_declaration_only_bodies(symbols: &mut [Symbol]) {
+    for symbol in symbols.iter_mut().filter(|symbol| {
+        matches!(
+            symbol.kind,
+            SymbolKind::Import
+                | SymbolKind::Namespace
+                | SymbolKind::Variable
+                | SymbolKind::Constant
+                | SymbolKind::Field
+                | SymbolKind::EnumMember
+                | SymbolKind::Type
+        )
+    }) {
+        symbol.body_span = None;
+        symbol.body_hash = None;
+    }
 }
 
 /// tree-sitter-dart roots parsed files at `source_file`, not `program`.
@@ -98,6 +152,8 @@ fn is_dart_callable(kind: &str) -> bool {
             | "constructor_signature"
             | "factory_constructor_signature"
             | "constant_constructor_signature"
+            | "redirecting_factory_constructor_signature"
+            | "operator_signature"
     )
 }
 
@@ -124,6 +180,39 @@ fn wrapped_constructor_signature(node: Node) -> bool {
 }
 
 impl DartExtractor {
+    /// An extension type, its representation field, then its members.
+    #[inline(never)]
+    fn visit_extension_type(
+        &mut self,
+        node: Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<&str>,
+        depth: u32,
+    ) {
+        let Some(extension_type) = types::extract_extension_type(&mut self.base, &node, parent_id)
+        else {
+            return;
+        };
+        let id = extension_type.id.clone();
+        self.same_file_type_names
+            .insert(extension_type.name.clone());
+        symbols.push(extension_type);
+        symbols.extend(types::extract_representation_field(
+            &mut self.base,
+            &node,
+            &id,
+        ));
+        let (Some(body), Some(child_depth)) =
+            (node.child_by_field_name("body"), child_tree_depth(depth))
+        else {
+            return;
+        };
+        let mut cursor = body.walk();
+        for child in body.children(&mut cursor) {
+            self.visit_node(child, symbols, Some(&id), child_depth);
+        }
+    }
+
     pub fn new(
         language: String,
         file_path: String,
@@ -135,6 +224,7 @@ impl DartExtractor {
             same_file_calls: Vec::new(),
             same_file_type_names: HashSet::new(),
             consumed_blocks: HashSet::new(),
+            is_test_file: false,
         }
     }
 
@@ -143,8 +233,12 @@ impl DartExtractor {
         helpers::set_dart_content_cache(&self.base.content);
 
         self.same_file_type_names = type_facts::collect_type_names(&self.base, tree.root_node());
+        self.is_test_file =
+            test_calls::is_test_file(&self.base.file_path, &import_uris(tree.root_node()));
         let mut symbols = Vec::new();
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
+        apply_library_privacy(&mut symbols);
+        clear_declaration_only_bodies(&mut symbols);
         symbols
     }
 
@@ -213,11 +307,21 @@ impl DartExtractor {
                 }
             }
             "method_declaration" => {
-                let accessor = node.child_by_field_name("signature").and_then(|signature| {
+                let signature = node.child_by_field_name("signature");
+                let accessor = signature.and_then(|signature| {
                     find_child_by_type(&signature, "getter_signature")
                         .or_else(|| find_child_by_type(&signature, "setter_signature"))
                 });
-                symbol = if let Some(constructor) = functions::nested_constructor_signature(&node) {
+                let operator = signature
+                    .and_then(|signature| find_child_by_type(&signature, "operator_signature"));
+                symbol = if let Some(operator) = operator {
+                    functions::extract_operator(
+                        &mut self.base,
+                        &operator,
+                        &node,
+                        current_parent_id.as_deref(),
+                    )
+                } else if let Some(constructor) = functions::nested_constructor_signature(&node) {
                     functions::extract_constructor(
                         &mut self.base,
                         &constructor,
@@ -260,9 +364,27 @@ impl DartExtractor {
                     };
                 }
             }
+            "operator_signature"
+                if node
+                    .parent()
+                    .is_some_and(|parent| parent.kind() == "declaration") =>
+            {
+                let anchor = node.parent().unwrap_or(node);
+                symbol = functions::extract_operator(
+                    &mut self.base,
+                    &node,
+                    &anchor,
+                    current_parent_id.as_deref(),
+                );
+            }
+            "extension_type_declaration" => {
+                self.visit_extension_type(node, symbols, current_parent_id.as_deref(), depth);
+                return;
+            }
             "constructor_signature"
             | "factory_constructor_signature"
             | "constant_constructor_signature"
+            | "redirecting_factory_constructor_signature"
                 if !wrapped_constructor_signature(node) =>
             {
                 let anchor = node
@@ -276,7 +398,7 @@ impl DartExtractor {
                     current_parent_id.as_deref(),
                 );
             }
-            "call_expression" => {
+            "call_expression" if self.is_test_file => {
                 // package:test call-style: test()/group()/
                 // setUp() etc. become test symbols. Non-test calls return None and
                 // fall through to normal child recursion. A returned container/test
@@ -427,6 +549,9 @@ impl DartExtractor {
                     &self.same_file_type_names,
                 ));
             }
+            "variable_pattern" | "constant_pattern" => {
+                symbol = locals::extract_pattern_binding(self, node, current_parent_id.as_deref());
+            }
             "local_variable_declaration" => {
                 symbols.extend(locals::extract_locals(
                     self,
@@ -456,6 +581,20 @@ impl DartExtractor {
             "type_alias" => {
                 symbol =
                     types::extract_typedef(&mut self.base, &node, current_parent_id.as_deref());
+            }
+            "part_directive" | "part_of_directive" => {
+                symbol = imports::extract_part_directive(
+                    &mut self.base,
+                    &node,
+                    current_parent_id.as_deref(),
+                );
+            }
+            "library_name" => {
+                symbol = imports::extract_library_name(
+                    &mut self.base,
+                    &node,
+                    current_parent_id.as_deref(),
+                );
             }
             "import_or_export" => {
                 symbol = imports::extract_import_or_export(

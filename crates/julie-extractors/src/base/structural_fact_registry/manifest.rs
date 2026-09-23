@@ -69,9 +69,9 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     // Package manifests
     StructuralFactPatternSpec {
         pattern_id: "manifest.dependency.v1",
-        languages: &["json", "toml", "xml"],
+        languages: &["json", "toml", "xml", "swift"],
         query_family: "dependencies",
-        description: "A package dependency declared in a Cargo.toml, pyproject.toml, Pipfile, package.json, composer.json, MSBuild, NuGet, or Maven manifest.",
+        description: "A package dependency declared in a Cargo.toml, pyproject.toml, Pipfile, package.json, composer.json, MSBuild, NuGet, Maven, or SwiftPM manifest.",
         metadata_keys: &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
@@ -79,19 +79,19 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "ecosystem",
                 STR,
                 ALWAYS,
-                "Package ecosystem (\"cargo\", \"pypi\", \"npm\", \"composer\", \"nuget\", or \"maven\").",
+                "Package ecosystem (\"cargo\", \"pypi\", \"npm\", \"composer\", \"nuget\", \"maven\", or \"swiftpm\").",
             ),
             key(
                 "name",
                 STR,
                 ALWAYS,
-                "Dependency name: the Cargo key, the PEP 503-normalized distribution name, the npm or Composer package name, the NuGet package id, or the Maven `groupId:artifactId`.",
+                "Dependency name: the Cargo key, the PEP 503-normalized distribution name, the npm or Composer package name, the NuGet package id, the Maven `groupId:artifactId`, or the SwiftPM package identity (the `name:` argument, else the last URL or path component without `.git`).",
             ),
             key(
                 "group",
                 STR,
                 ALWAYS,
-                "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`; Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`, `pipenv:packages`/`pipenv:dev-packages`; npm `dependencies`/`devDependencies`/`peerDependencies`/`optionalDependencies`; Composer `require`/`require-dev`; NuGet `PackageReference`/`PackageVersion`/`GlobalPackageReference`/`dependency`; Maven scope, `managed`, `plugin`, or `managed-plugin`.",
+                "Dependency group: Cargo `dependencies`/`dev-dependencies`/`build-dependencies`/`workspace`; Python `runtime`, `optional:<extra>`, `group:<name>`, `build-system`, `poetry:<group>`, `pipenv:packages`/`pipenv:dev-packages`; npm `dependencies`/`devDependencies`/`peerDependencies`/`optionalDependencies`; Composer `require`/`require-dev`; NuGet `PackageReference`/`PackageVersion`/`GlobalPackageReference`/`dependency`; Maven scope, `managed`, `plugin`, or `managed-plugin`; SwiftPM `dependencies`.",
             ),
             key("version", STR, OPT, "Version requirement as written."),
             key(
@@ -113,6 +113,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "True when the Cargo dependency inherits from `[workspace.dependencies]`, or the npm version uses the `workspace:` protocol.",
             ),
             key("extras", ARR, OPT, "PEP 508 extras."),
+            key("location", STR, OPT, "SwiftPM package URL or local path."),
             key("marker", STR, OPT, "PEP 508 environment marker."),
         ],
     },

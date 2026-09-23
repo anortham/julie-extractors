@@ -86,3 +86,59 @@ fn extract_local(
     }
     Some(symbol)
 }
+
+/// A pattern binding: every `variable_pattern` (`String name`, `var rest`),
+/// and a bare `constant_pattern` name when the pattern declares variables
+/// (`final (a, b) = ...`, `for (final (a, b) in ...)`), where the grammar
+/// cannot tell `:x` or `a` from a constant.
+pub(super) fn extract_pattern_binding(
+    extractor: &mut DartExtractor,
+    node: Node,
+    parent_id: Option<&str>,
+) -> Option<Symbol> {
+    let (name_node, type_node) = match node.kind() {
+        "variable_pattern" => (
+            node.child_by_field_name("name")?,
+            find_child_by_type(&node, "type"),
+        ),
+        "constant_pattern" if is_declaring_pattern(node) => {
+            let name = node
+                .named_child(0)
+                .filter(|name| name.kind() == "identifier")?;
+            (name, None)
+        }
+        _ => return None,
+    };
+    let symbol = extractor.base.create_symbol(
+        &node,
+        get_node_text(&name_node),
+        SymbolKind::Variable,
+        SymbolOptions {
+            signature: Some(get_node_text(&node)),
+            parent_id: parent_id.map(|parent| parent.to_string()),
+            ..Default::default()
+        },
+    );
+    if let Some(type_node) = type_node {
+        type_facts::record_declared_type(&mut extractor.base, &symbol.id, type_node);
+    }
+    Some(symbol)
+}
+
+/// The pattern sits in a declaration (`final (a, b) = ...`) or a for-in
+/// header, so its bare names bind rather than match constants.
+pub(super) fn is_declaring_pattern(node: Node) -> bool {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        if parent.kind().ends_with("_pattern") || parent.kind() == "label" {
+            current = parent;
+            continue;
+        }
+        return match parent.kind() {
+            "pattern_variable_declaration" => true,
+            "for_statement" => parent.child_by_field_name("value") != Some(current),
+            _ => false,
+        };
+    }
+    false
+}

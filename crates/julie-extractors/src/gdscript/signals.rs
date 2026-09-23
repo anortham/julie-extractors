@@ -1,7 +1,7 @@
 //! Signal extraction for GDScript
 
-use super::helpers::{doc_comment, find_child_by_type};
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use super::helpers::{doc_comment, find_child_by_type, member_visibility};
+use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
 use tree_sitter::Node;
 
 /// Extract signal statement
@@ -13,6 +13,7 @@ pub(super) fn extract_signal_statement(
     let name_node = find_child_by_type(&node, "name")?;
     let name = base.get_node_text(&name_node);
     let signature = base.get_node_text(&node);
+    let visibility = member_visibility(&name);
 
     let doc = doc_comment(base, node);
     let mut symbol = base.create_symbol(
@@ -21,7 +22,7 @@ pub(super) fn extract_signal_statement(
         SymbolKind::Event,
         SymbolOptions {
             signature: Some(signature),
-            visibility: Some(Visibility::Public),
+            visibility: Some(visibility),
             parent_id: parent_id.cloned(),
             metadata: None,
             doc_comment: None,

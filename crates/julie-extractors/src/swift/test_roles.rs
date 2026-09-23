@@ -8,7 +8,8 @@
 //!   the `@Suite` macro, and annotates a case with `@Test`. Both are
 //!   path-independent.
 //! - **Quick** declares a group as a `describe`/`context` call, which the call
-//!   adapter already materialises as a container symbol.
+//!   adapter already materialises as a container symbol, and loads the spec
+//!   class through its `QuickSpec` or `AsyncSpec` superclass.
 //!
 //! Everything else in the Swift test vocabulary — `func testXxx`, `init`,
 //! `deinit` — is ordinary Swift, so those names earn a role only inside a
@@ -25,6 +26,9 @@ use crate::test_detection::{
 
 const XCTEST_BASE_TYPE: &str = "XCTestCase";
 
+/// Quick loads a spec class through its `QuickSpec` or `AsyncSpec` superclass.
+const QUICK_SPEC_BASE_TYPES: [&str; 2] = ["QuickSpec", "AsyncSpec"];
+
 /// The label Swift Testing uses for the argument rows of a parameterized case.
 const ARGUMENT_ROWS_LABEL: &str = "arguments:";
 
@@ -32,6 +36,9 @@ const ARGUMENT_ROWS_LABEL: &str = "arguments:";
 pub(super) fn apply_swift_test_roles(symbols: &mut [Symbol]) {
     mark_suite_containers(symbols);
     mark_base_type_test_containers(symbols, XCTEST_BASE_TYPE);
+    for base_type in QUICK_SPEC_BASE_TYPES {
+        mark_base_type_test_containers(symbols, base_type);
+    }
     mark_xctest_subclasses(symbols);
     mark_container_extensions(symbols);
 
