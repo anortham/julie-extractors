@@ -1855,7 +1855,7 @@
       "end_column": 30,
       "start_byte": 153,
       "end_byte": 158,
-      "containing_key": "fixtures/extraction/swift/declarations/source.swift:lhs:10:20",
+      "containing_key": "fixtures/extraction/swift/declarations/source.swift:==:10:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1871,7 +1871,7 @@
       "end_column": 42,
       "start_byte": 165,
       "end_byte": 170,
-      "containing_key": "fixtures/extraction/swift/declarations/source.swift:rhs:10:32",
+      "containing_key": "fixtures/extraction/swift/declarations/source.swift:==:10:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1887,7 +1887,7 @@
       "end_column": 29,
       "start_byte": 231,
       "end_byte": 236,
-      "containing_key": "fixtures/extraction/swift/declarations/source.swift:lhs:11:19",
+      "containing_key": "fixtures/extraction/swift/declarations/source.swift:<:11:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1903,7 +1903,7 @@
       "end_column": 41,
       "start_byte": 243,
       "end_byte": 248,
-      "containing_key": "fixtures/extraction/swift/declarations/source.swift:rhs:11:31",
+      "containing_key": "fixtures/extraction/swift/declarations/source.swift:<:11:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1919,7 +1919,7 @@
       "end_column": 34,
       "start_byte": 313,
       "end_byte": 318,
-      "containing_key": "fixtures/extraction/swift/declarations/source.swift:m:12:26",
+      "containing_key": "fixtures/extraction/swift/declarations/source.swift:-:12:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1951,7 +1951,7 @@
       "end_column": 17,
       "start_byte": 410,
       "end_byte": 415,
-      "containing_key": "fixtures/extraction/swift/declarations/source.swift:a:17:9",
+      "containing_key": "fixtures/extraction/swift/declarations/source.swift:<>:17:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1967,7 +1967,7 @@
       "end_column": 27,
       "start_byte": 420,
       "end_byte": 425,
-      "containing_key": "fixtures/extraction/swift/declarations/source.swift:b:17:19",
+      "containing_key": "fixtures/extraction/swift/declarations/source.swift:<>:17:0",
       "target_key": null,
       "confidence": "1.000"
     },

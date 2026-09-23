@@ -68,6 +68,8 @@ fn formal_parameter_list(node: Node) -> Option<Node> {
         "constructor_signature",
         "factory_constructor_signature",
         "constant_constructor_signature",
+        "redirecting_factory_constructor_signature",
+        "operator_signature",
     ] {
         if let Some(child) = find_child_by_type(&node, kind)
             && let Some(list) = formal_parameter_list(child)

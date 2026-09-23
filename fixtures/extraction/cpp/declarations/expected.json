@@ -2125,7 +2125,7 @@
       "end_column": 30,
       "start_byte": 466,
       "end_byte": 470,
-      "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:Repo:15:0",
+      "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:operator==:21:9",
       "target_key": null,
       "confidence": "1.000"
     },

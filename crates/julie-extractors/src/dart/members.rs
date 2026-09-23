@@ -199,7 +199,7 @@ pub(super) fn extract_setter(
         name.clone(),
         SymbolKind::Property,
         SymbolOptions {
-            signature: Some(format!("set {}", name)),
+            signature: Some(accessor_signature(node, &name, "set")),
             visibility: Some(if is_private {
                 Visibility::Private
             } else {

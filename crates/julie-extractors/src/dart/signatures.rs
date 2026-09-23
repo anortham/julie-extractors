@@ -46,6 +46,15 @@ fn extract_class_modifier_prefix(node: &Node) -> String {
 
 /// Extract class signature with modifiers, generics, inheritance, and interfaces
 pub(super) fn extract_class_signature(node: &Node) -> Option<String> {
+    if find_child_by_type(node, "mixin_application_class").is_some() {
+        let text = get_node_text(node);
+        return Some(
+            text.trim_end_matches(';')
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" "),
+        );
+    }
     let name_node = find_child_by_type(node, "identifier");
     let name = name_node.map(|n| get_node_text(&n))?;
 
@@ -142,7 +151,7 @@ fn split_before_top_level_keyword<'a>(source: &'a str, keyword: &str) -> &'a str
 }
 
 /// Extract function signature with return type, parameters, and async modifier
-pub(super) fn extract_function_signature(node: &Node, content: &str) -> Option<String> {
+pub(super) fn extract_function_signature(node: &Node) -> Option<String> {
     let name_node = find_child_by_type(node, "identifier");
     let name = name_node.map(|n| get_node_text(&n))?;
 
@@ -174,9 +183,9 @@ pub(super) fn extract_function_signature(node: &Node, content: &str) -> Option<S
         .map(|n| get_node_text(&n))
         .unwrap_or_else(|| "()".to_string());
 
-    // Check for async modifier
-    let is_async = is_async_function(node, content);
-    let async_modifier = if is_async { " async" } else { "" };
+    let async_modifier = body_modifier(node)
+        .map(|modifier| format!(" {modifier}"))
+        .unwrap_or_default();
 
     // Build signature with return type, generic parameters, and async modifier
     if !return_type.is_empty() {
@@ -192,52 +201,12 @@ pub(super) fn extract_function_signature(node: &Node, content: &str) -> Option<S
     }
 }
 
-/// Extract constructor signature with factory/const modifiers
+/// The constructor header as written: modifiers, name, parameters, and a
+/// redirecting factory's `= Target`.
 pub(super) fn extract_constructor_signature(node: &Node) -> Option<String> {
-    let is_factory = node.kind() == "factory_constructor_signature";
-    let is_const = node.kind() == "constant_constructor_signature";
-
-    // Extract constructor name - use consistent logic with extract_constructor
-    let constructor_name = match node.kind() {
-        "constant_constructor_signature" => {
-            let names: Vec<String> = node
-                .children(&mut node.walk())
-                .filter(|child| child.kind() == "identifier")
-                .take(2)
-                .map(|child| get_node_text(&child))
-                .collect();
-            if names.is_empty() {
-                return None;
-            }
-            names.join(".")
-        }
-        "factory_constructor_signature" => {
-            // For factory constructors, may need class.name pattern
-            let mut identifiers = Vec::new();
-            traverse_tree(*node, &mut |child| {
-                if child.kind() == "identifier" && identifiers.len() < 2 {
-                    identifiers.push(get_node_text(&child));
-                }
-            });
-            if identifiers.is_empty() {
-                return None;
-            }
-            identifiers.join(".")
-        }
-        _ => {
-            // Regular constructor
-            find_child_by_type(node, "identifier").map(|n| get_node_text(&n))?
-        }
-    };
-
-    // Add prefixes
-    let factory_prefix = if is_factory { "factory " } else { "" };
-    let const_prefix = if is_const { "const " } else { "" };
-
-    Some(format!(
-        "{}{}{}()",
-        factory_prefix, const_prefix, constructor_name
-    ))
+    let text = get_node_text(node);
+    let header = text.trim().trim_end_matches(';').trim_end();
+    (!header.is_empty()).then(|| header.split_whitespace().collect::<Vec<_>>().join(" "))
 }
 
 /// Extract variable signature (just the name)

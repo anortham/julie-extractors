@@ -2707,6 +2707,128 @@
     "query_family": "framework"
   },
   {
+    "description": "A go_router `GoRoute(path:)` definition with a static path, joined to the paths of the same-file `GoRoute` routes that nest it, in a file that imports go_router.",
+    "languages": [
+      "dart"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The route's own static `path:`.",
+        "key": "route_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The effective path of the enclosing `GoRoute`, when nested.",
+        "key": "parent_route_path",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The route path joined with its same-file parent paths.",
+        "key": "effective_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key with a leading slash and `:param` segments preserved.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Static `name:` of the route.",
+        "key": "route_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Widget class the `builder:` or `pageBuilder:` closure constructs.",
+        "key": "route_component",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "go_router.route_definition.v1",
+    "query_family": "frontend_navigation"
+  },
+  {
+    "description": "A go_router navigation call (`go`, `push`, `replace`, `pushReplacement`, or their `Named` forms) with a static location or route name, in a file that imports go_router.",
+    "languages": [
+      "dart"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The navigation method called (for example \"go\" or \"pushNamed\").",
+        "key": "navigation_method",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Static location of a path navigation.",
+        "key": "target_path",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Normalized location of a path navigation.",
+        "key": "normalized_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Static route name of a `Named` navigation.",
+        "key": "route_name",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "go_router.route_reference.v1",
+    "query_family": "frontend_navigation"
+  },
+  {
     "description": "An HTML image-map area link (`<area href>`).",
     "languages": [
       "html"
@@ -3336,7 +3458,8 @@
       "ruby",
       "elixir",
       "rust",
-      "swift"
+      "swift",
+      "dart"
     ],
     "metadata_keys": [
       {
@@ -3358,7 +3481,7 @@
         "value_type": "string"
       },
       {
-        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, req, tesla, httpoison, finch, httpc, urlsession, alamofire).",
+        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, req, tesla, httpoison, finch, httpc, urlsession, alamofire, dart_http, dio).",
         "key": "client",
         "presence": "always",
         "value_type": "string"
@@ -7627,6 +7750,76 @@
     ],
     "pattern_id": "scala.given_definition.v1",
     "query_family": "typeclass"
+  },
+  {
+    "description": "A shelf_router route with a static path: a `@Route.<verb>(path)` or `@Route(verb, path)` handler annotation, or a verb call on a same-file `Router()`, in a file that imports shelf_router.",
+    "languages": [
+      "dart"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"annotation\" or \"router_call\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key with a leading slash and shelf `<param>` segments as `:param`.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Uppercase HTTP method.",
+        "key": "verb",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested (\"attested\").",
+        "key": "verb_source",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Annotated method name, or the handler argument when it is a name.",
+        "key": "handler",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "shelf_router.route.v1",
+    "query_family": "framework"
   },
   {
     "description": "A Sinatra before or after filter block with a static path.",

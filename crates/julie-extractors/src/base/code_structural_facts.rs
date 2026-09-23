@@ -129,7 +129,7 @@ const DART_PATTERNS: &[CodeStructuralPattern] = &[
     CodeStructuralPattern {
         pattern_id: "dart.async_modifier.v1",
         capture_name: "async_modifier",
-        node_kinds: &["async"],
+        node_kinds: &["async", "async*", "sync*"],
         query_family: "async",
     },
     CodeStructuralPattern {

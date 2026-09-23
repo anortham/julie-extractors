@@ -3,6 +3,7 @@ mod aspnet;
 mod axum;
 mod blazor_navigation;
 mod consumed_attributes;
+mod dart;
 mod go_http;
 mod helpers;
 mod htmx_templates;
@@ -339,6 +340,14 @@ pub fn collect_framework_structural_facts(
             ));
             swift_facts
         }
+        "dart" => {
+            let mut dart_facts =
+                dart::collect_dart_framework_facts(language, tree, file_path, content);
+            dart_facts.extend(collect_backend_http_client_requests(
+                language, tree, file_path, content,
+            ));
+            dart_facts
+        }
         "vue" => collect_vue_template_htmx_attributes(language, tree, file_path, content),
         _ => Vec::new(),
     };
@@ -385,6 +394,12 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
             "swiftpm.package.v1",
             "swiftpm.product.v1",
             "swiftpm.target.v1",
+        ],
+        "dart" => &[
+            "go_router.route_definition.v1",
+            "go_router.route_reference.v1",
+            "shelf_router.route.v1",
+            HTTP_CLIENT_REQUEST_PATTERN_ID,
         ],
         "vue" => COMPONENT_MARKUP_FRAMEWORK_PATTERN_IDS,
         _ => &[],

@@ -28,13 +28,40 @@ use crate::test_calls::{
 };
 use tree_sitter::Node;
 
-/// Dart `package:test` vocabulary. `test`/`testWidgets` are cases, `group` is a
-/// container, `setUp`/`tearDown[All]` are lifecycle fixtures.
+/// Dart `package:test` vocabulary. `test`/`testWidgets`, bloc_test's
+/// `blocTest`, golden_toolkit's `testGoldens`, and patrol's `patrolTest` are
+/// cases, `group` is a container, `setUp`/`tearDown[All]` are lifecycle
+/// fixtures.
 pub(crate) const DART_VOCAB: TestCallVocab = TestCallVocab {
-    test: &["test", "testWidgets"],
+    test: &[
+        "test",
+        "testWidgets",
+        "blocTest",
+        "testGoldens",
+        "patrolTest",
+    ],
     container: &["group"],
     lifecycle: &["setUp", "tearDown", "setUpAll", "tearDownAll"],
 };
+
+/// Packages whose import makes a file a test file wherever it lives.
+const TEST_PACKAGES: &[&str] = &[
+    "package:test/",
+    "package:flutter_test/",
+    "package:bloc_test/",
+    "package:integration_test/",
+    "package:patrol/",
+    "package:golden_toolkit/",
+];
+
+/// The test DSL only runs in a test file: one on a test path, or one that
+/// imports a test package. `group('admins', ...)` elsewhere is an ordinary call.
+pub(super) fn is_test_file(file_path: &str, import_uris: &[String]) -> bool {
+    crate::test_detection::is_test_path(file_path)
+        || import_uris
+            .iter()
+            .any(|uri| TEST_PACKAGES.iter().any(|package| uri.starts_with(package)))
+}
 
 /// Materialize a `package:test` call expression as a test/container/lifecycle
 /// symbol. Returns `None` for any call that is not a recognized test runner
@@ -49,7 +76,10 @@ pub fn extract_dart_test_call(
         return None;
     }
 
-    let function_node = node.child_by_field_name("function")?;
+    let mut function_node = node.child_by_field_name("function")?;
+    if function_node.kind() == "instantiation_expression" {
+        function_node = function_node.child_by_field_name("function")?;
+    }
     let full_callee = base.get_node_text(&function_node);
     // Exact match only (#66): a member call (`test.configure(...)`, function field
     // text "test.configure") never equals a dotless package:test DSL name, so the

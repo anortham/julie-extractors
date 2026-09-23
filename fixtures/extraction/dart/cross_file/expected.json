@@ -100,15 +100,8 @@
       "end_column": 17,
       "start_byte": 350,
       "end_byte": 365,
-      "body_span": {
-        "start_line": 13,
-        "start_column": 15,
-        "end_line": 13,
-        "end_column": 17,
-        "start_byte": 363,
-        "end_byte": 365
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "var x = Other()",
       "doc_comment": null,
       "visibility": null,

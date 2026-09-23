@@ -14,6 +14,8 @@ struct CallContext<'a> {
     scoped: ScopedSymbolIndex<'a>,
     classes: HashMap<&'a str, &'a Symbol>,
     members: &'a [Symbol],
+    /// Import prefix (`as http`) to the imported URI.
+    import_aliases: HashMap<&'a str, &'a str>,
 }
 
 impl super::DartExtractor {
@@ -32,6 +34,14 @@ impl super::DartExtractor {
                 .map(|symbol| (symbol.name.as_str(), symbol))
                 .collect(),
             members: &targets,
+            import_aliases: symbols
+                .iter()
+                .filter(|symbol| symbol.kind == SymbolKind::Import)
+                .filter_map(|symbol| {
+                    let alias = symbol.metadata.as_ref()?.get("alias")?.as_str()?;
+                    Some((alias, symbol.name.as_str()))
+                })
+                .collect(),
         };
         self.walk_call_sites(root, &context, 0);
     }
@@ -40,17 +50,21 @@ impl super::DartExtractor {
         if !should_visit_tree_depth(depth) {
             return;
         }
+        let callee = match node.kind() {
+            "call_expression" => node.child_by_field_name("function"),
+            "cascade_call_expression" => Some(node),
+            _ => None,
+        };
         let target = match node.kind() {
-            "call_expression" => node
-                .child_by_field_name("function")
-                .and_then(call_callee)
-                .map(|callee| {
+            "call_expression" | "cascade_call_expression" => {
+                callee.and_then(call_callee).map(|callee| {
                     let terminal = self.base.get_node_text(&callee.name);
                     let receiver = callee
                         .receiver
                         .map(|(start, end)| self.base.content[start..end].to_string());
                     qualified_target(receiver, terminal)
-                }),
+                })
+            }
             "const_object_expression" | "new_expression" | "constructor_invocation" => {
                 instantiation_target(&self.base, node).map(|(type_name, constructor)| {
                     match constructor {
@@ -74,10 +88,17 @@ impl super::DartExtractor {
         }
     }
 
-    fn record_call(&mut self, node: Node, target: UnresolvedTarget, context: &CallContext<'_>) {
+    fn record_call(&mut self, node: Node, mut target: UnresolvedTarget, context: &CallContext<'_>) {
         let Some(caller) = context.owners.find(node) else {
             return;
         };
+        if let Some(uri) = target
+            .receiver
+            .as_deref()
+            .and_then(|receiver| context.import_aliases.get(receiver))
+        {
+            target.import_context = Some((*uri).to_string());
+        }
         if let Some(called) = resolve(&target, caller, context) {
             self.same_file_calls.push((
                 caller.id.clone(),

@@ -6,6 +6,7 @@
 use super::StructuralFactPatternSpec;
 
 mod aspnet_node;
+mod dart;
 mod frontend;
 mod jvm_go_ruby;
 mod kotlin_elixir;
@@ -28,6 +29,7 @@ pub(super) fn specs() -> Vec<StructuralFactPatternSpec> {
         kotlin_elixir::SPECS,
         rust::SPECS,
         swift::SPECS,
+        dart::SPECS,
         frontend::SPECS,
     ]
     .concat()

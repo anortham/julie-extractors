@@ -38,18 +38,25 @@ fn extract_identifier_from_node(
 ) {
     match node.kind() {
         "call_expression" => {
-            if let Some(callee) = node.child_by_field_name("function").and_then(call_callee) {
+            let function = node.child_by_field_name("function");
+            if let Some(callee) = function.and_then(call_callee) {
                 let target_node = callee.name;
                 let name = get_node_text(&target_node);
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 let receiver_type = self_receiver_type(base, node);
-                base.create_identifier_with_receiver_type(
+                let identifier = base.create_identifier_with_receiver_type(
                     &target_node,
                     name,
                     IdentifierKind::Call,
                     containing_symbol_id,
                     receiver_type,
                 );
+                if let Some(arguments) = function
+                    .filter(|function| function.kind() == "instantiation_expression")
+                    .and_then(|function| function.child_by_field_name("type_arguments"))
+                {
+                    record_call_type_arguments(base, arguments, &identifier);
+                }
             }
             // Phase 3b: capture string-literal call-arguments (config-free;
             // carrier classification + gate run later in the artifact language-policy pass).
@@ -132,6 +139,49 @@ fn extract_identifier_from_node(
             let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
             let identifier = base.create_identifier(&node, name, kind, containing_symbol_id);
             record_outermost_dart_type_arguments(base, node, &identifier);
+        }
+
+        // `..clear()`: a call on the cascade target.
+        "cascade_call_expression" => {
+            if let Some(property) = node.child_by_field_name("property") {
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                base.create_identifier(
+                    &property,
+                    get_node_text(&property),
+                    IdentifierKind::Call,
+                    containing_symbol_id,
+                );
+            }
+        }
+
+        // `..color = x`: a member of the cascade target.
+        "cascade_selector" => {
+            if let Some(property) = find_child_by_type(&node, "identifier") {
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                base.create_identifier(
+                    &property,
+                    get_node_text(&property),
+                    IdentifierKind::MemberAccess,
+                    containing_symbol_id,
+                );
+            }
+        }
+
+        // `List<int>.filled(...)`: the generic type named before a static member.
+        "identifier" if is_generic_type_receiver(node) => {
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            let identifier = base.create_identifier(
+                &node,
+                get_node_text(&node),
+                IdentifierKind::TypeUsage,
+                containing_symbol_id,
+            );
+            if let Some(arguments) = node
+                .parent()
+                .and_then(|instantiation| instantiation.child_by_field_name("type_arguments"))
+            {
+                record_call_type_arguments(base, arguments, &identifier);
+            }
         }
 
         "unconditional_assignable_selector" => {
@@ -244,7 +294,9 @@ fn is_dart_value_read_identifier(node: Node) -> bool {
 
         // Rule 3: declaration names. Their `value` initializer children are
         // reads; everything else under these parents is a definition name.
-        "initialized_identifier" | "initialized_variable_definition" => is_field("value"),
+        "initialized_identifier"
+        | "initialized_variable_definition"
+        | "static_final_declaration" => is_field("value"),
         "class_declaration"
         | "enum_declaration"
         | "enum_constant"
@@ -252,12 +304,22 @@ fn is_dart_value_read_identifier(node: Node) -> bool {
         | "extension_declaration"
         | "function_signature"
         | "constructor_signature"
+        | "factory_constructor_signature"
+        | "constant_constructor_signature"
+        | "redirecting_factory_constructor_signature"
+        | "extension_type_name"
+        | "extension_type_representation"
+        | "part_of_directive"
         | "getter_signature"
         | "setter_signature"
         | "type_alias"
         | "formal_parameter"
         | "constructor_param"
         | "normal_parameter_type" => false,
+
+        // Rule 3: pattern bindings (`String name`, `final (a, b) = ...`).
+        "variable_pattern" => !is_field("name"),
+        "constant_pattern" => !super::locals::is_declaring_pattern(parent),
 
         // Rule 3: a for-in loop binds `name`; the `value` collection reads.
         "for_statement" => !is_field("name"),
@@ -358,6 +420,43 @@ fn record_outermost_dart_type_arguments(
     }
 }
 
+/// The explicit type arguments of a generic call or type literal.
+fn record_call_type_arguments(base: &mut BaseExtractor, arguments: Node, identifier: &Identifier) {
+    let arguments = crate::base::extract_type_arguments(base, arguments, decompose_dart_type_arg);
+    base.record_type_arguments(identifier, arguments);
+}
+
+/// `List` in `List<int>.filled(...)`: the function of an instantiation that is
+/// the object of a member access.
+fn is_generic_type_receiver(node: Node) -> bool {
+    let Some(instantiation) = node
+        .parent()
+        .filter(|parent| parent.kind() == "instantiation_expression")
+    else {
+        return false;
+    };
+    instantiation.child_by_field_name("function") == Some(node)
+        && instantiation.parent().is_some_and(|member| {
+            matches!(
+                member.kind(),
+                "member_expression" | "null_aware_member_expression"
+            ) && member.child_by_field_name("object") == Some(instantiation)
+        })
+}
+
+/// The expression a cascade section applies to: the nearest earlier sibling
+/// that is not itself a cascade section.
+pub(super) fn cascade_target(section: Node) -> Option<Node> {
+    let mut current = section.prev_named_sibling();
+    while let Some(sibling) = current {
+        if sibling.kind() != "cascade_section" {
+            return Some(sibling);
+        }
+        current = sibling.prev_named_sibling();
+    }
+    None
+}
+
 /// `TypeArgDecomposer` for Dart: maps a child of a `type_arguments` node to its
 /// applied argument. Dart's `type_arguments` children are `type` wrapper nodes
 /// (each containing a `type_identifier` and optionally nested `type_arguments`).
@@ -430,11 +529,26 @@ pub(super) fn call_callee(function: Node) -> Option<Callee> {
             receiver: None,
         }),
         "member_expression" | "null_aware_member_expression" => {
-            let object = function.child_by_field_name("object")?;
+            let mut object = function.child_by_field_name("object")?;
+            if object.kind() == "instantiation_expression"
+                && let Some(generic) = object.child_by_field_name("function")
+            {
+                object = generic;
+            }
             let start = arrow_body_start(object).unwrap_or(object.start_byte());
             Some(Callee {
                 name: function.child_by_field_name("property")?,
                 receiver: Some((start, object.end_byte())),
+            })
+        }
+        "cascade_call_expression" => {
+            let target = function
+                .parent()
+                .filter(|section| section.kind() == "cascade_section")
+                .and_then(cascade_target)?;
+            Some(Callee {
+                name: function.child_by_field_name("property")?,
+                receiver: Some((target.start_byte(), target.end_byte())),
             })
         }
         "instantiation_expression" => call_callee(function.child_by_field_name("function")?),

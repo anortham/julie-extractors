@@ -4224,6 +4224,16 @@
           "name": "structure",
           "source": "fixtures/extraction/dart/structure/source.dart",
           "expected": "fixtures/extraction/dart/structure/expected.json"
+        },
+        {
+          "name": "declarations",
+          "source": "fixtures/extraction/dart/declarations/source.dart",
+          "expected": "fixtures/extraction/dart/declarations/expected.json"
+        },
+        {
+          "name": "frameworks",
+          "source": "fixtures/extraction/dart/frameworks/source.dart",
+          "expected": "fixtures/extraction/dart/frameworks/expected.json"
         }
       ],
       "target_capabilities": {
@@ -4240,11 +4250,18 @@
             "class",
             "constant",
             "constructor",
+            "enum",
+            "enum_member",
             "field",
             "function",
             "import",
+            "interface",
             "method",
+            "module",
+            "namespace",
+            "operator",
             "property",
+            "type",
             "variable"
           ],
           "not_applicable": [],
@@ -4253,7 +4270,9 @@
         "relationships": {
           "supported": [
             "calls",
-            "extends"
+            "extends",
+            "implements",
+            "uses"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -4272,8 +4291,12 @@
           "supported": [
             "class",
             "constructor",
+            "enum",
             "function",
+            "interface",
             "method",
+            "module",
+            "operator",
             "property"
           ],
           "not_applicable": [
@@ -4286,7 +4309,11 @@
           "supported": [
             "dart.await_expression.v1",
             "dart.async_modifier.v1",
-            "dart.annotation.v1"
+            "dart.annotation.v1",
+            "go_router.route_definition.v1",
+            "go_router.route_reference.v1",
+            "shelf_router.route.v1",
+            "http.client_request.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -4312,6 +4339,8 @@
             "constant",
             "field",
             "function",
+            "namespace",
+            "operator",
             "variable"
           ],
           "not_applicable": [],

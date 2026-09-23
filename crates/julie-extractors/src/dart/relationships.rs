@@ -17,7 +17,11 @@ pub(super) fn extract_relationships(
     let mut relationships = Vec::new();
 
     traverse_tree(node, &mut |current_node| match current_node.kind() {
-        "class_definition" | "class_declaration" => {
+        "class_definition"
+        | "class_declaration"
+        | "mixin_declaration"
+        | "enum_declaration"
+        | "extension_type_declaration" => {
             extract_class_relationships(base, &current_node, symbols, &mut relationships);
         }
         _ => {}
@@ -32,18 +36,15 @@ fn extract_class_relationships(
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
 ) {
-    let class_name = find_child_by_type(node, "identifier");
-    if class_name.is_none() {
+    let Some(class_symbol) = symbols.iter().find(|s| {
+        s.start_byte as usize == node.start_byte()
+            && matches!(
+                s.kind,
+                SymbolKind::Class | SymbolKind::Interface | SymbolKind::Enum
+            )
+    }) else {
         return;
-    }
-
-    let class_symbol = symbols
-        .iter()
-        .find(|s| s.name == get_node_text(&class_name.unwrap()) && s.kind == SymbolKind::Class);
-    if class_symbol.is_none() {
-        return;
-    }
-    let class_symbol = class_symbol.unwrap();
+    };
 
     for (target_name, kind) in extract_class_header_targets(node) {
         emit_type_relationship_or_pending(
@@ -113,6 +114,51 @@ pub(super) fn first_extends_name(node: Node) -> Option<String> {
 
 fn extract_class_header_targets(node: &Node) -> Vec<(String, RelationshipKind)> {
     let mut targets = Vec::new();
+
+    if let Some(application) = find_child_by_type(node, "mixin_application_class")
+        .and_then(|class| find_child_by_type(&class, "mixin_application"))
+    {
+        if let Some(base_type) = find_child_by_type(&application, "type")
+            && let Some(target_name) = normalize_type_name(&get_node_text(&base_type))
+        {
+            targets.push((target_name, RelationshipKind::Extends));
+        }
+        if let Some(mixin_clause) = find_child_by_type(&application, "mixins") {
+            append_clause_targets(&mut targets, &mixin_clause, "with", RelationshipKind::Uses);
+        }
+        if let Some(interfaces_clause) = find_child_by_type(&application, "interfaces") {
+            append_clause_targets(
+                &mut targets,
+                &interfaces_clause,
+                "implements",
+                RelationshipKind::Implements,
+            );
+        }
+    }
+
+    // `mixin M on A, B`: the superclass constraints; `extension type X(...)
+    // implements A, B`: the implemented types. Both are bare `type` children.
+    let bare_type_kind = match node.kind() {
+        "mixin_declaration" => Some(RelationshipKind::Extends),
+        "extension_type_declaration" => Some(RelationshipKind::Implements),
+        _ => None,
+    };
+    if let Some(kind) = bare_type_kind {
+        let mut cursor = node.walk();
+        for type_node in node
+            .children(&mut cursor)
+            .filter(|child| child.is_named() && child.kind() == "type")
+        {
+            if let Some(target_name) = normalize_type_name(&get_node_text(&type_node)) {
+                targets.push((target_name, kind.clone()));
+            }
+        }
+    }
+    if node.kind() == "enum_declaration"
+        && let Some(mixin_clause) = find_child_by_type(node, "mixins")
+    {
+        append_clause_targets(&mut targets, &mixin_clause, "with", RelationshipKind::Uses);
+    }
 
     if let Some(superclass_clause) = find_child_by_type(node, "superclass") {
         let type_root = find_child_by_type(&superclass_clause, "type")
