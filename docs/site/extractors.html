@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hand-written extractors, not query files</title>
-  <meta name="description" content="Why julie-extractors uses imperative Rust instead of tree-sitter query packs: typed structural facts, fail-closed reference resolution, owned grammar forks, and fixture-proven coverage across 40 languages.">
+  <meta name="description" content="Why julie-extractors uses imperative Rust instead of tree-sitter query packs: typed structural facts, fail-closed reference resolution, owned grammar forks, and fixture-proven coverage across 42 languages.">
   <link rel="canonical" href="https://anortham.github.io/julie-extractors/extractors.html">
 
   <meta property="og:type" content="article">
@@ -38,7 +38,7 @@
           Nearly every tree-sitter-based code-intelligence tool drives extraction the same way: a pack of
           <code>.scm</code> query files per language, matched against the syntax tree by the tree-sitter
           query engine. julie-extractors has no query files at all and never invokes the query engine.
-          Each of its 40 languages gets an imperative Rust extractor that walks the concrete syntax tree
+          Each of its 42 languages gets an imperative Rust extractor that walks the concrete syntax tree
           directly, with a large hand-written extraction surface instead of query packs.
         </p>
         <p>
@@ -81,7 +81,7 @@
           complexity metrics, structural facts, annotations, and parse diagnostics.
         </p>
         <p>
-          The clearest example is structural facts. Nearly 200 versioned pattern IDs across 60 fact
+          The clearest example is structural facts. More than 350 versioned pattern IDs across 86 fact
           families capture framework and document shape as plain data: <code>express.route.v1</code>,
           <code>rails.resource_route.v1</code>, <code>django.url_pattern.v1</code>,
           <code>spring.request_mapping.v1</code>, <code>fastapi.include_router.v1</code>,
@@ -96,8 +96,8 @@
           without a brittle method-name allowlist for identifier capture. Partial classes are linked
           across files. ES-module imports carry export provenance. Tests are classified by role per
           language rather than by a single "is a test" bit, with golden fixtures proving test-detection
-          output for 36 languages. Symbols carry assembled signatures, doc comments (38 of
-          40 languages), body spans, and per-function complexity, which is usually enough for an agent to
+          output for 36 languages. Symbols carry assembled signatures, doc comments (39 of
+          42 languages), body spans, and per-function complexity, which is usually enough for an agent to
           reason about an API without opening the file.
         </p>
 
@@ -124,13 +124,13 @@
         <h3>Owning grammars where the ecosystem had gaps</h3>
         <p>
           Depth sometimes requires owning the layer below. julie-extractors maintains tree-sitter grammar
-          forks for C#, SQL (T-SQL), and Razor, cases where the upstream grammar was missing, stale, or
+          forks for C#, SQL (T-SQL), Razor, <code>go.mod</code>, and <code>go.sum</code>, cases where the upstream grammar was missing, stale, or
           could not represent constructs the extractors needed. Each fork is pinned to an exact commit
           under a written grammar-dependency policy, so a grammar change is a reviewed event rather than a
           floating dependency.
         </p>
 
-        <h3>Keeping 40 languages honest</h3>
+        <h3>Keeping 42 languages honest</h3>
         <p>
           The obvious failure mode of hand-written breadth is uneven depth: a few well-tended languages
           and thirty that quietly lag. The repository's answer is a capability matrix with no silent
@@ -148,7 +148,7 @@
 
         <h3>The cost</h3>
         <p>
-          Averaged out, each language carries roughly 3,500 lines of extraction code that has to track
+          Averaged out, each language carries roughly 4,800 lines of extraction code that has to track
           grammar updates by hand, work a query pack mostly avoids. Adding a language takes days rather
           than an afternoon of pattern writing. Imperative extractors can also hide bugs that declarative
           patterns cannot, which is why the fixture and gate machinery above exists. That infrastructure
