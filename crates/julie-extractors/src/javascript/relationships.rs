@@ -7,7 +7,7 @@
 
 use crate::base::{
     LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex, Symbol, SymbolKind,
-    UnresolvedTarget,
+    UnresolvedTarget, is_test_call_symbol,
 };
 use crate::ecmascript_imports::is_ecmascript_global_direct_target;
 use crate::javascript::JavaScriptExtractor;
@@ -24,11 +24,13 @@ pub(crate) fn extract_relationships(
 ) -> Vec<Relationship> {
     let mut relationships = Vec::new();
     let symbol_index = ScopedSymbolIndex::new(symbols);
+    let owners = super::ecmascript_owner_index(extractor.base(), symbols);
     extract_call_relationships(
         extractor,
         tree.root_node(),
         symbols,
         &symbol_index,
+        &owners,
         &mut relationships,
         0,
     );
@@ -37,6 +39,7 @@ pub(crate) fn extract_relationships(
         tree.root_node(),
         symbols,
         &symbol_index,
+        &owners,
         &mut relationships,
         0,
     );
@@ -49,6 +52,7 @@ fn extract_new_expression_relationships(
     node: Node,
     symbols: &[Symbol],
     symbol_index: &ScopedSymbolIndex<'_>,
+    owners: &super::EcmaOwnerIndex<'_>,
     relationships: &mut Vec<Relationship>,
     depth: u32,
 ) {
@@ -60,7 +64,7 @@ fn extract_new_expression_relationships(
         && let Some(constructor_node) = node.child_by_field_name("constructor")
     {
         let target = extract_call_target(extractor, constructor_node);
-        let caller = find_containing_callable_symbol(node, symbols);
+        let caller = owners.find(node);
         if let Some(caller) = caller {
             let resolution = symbol_index.resolve_call_target(
                 &target.terminal_name,
@@ -124,6 +128,7 @@ fn extract_new_expression_relationships(
             child,
             symbols,
             symbol_index,
+            owners,
             relationships,
             child_depth,
         );
@@ -148,6 +153,7 @@ fn extract_call_relationships(
     node: Node,
     symbols: &[Symbol],
     symbol_index: &ScopedSymbolIndex<'_>,
+    owners: &super::EcmaOwnerIndex<'_>,
     relationships: &mut Vec<Relationship>,
     depth: u32,
 ) {
@@ -162,7 +168,7 @@ fn extract_call_relationships(
         let target = extract_call_target(extractor, function_node);
 
         // Find the calling function (containing function)
-        if let Some(caller_symbol) = find_containing_callable_symbol(node, symbols) {
+        if let Some(caller_symbol) = owners.find(node) {
             let resolved_symbol = match symbol_index.resolve_call_target(
                 &target.terminal_name,
                 Some(caller_symbol),
@@ -174,6 +180,7 @@ fn extract_call_relationships(
                 }
                 _ => None,
             }
+            .filter(|symbol| !is_test_call_symbol(symbol))
             .filter(|symbol| {
                 target.receiver.is_some()
                     || !matches!(symbol.kind, SymbolKind::Method | SymbolKind::Constructor)
@@ -214,6 +221,7 @@ fn extract_call_relationships(
             child,
             symbols,
             symbol_index,
+            owners,
             relationships,
             child_depth,
         );
@@ -223,6 +231,7 @@ fn extract_call_relationships(
 fn unique_callable_symbol<'a>(symbols: &'a [Symbol], name: &str) -> Option<&'a Symbol> {
     let mut matches = symbols.iter().filter(|symbol| {
         symbol.name == name
+            && !is_test_call_symbol(symbol)
             && matches!(
                 symbol.kind,
                 SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
@@ -230,20 +239,6 @@ fn unique_callable_symbol<'a>(symbols: &'a [Symbol], name: &str) -> Option<&'a S
     });
     let symbol = matches.next()?;
     matches.next().is_none().then_some(symbol)
-}
-
-fn find_containing_callable_symbol<'a>(node: Node, symbols: &'a [Symbol]) -> Option<&'a Symbol> {
-    let byte = node.start_byte() as u32;
-    symbols
-        .iter()
-        .filter(|symbol| {
-            matches!(
-                symbol.kind,
-                SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
-            ) && symbol.start_byte <= byte
-                && symbol.end_byte >= byte
-        })
-        .min_by_key(|symbol| symbol.end_byte - symbol.start_byte)
 }
 
 /// The callee of a call site: the `function` of a call expression, or the

@@ -61,10 +61,14 @@ import './setup';
         let import_names: Vec<_> = imports.iter().map(|symbol| symbol.name.as_str()).collect();
 
         assert_eq!(
-            imports.len(),
-            5,
-            "side-effect imports should not create binding symbols: {:?}",
-            import_names
+            import_names,
+            ["React", "useState", "h", "Utils", "Bar", "./setup"],
+            "a side-effect import is one row named by its source"
+        );
+        let setup = imports.last().unwrap();
+        assert_eq!(
+            setup.metadata.as_ref().unwrap()["isSideEffect"],
+            serde_json::json!(true)
         );
         for expected in ["React", "useState", "h", "Utils", "Bar"] {
             assert!(
@@ -72,14 +76,7 @@ import './setup';
                 "missing import binding {expected}; got {import_names:?}"
             );
         }
-        for module_or_raw in [
-            "react",
-            "./utils",
-            "./types",
-            "./setup",
-            "* as Utils",
-            "Foo",
-        ] {
+        for module_or_raw in ["react", "./utils", "./types", "* as Utils", "Foo"] {
             assert!(
                 !import_names.contains(&module_or_raw),
                 "imports should be named after local bindings, not {module_or_raw}: {import_names:?}"

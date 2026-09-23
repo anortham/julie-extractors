@@ -1017,6 +1017,11 @@
           "name": "language_gaps",
           "source": "fixtures/extraction/typescript/language_gaps/source.ts",
           "expected": "fixtures/extraction/typescript/language_gaps/expected.json"
+        },
+        {
+          "name": "frontend_navigation",
+          "source": "fixtures/extraction/typescript/frontend_navigation/source.ts",
+          "expected": "fixtures/extraction/typescript/frontend_navigation/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1039,6 +1044,7 @@
             "import",
             "interface",
             "method",
+            "namespace",
             "property",
             "type",
             "variable"
@@ -1076,6 +1082,7 @@
             "import",
             "interface",
             "method",
+            "namespace",
             "property",
             "type",
             "variable"
@@ -1085,6 +1092,7 @@
         },
         "structural_facts": {
           "supported": [
+            "angular.route_definition.v1",
             "express.route.v1",
             "express.router_mount.v1",
             "fastify.route.v1",
@@ -1092,9 +1100,11 @@
             "nestjs.route.v1",
             "nextjs.file_route.v1",
             "nextjs.route_handler.v1",
+            "nextjs.route_reference.v1",
             "nuxt.file_route.v1",
             "nuxt.server_route.v1",
             "react.route_definition.v1",
+            "react.route_reference.v1",
             "typescript.await_expression.v1",
             "vue.route_definition.v1"
           ],
@@ -1119,7 +1129,9 @@
         "annotations": {
           "supported": [
             "class",
-            "method"
+            "method",
+            "property",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1280,6 +1292,7 @@
             "import",
             "interface",
             "method",
+            "namespace",
             "property",
             "type",
             "variable"
@@ -1314,6 +1327,7 @@
             "import",
             "interface",
             "method",
+            "namespace",
             "type",
             "variable"
           ],

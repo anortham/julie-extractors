@@ -3,7 +3,7 @@
 //! This module handles basic type inference for variables and functions
 //! based on their assignments and return statements.
 
-use crate::base::Symbol;
+use crate::base::{Symbol, SymbolKind};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use crate::typescript::TypeScriptExtractor;
 use std::collections::HashMap;
@@ -61,37 +61,8 @@ fn infer_types_from_tree_at_depth(
         return;
     }
 
-    // Look for variable declarations and assignments
-    if node.kind() == "variable_declarator" {
-        if let Some(name_node) = node.child_by_field_name("name") {
-            let var_name = extractor.base().get_node_text(&name_node);
+    infer_node_type(extractor, node, symbols, types);
 
-            // Find the symbol for this variable
-            if let Some(symbol) = symbols.iter().find(|s| s.name == var_name) {
-                // Look at the value to infer the type
-                if let Some(value_node) = node.child_by_field_name("value") {
-                    let inferred_type = infer_type_from_value(extractor, &value_node);
-                    types.insert(symbol.id.clone(), inferred_type);
-                }
-            }
-        }
-    }
-    // Look for function declarations
-    else if (node.kind() == "function_declaration"
-        || node.kind() == "arrow_function"
-        || node.kind() == "function_expression")
-        && let Some(name_node) = node.child_by_field_name("name")
-    {
-        let func_name = extractor.base().get_node_text(&name_node);
-
-        // Find the function symbol
-        if let Some(symbol) = symbols.iter().find(|s| s.name == func_name) {
-            let return_type = infer_function_return_type(extractor, &node);
-            types.insert(symbol.id.clone(), return_type);
-        }
-    }
-
-    // Recursively process children
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
@@ -99,6 +70,65 @@ fn infer_types_from_tree_at_depth(
     for child in node.children(&mut cursor) {
         infer_types_from_tree_at_depth(extractor, child, symbols, types, child_depth);
     }
+}
+
+/// Infer the type of the symbol `node` declares. The symbol is found by its
+/// span, never by name, so a local never takes a same-named symbol's type.
+/// Callables with a `return_type` annotation keep their declared fact, and
+/// placeholders that name no type (`any`, `function`) record nothing.
+fn infer_node_type(
+    extractor: &TypeScriptExtractor,
+    node: Node,
+    symbols: &[Symbol],
+    types: &mut HashMap<String, String>,
+) {
+    let inferred = match node.kind() {
+        "variable_declarator" => {
+            if node
+                .child_by_field_name("name")
+                .is_none_or(|name| name.kind() != "identifier")
+            {
+                return;
+            }
+            let Some(value_node) = node.child_by_field_name("value") else {
+                return;
+            };
+            Some((
+                declared_symbol(node, symbols, &[SymbolKind::Variable]),
+                infer_type_from_value(extractor, &value_node),
+            ))
+        }
+        "function_declaration"
+        | "generator_function_declaration"
+        | "function_expression"
+        | "arrow_function"
+        | "method_definition"
+            if node.child_by_field_name("return_type").is_none() =>
+        {
+            Some((
+                declared_symbol(node, symbols, &[SymbolKind::Function, SymbolKind::Method]),
+                infer_function_return_type(extractor, &node),
+            ))
+        }
+        _ => None,
+    };
+    if let Some((Some(symbol), inferred_type)) = inferred
+        && !matches!(inferred_type.as_str(), "any" | "function" | "Promise<any>")
+    {
+        types.insert(symbol.id.clone(), inferred_type);
+    }
+}
+
+fn declared_symbol<'a>(
+    node: Node,
+    symbols: &'a [Symbol],
+    kinds: &[SymbolKind],
+) -> Option<&'a Symbol> {
+    symbols.iter().find(|symbol| {
+        symbol.start_byte == node.start_byte() as u32
+            && symbol.end_byte == node.end_byte() as u32
+            && kinds.contains(&symbol.kind)
+    })
 }
 
 /// Infer type from a value node
@@ -188,7 +218,9 @@ fn collect_return_types_at_depth(
     }
 
     if node.kind() == "return_statement"
-        && let Some(value_node) = node.child_by_field_name("argument")
+        && let Some(value_node) = node
+            .named_child(0)
+            .filter(|value| value.kind() != "comment")
     {
         let return_type = infer_type_from_value(extractor, &value_node);
         return_types.push(return_type);

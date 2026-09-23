@@ -25,7 +25,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "Job",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "Job"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -87,7 +92,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "Worker",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "Worker"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -164,7 +174,9 @@
         "isAsync": false,
         "isGenerator": false,
         "isStatic": false,
-        "parameters": [],
+        "parameters": [
+          "private id: number"
+        ],
         "typeParameters": []
       },
       "annotations": [],
@@ -245,15 +257,18 @@
         "end_byte": 557
       },
       "body_hash": "7eb8b04fb752d85fa4e289b3db991f4e",
-      "signature": "evaluate(count: number, enabled: boolean): : number",
+      "signature": "evaluate(count: number, enabled: boolean): number",
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "isAsync": false,
         "isGenerator": false,
-        "parameters": [],
-        "returnType": ": number",
+        "parameters": [
+          "count: number",
+          "enabled: boolean"
+        ],
+        "returnType": "number",
         "typeParameters": []
       },
       "annotations": [],
@@ -282,15 +297,17 @@
         "end_byte": 355
       },
       "body_hash": "9d7bfc03ef03477a6cc1004df50e77c5",
-      "signature": "helper(value: number): : number",
+      "signature": "helper(value: number): number",
       "doc_comment": "/**\n * Increment a worker id.\n * @param value the worker id\n * @returns the incremented id\n */",
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "isAsync": false,
         "isGenerator": false,
-        "parameters": [],
-        "returnType": ": number",
+        "parameters": [
+          "value: number"
+        ],
+        "returnType": "number",
         "typeParameters": []
       },
       "annotations": [],
@@ -349,6 +366,34 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/typescript/basic/source.ts:id:7:24",
+      "name": "id",
+      "kind": "property",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/basic/source.ts",
+      "start_line": 7,
+      "start_column": 24,
+      "end_line": 7,
+      "end_column": 26,
+      "start_byte": 119,
+      "end_byte": 121,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "private id: number",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/typescript/basic/source.ts:Worker:6:7",
+      "metadata": {
+        "isParameterProperty": true,
+        "isReadonly": false,
+        "isStatic": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/typescript/basic/source.ts:run:2:4",
       "name": "run",
       "kind": "method",
@@ -400,7 +445,7 @@
         "end_byte": 192
       },
       "body_hash": "a41ab3b7d33de5ac63ae5de54e5da62d",
-      "signature": "run(): : number",
+      "signature": "run(): number",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/basic/source.ts:Worker:6:7",
@@ -409,7 +454,7 @@
         "isGenerator": false,
         "isStatic": false,
         "parameters": [],
-        "returnType": ": number",
+        "returnType": "number",
         "typeParameters": []
       },
       "annotations": [],
@@ -506,8 +551,44 @@
       "metadata": null
     }
   ],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/typescript/basic/source.ts:Worker:6:7",
+      "callee_name": "Component",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/typescript/basic/source.ts",
+      "line_number": 5,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/typescript/basic/source.ts:Worker:6:7",
+        "callee_name": "Component",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/typescript/basic/source.ts",
+        "line_number": 5,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Component",
+        "terminal_name": "Component",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/typescript/basic/source.ts:Worker:6:7",
+      "span": {
+        "start_line": 5,
+        "start_column": 1,
+        "end_line": 5,
+        "end_column": 12,
+        "start_byte": 46,
+        "end_byte": 57
+      }
+    }
+  ],
   "identifiers": [
     {
       "key": "fixtures/extraction/typescript/basic/source.ts:Component:call:5:1",
@@ -521,7 +602,7 @@
       "end_column": 10,
       "start_byte": 46,
       "end_byte": 55,
-      "containing_key": "fixtures/extraction/typescript/basic/source.ts:Worker:5:0",
+      "containing_key": "fixtures/extraction/typescript/basic/source.ts:Worker:6:7",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -723,19 +804,19 @@
     },
     {
       "symbol_key": "fixtures/extraction/typescript/basic/source.ts:evaluate:23:0",
-      "resolved_type": "function",
+      "resolved_type": "number",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "typescript",
       "metadata": null
     },
     {
       "symbol_key": "fixtures/extraction/typescript/basic/source.ts:helper:19:0",
-      "resolved_type": "function",
+      "resolved_type": "number",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "typescript",
       "metadata": null
     },
@@ -750,6 +831,33 @@
     },
     {
       "symbol_key": "fixtures/extraction/typescript/basic/source.ts:id:7:16",
+      "resolved_type": "number",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "typescript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/typescript/basic/source.ts:id:7:24",
+      "resolved_type": "number",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "typescript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/typescript/basic/source.ts:run:2:4",
+      "resolved_type": "number",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "typescript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/typescript/basic/source.ts:run:9:4",
       "resolved_type": "number",
       "generic_params": null,
       "constraints": null,

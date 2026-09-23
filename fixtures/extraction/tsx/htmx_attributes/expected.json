@@ -56,7 +56,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "SaveButton",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "SaveButton"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -90,7 +95,9 @@
       "metadata": {
         "isAsync": false,
         "isGenerator": false,
-        "parameters": [],
+        "parameters": [
+          "{ endpoint }: Props"
+        ],
         "typeParameters": []
       },
       "annotations": [],
@@ -188,11 +195,11 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/tsx/htmx_attributes/source.tsx:SaveButton:5:0",
-      "resolved_type": "function",
+      "symbol_key": "fixtures/extraction/tsx/htmx_attributes/source.tsx:endpoint:2:2",
+      "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "tsx",
       "metadata": null
     }
@@ -321,19 +328,6 @@
       "end_column": 54,
       "start_byte": 146,
       "end_byte": 156,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "tsx",
-      "file_path": "fixtures/extraction/tsx/htmx_attributes/source.tsx",
-      "containing_key": "fixtures/extraction/tsx/htmx_attributes/source.tsx:endpoint:2:2",
-      "start_line": 2,
-      "start_column": 12,
-      "end_line": 2,
-      "end_column": 18,
-      "start_byte": 30,
-      "end_byte": 36,
       "metadata": null
     }
   ],

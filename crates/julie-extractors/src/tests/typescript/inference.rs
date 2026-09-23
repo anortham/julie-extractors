@@ -38,13 +38,13 @@ fn test_infer_basic_types() {
 #[test]
 fn test_infer_function_return_type() {
     let code = r#"
-    function getString(): string {
+    function getString() {
         return "hello";
     }
     "#;
     let mut parser = tree_sitter::Parser::new();
     parser
-        .set_language(&tree_sitter_javascript::LANGUAGE.into())
+        .set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
         .unwrap();
     let tree = parser.parse(code, None).unwrap();
 
@@ -59,11 +59,15 @@ fn test_infer_function_return_type() {
     let symbols = extractor.extract_symbols(&tree);
     let types = infer_types(&extractor, &symbols);
 
-    assert!(!types.is_empty());
+    let get_string = symbols.iter().find(|s| s.name == "getString").unwrap();
+    assert_eq!(
+        types.get(&get_string.id).map(String::as_str),
+        Some("string")
+    );
 }
 
 #[test]
-fn test_infer_async_function() {
+fn test_async_function_without_annotation_records_no_placeholder() {
     let code = r#"
     async function fetchData() {
         return await fetch('/api');
@@ -71,7 +75,7 @@ fn test_infer_async_function() {
     "#;
     let mut parser = tree_sitter::Parser::new();
     parser
-        .set_language(&tree_sitter_javascript::LANGUAGE.into())
+        .set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
         .unwrap();
     let tree = parser.parse(code, None).unwrap();
 
@@ -86,5 +90,5 @@ fn test_infer_async_function() {
     let symbols = extractor.extract_symbols(&tree);
     let types = infer_types(&extractor, &symbols);
 
-    assert!(!types.is_empty());
+    assert!(types.is_empty(), "{types:?}");
 }

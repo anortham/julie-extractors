@@ -101,3 +101,82 @@ items
 
 export const server = fastify({ logger: true });
 server.get("/ping", async () => "pong");
+
+import "./polyfills";
+import legacy = require("./legacy");
+const lazyAdmin = () => import("./admin");
+
+export function* ids(): Generator<number> {
+  yield 1;
+}
+
+export function parse(value: string): number;
+export function parse(value: number): number;
+export function parse(value: string | number): number {
+  return Number(value);
+}
+
+declare function ambientHelper(input: string): void;
+
+declare module "express-session" {
+  interface SessionData {
+    userId: string;
+  }
+}
+
+declare global {
+  interface Window {
+    appVersion: string;
+  }
+}
+
+namespace Geometry {
+  export const origin = 0;
+}
+
+interface Named {
+  name: string;
+}
+
+interface Aged {
+  age: number;
+}
+
+interface Person extends Named, Aged {}
+
+type Point = {
+  x: number;
+  y: number;
+};
+
+function Input(): PropertyDecorator {
+  return () => {};
+}
+
+function Inject(): ParameterDecorator {
+  return () => {};
+}
+
+export class Form {
+  @Input() label: string = "";
+  #secret = legacy.token();
+  onSave = () => this.submit();
+
+  constructor(@Inject() public readonly store: Logger) {}
+
+  submit(): void {}
+}
+
+const Anonymous = class {
+  run(): void {}
+};
+
+const handlers = {
+  save(): void {},
+  load: () => lazyAdmin(),
+};
+
+function helper(): void {}
+export { helper, Point as Coordinates };
+export * from "./shared";
+export * as shapes from "./shapes";

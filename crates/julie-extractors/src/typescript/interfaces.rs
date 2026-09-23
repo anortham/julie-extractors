@@ -4,7 +4,7 @@
 //! interfaces, type aliases, enums, properties, and namespaces.
 
 use super::helpers;
-use crate::base::{Symbol, SymbolKind, SymbolOptions};
+use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations};
 use crate::typescript::TypeScriptExtractor;
 use tree_sitter::Node;
 
@@ -61,6 +61,11 @@ pub(super) fn extract_interface(
                                     ..Default::default()
                                 },
                             );
+                            super::type_facts::record_annotation_fact(
+                                extractor.base_mut(),
+                                &member_symbol.id,
+                                child,
+                            );
                             symbols.push(member_symbol);
                         }
                     }
@@ -79,6 +84,11 @@ pub(super) fn extract_interface(
                                     signature: Some(signature),
                                     ..Default::default()
                                 },
+                            );
+                            super::type_facts::record_return_type_fact(
+                                extractor.base_mut(),
+                                &member_symbol.id,
+                                child,
                             );
                             symbols.push(member_symbol);
                         }
@@ -187,55 +197,171 @@ pub(super) fn extract_enum(
     symbols
 }
 
-/// Extract a namespace declaration
+/// Extract a namespace: `namespace A.B {}`, `module Legacy {}`, or an
+/// ambient module `declare module "x" {}` named by its module string.
 pub(super) fn extract_namespace(
     extractor: &mut TypeScriptExtractor,
     node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let name_node = node.child_by_field_name("name");
-    let name = name_node.map(|n| extractor.base().get_node_text(&n))?;
-
-    // Extract JSDoc comment
-    let doc_comment = extractor.base().find_doc_comment(&node);
+    let name_node = node.child_by_field_name("name")?;
+    let name = extractor
+        .base()
+        .get_node_text(&name_node)
+        .trim_matches(|c| c == '"' || c == '\'' || c == '`')
+        .to_string();
+    let doc_comment = extractor
+        .base()
+        .find_doc_comment(&node)
+        .or_else(|| ambient_doc_comment(extractor, node));
+    let mut metadata = std::collections::HashMap::new();
+    if name_node.kind() == "string" {
+        metadata.insert("isAmbientModule".to_string(), serde_json::json!(true));
+    }
 
     Some(extractor.base_mut().create_symbol(
         &node,
         name,
         SymbolKind::Namespace,
         SymbolOptions {
+            visibility: helpers::extract_ts_visibility(node),
             parent_id: parent_id.map(str::to_string),
             doc_comment,
+            metadata: (!metadata.is_empty()).then_some(metadata),
             ..Default::default()
         },
     ))
 }
 
-/// Extract a property (class property or interface property)
+/// `declare global { ... }`: a namespace named `global` that parents the
+/// global augmentations inside it.
+pub(super) fn extract_global_augmentation(
+    extractor: &mut TypeScriptExtractor,
+    node: Node,
+    parent_id: Option<&str>,
+) -> Option<Symbol> {
+    let mut cursor = node.walk();
+    if !node
+        .children(&mut cursor)
+        .any(|child| child.kind() == "global")
+    {
+        return None;
+    }
+    let doc_comment = extractor.base().find_doc_comment(&node);
+    let metadata = std::collections::HashMap::from([(
+        "isGlobalAugmentation".to_string(),
+        serde_json::json!(true),
+    )]);
+    Some(extractor.base_mut().create_symbol(
+        &node,
+        "global".to_string(),
+        SymbolKind::Namespace,
+        SymbolOptions {
+            parent_id: parent_id.map(str::to_string),
+            doc_comment,
+            metadata: Some(metadata),
+            ..Default::default()
+        },
+    ))
+}
+
+fn ambient_doc_comment(extractor: &TypeScriptExtractor, node: Node) -> Option<String> {
+    node.parent()
+        .filter(|parent| parent.kind() == "ambient_declaration")
+        .and_then(|parent| extractor.base().find_doc_comment(&parent))
+}
+
+/// A constructor parameter with an accessibility or `readonly` modifier
+/// (`private readonly repo: Repo`) also declares a class property. The
+/// property spans the parameter name, so it never shares the parameter
+/// symbol's span.
+pub(super) fn extract_parameter_property(
+    extractor: &mut TypeScriptExtractor,
+    param_node: Node,
+    class_id: Option<&str>,
+) -> Option<Symbol> {
+    if !matches!(
+        param_node.kind(),
+        "required_parameter" | "optional_parameter"
+    ) {
+        return None;
+    }
+    let is_readonly = helpers::has_readonly(param_node);
+    let has_accessibility = param_node
+        .children(&mut param_node.walk())
+        .any(|child| child.kind() == "accessibility_modifier");
+    let is_override = param_node
+        .children(&mut param_node.walk())
+        .any(|child| child.kind() == "override_modifier");
+    if !(has_accessibility || is_readonly || is_override) {
+        return None;
+    }
+    let name_node = param_node
+        .child_by_field_name("pattern")
+        .filter(|pattern| pattern.kind() == "identifier")?;
+    let name = extractor.base().get_node_text(&name_node);
+    let visibility = helpers::extract_ts_visibility(param_node).or(Some(Visibility::Public));
+    let signature = extractor.base().get_node_text(&param_node);
+    let metadata = std::collections::HashMap::from([
+        ("isStatic".to_string(), serde_json::json!(false)),
+        ("isReadonly".to_string(), serde_json::json!(is_readonly)),
+        ("isParameterProperty".to_string(), serde_json::json!(true)),
+    ]);
+    let annotations = decorator_annotations(extractor, param_node);
+
+    let symbol = extractor.base_mut().create_symbol(
+        &name_node,
+        name,
+        SymbolKind::Property,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility,
+            parent_id: class_id.map(str::to_string),
+            metadata: Some(metadata),
+            annotations,
+            ..Default::default()
+        },
+    );
+    super::type_facts::record_annotation_fact(extractor.base_mut(), &symbol.id, param_node);
+    Some(symbol)
+}
+
+fn decorator_annotations(
+    extractor: &TypeScriptExtractor,
+    node: Node,
+) -> Vec<crate::base::AnnotationMarker> {
+    let content = &extractor.base().content;
+    normalize_annotations(
+        &helpers::extract_decorator_texts(node, content),
+        "typescript",
+    )
+}
+
+/// Extract a class field, or a property signature of a type alias's object
+/// type. A field whose value is a function is a method.
 pub(super) fn extract_property(
     extractor: &mut TypeScriptExtractor,
     node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    use super::helpers;
+    if super::functions::function_value(node).is_some() {
+        return super::functions::extract_member_function(extractor, node, parent_id);
+    }
 
     let name_node = node
         .child_by_field_name("name")
         .or_else(|| node.child_by_field_name("key"));
     let name = name_node.map(|n| extractor.base().get_node_text(&n))?;
 
-    // Extract visibility from accessibility_modifier (private/protected/public)
     let visibility = helpers::extract_ts_visibility(node);
 
-    // Extract decorators
     let content = extractor.base().content.clone();
     let decorators = helpers::extract_decorator_names(node, &content);
+    let annotations = decorator_annotations(extractor, node);
 
-    // Check for readonly / static
     let is_readonly = helpers::has_readonly(node);
     let is_static = helpers::has_modifier(node, "static");
 
-    // Build signature with decorators, access modifier, readonly, static, and type annotation
     let mut sig_parts = Vec::new();
     let decorator_prefix = helpers::decorator_prefix(&decorators);
     if !decorator_prefix.is_empty() {
@@ -247,18 +373,18 @@ pub(super) fn extract_property(
     if is_readonly {
         sig_parts.push("readonly".to_string());
     }
-    sig_parts.push(name.clone());
-    // Append type annotation if present
-    if let Some(type_ann) = extractor.base().get_field_text(&node, "type") {
-        sig_parts.push(format!(": {}", type_ann));
-    }
-    let signature = if sig_parts.len() > 1 || !decorators.is_empty() || is_readonly || is_static {
+    let type_annotation = super::functions::annotation_text(extractor, node, "type");
+    let signature = if let Some(type_annotation) = type_annotation {
+        let mut head = sig_parts;
+        head.push(name.clone());
+        Some(format!("{}: {}", head.join(" "), type_annotation))
+    } else if !sig_parts.is_empty() {
+        sig_parts.push(name.clone());
         Some(sig_parts.join(" "))
     } else {
         None
     };
 
-    // Extract JSDoc comment
     let doc_comment = extractor.base().find_doc_comment(&node);
 
     let mut metadata = std::collections::HashMap::new();
@@ -275,9 +401,17 @@ pub(super) fn extract_property(
             parent_id: parent_id.map(str::to_string),
             doc_comment,
             metadata: Some(metadata),
-            ..Default::default()
+            annotations,
         },
     );
     super::type_facts::record_annotation_fact(extractor.base_mut(), &symbol.id, node);
+    if let Some(value) = node.child_by_field_name("value") {
+        crate::javascript::type_facts::record_new_expression_fact(
+            extractor.base_mut(),
+            &symbol.id,
+            value,
+            &super::type_facts::TYPE_NAME_RULES,
+        );
+    }
     Some(symbol)
 }

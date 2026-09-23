@@ -1305,7 +1305,7 @@
       "end_column": 10,
       "start_byte": 268,
       "end_byte": 276,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:afterAll:20:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1321,7 +1321,7 @@
       "end_column": 11,
       "start_byte": 245,
       "end_byte": 254,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:afterEach:19:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1337,7 +1337,7 @@
       "end_column": 11,
       "start_byte": 198,
       "end_byte": 207,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:beforeAll:17:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1353,7 +1353,7 @@
       "end_column": 12,
       "start_byte": 221,
       "end_byte": 231,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:beforeEach:18:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1369,7 +1369,7 @@
       "end_column": 7,
       "start_byte": 803,
       "end_byte": 808,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:measures the total:34:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1449,7 +1449,7 @@
       "end_column": 14,
       "start_byte": 460,
       "end_byte": 467,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:keeps a known-failing case:26:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1481,7 +1481,7 @@
       "end_column": 5,
       "start_byte": 566,
       "end_byte": 569,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:keeps the legacy focused spelling:28:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1497,7 +1497,7 @@
       "end_column": 4,
       "start_byte": 291,
       "end_byte": 293,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:adds a line item:22:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1609,7 +1609,7 @@
       "end_column": 9,
       "start_byte": 330,
       "end_byte": 334,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:keeps a focused case:23:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1657,7 +1657,7 @@
       "end_column": 9,
       "start_byte": 375,
       "end_byte": 379,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:keeps a disabled case:24:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1737,7 +1737,7 @@
       "end_column": 11,
       "start_byte": 423,
       "end_byte": 427,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:keeps a planned case:25:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1865,7 +1865,7 @@
       "end_column": 5,
       "start_byte": 511,
       "end_byte": 514,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:keeps the legacy disabled spelling:27:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1881,7 +1881,7 @@
       "end_column": 7,
       "start_byte": 620,
       "end_byte": 625,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:keeps the legacy disabled alias:29:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "target_key": null,
       "confidence": "1.000"
     }
@@ -2389,7 +2389,7 @@
       "end_column": 23,
       "start_byte": 294,
       "end_byte": 312,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:adds a line item:22:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "confidence": "1.000"
     },
     {
@@ -2421,7 +2421,7 @@
       "end_column": 32,
       "start_byte": 693,
       "end_byte": 705,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:doubles %i:31:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "confidence": "1.000"
     },
     {
@@ -2437,7 +2437,7 @@
       "end_column": 33,
       "start_byte": 380,
       "end_byte": 403,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:keeps a disabled case:24:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "confidence": "1.000"
     },
     {
@@ -2453,7 +2453,7 @@
       "end_column": 32,
       "start_byte": 335,
       "end_byte": 357,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:keeps a focused case:23:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "confidence": "1.000"
     },
     {
@@ -2469,7 +2469,7 @@
       "end_column": 43,
       "start_byte": 468,
       "end_byte": 496,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:keeps a known-failing case:26:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "confidence": "1.000"
     },
     {
@@ -2485,7 +2485,7 @@
       "end_column": 34,
       "start_byte": 428,
       "end_byte": 450,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:keeps a planned case:25:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "confidence": "1.000"
     },
     {
@@ -2501,7 +2501,7 @@
       "end_column": 41,
       "start_byte": 626,
       "end_byte": 659,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:keeps the legacy disabled alias:29:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "confidence": "1.000"
     },
     {
@@ -2517,7 +2517,7 @@
       "end_column": 42,
       "start_byte": 515,
       "end_byte": 551,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:keeps the legacy disabled spelling:27:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "confidence": "1.000"
     },
     {
@@ -2533,7 +2533,7 @@
       "end_column": 41,
       "start_byte": 570,
       "end_byte": 605,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:keeps the legacy focused spelling:28:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "confidence": "1.000"
     },
     {
@@ -2581,7 +2581,7 @@
       "end_column": 28,
       "start_byte": 809,
       "end_byte": 829,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:measures the total:34:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "confidence": "1.000"
     },
     {
@@ -2613,7 +2613,7 @@
       "end_column": 35,
       "start_byte": 759,
       "end_byte": 770,
-      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:scales %i:32:2",
+      "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "confidence": "1.000"
     }
   ],

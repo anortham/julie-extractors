@@ -575,7 +575,7 @@
       "end_column": 13,
       "start_byte": 361,
       "end_byte": 366,
-      "containing_key": "fixtures/extraction/html/test_roles/source.html:after:15:8",
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -591,7 +591,7 @@
       "end_column": 17,
       "start_byte": 332,
       "end_byte": 341,
-      "containing_key": "fixtures/extraction/html/test_roles/source.html:afterEach:14:8",
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -623,7 +623,7 @@
       "end_column": 14,
       "start_byte": 246,
       "end_byte": 252,
-      "containing_key": "fixtures/extraction/html/test_roles/source.html:before:11:8",
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -639,7 +639,7 @@
       "end_column": 18,
       "start_byte": 272,
       "end_byte": 282,
-      "containing_key": "fixtures/extraction/html/test_roles/source.html:beforeEach:12:8",
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -655,7 +655,7 @@
       "end_column": 13,
       "start_byte": 206,
       "end_byte": 213,
-      "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:browser suite:9:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -703,7 +703,7 @@
       "end_column": 10,
       "start_byte": 302,
       "end_byte": 304,
-      "containing_key": "fixtures/extraction/html/test_roles/source.html:runs:13:8",
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1210,7 +1210,7 @@
       "end_column": 28,
       "start_byte": 214,
       "end_byte": 228,
-      "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:browser suite:9:4",
       "confidence": "1.000"
     },
     {
@@ -1242,7 +1242,7 @@
       "end_column": 17,
       "start_byte": 305,
       "end_byte": 311,
-      "containing_key": "fixtures/extraction/html/test_roles/source.html:runs:13:8",
+      "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
       "confidence": "1.000"
     }
   ],

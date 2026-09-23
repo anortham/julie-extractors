@@ -214,16 +214,19 @@
         "end_byte": 319
       },
       "body_hash": "3d766624cc354820d6256e55c3c472e3",
-      "signature": "test(_name: string, callback: () => void): : void",
+      "signature": "test(_name: string, callback: () => void): void",
       "doc_comment": null,
       "visibility": null,
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/vue/test_roles/source.vue:ordinary:13:6",
       "metadata": {
         "isAsync": false,
         "isGenerator": false,
         "isStatic": false,
-        "parameters": [],
-        "returnType": ": void",
+        "parameters": [
+          "_name: string",
+          "callback: () => void"
+        ],
+        "returnType": "void",
         "typeParameters": []
       },
       "annotations": [],
@@ -252,7 +255,7 @@
         "end_byte": 227
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "testNamedButOrdinary(): : void",
+      "signature": "testNamedButOrdinary(): void",
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
@@ -260,7 +263,7 @@
         "isAsync": false,
         "isGenerator": false,
         "parameters": [],
-        "returnType": ": void",
+        "returnType": "void",
         "typeParameters": []
       },
       "annotations": [],
@@ -303,44 +306,7 @@
       "content_type": null
     }
   ],
-  "relationships": [
-    {
-      "from_key": "fixtures/extraction/vue/test_roles/source.vue:beforeEach:7:2",
-      "to_key": "fixtures/extraction/vue/test_roles/source.vue:beforeEach:7:2",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
-      "line_number": 7,
-      "span": {
-        "start_line": 7,
-        "start_column": 2,
-        "end_line": 7,
-        "end_column": 22,
-        "start_byte": 115,
-        "end_byte": 135
-      },
-      "reference_site_is_exact": false,
-      "confidence": "1.000",
-      "metadata": null
-    },
-    {
-      "from_key": "fixtures/extraction/vue/test_roles/source.vue:renders a Vue test case:8:2",
-      "to_key": "fixtures/extraction/vue/test_roles/source.vue:test:14:2",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
-      "line_number": 8,
-      "span": {
-        "start_line": 8,
-        "start_column": 2,
-        "end_line": 8,
-        "end_column": 43,
-        "start_byte": 139,
-        "end_byte": 180
-      },
-      "reference_site_is_exact": false,
-      "confidence": "1.000",
-      "metadata": null
-    }
-  ],
+  "relationships": [],
   "pending_relationships": [],
   "structured_pending_relationships": [],
   "identifiers": [
@@ -356,7 +322,7 @@
       "end_column": 12,
       "start_byte": 115,
       "end_byte": 125,
-      "containing_key": "fixtures/extraction/vue/test_roles/source.vue:beforeEach:7:2",
+      "containing_key": "fixtures/extraction/vue/test_roles/source.vue:vue embedded roles:6:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -436,7 +402,7 @@
       "end_column": 6,
       "start_byte": 139,
       "end_byte": 143,
-      "containing_key": "fixtures/extraction/vue/test_roles/source.vue:renders a Vue test case:8:2",
+      "containing_key": "fixtures/extraction/vue/test_roles/source.vue:vue embedded roles:6:0",
       "target_key": null,
       "confidence": "1.000"
     }
@@ -463,15 +429,6 @@
     {
       "symbol_key": "fixtures/extraction/vue/test_roles/source.vue:ordinary:13:6",
       "resolved_type": "object",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "vue",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/vue/test_roles/source.vue:testNamedButOrdinary:11:0",
-      "resolved_type": "function",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -691,7 +648,7 @@
       "end_column": 32,
       "start_byte": 144,
       "end_byte": 169,
-      "containing_key": "fixtures/extraction/vue/test_roles/source.vue:renders a Vue test case:8:2",
+      "containing_key": "fixtures/extraction/vue/test_roles/source.vue:vue embedded roles:6:0",
       "confidence": "1.000"
     },
     {
@@ -742,19 +699,6 @@
       "end_column": 23,
       "start_byte": 68,
       "end_byte": 72,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "vue",
-      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
-      "containing_key": "fixtures/extraction/vue/test_roles/source.vue:_name:14:7",
-      "start_line": 14,
-      "start_column": 14,
-      "end_line": 14,
-      "end_column": 20,
-      "start_byte": 262,
-      "end_byte": 268,
       "metadata": null
     },
     {

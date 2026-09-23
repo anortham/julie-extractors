@@ -5,11 +5,12 @@
 
 use crate::base::{
     LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex, Symbol, SymbolKind,
-    UnresolvedTarget,
+    UnresolvedTarget, is_test_call_symbol,
 };
 use crate::ecmascript_imports::is_ecmascript_global_direct_target;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use crate::typescript::TypeScriptExtractor;
+use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 type HeritageData = (
@@ -25,32 +26,52 @@ pub(crate) fn extract_relationships(
     symbols: &[Symbol],
 ) -> Vec<Relationship> {
     let mut relationships = Vec::new();
-    let symbol_index = ScopedSymbolIndex::new(symbols);
-    extract_call_relationships(
-        extractor,
-        tree.root_node(),
+    let context = RelationshipContext {
         symbols,
-        &symbol_index,
-        &mut relationships,
-        0,
-    );
+        symbol_index: ScopedSymbolIndex::new(symbols),
+        owners: crate::javascript::ecmascript_owner_index(extractor.base(), symbols),
+        symbol_map: ScopedSymbolIndex::unique_symbol_map(symbols),
+    };
+    extract_call_relationships(extractor, tree.root_node(), &context, &mut relationships, 0);
     extract_new_expression_relationships(
         extractor,
         tree.root_node(),
-        symbols,
-        &symbol_index,
+        &context,
         &mut relationships,
         0,
     );
-    extract_inheritance_relationships(extractor, tree.root_node(), symbols, &mut relationships, 0);
+    extract_inheritance_relationships(extractor, tree.root_node(), &context, &mut relationships, 0);
     relationships
+}
+
+struct RelationshipContext<'a> {
+    symbols: &'a [Symbol],
+    symbol_index: ScopedSymbolIndex<'a>,
+    owners: crate::javascript::EcmaOwnerIndex<'a>,
+    symbol_map: HashMap<String, &'a Symbol>,
+}
+
+/// The project-relative import a same-file-unresolved type name comes from:
+/// `Base` for `extends Base` or `new Base()`, `ns` for `new ns.Base()`.
+fn type_import_context(
+    extractor: &mut TypeScriptExtractor,
+    node: Node,
+    target: &UnresolvedTarget,
+    context: &RelationshipContext<'_>,
+) -> Option<String> {
+    let root = target
+        .namespace_path
+        .first()
+        .or(target.receiver.as_ref())
+        .unwrap_or(&target.terminal_name)
+        .clone();
+    extractor.imported_binding_context(node, &root, &context.symbol_map)
 }
 
 fn extract_new_expression_relationships(
     extractor: &mut TypeScriptExtractor,
     node: Node,
-    symbols: &[Symbol],
-    symbol_index: &ScopedSymbolIndex<'_>,
+    context: &RelationshipContext<'_>,
     relationships: &mut Vec<Relationship>,
     depth: u32,
 ) {
@@ -61,10 +82,10 @@ fn extract_new_expression_relationships(
     if node.kind() == "new_expression"
         && let Some(constructor_node) = node.child_by_field_name("constructor")
     {
-        let target = extract_call_target(extractor, constructor_node);
-        let caller = find_containing_callable_symbol(node, symbols);
+        let mut target = extract_call_target(extractor, constructor_node);
+        let caller = context.owners.find(node);
         if let Some(caller) = caller {
-            let resolution = symbol_index.resolve_call_target(
+            let resolution = context.symbol_index.resolve_call_target(
                 &target.terminal_name,
                 Some(caller),
                 target.receiver.as_deref(),
@@ -79,7 +100,7 @@ fn extract_new_expression_relationships(
                     Some(*type_symbol)
                 }
                 _ if target.receiver.is_none() => {
-                    unique_constructable_symbol(symbols, &target.terminal_name)
+                    unique_constructable_symbol(context.symbols, &target.terminal_name)
                 }
                 _ => None,
             };
@@ -103,6 +124,7 @@ fn extract_new_expression_relationships(
                     metadata: None,
                 });
             } else if !is_ecmascript_global_direct_target(&target.terminal_name) {
+                target.import_context = type_import_context(extractor, node, &target, context);
                 let pending = extractor.base_mut().create_pending_relationship(
                     caller.id.clone(),
                     target,
@@ -123,14 +145,7 @@ fn extract_new_expression_relationships(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        extract_new_expression_relationships(
-            extractor,
-            child,
-            symbols,
-            symbol_index,
-            relationships,
-            child_depth,
-        );
+        extract_new_expression_relationships(extractor, child, context, relationships, child_depth);
     }
 }
 
@@ -150,8 +165,7 @@ fn unique_constructable_symbol<'a>(symbols: &'a [Symbol], name: &str) -> Option<
 fn extract_call_relationships(
     extractor: &mut TypeScriptExtractor,
     node: Node,
-    symbols: &[Symbol],
-    symbol_index: &ScopedSymbolIndex<'_>,
+    context: &RelationshipContext<'_>,
     relationships: &mut Vec<Relationship>,
     depth: u32,
 ) {
@@ -159,22 +173,29 @@ fn extract_call_relationships(
         return;
     }
 
-    if let Some(function_node) = call_site_callee(extractor, node) {
+    if let Some(function_node) = call_site_callee(extractor, node)
+        && !(extractor.test_dsl_active
+            && crate::javascript::test_symbols::is_test_dsl_call(extractor.base(), node))
+    {
         let target = extract_call_target(extractor, function_node);
 
-        // Find the calling function (containing function)
-        if let Some(caller_symbol) = find_containing_callable_symbol(node, symbols) {
-            let resolved_symbol = match symbol_index.resolve_call_target(
+        if let Some(caller_symbol) = context.owners.find(node) {
+            let resolved_symbol = match context.symbol_index.resolve_call_target(
                 &target.terminal_name,
                 Some(caller_symbol),
                 target.receiver.as_deref(),
             ) {
                 LocalTargetResolution::Resolved(symbol) => Some(symbol),
                 _ if target.receiver.is_none() => {
-                    unique_callable_symbol(symbols, &target.terminal_name)
+                    unique_callable_symbol(context.symbols, &target.terminal_name)
                 }
                 _ => None,
-            };
+            }
+            .filter(|symbol| {
+                !is_test_call_symbol(symbol)
+                    && (target.receiver.is_some()
+                        || !matches!(symbol.kind, SymbolKind::Method | SymbolKind::Constructor))
+            });
 
             if let Some(called_symbol) = resolved_symbol {
                 let relationship = Relationship {
@@ -206,14 +227,7 @@ fn extract_call_relationships(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        extract_call_relationships(
-            extractor,
-            child,
-            symbols,
-            symbol_index,
-            relationships,
-            child_depth,
-        );
+        extract_call_relationships(extractor, child, context, relationships, child_depth);
     }
 }
 
@@ -224,23 +238,10 @@ fn unique_callable_symbol<'a>(symbols: &'a [Symbol], name: &str) -> Option<&'a S
                 symbol.kind,
                 SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
             )
+            && !is_test_call_symbol(symbol)
     });
     let symbol = matches.next()?;
     matches.next().is_none().then_some(symbol)
-}
-
-fn find_containing_callable_symbol<'a>(node: Node, symbols: &'a [Symbol]) -> Option<&'a Symbol> {
-    let byte = node.start_byte() as u32;
-    symbols
-        .iter()
-        .filter(|symbol| {
-            matches!(
-                symbol.kind,
-                SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
-            ) && symbol.start_byte <= byte
-                && symbol.end_byte >= byte
-        })
-        .min_by_key(|symbol| symbol.end_byte - symbol.start_byte)
 }
 
 /// The callee of a call site: the `function` of a call expression, or the
@@ -341,10 +342,11 @@ fn extract_call_target(extractor: &TypeScriptExtractor, function_node: Node) -> 
 fn extract_inheritance_relationships(
     extractor: &mut TypeScriptExtractor,
     node: Node,
-    symbols: &[Symbol],
+    context: &RelationshipContext<'_>,
     relationships: &mut Vec<Relationship>,
     depth: u32,
 ) {
+    let symbols = context.symbols;
     if !should_visit_tree_depth(depth) {
         return;
     }
@@ -370,12 +372,7 @@ fn extract_inheritance_relationships(
                         SymbolKind::Class | SymbolKind::Interface | SymbolKind::Struct
                     )
             }) {
-                // Same-file: resolve directly using target's actual kind
-                let kind = if base_symbol.kind == SymbolKind::Interface {
-                    RelationshipKind::Implements
-                } else {
-                    RelationshipKind::Extends
-                };
+                let kind = pending_kind;
                 relationships.push(Relationship {
                     id: format!(
                         "{}_{}_{:?}_{}",
@@ -395,7 +392,8 @@ fn extract_inheritance_relationships(
                     metadata: None,
                 });
             } else {
-                // Cross-file: base type is defined in another file
+                let mut target = target;
+                target.import_context = type_import_context(extractor, node, &target, context);
                 let mut pending = extractor.base().create_pending_relationship(
                     class_symbol_id.clone(),
                     target.clone(),
@@ -417,7 +415,7 @@ fn extract_inheritance_relationships(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        extract_inheritance_relationships(extractor, child, symbols, relationships, child_depth);
+        extract_inheritance_relationships(extractor, child, context, relationships, child_depth);
     }
 }
 
@@ -430,16 +428,16 @@ fn collect_heritage_data(
     let mut parent = node.parent()?;
     while !matches!(
         parent.kind(),
-        "class_declaration" | "abstract_class_declaration"
+        "class_declaration" | "abstract_class_declaration" | "class" | "interface_declaration"
     ) {
         parent = parent.parent()?;
     }
 
-    let class_name_node = parent.child_by_field_name("name")?;
-    let class_name = extractor.base().get_node_text(&class_name_node);
-    let class_symbol = symbols
-        .iter()
-        .find(|s| s.name == class_name && s.kind == SymbolKind::Class)?;
+    let class_symbol = symbols.iter().find(|s| {
+        s.start_byte == parent.start_byte() as u32
+            && s.end_byte == parent.end_byte() as u32
+            && matches!(s.kind, SymbolKind::Class | SymbolKind::Interface)
+    })?;
 
     let mut base_types = Vec::new();
     match node.kind() {
@@ -607,9 +605,8 @@ fn collect_clause_targets(
 
         if let Some((name, line)) = extract_terminal_heritage_identifier(extractor, child, 0) {
             base_types.push((name, line, relationship_kind.clone()));
-            // TypeScript only allows a single superclass in extends_clause;
-            // break after the first target to match JS semantics.
-            if relationship_kind == RelationshipKind::Extends {
+            // A class extends one base; an interface extends every listed type.
+            if node.kind() == "extends_clause" {
                 break;
             }
         }

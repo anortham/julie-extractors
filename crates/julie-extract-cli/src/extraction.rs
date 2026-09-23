@@ -15,7 +15,7 @@ use julie_extract_artifact::model::{
 use julie_extractors::language_policy::classify_literals_by_carrier;
 use julie_extractors::{
     ComplexityMetric, ExtractionLevel, ExtractionResults, Literal, NormalizedSpan,
-    ParseDiagnosticKind, PendingRelationship, SourceRegion, StructuralFact,
+    ParseDiagnosticKind, PendingRelationship, SourceRegion, SourceRegionKind, StructuralFact,
     StructuredPendingRelationship, TypeArgument, TypeArgumentUsage, TypeInfo,
     extract_canonical_for_language_at,
 };
@@ -691,6 +691,17 @@ fn map_identifiers(
     source: &str,
     file_id: &str,
 ) -> Result<Vec<ArtifactIdentifier>, ExtractFileError> {
+    let comments: Vec<(u32, u32)> = results
+        .source_regions
+        .iter()
+        .filter(|region| {
+            matches!(
+                region.kind,
+                SourceRegionKind::Comment | SourceRegionKind::DocComment
+            )
+        })
+        .map(|region| (region.start_byte, region.end_byte))
+        .collect();
     results
         .identifiers
         .iter()
@@ -699,7 +710,12 @@ fn map_identifiers(
             let identifier_kind = identifier.kind.to_string();
             let source_receiver = matches!(identifier_kind.as_str(), "call" | "member_access")
                 .then(|| {
-                    receiver_before_identifier(source, identifier.start_byte, &identifier.language)
+                    receiver_before_identifier(
+                        source,
+                        identifier.start_byte,
+                        &identifier.language,
+                        &comments,
+                    )
                 })
                 .flatten();
             if let Some(receiver) = source_receiver {
@@ -787,9 +803,21 @@ fn receiver_token_before(source: &str, at: usize, language: &str) -> Option<(Str
     (cursor < end).then(|| (source[cursor..end].to_string(), cursor))
 }
 
-fn receiver_before_identifier(source: &str, start_byte: u32, language: &str) -> Option<String> {
+/// The receiver token in front of an identifier. Text inside a comment is
+/// never a receiver: `// see config.` above a bare call names nothing.
+fn receiver_before_identifier(
+    source: &str,
+    start_byte: u32,
+    language: &str,
+    comments: &[(u32, u32)],
+) -> Option<String> {
     let at = usize::try_from(start_byte).ok()?;
-    receiver_token_before(source, at, language).map(|(token, _)| token)
+    let (token, token_start) = receiver_token_before(source, at, language)?;
+    let token_start = u32::try_from(token_start).ok()?;
+    (!comments
+        .iter()
+        .any(|&(start, end)| start <= token_start && token_start < end))
+    .then_some(token)
 }
 
 /// The dotted qualification standing in front of the receiver token:
@@ -1437,34 +1465,51 @@ mod tests {
             ("@service.run()", 9, "@service"),
         ] {
             assert_eq!(
-                receiver_before_identifier(source, start, "php"),
+                receiver_before_identifier(source, start, "php", &[]),
                 Some(expected.to_string())
             );
         }
-        assert_eq!(receiver_before_identifier("run()", 0, "php"), None);
+        assert_eq!(receiver_before_identifier("run()", 0, "php", &[]), None);
         for (source, start) in [
             ("foo<Bar>::baz()", 10),
             ("value - member", 8),
             ("value > member", 8),
             ("value ? member", 8),
         ] {
-            assert_eq!(receiver_before_identifier(source, start, "php"), None);
+            assert_eq!(receiver_before_identifier(source, start, "php", &[]), None);
         }
+    }
+
+    #[test]
+    fn comment_text_is_never_a_receiver() {
+        let source = "// see config.\ninit();";
+        let start = source.find("init").unwrap() as u32;
+        assert_eq!(
+            receiver_before_identifier(source, start, "typescript", &[(0, 14)]),
+            None
+        );
+        assert_eq!(
+            receiver_before_identifier(source, start, "typescript", &[]),
+            Some("config".to_string())
+        );
     }
 
     #[test]
     fn arrow_is_a_receiver_separator_only_for_pointer_member_languages() {
         let source = "| Some value -> log value";
         let start = source.rfind("log").unwrap() as u32;
-        assert_eq!(receiver_before_identifier(source, start, "fsharp"), None);
         assert_eq!(
-            receiver_before_identifier(source, start, "cpp"),
+            receiver_before_identifier(source, start, "fsharp", &[]),
+            None
+        );
+        assert_eq!(
+            receiver_before_identifier(source, start, "cpp", &[]),
             Some("value".to_string())
         );
         let qualified = "fun id -> Convert.ToString id";
         let at = qualified.find("ToString").unwrap() as u32;
         assert_eq!(
-            receiver_before_identifier(qualified, at, "fsharp"),
+            receiver_before_identifier(qualified, at, "fsharp", &[]),
             Some("Convert".to_string())
         );
         assert_eq!(

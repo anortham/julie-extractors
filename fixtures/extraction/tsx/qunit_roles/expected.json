@@ -52,15 +52,17 @@
         "end_byte": 193
       },
       "body_hash": "5ed8b210f5a7e2f47001248c5312b5f8",
-      "signature": "Badge({ label }: { label: string }): : JSX.Element",
+      "signature": "Badge({ label }: { label: string }): JSX.Element",
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "isAsync": false,
         "isGenerator": false,
-        "parameters": [],
-        "returnType": ": JSX.Element",
+        "parameters": [
+          "{ label }: { label: string }"
+        ],
+        "returnType": "JSX.Element",
         "typeParameters": []
       },
       "annotations": [],
@@ -93,6 +95,58 @@
         "isTypeOnly": false,
         "source": "qunit",
         "specifier": "QUnit"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:assert:14:33",
+      "name": "assert",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
+      "start_line": 14,
+      "start_column": 33,
+      "end_line": 14,
+      "end_column": 47,
+      "start_byte": 333,
+      "end_byte": 347,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "assert: Assert",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:renders a label:14:2",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:assert:24:30",
+      "name": "assert",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
+      "start_line": 24,
+      "start_column": 30,
+      "end_line": 24,
+      "end_column": 44,
+      "start_byte": 700,
+      "end_byte": 714,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "assert: Assert",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:still a case:24:2",
+      "metadata": {
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -168,44 +222,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:beforeEach:11:32",
-      "name": "beforeEach",
-      "kind": "method",
-      "language": "tsx",
-      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
-      "start_line": 11,
-      "start_column": 32,
-      "end_line": 11,
-      "end_column": 65,
-      "start_byte": 227,
-      "end_byte": 260,
-      "body_span": {
-        "start_line": 11,
-        "start_column": 42,
-        "end_line": 11,
-        "end_column": 59,
-        "start_byte": 237,
-        "end_byte": 254
-      },
-      "body_hash": "037bed7c4ea2d937b6ae50f335dbf79d",
-      "signature": "beforeEach(run: () => void): : void",
-      "doc_comment": null,
-      "visibility": null,
-      "parent_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:badge:11:0",
-      "metadata": {
-        "isAsync": false,
-        "isGenerator": false,
-        "isStatic": false,
-        "parameters": [],
-        "returnType": ": void",
-        "typeParameters": []
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:equal:4:2",
       "name": "equal",
       "kind": "method",
@@ -231,6 +247,39 @@
       "visibility": null,
       "parent_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:Assert:3:0",
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:hooks:11:23",
+      "name": "hooks",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
+      "start_line": 11,
+      "start_column": 23,
+      "end_line": 11,
+      "end_column": 67,
+      "start_byte": 218,
+      "end_byte": 262,
+      "body_span": {
+        "start_line": 11,
+        "start_column": 30,
+        "end_line": 11,
+        "end_column": 67,
+        "start_byte": 225,
+        "end_byte": 262
+      },
+      "body_hash": "ad197ec49a91fde9442368482d455629",
+      "signature": "hooks: { beforeEach(run: () => void): void }",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:badge:11:0",
+      "metadata": {
+        "role": "parameter"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -289,33 +338,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:label:7:28",
-      "name": "label",
-      "kind": "property",
-      "language": "tsx",
-      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
-      "start_line": 7,
-      "start_column": 28,
-      "end_line": 7,
-      "end_column": 41,
-      "start_byte": 129,
-      "end_byte": 142,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "label : : string",
-      "doc_comment": null,
-      "visibility": null,
-      "parent_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:Badge:7:0",
-      "metadata": {
-        "isReadonly": false,
-        "isStatic": false
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:module:32:2",
       "name": "module",
       "kind": "method",
@@ -336,16 +358,19 @@
         "end_byte": 896
       },
       "body_hash": "0d6d7f8a50e4a05c90bc1776fb04929b",
-      "signature": "module(name: string, run: () => void): : void",
+      "signature": "module(name: string, run: () => void): void",
       "doc_comment": null,
       "visibility": null,
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:runner:31:6",
       "metadata": {
         "isAsync": false,
         "isGenerator": false,
         "isStatic": false,
-        "parameters": [],
-        "returnType": ": void",
+        "parameters": [
+          "name: string",
+          "run: () => void"
+        ],
+        "returnType": "void",
         "typeParameters": []
       },
       "annotations": [],
@@ -400,15 +425,17 @@
         "end_byte": 815
       },
       "body_hash": "ac40fa753525fefa40bddbf8c757f649",
-      "signature": "renderBadge(label: string): : JSX.Element",
+      "signature": "renderBadge(label: string): JSX.Element",
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "isAsync": false,
         "isGenerator": false,
-        "parameters": [],
-        "returnType": ": JSX.Element",
+        "parameters": [
+          "label: string"
+        ],
+        "returnType": "JSX.Element",
         "typeParameters": []
       },
       "annotations": [],
@@ -444,39 +471,6 @@
       "metadata": {
         "is_test": true,
         "test_role": "test_case"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:run:11:43",
-      "name": "run",
-      "kind": "variable",
-      "language": "tsx",
-      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
-      "start_line": 11,
-      "start_column": 43,
-      "end_line": 11,
-      "end_column": 58,
-      "start_byte": 238,
-      "end_byte": 253,
-      "body_span": {
-        "start_line": 11,
-        "start_column": 48,
-        "end_line": 11,
-        "end_column": 50,
-        "start_byte": 243,
-        "end_byte": 245
-      },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "run: () => void",
-      "doc_comment": null,
-      "visibility": null,
-      "parent_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:beforeEach:11:32",
-      "metadata": {
-        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -640,39 +634,39 @@
   ],
   "pending_relationships": [
     {
-      "from_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:module:32:2",
-      "callee_name": "run",
+      "from_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:renders a label:14:2",
+      "callee_name": "assert.equal",
       "kind": "calls",
       "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
-      "line_number": 33,
+      "line_number": 15,
       "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
     {
       "pending": {
-        "from_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:module:32:2",
-        "callee_name": "run",
+        "from_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:renders a label:14:2",
+        "callee_name": "assert.equal",
         "kind": "calls",
         "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
-        "line_number": 33,
+        "line_number": 15,
         "confidence": "0.700"
       },
       "target": {
-        "display_name": "run",
-        "terminal_name": "run",
-        "receiver": null,
+        "display_name": "assert.equal",
+        "terminal_name": "equal",
+        "receiver": "assert",
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:module:32:2",
+      "caller_scope_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:renders a label:14:2",
       "span": {
-        "start_line": 33,
+        "start_line": 15,
         "start_column": 4,
-        "end_line": 33,
-        "end_column": 9,
-        "start_byte": 886,
-        "end_byte": 891
+        "end_line": 15,
+        "end_column": 66,
+        "start_byte": 358,
+        "end_byte": 420
       }
     }
   ],
@@ -1201,7 +1195,7 @@
       "end_column": 12,
       "start_byte": 308,
       "end_byte": 312,
-      "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:renders a label:14:2",
+      "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:badge:11:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1217,7 +1211,7 @@
       "end_column": 12,
       "start_byte": 678,
       "end_byte": 682,
-      "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:still a case:24:2",
+      "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:badge focused group:23:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1241,10 +1235,28 @@
   "types": [
     {
       "symbol_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:Badge:7:0",
-      "resolved_type": "function",
+      "resolved_type": "JSX.Element",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
+      "language": "tsx",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:assert:14:33",
+      "resolved_type": "Assert",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "tsx",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:assert:24:30",
+      "resolved_type": "Assert",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "tsx",
       "metadata": null
     },
@@ -1258,7 +1270,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:label:7:28",
+      "symbol_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:label:7:17",
       "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
@@ -1277,10 +1289,10 @@
     },
     {
       "symbol_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:renderBadge:27:0",
-      "resolved_type": "function",
+      "resolved_type": "JSX.Element",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "tsx",
       "metadata": null
     },
@@ -1381,28 +1393,6 @@
       "end_column": 1,
       "start_byte": 225,
       "end_byte": 617,
-      "metadata": {
-        "metric_version": 1
-      }
-    },
-    {
-      "scope": "symbol",
-      "symbol_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:beforeEach:11:32",
-      "algorithm_id": "julie-ast-complexity-v1",
-      "language": "tsx",
-      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
-      "covered_lines": 1,
-      "covered_bytes": 17,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
-      "parameter_count": 1,
-      "start_line": 11,
-      "start_column": 42,
-      "end_line": 11,
-      "end_column": 59,
-      "start_byte": 237,
-      "end_byte": 254,
       "metadata": {
         "metric_version": 1
       }
@@ -1628,7 +1618,7 @@
       "end_column": 30,
       "start_byte": 313,
       "end_byte": 330,
-      "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:renders a label:14:2",
+      "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:badge:11:0",
       "confidence": "1.000"
     },
     {
@@ -1644,7 +1634,7 @@
       "end_column": 27,
       "start_byte": 683,
       "end_byte": 697,
-      "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:still a case:24:2",
+      "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:badge focused group:23:0",
       "confidence": "1.000"
     }
   ],
@@ -1725,45 +1715,6 @@
       "end_column": 35,
       "start_byte": 567,
       "end_byte": 589,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "tsx",
-      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
-      "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:label:27:21",
-      "start_line": 27,
-      "start_column": 28,
-      "end_line": 27,
-      "end_column": 34,
-      "start_byte": 757,
-      "end_byte": 763,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "tsx",
-      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
-      "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:label:7:28",
-      "start_line": 7,
-      "start_column": 35,
-      "end_line": 7,
-      "end_column": 41,
-      "start_byte": 136,
-      "end_byte": 142,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "tsx",
-      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
-      "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:name:32:9",
-      "start_line": 32,
-      "start_column": 15,
-      "end_line": 32,
-      "end_column": 21,
-      "start_byte": 849,
-      "end_byte": 855,
       "metadata": null
     },
     {

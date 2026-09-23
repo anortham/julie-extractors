@@ -395,7 +395,7 @@
       "end_column": 60,
       "start_byte": 166,
       "end_byte": 173,
-      "containing_key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:createUser:5:7",
+      "containing_key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:body:6:47",
       "target_key": null,
       "confidence": "1.000"
     },

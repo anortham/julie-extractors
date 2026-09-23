@@ -440,7 +440,7 @@
       "end_column": 81,
       "start_byte": 177,
       "end_byte": 184,
-      "containing_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:create:5:17",
+      "containing_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:data:5:68",
       "target_key": null,
       "confidence": "1.000"
     },

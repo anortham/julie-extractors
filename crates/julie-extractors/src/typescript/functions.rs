@@ -11,25 +11,39 @@ use crate::typescript::TypeScriptExtractor;
 use std::collections::HashMap;
 use tree_sitter::Node;
 
-/// Extract a function declaration or arrow function
+/// Extract a function declaration, signature, or function-valued expression.
+///
+/// A function expression takes the name of the declarator that binds it, and
+/// an anonymous `export default` function is named `default`. An overload
+/// signature emits nothing: its implementation lists it under `overloads`.
 pub(super) fn extract_function(
     extractor: &mut TypeScriptExtractor,
     node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let name_node = node.child_by_field_name("name");
-    let mut name = name_node.map(|n| extractor.base().get_node_text(&n));
+    let parent = node.parent();
+    let name = match parent {
+        Some(parent) if parent.kind() == "variable_declarator" => parent
+            .child_by_field_name("name")
+            .map(|name| extractor.base().get_node_text(&name)),
+        Some(parent)
+            if parent.kind() == "export_statement" && node.kind() != "function_declaration" =>
+        {
+            node.child_by_field_name("name")
+                .map(|name| extractor.base().get_node_text(&name))
+                .or_else(|| Some("default".to_string()))
+        }
+        _ => node
+            .child_by_field_name("name")
+            .map(|name| extractor.base().get_node_text(&name)),
+    }?;
 
-    // Handle arrow functions assigned to variables
-    if node.kind() == "arrow_function"
-        && let Some(parent) = node.parent()
-        && parent.kind() == "variable_declarator"
-        && let Some(var_name_node) = parent.child_by_field_name("name")
+    let is_signature = node.kind() == "function_signature";
+    if is_signature
+        && crate::javascript::exports::is_overload_signature(extractor.base(), node, &name)
     {
-        name = Some(extractor.base().get_node_text(&var_name_node));
+        return None;
     }
-
-    let name = name?;
 
     let signature = build_function_signature(extractor, &node, &name);
     let visibility = helpers::extract_ts_visibility(node);
@@ -41,28 +55,22 @@ pub(super) fn extract_function(
         .map(|marker| marker.annotation_key.clone())
         .collect();
 
-    // Check for modifiers
     let is_async = helpers::has_modifier(node, "async");
     let is_generator = helpers::has_modifier(node, "*");
 
-    let parameters = extract_parameters(extractor, &node);
-    let return_type = extractor.base().get_field_text(&node, "return_type");
-    let type_parameters = extract_type_parameters(extractor, &node);
-
-    let mut metadata = HashMap::new();
-    metadata.insert("isAsync".to_string(), serde_json::json!(is_async));
-    metadata.insert("isGenerator".to_string(), serde_json::json!(is_generator));
-    metadata.insert("parameters".to_string(), serde_json::json!(parameters));
-    if let Some(return_type) = return_type {
-        metadata.insert("returnType".to_string(), serde_json::json!(return_type));
+    let mut metadata = callable_metadata(extractor, node, is_async, is_generator);
+    if is_signature {
+        metadata.insert("isDefinition".to_string(), serde_json::json!(false));
     }
-    metadata.insert(
-        "typeParameters".to_string(),
-        serde_json::json!(type_parameters),
-    );
+    let overloads = overload_signatures(extractor, node, &name);
+    if !overloads.is_empty() {
+        metadata.insert("overloads".to_string(), serde_json::json!(overloads));
+    }
 
-    // Extract JSDoc comment
-    let doc_comment = extractor.base().find_doc_comment(&node);
+    let doc_comment = extractor
+        .base()
+        .find_doc_comment(&node)
+        .or_else(|| parent.and_then(|parent| declarator_doc_comment(extractor, parent)));
 
     apply_declared_test_metadata(
         "typescript",
@@ -87,7 +95,151 @@ pub(super) fn extract_function(
             annotations,
         },
     );
+    super::type_facts::record_return_type_fact(extractor.base_mut(), &symbol.id, node);
 
+    Some(symbol)
+}
+
+/// The doc comment of the declaration that binds a function expression
+/// (`/** doc */ export const f = () => {}`).
+fn declarator_doc_comment(extractor: &TypeScriptExtractor, parent: Node) -> Option<String> {
+    if parent.kind() != "variable_declarator" {
+        return None;
+    }
+    let declaration = parent.parent()?;
+    extractor.base().find_doc_comment(&declaration).or_else(|| {
+        declaration
+            .parent()
+            .filter(|wrapper| wrapper.kind() == "export_statement")
+            .and_then(|wrapper| extractor.base().find_doc_comment(&wrapper))
+    })
+}
+
+/// The overload signatures written directly before an implementation.
+fn overload_signatures(extractor: &TypeScriptExtractor, node: Node, name: &str) -> Vec<String> {
+    if !matches!(
+        node.kind(),
+        "function_declaration" | "generator_function_declaration"
+    ) {
+        return Vec::new();
+    }
+    crate::javascript::exports::overload_signature_nodes(extractor.base(), node, name)
+        .into_iter()
+        .map(|overload| build_function_signature(extractor, &overload, name))
+        .collect()
+}
+
+fn callable_metadata(
+    extractor: &TypeScriptExtractor,
+    node: Node,
+    is_async: bool,
+    is_generator: bool,
+) -> HashMap<String, serde_json::Value> {
+    let mut metadata = HashMap::new();
+    metadata.insert("isAsync".to_string(), serde_json::json!(is_async));
+    metadata.insert("isGenerator".to_string(), serde_json::json!(is_generator));
+    metadata.insert(
+        "parameters".to_string(),
+        serde_json::json!(extract_parameters(extractor, &node)),
+    );
+    if let Some(return_type) = annotation_text(extractor, node, "return_type") {
+        metadata.insert("returnType".to_string(), serde_json::json!(return_type));
+    }
+    metadata.insert(
+        "typeParameters".to_string(),
+        serde_json::json!(extract_type_parameters(extractor, &node)),
+    );
+    metadata
+}
+
+/// The function a member-shaped declaration binds: `key: () => {}`,
+/// `handler = () => {}` in a class body, or `const f = function () {}`.
+pub(super) fn function_value(node: Node) -> Option<Node> {
+    node.child_by_field_name("value")
+        .map(unwrap_expression)
+        .filter(|value| {
+            matches!(
+                value.kind(),
+                "arrow_function" | "function_expression" | "generator_function"
+            )
+        })
+}
+
+/// Strip type assertions and parentheses around an initializer:
+/// `({...}) as const`, `{...} satisfies T`, `value!`.
+pub(super) fn unwrap_expression(node: Node) -> Node {
+    let mut current = node;
+    for _ in 0..8 {
+        if !matches!(
+            current.kind(),
+            "parenthesized_expression"
+                | "as_expression"
+                | "satisfies_expression"
+                | "non_null_expression"
+        ) {
+            break;
+        }
+        let mut cursor = current.walk();
+        let Some(inner) = current.named_children(&mut cursor).next() else {
+            break;
+        };
+        current = inner;
+    }
+    current
+}
+
+/// A class field or object-literal pair whose value is a function: a method
+/// named by its key that owns the function's parameters and calls.
+pub(super) fn extract_member_function(
+    extractor: &mut TypeScriptExtractor,
+    node: Node,
+    parent_id: Option<&str>,
+) -> Option<Symbol> {
+    let value = function_value(node)?;
+    let name_node = node
+        .child_by_field_name("name")
+        .or_else(|| node.child_by_field_name("key"))?;
+    let name = extractor.base().get_node_text(&name_node);
+
+    let is_static = helpers::has_modifier(node, "static");
+    let content = extractor.base().content.clone();
+    let decorators = helpers::extract_decorator_names(node, &content);
+    let annotations = normalize_annotations(
+        &helpers::extract_decorator_texts(node, &content),
+        "typescript",
+    );
+    let base_sig = build_function_signature(extractor, &value, &name);
+    let static_prefix = if is_static { "static " } else { "" };
+    let signature = format!(
+        "{}{}{}",
+        helpers::decorator_prefix(&decorators),
+        static_prefix,
+        base_sig
+    );
+
+    let mut metadata = callable_metadata(
+        extractor,
+        value,
+        helpers::has_modifier(value, "async"),
+        helpers::has_modifier(value, "*") || value.kind() == "generator_function",
+    );
+    metadata.insert("isStatic".to_string(), serde_json::json!(is_static));
+    let doc_comment = extractor.base().find_doc_comment(&node);
+
+    let symbol = extractor.base_mut().create_symbol(
+        &node,
+        name,
+        SymbolKind::Method,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility: helpers::extract_ts_visibility(node),
+            parent_id: parent_id.map(str::to_string),
+            metadata: Some(metadata),
+            doc_comment,
+            annotations,
+        },
+    );
+    super::type_facts::record_return_type_fact(extractor.base_mut(), &symbol.id, value);
     Some(symbol)
 }
 
@@ -130,22 +282,8 @@ pub(super) fn extract_method(
 
     let visibility = helpers::extract_ts_visibility(node);
 
-    let parameters = extract_parameters(extractor, &node);
-    let return_type = extractor.base().get_field_text(&node, "return_type");
-    let type_parameters = extract_type_parameters(extractor, &node);
-
-    let mut metadata = HashMap::new();
-    metadata.insert("isAsync".to_string(), serde_json::json!(is_async));
+    let mut metadata = callable_metadata(extractor, node, is_async, is_generator);
     metadata.insert("isStatic".to_string(), serde_json::json!(is_static));
-    metadata.insert("isGenerator".to_string(), serde_json::json!(is_generator));
-    metadata.insert("parameters".to_string(), serde_json::json!(parameters));
-    if let Some(return_type) = return_type {
-        metadata.insert("returnType".to_string(), serde_json::json!(return_type));
-    }
-    metadata.insert(
-        "typeParameters".to_string(),
-        serde_json::json!(type_parameters),
-    );
 
     // Extract JSDoc comment
     let doc_comment = extractor.base().find_doc_comment(&node);
@@ -173,6 +311,7 @@ pub(super) fn extract_method(
             annotations,
         },
     );
+    super::type_facts::record_return_type_fact(extractor.base_mut(), &symbol.id, node);
 
     Some(symbol)
 }
@@ -186,22 +325,43 @@ pub(super) fn extract_variable(
     let name_node = node.child_by_field_name("name");
     let name = name_node.map(|n| extractor.base().get_node_text(&n))?;
 
-    // Check if this variable contains an arrow function
-    if let Some(value_node) = node.child_by_field_name("value")
-        && value_node.kind() == "arrow_function"
-    {
-        // Extract as a function instead of a variable
+    if let Some(value_node) = function_value(node) {
         return extract_function(extractor, value_node, parent_id);
     }
+    let value = node.child_by_field_name("value").map(unwrap_expression);
+    if value.is_some_and(|value| value.kind() == "class") {
+        return None;
+    }
 
-    // Extract JSDoc comment
     let doc_comment = extractor.base().find_doc_comment(&node);
+    let visibility = helpers::extract_ts_visibility(node);
+
+    if let Some(source) = value.and_then(|value| require_source(extractor, value)) {
+        let metadata = HashMap::from([
+            ("source".to_string(), serde_json::json!(source)),
+            ("isCommonJS".to_string(), serde_json::json!(true)),
+        ]);
+        let signature = extractor.base().get_node_text(&node);
+        return Some(extractor.base_mut().create_symbol(
+            &node,
+            name,
+            SymbolKind::Import,
+            SymbolOptions {
+                signature: Some(signature),
+                parent_id: parent_id.map(str::to_string),
+                metadata: Some(metadata),
+                doc_comment,
+                ..Default::default()
+            },
+        ));
+    }
 
     let symbol = extractor.base_mut().create_symbol(
         &node,
         name,
         SymbolKind::Variable,
         SymbolOptions {
+            visibility,
             parent_id: parent_id.map(str::to_string),
             doc_comment,
             ..Default::default()
@@ -334,16 +494,52 @@ fn build_function_signature(extractor: &TypeScriptExtractor, node: &Node, name: 
     let params = extractor
         .base()
         .get_field_text(node, "parameters")
-        .or_else(|| extractor.base().get_field_text(node, "formal_parameters"))
+        .or_else(|| {
+            node.child_by_field_name("parameter")
+                .map(|parameter| format!("({})", extractor.base().get_node_text(&parameter)))
+        })
         .unwrap_or_else(|| "()".to_string());
-    let return_type = extractor.base().get_field_text(node, "return_type");
 
     let mut signature = format!("{}{}", name, params);
-    if let Some(return_type) = return_type {
+    if let Some(return_type) = annotation_text(extractor, *node, "return_type") {
         signature.push_str(&format!(": {}", return_type));
     }
 
     signature
+}
+
+/// The text of a type annotation field without its leading `:`.
+pub(super) fn annotation_text(
+    extractor: &TypeScriptExtractor,
+    node: Node,
+    field: &str,
+) -> Option<String> {
+    let text = extractor.base().get_field_text(&node, field)?;
+    let text = text.trim();
+    Some(text.strip_prefix(':').unwrap_or(text).trim().to_string())
+}
+
+/// The module a `require("m")` call loads.
+fn require_source(extractor: &TypeScriptExtractor, value: Node) -> Option<String> {
+    if value.kind() != "call_expression" {
+        return None;
+    }
+    let function = value.child_by_field_name("function")?;
+    if function.kind() != "identifier" || extractor.base().get_node_text(&function) != "require" {
+        return None;
+    }
+    let arguments = value.child_by_field_name("arguments")?;
+    let mut cursor = arguments.walk();
+    let source = arguments
+        .named_children(&mut cursor)
+        .find(|argument| argument.kind() == "string")?;
+    Some(
+        extractor
+            .base()
+            .get_node_text(&source)
+            .trim_matches(|c| c == '"' || c == '\'' || c == '`')
+            .to_string(),
+    )
 }
 
 /// Extract type parameters from a function (e.g., <T, U> in generics)
@@ -365,14 +561,14 @@ fn extract_type_parameters(extractor: &TypeScriptExtractor, node: &Node) -> Vec<
 /// Extract function parameters
 fn extract_parameters(extractor: &TypeScriptExtractor, node: &Node) -> Vec<String> {
     if let Some(params) = node.child_by_field_name("parameters") {
-        let mut parameters = Vec::new();
         let mut cursor = params.walk();
-        for child in params.children(&mut cursor) {
-            if child.kind() == "parameter" || child.kind() == "identifier" {
-                parameters.push(extractor.base().get_node_text(&child));
-            }
-        }
-        parameters
+        params
+            .named_children(&mut cursor)
+            .filter(|child| child.kind() != "comment")
+            .map(|child| extractor.base().get_node_text(&child))
+            .collect()
+    } else if let Some(parameter) = node.child_by_field_name("parameter") {
+        vec![extractor.base().get_node_text(&parameter)]
     } else {
         Vec::new()
     }

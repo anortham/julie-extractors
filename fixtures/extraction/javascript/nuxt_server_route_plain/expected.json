@@ -81,7 +81,7 @@
       "end_column": 33,
       "start_byte": 15,
       "end_byte": 33,
-      "containing_key": "fixtures/extraction/javascript/nuxt_server_route_plain/server/routes/status.js:default:1:0",
+      "containing_key": null,
       "target_key": null,
       "confidence": "1.000"
     }

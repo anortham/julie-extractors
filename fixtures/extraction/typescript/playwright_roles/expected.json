@@ -192,7 +192,7 @@
         "end_byte": 1006
       },
       "body_hash": "65f075b959b39cc034c92e3337c5c637",
-      "signature": "buildCheckout(): : Page",
+      "signature": "buildCheckout(): Page",
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
@@ -200,7 +200,7 @@
         "isAsync": false,
         "isGenerator": false,
         "parameters": [],
-        "returnType": ": Page",
+        "returnType": "Page",
         "typeParameters": []
       },
       "annotations": [],
@@ -331,16 +331,19 @@
         "end_byte": 1089
       },
       "body_hash": "0d6d7f8a50e4a05c90bc1776fb04929b",
-      "signature": "describe(name: string, run: () => void): : void",
+      "signature": "describe(name: string, run: () => void): void",
       "doc_comment": null,
       "visibility": null,
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/typescript/playwright_roles/source.ts:runner:44:6",
       "metadata": {
         "isAsync": false,
         "isGenerator": false,
         "isStatic": false,
-        "parameters": [],
-        "returnType": ": void",
+        "parameters": [
+          "name: string",
+          "run: () => void"
+        ],
+        "returnType": "void",
         "typeParameters": []
       },
       "annotations": [],
@@ -380,6 +383,43 @@
         "isTypeOnly": false,
         "source": "@playwright/test",
         "specifier": "expect"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/playwright_roles/source.ts:goto:39:4",
+      "name": "goto",
+      "kind": "method",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/playwright_roles/source.ts",
+      "start_line": 39,
+      "start_column": 4,
+      "end_line": 39,
+      "end_column": 24,
+      "start_byte": 947,
+      "end_byte": 967,
+      "body_span": {
+        "start_line": 39,
+        "start_column": 22,
+        "end_line": 39,
+        "end_column": 24,
+        "start_byte": 965,
+        "end_byte": 967
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "goto()",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/typescript/playwright_roles/source.ts:buildCheckout:37:0",
+      "metadata": {
+        "isAsync": true,
+        "isGenerator": false,
+        "isStatic": false,
+        "parameters": [],
+        "typeParameters": []
       },
       "annotations": [],
       "semantic_group": null,
@@ -546,26 +586,25 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/typescript/playwright_roles/source.ts:page:14:44",
+      "key": "fixtures/extraction/typescript/playwright_roles/source.ts:page:14:34",
       "name": "page",
-      "kind": "property",
+      "kind": "variable",
       "language": "typescript",
       "file_path": "fixtures/extraction/typescript/playwright_roles/source.ts",
       "start_line": 14,
-      "start_column": 44,
+      "start_column": 34,
       "end_line": 14,
-      "end_column": 54,
-      "start_byte": 349,
-      "end_byte": 359,
+      "end_column": 38,
+      "start_byte": 339,
+      "end_byte": 343,
       "body_span": null,
       "body_hash": null,
-      "signature": "page : : Page",
+      "signature": "page",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/playwright_roles/source.ts:loads the cart:14:2",
       "metadata": {
-        "isReadonly": false,
-        "isStatic": false
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -573,26 +612,25 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/typescript/playwright_roles/source.ts:page:22:44",
+      "key": "fixtures/extraction/typescript/playwright_roles/source.ts:page:22:34",
       "name": "page",
-      "kind": "property",
+      "kind": "variable",
       "language": "typescript",
       "file_path": "fixtures/extraction/typescript/playwright_roles/source.ts",
       "start_line": 22,
-      "start_column": 44,
+      "start_column": 34,
       "end_line": 22,
-      "end_column": 54,
-      "start_byte": 602,
-      "end_byte": 612,
+      "end_column": 38,
+      "start_byte": 592,
+      "end_byte": 596,
       "body_span": null,
       "body_hash": null,
-      "signature": "page : : Page",
+      "signature": "page",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/playwright_roles/source.ts:records a step:22:2",
       "metadata": {
-        "isReadonly": false,
-        "isStatic": false
+        "role": "parameter"
       },
       "annotations": [],
       "semantic_group": null,
@@ -797,6 +835,43 @@
         "isTypeOnly": false,
         "source": "@playwright/test",
         "specifier": "test"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/playwright_roles/source.ts:title:40:4",
+      "name": "title",
+      "kind": "method",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/playwright_roles/source.ts",
+      "start_line": 40,
+      "start_column": 4,
+      "end_line": 40,
+      "end_column": 29,
+      "start_byte": 973,
+      "end_byte": 998,
+      "body_span": {
+        "start_line": 40,
+        "start_column": 17,
+        "end_line": 40,
+        "end_column": 19,
+        "start_byte": 986,
+        "end_byte": 988
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "title()",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/typescript/playwright_roles/source.ts:buildCheckout:37:0",
+      "metadata": {
+        "isAsync": true,
+        "isGenerator": false,
+        "isStatic": false,
+        "parameters": [],
+        "typeParameters": []
       },
       "annotations": [],
       "semantic_group": null,
@@ -1035,7 +1110,7 @@
       "end_column": 15,
       "start_byte": 278,
       "end_byte": 286,
-      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:afterAll:12:2",
+      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1051,7 +1126,7 @@
       "end_column": 16,
       "start_byte": 244,
       "end_byte": 253,
-      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:afterEach:11:2",
+      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1067,7 +1142,7 @@
       "end_column": 16,
       "start_byte": 175,
       "end_byte": 184,
-      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:beforeAll:9:2",
+      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1083,7 +1158,7 @@
       "end_column": 17,
       "start_byte": 209,
       "end_byte": 219,
-      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:beforeEach:10:2",
+      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1227,7 +1302,7 @@
       "end_column": 11,
       "start_byte": 457,
       "end_byte": 461,
-      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:keeps a focused case:19:2",
+      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1355,7 +1430,7 @@
       "end_column": 11,
       "start_byte": 510,
       "end_byte": 514,
-      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:keeps a disabled case:20:2",
+      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1387,7 +1462,7 @@
       "end_column": 6,
       "start_byte": 307,
       "end_byte": 311,
-      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:loads the cart:14:2",
+      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1403,7 +1478,7 @@
       "end_column": 6,
       "start_byte": 560,
       "end_byte": 564,
-      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:records a step:22:2",
+      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1419,7 +1494,7 @@
       "end_column": 6,
       "start_byte": 775,
       "end_byte": 779,
-      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:pays:30:2",
+      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout in order:29:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1435,7 +1510,7 @@
       "end_column": 6,
       "start_byte": 863,
       "end_byte": 867,
-      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:ships:34:2",
+      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout at once:33:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1635,12 +1710,23 @@
   "types": [
     {
       "symbol_key": "fixtures/extraction/typescript/playwright_roles/source.ts:buildCheckout:37:0",
-      "resolved_type": "function",
+      "resolved_type": "Page",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "typescript",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/typescript/playwright_roles/source.ts:goto:4:2",
+      "resolved_type": "Promise",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "typescript",
+      "metadata": {
+        "declared": "Promise<void>"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/typescript/playwright_roles/source.ts:name:45:11",
@@ -1652,7 +1738,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/typescript/playwright_roles/source.ts:page:14:44",
+      "symbol_key": "fixtures/extraction/typescript/playwright_roles/source.ts:page:14:34",
       "resolved_type": "Page",
       "generic_params": null,
       "constraints": null,
@@ -1661,7 +1747,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/typescript/playwright_roles/source.ts:page:22:44",
+      "symbol_key": "fixtures/extraction/typescript/playwright_roles/source.ts:page:22:34",
       "resolved_type": "Page",
       "generic_params": null,
       "constraints": null,
@@ -1677,6 +1763,17 @@
       "is_inferred": true,
       "language": "typescript",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/typescript/playwright_roles/source.ts:title:5:2",
+      "resolved_type": "Promise",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "typescript",
+      "metadata": {
+        "declared": "Promise<string>"
+      }
     }
   ],
   "parse_diagnostics": [],
@@ -1981,6 +2078,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/typescript/playwright_roles/source.ts:goto:39:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/playwright_roles/source.ts",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 39,
+      "start_column": 22,
+      "end_line": 39,
+      "end_column": 24,
+      "start_byte": 965,
+      "end_byte": 967,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/typescript/playwright_roles/source.ts:goto:4:2",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "typescript",
@@ -2135,6 +2254,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/typescript/playwright_roles/source.ts:title:40:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/playwright_roles/source.ts",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 40,
+      "start_column": 17,
+      "end_line": 40,
+      "end_column": 19,
+      "start_byte": 986,
+      "end_byte": 988,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/typescript/playwright_roles/source.ts:title:5:2",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "typescript",
@@ -2266,7 +2407,7 @@
       "end_column": 35,
       "start_byte": 515,
       "end_byte": 538,
-      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:keeps a disabled case:20:2",
+      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "confidence": "1.000"
     },
     {
@@ -2282,7 +2423,7 @@
       "end_column": 34,
       "start_byte": 462,
       "end_byte": 484,
-      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:keeps a focused case:19:2",
+      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "confidence": "1.000"
     },
     {
@@ -2298,7 +2439,7 @@
       "end_column": 23,
       "start_byte": 312,
       "end_byte": 328,
-      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:loads the cart:14:2",
+      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "confidence": "1.000"
     },
     {
@@ -2346,7 +2487,7 @@
       "end_column": 13,
       "start_byte": 780,
       "end_byte": 786,
-      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:pays:30:2",
+      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout in order:29:0",
       "confidence": "1.000"
     },
     {
@@ -2362,7 +2503,7 @@
       "end_column": 23,
       "start_byte": 565,
       "end_byte": 581,
-      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:records a step:22:2",
+      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "confidence": "1.000"
     },
     {
@@ -2378,24 +2519,11 @@
       "end_column": 14,
       "start_byte": 868,
       "end_byte": 875,
-      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:ships:34:2",
+      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout at once:33:0",
       "confidence": "1.000"
     }
   ],
   "source_regions": [
-    {
-      "kind": "string_literal",
-      "language": "typescript",
-      "file_path": "fixtures/extraction/typescript/playwright_roles/source.ts",
-      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:buildCheckout:37:0",
-      "start_line": 40,
-      "start_column": 23,
-      "end_line": 40,
-      "end_column": 29,
-      "start_byte": 992,
-      "end_byte": 998,
-      "metadata": null
-    },
     {
       "kind": "string_literal",
       "language": "typescript",
@@ -2446,19 +2574,6 @@
       "end_column": 47,
       "start_byte": 29,
       "end_byte": 47,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "typescript",
-      "file_path": "fixtures/extraction/typescript/playwright_roles/source.ts",
-      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:goto:4:2",
-      "start_line": 4,
-      "start_column": 12,
-      "end_line": 4,
-      "end_column": 18,
-      "start_byte": 79,
-      "end_byte": 85,
       "metadata": null
     },
     {
@@ -2530,19 +2645,6 @@
       "kind": "string_literal",
       "language": "typescript",
       "file_path": "fixtures/extraction/typescript/playwright_roles/source.ts",
-      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:name:45:11",
-      "start_line": 45,
-      "start_column": 17,
-      "end_line": 45,
-      "end_column": 23,
-      "start_byte": 1042,
-      "end_byte": 1048,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "typescript",
-      "file_path": "fixtures/extraction/typescript/playwright_roles/source.ts",
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:pays:30:2",
       "start_line": 30,
       "start_column": 7,
@@ -2608,13 +2710,13 @@
       "kind": "string_literal",
       "language": "typescript",
       "file_path": "fixtures/extraction/typescript/playwright_roles/source.ts",
-      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:title:5:2",
-      "start_line": 5,
-      "start_column": 19,
-      "end_line": 5,
-      "end_column": 25,
-      "start_byte": 122,
-      "end_byte": 128,
+      "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:title:40:4",
+      "start_line": 40,
+      "start_column": 23,
+      "end_line": 40,
+      "end_column": 29,
+      "start_byte": 992,
+      "end_byte": 998,
       "metadata": null
     },
     {

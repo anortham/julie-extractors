@@ -1,6 +1,6 @@
 //! Parameter symbol extraction shared by the ECMAScript extractors.
 
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
+use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, normalize_annotations};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -66,6 +66,12 @@ pub(crate) fn extract_parameter_symbols<'tree>(
                 "role".to_string(),
                 serde_json::Value::String("parameter".to_string()),
             )]);
+            let mut cursor = param_node.walk();
+            let decorators: Vec<String> = param_node
+                .children(&mut cursor)
+                .filter(|child| child.kind() == "decorator")
+                .map(|decorator| base.get_node_text(&decorator))
+                .collect();
             let symbol = base.create_symbol(
                 &param_node,
                 name,
@@ -74,6 +80,7 @@ pub(crate) fn extract_parameter_symbols<'tree>(
                     signature: Some(signature),
                     parent_id: Some(callable_id.to_string()),
                     metadata: Some(metadata),
+                    annotations: normalize_annotations(&decorators, "typescript"),
                     ..Default::default()
                 },
             );

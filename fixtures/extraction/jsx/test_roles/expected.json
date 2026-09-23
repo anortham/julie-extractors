@@ -430,7 +430,7 @@
       "end_column": 12,
       "start_byte": 86,
       "end_byte": 96,
-      "containing_key": "fixtures/extraction/jsx/test_roles/source.jsx:beforeEach:4:2",
+      "containing_key": "fixtures/extraction/jsx/test_roles/source.jsx:jsx roles:3:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -510,7 +510,7 @@
       "end_column": 6,
       "start_byte": 110,
       "end_byte": 114,
-      "containing_key": "fixtures/extraction/jsx/test_roles/source.jsx:renders a JSX test case:5:2",
+      "containing_key": "fixtures/extraction/jsx/test_roles/source.jsx:jsx roles:3:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -714,7 +714,7 @@
       "end_column": 32,
       "start_byte": 115,
       "end_byte": 140,
-      "containing_key": "fixtures/extraction/jsx/test_roles/source.jsx:renders a JSX test case:5:2",
+      "containing_key": "fixtures/extraction/jsx/test_roles/source.jsx:jsx roles:3:0",
       "confidence": "1.000"
     }
   ],

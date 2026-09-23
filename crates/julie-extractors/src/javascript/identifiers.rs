@@ -3,7 +3,7 @@
 //! Handles extraction of all identifier usages including function calls,
 //! member access, and other references used for LSP-quality find_references.
 
-use crate::base::{ContainingSymbolIndex, Identifier, IdentifierKind, Symbol};
+use crate::base::{Identifier, IdentifierKind, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::{Node, Tree};
 
@@ -11,7 +11,7 @@ impl super::JavaScriptExtractor {
     /// Extract all identifier usages (function calls, member access, etc.)
     /// Following the Rust extractor reference implementation pattern
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
-        let containing_symbols = self.base.containing_symbol_index(symbols);
+        let containing_symbols = super::ecmascript_owner_index(&self.base, symbols);
 
         // Walk the tree and extract identifiers
         self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, 0);
@@ -24,7 +24,7 @@ impl super::JavaScriptExtractor {
     fn walk_tree_for_identifiers(
         &mut self,
         node: Node,
-        containing_symbols: &ContainingSymbolIndex<'_>,
+        containing_symbols: &super::EcmaOwnerIndex<'_>,
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
@@ -48,7 +48,7 @@ impl super::JavaScriptExtractor {
     fn extract_identifier_from_node(
         &mut self,
         node: Node,
-        containing_symbols: &ContainingSymbolIndex<'_>,
+        containing_symbols: &super::EcmaOwnerIndex<'_>,
     ) {
         match node.kind() {
             "jsx_opening_element" | "jsx_self_closing_element" => {
@@ -211,7 +211,7 @@ impl super::JavaScriptExtractor {
     fn find_containing_symbol_id(
         &self,
         node: Node,
-        containing_symbols: &ContainingSymbolIndex<'_>,
+        containing_symbols: &super::EcmaOwnerIndex<'_>,
     ) -> Option<String> {
         containing_symbols.find(node).map(|s| s.id.clone())
     }
@@ -230,7 +230,7 @@ impl super::JavaScriptExtractor {
     fn record_call_arg_literals(
         &mut self,
         call_node: &Node,
-        containing_symbols: &ContainingSymbolIndex<'_>,
+        containing_symbols: &super::EcmaOwnerIndex<'_>,
     ) {
         let Some(function_node) = call_node.child_by_field_name("function") else {
             return;
@@ -431,6 +431,7 @@ pub(crate) fn is_ecmascript_value_read_identifier(node: Node) -> bool {
         | "generator_function_declaration"
         | "function_expression"
         | "generator_function"
+        | "function_signature"
         | "class_declaration"
         | "class"
         | "enum_declaration"

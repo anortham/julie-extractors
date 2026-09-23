@@ -132,7 +132,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "View",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "View"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -320,6 +325,42 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/tsx/structural_facts/source.tsx:router:22:0",
+      "name": "router",
+      "kind": "export",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/structural_facts/source.tsx",
+      "start_line": 22,
+      "start_column": 0,
+      "end_line": 22,
+      "end_column": 50,
+      "start_byte": 618,
+      "end_byte": 668,
+      "body_span": {
+        "start_line": 22,
+        "start_column": 41,
+        "end_line": 22,
+        "end_column": 49,
+        "start_byte": 659,
+        "end_byte": 667
+      },
+      "body_hash": "6516db291fd62f361153355c8f64e5dc",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "exportedName": "router",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "router"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/tsx/structural_facts/source.tsx:router:22:13",
       "name": "router",
       "kind": "variable",
@@ -342,7 +383,7 @@
       "body_hash": "6516db291fd62f361153355c8f64e5dc",
       "signature": null,
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {},
       "annotations": [],
@@ -382,6 +423,42 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/tsx/structural_facts/source.tsx:vueRouter:28:0",
+      "name": "vueRouter",
+      "kind": "export",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/structural_facts/source.tsx",
+      "start_line": 28,
+      "start_column": 0,
+      "end_line": 31,
+      "end_column": 3,
+      "start_byte": 750,
+      "end_byte": 848,
+      "body_span": {
+        "start_line": 28,
+        "start_column": 38,
+        "end_line": 31,
+        "end_column": 1,
+        "start_byte": 788,
+        "end_byte": 846
+      },
+      "body_hash": "2d9865e00c2c3a674a1e6376283d1a9f",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "exportedName": "vueRouter",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "vueRouter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/tsx/structural_facts/source.tsx:vueRouter:28:13",
       "name": "vueRouter",
       "kind": "variable",
@@ -404,7 +481,7 @@
       "body_hash": "2d9865e00c2c3a674a1e6376283d1a9f",
       "signature": null,
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {},
       "annotations": [],
@@ -711,44 +788,8 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/tsx/structural_facts/source.tsx:View:5:0",
-      "resolved_type": "Promise<any>",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "tsx",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/tsx/structural_facts/source.tsx:data:6:10",
-      "resolved_type": "any",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "tsx",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/tsx/structural_facts/source.tsx:router:22:13",
-      "resolved_type": "any",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "tsx",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/tsx/structural_facts/source.tsx:routes:17:6",
       "resolved_type": "array",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "tsx",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/tsx/structural_facts/source.tsx:vueRouter:28:13",
-      "resolved_type": "any",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,

@@ -975,7 +975,7 @@
       "end_column": 41,
       "start_byte": 640,
       "end_byte": 659,
-      "containing_key": "fixtures/extraction/jsx/structural_facts/source.jsx:router:22:0",
+      "containing_key": "fixtures/extraction/jsx/structural_facts/source.jsx:router:22:13",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -991,7 +991,7 @@
       "end_column": 37,
       "start_byte": 775,
       "end_byte": 787,
-      "containing_key": "fixtures/extraction/jsx/structural_facts/source.jsx:vueRouter:28:0",
+      "containing_key": "fixtures/extraction/jsx/structural_facts/source.jsx:vueRouter:28:13",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1007,7 +1007,7 @@
       "end_column": 29,
       "start_byte": 803,
       "end_byte": 819,
-      "containing_key": "fixtures/extraction/jsx/structural_facts/source.jsx:vueRouter:28:0",
+      "containing_key": "fixtures/extraction/jsx/structural_facts/source.jsx:history:29:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1055,7 +1055,7 @@
       "end_column": 48,
       "start_byte": 660,
       "end_byte": 666,
-      "containing_key": "fixtures/extraction/jsx/structural_facts/source.jsx:router:22:0",
+      "containing_key": "fixtures/extraction/jsx/structural_facts/source.jsx:router:22:13",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1071,7 +1071,7 @@
       "end_column": 21,
       "start_byte": 835,
       "end_byte": 844,
-      "containing_key": "fixtures/extraction/jsx/structural_facts/source.jsx:vueRouter:28:0",
+      "containing_key": "fixtures/extraction/jsx/structural_facts/source.jsx:routes:30:4",
       "target_key": null,
       "confidence": "1.000"
     }

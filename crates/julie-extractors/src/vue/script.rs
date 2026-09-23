@@ -119,6 +119,7 @@ fn annotate_composition_api(symbols: &mut [Symbol], root: Node<'_>, section: &Vu
                 symbol.start_byte <= name_start
                     && name_start < symbol.end_byte
                     && symbol.parent_id.is_none()
+                    && symbol.kind != SymbolKind::Export
             }) else {
                 continue;
             };

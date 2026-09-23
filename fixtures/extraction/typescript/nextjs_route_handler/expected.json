@@ -1,6 +1,42 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:DELETE:10:0",
+      "name": "DELETE",
+      "kind": "export",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts",
+      "start_line": 10,
+      "start_column": 0,
+      "end_line": 12,
+      "end_column": 2,
+      "start_byte": 213,
+      "end_byte": 318,
+      "body_span": {
+        "start_line": 10,
+        "start_column": 53,
+        "end_line": 12,
+        "end_column": 1,
+        "start_byte": 266,
+        "end_byte": 317
+      },
+      "body_hash": "87cf4cb4135b10d300c3d04bd0ae4cc7",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "exportedName": "DELETE",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "DELETE"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:DELETE:10:22",
       "name": "DELETE",
       "kind": "function",
@@ -21,15 +57,15 @@
         "end_byte": 317
       },
       "body_hash": "87cf4cb4135b10d300c3d04bd0ae4cc7",
-      "signature": "DELETE(): : Promise<Response>",
+      "signature": "DELETE(): Promise<Response>",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAsync": true,
         "isGenerator": false,
         "parameters": [],
-        "returnType": ": Promise<Response>",
+        "returnType": "Promise<Response>",
         "typeParameters": []
       },
       "annotations": [],
@@ -62,7 +98,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "GET",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "GET"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -89,15 +130,18 @@
         "end_byte": 211
       },
       "body_hash": "d168be361717580dc89f5311a5e962e1",
-      "signature": "GET(\n    request: Request,\n    { params }: { params: { id: string } },\n): : Promise<Response>",
+      "signature": "GET(\n    request: Request,\n    { params }: { params: { id: string } },\n): Promise<Response>",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAsync": true,
         "isGenerator": false,
-        "parameters": [],
-        "returnType": ": Promise<Response>",
+        "parameters": [
+          "request: Request",
+          "{ params }: { params: { id: string } }"
+        ],
+        "returnType": "Promise<Response>",
         "typeParameters": []
       },
       "annotations": [],
@@ -137,67 +181,6 @@
         "isTypeOnly": false,
         "source": "next/server",
         "specifier": "NextResponse"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:id:5:28",
-      "name": "id",
-      "kind": "property",
-      "language": "typescript",
-      "file_path": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts",
-      "start_line": 5,
-      "start_column": 28,
-      "end_line": 5,
-      "end_column": 38,
-      "start_byte": 122,
-      "end_byte": 132,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "id : : string",
-      "doc_comment": null,
-      "visibility": null,
-      "parent_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:GET:3:7",
-      "metadata": {
-        "isReadonly": false,
-        "isStatic": false
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:params:5:18",
-      "name": "params",
-      "kind": "property",
-      "language": "typescript",
-      "file_path": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts",
-      "start_line": 5,
-      "start_column": 18,
-      "end_line": 5,
-      "end_column": 40,
-      "start_byte": 112,
-      "end_byte": 134,
-      "body_span": {
-        "start_line": 5,
-        "start_column": 26,
-        "end_line": 5,
-        "end_column": 40,
-        "start_byte": 120,
-        "end_byte": 134
-      },
-      "body_hash": "0d280d5700c99cf066cb34c456a0a39c",
-      "signature": "params : : { id: string }",
-      "doc_comment": null,
-      "visibility": null,
-      "parent_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:GET:3:7",
-      "metadata": {
-        "isReadonly": false,
-        "isStatic": false
       },
       "annotations": [],
       "semantic_group": null,
@@ -425,30 +408,25 @@
   "types": [
     {
       "symbol_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:DELETE:10:22",
-      "resolved_type": "function",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "typescript",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:GET:3:0",
-      "resolved_type": "Promise<any>",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "typescript",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:id:5:28",
-      "resolved_type": "string",
+      "resolved_type": "Promise",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
       "language": "typescript",
-      "metadata": null
+      "metadata": {
+        "declared": "Promise<Response>"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:GET:3:7",
+      "resolved_type": "Promise",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "typescript",
+      "metadata": {
+        "declared": "Promise<Response>"
+      }
     },
     {
       "symbol_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:request:4:4",
@@ -498,7 +476,7 @@
       "node_kind": "export_statement",
       "language": "typescript",
       "file_path": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts",
-      "containing_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:GET:3:0",
+      "containing_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:GET:3:7",
       "start_line": 3,
       "start_column": 0,
       "end_line": 3,
@@ -604,19 +582,6 @@
       "end_column": 42,
       "start_byte": 29,
       "end_byte": 42,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "typescript",
-      "file_path": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts",
-      "containing_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:id:5:28",
-      "start_line": 5,
-      "start_column": 32,
-      "end_line": 5,
-      "end_column": 38,
-      "start_byte": 126,
-      "end_byte": 132,
       "metadata": null
     }
   ],

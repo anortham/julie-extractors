@@ -215,7 +215,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "UsersController",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "UsersController"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -594,7 +599,7 @@
       "end_column": 11,
       "start_byte": 71,
       "end_byte": 81,
-      "containing_key": "fixtures/extraction/typescript/nestjs_routes/source.ts:UsersController:3:0",
+      "containing_key": "fixtures/extraction/typescript/nestjs_routes/source.ts:UsersController:4:7",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1126,7 +1131,7 @@
       "end_column": 19,
       "start_byte": 82,
       "end_byte": 89,
-      "containing_key": "fixtures/extraction/typescript/nestjs_routes/source.ts:UsersController:3:0",
+      "containing_key": "fixtures/extraction/typescript/nestjs_routes/source.ts:UsersController:4:7",
       "confidence": "1.000"
     }
   ],

@@ -1,6 +1,41 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/typescript/nuxt_file_route/app/pages/about.ts:default:1:0",
+      "name": "default",
+      "kind": "export",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nuxt_file_route/app/pages/about.ts",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 3,
+      "start_byte": 0,
+      "end_byte": 68,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 31,
+        "end_line": 5,
+        "end_column": 1,
+        "start_byte": 31,
+        "end_byte": 66
+      },
+      "body_hash": "7f05cd0a11217171dd162b7f2c22c367",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "exportedName": "default",
+        "isDefault": true,
+        "isNamed": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/typescript/nuxt_file_route/app/pages/about.ts:setup:2:2",
       "name": "setup",
       "kind": "method",

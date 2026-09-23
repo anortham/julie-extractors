@@ -134,24 +134,50 @@ pub(super) fn decorator_prefix(decorators: &[String]) -> String {
     }
 }
 
-/// True when this declaration is wrapped by a tree-sitter `export_statement`.
-///
-/// Covers `export class/function/...` and `export default` forms. Does not
-/// treat re-export lists (`export { Foo }`) as exporting a sibling definition.
+/// True when an `export` wraps this declaration: `export class/function/...`,
+/// `export default`, `export const x = ...` (through the declarator), and
+/// `export declare ...`. A function or class expression is exported when the
+/// declarator that binds it is. Re-export lists (`export { Foo }`) are
+/// resolved by the extractor's exported-name set, not here.
 pub(super) fn is_exported_declaration(node: Node) -> bool {
-    node.parent()
-        .map(|parent| parent.kind() == "export_statement")
-        .unwrap_or(false)
+    let mut current = node;
+    for _ in 0..4 {
+        let Some(parent) = current.parent() else {
+            return false;
+        };
+        match parent.kind() {
+            "export_statement" => return true,
+            "variable_declarator" if current.kind() != "variable_declarator" => {
+                let is_value = parent
+                    .child_by_field_name("value")
+                    .is_some_and(|value| value.id() == current.id());
+                if !is_value {
+                    return false;
+                }
+            }
+            "lexical_declaration" | "variable_declaration" | "ambient_declaration" => {}
+            _ => return false,
+        }
+        current = parent;
+    }
+    false
 }
 
 /// Extract visibility from an `accessibility_modifier` child, else export status.
 ///
-/// Explicit `public` / `private` / `protected` wins. When no accessibility
-/// modifier is present, exported declarations resolve to `Public` so cross-file
-/// static-type receivers can bind; non-exported declarations stay `None`.
+/// Explicit `public` / `private` / `protected` wins, then an ECMAScript
+/// `#private` name. When neither is present, exported declarations resolve to
+/// `Public` so cross-file static-type receivers can bind; non-exported
+/// declarations stay `None`.
 pub(super) fn extract_ts_visibility(node: Node) -> Option<Visibility> {
     if let Some(visibility) = extract_accessibility_modifier(node) {
         return Some(visibility);
+    }
+    if node
+        .child_by_field_name("name")
+        .is_some_and(|name| name.kind() == "private_property_identifier")
+    {
+        return Some(Visibility::Private);
     }
     if is_exported_declaration(node) {
         return Some(Visibility::Public);

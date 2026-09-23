@@ -5,9 +5,7 @@
 
 mod type_arguments;
 
-use crate::base::{
-    ContainingSymbolIndex, Identifier, IdentifierKind, Symbol, extract_type_arguments,
-};
+use crate::base::{Identifier, IdentifierKind, Symbol, extract_type_arguments};
 use crate::javascript::identifiers::{
     ecmascript_enclosing_class_name, is_ecmascript_value_read_identifier,
 };
@@ -25,7 +23,7 @@ pub(super) fn extract_identifiers(
     tree: &Tree,
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    let containing_symbols = extractor.base().containing_symbol_index(symbols);
+    let containing_symbols = crate::javascript::ecmascript_owner_index(extractor.base(), symbols);
 
     // Walk the tree and extract identifiers
     walk_tree_for_identifiers(extractor, tree.root_node(), &containing_symbols, 0);
@@ -38,7 +36,7 @@ pub(super) fn extract_identifiers(
 fn walk_tree_for_identifiers(
     extractor: &mut TypeScriptExtractor,
     node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &crate::javascript::EcmaOwnerIndex<'_>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -62,7 +60,7 @@ fn walk_tree_for_identifiers(
 fn extract_identifier_from_node(
     extractor: &mut TypeScriptExtractor,
     node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &crate::javascript::EcmaOwnerIndex<'_>,
 ) {
     match node.kind() {
         // Function/method calls: foo(), object.method()
@@ -362,7 +360,7 @@ fn is_component_name(name: &str) -> bool {
 /// CRITICAL: Only search symbols from THIS FILE (file-scoped filtering)
 fn find_containing_symbol_id(
     node: Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &crate::javascript::EcmaOwnerIndex<'_>,
 ) -> Option<String> {
     containing_symbols.find(node).map(|s| s.id.clone())
 }
@@ -380,7 +378,7 @@ fn find_containing_symbol_id(
 fn record_call_arg_literals(
     extractor: &mut TypeScriptExtractor,
     call_node: &Node,
-    containing_symbols: &ContainingSymbolIndex<'_>,
+    containing_symbols: &crate::javascript::EcmaOwnerIndex<'_>,
 ) {
     let Some(function_node) = call_node.child_by_field_name("function") else {
         return;

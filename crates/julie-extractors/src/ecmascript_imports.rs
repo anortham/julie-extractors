@@ -91,6 +91,7 @@ pub(crate) fn is_ecmascript_global_direct_target(name: &str) -> bool {
             | "parseFloat"
             | "parseInt"
             | "queueMicrotask"
+            | "require"
             | "setImmediate"
             | "setInterval"
             | "setTimeout"

@@ -1797,32 +1797,6 @@
       "kind": "string_literal",
       "language": "php",
       "file_path": "fixtures/extraction/php/modern_members/source.php",
-      "containing_key": "fixtures/extraction/php/modern_members/source.php:describe:46:4",
-      "start_line": 46,
-      "start_column": 48,
-      "end_line": 46,
-      "end_column": 54,
-      "start_byte": 855,
-      "end_byte": 861,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "php",
-      "file_path": "fixtures/extraction/php/modern_members/source.php",
-      "containing_key": "fixtures/extraction/php/modern_members/source.php:name:38:8",
-      "start_line": 38,
-      "start_column": 15,
-      "end_line": 38,
-      "end_column": 21,
-      "start_byte": 646,
-      "end_byte": 652,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "php",
-      "file_path": "fixtures/extraction/php/modern_members/source.php",
       "containing_key": "fixtures/extraction/php/modern_members/source.php:slug:9:4",
       "start_line": 11,
       "start_column": 15,
@@ -1830,19 +1804,6 @@
       "end_column": 21,
       "start_byte": 138,
       "end_byte": 144,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "php",
-      "file_path": "fixtures/extraction/php/modern_members/source.php",
-      "containing_key": "fixtures/extraction/php/modern_members/source.php:slug:9:4",
-      "start_line": 9,
-      "start_column": 28,
-      "end_line": 9,
-      "end_column": 34,
-      "start_byte": 110,
-      "end_byte": 116,
       "metadata": null
     }
   ],

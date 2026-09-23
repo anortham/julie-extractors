@@ -16,7 +16,36 @@ pub(super) fn extract_symbols(extractor: &mut TypeScriptExtractor, tree: &Tree) 
     extractor.test_dsl_active =
         test_symbols::test_dsl_is_active(extractor.base(), tree.root_node());
     visit_node(extractor, tree.root_node(), &mut symbols, None, 0);
+    mark_listed_exports_public(extractor, tree.root_node(), &mut symbols);
     symbols
+}
+
+/// A module-level declaration exported by name elsewhere in the file
+/// (`export { local }`, `export default local`, `export = local`) is public,
+/// the same as one written with an `export` wrapper.
+fn mark_listed_exports_public(extractor: &TypeScriptExtractor, root: Node, symbols: &mut [Symbol]) {
+    let exported = crate::javascript::exports::locally_exported_names(extractor.base(), root);
+    if exported.is_empty() {
+        return;
+    }
+    for symbol in symbols.iter_mut() {
+        if symbol.parent_id.is_none()
+            && symbol.visibility.is_none()
+            && matches!(
+                symbol.kind,
+                SymbolKind::Class
+                    | SymbolKind::Function
+                    | SymbolKind::Variable
+                    | SymbolKind::Interface
+                    | SymbolKind::Type
+                    | SymbolKind::Enum
+                    | SymbolKind::Namespace
+            )
+            && exported.contains(&symbol.name)
+        {
+            symbol.visibility = Some(crate::base::Visibility::Public);
+        }
+    }
 }
 
 /// Check if a node is a direct child of an interface_body
@@ -24,6 +53,16 @@ fn is_inside_interface(node: &Node) -> bool {
     node.parent()
         .map(|p| p.kind() == "interface_body")
         .unwrap_or(false)
+}
+
+/// A member of the object type a type alias names: `type P = { a: T }`.
+/// Object types in annotations, type arguments, and function types are
+/// anonymous shapes, not declarations.
+fn is_type_alias_member(node: &Node) -> bool {
+    node.parent()
+        .filter(|parent| parent.kind() == "object_type")
+        .and_then(|object_type| object_type.parent())
+        .is_some_and(|owner| owner.kind() == "type_alias_declaration")
 }
 
 /// Recursively visit nodes and extract symbols based on node kind
@@ -38,157 +77,9 @@ fn visit_node(
         return;
     }
 
-    let mut symbol: Option<Symbol> = None;
-    let mut next_parent_id = parent_id.clone();
+    let next_parent_id =
+        extract_node_symbols(extractor, node, symbols, parent_id.as_deref()).or(parent_id);
 
-    // Route node types to appropriate extraction modules
-    match node.kind() {
-        // Class extraction
-        "class_declaration" | "abstract_class_declaration" => {
-            symbol = classes::extract_class(extractor, node, parent_id.as_deref());
-        }
-
-        // Function extraction
-        "function_declaration" | "function" => {
-            symbol = functions::extract_function(extractor, node, parent_id.as_deref());
-        }
-
-        // Method extraction (inside classes, not interfaces — interface methods
-        // are extracted by extract_interface to get correct parent_id)
-        "method_definition" | "abstract_method_signature" => {
-            symbol = functions::extract_method(extractor, node, parent_id.as_deref());
-        }
-        "method_signature" if !is_inside_interface(&node) => {
-            symbol = functions::extract_method(extractor, node, parent_id.as_deref());
-        }
-
-        // Variable/arrow function assignment
-        "variable_declarator"
-            if node
-                .child_by_field_name("name")
-                .is_some_and(|name| matches!(name.kind(), "object_pattern" | "array_pattern")) =>
-        {
-            symbols.extend(functions::extract_destructured_variables(
-                extractor,
-                node,
-                parent_id.as_deref(),
-            ));
-        }
-        "variable_declarator" => {
-            symbol = functions::extract_variable(extractor, node, parent_id.as_deref());
-        }
-
-        // Interface extraction (with members)
-        "interface_declaration" => {
-            let interface_symbols =
-                interfaces::extract_interface(extractor, node, parent_id.as_deref());
-            next_parent_id = interface_symbols
-                .first()
-                .map(|symbol| symbol.id.clone())
-                .or_else(|| parent_id.clone());
-            symbols.extend(interface_symbols);
-        }
-
-        // Type aliases
-        "type_alias_declaration" => {
-            symbol = interfaces::extract_type_alias(extractor, node, parent_id.as_deref());
-        }
-
-        // Enums
-        "enum_declaration" => {
-            let enum_symbols = interfaces::extract_enum(extractor, node, parent_id.as_deref());
-            next_parent_id = enum_symbols
-                .first()
-                .map(|symbol| symbol.id.clone())
-                .or_else(|| parent_id.clone());
-            symbols.extend(enum_symbols);
-        }
-
-        // Import/export statements
-        "import_statement" | "import_declaration" => {
-            let import_symbols = imports_exports::extract_import(extractor, node);
-            symbols.extend(import_symbols);
-        }
-        "export_statement" => {
-            let export_symbols = imports_exports::extract_export(extractor, node);
-            symbols.extend(export_symbols);
-        }
-
-        // Namespaces/modules
-        "namespace_declaration" | "module_declaration" | "internal_module" => {
-            symbol = interfaces::extract_namespace(extractor, node, parent_id.as_deref());
-        }
-
-        // Properties and fields (skip interface members — already handled by extract_interface)
-        "property_signature" if !is_inside_interface(&node) => {
-            symbol = interfaces::extract_property(extractor, node, parent_id.as_deref());
-        }
-        "public_field_definition" | "property_definition" => {
-            symbol = interfaces::extract_property(extractor, node, parent_id.as_deref());
-        }
-
-        // Test call expression extraction (describe/it/test/beforeEach/etc.)
-        "call_expression"
-            if extractor.test_dsl_active
-                && test_symbols::is_test_dsl_call(extractor.base(), node) =>
-        {
-            // Find parent describe for nesting
-            let parent = symbols
-                .iter()
-                .rev()
-                .find(|s| {
-                    s.metadata
-                        .as_ref()
-                        .and_then(|m| m.get("test_container"))
-                        .and_then(|v| v.as_bool())
-                        == Some(true)
-                        && s.start_byte <= node.start_byte() as u32
-                        && s.end_byte >= node.end_byte() as u32
-                })
-                .map(|s| s.id.as_str());
-            // Need to extract parent_id before mutable borrow of extractor
-            let parent_id_owned = parent.map(|s| s.to_string());
-            symbol = test_symbols::extract_test_call(
-                extractor.base_mut(),
-                node,
-                parent_id_owned.as_deref(),
-            );
-        }
-
-        _ => {}
-    }
-
-    if let Some(sym) = symbol {
-        if is_parent_scope_kind(&sym.kind) {
-            next_parent_id = Some(sym.id.clone());
-        }
-        let parameter_source = matches!(
-            sym.kind,
-            SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
-        )
-        .then(|| callable_node_for(node))
-        .flatten();
-        let sym_id = sym.id.clone();
-        symbols.push(sym);
-        if let Some(callable_node) = parameter_source {
-            for (param_symbol, param_node) in
-                crate::javascript::parameters::extract_parameter_symbols(
-                    extractor.base_mut(),
-                    callable_node,
-                    &sym_id,
-                )
-            {
-                super::type_facts::record_annotation_fact(
-                    extractor.base_mut(),
-                    &param_symbol.id,
-                    param_node,
-                );
-                symbols.push(param_symbol);
-            }
-        }
-    }
-
-    // Recursively visit children
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
@@ -204,12 +95,189 @@ fn visit_node(
     }
 }
 
+/// Emit the symbols `node` declares and return the parent id its children
+/// take when it opens a new scope. Kept out of the recursive frame so the
+/// walker stays small at the depth budget.
+#[inline(never)]
+fn extract_node_symbols(
+    extractor: &mut TypeScriptExtractor,
+    node: Node,
+    symbols: &mut Vec<Symbol>,
+    parent_id: Option<&str>,
+) -> Option<String> {
+    let symbol = match node.kind() {
+        "class_declaration" | "abstract_class_declaration" | "class" => {
+            classes::extract_class(extractor, node, parent_id)
+        }
+        "function_declaration" | "generator_function_declaration" | "function_signature" => {
+            functions::extract_function(extractor, node, parent_id)
+        }
+        "function_expression" | "generator_function" | "arrow_function"
+            if node
+                .parent()
+                .is_some_and(|parent| parent.kind() == "export_statement") =>
+        {
+            functions::extract_function(extractor, node, parent_id)
+        }
+        // Interface methods are extracted by extract_interface to get the
+        // correct parent_id.
+        "method_definition" | "abstract_method_signature" => {
+            functions::extract_method(extractor, node, parent_id)
+        }
+        "method_signature"
+            if !is_inside_interface(&node)
+                && (is_type_alias_member(&node)
+                    || node.parent().is_some_and(|p| p.kind() == "class_body")) =>
+        {
+            functions::extract_method(extractor, node, parent_id)
+        }
+        "variable_declarator"
+            if node
+                .child_by_field_name("name")
+                .is_some_and(|name| matches!(name.kind(), "object_pattern" | "array_pattern")) =>
+        {
+            symbols.extend(functions::extract_destructured_variables(
+                extractor, node, parent_id,
+            ));
+            None
+        }
+        "variable_declarator" => functions::extract_variable(extractor, node, parent_id),
+        "interface_declaration" => {
+            let interface_symbols = interfaces::extract_interface(extractor, node, parent_id);
+            let interface_id = interface_symbols.first().map(|symbol| symbol.id.clone());
+            symbols.extend(interface_symbols);
+            return interface_id;
+        }
+        "type_alias_declaration" => interfaces::extract_type_alias(extractor, node, parent_id),
+        "enum_declaration" => {
+            let enum_symbols = interfaces::extract_enum(extractor, node, parent_id);
+            let enum_id = enum_symbols.first().map(|symbol| symbol.id.clone());
+            symbols.extend(enum_symbols);
+            return enum_id;
+        }
+        "import_statement" | "import_declaration" => {
+            symbols.extend(imports_exports::extract_import(extractor, node));
+            None
+        }
+        "export_statement" => {
+            symbols.extend(imports_exports::extract_export(extractor, node));
+            None
+        }
+        "call_expression" if imports_exports::is_dynamic_import(node) => {
+            imports_exports::extract_dynamic_import(extractor, node, parent_id)
+        }
+        "module" | "internal_module" => interfaces::extract_namespace(extractor, node, parent_id),
+        "ambient_declaration" => {
+            interfaces::extract_global_augmentation(extractor, node, parent_id)
+        }
+        "property_signature" if !is_inside_interface(&node) && is_type_alias_member(&node) => {
+            interfaces::extract_property(extractor, node, parent_id)
+        }
+        "public_field_definition" | "property_definition" => {
+            interfaces::extract_property(extractor, node, parent_id)
+        }
+        "pair" if functions::function_value(node).is_some() => {
+            functions::extract_member_function(extractor, node, parent_id)
+        }
+        "call_expression"
+            if extractor.test_dsl_active
+                && test_symbols::is_test_dsl_call(extractor.base(), node) =>
+        {
+            let parent = symbols
+                .iter()
+                .rev()
+                .find(|s| {
+                    s.metadata
+                        .as_ref()
+                        .and_then(|m| m.get("test_container"))
+                        .and_then(|v| v.as_bool())
+                        == Some(true)
+                        && s.start_byte <= node.start_byte() as u32
+                        && s.end_byte >= node.end_byte() as u32
+                })
+                .map(|s| s.id.clone());
+            test_symbols::extract_test_call(extractor.base_mut(), node, parent.as_deref())
+        }
+        _ => None,
+    }?;
+
+    let opens_scope = is_parent_scope_kind(&symbol.kind) || opens_member_scope(node, &symbol.kind);
+    let parameter_source = matches!(
+        symbol.kind,
+        SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
+    )
+    .then(|| callable_node_for(node))
+    .flatten();
+    let symbol_id = symbol.id.clone();
+    let class_parent_id = symbol.parent_id.clone();
+    let is_constructor = symbol.kind == SymbolKind::Constructor;
+    symbols.push(symbol);
+
+    if let Some(callable_node) = parameter_source {
+        for (param_symbol, param_node) in crate::javascript::parameters::extract_parameter_symbols(
+            extractor.base_mut(),
+            callable_node,
+            &symbol_id,
+        ) {
+            super::type_facts::record_annotation_fact(
+                extractor.base_mut(),
+                &param_symbol.id,
+                param_node,
+            );
+            super::type_facts::record_destructured_binding_fact(
+                extractor.base_mut(),
+                &param_symbol.id,
+                param_node,
+            );
+            symbols.push(param_symbol);
+            if is_constructor
+                && let Some(property) = interfaces::extract_parameter_property(
+                    extractor,
+                    param_node,
+                    class_parent_id.as_deref(),
+                )
+            {
+                symbols.push(property);
+            }
+        }
+    }
+
+    opens_scope.then_some(symbol_id)
+}
+
+/// The node whose `parameters` a callable symbol owns.
 fn callable_node_for(node: Node) -> Option<Node> {
-    if node.kind() == "variable_declarator" {
-        node.child_by_field_name("value")
-            .filter(|value| value.kind() == "arrow_function")
-    } else {
-        Some(node)
+    match node.kind() {
+        "variable_declarator" | "public_field_definition" | "property_definition" | "pair" => {
+            functions::function_value(node)
+        }
+        "call_expression" => test_callback(node),
+        _ => Some(node),
+    }
+}
+
+/// The callback a test DSL call runs: `test("name", async ({ page }) => {})`.
+fn test_callback(call: Node) -> Option<Node> {
+    let arguments = call.child_by_field_name("arguments")?;
+    let mut cursor = arguments.walk();
+    arguments
+        .named_children(&mut cursor)
+        .filter(|argument| matches!(argument.kind(), "arrow_function" | "function_expression"))
+        .last()
+}
+
+/// A variable bound to an object literal parents the object's members, and a
+/// type alias of an object type parents its property signatures.
+fn opens_member_scope(node: Node, kind: &SymbolKind) -> bool {
+    match kind {
+        SymbolKind::Variable => node
+            .child_by_field_name("value")
+            .map(functions::unwrap_expression)
+            .is_some_and(|value| value.kind() == "object"),
+        SymbolKind::Type => node
+            .child_by_field_name("value")
+            .is_some_and(|value| value.kind() == "object_type"),
+        _ => false,
     }
 }
 

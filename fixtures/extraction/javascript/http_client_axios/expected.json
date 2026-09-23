@@ -457,7 +457,7 @@
       "end_column": 60,
       "start_byte": 198,
       "end_byte": 205,
-      "containing_key": "fixtures/extraction/javascript/http_client_axios/source.js:createUser:7:7",
+      "containing_key": "fixtures/extraction/javascript/http_client_axios/source.js:data:8:47",
       "target_key": null,
       "confidence": "1.000"
     },

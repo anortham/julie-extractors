@@ -214,7 +214,10 @@ impl VueExtractor {
         for symbol in symbols {
             let metadata = &symbol.metadata;
             if let Some(return_type) = metadata.as_ref().and_then(|m| m.get("returnType")) {
-                if let Some(type_str) = return_type.as_str() {
+                if let Some(type_str) = return_type
+                    .as_str()
+                    .filter(|type_str| !matches!(*type_str, "void" | "never"))
+                {
                     types.insert(symbol.id.clone(), type_str.to_string());
                 }
             } else if let Some(property_type) =
@@ -226,6 +229,9 @@ impl VueExtractor {
             } else if let Some(type_val) = metadata.as_ref().and_then(|m| m.get("type"))
                 && let Some(type_str) = type_val.as_str()
                 && !matches!(type_str, "function" | "property" | "method")
+                && !metadata
+                    .as_ref()
+                    .is_some_and(|m| m.contains_key("compositionApi"))
             {
                 types.insert(symbol.id.clone(), type_str.to_string());
             }

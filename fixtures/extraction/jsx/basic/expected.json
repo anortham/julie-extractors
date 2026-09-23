@@ -773,7 +773,7 @@
       "end_column": 11,
       "start_byte": 1,
       "end_byte": 11,
-      "containing_key": "fixtures/extraction/jsx/basic/source.jsx:WorkerModel:1:0",
+      "containing_key": "fixtures/extraction/jsx/basic/source.jsx:WorkerModel:2:7",
       "target_key": null,
       "confidence": "1.000"
     },

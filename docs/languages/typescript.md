@@ -91,6 +91,59 @@ evidence: abstract classes and members, enum members with initializers,
 declaration docs, typed-receiver pending calls, JSX component edges, and
 Express/Fastify routes on exported and type-annotated receivers.
 
+## Declarations and ownership (wave 2)
+
+- Generator declarations, function expressions, `export default` anonymous
+  functions and classes, and class expressions are symbols. An anonymous
+  default export is named `default`; a class or function expression bound
+  to a variable takes the variable name.
+- Overload signatures fold into the implementation, which carries
+  `overloads`. A `declare function` without an implementation is a
+  function with `isDefinition: false`.
+- `declare module "x"`, `declare global`, `namespace`, and `module` blocks
+  are `namespace` symbols. The ambient forms carry `isAmbientModule` or
+  `isGlobalAugmentation`.
+- Constructor parameter properties (`private readonly repo: Repo`) are also
+  class `property` symbols with `isParameterProperty`, spanning the name.
+- Property and parameter decorators are annotations on the property or
+  parameter symbol.
+- Members of a type alias object type (`type P = { a: T }`) belong to the
+  alias. Object types in annotations and type arguments emit no symbols.
+- Calls in arrow-function fields, object-literal methods, and variable
+  initializers are owned by that field, method, or variable. Export rows
+  never own code. Test DSL calls (`it`, `describe`) are never call targets.
+- `interface A extends B, C` emits one `extends` edge per listed type.
+- Every exported name has its own `export` row with `exportedName`,
+  `isDefault`, `isNamed`, and, where they apply, `localName`, `source`,
+  `isNamespace`, `isStar`, and `isTypeOnly`. A declaration exported by an
+  `export` wrapper or listed in `export { ... }` has `public` visibility.
+- `import x = require("m")`, `const x = require("m")`, side-effect
+  `import "m"`, and literal dynamic `import("m")` are `import` rows
+  (`isCommonJS`, `isSideEffect`, `isDynamic`).
+- Declared return types are type facts; inferred placeholders (`any`,
+  `function`, `Promise<any>`) are not published.
+- The `string` type keyword is not a `string_literal` source region.
+
+## Frontend navigation facts
+
+- `angular.route_definition.v1`: one fact per route object with a `path` in
+  a `Routes` or `Route[]` array, or in the array passed to
+  `RouterModule.forRoot/forChild` or `provideRouter`. The file must import
+  from `@angular/router`. Metadata records `route_component`,
+  `redirect_to`, `lazy_module_source` (`loadChildren`),
+  `lazy_component_source` (`loadComponent`), and the joined
+  `effective_route_template` for nested `children`.
+- `react.route_reference.v1` with `source_kind: react_router_navigate`:
+  `navigate("/x")` where `navigate` is bound from `useNavigate()` of React
+  Router.
+- `nextjs.route_reference.v1` with `source_kind: next_router_navigation`:
+  `router.push/replace/prefetch("/x")` where `router` is bound from
+  `useRouter()` of `next/navigation` or `next/router`.
+- The hook binding is matched by name across the file, not by scope.
+
+The `typescript/language_gaps`, `tsx/language_gaps`, and
+`typescript/frontend_navigation` goldens hold the evidence.
+
 ## Grammar gap: variance annotations on type parameters
 
 `tree-sitter-typescript` does not parse the `in` and `out` variance modifiers

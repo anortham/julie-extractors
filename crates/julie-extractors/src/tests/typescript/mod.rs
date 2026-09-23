@@ -23,6 +23,7 @@ pub mod type_arguments;
 pub mod type_facts;
 pub mod types;
 pub mod wave1_gaps; // NEW: Phase 4 - Type extraction verification tests
+pub mod wave2_gaps;
 
 use crate::base::SymbolKind;
 use crate::typescript::TypeScriptExtractor;
@@ -385,14 +386,10 @@ mod typescript_extractor_tests {
         let add_symbol = symbols.iter().find(|s| s.name == "add");
         let fetch_user_symbol = symbols.iter().find(|s| s.name == "fetchUser");
 
-        if let Some(add_sym) = add_symbol {
-            let add_type = types.get(&add_sym.id);
-            assert!(add_type.is_some()); // Type inference may not be perfect for JS
-        }
-        if let Some(fetch_user_sym) = fetch_user_symbol {
-            let fetch_user_type = types.get(&fetch_user_sym.id);
-            assert!(fetch_user_type.is_some()); // Type inference may not be perfect for JS
-        }
+        let add_symbol = add_symbol.expect("add is extracted");
+        let fetch_user_symbol = fetch_user_symbol.expect("fetchUser is extracted");
+        assert_eq!(types.get(&add_symbol.id), None);
+        assert_eq!(types.get(&fetch_user_symbol.id), None);
     }
 
     #[test]

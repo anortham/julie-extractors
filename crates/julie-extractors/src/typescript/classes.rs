@@ -15,8 +15,7 @@ pub(super) fn extract_class(
     node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let name_node = node.child_by_field_name("name");
-    let name = name_node.map(|n| extractor.base().get_node_text(&n))?;
+    let name = class_name(extractor, node)?;
 
     let visibility = helpers::extract_ts_visibility(node);
     let mut metadata = HashMap::new();
@@ -114,4 +113,31 @@ pub(super) fn extract_class(
             annotations,
         },
     ))
+}
+
+/// A class declaration's own name; a class expression takes its own name, else
+/// the declarator that binds it, and an anonymous `export default class` is
+/// named `default`.
+pub(super) fn class_name(extractor: &TypeScriptExtractor, node: Node) -> Option<String> {
+    if let Some(name) = node.child_by_field_name("name") {
+        return Some(extractor.base().get_node_text(&name));
+    }
+    if node.kind() != "class" {
+        return None;
+    }
+    let mut binder = node.parent()?;
+    while matches!(
+        binder.kind(),
+        "parenthesized_expression" | "as_expression" | "satisfies_expression"
+    ) {
+        binder = binder.parent()?;
+    }
+    match binder.kind() {
+        "variable_declarator" => binder
+            .child_by_field_name("name")
+            .filter(|name| name.kind() == "identifier")
+            .map(|name| extractor.base().get_node_text(&name)),
+        "export_statement" => Some("default".to_string()),
+        _ => None,
+    }
 }

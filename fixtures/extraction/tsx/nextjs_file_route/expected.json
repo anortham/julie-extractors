@@ -25,7 +25,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "Page",
+        "isDefault": true,
+        "isNamed": false,
+        "localName": "Page"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -72,17 +77,7 @@
   "pending_relationships": [],
   "structured_pending_relationships": [],
   "identifiers": [],
-  "types": [
-    {
-      "symbol_key": "fixtures/extraction/tsx/nextjs_file_route/app/(marketing)/blog/[slug]/page.tsx:Page:1:0",
-      "resolved_type": "function",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "tsx",
-      "metadata": null
-    }
-  ],
+  "types": [],
   "parse_diagnostics": [],
   "structural_facts": [
     {

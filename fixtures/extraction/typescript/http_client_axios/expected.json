@@ -87,7 +87,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "createUser",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "createUser"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -114,15 +119,17 @@
         "end_byte": 330
       },
       "body_hash": "3f1962add3a313dac2b4d5ec410b27da",
-      "signature": "createUser(payload: User): : Promise<void>",
+      "signature": "createUser(payload: User): Promise<void>",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAsync": true,
         "isGenerator": false,
-        "parameters": [],
-        "returnType": ": Promise<void>",
+        "parameters": [
+          "payload: User"
+        ],
+        "returnType": "Promise<void>",
         "typeParameters": []
       },
       "annotations": [],
@@ -155,7 +162,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "dynamicRequest",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "dynamicRequest"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -182,15 +194,17 @@
         "end_byte": 422
       },
       "body_hash": "e36b48215f3a7dd0dece22bb2871ab5a",
-      "signature": "dynamicRequest(url: string): : Promise<unknown>",
+      "signature": "dynamicRequest(url: string): Promise<unknown>",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAsync": false,
         "isGenerator": false,
-        "parameters": [],
-        "returnType": ": Promise<unknown>",
+        "parameters": [
+          "url: string"
+        ],
+        "returnType": "Promise<unknown>",
         "typeParameters": []
       },
       "annotations": [],
@@ -247,7 +261,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "loadUsers",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "loadUsers"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -274,7 +293,7 @@
         "end_byte": 198
       },
       "body_hash": "18441ce235d9d6d1f29347ebfd0d4dcf",
-      "signature": "loadUsers(): : Promise<User[]>",
+      "signature": "loadUsers(): Promise<User[]>",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
@@ -282,7 +301,7 @@
         "isAsync": true,
         "isGenerator": false,
         "parameters": [],
-        "returnType": ": Promise<User[]>",
+        "returnType": "Promise<User[]>",
         "typeParameters": []
       },
       "annotations": [],
@@ -375,44 +394,8 @@
     }
   ],
   "relationships": [],
-  "pending_relationships": [
-    {
-      "from_key": "fixtures/extraction/typescript/http_client_axios/source.ts:loadUsers:7:7",
-      "callee_name": "await axios.get",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/typescript/http_client_axios/source.ts",
-      "line_number": 8,
-      "confidence": "0.700"
-    }
-  ],
-  "structured_pending_relationships": [
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/typescript/http_client_axios/source.ts:loadUsers:7:7",
-        "callee_name": "await axios.get",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/typescript/http_client_axios/source.ts",
-        "line_number": 8,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "await axios.get",
-        "terminal_name": "await axios.get",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/typescript/http_client_axios/source.ts:loadUsers:7:7",
-      "span": {
-        "start_line": 8,
-        "start_column": 19,
-        "end_line": 8,
-        "end_column": 56,
-        "start_byte": 134,
-        "end_byte": 171
-      }
-    }
-  ],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
   "identifiers": [
     {
       "key": "fixtures/extraction/typescript/http_client_axios/source.ts:Promise:type_usage:12:49",
@@ -657,35 +640,30 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/typescript/http_client_axios/source.ts:createUser:12:0",
-      "resolved_type": "Promise<any>",
+      "symbol_key": "fixtures/extraction/typescript/http_client_axios/source.ts:createUser:12:7",
+      "resolved_type": "Promise",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "typescript",
-      "metadata": null
+      "metadata": {
+        "declared": "Promise<void>"
+      }
     },
     {
-      "symbol_key": "fixtures/extraction/typescript/http_client_axios/source.ts:dynamicRequest:16:0",
-      "resolved_type": "function",
+      "symbol_key": "fixtures/extraction/typescript/http_client_axios/source.ts:dynamicRequest:16:7",
+      "resolved_type": "Promise",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "typescript",
-      "metadata": null
+      "metadata": {
+        "declared": "Promise<unknown>"
+      }
     },
     {
-      "symbol_key": "fixtures/extraction/typescript/http_client_axios/source.ts:loadUsers:7:0",
-      "resolved_type": "Promise<any>",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "typescript",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/typescript/http_client_axios/source.ts:payload:12:33",
-      "resolved_type": "User",
+      "symbol_key": "fixtures/extraction/typescript/http_client_axios/source.ts:id:4:2",
+      "resolved_type": "number",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
@@ -693,11 +671,22 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/typescript/http_client_axios/source.ts:response:8:8",
-      "resolved_type": "any",
+      "symbol_key": "fixtures/extraction/typescript/http_client_axios/source.ts:loadUsers:7:7",
+      "resolved_type": "Promise",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
+      "language": "typescript",
+      "metadata": {
+        "declared": "Promise<User[]>"
+      }
+    },
+    {
+      "symbol_key": "fixtures/extraction/typescript/http_client_axios/source.ts:payload:12:33",
+      "resolved_type": "User",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "typescript",
       "metadata": null
     },
@@ -979,19 +968,6 @@
       "end_column": 55,
       "start_byte": 158,
       "end_byte": 170,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "typescript",
-      "file_path": "fixtures/extraction/typescript/http_client_axios/source.ts",
-      "containing_key": "fixtures/extraction/typescript/http_client_axios/source.ts:url:16:31",
-      "start_line": 16,
-      "start_column": 36,
-      "end_line": 16,
-      "end_column": 42,
-      "start_byte": 368,
-      "end_byte": 374,
       "metadata": null
     }
   ],

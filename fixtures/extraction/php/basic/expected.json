@@ -2469,19 +2469,6 @@
       "kind": "string_literal",
       "language": "php",
       "file_path": "fixtures/extraction/php/basic/source.php",
-      "containing_key": "fixtures/extraction/php/basic/source.php:event:71:20",
-      "start_line": 71,
-      "start_column": 20,
-      "end_line": 71,
-      "end_column": 26,
-      "start_byte": 1158,
-      "end_byte": 1164,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "php",
-      "file_path": "fixtures/extraction/php/basic/source.php",
       "containing_key": "fixtures/extraction/php/basic/source.php:fetchStatus:76:0",
       "start_line": 78,
       "start_column": 13,
@@ -2489,19 +2476,6 @@
       "end_column": 53,
       "start_byte": 1287,
       "end_byte": 1327,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "php",
-      "file_path": "fixtures/extraction/php/basic/source.php",
-      "containing_key": "fixtures/extraction/php/basic/source.php:path:19:32",
-      "start_line": 19,
-      "start_column": 39,
-      "end_line": 19,
-      "end_column": 45,
-      "start_byte": 326,
-      "end_byte": 332,
       "metadata": null
     },
     {
@@ -2528,19 +2502,6 @@
       "end_column": 18,
       "start_byte": 631,
       "end_byte": 637,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "php",
-      "file_path": "fixtures/extraction/php/basic/source.php",
-      "containing_key": "fixtures/extraction/php/basic/source.php:url:81:18",
-      "start_line": 81,
-      "start_column": 18,
-      "end_line": 81,
-      "end_column": 24,
-      "start_byte": 1351,
-      "end_byte": 1357,
       "metadata": null
     }
   ],

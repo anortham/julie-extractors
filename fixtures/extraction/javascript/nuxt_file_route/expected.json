@@ -127,7 +127,7 @@
       "end_column": 30,
       "start_byte": 15,
       "end_byte": 30,
-      "containing_key": "fixtures/extraction/javascript/nuxt_file_route/app/pages/dashboard.js:default:1:0",
+      "containing_key": null,
       "target_key": null,
       "confidence": "1.000"
     },

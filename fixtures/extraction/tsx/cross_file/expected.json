@@ -63,7 +63,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "entry",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "entry"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -126,7 +131,7 @@
         "end_byte": 383
       },
       "body_hash": "d2eca0a1521da9f57d8eeb7ec054d1bf",
-      "signature": "local_helper(): : number",
+      "signature": "local_helper(): number",
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
@@ -134,7 +139,7 @@
         "isAsync": false,
         "isGenerator": false,
         "parameters": [],
-        "returnType": ": number",
+        "returnType": "number",
         "typeParameters": []
       },
       "annotations": [],
@@ -253,7 +258,7 @@
         "terminal_name": "Foo",
         "receiver": null,
         "namespace_path": [],
-        "import_context": null
+        "import_context": "Foo"
       },
       "caller_scope_key": "fixtures/extraction/tsx/cross_file/source.tsx:entry:12:7",
       "span": {
@@ -318,20 +323,11 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/tsx/cross_file/source.tsx:entry:12:0",
-      "resolved_type": "function",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "tsx",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/tsx/cross_file/source.tsx:local_helper:8:0",
-      "resolved_type": "function",
+      "resolved_type": "number",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "tsx",
       "metadata": null
     },

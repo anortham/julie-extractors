@@ -57,17 +57,27 @@ pub(crate) fn attach_containing_symbols(facts: &mut [StructuralFact], symbols: &
     }
 }
 
+/// A declaration wins over an export row that names it: the export row binds
+/// a fact only when no declaration contains the fact by bytes or lines, as for
+/// an anonymous `export default defineEventHandler(...)`.
 fn containing_symbol_id(fact: &StructuralFact, symbols: &[Symbol]) -> Option<String> {
-    byte_containing_symbol(fact, symbols)
-        .or_else(|| line_containing_symbol(fact, symbols))
+    let declaration = |symbol: &Symbol| symbol.kind != SymbolKind::Export;
+    byte_containing_symbol(fact, symbols, declaration)
+        .or_else(|| line_containing_symbol(fact, symbols, declaration))
+        .or_else(|| byte_containing_symbol(fact, symbols, |_| true))
+        .or_else(|| line_containing_symbol(fact, symbols, |_| true))
         .map(|symbol| symbol.id.clone())
 }
 
 /// Primary pass: narrowest scope-bearing symbol whose byte span contains the fact.
-fn byte_containing_symbol<'a>(fact: &StructuralFact, symbols: &'a [Symbol]) -> Option<&'a Symbol> {
+fn byte_containing_symbol<'a>(
+    fact: &StructuralFact,
+    symbols: &'a [Symbol],
+    keep: impl Fn(&Symbol) -> bool,
+) -> Option<&'a Symbol> {
     symbols
         .iter()
-        .filter(|symbol| is_scope_bearing(symbol))
+        .filter(|symbol| is_scope_bearing(symbol) && keep(symbol))
         .filter(|symbol| symbol.start_byte <= fact.start_byte && symbol.end_byte >= fact.end_byte)
         .min_by_key(|symbol| byte_span(symbol))
 }
@@ -75,10 +85,14 @@ fn byte_containing_symbol<'a>(fact: &StructuralFact, symbols: &'a [Symbol]) -> O
 /// Fallback pass: narrowest scope-bearing symbol whose line span contains the
 /// fact and whose byte span is not contained by the fact. Ties broken by
 /// narrowest byte span, then earliest `start_byte`.
-fn line_containing_symbol<'a>(fact: &StructuralFact, symbols: &'a [Symbol]) -> Option<&'a Symbol> {
+fn line_containing_symbol<'a>(
+    fact: &StructuralFact,
+    symbols: &'a [Symbol],
+    keep: impl Fn(&Symbol) -> bool,
+) -> Option<&'a Symbol> {
     symbols
         .iter()
-        .filter(|symbol| is_scope_bearing(symbol))
+        .filter(|symbol| is_scope_bearing(symbol) && keep(symbol))
         .filter(|symbol| symbol.start_line <= fact.start_line && symbol.end_line >= fact.end_line)
         .filter(|symbol| {
             !(symbol.start_byte >= fact.start_byte && symbol.end_byte <= fact.end_byte)
@@ -219,6 +233,16 @@ mod tests {
     }
 
     #[test]
+    fn declaration_on_the_fact_lines_wins_over_its_export_row() {
+        let symbols = vec![
+            make_symbol("DELETE export", SymbolKind::Export, 0, 90, 1, 3),
+            make_symbol("DELETE", SymbolKind::Function, 22, 90, 1, 3),
+        ];
+        let fact = make_fact(0, 19, 1, 1);
+        assert_eq!(bind(&fact, &symbols).as_deref(), Some("DELETE"));
+    }
+
+    #[test]
     fn narrowest_byte_containing_symbol_wins() {
         let symbols = vec![
             make_symbol("outer", SymbolKind::Class, 0, 200, 1, 20),
@@ -236,7 +260,7 @@ mod tests {
         let symbols = vec![make_symbol("POST", SymbolKind::Function, 20, 90, 1, 3)];
         let fact = make_fact(0, 17, 1, 1);
         assert_eq!(
-            byte_containing_symbol(&fact, &symbols).map(|s| s.id.as_str()),
+            byte_containing_symbol(&fact, &symbols, |_| true).map(|s| s.id.as_str()),
             None
         );
         assert_eq!(bind(&fact, &symbols).as_deref(), Some("POST"));

@@ -104,7 +104,7 @@
   "relationships": [],
   "pending_relationships": [
     {
-      "from_key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:default:1:0",
+      "from_key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:body:2:10",
       "callee_name": "readBody",
       "kind": "calls",
       "file_path": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js",
@@ -115,7 +115,7 @@
   "structured_pending_relationships": [
     {
       "pending": {
-        "from_key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:default:1:0",
+        "from_key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:body:2:10",
         "callee_name": "readBody",
         "kind": "calls",
         "file_path": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js",
@@ -129,7 +129,7 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:default:1:0",
+      "caller_scope_key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:body:2:10",
       "span": {
         "start_line": 2,
         "start_column": 23,
@@ -153,7 +153,7 @@
       "end_column": 27,
       "start_byte": 116,
       "end_byte": 120,
-      "containing_key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:default:1:0",
+      "containing_key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:received:3:13",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -169,7 +169,7 @@
       "end_column": 33,
       "start_byte": 15,
       "end_byte": 33,
-      "containing_key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:default:1:0",
+      "containing_key": null,
       "target_key": null,
       "confidence": "1.000"
     },
@@ -185,7 +185,7 @@
       "end_column": 37,
       "start_byte": 85,
       "end_byte": 90,
-      "containing_key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:default:1:0",
+      "containing_key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:body:2:10",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -201,7 +201,7 @@
       "end_column": 31,
       "start_byte": 76,
       "end_byte": 84,
-      "containing_key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:default:1:0",
+      "containing_key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:body:2:10",
       "target_key": null,
       "confidence": "1.000"
     }

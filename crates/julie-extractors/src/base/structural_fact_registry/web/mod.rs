@@ -5,6 +5,7 @@
 
 use super::StructuralFactPatternSpec;
 
+mod angular;
 mod css;
 mod html;
 mod nextjs;
@@ -20,6 +21,7 @@ pub(super) fn specs() -> Vec<StructuralFactPatternSpec> {
         react::SPECS,
         nextjs::SPECS,
         nuxt::SPECS,
+        angular::SPECS,
     ]
     .concat()
 }

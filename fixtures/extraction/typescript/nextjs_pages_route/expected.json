@@ -25,7 +25,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "Home",
+        "isDefault": true,
+        "isNamed": false,
+        "localName": "Home"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -92,7 +97,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "getStaticProps",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "getStaticProps"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -141,17 +151,8 @@
   "identifiers": [],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/typescript/nextjs_pages_route/src/pages/home.ts:Home:5:0",
-      "resolved_type": "function",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "typescript",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/typescript/nextjs_pages_route/src/pages/home.ts:getStaticProps:1:0",
-      "resolved_type": "Promise<any>",
+      "symbol_key": "fixtures/extraction/typescript/nextjs_pages_route/src/pages/home.ts:Home:5:15",
+      "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
