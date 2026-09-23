@@ -1,0 +1,69 @@
+@page "/orders/{Id:int}"
+@namespace Shop.Components.Orders
+@using Json = System.Text.Json.JsonSerializer
+@layout AdminLayout
+@rendermode InteractiveServer
+@inherits OwningComponentBase<IOrderService>
+@implements IAsyncDisposable
+@typeparam TItem where TItem : class
+@attribute [Authorize(Roles = "Admin")]
+@attribute [StreamRendering]
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<NavLink href="orders">Orders</NavLink>
+<a href="/orders/@_order.Id">Open</a>
+<p>Total: @Formatter.FormatMoney(total)</p>
+<button @onclick="Refresh">Refresh</button>
+<OrderRow Order="@_order" OnDelete="DeleteAsync" />
+<RadzenDataGrid Data="@orders" TItem="Order">
+    <Columns>
+        <RadzenDataGridColumn TItem="Order" Property="Id">
+            <Template Context="order">@order.Id</Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+@if (orders is null)
+{
+    <p>Loading</p>
+}
+else if (orders.Count == 0)
+{
+    <p>None</p>
+}
+else
+{
+    @foreach (var item in orders)
+    {
+        @if (item.Done) { <p>Done</p> }
+    }
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    int total;
+    Order _order = new();
+    List<Order> orders = new();
+    Func<int, string> format = value => value.ToString("C");
+
+    protected override async Task OnInitializedAsync()
+    {
+        orders = await Http.GetFromJsonAsync<List<Order>>("api/orders");
+        await Http.PostAsJsonAsync("api/orders/audit", orders);
+        var cut = Render<OrderRow>();
+        Func<int, int> twice = x => x * 2;
+    }
+
+    private async Task Refresh() => _order = await Service.GetAsync(Id);
+    private Task DeleteAsync() => Task.CompletedTask;
+    private void Back() => Nav.NavigateTo("orders/list");
+    private void Remove(int id) => Nav.NavigateTo($"/orders/{id}/delete");
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+    public class BaseRow { public virtual string Render() => ""; }
+    public class ItemRow : BaseRow
+    {
+        public override string Render() => base.Render() + "x";
+        public void Redraw() { this.Render(); Render(); }
+    }
+}

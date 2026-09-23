@@ -9,34 +9,6 @@
       "start_line": 1,
       "start_column": 0,
       "end_line": 1,
-      "end_column": 1,
-      "start_byte": 0,
-      "end_byte": 1,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "@namespace Sample.Components",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/razor/typeparam/GenericList.razor:@namespace:1:0",
-      "metadata": {
-        "directiveType": "namespace",
-        "directiveValue": "Sample.Components",
-        "type": "razor-token-directive"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
-      "key": "fixtures/extraction/razor/typeparam/GenericList.razor:@namespace:1:0",
-      "name": "@namespace",
-      "kind": "import",
-      "language": "razor",
-      "file_path": "fixtures/extraction/razor/typeparam/GenericList.razor",
-      "start_line": 1,
-      "start_column": 0,
-      "end_line": 1,
       "end_column": 28,
       "start_byte": 0,
       "end_byte": 28,
@@ -57,34 +29,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/razor/typeparam/GenericList.razor:@namespace:1:1",
-      "name": "@namespace",
-      "kind": "import",
-      "language": "razor",
-      "file_path": "fixtures/extraction/razor/typeparam/GenericList.razor",
-      "start_line": 1,
-      "start_column": 1,
-      "end_line": 1,
-      "end_column": 10,
-      "start_byte": 1,
-      "end_byte": 10,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "@namespace Sample.Components",
-      "doc_comment": null,
-      "visibility": "Public",
-      "parent_key": "fixtures/extraction/razor/typeparam/GenericList.razor:@namespace:1:0",
-      "metadata": {
-        "directiveType": "namespace",
-        "directiveValue": "Sample.Components",
-        "type": "razor-token-directive"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/razor/typeparam/GenericList.razor:GenericList:1:0",
       "name": "GenericList",
       "kind": "class",
@@ -97,21 +41,27 @@
       "start_byte": 0,
       "end_byte": 203,
       "body_span": {
-        "start_line": 6,
-        "start_column": 6,
-        "end_line": 9,
-        "end_column": 1,
-        "start_byte": 107,
-        "end_byte": 202
+        "start_line": 1,
+        "start_column": 0,
+        "end_line": 10,
+        "end_column": 0,
+        "start_byte": 0,
+        "end_byte": 203
       },
-      "body_hash": "6789d97ce81ac23a992f5f36a9e0fcdb",
-      "signature": "component Sample.Components.GenericList",
+      "body_hash": "dea070988f094057a3b4b98ff9eef8c5",
+      "signature": "component Sample.Components.GenericList<TItem>",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "qualifiedName": "Sample.Components.GenericList",
-        "type": "razor-component"
+        "type": "razor-component",
+        "typeParameterConstraints": {
+          "TItem": "where TItem : IEntity"
+        },
+        "typeParameters": [
+          "TItem"
+        ]
       },
       "annotations": [],
       "semantic_group": null,
@@ -284,9 +234,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/razor/typeparam/GenericList.razor:Empty:type_usage:8:60",
+      "key": "fixtures/extraction/razor/typeparam/GenericList.razor:Empty:call:8:60",
       "name": "Empty",
-      "kind": "type_usage",
+      "kind": "call",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/typeparam/GenericList.razor",
       "start_line": 8,
@@ -295,22 +245,6 @@
       "end_column": 65,
       "start_byte": 185,
       "end_byte": 190,
-      "containing_key": "fixtures/extraction/razor/typeparam/GenericList.razor:GenericList:1:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/razor/typeparam/GenericList.razor:Empty<TItem>:call:8:60",
-      "name": "Empty<TItem>",
-      "kind": "call",
-      "language": "razor",
-      "file_path": "fixtures/extraction/razor/typeparam/GenericList.razor",
-      "start_line": 8,
-      "start_column": 60,
-      "end_line": 8,
-      "end_column": 72,
-      "start_byte": 185,
-      "end_byte": 197,
       "containing_key": "fixtures/extraction/razor/typeparam/GenericList.razor:GenericList:1:0",
       "target_key": null,
       "confidence": "1.000"
@@ -391,22 +325,6 @@
       "end_column": 71,
       "start_byte": 191,
       "end_byte": 196,
-      "containing_key": "fixtures/extraction/razor/typeparam/GenericList.razor:GenericList:1:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/razor/typeparam/GenericList.razor:TItem:variable_ref:2:23",
-      "name": "TItem",
-      "kind": "variable_ref",
-      "language": "razor",
-      "file_path": "fixtures/extraction/razor/typeparam/GenericList.razor",
-      "start_line": 2,
-      "start_column": 23,
-      "end_line": 2,
-      "end_column": 28,
-      "start_byte": 52,
-      "end_byte": 57,
       "containing_key": "fixtures/extraction/razor/typeparam/GenericList.razor:GenericList:1:0",
       "target_key": null,
       "confidence": "1.000"
@@ -542,7 +460,7 @@
   ],
   "type_argument_usages": [
     {
-      "identifier_key": "fixtures/extraction/razor/typeparam/GenericList.razor:Empty:type_usage:8:60",
+      "identifier_key": "fixtures/extraction/razor/typeparam/GenericList.razor:Empty:call:8:60",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/typeparam/GenericList.razor",
       "arguments": [

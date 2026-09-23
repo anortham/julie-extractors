@@ -15,6 +15,16 @@ impl super::RazorExtractor {
         symbols: &[Symbol],
     ) -> Vec<Identifier> {
         let containing_symbols = self.base.containing_symbol_index(symbols);
+        self.callable_names = symbols
+            .iter()
+            .filter(|symbol| {
+                matches!(
+                    symbol.kind,
+                    crate::base::SymbolKind::Method | crate::base::SymbolKind::Function
+                )
+            })
+            .map(|symbol| symbol.name.clone())
+            .collect();
 
         // Walk the tree and extract identifiers
         self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, 0);
@@ -106,31 +116,39 @@ impl super::RazorExtractor {
                 // Look for identifier or member_access_expression
                 let mut cursor = node.walk();
                 for child in node.children(&mut cursor) {
-                    if child.kind() == "identifier" {
+                    if matches!(child.kind(), "identifier" | "generic_name") {
+                        let child = generic_head(child);
                         let name = self.base.get_node_text(&child);
                         let containing_symbol_id =
                             self.find_containing_symbol_id(node, containing_symbols);
 
-                        self.base.create_identifier(
+                        let identifier = self.base.create_identifier(
                             &child,
                             name,
                             IdentifierKind::Call,
                             containing_symbol_id,
                         );
+                        record_outermost_generic_type_arguments(&mut self.base, child, &identifier);
                         break;
                     } else if child.kind() == "member_access_expression" {
                         // For member access, extract the rightmost identifier (the method name)
                         if let Some(name_node) = child.child_by_field_name("name") {
+                            let name_node = generic_head(name_node);
                             let name = self.base.get_node_text(&name_node);
                             let containing_symbol_id =
                                 self.find_containing_symbol_id(node, containing_symbols);
                             let receiver_type = self_receiver_type(&self.base, child);
-                            self.base.create_identifier_with_receiver_type(
+                            let identifier = self.base.create_identifier_with_receiver_type(
                                 &name_node,
                                 name,
                                 IdentifierKind::Call,
                                 containing_symbol_id,
                                 receiver_type,
+                            );
+                            record_outermost_generic_type_arguments(
+                                &mut self.base,
+                                name_node,
+                                &identifier,
                             );
                         }
                         break;
@@ -199,10 +217,22 @@ impl super::RazorExtractor {
                 let name = self.base.get_node_text(&node);
                 // Rule 5: reuse the existing builtin/keyword filter (`this`/`true`/
                 // `false`/`null` are distinct grammar nodes and never reach here).
-                if is_csharp_builtin_type(&name) {
+                if is_csharp_builtin_type(&name) || is_invoked_generic_head(node) {
                     return;
                 }
-                if is_csharp_type_usage_identifier(node) {
+                if super::method_group_attribute(node).is_some_and(|attribute| {
+                    self.callable_names.contains(&name)
+                        || super::is_event_attribute(attribute, &self.base.content)
+                }) {
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
+                    self.base.create_identifier(
+                        &node,
+                        name,
+                        IdentifierKind::Call,
+                        containing_symbol_id,
+                    );
+                } else if is_csharp_type_usage_identifier(node) {
                     let containing_symbol_id =
                         self.find_containing_symbol_id(node, containing_symbols);
                     let identifier = self.base.create_identifier(
@@ -387,6 +417,44 @@ fn direct_identifier<'a>(base: &BaseExtractor, node: Node<'a>) -> Option<(Node<'
     None
 }
 
+/// The name identifier of a `generic_name` (`Render` in `Render<Counter>`);
+/// any other node is its own name.
+fn generic_head(node: Node) -> Node {
+    if node.kind() != "generic_name" {
+        return node;
+    }
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .find(|child| child.kind() == "identifier")
+        .unwrap_or(node)
+}
+
+/// Whether `node` names the method a generic call invokes: `Render` in
+/// `Render<Counter>()` or `GetFromJsonAsync` in `Http.GetFromJsonAsync<T>()`.
+/// The call arm owns it; its type arguments stay type usages.
+fn is_invoked_generic_head(node: Node) -> bool {
+    let Some(generic) = node
+        .parent()
+        .filter(|parent| parent.kind() == "generic_name")
+    else {
+        return false;
+    };
+    let callee = match generic.parent() {
+        Some(access)
+            if access.kind() == "member_access_expression"
+                && access.child_by_field_name("name").map(|name| name.id())
+                    == Some(generic.id()) =>
+        {
+            access
+        }
+        _ => generic,
+    };
+    callee.parent().is_some_and(|invocation| {
+        invocation.kind() == "invocation_expression"
+            && invocation.child_by_field_name("function").map(|f| f.id()) == Some(callee.id())
+    })
+}
+
 /// Returns `true` when `node` is an `identifier` used in a type-annotation position
 /// inside Razor/C# code (field type, parameter type, return type, generic arg, etc.).
 fn is_csharp_type_usage_identifier(node: Node) -> bool {
@@ -403,8 +471,18 @@ fn is_csharp_type_usage_identifier(node: Node) -> bool {
             return true;
         }
         match parent.kind() {
-            "generic_name" | "qualified_name" | "array_type" | "nullable_type" | "pointer_type"
-            | "tuple_type" | "type_argument_list" => return true,
+            "generic_name"
+            | "qualified_name"
+            | "array_type"
+            | "nullable_type"
+            | "pointer_type"
+            | "tuple_type"
+            | "type_argument_list"
+            | "base_list"
+            | "razor_inherits_directive"
+            | "razor_implements_directive"
+            | "razor_layout_directive"
+            | "razor_model_directive" => return true,
             "object_creation_expression" => {
                 if let Some(type_node) = parent.child_by_field_name("type")
                     && contains_node(type_node, node)
@@ -506,7 +584,10 @@ fn is_razor_value_read_identifier(node: Node) -> bool {
         "razor_inherits_directive"
         | "razor_implements_directive"
         | "razor_typeparam_directive"
-        | "razor_layout_directive" => false,
+        | "razor_layout_directive"
+        | "razor_model_directive"
+        | "type_parameter_constraints_clause"
+        | "razor_using_directive" => false,
 
         // Rule 1: an argument value is a read; the `name:` label of a named
         // argument (`foo(bar: 5)`) is a parameter name, not a read.
@@ -639,12 +720,15 @@ fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
 
 fn component_name_from_file_path(file_path: &str) -> Option<String> {
     let path = std::path::Path::new(file_path);
-    if path.extension().and_then(|extension| extension.to_str()) != Some("razor") {
+    if !matches!(
+        path.extension().and_then(|extension| extension.to_str()),
+        Some("razor" | "cshtml")
+    ) {
         return None;
     }
     if matches!(
         path.file_stem().and_then(|stem| stem.to_str()),
-        Some("_Imports" | "_ViewImports")
+        Some("_Imports" | "_ViewImports" | "_ViewStart")
     ) {
         return None;
     }

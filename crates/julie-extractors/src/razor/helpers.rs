@@ -150,9 +150,13 @@ impl super::RazorExtractor {
         attributes
     }
 
-    /// Determine visibility (public/private/protected) from modifiers
+    /// Determine visibility from modifiers. Code-block members, nested types,
+    /// and locals without an access modifier are private, as in C#.
     pub(super) fn determine_visibility(&self, modifiers: &[String]) -> Visibility {
-        crate::base::visibility::visibility_from_modifiers(modifiers)
+        crate::base::visibility::visibility_from_modifiers_with_default(
+            modifiers,
+            Visibility::Private,
+        )
     }
 
     /// Extract namespace name from a using directive or namespace declaration

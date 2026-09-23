@@ -3880,7 +3880,8 @@
       "rust",
       "bash",
       "vbnet",
-      "fsharp"
+      "fsharp",
+      "powershell"
     ],
     "metadata_keys": [
       {
@@ -3902,7 +3903,7 @@
         "value_type": "string"
       },
       {
-        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, req, tesla, httpoison, finch, httpc, wget).",
+        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, invoke-restmethod, invoke-webrequest, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, req, tesla, httpoison, finch, httpc, wget).",
         "key": "client",
         "presence": "always",
         "value_type": "string"
@@ -6901,6 +6902,144 @@
     "query_family": "metadata"
   },
   {
+    "description": "A key of a PowerShell data file (`.psd1`) hashtable.",
+    "languages": [
+      "powershell"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The key name.",
+        "key": "key",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Full dotted key path including the enclosing hashtable keys.",
+        "key": "key_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Kind of the value: string, number, boolean, array, hashtable, scriptblock, or expression.",
+        "key": "value_kind",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "powershell.data_key.v1",
+    "query_family": "config_structure"
+  },
+  {
+    "description": "A DSC resource instance inside a `Configuration` block (`WindowsFeature IIS { ... }`).",
+    "languages": [
+      "powershell"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The DSC resource type (`WindowsFeature`).",
+        "key": "resource_type",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The resource instance name (`IIS`).",
+        "key": "resource_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The enclosing `Configuration` name.",
+        "key": "configuration_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The argument text of the enclosing `Node` block, when there is one.",
+        "key": "node_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The `DependsOn` references (`[WindowsFeature]IIS`), when present.",
+        "key": "depends_on",
+        "presence": "optional",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "powershell.dsc_resource.v1",
+    "query_family": "configuration"
+  },
+  {
+    "description": "A PowerShell module manifest (`.psd1` hashtable that sets `RootModule` or `ModuleVersion`).",
+    "languages": [
+      "powershell"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `RootModule` value.",
+        "key": "root_module",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The `ModuleVersion` value.",
+        "key": "module_version",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The `GUID` value.",
+        "key": "guid",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The minimum `PowerShellVersion` value.",
+        "key": "powershell_version",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "powershell.module_manifest.v1",
+    "query_family": "module"
+  },
+  {
     "description": "A PowerShell `param(...)` block.",
     "languages": [
       "powershell"
@@ -8243,6 +8382,174 @@
     "query_family": "component_code"
   },
   {
+    "description": "A layout reference: a `Layout = \"_Layout\"` assignment or a Blazor `@layout` directive.",
+    "languages": [
+      "razor"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Layout name or type as written.",
+        "key": "layout",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Reference origin: assignment or directive.",
+        "key": "source_kind",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "razor.layout_reference.v1",
+    "query_family": "view_composition"
+  },
+  {
+    "description": "A tag-helper model binding: an `asp-for` or `asp-validation-for` attribute.",
+    "languages": [
+      "razor"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Bound model expression as written, without a leading `@`.",
+        "key": "model_expression",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Binding attribute: asp-for or asp-validation-for.",
+        "key": "attribute",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Element tag name.",
+        "key": "tag",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "razor.model_binding.v1",
+    "query_family": "form_binding"
+  },
+  {
+    "description": "An ASP.NET Core MVC or Razor Pages link to a page or controller action: an `asp-page`/`asp-controller`/`asp-action` tag helper, `Html.ActionLink`, `Html.BeginForm`, `Url.Action`, or `Url.Page`.",
+    "languages": [
+      "razor"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "`page` for a Razor Pages target, `action` for a controller action.",
+        "key": "target_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Link origin: tag_helper, html_helper, or url_helper.",
+        "key": "source_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Static page path (`asp-page`, `Url.Page`).",
+        "key": "page",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Static page handler name (`asp-page-handler`).",
+        "key": "page_handler",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Static controller name.",
+        "key": "controller",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Static action name.",
+        "key": "action",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Static area name (`asp-area`).",
+        "key": "area",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Element tag name, present for tag-helper links.",
+        "key": "tag",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Route value names from `asp-route-*` attributes, in source order; present for tag-helper links.",
+        "key": "route_value_names",
+        "presence": "optional",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "razor.mvc_link.v1",
+    "query_family": "server_navigation"
+  },
+  {
     "description": "A Razor `@page` directive.",
     "languages": [
       "razor"
@@ -8313,7 +8620,47 @@
     "query_family": "component_routing"
   },
   {
-    "description": "A Blazor NavigationManager call or static Razor href route reference.",
+    "description": "A partial view reference: `<partial name>` or an `Html.Partial`, `PartialAsync`, `RenderPartial`, or `RenderPartialAsync` call with a static name.",
+    "languages": [
+      "razor"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Partial view name or path as written.",
+        "key": "partial_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Reference origin: tag_helper or html_helper.",
+        "key": "source_kind",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "razor.partial_reference.v1",
+    "query_family": "view_composition"
+  },
+  {
+    "description": "A Blazor NavigationManager call or Razor `<a>`/`<NavLink>` href route reference.",
     "languages": [
       "csharp",
       "razor"
@@ -8338,7 +8685,7 @@
         "value_type": "string"
       },
       {
-        "description": "Raw static route path from the navigation target.",
+        "description": "Route path the target names. A base-relative target is resolved against the `/` app base path. Razor expressions and interpolation holes stay as `{expression}` segments.",
         "key": "target_path",
         "presence": "always",
         "value_type": "string"
@@ -8350,9 +8697,21 @@
         "value_type": "string"
       },
       {
-        "description": "Origin of the parsed route (string_literal).",
+        "description": "Origin of the parsed route: string_literal, interpolated_string (C# `$\"...\"`), or template_expression (href with `@expr`).",
         "key": "route_source",
         "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "True when the written target has no leading `/` and resolves against the app base path.",
+        "key": "base_relative",
+        "presence": "optional",
+        "value_type": "bool"
+      },
+      {
+        "description": "The target as written, present when base_relative is true.",
+        "key": "raw_target",
+        "presence": "optional",
         "value_type": "string"
       }
     ],
@@ -8398,6 +8757,52 @@
     ],
     "pattern_id": "razor.template_expression.v1",
     "query_family": "component_template"
+  },
+  {
+    "description": "A view component reference: `Component.InvokeAsync(\"Name\")`, `Component.InvokeAsync<T>()`, or a `<vc:name>` tag helper.",
+    "languages": [
+      "razor"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "View component name. A `<vc:shopping-cart>` tag gives the PascalCase form (`ShoppingCart`); other forms keep the name as written.",
+        "key": "component_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Reference origin: tag_helper or component_invoke.",
+        "key": "source_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `vc:` tag as written, for tag-helper references.",
+        "key": "tag",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "razor.view_component_reference.v1",
+    "query_family": "view_composition"
   },
   {
     "description": "A React Router route definition (JSX <Route> or route object).",

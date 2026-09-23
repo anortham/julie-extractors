@@ -210,18 +210,46 @@ fn navigation_call_fact(
         return None;
     }
     let expression = first_argument.named_child(0)?;
-    let target_path = static_route_arg(expression, content, StaticArgLang::CSharp)?;
-    if !is_internal_route(target_path) {
-        return None;
-    }
+    let (written, route_source) = match static_route_arg(expression, content, StaticArgLang::CSharp)
+    {
+        Some(literal) => (literal.to_string(), "string_literal"),
+        None => (
+            interpolated_route(expression, content)?,
+            "interpolated_string",
+        ),
+    };
+    let target = internal_route(&written, true)?;
 
     Some(route_reference_fact(
         invocation,
         language,
         file_path,
-        target_path,
-        source_kind,
+        &RouteReference {
+            target,
+            written: &written,
+            source_kind,
+            route_source,
+        },
     ))
+}
+
+/// The text of a C# interpolated string (`$"/orders/{id}"`), holes kept as
+/// written. A string that starts with a hole has no static route.
+fn interpolated_route(expression: Node<'_>, content: &str) -> Option<String> {
+    if expression.kind() != "interpolated_string_expression" {
+        return None;
+    }
+    let mut cursor = expression.walk();
+    let parts: Vec<Node> = expression
+        .named_children(&mut cursor)
+        .filter(|child| matches!(child.kind(), "string_content" | "interpolation"))
+        .collect();
+    if parts.first()?.kind() != "string_content" {
+        return None;
+    }
+    let start = parts.first()?.start_byte();
+    let end = parts.last()?.end_byte();
+    content.get(start..end).map(str::to_string)
 }
 
 fn receiver_is_navigation_manager(
@@ -276,11 +304,7 @@ fn collect_razor_hrefs(
     }
 
     if node.kind() == "element"
-        && let Some((target_path, value_start, value_end)) = href_literal(node, content)
-        && is_internal_route(target_path)
-        && !has_razor_expression_in_range(node, value_start, value_end, 0)
-        && let Some(fact) =
-            href_route_reference_fact(content, file_path, target_path, value_start, value_end)
+        && let Some(fact) = href_route_reference_fact(node, content, file_path)
     {
         facts.push(fact);
     }
@@ -295,69 +319,134 @@ fn collect_razor_hrefs(
     }
 }
 
-fn href_literal<'a>(node: Node<'_>, content: &'a str) -> Option<(&'a str, usize, usize)> {
+/// A `name="value"` attribute of an element's opening tag, with the byte
+/// range of its value and the Razor expressions inside the value.
+pub(super) struct TagAttribute<'a> {
+    pub(super) name: &'a str,
+    pub(super) value: &'a str,
+    pub(super) value_start: usize,
+    expressions: Vec<(usize, usize)>,
+}
+
+impl TagAttribute<'_> {
+    /// The value with each Razor expression (`@order.Id`, `@(order.Id)`)
+    /// written as `{order.Id}`, and whether it held one.
+    pub(super) fn templated_value(&self, content: &str) -> (String, bool) {
+        let mut out = String::new();
+        let mut cursor = self.value_start;
+        for &(start, end) in &self.expressions {
+            out.push_str(&content[cursor..start]);
+            let expression = content[start..end].trim_start_matches('@');
+            let expression = expression
+                .strip_prefix('(')
+                .and_then(|inner| inner.strip_suffix(')'))
+                .unwrap_or(expression);
+            out.push('{');
+            out.push_str(expression);
+            out.push('}');
+            cursor = end;
+        }
+        out.push_str(&content[cursor..self.value_start + self.value.len()]);
+        (out, !self.expressions.is_empty())
+    }
+}
+
+/// The tag name and valued attributes of an element's opening tag. Razor
+/// markup attributes are not grammar nodes, so the tag text is scanned,
+/// stepping over Razor expressions whose quotes and `>` belong to C#.
+pub(super) fn opening_tag_attributes<'a>(
+    node: Node<'_>,
+    content: &'a str,
+) -> Option<(&'a str, Vec<TagAttribute<'a>>)> {
     let bytes = content.as_bytes();
-    let mut cursor = node.start_byte() + 1;
-    let end = opening_tag_end(bytes, cursor, node.end_byte())?;
-    while cursor < end && is_attribute_name_byte(bytes[cursor]) {
+    let mut expressions = Vec::new();
+    collect_tag_expressions(node, 0, &mut expressions);
+    expressions.sort_unstable();
+    let skip_expression = |cursor: usize| {
+        expressions
+            .iter()
+            .find(|(start, _)| *start == cursor)
+            .map(|&(_, end)| end)
+    };
+
+    let tag_start = node.start_byte() + usize::from(bytes.get(node.start_byte()) == Some(&b'<'));
+    let mut cursor = tag_start;
+    while cursor < node.end_byte() && is_attribute_name_byte(bytes[cursor]) {
         cursor += 1;
     }
+    let tag = &content[tag_start..cursor];
 
+    let mut attributes = Vec::new();
     loop {
-        cursor = skip_whitespace(bytes, cursor, end);
-        if cursor >= end || matches!(bytes[cursor], b'>' | b'/') {
-            return None;
+        cursor = skip_whitespace(bytes, cursor, node.end_byte());
+        if cursor >= node.end_byte() || matches!(bytes[cursor], b'>' | b'/') {
+            return Some((tag, attributes));
+        }
+        if let Some(end) = skip_expression(cursor) {
+            cursor = end;
+            continue;
         }
         let name_start = cursor;
-        while cursor < end && is_attribute_name_byte(bytes[cursor]) {
+        while cursor < node.end_byte()
+            && (is_attribute_name_byte(bytes[cursor]) || bytes[cursor] == b'@')
+        {
             cursor += 1;
         }
         if cursor == name_start {
-            return None;
+            return Some((tag, attributes));
         }
         let name = &content[name_start..cursor];
-        cursor = skip_whitespace(bytes, cursor, end);
+        cursor = skip_whitespace(bytes, cursor, node.end_byte());
         if bytes.get(cursor) != Some(&b'=') {
             continue;
         }
-        cursor = skip_whitespace(bytes, cursor + 1, end);
+        cursor = skip_whitespace(bytes, cursor + 1, node.end_byte());
         let quote = *bytes.get(cursor)?;
         let quoted = matches!(quote, b'\'' | b'"');
         let value_start = cursor + usize::from(quoted);
         cursor = value_start;
-        while cursor < end
-            && if quoted {
-                bytes[cursor] != quote
-            } else {
-                !bytes[cursor].is_ascii_whitespace() && bytes[cursor] != b'>'
+        let mut value_expressions = Vec::new();
+        while cursor < node.end_byte() {
+            if let Some(end) = skip_expression(cursor) {
+                value_expressions.push((cursor, end));
+                cursor = end;
+                continue;
             }
-        {
+            let byte = bytes[cursor];
+            if (quoted && byte == quote)
+                || (!quoted && (byte.is_ascii_whitespace() || byte == b'>'))
+            {
+                break;
+            }
             cursor += 1;
         }
-        if quoted && (cursor >= end || bytes[cursor] != quote) {
-            return None;
+        if quoted && bytes.get(cursor) != Some(&quote) {
+            return Some((tag, attributes));
         }
-        let value_end = cursor;
+        attributes.push(TagAttribute {
+            name,
+            value: &content[value_start..cursor],
+            value_start,
+            expressions: value_expressions,
+        });
         cursor += usize::from(quoted);
-        if name.eq_ignore_ascii_case("href") {
-            return Some((&content[value_start..value_end], value_start, value_end));
-        }
     }
 }
 
-fn opening_tag_end(bytes: &[u8], mut cursor: usize, element_end: usize) -> Option<usize> {
-    let mut quote = None;
-    while cursor < element_end {
-        let byte = bytes[cursor];
-        match quote {
-            Some(active_quote) if byte == active_quote => quote = None,
-            None if matches!(byte, b'\'' | b'"') => quote = Some(byte),
-            None if byte == b'>' => return Some(cursor + 1),
-            _ => {}
+/// The Razor expressions of an element's own tag and attributes, not of its
+/// child elements.
+fn collect_tag_expressions(node: Node<'_>, depth: u32, out: &mut Vec<(usize, usize)>) {
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        if crate::razor::is_razor_expression_node_kind(child.kind()) {
+            out.push((child.start_byte(), child.end_byte()));
+        } else if child.kind() != "element" && should_visit_tree_depth(child_depth) {
+            collect_tag_expressions(child, child_depth, out);
         }
-        cursor += 1;
     }
-    None
 }
 
 fn skip_whitespace(bytes: &[u8], mut cursor: usize, end: usize) -> usize {
@@ -371,53 +460,93 @@ fn is_attribute_name_byte(byte: u8) -> bool {
     byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b':' | b'.')
 }
 
-fn has_razor_expression_in_range(node: Node<'_>, start: usize, end: usize, depth: u32) -> bool {
-    if !should_visit_tree_depth(depth) {
-        return false;
-    }
-
-    if node.start_byte() >= start && node.end_byte() <= end && node.kind().starts_with("razor_") {
-        return true;
-    }
-    let Some(child_depth) = child_tree_depth(depth) else {
-        return false;
-    };
-
-    let mut cursor = node.walk();
-    node.named_children(&mut cursor)
-        .any(|child| has_razor_expression_in_range(child, start, end, child_depth))
+/// A navigation target inside the app: a path (`/orders`) as written, or a
+/// base-relative target (`orders/list`, `""`) resolved against the app base
+/// path, which Blazor apps set to `/`. Absolute URLs, protocol-relative
+/// URLs, fragments, queries, and other schemes leave the app.
+struct InternalRoute {
+    path: String,
+    base_relative: bool,
 }
 
-fn is_internal_route(value: &str) -> bool {
-    value.starts_with('/') && !value.starts_with("//")
+fn internal_route(value: &str, allow_base_relative: bool) -> Option<InternalRoute> {
+    if value.starts_with("//") || value.starts_with('{') {
+        return None;
+    }
+    if value.starts_with('/') {
+        return Some(InternalRoute {
+            path: value.to_string(),
+            base_relative: false,
+        });
+    }
+    let has_scheme = value
+        .split_once(':')
+        .is_some_and(|(scheme, _)| !scheme.contains(['/', '{']));
+    if !allow_base_relative || has_scheme || value.starts_with(['#', '?', '.']) {
+        return None;
+    }
+    Some(InternalRoute {
+        path: format!("/{value}"),
+        base_relative: true,
+    })
+}
+
+struct RouteReference<'a> {
+    target: InternalRoute,
+    written: &'a str,
+    source_kind: &'a str,
+    route_source: &'a str,
 }
 
 fn route_reference_fact(
     node: Node<'_>,
     language: &str,
     file_path: &str,
-    target_path: &str,
-    source_kind: &str,
+    reference: &RouteReference<'_>,
 ) -> StructuralFact {
-    let metadata = route_reference_metadata(target_path, source_kind);
     fact_for_node(
         file_path,
         language,
         RAZOR_ROUTE_REFERENCE_PATTERN_ID,
         "route_reference",
         node,
-        metadata,
+        route_reference_metadata(reference),
     )
 }
 
+/// An `href` route reference. A base-relative target counts only on a
+/// navigation element (`<a>`, `<NavLink>`), since `<link href="css/app.css">`
+/// names an asset.
 fn href_route_reference_fact(
+    node: Node<'_>,
     content: &str,
     file_path: &str,
-    target_path: &str,
-    value_start: usize,
-    value_end: usize,
 ) -> Option<StructuralFact> {
-    let span = NormalizedSpan::from_content_range(content, value_start, value_end)?;
+    let (tag, attributes) = opening_tag_attributes(node, content)?;
+    let href = attributes
+        .iter()
+        .find(|attribute| attribute.name.eq_ignore_ascii_case("href"))?;
+    let (written, templated) = href.templated_value(content);
+    if written.contains('@') {
+        return None;
+    }
+    let is_navigation_element = tag.eq_ignore_ascii_case("a") || tag == "NavLink";
+    let target = internal_route(&written, is_navigation_element)?;
+    let span = NormalizedSpan::from_content_range(
+        content,
+        href.value_start,
+        href.value_start + href.value.len(),
+    )?;
+    let reference = RouteReference {
+        target,
+        written: &written,
+        source_kind: "href",
+        route_source: if templated {
+            "template_expression"
+        } else {
+            "string_literal"
+        },
+    };
     Some(fact_for_span(
         file_path,
         "razor",
@@ -425,17 +554,20 @@ fn href_route_reference_fact(
         "route_reference",
         "attribute_value",
         span,
-        route_reference_metadata(target_path, "href"),
+        route_reference_metadata(&reference),
     ))
 }
 
 fn route_reference_metadata(
-    target_path: &str,
-    source_kind: &str,
+    reference: &RouteReference<'_>,
 ) -> std::collections::HashMap<String, serde_json::Value> {
     let mut metadata = base_metadata("frontend_navigation", "blazor");
-    insert_string(&mut metadata, "target_path", target_path);
-    insert_string(&mut metadata, "source_kind", source_kind);
-    insert_string(&mut metadata, "route_source", "string_literal");
+    insert_string(&mut metadata, "target_path", &reference.target.path);
+    insert_string(&mut metadata, "source_kind", reference.source_kind);
+    insert_string(&mut metadata, "route_source", reference.route_source);
+    if reference.target.base_relative {
+        metadata.insert("base_relative".to_string(), serde_json::Value::Bool(true));
+        insert_string(&mut metadata, "raw_target", reference.written);
+    }
     metadata
 }

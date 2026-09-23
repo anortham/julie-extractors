@@ -10,6 +10,7 @@ mod dotnet;
 mod erlang;
 mod extra;
 mod jvm_native;
+mod powershell;
 mod qml;
 mod r;
 mod scripting;
@@ -24,6 +25,7 @@ pub(super) fn specs() -> Vec<StructuralFactPatternSpec> {
         extra::SPECS,
         qml::SPECS,
         dotnet::SPECS,
+        powershell::SPECS,
     ]
     .concat()
 }

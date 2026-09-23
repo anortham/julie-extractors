@@ -23,7 +23,7 @@
       "body_hash": "bf99df31fbb0f38f5ce19ccd4ae3cc4b",
       "signature": "RenderFragment? Badge(State state)",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": "fixtures/extraction/razor/attribute-expressions/directives/source.razor:source:1:0",
       "metadata": {
         "attributes": "",
@@ -50,21 +50,28 @@
       "start_byte": 0,
       "end_byte": 343,
       "body_span": {
-        "start_line": 7,
-        "start_column": 6,
-        "end_line": 13,
-        "end_column": 1,
-        "start_byte": 194,
-        "end_byte": 342
+        "start_line": 1,
+        "start_column": 0,
+        "end_line": 14,
+        "end_column": 0,
+        "start_byte": 0,
+        "end_byte": 343
       },
-      "body_hash": "2150784c000f174dae58707789f9ad8c",
-      "signature": "component source",
+      "body_hash": "3b5f72a1719c96c08519282490fd8fc1",
+      "signature": "component source<TItem>",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "qualifiedName": "source",
-        "type": "razor-component"
+        "renderMode": "InteractiveServerWithoutPrerendering",
+        "type": "razor-component",
+        "typeParameterConstraints": {
+          "TItem": "where TItem : IEntity, new()"
+        },
+        "typeParameters": [
+          "TItem"
+        ]
       },
       "annotations": [],
       "semantic_group": null,
@@ -363,22 +370,6 @@
       "start_byte": 265,
       "end_byte": 270,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/directives/source.razor:Badge:8:4",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/razor/attribute-expressions/directives/source.razor:TItem:variable_ref:2:23",
-      "name": "TItem",
-      "kind": "variable_ref",
-      "language": "razor",
-      "file_path": "fixtures/extraction/razor/attribute-expressions/directives/source.razor",
-      "start_line": 2,
-      "start_column": 23,
-      "end_line": 2,
-      "end_column": 28,
-      "start_byte": 72,
-      "end_byte": 77,
-      "containing_key": "fixtures/extraction/razor/attribute-expressions/directives/source.razor:source:1:0",
       "target_key": null,
       "confidence": "1.000"
     },

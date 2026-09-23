@@ -186,7 +186,19 @@
       }
     }
   ],
-  "types": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/powershell/return_types/source.ps1:Make:3:1",
+      "resolved_type": "Result",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "powershell",
+      "metadata": {
+        "declared": "[Result]"
+      }
+    }
+  ],
   "parse_diagnostics": [],
   "structural_facts": [
     {

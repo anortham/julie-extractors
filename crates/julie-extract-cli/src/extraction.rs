@@ -765,12 +765,19 @@ fn language_has_member_access(language: &str) -> bool {
 /// not a receiver.
 fn receiver_token_before(source: &str, at: usize, language: &str) -> Option<(String, usize)> {
     let arrow_is_member_access = matches!(language, "c" | "cpp" | "php");
+    // PowerShell reads `.` after whitespace as an argument (`dotnet restore .`),
+    // never as member access, so only an adjacent separator names a receiver.
+    let separator_may_follow_space = language != "powershell";
     let bytes = source.as_bytes();
     let mut cursor = at.min(bytes.len());
     // A member separator ends the previous line only in a trailing-dot chain;
     // across a line break the `.` is far more often the end of a comment or
     // sentence, so the separator must sit on the identifier's own line.
-    while cursor > 0 && bytes[cursor - 1].is_ascii_whitespace() && bytes[cursor - 1] != b'\n' {
+    while separator_may_follow_space
+        && cursor > 0
+        && bytes[cursor - 1].is_ascii_whitespace()
+        && bytes[cursor - 1] != b'\n'
+    {
         cursor -= 1;
     }
     let separator_width = if cursor >= 2
@@ -794,9 +801,10 @@ fn receiver_token_before(source: &str, at: usize, language: &str) -> Option<(Str
     {
         cursor -= 1;
     }
-    if language != "ruby" {
-        // `@` is part of a name only for Ruby `@ivar`/`@@cvar`; elsewhere a
-        // leading `@` is a decorator or annotation marker (`@app.route`).
+    if !matches!(language, "ruby" | "csharp") {
+        // `@` is part of a name only for Ruby `@ivar`/`@@cvar` and C# verbatim
+        // identifiers (`@class`); elsewhere a leading `@` is a decorator,
+        // annotation, or Razor transition marker (`@app.route`, `@Model`).
         while cursor < end && bytes[cursor] == b'@' {
             cursor += 1;
         }
@@ -1482,7 +1490,7 @@ mod tests {
     }
 
     #[test]
-    fn a_leading_at_sign_is_part_of_the_receiver_only_in_ruby() {
+    fn a_leading_at_sign_is_part_of_the_receiver_only_in_ruby_and_csharp() {
         assert_eq!(
             receiver_before_identifier("@service.run()", 9, "ruby"),
             Some("@service".to_string())
@@ -1504,6 +1512,43 @@ mod tests {
         assert_eq!(
             receiver_before_identifier("@app.route(\"/x\")", 5, "python"),
             Some("app".to_string())
+        );
+    }
+
+    #[test]
+    fn powershell_dot_argument_on_the_previous_line_is_not_a_receiver() {
+        let source = "dotnet restore .\n    Invoke-Compile -Configuration Release";
+        let start = source.find("Invoke-Compile").unwrap() as u32;
+        assert_eq!(
+            receiver_before_identifier(source, start, "powershell"),
+            None
+        );
+        let member = "$w.Run()";
+        let at = member.find("Run").unwrap() as u32;
+        assert_eq!(
+            receiver_before_identifier(member, at, "powershell"),
+            Some("$w".to_string())
+        );
+    }
+
+    #[test]
+    fn razor_transition_is_not_part_of_the_receiver() {
+        let source = "<td>@item.Price.ToString(\"C\")</td>";
+        let price = source.find("Price").unwrap() as u32;
+        assert_eq!(
+            receiver_before_identifier(source, price, "razor"),
+            Some("item".to_string())
+        );
+        let to_string = source.find("ToString").unwrap() as u32;
+        assert_eq!(
+            receiver_qualifier_before_identifier(source, to_string, "razor"),
+            Some("item".to_string())
+        );
+        let verbatim = "@class.Name";
+        let at = verbatim.find("Name").unwrap() as u32;
+        assert_eq!(
+            receiver_before_identifier(verbatim, at, "csharp"),
+            Some("@class".to_string())
         );
     }
 

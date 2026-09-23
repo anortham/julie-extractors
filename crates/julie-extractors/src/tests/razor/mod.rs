@@ -100,6 +100,7 @@ mod current_syntax;
 #[cfg(test)]
 mod relationships;
 mod wave1_gaps;
+mod wave2_gaps;
 
 #[test]
 fn test_html_css_razor_symbol_names_use_specific_targets() {
@@ -394,16 +395,18 @@ mod razor_extractor_tests {
                 .contains("@inject IProductService ProductService")
         );
 
-        // Attribute directive
-        let attribute_directive = symbols.iter().find(|s| s.name == "@attribute");
-        assert!(attribute_directive.is_some());
+        assert!(!symbols.iter().any(|s| s.name == "@attribute"));
+        let component = symbols
+            .iter()
+            .find(|s| s.name == "test" && s.parent_id.is_none())
+            .expect("file component symbol");
         assert!(
-            attribute_directive
-                .unwrap()
-                .signature
-                .as_ref()
-                .unwrap()
-                .contains("[Authorize]")
+            component
+                .annotations
+                .iter()
+                .any(|marker| marker.annotation == "Authorize"),
+            "{:?}",
+            component.annotations
         );
 
         // Code block variables
@@ -2709,13 +2712,19 @@ mod razor_variable_ref_tests {
             "total",          // declarator RHS + argument read
             "currentTitle",   // razor implicit expression @currentTitle
             "viewer",         // razor implicit expression receiver @viewer.Name
-            "IncrementCount", // Blazor event-handler attribute value
         ] {
             assert!(
                 var_refs.contains(&expected),
                 "expected variable_ref for {expected}; got {var_refs:?}"
             );
         }
+
+        assert!(
+            identifiers
+                .iter()
+                .any(|id| id.name == "IncrementCount" && id.kind == IdentifierKind::Call),
+            "a Blazor event-handler method group must be a call"
+        );
 
         // Receiver + call coexist: GraphTraversal.Reach()
         assert!(

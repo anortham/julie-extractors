@@ -1,0 +1,326 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:@page:1:0",
+      "name": "@page",
+      "kind": "import",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 5,
+      "start_byte": 0,
+      "end_byte": 5,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "@page",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "directiveName": "page",
+        "type": "razor-directive"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:Index:1:0",
+      "name": "Index",
+      "kind": "class",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 68,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 0,
+        "end_line": 4,
+        "end_column": 0,
+        "start_byte": 0,
+        "end_byte": 68
+      },
+      "body_hash": "03f92dcde22f542a1c4ca4f5f03b086b",
+      "signature": "page Index",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "qualifiedName": "Index",
+        "type": "razor-view"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:Model:2:0",
+      "name": "Model",
+      "kind": "property",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 17,
+      "start_byte": 6,
+      "end_byte": 23,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "@model IndexModel",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:Index:1:0",
+      "metadata": {
+        "directiveName": "model",
+        "directiveValue": "IndexModel",
+        "type": "razor-directive"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:Index:1:0",
+      "callee_name": "Url.Page",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml",
+      "line_number": 3,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:Index:1:0",
+        "callee_name": "Url.Page",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml",
+        "line_number": 3,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Url.Page",
+        "terminal_name": "Page",
+        "receiver": "Url",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:Index:1:0",
+      "span": {
+        "start_line": 3,
+        "start_column": 10,
+        "end_line": 3,
+        "end_column": 18,
+        "start_byte": 34,
+        "end_byte": 42
+      }
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:IndexModel:type_usage:2:7",
+      "name": "IndexModel",
+      "kind": "type_usage",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml",
+      "start_line": 2,
+      "start_column": 7,
+      "end_line": 2,
+      "end_column": 17,
+      "start_byte": 13,
+      "end_byte": 23,
+      "containing_key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:Index:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:Page:call:3:14",
+      "name": "Page",
+      "kind": "call",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml",
+      "start_line": 3,
+      "start_column": 14,
+      "end_line": 3,
+      "end_column": 18,
+      "start_byte": 38,
+      "end_byte": 42,
+      "containing_key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:Index:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:Url:variable_ref:3:10",
+      "name": "Url",
+      "kind": "variable_ref",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml",
+      "start_line": 3,
+      "start_column": 10,
+      "end_line": 3,
+      "end_column": 13,
+      "start_byte": 34,
+      "end_byte": 37,
+      "containing_key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:Index:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:Model:2:0",
+      "resolved_type": "IndexModel",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "razor",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "razor.mvc_link.v1",
+      "capture_name": "mvc_link",
+      "node_kind": "invocation_expression",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml",
+      "containing_key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:Index:1:0",
+      "start_line": 3,
+      "start_column": 10,
+      "end_line": 3,
+      "end_column": 30,
+      "start_byte": 34,
+      "end_byte": 54,
+      "confidence": "1.000",
+      "metadata": {
+        "framework": "aspnetcore",
+        "page": "/Privacy",
+        "pattern_version": 1,
+        "query_family": "server_navigation",
+        "source_kind": "url_helper",
+        "target_kind": "page"
+      }
+    },
+    {
+      "pattern_id": "razor.page_directive.v1",
+      "capture_name": "page_directive",
+      "node_kind": "razor_page_directive",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml",
+      "containing_key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:Index:1:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 5,
+      "start_byte": 0,
+      "end_byte": 5,
+      "confidence": "1.000",
+      "metadata": {
+        "directive": "page",
+        "framework": "razor",
+        "has_route_constraints": false,
+        "normalized_route_template": "/",
+        "pattern_version": 1,
+        "query_family": "component_routing",
+        "route": "/",
+        "route_parameter_count": 0,
+        "route_parameters": [],
+        "route_template": ""
+      }
+    },
+    {
+      "pattern_id": "razor.template_expression.v1",
+      "capture_name": "template_expression",
+      "node_kind": "razor_implicit_expression",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml",
+      "containing_key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:Index:1:0",
+      "start_line": 3,
+      "start_column": 9,
+      "end_line": 3,
+      "end_column": 30,
+      "start_byte": 33,
+      "end_byte": 54,
+      "confidence": "1.000",
+      "metadata": {
+        "expression": "Url.Page(\"/Privacy\")",
+        "framework": "razor",
+        "implicit": true,
+        "pattern_version": 1,
+        "query_family": "component_template"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml",
+      "covered_lines": 4,
+      "covered_bytes": 68,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 68,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "/Privacy",
+      "kind": "other",
+      "carrier": "Page",
+      "arg_position": 0,
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml",
+      "start_line": 3,
+      "start_column": 19,
+      "end_line": 3,
+      "end_column": 29,
+      "start_byte": 43,
+      "end_byte": 53,
+      "containing_key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:Index:1:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml",
+      "containing_key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:Index:1:0",
+      "start_line": 3,
+      "start_column": 19,
+      "end_line": 3,
+      "end_column": 29,
+      "start_byte": 43,
+      "end_byte": 53,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

@@ -6,6 +6,7 @@ mod go;
 mod java;
 mod kotlin;
 mod php;
+mod powershell;
 mod python;
 mod ruby;
 mod rust;
@@ -41,6 +42,9 @@ pub(super) fn collect_backend_http_client_requests(
         "bash" => bash::collect_bash_http_client_requests(language, tree, file_path, content),
         "vbnet" => vbnet::collect_vbnet_http_client_requests(language, tree, file_path, content),
         "fsharp" => fsharp::collect_fsharp_http_client_requests(language, tree, file_path, content),
+        "powershell" => {
+            powershell::collect_powershell_http_client_requests(language, tree, file_path, content)
+        }
         _ => Vec::new(),
     }
 }

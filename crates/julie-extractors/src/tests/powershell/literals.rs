@@ -129,39 +129,27 @@ function Run-Query {
 }
 
 #[test]
-fn multiple_string_args_each_captured_carrier_agnostic() {
-    // `Invoke-RestMethod -Uri "url" -Body "payload"` — the extractor is
-    // carrier-AGNOSTIC: it captures BOTH string values under carrier
-    // "Invoke-RestMethod". Dropping non-matching literals is the artifact language-policy pass's
-    // job, not the extractor's. -Uri value is position 1, -Body value position 3.
+fn only_payload_arguments_are_captured() {
     let code = r#"
 function Post-Data {
-    Invoke-RestMethod -Uri "https://api.example.com/post" -Body "payload-data"
+    Invoke-RestMethod -Uri "https://api.example.com/post" -Body "payload-data" -ContentType 'application/json'
+    Invoke-Sqlcmd -ServerInstance 'sql01' -Query 'SELECT 1'
 }
 "#;
     let literals = capture(code);
     let texts: Vec<&str> = literals.iter().map(|l| l.literal_text.as_str()).collect();
-    assert!(
-        texts.contains(&"https://api.example.com/post") && texts.contains(&"payload-data"),
-        "both string values captured at the extractor layer, got {texts:?}"
-    );
-    for l in literals.iter().filter(|l| {
-        l.literal_text == "https://api.example.com/post" || l.literal_text == "payload-data"
-    }) {
-        assert_eq!(
-            l.carrier.as_deref(),
-            Some("Invoke-RestMethod"),
-            "carrier is the cmdlet name for every string value"
-        );
-    }
-    let body = literals
-        .iter()
-        .find(|l| l.literal_text == "payload-data")
-        .unwrap();
-    assert_eq!(
-        body.arg_position, 3,
-        "-Body value follows -Uri value: positions are -Uri(0) url(1) -Body(2) payload(3)"
-    );
+    assert_eq!(texts, ["https://api.example.com/post", "SELECT 1"]);
+    let url = &literals[0];
+    assert_eq!(url.carrier.as_deref(), Some("Invoke-RestMethod"));
+    assert_eq!(url.arg_position, 1);
+    assert_eq!(literals[1].arg_position, 3);
+}
+
+#[test]
+fn bare_positional_url_is_captured() {
+    let literals = capture("function F { irm https://api.contoso.com/health }\n");
+    let texts: Vec<&str> = literals.iter().map(|l| l.literal_text.as_str()).collect();
+    assert_eq!(texts, ["https://api.contoso.com/health"]);
 }
 
 #[test]

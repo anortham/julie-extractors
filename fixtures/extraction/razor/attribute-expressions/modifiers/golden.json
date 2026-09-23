@@ -150,14 +150,14 @@
       "start_byte": 0,
       "end_byte": 444,
       "body_span": {
-        "start_line": 6,
-        "start_column": 6,
-        "end_line": 11,
-        "end_column": 1,
-        "start_byte": 244,
-        "end_byte": 443
+        "start_line": 1,
+        "start_column": 0,
+        "end_line": 12,
+        "end_column": 0,
+        "start_byte": 0,
+        "end_byte": 444
       },
-      "body_hash": "a8ac16ec634644301f86a818124e72dc",
+      "body_hash": "2ed2042f041f3da100d782a1bb3902a7",
       "signature": "component source",
       "doc_comment": null,
       "visibility": "Public",
@@ -201,24 +201,57 @@
   "relationships": [
     {
       "from_key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:source:1:0",
-      "to_key": "unresolved:event-submit",
-      "kind": "uses",
+      "to_key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:LookupAsync:8:4",
+      "kind": "calls",
       "file_path": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor",
       "line_number": 1,
       "span": {
         "start_line": 1,
-        "start_column": 0,
+        "start_column": 17,
         "end_line": 1,
-        "end_column": 62,
-        "start_byte": 0,
-        "end_byte": 62
+        "end_column": 28,
+        "start_byte": 17,
+        "end_byte": 28
       },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": {
-        "event": "submit",
-        "type": "event-binding"
-      }
+      "reference_site_is_exact": true,
+      "confidence": "1.000",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:source:1:0",
+      "to_key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:SetValue:10:4",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor",
+      "line_number": 4,
+      "span": {
+        "start_line": 4,
+        "start_column": 36,
+        "end_line": 4,
+        "end_column": 44,
+        "start_byte": 224,
+        "end_byte": 232
+      },
+      "reference_site_is_exact": true,
+      "confidence": "1.000",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:source:1:0",
+      "to_key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:ValueUpdated:9:4",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor",
+      "line_number": 3,
+      "span": {
+        "start_line": 3,
+        "start_column": 50,
+        "end_line": 3,
+        "end_column": 62,
+        "start_byte": 171,
+        "end_byte": 183
+      },
+      "reference_site_is_exact": true,
+      "confidence": "1.000",
+      "metadata": null
     },
     {
       "from_key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:source:1:0",
@@ -351,9 +384,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:LookupAsync:variable_ref:1:17",
+      "key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:LookupAsync:call:1:17",
       "name": "LookupAsync",
-      "kind": "variable_ref",
+      "kind": "call",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor",
       "start_line": 1,
@@ -367,9 +400,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:SetValue:variable_ref:4:36",
+      "key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:SetValue:call:4:36",
       "name": "SetValue",
-      "kind": "variable_ref",
+      "kind": "call",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor",
       "start_line": 4,
@@ -447,9 +480,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:ValueUpdated:variable_ref:3:50",
+      "key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:ValueUpdated:call:3:50",
       "name": "ValueUpdated",
-      "kind": "variable_ref",
+      "kind": "call",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor",
       "start_line": 3,

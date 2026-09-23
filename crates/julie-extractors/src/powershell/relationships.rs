@@ -7,7 +7,7 @@ use crate::base::{
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
-use super::helpers::{class_base_name_nodes, find_class_name_node, find_command_name_node};
+use super::helpers::{class_base_name_nodes, find_class_name_node, invoked_command};
 
 /// Extract relationships from the AST
 pub(super) fn walk_tree_for_relationships(
@@ -22,7 +22,7 @@ pub(super) fn walk_tree_for_relationships(
     }
 
     match node.kind() {
-        "command" | "command_expression" | "pipeline" | "pipeline_expression" => {
+        "command" => {
             extract_command_relationships(extractor, node, symbols, relationships);
         }
         "invocation_expression" | "invokation_expression" => {
@@ -51,10 +51,9 @@ fn extract_command_relationships(
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
 ) {
-    let Some(command_name_node) = find_command_name_node(node) else {
+    let Some((command_name_node, command_name)) = invoked_command(&extractor.base, node) else {
         return;
     };
-    let command_name = extractor.base.get_node_text(&command_name_node);
     let Some(caller) = extractor
         .base
         .find_containing_symbol(&node, symbols)
@@ -63,11 +62,7 @@ fn extract_command_relationships(
         return;
     };
 
-    let symbol_map = crate::base::ScopedSymbolIndex::unique_symbol_map(symbols);
-    match symbol_map
-        .get(command_name.as_str())
-        .filter(|symbol| symbol.kind == SymbolKind::Function)
-    {
+    match local_command_target(symbols, &command_name) {
         Some(command_symbol) => {
             if caller.id != command_symbol.id {
                 relationships.push(extractor.base.create_relationship_at_target(
@@ -93,6 +88,42 @@ fn extract_command_relationships(
         }
         None => {}
     }
+}
+
+/// The same-file function a command name runs, matched without regard to
+/// case as PowerShell does, directly or through a same-file alias
+/// (`Set-Alias gt Get-Thing`). An ambiguous name resolves to nothing.
+fn local_command_target<'a>(symbols: &'a [Symbol], command_name: &str) -> Option<&'a Symbol> {
+    let unique_function = |name: &str| {
+        let mut matches = symbols.iter().filter(|symbol| {
+            symbol.kind == SymbolKind::Function
+                && is_command_function(symbol)
+                && symbol.name.eq_ignore_ascii_case(name)
+        });
+        let first = matches.next()?;
+        matches.next().is_none().then_some(first)
+    };
+    unique_function(command_name).or_else(|| {
+        symbols
+            .iter()
+            .filter(|symbol| {
+                symbol.kind == SymbolKind::Import && symbol.name.eq_ignore_ascii_case(command_name)
+            })
+            .find_map(|alias| {
+                let target = alias.metadata.as_ref()?.get("aliasTarget")?.as_str()?;
+                unique_function(target)
+            })
+    })
+}
+
+/// Functions a command can call: declared functions, not Pester blocks or
+/// build tasks, which share the function kind.
+fn is_command_function(symbol: &Symbol) -> bool {
+    symbol.metadata.as_ref().is_none_or(|metadata| {
+        ["role", "is_test", "test_container"]
+            .iter()
+            .all(|key| !metadata.contains_key(*key))
+    })
 }
 
 fn is_call_scope(symbol: &Symbol) -> bool {

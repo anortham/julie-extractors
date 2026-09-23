@@ -12,15 +12,8 @@
       "end_column": 23,
       "start_byte": 0,
       "end_byte": 23,
-      "body_span": {
-        "start_line": 1,
-        "start_column": 14,
-        "end_line": 1,
-        "end_column": 22,
-        "start_byte": 14,
-        "end_byte": 22
-      },
-      "body_hash": "70ed90aa867d2969962b1f2baae662ec",
+      "body_span": null,
+      "body_hash": null,
       "signature": "@page \"/todos/{id:int}\"",
       "doc_comment": null,
       "visibility": "Public",
@@ -49,13 +42,13 @@
       "end_byte": 146,
       "body_span": {
         "start_line": 1,
-        "start_column": 14,
-        "end_line": 3,
-        "end_column": 87,
-        "start_byte": 14,
-        "end_byte": 112
+        "start_column": 0,
+        "end_line": 6,
+        "end_column": 0,
+        "start_byte": 0,
+        "end_byte": 146
       },
-      "body_hash": "3bc806645d93f12a56ca4c0d76a5456e",
+      "body_hash": "324a9e3b4ae309d3084f335cfb222124",
       "signature": "component source",
       "doc_comment": null,
       "visibility": "Public",

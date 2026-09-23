@@ -12,15 +12,8 @@
       "end_column": 16,
       "start_byte": 0,
       "end_byte": 16,
-      "body_span": {
-        "start_line": 1,
-        "start_column": 7,
-        "end_line": 1,
-        "end_column": 15,
-        "start_byte": 7,
-        "end_byte": 15
-      },
-      "body_hash": "70ed90aa867d2969962b1f2baae662ec",
+      "body_span": null,
+      "body_hash": null,
       "signature": "@page \"{id:int}\"",
       "doc_comment": null,
       "visibility": "Public",
@@ -29,6 +22,40 @@
         "directiveName": "page",
         "directiveValue": "\"{id:int}\"",
         "type": "razor-directive"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Edit:1:0",
+      "name": "Edit",
+      "kind": "class",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 132,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 0,
+        "end_line": 5,
+        "end_column": 0,
+        "start_byte": 0,
+        "end_byte": 132
+      },
+      "body_hash": "d873339177f09ed5fc6637a589421175",
+      "signature": "page Edit",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "qualifiedName": "Edit",
+        "type": "razor-view"
       },
       "annotations": [],
       "semantic_group": null,
@@ -52,7 +79,7 @@
       "signature": "@inject IOrderFormatter Formatter",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Edit:1:0",
       "metadata": {
         "directiveName": "inject",
         "directiveValue": "IOrderFormatter Formatter",
@@ -80,7 +107,7 @@
       "signature": "@model ShopApp.Pages.Orders.EditModel",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Edit:1:0",
       "metadata": {
         "directiveName": "model",
         "directiveValue": "ShopApp.Pages.Orders.EditModel",
@@ -93,8 +120,44 @@
     }
   ],
   "relationships": [],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Edit:1:0",
+      "callee_name": "Formatter.FormatMoney",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml",
+      "line_number": 4,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Edit:1:0",
+        "callee_name": "Formatter.FormatMoney",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml",
+        "line_number": 4,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Formatter.FormatMoney",
+        "terminal_name": "FormatMoney",
+        "receiver": "Formatter",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Edit:1:0",
+      "span": {
+        "start_line": 4,
+        "start_column": 4,
+        "end_line": 4,
+        "end_column": 25,
+        "start_byte": 93,
+        "end_byte": 114
+      }
+    }
+  ],
   "identifiers": [
     {
       "key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:EditModel:type_usage:2:28",
@@ -108,7 +171,7 @@
       "end_column": 37,
       "start_byte": 45,
       "end_byte": 54,
-      "containing_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Model:2:0",
+      "containing_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Edit:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -124,7 +187,7 @@
       "end_column": 25,
       "start_byte": 103,
       "end_byte": 114,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Edit:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -140,7 +203,7 @@
       "end_column": 13,
       "start_byte": 93,
       "end_byte": 102,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Edit:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -156,7 +219,7 @@
       "end_column": 23,
       "start_byte": 63,
       "end_byte": 78,
-      "containing_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Formatter:3:0",
+      "containing_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Edit:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -172,7 +235,7 @@
       "end_column": 31,
       "start_byte": 115,
       "end_byte": 120,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Edit:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -188,7 +251,7 @@
       "end_column": 27,
       "start_byte": 38,
       "end_byte": 44,
-      "containing_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Model:2:0",
+      "containing_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Edit:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -204,7 +267,7 @@
       "end_column": 20,
       "start_byte": 32,
       "end_byte": 37,
-      "containing_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Model:2:0",
+      "containing_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Edit:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -220,7 +283,7 @@
       "end_column": 14,
       "start_byte": 24,
       "end_byte": 31,
-      "containing_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Model:2:0",
+      "containing_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Edit:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -236,7 +299,7 @@
       "end_column": 37,
       "start_byte": 121,
       "end_byte": 126,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Edit:1:0",
       "target_key": null,
       "confidence": "1.000"
     }
@@ -269,7 +332,7 @@
       "node_kind": "razor_page_directive",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Edit:1:0",
       "start_line": 1,
       "start_column": 0,
       "end_line": 1,
@@ -303,7 +366,7 @@
       "node_kind": "razor_implicit_expression",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Edit:1:0",
       "start_line": 4,
       "start_column": 3,
       "end_line": 4,

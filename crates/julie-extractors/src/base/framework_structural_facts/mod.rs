@@ -22,6 +22,7 @@ mod python_web;
 mod r;
 mod rails;
 mod razor;
+mod razor_mvc;
 mod scan;
 mod sinatra;
 mod spring;
@@ -126,6 +127,12 @@ pub(super) const RAZOR_PAGE_DIRECTIVE_PATTERN_ID: &str = "razor.page_directive.v
 pub(super) const RAZOR_ROUTE_REFERENCE_PATTERN_ID: &str = "razor.route_reference.v1";
 pub(super) const RAZOR_CODE_BLOCK_PATTERN_ID: &str = "razor.code_block.v1";
 pub(super) const RAZOR_TEMPLATE_EXPRESSION_PATTERN_ID: &str = "razor.template_expression.v1";
+pub(super) const RAZOR_MVC_LINK_PATTERN_ID: &str = "razor.mvc_link.v1";
+pub(super) const RAZOR_PARTIAL_REFERENCE_PATTERN_ID: &str = "razor.partial_reference.v1";
+pub(super) const RAZOR_VIEW_COMPONENT_REFERENCE_PATTERN_ID: &str =
+    "razor.view_component_reference.v1";
+pub(super) const RAZOR_LAYOUT_REFERENCE_PATTERN_ID: &str = "razor.layout_reference.v1";
+pub(super) const RAZOR_MODEL_BINDING_PATTERN_ID: &str = "razor.model_binding.v1";
 pub(super) const BLAZOR_COMPONENT_REFERENCE_PATTERN_ID: &str = "blazor.component_reference.v1";
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -267,9 +274,14 @@ const RAZOR_FRAMEWORK_PATTERN_IDS: &[&str] = &[
     HTMX_ATTRIBUTE_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
     RAZOR_CODE_BLOCK_PATTERN_ID,
+    RAZOR_LAYOUT_REFERENCE_PATTERN_ID,
+    RAZOR_MODEL_BINDING_PATTERN_ID,
+    RAZOR_MVC_LINK_PATTERN_ID,
     RAZOR_PAGE_DIRECTIVE_PATTERN_ID,
+    RAZOR_PARTIAL_REFERENCE_PATTERN_ID,
     RAZOR_ROUTE_REFERENCE_PATTERN_ID,
     RAZOR_TEMPLATE_EXPRESSION_PATTERN_ID,
+    RAZOR_VIEW_COMPONENT_REFERENCE_PATTERN_ID,
 ];
 
 pub fn collect_framework_structural_facts(
@@ -432,6 +444,7 @@ pub fn collect_framework_structural_facts(
         "lua" => collect_lua_framework_facts(language, tree, file_path, content),
         "r" => collect_r_framework_facts(language, tree, file_path, content),
         "bash" => collect_backend_http_client_requests(language, tree, file_path, content),
+        "powershell" => collect_backend_http_client_requests(language, tree, file_path, content),
         _ => Vec::new(),
     };
 
@@ -478,6 +491,7 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
         "php" => LARAVEL_PATTERN_IDS,
         "elixir" => ELIXIR_PATTERN_IDS,
         "rust" => RUST_PATTERN_IDS,
+        "powershell" => &[HTTP_CLIENT_REQUEST_PATTERN_ID],
         "vue" => COMPONENT_MARKUP_FRAMEWORK_PATTERN_IDS,
         "lua" => LUA_PATTERN_IDS,
         "r" => R_PATTERN_IDS,

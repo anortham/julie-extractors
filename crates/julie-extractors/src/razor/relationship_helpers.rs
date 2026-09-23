@@ -18,12 +18,53 @@ fn symbol_type(symbol: &Symbol) -> Option<&str> {
 pub(super) fn is_component_symbol(symbol: &Symbol) -> bool {
     matches!(
         symbol_type(symbol),
-        Some("razor-component") | Some("external-component") | Some("blazor-component")
+        Some("razor-component")
+            | Some("razor-view")
+            | Some("external-component")
+            | Some("blazor-component")
     )
 }
 
-fn is_invocation_symbol(symbol: &Symbol) -> bool {
-    matches!(symbol_type(symbol), Some("method-invocation"))
+fn is_type_scope(symbol: &Symbol) -> bool {
+    matches!(
+        symbol.kind,
+        SymbolKind::Class | SymbolKind::Struct | SymbolKind::Interface
+    )
+}
+
+/// The symbol a scope node declares: a callable, a type, or, for the file
+/// root, the file-derived class.
+fn scope_symbol<'a>(node: Node, symbols: &'a [Symbol]) -> Option<&'a Symbol> {
+    symbols.iter().find(|symbol| {
+        symbol.start_byte == node.start_byte() as u32
+            && symbol.end_byte == node.end_byte() as u32
+            && (is_type_scope(symbol)
+                || matches!(
+                    symbol.kind,
+                    SymbolKind::Method | SymbolKind::Function | SymbolKind::Constructor
+                ))
+    })
+}
+
+fn callable_member<'a>(symbols: &'a [Symbol], scope_id: &str, name: &str) -> Option<&'a Symbol> {
+    symbols.iter().find(|symbol| {
+        symbol.parent_id.as_deref() == Some(scope_id)
+            && matches!(symbol.kind, SymbolKind::Method | SymbolKind::Function)
+            && symbol.name == name
+    })
+}
+
+/// The method name a bare (`Save`), `this.Save`, or `base.Save` call names,
+/// without type arguments, and whether it names a base-type member.
+fn scoped_call_name(callee_text: &str) -> Option<(String, bool)> {
+    let name = callee_text.split('<').next().unwrap_or(callee_text).trim();
+    let (name, base_only) = match name.split_once('.') {
+        Some(("this", rest)) => (rest, false),
+        Some(("base", rest)) => (rest, true),
+        Some(_) => return None,
+        None => (name, false),
+    };
+    (!name.is_empty() && !name.contains('.')).then(|| (name.to_string(), base_only))
 }
 
 /// The unresolved target of a call written as `Name`, `receiver.Name`, or
@@ -134,7 +175,8 @@ impl super::RazorExtractor {
         ));
     }
 
-    /// Extract invocation relationships
+    /// Extract invocation relationships. A bare, `this.`, or `base.` call
+    /// resolves within its enclosing scopes; any other call stays pending.
     pub(super) fn extract_invocation_relationships(
         &self,
         node: Node,
@@ -144,7 +186,12 @@ impl super::RazorExtractor {
     ) {
         let method_node = self.find_child_by_types(
             node,
-            &["identifier", "member_access_expression", "qualified_name"],
+            &[
+                "identifier",
+                "generic_name",
+                "member_access_expression",
+                "qualified_name",
+            ],
         );
         let Some(method_node) = method_node else {
             return;
@@ -159,38 +206,20 @@ impl super::RazorExtractor {
             return;
         };
 
-        let invocation_symbol = self.find_invocation_symbol(node, symbols, &method_name);
-
         let target = call_target(&method_name);
-        let local_name = if target.receiver.is_none() {
-            target.terminal_name.as_str()
-        } else {
-            method_name.as_str()
-        };
-        let callee_symbol = symbols.iter().find(|symbol| {
-            !is_invocation_symbol(symbol)
-                && matches!(
-                    symbol.kind,
-                    SymbolKind::Function
-                        | SymbolKind::Method
-                        | SymbolKind::Class
-                        | SymbolKind::Module
-                )
-                && symbol.name == local_name
-        });
-
         let component_target = if method_name.contains("Component.InvokeAsync") {
             self.find_component_target_for_invocation(node, symbols)
         } else {
             None
         };
+        let callee_symbol = scoped_call_name(&method_name).and_then(|(name, base_only)| {
+            self.resolve_scoped_callee(node, &name, base_only, symbols)
+        });
 
         let target_id = if let Some(component_symbol) = component_target {
             component_symbol.id.clone()
         } else if let Some(target) = callee_symbol {
             target.id.clone()
-        } else if let Some(invocation) = invocation_symbol {
-            invocation.id.clone()
         } else {
             pending.push(
                 self.base
@@ -220,60 +249,11 @@ impl super::RazorExtractor {
             "method".to_string(),
             serde_json::Value::String(method_name.clone()),
         );
-
         if let Some(component_symbol) = component_target {
             metadata.insert(
                 "component".to_string(),
                 serde_json::Value::String(component_symbol.name.clone()),
             );
-        } else if let Some(invocation) = invocation_symbol
-            && let Some(invocation_meta) = invocation.metadata.as_ref()
-        {
-            if let Some(arguments) = invocation_meta
-                .get("arguments")
-                .and_then(|value| value.as_str())
-            {
-                metadata.insert(
-                    "arguments".to_string(),
-                    serde_json::Value::String(arguments.to_string()),
-                );
-            }
-            if let Some(component_invocation) = invocation_meta
-                .get("isComponentInvocation")
-                .and_then(|value| value.as_bool())
-            {
-                metadata.insert(
-                    "isComponentInvocation".to_string(),
-                    serde_json::Value::Bool(component_invocation),
-                );
-            }
-            if let Some(html_helper) = invocation_meta
-                .get("isHtmlHelper")
-                .and_then(|value| value.as_bool())
-            {
-                metadata.insert(
-                    "isHtmlHelper".to_string(),
-                    serde_json::Value::Bool(html_helper),
-                );
-            }
-            if let Some(render_section) = invocation_meta
-                .get("isRenderSection")
-                .and_then(|value| value.as_bool())
-            {
-                metadata.insert(
-                    "isRenderSection".to_string(),
-                    serde_json::Value::Bool(render_section),
-                );
-            }
-            if let Some(render_body) = invocation_meta
-                .get("isRenderBody")
-                .and_then(|value| value.as_bool())
-            {
-                metadata.insert(
-                    "isRenderBody".to_string(),
-                    serde_json::Value::Bool(render_body),
-                );
-            }
         }
 
         relationships.push(self.base.create_relationship(
@@ -286,34 +266,91 @@ impl super::RazorExtractor {
         ));
     }
 
+    /// The same-file method or local function a scoped call runs: the
+    /// innermost enclosing scope that declares a callable of that name, where
+    /// a type scope also searches its same-file base types. A `base.` call
+    /// searches only the base types of the innermost enclosing type.
+    pub(super) fn resolve_scoped_callee<'a>(
+        &self,
+        node: Node,
+        name: &str,
+        base_only: bool,
+        symbols: &'a [Symbol],
+    ) -> Option<&'a Symbol> {
+        let mut current = node.parent();
+        while let Some(ancestor) = current {
+            current = ancestor.parent();
+            let Some(scope) = scope_symbol(ancestor, symbols) else {
+                continue;
+            };
+            let is_type = is_type_scope(scope);
+            if !(base_only && is_type)
+                && let Some(member) = callable_member(symbols, &scope.id, name)
+            {
+                return Some(member);
+            }
+            if is_type && ancestor.kind() != "compilation_unit" {
+                if let Some(inherited) = self.inherited_callable(ancestor, name, symbols, 0) {
+                    return Some(inherited);
+                }
+                if base_only {
+                    return None;
+                }
+            }
+        }
+        None
+    }
+
+    fn inherited_callable<'a>(
+        &self,
+        type_node: Node,
+        name: &str,
+        symbols: &'a [Symbol],
+        depth: u32,
+    ) -> Option<&'a Symbol> {
+        if !should_visit_tree_depth(depth) {
+            return None;
+        }
+        let child_depth = child_tree_depth(depth)?;
+        let base_list = self.find_child_by_type(type_node, "base_list")?;
+        let mut root = type_node;
+        while let Some(parent) = root.parent() {
+            root = parent;
+        }
+        let mut cursor = base_list.walk();
+        let base_names: Vec<String> = base_list
+            .named_children(&mut cursor)
+            .map(|base| {
+                let text = self.base.get_node_text(&base);
+                let unqualified = text.split('<').next().unwrap_or(&text);
+                unqualified
+                    .rsplit('.')
+                    .next()
+                    .unwrap_or(unqualified)
+                    .trim()
+                    .to_string()
+            })
+            .collect();
+        base_names.iter().find_map(|base_name| {
+            let base_type = symbols
+                .iter()
+                .find(|symbol| is_type_scope(symbol) && &symbol.name == base_name)?;
+            callable_member(symbols, &base_type.id, name).or_else(|| {
+                let base_node = root.descendant_for_byte_range(
+                    base_type.start_byte as usize,
+                    base_type.end_byte as usize,
+                )?;
+                self.inherited_callable(base_node, name, symbols, child_depth)
+            })
+        })
+    }
+
     pub(super) fn resolve_calling_symbol<'a>(
         &self,
         node: Node<'a>,
         symbols: &'a [Symbol],
     ) -> Option<&'a Symbol> {
-        let mut current = self.base.find_containing_symbol(&node, symbols)?;
-        if is_invocation_symbol(current)
-            && let Some(parent_id) = &current.parent_id
-            && let Some(parent) = symbols.iter().find(|symbol| &symbol.id == parent_id)
-        {
-            current = parent;
-        }
-        Some(current)
-    }
-
-    fn find_invocation_symbol<'a>(
-        &self,
-        node: Node<'a>,
-        symbols: &'a [Symbol],
-        method_name: &str,
-    ) -> Option<&'a Symbol> {
-        let position = node.start_position();
-        symbols.iter().find(|symbol| {
-            is_invocation_symbol(symbol)
-                && symbol.name == method_name
-                && symbol.start_line == (position.row + 1) as u32
-                && symbol.start_column == position.column as u32
-        })
+        self.base.find_containing_symbol(&node, symbols)
     }
 
     pub(super) fn find_component_target_for_invocation<'a>(

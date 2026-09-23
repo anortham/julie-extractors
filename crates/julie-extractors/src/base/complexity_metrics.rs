@@ -618,7 +618,7 @@ fn config_for_language(language: &str) -> Option<ComplexityLanguageConfig> {
         "typescript" => Some(ECMASCRIPT_CONFIG),
         "tsx" => Some(ECMASCRIPT_CONFIG),
         "jsx" => Some(ECMASCRIPT_CONFIG),
-        "razor" => Some(CSHARP_CONFIG),
+        "razor" => Some(RAZOR_CONFIG),
         "zig" => Some(ZIG_CONFIG),
         "php" => Some(PHP_CONFIG),
         "ruby" => Some(RUBY_CONFIG),
@@ -750,6 +750,35 @@ const CSHARP_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
     parameter_container_node_kinds: &["parameter_list"],
     parameter_node_kinds: &["parameter"],
     ..DEFAULT_CONFIG
+};
+
+/// C# plus the Razor template control flow (`@if`, `@foreach`, `@switch`, ...).
+const RAZOR_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &[
+        "if_statement",
+        "switch_statement",
+        "switch_section",
+        "switch_expression",
+        "switch_expression_arm",
+        "catch_clause",
+        "conditional_expression",
+        "razor_if",
+        "razor_else_if",
+        "razor_switch",
+        "razor_switch_case",
+        "razor_catch",
+    ],
+    loop_node_kinds: &[
+        "for_statement",
+        "foreach_statement",
+        "while_statement",
+        "do_statement",
+        "razor_for",
+        "razor_foreach",
+        "razor_while",
+        "razor_do_while",
+    ],
+    ..CSHARP_CONFIG
 };
 
 const JAVA_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {

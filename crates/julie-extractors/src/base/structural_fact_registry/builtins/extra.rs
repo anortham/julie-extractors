@@ -1,4 +1,4 @@
-//! Built-in language-local SPECS for Zig, Bash, PowerShell, and GDScript.
+//! Built-in language-local SPECS for Zig, Bash, and GDScript.
 //!
 //! Authored metadata for [`super::super::StructuralFactPatternSpec`] entries.
 //! Public registry access remains through
@@ -116,56 +116,6 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 ALWAYS,
                 "Every name the declaration exports, in source order.",
             ),
-        ],
-    },
-    StructuralFactPatternSpec {
-        pattern_id: "powershell.cmdlet_binding_attribute.v1",
-        languages: &["powershell"],
-        query_family: "metadata",
-        description: "A PowerShell `[CmdletBinding()]` attribute.",
-        metadata_keys: &[
-            K_PATTERN_VERSION,
-            K_QUERY_FAMILY,
-            key(
-                "attribute_name",
-                STR,
-                ALWAYS,
-                "The attribute name (always \"CmdletBinding\").",
-            ),
-        ],
-    },
-    StructuralFactPatternSpec {
-        pattern_id: "powershell.param_block.v1",
-        languages: &["powershell"],
-        query_family: "parameters",
-        description: "A PowerShell `param(...)` block.",
-        metadata_keys: BASE_KEYS,
-    },
-    StructuralFactPatternSpec {
-        pattern_id: "powershell.pipeline_expression.v1",
-        languages: &["powershell"],
-        query_family: "pipeline",
-        description: "A PowerShell pipeline expression (`|`).",
-        metadata_keys: &[
-            K_PATTERN_VERSION,
-            K_QUERY_FAMILY,
-            key(
-                "pipeline_marker",
-                STR,
-                ALWAYS,
-                "Pipeline marker token (always \"|\").",
-            ),
-        ],
-    },
-    StructuralFactPatternSpec {
-        pattern_id: "powershell.class_definition.v1",
-        languages: &["powershell"],
-        query_family: "types",
-        description: "A PowerShell `class` definition.",
-        metadata_keys: &[
-            K_PATTERN_VERSION,
-            K_QUERY_FAMILY,
-            key("class_name", STR, OPT, "The PowerShell class name."),
         ],
     },
     StructuralFactPatternSpec {

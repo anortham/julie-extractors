@@ -8,7 +8,7 @@ use crate::base::{
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
-use super::helpers::find_command_name_node;
+use super::helpers::invoked_command;
 
 /// Extract all identifier usages (function calls, member access, etc.)
 pub(super) fn extract_identifiers(
@@ -66,10 +66,8 @@ fn extract_identifier_from_node(
 ) {
     match node.kind() {
         // PowerShell commands and cmdlet calls: Get-Process, Write-Host, etc.
-        "command" | "command_expression" => {
-            // Extract command name
-            if let Some(name_node) = find_command_name_node(node) {
-                let name = base.get_node_text(&name_node);
+        "command" => {
+            if let Some((name_node, name)) = invoked_command(base, node) {
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
                 base.create_identifier(
@@ -532,7 +530,7 @@ fn decompose_powershell_type_arg<'a>(
 // String-literal command-argument capture
 // ============================================================================
 
-/// Capture string-literal arguments of a PowerShell `command` node.
+/// Capture the payload arguments of a PowerShell `command` node.
 ///
 /// PowerShell is a COMMAND grammar, not `call_expression`: a `command` has a
 /// `command_name` field and a `command_elements` field holding the argument list
@@ -542,9 +540,10 @@ fn decompose_powershell_type_arg<'a>(
 /// config-free — `kind` is `Other` and the `src/` carrier gate reclassifies and
 /// drops, with `languages/powershell.toml` deciding which cmdlet names survive.
 ///
-/// The string value is nested
-/// (`array_literal_expression > unary_expression > string_literal`), so each
-/// argument subtree is walked and the outermost string-bearing node is decoded.
+/// Only payload values count: positional arguments and the values of
+/// [`PAYLOAD_PARAMETERS`]. A `-ContentType`, `-Headers`, or `-ServerInstance`
+/// value is not the request URL or query. A string value is decoded; a bare
+/// positional or payload word (`irm https://host/health`) is taken as written.
 /// `arg_position` counts over the non-separator `command_elements` children, so a
 /// `-Uri`/`-Query` flag occupies a position and the quoted value that follows
 /// reports the next index (a positional `Invoke-WebRequest "url"` reports 0).
@@ -555,33 +554,61 @@ fn record_command_arg_literals(
     containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     let Some(elements) = command_node.child_by_field_name("command_elements") else {
-        // command_expression / parameter-less forms have no element list.
         return;
     };
     let containing_symbol_id = find_containing_symbol_id(command_node, containing_symbols);
     let mut position = 0u32;
+    let mut bound_parameter: Option<String> = None;
     let mut cursor = elements.walk();
     for child in elements.children(&mut cursor) {
-        // Whitespace separators are not arguments; skip without advancing.
         if child.kind() == "command_argument_sep" {
             continue;
         }
-        let mut strings = Vec::new();
-        collect_string_literals(child, &mut strings);
-        for string_node in strings {
-            if let Some(text) = decode_ps_string_literal(base, &string_node) {
+        if child.kind() == "command_parameter" {
+            let text = base.get_node_text(&child);
+            bound_parameter = Some(
+                text.trim_start_matches('-')
+                    .trim_end_matches(':')
+                    .to_ascii_lowercase(),
+            );
+            position += 1;
+            continue;
+        }
+        let is_payload = bound_parameter
+            .take()
+            .is_none_or(|parameter| PAYLOAD_PARAMETERS.contains(&parameter.as_str()));
+        if is_payload {
+            if child.kind() == "generic_token" {
+                let text = base.get_node_text(&child);
                 base.record_literal(
-                    &string_node,
+                    &child,
                     text,
                     Some(carrier.to_string()),
                     position,
                     containing_symbol_id.clone(),
                 );
             }
+            let mut strings = Vec::new();
+            collect_string_literals(child, &mut strings);
+            for string_node in strings {
+                if let Some(text) = decode_ps_string_literal(base, &string_node) {
+                    base.record_literal(
+                        &string_node,
+                        text,
+                        Some(carrier.to_string()),
+                        position,
+                        containing_symbol_id.clone(),
+                    );
+                }
+            }
         }
         position += 1;
     }
 }
+
+/// Parameters whose value is a request URL or a query: `Invoke-RestMethod
+/// -Uri`, `Invoke-Sqlcmd -Query`.
+const PAYLOAD_PARAMETERS: [&str; 3] = ["uri", "url", "query"];
 
 /// Collect the outermost string-bearing nodes within an argument subtree.
 ///

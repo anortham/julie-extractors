@@ -104,7 +104,7 @@ pub(super) fn assignment_variable_node(node: Node) -> Option<Node> {
     }
 }
 
-fn record_type_literal(
+pub(super) fn record_type_literal(
     base: &mut BaseExtractor,
     symbol_id: &str,
     type_node: Node,
@@ -155,6 +155,12 @@ fn reduce_type_literal(base: &BaseExtractor, type_literal: Node) -> Option<Reduc
 
 fn record_inferred_rhs(base: &mut BaseExtractor, symbol_id: &str, value: Node, origin: Node) {
     let core = unwrap_expr(value);
+    if core.kind() == "cast_expression" {
+        if let Some(type_node) = direct_child(core, "type_literal") {
+            record_type_literal(base, symbol_id, type_node, true);
+        }
+        return;
+    }
     if let Some(type_name) = inferred_constructor_name(base, core, origin) {
         base.record_declared_type_fact_with_declared(
             symbol_id,
@@ -246,7 +252,7 @@ fn find_class_named(node: Node, name: &str, base: &BaseExtractor, depth: u32) ->
 fn unwrap_expr(node: Node) -> Node {
     let mut current = node;
     loop {
-        if !EXPR_WRAPPERS.contains(&current.kind()) {
+        if !EXPR_WRAPPERS.contains(&current.kind()) || current.named_child_count() != 1 {
             return current;
         }
         let Some(child) = first_named_child(current) else {
