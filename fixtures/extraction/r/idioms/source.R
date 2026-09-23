@@ -59,3 +59,41 @@ pipeline <- function(df, cfg) {
 result <- clean(data.frame())
 config <- yaml::read_yaml("config.yml")
 w <- Dog$new()
+
+#' A person record.
+Person <- setClass("Person", representation(name = "character", age = "numeric"))
+setClass("Employee", contains = "Person", slots = c(boss = "Person", salary = "numeric"))
+
+Account <- setRefClass("Account", fields = c(balance = "numeric"))
+Account$methods(
+  withdraw = function(x) {
+    balance <<- balance - x
+  },
+  report = function() cat(balance)
+)
+
+Counter <- R6::R6Class("Counter",
+  public = list(total = 0, add = function(n) private$log_it(n)),
+  private = list(log_it = function(n) message(n)),
+  active = list(doubled = function(value) self$total * 2)
+)
+
+Shape <- S7::new_class("Shape", properties = list(label = S7::class_character))
+area <- S7::new_generic("area", "shape")
+S7::method(area, Shape) <- function(shape) nchar(shape@label)
+
+#' @keywords internal
+.helper <- function(x) x
+
+loaders <- function(dir) {
+  source(file.path("R", "helpers.R"))
+  requireNamespace("jsonlite")
+  box::use(dplyr[filter, select], app/logic/utils)
+  pacman::p_load(tidyr)
+  shape <- Shape(label = "box")
+  for (row in dir) print(row)
+  fit <- lm(mpg ~ wt, data = mtcars)
+  mtcars |> subset(cyl == 4, select = mpg) |> summary()
+  ggplot2::facet_wrap(~ cyl)
+  area(shape)
+}

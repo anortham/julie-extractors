@@ -23,7 +23,7 @@
       "body_hash": "67c5476129175df28719628b008d9355",
       "signature": "Worker <- R6Class(\"Worker\")",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "r_class_system": "R6"
@@ -139,7 +139,7 @@
       "body_hash": "acdb0c6623c6af721021ed7691153a1e",
       "signature": "evaluate <- function(count, enabled)",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {},
       "annotations": [],
@@ -170,7 +170,7 @@
       "body_hash": "363bdca7cbcfaef7ecfdbc1ef28d0e2b",
       "signature": "helper <- function(value)",
       "doc_comment": "#' Increment a worker id.\n#' @param value worker id",
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {},
       "annotations": [],
@@ -220,7 +220,7 @@
       "body_hash": null,
       "signature": "id = NULL",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": "fixtures/extraction/r/basic/source.r:Worker:28:0",
       "metadata": {
         "member_visibility": "public",
@@ -280,7 +280,7 @@
       "body_hash": "2320041585b79dad53a9ecba872a143e",
       "signature": "initialize = function(id)",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": "fixtures/extraction/r/basic/source.r:Worker:28:0",
       "metadata": {
         "member_visibility": "public",
@@ -338,7 +338,7 @@
       "body_hash": "247e5c36fe0a130469449c4009117bbf",
       "signature": "run = function()",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": "fixtures/extraction/r/basic/source.r:Worker:28:0",
       "metadata": {
         "member_visibility": "public",
@@ -372,7 +372,7 @@
       "body_hash": "ebcf274488f163f2bdddc5e54aab13d5",
       "signature": "run_worker <- function(id)",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {},
       "annotations": [],
@@ -916,22 +916,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/r/basic/source.r:i:variable_ref:18:9",
-      "name": "i",
-      "kind": "variable_ref",
-      "language": "r",
-      "file_path": "fixtures/extraction/r/basic/source.r",
-      "start_line": 18,
-      "start_column": 9,
-      "end_line": 18,
-      "end_column": 10,
-      "start_byte": 270,
-      "end_byte": 271,
-      "containing_key": "fixtures/extraction/r/basic/source.r:evaluate:15:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/r/basic/source.r:i:variable_ref:19:23",
       "name": "i",
       "kind": "variable_ref",
@@ -996,22 +980,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/r/basic/source.r:id:variable_ref:31:4",
-      "name": "id",
-      "kind": "variable_ref",
-      "language": "r",
-      "file_path": "fixtures/extraction/r/basic/source.r",
-      "start_line": 31,
-      "start_column": 4,
-      "end_line": 31,
-      "end_column": 6,
-      "start_byte": 488,
-      "end_byte": 490,
-      "containing_key": "fixtures/extraction/r/basic/source.r:Worker:28:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/r/basic/source.r:id:variable_ref:33:17",
       "name": "id",
       "kind": "variable_ref",
@@ -1023,22 +991,6 @@
       "end_column": 19,
       "start_byte": 548,
       "end_byte": 550,
-      "containing_key": "fixtures/extraction/r/basic/source.r:initialize:32:4",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/r/basic/source.r:initialize:variable_ref:32:4",
-      "name": "initialize",
-      "kind": "variable_ref",
-      "language": "r",
-      "file_path": "fixtures/extraction/r/basic/source.r",
-      "start_line": 32,
-      "start_column": 4,
-      "end_line": 32,
-      "end_column": 14,
-      "start_byte": 503,
-      "end_byte": 513,
       "containing_key": "fixtures/extraction/r/basic/source.r:initialize:32:4",
       "target_key": null,
       "confidence": "1.000"
@@ -1105,38 +1057,6 @@
       "start_byte": 648,
       "end_byte": 658,
       "containing_key": "fixtures/extraction/r/basic/source.r:w:42:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/r/basic/source.r:public:variable_ref:30:2",
-      "name": "public",
-      "kind": "variable_ref",
-      "language": "r",
-      "file_path": "fixtures/extraction/r/basic/source.r",
-      "start_line": 30,
-      "start_column": 2,
-      "end_line": 30,
-      "end_column": 8,
-      "start_byte": 469,
-      "end_byte": 475,
-      "containing_key": "fixtures/extraction/r/basic/source.r:Worker:28:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/r/basic/source.r:run:variable_ref:35:4",
-      "name": "run",
-      "kind": "variable_ref",
-      "language": "r",
-      "file_path": "fixtures/extraction/r/basic/source.r",
-      "start_line": 35,
-      "start_column": 4,
-      "end_line": 35,
-      "end_column": 7,
-      "start_byte": 562,
-      "end_byte": 565,
-      "containing_key": "fixtures/extraction/r/basic/source.r:run:35:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1339,7 +1259,9 @@
       "confidence": "1.000",
       "metadata": {
         "pattern_version": 1,
-        "query_family": "pipeline"
+        "pipe_operator": "|>",
+        "query_family": "pipeline",
+        "stage_count": 1
       }
     }
   ],

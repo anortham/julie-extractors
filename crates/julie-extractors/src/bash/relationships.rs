@@ -3,9 +3,10 @@
 //! Handles extraction of relationships between symbols (calls, definitions, usages).
 
 use super::commands::{extract_source_target, is_import_command, is_shell_builtin};
+use super::invocations::{Invocation, invocations, static_command_name};
 use crate::base::{
-    ContainingSymbolIndex, LocalTargetResolution, Relationship, RelationshipKind,
-    ScopedSymbolIndex, SymbolKind, UnresolvedTarget,
+    ContainingSymbolIndex, LocalTargetResolution, NormalizedSpan, Relationship, RelationshipKind,
+    ScopedSymbolIndex, Symbol, SymbolKind, UnresolvedTarget,
 };
 use tree_sitter::Node;
 
@@ -18,9 +19,24 @@ impl super::BashExtractor {
         scoped_index: &ScopedSymbolIndex<'a>,
         relationships: &mut Vec<Relationship>,
     ) {
-        let Some(command_name_node) = self.find_command_name_node(node) else {
+        let Some((command_name_node, command_name)) = static_command_name(&self.base.content, node)
+        else {
             return;
         };
+        let targets = invocations(&self.base.content, node, &self.command_scope());
+        if !targets.is_empty() {
+            for target in targets {
+                let Some(caller) = function_symbols
+                    .find(target.anchor)
+                    .filter(|symbol| symbol.kind == SymbolKind::Function)
+                else {
+                    continue;
+                };
+                self.relate_call(caller, &target, scoped_index, relationships);
+            }
+            return;
+        }
+
         let Some(caller_symbol) = function_symbols
             .find(node)
             .filter(|symbol| symbol.kind == SymbolKind::Function)
@@ -28,19 +44,8 @@ impl super::BashExtractor {
         else {
             return;
         };
-        let (command_name_node, command_name) =
-            match super::test_calls::wrapped_callee(&self.base, node) {
-                Some(callee) => (callee, self.base.get_node_text(&callee)),
-                None => (
-                    command_name_node,
-                    self.base.get_node_text(&command_name_node),
-                ),
-            };
-        if super::test_calls::DSL_KEYWORDS.contains(&command_name.as_str()) {
-            return;
-        }
 
-        if is_import_command(&command_name) {
+        if is_import_command(&command_name, self.test_context()) {
             if let Some(target) = extract_source_target(&self.base, &command_name, node) {
                 let pending = self.base.create_pending_relationship(
                     caller_symbol.id.clone(),
@@ -54,24 +59,44 @@ impl super::BashExtractor {
             }
             return;
         }
+        if super::test_calls::DSL_KEYWORDS.contains(&command_name.as_str()) {
+            return;
+        }
 
-        let unresolved_target = UnresolvedTarget::simple(command_name.clone());
+        let target = Invocation {
+            name: command_name,
+            anchor: command_name_node,
+            range: command_name_node.byte_range(),
+            arguments: None,
+        };
+        self.relate_call(caller_symbol, &target, scoped_index, relationships);
+    }
 
-        match scoped_index.resolve_call_target(
-            &unresolved_target.terminal_name,
-            Some(caller_symbol),
-            unresolved_target.receiver.as_deref(),
-        ) {
+    fn relate_call<'a>(
+        &mut self,
+        caller: &Symbol,
+        target: &Invocation<'_>,
+        scoped_index: &ScopedSymbolIndex<'a>,
+        relationships: &mut Vec<Relationship>,
+    ) {
+        let span = self
+            .base
+            .span_for_byte_range(target.range.start, target.range.end)
+            .unwrap_or_else(|| NormalizedSpan::from_node(&target.anchor));
+        let unresolved_target = UnresolvedTarget::simple(target.name.clone());
+        match scoped_index.resolve_call_target(&target.name, Some(caller), None) {
             LocalTargetResolution::Resolved(called_symbol) => {
-                if caller_symbol.id != called_symbol.id {
-                    let relationship = self.base.create_relationship_at_target(
-                        caller_symbol.id.clone(),
+                if caller.id != called_symbol.id {
+                    let mut relationship = self.base.create_relationship_at_target(
+                        caller.id.clone(),
                         called_symbol.id.clone(),
                         RelationshipKind::Calls,
-                        &command_name_node,
+                        &target.anchor,
                         Some(0.95),
                         None,
                     );
+                    relationship.line_number = span.start_line;
+                    relationship.span = Some(span);
                     relationships.push(relationship);
                 }
             }
@@ -79,15 +104,18 @@ impl super::BashExtractor {
             | LocalTargetResolution::Ambiguous
             | LocalTargetResolution::Missing
             | LocalTargetResolution::ReceiverQualified => {
-                if !is_shell_builtin(&command_name) {
-                    let pending = self.base.create_pending_relationship_at_target(
-                        caller_symbol.id.clone(),
-                        unresolved_target,
-                        RelationshipKind::Calls,
-                        &command_name_node,
-                        Some(caller_symbol.id.clone()),
-                        Some(0.8),
-                    );
+                if !is_shell_builtin(&target.name) {
+                    let pending = self
+                        .base
+                        .create_pending_relationship_at_target(
+                            caller.id.clone(),
+                            unresolved_target,
+                            RelationshipKind::Calls,
+                            &target.anchor,
+                            Some(caller.id.clone()),
+                            Some(0.8),
+                        )
+                        .with_target_span(span);
                     self.add_structured_pending_relationship(pending);
                 }
             }

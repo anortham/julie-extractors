@@ -1,5 +1,16 @@
 #!/usr/bin/env bats
 
+load 'test_helper/bats-support/load'
+bats_load_library bats-file
+
+setup_file() {
+    export SHARED=1
+}
+
+teardown_file() {
+    rm -rf "$SHARED_DIR"
+}
+
 setup() {
     TMP="$(mktemp -d)"
 }
@@ -11,6 +22,7 @@ setup() {
 }
 
 @test "deploy rejects a missing config" {
-    run deploy --config missing.yaml
+    load helpers
+    run sudo deploy --config missing.yaml
     assert_failure
 }

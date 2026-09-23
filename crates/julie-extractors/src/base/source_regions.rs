@@ -73,6 +73,9 @@ pub fn collect_source_regions(
         &mut regions,
         0,
     );
+    if ADJACENT_DOC_REGION_LANGUAGES.contains(&language) {
+        demote_detached_doc_comments(&mut regions, symbols, content);
+    }
     attach_containing_symbols(&mut regions, symbols);
     regions.sort_by(|left, right| {
         left.start_byte
@@ -271,6 +274,56 @@ fn region_for_span(
         end_byte: span.end_byte,
         metadata,
     }
+}
+
+/// Languages whose every comment reads as a doc comment by its text alone, so
+/// a region is a doc comment only when it is part of a symbol's doc block.
+const ADJACENT_DOC_REGION_LANGUAGES: &[&str] = &["bash"];
+
+fn demote_detached_doc_comments(regions: &mut [SourceRegion], symbols: &[Symbol], content: &str) {
+    for region in regions
+        .iter_mut()
+        .filter(|region| region.kind == SourceRegionKind::DocComment)
+    {
+        if !is_in_doc_block(region, symbols, content) {
+            region.kind = SourceRegionKind::Comment;
+            let span = NormalizedSpan {
+                start_line: region.start_line,
+                start_column: region.start_column,
+                end_line: region.end_line,
+                end_column: region.end_column,
+                start_byte: region.start_byte,
+                end_byte: region.end_byte,
+            };
+            region.id = stable_location_id(&region.file_path, region.kind.as_str(), span);
+        }
+    }
+}
+
+/// True when only comment lines separate `region` from the next documented
+/// symbol, and that symbol's doc comment holds the region's text.
+fn is_in_doc_block(region: &SourceRegion, symbols: &[Symbol], content: &str) -> bool {
+    let Some(symbol) = documented_symbol_id(region, symbols)
+        .and_then(|id| symbols.iter().find(|symbol| symbol.id == id))
+    else {
+        return false;
+    };
+    let (Some(text), Some(between)) = (
+        content.get(region.start_byte as usize..region.end_byte as usize),
+        content.get(region.end_byte as usize..symbol.start_byte as usize),
+    ) else {
+        return false;
+    };
+    let lines: Vec<&str> = between.split('\n').collect();
+    lines.len() >= 2
+        && lines[0].trim().is_empty()
+        && lines[1..lines.len() - 1]
+            .iter()
+            .all(|line| line.trim_start().starts_with('#'))
+        && symbol
+            .doc_comment
+            .as_deref()
+            .is_some_and(|doc| doc.lines().any(|line| line == text.trim_end()))
 }
 
 fn attach_containing_symbols(regions: &mut [SourceRegion], symbols: &[Symbol]) {

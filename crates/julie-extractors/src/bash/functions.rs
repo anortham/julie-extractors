@@ -4,12 +4,8 @@
 
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
 use crate::test_detection::apply_callable_test_metadata;
-use regex::Regex;
 use std::collections::{HashMap, HashSet};
-use std::sync::LazyLock;
 use tree_sitter::Node;
-
-static PARAM_NUMBER_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\$(\d+)").unwrap());
 
 impl super::BashExtractor {
     /// Extract a function definition from a function_definition node
@@ -61,38 +57,27 @@ impl super::BashExtractor {
         let mut parameters = Vec::new();
         let mut seen_params = HashSet::new();
 
-        // Collect parameter nodes first, then process them
-        let mut param_nodes = Vec::new();
-        self.collect_parameter_nodes(func_node, &mut param_nodes);
-
-        for node in param_nodes {
-            let param_text = self.base.get_node_text(&node);
-            if let Some(captures) = PARAM_NUMBER_RE.captures(&param_text)
-                && let Some(param_number) = captures.get(1)
-            {
-                let param_name = format!("${}", param_number.as_str());
-
-                if !seen_params.contains(&param_name) {
-                    seen_params.insert(param_name.clone());
-
-                    let mut metadata = HashMap::new();
-                    metadata.insert("role".to_string(), serde_json::json!("parameter"));
-
-                    let options = SymbolOptions {
-                        signature: Some(format!("{} (positional parameter)", param_name)),
-                        visibility: Some(Visibility::Public),
-                        parent_id: Some(parent_id.to_string()),
-                        doc_comment: self.base.find_doc_comment(&node),
-                        metadata: Some(metadata),
-                        ..Default::default()
-                    };
-
-                    let param_symbol =
-                        self.base
-                            .create_symbol(&node, param_name, SymbolKind::Variable, options);
-                    parameters.push(param_symbol);
-                }
+        for (node, number) in self.collect_parameter_nodes(func_node) {
+            let param_name = format!("${number}");
+            if !seen_params.insert(param_name.clone()) {
+                continue;
             }
+            let mut metadata = HashMap::new();
+            metadata.insert("role".to_string(), serde_json::json!("parameter"));
+
+            let options = SymbolOptions {
+                signature: Some(format!("{param_name} (positional parameter)")),
+                visibility: Some(Visibility::Public),
+                parent_id: Some(parent_id.to_string()),
+                metadata: Some(metadata),
+                ..Default::default()
+            };
+            parameters.push(self.base.create_symbol(
+                &node,
+                param_name,
+                SymbolKind::Variable,
+                options,
+            ));
         }
 
         parameters

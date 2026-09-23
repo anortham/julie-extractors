@@ -33,10 +33,10 @@
 //! Notes on `@test`: bats `@test "name" { }` parses as a `command` node. The
 //! `{` is a trailing `word` argument; we stop at the first string argument.
 //!
-//! Lifecycle note: shellspec's `setup()`/`teardown()` are `function_definition`
-//! nodes, not commands; they receive `is_test = true` via the
-//! `classify_symbols_by_role` name-heuristic pass and do not need separate
-//! materialization here. The lifecycle slice is therefore empty.
+//! Lifecycle note: bats, shunit2, and bashunit hooks (`setup`, `setUp`,
+//! `setup_file`, `set_up`, ...) are `function_definition` nodes classified by
+//! name in `test_detection`. ShellSpec hooks (`BeforeEach 'fn'`) are commands
+//! and become lifecycle symbols here, only in test files.
 
 use crate::base::body::body_hash;
 use crate::base::{BaseExtractor, NormalizedSpan, Symbol, SymbolOptions};
@@ -45,14 +45,32 @@ use crate::test_calls::{
 };
 use tree_sitter::Node;
 
-/// shellspec + bats vocabulary.
-/// - `Describe` / `Context` → container (`test_container = true`)
-/// - `It` / `Specify` / `Example` / `Feature` / `Scenario` → test case (`is_test = true`)
-/// - `@test` (bats) → test case (`is_test = true`)
+/// shellspec + bats vocabulary, with the ShellSpec focus (`f`) and skip (`x`)
+/// variants. Hooks are lifecycle calls; their `after` spelling is teardown.
 pub(crate) const BASH_VOCAB: TestCallVocab = TestCallVocab {
-    test: &["It", "Specify", "Example", "Feature", "Scenario", "@test"],
-    container: &["Describe", "Context"],
-    lifecycle: &[], // setup/teardown are function_definitions, handled by name-heuristics
+    test: &[
+        "It", "Specify", "Example", "Feature", "Scenario", "@test", "fIt", "fSpecify", "fExample",
+        "xIt", "xSpecify", "xExample",
+    ],
+    container: &[
+        "Describe",
+        "Context",
+        "ExampleGroup",
+        "fDescribe",
+        "fContext",
+        "fExampleGroup",
+        "xDescribe",
+        "xContext",
+        "xExampleGroup",
+    ],
+    lifecycle: &[
+        "Before",
+        "After",
+        "BeforeEach",
+        "AfterEach",
+        "BeforeAll",
+        "AfterAll",
+    ],
 };
 
 /// Materialize a shellspec/bats `command` as a test/container symbol. Returns
@@ -78,9 +96,10 @@ pub(super) fn extract_bash_test_call(
     let category = classify_call_exact(&full_callee, &BASH_VOCAB)?;
 
     let name = match category {
-        // Lifecycle: no description string; use the callee name.
-        // (vocab has no lifecycle entries, but keep the branch uniform.)
-        TestCallCategory::Lifecycle => full_callee.to_string(),
+        TestCallCategory::Lifecycle if crate::test_detection::is_test_path(&base.file_path) => {
+            full_callee.to_string()
+        }
+        TestCallCategory::Lifecycle => return None,
         // Describe / Context / It / @test — first string argument is the description.
         _ => {
             let mut cursor = node.walk();
@@ -258,36 +277,4 @@ fn span_between(start: &Node, end: &Node) -> NormalizedSpan {
         end_byte: end_span.end_byte,
         ..NormalizedSpan::from_node(start)
     }
-}
-
-/// The command a test wrapper runs: `X` in bats `run X` and ShellSpec
-/// `When call X` / `When run [command|script|source] X`.
-pub(super) fn wrapped_callee<'a>(base: &BaseExtractor, command: Node<'a>) -> Option<Node<'a>> {
-    let name = command_name(base, command)?;
-    let mut cursor = command.walk();
-    let mut arguments = command
-        .children_by_field_name("argument", &mut cursor)
-        .collect::<Vec<_>>()
-        .into_iter()
-        .skip_while(|argument| base.get_node_text(argument).starts_with('-'));
-    match name.as_str() {
-        "run" => arguments.next(),
-        "When" => {
-            let mode = arguments.next()?;
-            if !matches!(base.get_node_text(&mode).as_str(), "call" | "run") {
-                return None;
-            }
-            let target = arguments.next()?;
-            if matches!(
-                base.get_node_text(&target).as_str(),
-                "command" | "script" | "source"
-            ) {
-                arguments.next()
-            } else {
-                Some(target)
-            }
-        }
-        _ => None,
-    }
-    .filter(|target| target.kind() == "word")
 }

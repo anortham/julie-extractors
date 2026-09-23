@@ -98,8 +98,8 @@ pub(super) fn push_variable_symbol(
         parent_id: parent_id.clone(),
         visibility: Some(visibility),
         metadata: Some(metadata),
+        annotations: helpers::doc_annotations(doc_comment.as_deref()),
         doc_comment,
-        annotations: Vec::new(),
     };
 
     let function = value.and_then(scope::function_value);
@@ -165,7 +165,7 @@ pub(super) fn extract_local_variable_declaration(
         let (kind, data_type) = expression
             .map(|expr| infer_kind_and_type(base, expr, false))
             .unwrap_or((SymbolKind::Variable, String::new()));
-        let doc_comment = base.find_doc_comment(&node);
+        let doc_comment = helpers::doc_comment(base, &node);
 
         push_variable_symbol(
             symbols,
@@ -236,6 +236,17 @@ pub(super) fn extract_assignment_statement(
             _ => continue,
         };
 
+        if is_field
+            && expression.is_none_or(|expr| scope::function_value(expr).is_none())
+            && owner_id.as_deref().is_some_and(|owner_id| {
+                symbols.iter().any(|symbol| {
+                    symbol.name == name && symbol.parent_id.as_deref() == Some(owner_id)
+                })
+            })
+        {
+            continue;
+        }
+
         let (kind, data_type) = expression
             .map(|expr| infer_kind_and_type(base, expr, is_field))
             .unwrap_or_else(|| {
@@ -246,7 +257,7 @@ pub(super) fn extract_assignment_statement(
                 };
                 (kind, String::new())
             });
-        let doc_comment = base.find_doc_comment(&node);
+        let doc_comment = helpers::doc_comment(base, &node);
 
         push_variable_symbol(
             symbols,

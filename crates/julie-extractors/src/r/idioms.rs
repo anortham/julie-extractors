@@ -4,9 +4,7 @@ use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
-use super::text_args::{
-    argument_list_text, clean_r_name, function_signature, split_top_level_arguments,
-};
+use super::text_args::{clean_r_name, function_signature};
 
 /// The bound name of an assignment target: an identifier, a backticked name, or a string.
 /// Member (`x$y`), slot (`x@s`), and subset (`x[[k]]`) targets write into an
@@ -233,6 +231,15 @@ pub(super) fn extract_assignment_class_factory(
     let class_system = match call_name.as_str() {
         "R6Class" => "R6",
         "setRefClass" => "ReferenceClass",
+        "new_class" => "S7",
+        "new_generic" => {
+            return Some(extract_s7_generic(
+                extractor,
+                node,
+                assigned_name,
+                parent_id,
+            ));
+        }
         _ => return None,
     };
 
@@ -246,10 +253,10 @@ pub(super) fn extract_assignment_class_factory(
         "r_class_system".to_string(),
         serde_json::Value::String(class_system.to_string()),
     );
-    let parent_key = if class_system == "R6" {
-        "inherit"
-    } else {
-        "contains"
+    let parent_key = match class_system {
+        "R6" => "inherit",
+        "S7" => "parent",
+        _ => "contains",
     };
     let parent_value = call.child_by_field_name("arguments").and_then(|args| {
         let mut cursor = args.walk();
@@ -265,7 +272,7 @@ pub(super) fn extract_assignment_class_factory(
     });
     let parents: Vec<String> = parent_value
         .map(|value| {
-            if class_system == "R6" {
+            if class_system != "ReferenceClass" {
                 vec![extractor.base.get_node_text(&value)]
             } else {
                 string_values(extractor, value, false)
@@ -288,6 +295,7 @@ pub(super) fn extract_assignment_class_factory(
             signature: Some(format!("{assigned_name} <- {call_name}(\"{class_name}\")")),
             metadata: Some(metadata),
             doc_comment: extractor.base.find_doc_comment(&node),
+            visibility: Some(name_visibility(assigned_name)),
             ..Default::default()
         },
     );
@@ -298,7 +306,343 @@ pub(super) fn extract_assignment_class_factory(
         }
     }
     extract_class_list_members(extractor, call, &symbol, class_system);
+    if class_system == "S7"
+        && let Some(properties) = call
+            .child_by_field_name("arguments")
+            .and_then(|args| named_argument_node(extractor, args, "properties"))
+    {
+        extract_typed_fields(extractor, properties, &symbol, class_system);
+    }
     Some(symbol)
+}
+
+/// `speak <- new_generic("speak", "x")`: an S7 generic function.
+fn extract_s7_generic(
+    extractor: &mut RExtractor,
+    node: Node,
+    assigned_name: &str,
+    parent_id: &Option<String>,
+) -> Symbol {
+    let mut metadata = HashMap::new();
+    metadata.insert(
+        "r_class_system".to_string(),
+        serde_json::Value::String("S7".to_string()),
+    );
+    metadata.insert(
+        "s7_role".to_string(),
+        serde_json::Value::String("generic".to_string()),
+    );
+    let symbol = extractor.base.create_symbol(
+        &node,
+        assigned_name.to_string(),
+        SymbolKind::Function,
+        SymbolOptions {
+            parent_id: parent_id.clone(),
+            signature: Some(format!(
+                "{assigned_name} <- new_generic(\"{assigned_name}\")"
+            )),
+            metadata: Some(metadata),
+            doc_comment: extractor.base.find_doc_comment(&node),
+            visibility: Some(name_visibility(assigned_name)),
+            ..Default::default()
+        },
+    );
+    extractor.symbols.push(symbol.clone());
+    symbol
+}
+
+/// `method(generic, Class) <- function(...)`: an S7 method named `generic,Class`.
+pub(super) fn extract_s7_method(
+    extractor: &mut RExtractor,
+    node: Node,
+    target: Node,
+    definition: Node,
+    parent_id: &Option<String>,
+) -> Option<Symbol> {
+    if target.kind() != "call" || call_name(extractor, target).as_deref() != Some("method") {
+        return None;
+    }
+    let args = target.child_by_field_name("arguments")?;
+    let mut cursor = args.walk();
+    let parts: Vec<String> = args
+        .children_by_field_name("argument", &mut cursor)
+        .filter_map(|argument| argument.child_by_field_name("value"))
+        .map(|value| {
+            let text = extractor.base.get_node_text(&value);
+            text.rsplit("::").next().unwrap_or(&text).to_string()
+        })
+        .collect();
+    let (generic, classes) = parts.split_first()?;
+    let class_name = classes.join(",");
+    let mut metadata = HashMap::new();
+    metadata.insert(
+        "r_class_system".to_string(),
+        serde_json::Value::String("S7".to_string()),
+    );
+    metadata.insert(
+        "s7_generic".to_string(),
+        serde_json::Value::String(generic.clone()),
+    );
+    metadata.insert(
+        "s7_class".to_string(),
+        serde_json::Value::String(class_name.clone()),
+    );
+    let symbol = extractor.base.create_symbol_from_span(
+        &definition,
+        crate::base::NormalizedSpan::from_node(&node),
+        format!("{generic},{class_name}"),
+        SymbolKind::Method,
+        SymbolOptions {
+            parent_id: parent_id.clone(),
+            signature: Some(format!(
+                "method({generic}, {class_name}) <- {}",
+                function_signature(&extractor.base.get_node_text(&definition))
+            )),
+            metadata: Some(metadata),
+            doc_comment: extractor.base.find_doc_comment(&node),
+            visibility: Some(crate::base::Visibility::Public),
+            ..Default::default()
+        },
+    );
+    extractor.symbols.push(symbol.clone());
+    extractor
+        .value_owners
+        .insert(definition.id(), symbol.id.clone());
+    Some(symbol)
+}
+
+/// Public unless the name starts with a dot, R's convention for internal objects.
+pub(super) fn name_visibility(name: &str) -> crate::base::Visibility {
+    if name.starts_with('.') {
+        crate::base::Visibility::Private
+    } else {
+        crate::base::Visibility::Public
+    }
+}
+
+/// The doc comment of a declaring call, or of the assignment that binds it.
+fn declaration_doc(extractor: &RExtractor, node: Node) -> Option<String> {
+    extractor.base.find_doc_comment(&node).or_else(|| {
+        node.parent()
+            .filter(|parent| {
+                parent.kind() == "binary_operator"
+                    && parent.child_by_field_name("rhs") == Some(node)
+            })
+            .and_then(|parent| extractor.base.find_doc_comment(&parent))
+    })
+}
+
+fn named_argument_node<'a>(extractor: &RExtractor, args: Node<'a>, name: &str) -> Option<Node<'a>> {
+    let mut cursor = args.walk();
+    args.children_by_field_name("argument", &mut cursor)
+        .find(|argument| {
+            argument
+                .child_by_field_name("name")
+                .and_then(|n| clean_r_name(&extractor.base.get_node_text(&n)))
+                .as_deref()
+                == Some(name)
+        })
+        .and_then(|argument| argument.child_by_field_name("value"))
+}
+
+/// Field symbols for the entries of `c(...)`, `list(...)`, or `representation(...)`:
+/// `name = "type"` declares a typed field, `name = S7::class_x` an S7 property,
+/// and an unnamed `"name"` an untyped field.
+fn extract_typed_fields(
+    extractor: &mut RExtractor,
+    declarations: Node,
+    class_symbol: &Symbol,
+    class_system: &str,
+) {
+    if declarations.kind() != "call"
+        || !matches!(
+            call_name(extractor, declarations).as_deref(),
+            Some("c" | "list" | "representation")
+        )
+    {
+        return;
+    }
+    let Some(args) = declarations.child_by_field_name("arguments") else {
+        return;
+    };
+    let mut cursor = args.walk();
+    let entries: Vec<Node> = args
+        .children_by_field_name("argument", &mut cursor)
+        .collect();
+    for entry in entries {
+        let Some(value) = entry.child_by_field_name("value") else {
+            continue;
+        };
+        let named = entry
+            .child_by_field_name("name")
+            .and_then(|name| clean_r_name(&extractor.base.get_node_text(&name)));
+        let (name, type_name) = match named {
+            Some(name) => (name, declared_field_type(extractor, value)),
+            None if value.kind() == "string" => match string_value(extractor, value) {
+                Some(name) => (name, None),
+                None => continue,
+            },
+            None => continue,
+        };
+        push_field(
+            extractor,
+            entry,
+            name,
+            type_name,
+            class_symbol,
+            class_system,
+        );
+    }
+}
+
+fn declared_field_type(extractor: &RExtractor, value: Node) -> Option<String> {
+    if value.kind() == "string" {
+        return string_value(extractor, value);
+    }
+    let text = extractor.base.get_node_text(&value);
+    let bare = text.rsplit("::").next().unwrap_or(&text).trim();
+    let bare = bare.strip_prefix("class_").unwrap_or(bare);
+    (!bare.is_empty()
+        && bare
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '.'))
+    .then(|| bare.to_string())
+}
+
+fn push_field(
+    extractor: &mut RExtractor,
+    entry: Node,
+    name: String,
+    type_name: Option<String>,
+    class_symbol: &Symbol,
+    class_system: &str,
+) {
+    let mut metadata = HashMap::new();
+    metadata.insert(
+        "r_class_system".to_string(),
+        serde_json::Value::String(class_system.to_string()),
+    );
+    let symbol = extractor.base.create_symbol(
+        &entry,
+        name.clone(),
+        SymbolKind::Field,
+        SymbolOptions {
+            parent_id: Some(class_symbol.id.clone()),
+            signature: Some(extractor.base.get_node_text(&entry)),
+            metadata: Some(metadata),
+            visibility: Some(name_visibility(&name)),
+            ..Default::default()
+        },
+    );
+    if let Some(type_name) = type_name {
+        extractor.base.record_declared_type_fact(
+            &symbol.id,
+            &type_name,
+            &super::type_facts::R_TYPE_NAME_RULES,
+            false,
+        );
+    }
+    extractor.symbols.push(symbol);
+}
+
+/// S4 slots: only named entries declare slots; unnamed `representation()`
+/// entries name superclasses.
+fn extract_typed_slots(extractor: &mut RExtractor, slots: Node, class_symbol: &Symbol) {
+    if slots.kind() != "call"
+        || !matches!(
+            call_name(extractor, slots).as_deref(),
+            Some("c" | "list" | "representation")
+        )
+    {
+        return;
+    }
+    let Some(args) = slots.child_by_field_name("arguments") else {
+        return;
+    };
+    let mut cursor = args.walk();
+    let entries: Vec<Node> = args
+        .children_by_field_name("argument", &mut cursor)
+        .collect();
+    for entry in entries {
+        let (Some(name), Some(value)) = (
+            entry
+                .child_by_field_name("name")
+                .and_then(|name| clean_r_name(&extractor.base.get_node_text(&name))),
+            entry.child_by_field_name("value"),
+        ) else {
+            continue;
+        };
+        let type_name = declared_field_type(extractor, value);
+        push_field(extractor, entry, name, type_name, class_symbol, "S4");
+    }
+}
+
+/// `Class$methods(name = function(...), ...)`: RefClass methods added after the
+/// generator, parented to the same-file class.
+pub(super) fn extract_refclass_methods(extractor: &mut RExtractor, call: Node) -> bool {
+    let Some(callee) = call.child_by_field_name("function") else {
+        return false;
+    };
+    if callee.kind() != "extract_operator"
+        || callee
+            .child_by_field_name("rhs")
+            .is_none_or(|rhs| extractor.base.get_node_text(&rhs) != "methods")
+    {
+        return false;
+    }
+    let Some(class_name) = callee
+        .child_by_field_name("lhs")
+        .map(|lhs| extractor.base.get_node_text(&lhs))
+    else {
+        return false;
+    };
+    let Some(class_symbol) = extractor
+        .symbols
+        .iter()
+        .rev()
+        .find(|symbol| {
+            symbol.kind == SymbolKind::Class
+                && symbol.name == class_name
+                && symbol
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("r_class_system"))
+                    .and_then(|value| value.as_str())
+                    == Some("ReferenceClass")
+        })
+        .cloned()
+    else {
+        return false;
+    };
+    let Some(args) = call.child_by_field_name("arguments") else {
+        return false;
+    };
+    let mut cursor = args.walk();
+    let mut members: Vec<Node> = args
+        .children_by_field_name("argument", &mut cursor)
+        .collect();
+    if let [single] = members.as_slice()
+        && single.child_by_field_name("name").is_none()
+        && let Some(list_args) = single
+            .child_by_field_name("value")
+            .filter(|value| call_name(extractor, *value).as_deref() == Some("list"))
+            .and_then(|value| value.child_by_field_name("arguments"))
+    {
+        let mut cursor = list_args.walk();
+        members = list_args
+            .children_by_field_name("argument", &mut cursor)
+            .collect();
+    }
+    for member in members {
+        extract_class_list_member(
+            extractor,
+            member,
+            &class_symbol,
+            "ReferenceClass",
+            MemberList::Public,
+        );
+    }
+    true
 }
 
 pub(super) fn extract_s4_call(
@@ -321,42 +665,144 @@ pub(super) fn extract_import_call(
     node: Node,
     parent_id: &Option<String>,
 ) -> Option<Symbol> {
-    let func_node = node.child(0)?;
-    if func_node.kind() != "identifier" {
-        return None;
+    let (form, modules) = import_modules(extractor, node)?;
+    let mut first = None;
+    for module in modules {
+        let signature = if form == "source" {
+            extractor.base.get_node_text(&node)
+        } else {
+            format!("{form}({module})")
+        };
+        let symbol = extractor.base.create_symbol(
+            &node,
+            module,
+            SymbolKind::Import,
+            SymbolOptions {
+                parent_id: parent_id.clone(),
+                signature: Some(signature),
+                doc_comment: extractor.base.find_doc_comment(&node),
+                ..Default::default()
+            },
+        );
+        extractor.symbols.push(symbol.clone());
+        if form == "source" {
+            emit_source_import_pending(extractor, &symbol, node);
+        }
+        first.get_or_insert(symbol);
     }
-    let func_name = extractor.base.get_node_text(&func_node);
-    if func_name != "library" && func_name != "require" && func_name != "source" {
-        return None;
-    }
+    first
+}
 
-    let args_node = node.child(1)?;
-    let import_name = first_import_argument(extractor, args_node)?;
-    if import_name.is_empty() {
-        return None;
-    }
-
-    let signature = if func_name == "source" {
-        extractor.base.get_node_text(&node)
-    } else {
-        format!("{}({})", func_name, import_name)
+/// The load form and module names of a package or file load call:
+/// `library`/`require`/`requireNamespace(pkg)`, `source(path)` (a string or a
+/// `file.path()` of strings), `pacman::p_load(a, b)`, `box::use(pkg[...], a/b)`,
+/// and `import::from(pkg, ...)`.
+pub(super) fn import_modules(extractor: &RExtractor, call: Node) -> Option<(String, Vec<String>)> {
+    let callee = call.child_by_field_name("function")?;
+    let args = call.child_by_field_name("arguments")?;
+    let form = match callee.kind() {
+        "identifier" => extractor.base.get_node_text(&callee),
+        "namespace_operator" => {
+            let lhs = extractor
+                .base
+                .get_node_text(&callee.child_by_field_name("lhs")?);
+            let rhs = extractor
+                .base
+                .get_node_text(&callee.child_by_field_name("rhs")?);
+            format!("{lhs}::{rhs}")
+        }
+        _ => return None,
     };
-    let symbol = extractor.base.create_symbol(
-        &node,
-        import_name,
-        SymbolKind::Import,
-        SymbolOptions {
-            parent_id: parent_id.clone(),
-            signature: Some(signature),
-            doc_comment: extractor.base.find_doc_comment(&node),
-            ..Default::default()
-        },
-    );
-    extractor.symbols.push(symbol.clone());
-    if func_name == "source" {
-        emit_source_import_pending(extractor, &symbol, node);
+    let mut cursor = args.walk();
+    let unnamed: Vec<Node> = args
+        .children_by_field_name("argument", &mut cursor)
+        .filter(|argument| argument.child_by_field_name("name").is_none())
+        .filter_map(|argument| argument.child_by_field_name("value"))
+        .collect();
+    let package = |value: &Node| {
+        matches!(value.kind(), "identifier" | "string")
+            .then(|| clean_r_name(&extractor.base.get_node_text(value)))
+            .flatten()
+    };
+    let modules: Vec<String> = match form.as_str() {
+        "library" | "require" | "import::from" => {
+            unnamed.first().and_then(package).into_iter().collect()
+        }
+        "requireNamespace" => unnamed
+            .first()
+            .filter(|value| value.kind() == "string")
+            .and_then(package)
+            .into_iter()
+            .collect(),
+        "pacman::p_load" => unnamed.iter().filter_map(package).collect(),
+        "box::use" => unnamed
+            .iter()
+            .filter_map(|value| box_module(extractor, *value))
+            .collect(),
+        "source" => unnamed
+            .first()
+            .and_then(|value| source_path(extractor, *value))
+            .into_iter()
+            .collect(),
+        "import" if is_namespace_file(&extractor.base.file_path) => {
+            unnamed.iter().filter_map(package).collect()
+        }
+        "importFrom" | "importClassesFrom" | "importMethodsFrom"
+            if is_namespace_file(&extractor.base.file_path) =>
+        {
+            unnamed.first().and_then(package).into_iter().collect()
+        }
+        _ => return None,
+    };
+    (!modules.is_empty()).then_some((form, modules))
+}
+
+/// An R package `NAMESPACE` file, which holds `import()` / `export()` directives.
+pub(crate) fn is_namespace_file(file_path: &str) -> bool {
+    file_path.rsplit(['/', '\\']).next() == Some("NAMESPACE")
+}
+
+/// `pkg`, `pkg[a, b]`, or `app/logic/utils` in a `box::use()` call.
+fn box_module(extractor: &RExtractor, value: Node) -> Option<String> {
+    match value.kind() {
+        "identifier" => clean_r_name(&extractor.base.get_node_text(&value)),
+        "subset" => box_module(extractor, value.child_by_field_name("function")?),
+        "binary_operator"
+            if value
+                .child_by_field_name("operator")
+                .is_some_and(|op| extractor.base.get_node_text(&op) == "/") =>
+        {
+            let lhs = box_module(extractor, value.child_by_field_name("lhs")?)?;
+            let rhs = box_module(extractor, value.child_by_field_name("rhs")?)?;
+            Some(format!("{lhs}/{rhs}"))
+        }
+        _ => None,
     }
-    Some(symbol)
+}
+
+/// A static `source()` path: a string, or `file.path()` of strings joined with `/`.
+fn source_path(extractor: &RExtractor, value: Node) -> Option<String> {
+    if value.kind() == "string" {
+        return string_value(extractor, value);
+    }
+    if value.kind() != "call" || call_name(extractor, value).as_deref() != Some("file.path") {
+        return None;
+    }
+    let args = value.child_by_field_name("arguments")?;
+    let mut cursor = args.walk();
+    let parts: Option<Vec<String>> = args
+        .children_by_field_name("argument", &mut cursor)
+        .filter(|argument| argument.child_by_field_name("name").is_none())
+        .map(|argument| {
+            argument
+                .child_by_field_name("value")
+                .filter(|part| part.kind() == "string")
+                .and_then(|part| string_value(extractor, part))
+        })
+        .collect();
+    parts
+        .filter(|parts| !parts.is_empty())
+        .map(|parts| parts.join("/"))
 }
 
 pub(super) fn member_metadata(
@@ -388,19 +834,6 @@ pub(super) fn member_metadata(
         );
     }
     metadata
-}
-
-fn first_import_argument(extractor: &RExtractor, args_node: Node) -> Option<String> {
-    let text = extractor.base.get_node_text(&args_node);
-    split_top_level_arguments(&argument_list_text(&text))
-        .into_iter()
-        .find_map(|argument| {
-            if argument.contains('=') {
-                None
-            } else {
-                clean_r_name(&argument)
-            }
-        })
 }
 
 pub(super) fn emit_source_import_pending(extractor: &mut RExtractor, symbol: &Symbol, node: Node) {
@@ -475,13 +908,23 @@ fn extract_s4_class(
             parent_id: parent_id.clone(),
             signature: Some(format!("setClass(\"{name}\")")),
             metadata: Some(metadata),
-            doc_comment: extractor.base.find_doc_comment(&node),
+            doc_comment: declaration_doc(extractor, node),
+            visibility: Some(name_visibility(&name)),
             ..Default::default()
         },
     );
     extractor.symbols.push(symbol.clone());
     for (parent, site) in parents {
         request_extends(extractor, &symbol.id, parent, site);
+    }
+    for slots in [
+        named_argument_node(extractor, args, "slots"),
+        bound.get("representation").copied(),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        extract_typed_slots(extractor, slots, &symbol);
     }
     Some(symbol)
 }
@@ -504,7 +947,8 @@ fn extract_s4_generic(
             parent_id: parent_id.clone(),
             signature: Some(format!("setGeneric(\"{name}\")")),
             metadata: Some(s4_metadata("generic")),
-            doc_comment: extractor.base.find_doc_comment(&node),
+            doc_comment: declaration_doc(extractor, node),
+            visibility: Some(name_visibility(&name)),
             ..Default::default()
         },
     );
@@ -550,7 +994,8 @@ fn extract_s4_method(
         parent_id: parent_id.clone(),
         signature: Some(format!("setMethod(\"{generic}\", \"{class_name}\")")),
         metadata: Some(metadata),
-        doc_comment: extractor.base.find_doc_comment(&node),
+        doc_comment: declaration_doc(extractor, node),
+        visibility: Some(crate::base::Visibility::Public),
         ..Default::default()
     };
     let definition = bound
@@ -714,8 +1159,12 @@ fn extract_class_list_members(
         .filter_map(|argument| {
             let visibility = member_list_visibility(extractor, argument)?;
             let list_call = argument.child_by_field_name("value")?;
-            if list_call.kind() != "call"
-                || call_name(extractor, list_call).as_deref() != Some("list")
+            let list_kind = call_name(extractor, list_call);
+            let is_list = list_call.kind() == "call" && list_kind.as_deref() == Some("list");
+            let is_vector = list_call.kind() == "call" && list_kind.as_deref() == Some("c");
+            if !is_list
+                && !(visibility == MemberList::Fields
+                    && (is_vector || list_call.kind() == "string"))
             {
                 return None;
             }
@@ -724,6 +1173,16 @@ fn extract_class_list_members(
         .collect::<Vec<_>>();
 
     for (list_call, member_visibility) in member_lists {
+        if member_visibility == MemberList::Fields && class_system == "ReferenceClass" {
+            if list_call.kind() == "string" {
+                if let Some(name) = string_value(extractor, list_call) {
+                    push_field(extractor, list_call, name, None, class_symbol, class_system);
+                }
+            } else {
+                extract_typed_fields(extractor, list_call, class_symbol, class_system);
+            }
+            continue;
+        }
         let Some(list_args) = list_call.child_by_field_name("arguments") else {
             continue;
         };
@@ -743,11 +1202,32 @@ fn extract_class_list_members(
     }
 }
 
-fn member_list_visibility(extractor: &RExtractor, argument: Node) -> Option<&'static str> {
+/// Which member list of a class generator an argument declares.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum MemberList {
+    Public,
+    Private,
+    Active,
+    Fields,
+}
+
+impl MemberList {
+    fn visibility(self) -> &'static str {
+        if self == MemberList::Private {
+            "private"
+        } else {
+            "public"
+        }
+    }
+}
+
+fn member_list_visibility(extractor: &RExtractor, argument: Node) -> Option<MemberList> {
     let name_node = argument.child_by_field_name("name")?;
     match clean_r_name(&extractor.base.get_node_text(&name_node))?.as_str() {
-        "private" => Some("private"),
-        "public" | "fields" | "methods" => Some("public"),
+        "private" => Some(MemberList::Private),
+        "public" | "methods" => Some(MemberList::Public),
+        "active" => Some(MemberList::Active),
+        "fields" => Some(MemberList::Fields),
         _ => None,
     }
 }
@@ -757,8 +1237,9 @@ fn extract_class_list_member(
     member: Node,
     class_symbol: &Symbol,
     class_system: &str,
-    member_visibility: &str,
+    member_list: MemberList,
 ) {
+    let member_visibility = member_list.visibility();
     let Some(name_node) = member.child_by_field_name("name") else {
         return;
     };
@@ -770,7 +1251,9 @@ fn extract_class_list_member(
     };
     let value_text = extractor.base.get_node_text(&value);
     let is_method = value.kind() == "function_definition";
-    let kind = if is_method {
+    let kind = if member_list == MemberList::Active {
+        SymbolKind::Property
+    } else if is_method {
         SymbolKind::Method
     } else {
         SymbolKind::Field
@@ -784,6 +1267,17 @@ fn extract_class_list_member(
         "member_visibility".to_string(),
         serde_json::Value::String(member_visibility.to_string()),
     );
+    if member_list == MemberList::Active {
+        metadata.insert(
+            "r6_member_kind".to_string(),
+            serde_json::Value::String("active".to_string()),
+        );
+    }
+    let visibility = if member_list == MemberList::Private {
+        crate::base::Visibility::Private
+    } else {
+        crate::base::Visibility::Public
+    };
     let signature = if is_method {
         format!("{name} = {}", function_signature(&value_text))
     } else {
@@ -793,6 +1287,7 @@ fn extract_class_list_member(
         parent_id: Some(class_symbol.id.clone()),
         signature: Some(signature),
         metadata: Some(metadata),
+        visibility: Some(visibility),
         ..Default::default()
     };
     let symbol = if is_method {
@@ -810,4 +1305,38 @@ fn extract_class_list_member(
         extractor.value_owners.insert(value.id(), symbol.id.clone());
     }
     extractor.symbols.push(symbol);
+}
+
+/// An anonymous top-level function under a plumber `#* @get /path` block: a
+/// route handler named after its first route (`GET /path`).
+pub(super) fn extract_plumber_handler(
+    extractor: &mut RExtractor,
+    node: Node,
+    parent_id: &Option<String>,
+) -> Option<Symbol> {
+    if node.parent()?.kind() != "program" {
+        return None;
+    }
+    let routes = super::plumber::annotated_routes(&extractor.base.content, node);
+    let (verb, path) = routes.first()?;
+    let name = format!("{verb} {path}");
+    let signature = format!(
+        "{name} <- {}",
+        function_signature(&extractor.base.get_node_text(&node))
+    );
+    let symbol = extractor.base.create_symbol(
+        &node,
+        name,
+        SymbolKind::Function,
+        SymbolOptions {
+            parent_id: parent_id.clone(),
+            signature: Some(signature),
+            visibility: Some(crate::base::Visibility::Public),
+            ..Default::default()
+        },
+    );
+    extractor.symbols.push(symbol.clone());
+    let parameters = super::parameters::extract_parameter_symbols(extractor, node, &symbol.id);
+    extractor.symbols.extend(parameters);
+    Some(symbol)
 }

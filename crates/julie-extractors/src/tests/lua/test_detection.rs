@@ -21,7 +21,7 @@ fn symbols(code: &str) -> Vec<Symbol> {
     let tree = parser.parse(code, None).expect("parse Lua");
     let mut ext = LuaExtractor::new(
         "lua".to_string(),
-        "spec.lua".to_string(),
+        "spec/math_spec.lua".to_string(),
         code.to_string(),
         &PathBuf::from("/test/workspace"),
     );

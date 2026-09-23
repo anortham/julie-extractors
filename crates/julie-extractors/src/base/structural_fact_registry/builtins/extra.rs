@@ -1,59 +1,15 @@
-//! Built-in language-local SPECS for R, Zig, Bash, PowerShell, GDScript, and VB.NET.
+//! Built-in language-local SPECS for Zig, Bash, PowerShell, GDScript, and VB.NET.
 //!
 //! Authored metadata for [`super::super::StructuralFactPatternSpec`] entries.
 //! Public registry access remains through
 //! [`super::super::structural_fact_pattern_specs`].
 
 use super::super::{
-    ALWAYS, BASE_KEYS, K_PATTERN_VERSION, K_QUERY_FAMILY, OPT, STR, StructuralFactPatternSpec, key,
+    ALWAYS, ARR, BASE_KEYS, K_PATTERN_VERSION, K_QUERY_FAMILY, OPT, STR, StructuralFactPatternSpec,
+    key,
 };
 
 pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
-    StructuralFactPatternSpec {
-        pattern_id: "r.library_call.v1",
-        languages: &["r"],
-        query_family: "imports",
-        description: "An R `library()`/`require()` package load.",
-        metadata_keys: &[
-            K_PATTERN_VERSION,
-            K_QUERY_FAMILY,
-            key(
-                "load_kind",
-                STR,
-                ALWAYS,
-                "Which load form was used (`library` or `require`).",
-            ),
-            key(
-                "package_name",
-                STR,
-                OPT,
-                "The package name argument (quotes stripped).",
-            ),
-        ],
-    },
-    StructuralFactPatternSpec {
-        pattern_id: "r.pipe_expression.v1",
-        languages: &["r"],
-        query_family: "pipeline",
-        description: "An R pipe expression (`|>` or `%>%`).",
-        metadata_keys: BASE_KEYS,
-    },
-    StructuralFactPatternSpec {
-        pattern_id: "r.formula_expression.v1",
-        languages: &["r"],
-        query_family: "modeling",
-        description: "An R model formula expression (`y ~ x`).",
-        metadata_keys: &[
-            K_PATTERN_VERSION,
-            K_QUERY_FAMILY,
-            key(
-                "formula_text",
-                STR,
-                ALWAYS,
-                "The full text of the R model formula.",
-            ),
-        ],
-    },
     StructuralFactPatternSpec {
         pattern_id: "zig.builtin_call.v1",
         languages: &["zig"],
@@ -144,11 +100,22 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
         pattern_id: "bash.export_declaration.v1",
         languages: &["bash"],
         query_family: "environment",
-        description: "A Bash `export` declaration.",
+        description: "A Bash declaration that exports its names (`export`, `declare -x`, `local -x`).",
         metadata_keys: &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
-            key("variable_name", STR, OPT, "The exported variable's name."),
+            key(
+                "variable_name",
+                STR,
+                OPT,
+                "The first exported variable's name.",
+            ),
+            key(
+                "variable_names",
+                ARR,
+                ALWAYS,
+                "Every name the declaration exports, in source order.",
+            ),
         ],
     },
     StructuralFactPatternSpec {

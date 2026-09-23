@@ -108,6 +108,9 @@ const TEST_FILE_NAME_SUFFIXES: &[&str] = &[
     "Cest.php",
     "Spec.php",
     "Tests.swift",
+    "_test.sh",
+    "_spec.sh",
+    ".bats",
 ];
 
 const PATH_SEPARATORS: [char; 2] = ['/', '\\'];
@@ -539,6 +542,8 @@ fn is_test_lifecycle(
         "go" => go_test_lifecycle_direction(name),
         "ruby" => ruby_test_lifecycle_direction(name),
         "bash" => bash_test_lifecycle_direction(name),
+        "lua" => lua_test_lifecycle_direction(name),
+        "r" => r_test_lifecycle_direction(name),
         "gdscript" => gdscript_test_lifecycle_direction(name),
         "qml" => qml_test_lifecycle_direction(name),
         "scala" => scala_test_lifecycle_direction(name),
@@ -1589,16 +1594,19 @@ fn matches_script_test_name(
     is_test_path(file_path) && keywords.contains(&normalized.as_str())
 }
 
+/// bats, ShellSpec, shunit2, and bashunit. shunit2 and bashunit run every
+/// function whose name starts with `test` (`testAdds`, `test_adds`).
 fn detect_bash(name: &str, file_path: &str) -> bool {
     matches_script_test_name(
         name,
         file_path,
         true,
         &[
-            "describe", "context", "it", "specify", "example", "feature", "scenario", "setup",
-            "teardown",
+            "describe", "context", "it", "specify", "example", "feature", "scenario",
         ],
-    )
+    ) || (is_test_path(file_path)
+        && ((name.starts_with("test") && name.len() > 4)
+            || bash_test_lifecycle_direction(name) != TestLifecycleDirection::None))
 }
 
 fn detect_powershell(name: &str, file_path: &str) -> bool {
@@ -1911,10 +1919,22 @@ fn detect_qml(name: &str, file_path: &str) -> bool {
     is_test_path(file_path) && qml_test_role(name).is_some()
 }
 
+/// bats `setup`/`setup_file`/`setup_suite`, shunit2 `setUp`/`oneTimeSetUp`,
+/// bashunit `set_up`/`set_up_before_script`, and their teardown halves.
 fn bash_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
     match name.to_ascii_lowercase().as_str() {
-        "setup" => TestLifecycleDirection::Setup,
-        "teardown" => TestLifecycleDirection::Teardown,
+        "setup"
+        | "setup_file"
+        | "setup_suite"
+        | "onetimesetup"
+        | "set_up"
+        | "set_up_before_script" => TestLifecycleDirection::Setup,
+        "teardown"
+        | "teardown_file"
+        | "teardown_suite"
+        | "onetimeteardown"
+        | "tear_down"
+        | "tear_down_after_script" => TestLifecycleDirection::Teardown,
         _ => TestLifecycleDirection::None,
     }
 }
@@ -1927,16 +1947,45 @@ fn scala_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
     }
 }
 
-/// Lua luaunit: test functions/methods are `testXxx` (camelCase) or `test_xxx`.
+/// Lua luaunit: test functions/methods are `testXxx` (camelCase) or `test_xxx`,
+/// and `setUp`/`tearDown` (plus the suite and class hooks) are fixtures.
 /// busted (`describe`/`it`) is call-style and handled in `test_calls`, not here.
 fn detect_lua(name: &str, file_path: &str) -> bool {
-    is_test_path(file_path) && name.starts_with("test")
+    is_test_path(file_path)
+        && (name.starts_with("test") || lua_test_lifecycle_direction(name).is_lifecycle())
 }
 
-/// R RUnit: test functions are named `test.foo` (dot convention) or `test_foo`.
-/// testthat (`test_that("...")`) is call-style and handled in `test_calls`, not here.
+fn lua_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
+    match name {
+        "setUp" | "setupSuite" | "setupClass" => TestLifecycleDirection::Setup,
+        "tearDown" | "teardownSuite" | "teardownClass" => TestLifecycleDirection::Teardown,
+        _ => TestLifecycleDirection::None,
+    }
+}
+
+/// R RUnit: in a `runit*.R` file (RUnit's default `testFileRegexp`), functions
+/// matching `^test.+` are tests and `.setUp` / `.tearDown` are fixtures.
+/// testthat (`test_that("...")`) is call-style and handled in `test_calls`, so a
+/// plain helper function in a testthat file is not a test.
 fn detect_r(name: &str, file_path: &str) -> bool {
-    is_test_path(file_path) && (name.starts_with("test.") || name.starts_with("test_"))
+    is_runit_file(file_path)
+        && ((name.len() > 4 && name.starts_with("test"))
+            || r_test_lifecycle_direction(name).is_lifecycle())
+}
+
+fn is_runit_file(file_path: &str) -> bool {
+    file_path
+        .rsplit(PATH_SEPARATORS)
+        .next()
+        .is_some_and(|file_name| file_name.starts_with("runit"))
+}
+
+fn r_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
+    match name {
+        ".setUp" => TestLifecycleDirection::Setup,
+        ".tearDown" => TestLifecycleDirection::Teardown,
+        _ => TestLifecycleDirection::None,
+    }
 }
 
 // ---------------------------------------------------------------------------

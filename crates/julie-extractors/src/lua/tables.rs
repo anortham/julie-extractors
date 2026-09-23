@@ -43,7 +43,7 @@ pub(super) fn extract_table_fields(
             base.get_node_text(&field),
             parent_id.map(str::to_string),
             Visibility::Public,
-            None,
+            super::helpers::doc_comment(base, &field),
             Some(value),
         );
     }

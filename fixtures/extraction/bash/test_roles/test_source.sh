@@ -18,3 +18,27 @@ calculate_total() {
 }
 
 It.helper 'ordinary dotted command'
+
+Describe 'hooks'
+  BeforeEach 'setup'
+  AfterAll cleanup_roles
+  xIt 'skipped case'
+    When call calculate_total
+  End
+  fDescribe 'focused'
+    fIt 'focused case'
+    End
+  End
+End
+
+testCamelCase() {
+  return 0
+}
+
+oneTimeSetUp() {
+  return 0
+}
+
+oneTimeTearDown() {
+  return 0
+}

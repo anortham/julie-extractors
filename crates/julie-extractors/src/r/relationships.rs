@@ -127,8 +127,9 @@ fn extract_call_relationships<'a>(
                         called_symbol,
                         node,
                     ));
-                } else if function_node.kind() != "identifier"
-                    || !is_builtin_function(&function_name)
+                } else if !is_declaration_call(extractor, node, &function_name)
+                    && (function_node.kind() != "identifier"
+                        || !is_builtin_function(&function_name))
                 {
                     let receiver_type =
                         super::type_facts::self_receiver_type(extractor, function_node);
@@ -482,6 +483,15 @@ fn find_containing_function<'a>(
     function_symbols: &ContainingSymbolIndex<'a>,
 ) -> Option<&'a Symbol> {
     function_symbols.find(node)
+}
+
+/// Class and generic generators (bare or `pkg::`-qualified) and package or
+/// file loads declare a symbol; they are not calls from the symbol they bind.
+fn is_declaration_call(extractor: &RExtractor, call: Node, function_name: &str) -> bool {
+    matches!(
+        function_name,
+        "R6Class" | "setRefClass" | "new_class" | "new_generic" | "new_property"
+    ) || super::idioms::import_modules(extractor, call).is_some()
 }
 
 /// Check if a function name is a built-in R function

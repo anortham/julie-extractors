@@ -4948,6 +4948,11 @@
           "name": "scopes",
           "source": "fixtures/extraction/lua/scopes/source.lua",
           "expected": "fixtures/extraction/lua/scopes/expected.json"
+        },
+        {
+          "name": "frameworks",
+          "source": "fixtures/extraction/lua/frameworks/source.lua",
+          "expected": "fixtures/extraction/lua/frameworks/expected.json"
         }
       ],
       "target_capabilities": {
@@ -4973,7 +4978,8 @@
         },
         "relationships": {
           "supported": [
-            "calls"
+            "calls",
+            "extends"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -5005,7 +5011,13 @@
             "lua.module_return.v1",
             "lua.require_call.v1",
             "lua.setmetatable_call.v1",
-            "lua.table_constructor.v1"
+            "lua.table_constructor.v1",
+            "lapis.route.v1",
+            "neovim.user_command.v1",
+            "neovim.autocmd.v1",
+            "neovim.keymap.v1",
+            "love.callback.v1",
+            "lazy_nvim.plugin_spec.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -5019,19 +5031,24 @@
           "open_gaps": []
         },
         "annotations": {
-          "supported": [],
-          "not_applicable": [
+          "supported": [
             "class",
             "field",
             "function",
-            "import",
             "method"
+          ],
+          "not_applicable": [
+            "import"
           ],
           "open_gaps": []
         },
         "doc_comments": {
           "supported": [
-            "function"
+            "class",
+            "field",
+            "function",
+            "method",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -5483,6 +5500,21 @@
           "name": "idioms",
           "source": "fixtures/extraction/r/idioms/source.R",
           "expected": "fixtures/extraction/r/idioms/expected.json"
+        },
+        {
+          "name": "frameworks",
+          "source": "fixtures/extraction/r/frameworks/source.R",
+          "expected": "fixtures/extraction/r/frameworks/expected.json"
+        },
+        {
+          "name": "runit",
+          "source": "fixtures/extraction/r/runit/runit.money.R",
+          "expected": "fixtures/extraction/r/runit/expected.json"
+        },
+        {
+          "name": "namespace",
+          "source": "fixtures/extraction/r/namespace/NAMESPACE",
+          "expected": "fixtures/extraction/r/namespace/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5501,6 +5533,7 @@
             "function",
             "import",
             "method",
+            "property",
             "variable"
           ],
           "not_applicable": [],
@@ -5535,9 +5568,16 @@
         },
         "structural_facts": {
           "supported": [
+            "plumber.route.v1",
             "r.formula_expression.v1",
             "r.library_call.v1",
-            "r.pipe_expression.v1"
+            "r.namespace_directive.v1",
+            "r.pipe_expression.v1",
+            "shiny.app.v1",
+            "shiny.input.v1",
+            "shiny.module.v1",
+            "shiny.output.v1",
+            "shiny.reactive.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -5561,6 +5601,7 @@
         },
         "doc_comments": {
           "supported": [
+            "class",
             "function"
           ],
           "not_applicable": [],
@@ -5585,11 +5626,10 @@
         "test_detection": {
           "supported": [
             "test_case",
-            "test_container"
-          ],
-          "not_applicable": [
+            "test_container",
             "test_lifecycle"
           ],
+          "not_applicable": [],
           "open_gaps": []
         }
       }
@@ -5635,6 +5675,11 @@
           "name": "scripts",
           "source": "fixtures/extraction/bash/scripts/source.sh",
           "expected": "fixtures/extraction/bash/scripts/expected.json"
+        },
+        {
+          "name": "commands",
+          "source": "fixtures/extraction/bash/commands/source.sh",
+          "expected": "fixtures/extraction/bash/commands/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5686,7 +5731,8 @@
             "bash.shebang.v1",
             "bash.command_substitution.v1",
             "bash.arithmetic_expansion.v1",
-            "bash.export_declaration.v1"
+            "bash.export_declaration.v1",
+            "http.client_request.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -5710,8 +5756,10 @@
         },
         "doc_comments": {
           "supported": [
+            "constant",
             "function",
-            "import"
+            "import",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -5725,6 +5773,7 @@
         },
         "source_regions": {
           "supported": [
+            "comment",
             "doc_comment",
             "string_literal"
           ],

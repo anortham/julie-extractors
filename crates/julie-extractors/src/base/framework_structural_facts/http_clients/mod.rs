@@ -1,3 +1,4 @@
+mod bash;
 mod csharp;
 mod elixir;
 mod go;
@@ -35,6 +36,7 @@ pub(super) fn collect_backend_http_client_requests(
         "ruby" => ruby::collect_ruby_http_client_requests(language, tree, file_path, content),
         "elixir" => elixir::collect_elixir_http_client_requests(language, tree, file_path, content),
         "rust" => rust::collect_rust_http_client_requests(language, tree, file_path, content),
+        "bash" => bash::collect_bash_http_client_requests(language, tree, file_path, content),
         _ => Vec::new(),
     }
 }

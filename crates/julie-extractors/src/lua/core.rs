@@ -29,7 +29,9 @@ pub(super) fn traverse_tree(
     if !should_visit_tree_depth(depth) {
         return;
     }
-    let parent_id = owners.remove(&node.id()).or(parent_id);
+    let owned_parent = owners.remove(&node.id());
+    let is_owned = owned_parent.is_some();
+    let parent_id = owned_parent.or(parent_id);
 
     let mut symbol: Option<Symbol> = None;
 
@@ -87,20 +89,8 @@ pub(super) fn traverse_tree(
                 parent_id.as_deref(),
             );
         }
-        "table_constructor" => {
+        "table_constructor" if is_owned || is_module_return_value(node) => {
             tables::extract_table_fields(symbols, base, owners, node, parent_id.as_deref());
-            let mut cursor = node.walk();
-            let owned_values: Vec<Node> = node
-                .children(&mut cursor)
-                .filter_map(|field| field.child_by_field_name("value"))
-                .filter(|value| owners.contains_key(&value.id()))
-                .collect();
-            if let Some(child_depth) = child_tree_depth(depth) {
-                for value in owned_values {
-                    traverse_tree(symbols, base, owners, value, parent_id.clone(), child_depth);
-                }
-            }
-            return;
         }
         _ => {}
     }
@@ -160,6 +150,10 @@ pub(super) struct RequireImport {
 }
 
 impl RequireImport {
+    pub(super) fn module_path(&self) -> &str {
+        &self.module_path
+    }
+
     pub(super) fn metadata(&self) -> HashMap<String, Value> {
         HashMap::from([
             (
@@ -224,8 +218,18 @@ fn is_bare_require_statement(base: &BaseExtractor, node: Node) -> bool {
 
     !node
         .parent()
-        .map(|parent| matches!(parent.kind(), "expression_list" | "arguments"))
+        .map(|parent| matches!(parent.kind(), "expression_list" | "arguments" | "field"))
         .unwrap_or(false)
+}
+
+/// A table returned at the top level of the chunk: the module's export table.
+fn is_module_return_value(node: Node) -> bool {
+    node.parent()
+        .filter(|list| list.kind() == "expression_list")
+        .and_then(|list| list.parent())
+        .filter(|statement| statement.kind() == "return_statement")
+        .and_then(|statement| statement.parent())
+        .is_some_and(|chunk| chunk.kind() == "chunk")
 }
 
 struct RequireCall {

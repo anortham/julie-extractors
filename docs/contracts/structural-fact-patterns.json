@@ -635,7 +635,7 @@
     "query_family": "expansion"
   },
   {
-    "description": "A Bash `export` declaration.",
+    "description": "A Bash declaration that exports its names (`export`, `declare -x`, `local -x`).",
     "languages": [
       "bash"
     ],
@@ -653,10 +653,16 @@
         "value_type": "string"
       },
       {
-        "description": "The exported variable's name.",
+        "description": "The first exported variable's name.",
         "key": "variable_name",
         "presence": "optional",
         "value_type": "string"
+      },
+      {
+        "description": "Every name the declaration exports, in source order.",
+        "key": "variable_names",
+        "presence": "always",
+        "value_type": "string_array"
       }
     ],
     "pattern_id": "bash.export_declaration.v1",
@@ -3491,7 +3497,8 @@
       "php",
       "ruby",
       "elixir",
-      "rust"
+      "rust",
+      "bash"
     ],
     "metadata_keys": [
       {
@@ -3513,7 +3520,7 @@
         "value_type": "string"
       },
       {
-        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, req, tesla, httpoison, finch, httpc).",
+        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http, reqwest, hyper, ureq, guzzle, laravel_http, symfony_http_client, curl, ktor, okhttp, retrofit, spring_webclient, spring_resttemplate, req, tesla, httpoison, finch, httpc, wget).",
         "key": "client",
         "presence": "always",
         "value_type": "string"
@@ -4147,6 +4154,76 @@
     "query_family": "framework"
   },
   {
+    "description": "A Lapis `app:get/post/put/patch/delete/head/options/match` route with a static path and a handler, in a file that mentions lapis.",
+    "languages": [
+      "lua"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"dsl_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path from the route call.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Route name when the call names the route before its path.",
+        "key": "route_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Uppercase HTTP method; absent for `match`, which accepts every method.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "lapis.route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "A Laravel Route::resource/apiResource declaration.",
     "languages": [
       "php"
@@ -4336,6 +4413,98 @@
       }
     ],
     "pattern_id": "laravel.route_prefix.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A lazy.nvim plugin spec: a module-level returned table (or a table in the returned list) whose first positional value is an `owner/repo` string.",
+    "languages": [
+      "lua"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `owner/repo` plugin id.",
+        "key": "plugin",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Plugin ids named in `dependencies`.",
+        "key": "dependencies",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Static `cmd` values that lazy-load the plugin.",
+        "key": "commands",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Static `event` values that lazy-load the plugin.",
+        "key": "events",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Static `ft` values that lazy-load the plugin.",
+        "key": "filetypes",
+        "presence": "optional",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "lazy_nvim.plugin_spec.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A LÖVE engine callback defined as `function love.<callback>()` or assigned as `love.<callback> = function`.",
+    "languages": [
+      "lua"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The callback name (\"load\", \"draw\", ...).",
+        "key": "callback",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "love.callback.v1",
     "query_family": "framework"
   },
   {
@@ -5033,6 +5202,150 @@
     ],
     "pattern_id": "markdown.task_list_item.v1",
     "query_family": "document_structure"
+  },
+  {
+    "description": "A Neovim autocommand created with `vim.api.nvim_create_autocmd` and static event names.",
+    "languages": [
+      "lua"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Event names the autocommand listens to.",
+        "key": "events",
+        "presence": "always",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Static `pattern` option values.",
+        "key": "patterns",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Static `group` option.",
+        "key": "group",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Static `desc` option.",
+        "key": "desc",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "neovim.autocmd.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Neovim key mapping set with `vim.keymap.set`, `nvim_set_keymap`, or `nvim_buf_set_keymap` and static modes and left-hand side.",
+    "languages": [
+      "lua"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Mode short names (\"n\", \"v\", ...).",
+        "key": "modes",
+        "presence": "always",
+        "value_type": "string_array"
+      },
+      {
+        "description": "The mapped key sequence.",
+        "key": "lhs",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Static `desc` option.",
+        "key": "desc",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "neovim.keymap.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Neovim user command created with `vim.api.nvim_create_user_command` or `nvim_buf_create_user_command` and a static name.",
+    "languages": [
+      "lua"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The command name.",
+        "key": "command_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"global\" or \"buffer\" (the buffer-local API).",
+        "key": "scope",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Static `desc` option.",
+        "key": "desc",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "neovim.user_command.v1",
+    "query_family": "framework"
   },
   {
     "description": "A static NestJS HTTP-method decorator route joined to its @Controller class prefix.",
@@ -6086,6 +6399,70 @@
     "query_family": "traits"
   },
   {
+    "description": "A plumber route: a `#* @get /path` annotation above a top-level handler function, or a `pr_get(\"/path\", handler)` router call, with a static path.",
+    "languages": [
+      "r"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"annotation\" or \"router_call\".",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template; `<id:int>` parameters lose their type.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Uppercase HTTP method.",
+        "key": "verb",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "plumber.route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "A PowerShell `class` definition.",
     "languages": [
       "powershell"
@@ -7116,7 +7493,7 @@
     "query_family": "qmldir"
   },
   {
-    "description": "An R model formula expression (`y ~ x`).",
+    "description": "An R model formula: a two-sided `y ~ x` or one-sided `~ x` expression whose operator is `~`.",
     "languages": [
       "r"
     ],
@@ -7144,7 +7521,7 @@
     "query_family": "modeling"
   },
   {
-    "description": "An R `library()`/`require()` package load.",
+    "description": "An R package load: `library()`, `require()`, `requireNamespace()`, `pacman::p_load()`, `box::use()`, or `import::from()`.",
     "languages": [
       "r"
     ],
@@ -7162,7 +7539,7 @@
         "value_type": "string"
       },
       {
-        "description": "Which load form was used (`library` or `require`).",
+        "description": "Which load form was used (`library`, `require`, `requireNamespace`, `pacman::p_load`, `box::use`, or `import::from`).",
         "key": "load_kind",
         "presence": "always",
         "value_type": "string"
@@ -7178,7 +7555,7 @@
     "query_family": "imports"
   },
   {
-    "description": "An R pipe expression (`|>` or `%>%`).",
+    "description": "A directive in an R package `NAMESPACE` file: `export`, `exportPattern`, `exportClasses`, `exportClassPattern`, `exportMethods`, `S3method`, `import`, `importFrom`, `importClassesFrom`, `importMethodsFrom`, or `useDynLib`.",
     "languages": [
       "r"
     ],
@@ -7194,6 +7571,52 @@
         "key": "query_family",
         "presence": "always",
         "value_type": "string"
+      },
+      {
+        "description": "The directive name.",
+        "key": "directive",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The directive's arguments, unquoted, in source order.",
+        "key": "arguments",
+        "presence": "always",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "r.namespace_directive.v1",
+    "query_family": "module"
+  },
+  {
+    "description": "An R pipe chain (`|>`, `%>%`, `%<>%`, `%T>%`, or `%$%`): one fact for the outermost pipe of each chain.",
+    "languages": [
+      "r"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The operator of the outermost pipe.",
+        "key": "pipe_operator",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The number of pipe operators in the chain.",
+        "key": "stage_count",
+        "presence": "always",
+        "value_type": "number"
       }
     ],
     "pattern_id": "r.pipe_expression.v1",
@@ -8382,6 +8805,224 @@
     ],
     "pattern_id": "scala.given_definition.v1",
     "query_family": "typeclass"
+  },
+  {
+    "description": "A `shinyApp()` call that builds the application.",
+    "languages": [
+      "r"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The UI object when it is a named variable.",
+        "key": "ui",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The server function when it is a named variable.",
+        "key": "server",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "shiny.app.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Shiny input widget (`*Input()`, `actionButton()`, `actionLink()`, `radioButtons()`) with a static input id, in a file that mentions shiny.",
+    "languages": [
+      "r"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The input id (`input$<id>` on the server).",
+        "key": "input_id",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The widget function name.",
+        "key": "widget",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "shiny.input.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Shiny module server call: `moduleServer(id, server)` or `callModule(server, id)`.",
+    "languages": [
+      "r"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"moduleServer\" or \"callModule\".",
+        "key": "module_call",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Static module id.",
+        "key": "module_id",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The module server function when it is named.",
+        "key": "server_function",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "shiny.module.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Shiny output: a `*Output(\"id\")` placeholder in the UI, or an `output$id <- render*()` binding on the server.",
+    "languages": [
+      "r"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"placeholder\" or \"render\".",
+        "key": "role",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The output id.",
+        "key": "output_id",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The placeholder or render function name.",
+        "key": "function",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "shiny.output.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Shiny reactive or observer: `reactive()`, `eventReactive()`, `reactiveVal()`, `reactiveValues()`, `reactivePoll()`, `reactiveFileReader()`, `observe()`, or `observeEvent()`.",
+    "languages": [
+      "r"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The reactive function name.",
+        "key": "reactive_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The name the reactive is assigned to.",
+        "key": "name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The event expression of `observeEvent()` / `eventReactive()`.",
+        "key": "trigger",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "shiny.reactive.v1",
+    "query_family": "framework"
   },
   {
     "description": "A Sinatra before or after filter block with a static path.",

@@ -10,11 +10,13 @@ mod http_clients;
 mod kotlin_spring;
 mod ktor;
 mod laravel;
+mod lua;
 mod markup;
 mod nestjs;
 mod node;
 mod phoenix;
 mod python_web;
+mod r;
 mod rails;
 mod razor;
 mod scan;
@@ -36,6 +38,7 @@ use self::http_clients::{
 use self::kotlin_spring::collect_kotlin_spring_routes;
 use self::ktor::collect_ktor_routes;
 use self::laravel::collect_laravel_routes;
+use self::lua::collect_lua_framework_facts;
 use self::markup::{
     collect_jsx_htmx_attributes, collect_markup_framework_attributes,
     collect_vue_template_htmx_attributes,
@@ -44,6 +47,7 @@ use self::nestjs::collect_nestjs_route_facts;
 use self::node::collect_node_http_boundary_facts;
 use self::phoenix::collect_phoenix_routes;
 use self::python_web::collect_python_web_facts;
+use self::r::collect_r_framework_facts;
 use self::rails::collect_rails_routes;
 use self::razor::collect_razor_structural_facts;
 use self::sinatra::collect_sinatra_routes;
@@ -92,6 +96,18 @@ pub(super) const KTOR_ROUTE_PATTERN_ID: &str = "ktor.route.v1";
 pub(super) const PHOENIX_ROUTE_PATTERN_ID: &str = "phoenix.route.v1";
 pub(super) const PHOENIX_RESOURCE_ROUTE_PATTERN_ID: &str = "phoenix.resource_route.v1";
 pub(super) const PHOENIX_FORWARD_PATTERN_ID: &str = "phoenix.forward.v1";
+pub(super) const LAPIS_ROUTE_PATTERN_ID: &str = "lapis.route.v1";
+pub(super) const NEOVIM_USER_COMMAND_PATTERN_ID: &str = "neovim.user_command.v1";
+pub(super) const NEOVIM_AUTOCMD_PATTERN_ID: &str = "neovim.autocmd.v1";
+pub(super) const NEOVIM_KEYMAP_PATTERN_ID: &str = "neovim.keymap.v1";
+pub(super) const LOVE_CALLBACK_PATTERN_ID: &str = "love.callback.v1";
+pub(super) const LAZY_NVIM_PLUGIN_SPEC_PATTERN_ID: &str = "lazy_nvim.plugin_spec.v1";
+pub(super) const PLUMBER_ROUTE_PATTERN_ID: &str = "plumber.route.v1";
+pub(super) const SHINY_INPUT_PATTERN_ID: &str = "shiny.input.v1";
+pub(super) const SHINY_OUTPUT_PATTERN_ID: &str = "shiny.output.v1";
+pub(super) const SHINY_REACTIVE_PATTERN_ID: &str = "shiny.reactive.v1";
+pub(super) const SHINY_MODULE_PATTERN_ID: &str = "shiny.module.v1";
+pub(super) const SHINY_APP_PATTERN_ID: &str = "shiny.app.v1";
 pub(super) const HTTP_CLIENT_REQUEST_PATTERN_ID: &str = "http.client_request.v1";
 pub(super) const HTMX_ATTRIBUTE_PATTERN_ID: &str = "htmx.attribute.v1";
 pub(super) const ALPINE_DIRECTIVE_PATTERN_ID: &str = "alpine.directive.v1";
@@ -193,6 +209,24 @@ const RUST_PATTERN_IDS: &[&str] = &[
     ACTIX_SCOPE_ROUTE_PATTERN_ID,
     ACTIX_MOUNT_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
+];
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const LUA_PATTERN_IDS: &[&str] = &[
+    LAPIS_ROUTE_PATTERN_ID,
+    NEOVIM_USER_COMMAND_PATTERN_ID,
+    NEOVIM_AUTOCMD_PATTERN_ID,
+    NEOVIM_KEYMAP_PATTERN_ID,
+    LOVE_CALLBACK_PATTERN_ID,
+    LAZY_NVIM_PLUGIN_SPEC_PATTERN_ID,
+];
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const R_PATTERN_IDS: &[&str] = &[
+    PLUMBER_ROUTE_PATTERN_ID,
+    SHINY_INPUT_PATTERN_ID,
+    SHINY_OUTPUT_PATTERN_ID,
+    SHINY_REACTIVE_PATTERN_ID,
+    SHINY_MODULE_PATTERN_ID,
+    SHINY_APP_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const RAZOR_FRAMEWORK_PATTERN_IDS: &[&str] = &[
@@ -335,6 +369,9 @@ pub fn collect_framework_structural_facts(
             rust_facts
         }
         "vue" => collect_vue_template_htmx_attributes(language, tree, file_path, content),
+        "lua" => collect_lua_framework_facts(language, tree, file_path, content),
+        "r" => collect_r_framework_facts(language, tree, file_path, content),
+        "bash" => collect_backend_http_client_requests(language, tree, file_path, content),
         _ => Vec::new(),
     };
 
@@ -374,6 +411,9 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
         "elixir" => ELIXIR_PATTERN_IDS,
         "rust" => RUST_PATTERN_IDS,
         "vue" => COMPONENT_MARKUP_FRAMEWORK_PATTERN_IDS,
+        "lua" => LUA_PATTERN_IDS,
+        "r" => R_PATTERN_IDS,
+        "bash" => &[HTTP_CLIENT_REQUEST_PATTERN_ID],
         _ => &[],
     }
 }

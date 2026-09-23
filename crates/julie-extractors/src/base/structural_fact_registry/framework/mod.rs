@@ -9,8 +9,10 @@ mod aspnet_node;
 mod frontend;
 mod jvm_go_ruby;
 mod kotlin_elixir;
+mod lua;
 mod php;
 mod python;
+mod r;
 mod rust;
 
 #[cfg(test)]
@@ -26,6 +28,8 @@ pub(super) fn specs() -> Vec<StructuralFactPatternSpec> {
         php::SPECS,
         kotlin_elixir::SPECS,
         rust::SPECS,
+        lua::SPECS,
+        r::SPECS,
         frontend::SPECS,
     ]
     .concat()

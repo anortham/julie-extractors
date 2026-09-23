@@ -211,6 +211,8 @@ found and recorded these rulings where the code and the plan disagreed.
   Lua classes. The inferred fact `Foo` records on that symbol. Task 21
   asked for kind `variable`; the class classification wins until a
   separate decision changes the Lua class heuristic.
+  [Lua class evidence](2026-09-22-lua-class-evidence.md) now makes this
+  local a `variable` unless the class body corroborates it.
 - VB.NET arrays: `Worker()` and `Integer()` stay as recorded array types.
   The contract keeps array suffixes, and the VB generic opener `(` never
   runs on an `array_type`.

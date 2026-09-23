@@ -23,7 +23,7 @@
       "body_hash": "369bfde930c4f94672605e796f1ae871",
       "signature": "calculate_total <- function()",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {},
       "annotations": [],
@@ -134,6 +134,40 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/r/test_roles/test_source.r:qualified case:37:0",
+      "name": "qualified case",
+      "kind": "function",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/test_roles/test_source.r",
+      "start_line": 37,
+      "start_column": 0,
+      "end_line": 39,
+      "end_column": 2,
+      "start_byte": 471,
+      "end_byte": 533,
+      "body_span": {
+        "start_line": 37,
+        "start_column": 38,
+        "end_line": 39,
+        "end_column": 1,
+        "start_byte": 509,
+        "end_byte": 532
+      },
+      "body_hash": "7a096bea6dc91056408e4bacfcf25fe5",
+      "signature": "test_that(\"qualified case\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "is_test": true,
+        "test_role": "test_case"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/r/test_roles/test_source.r:r roles:1:0",
       "name": "r roles",
       "kind": "function",
@@ -161,6 +195,41 @@
       "metadata": {
         "test_container": true,
         "test_role": "test_container"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/r/test_roles/test_source.r:setup:29:0",
+      "name": "setup",
+      "kind": "function",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/test_roles/test_source.r",
+      "start_line": 29,
+      "start_column": 0,
+      "end_line": 31,
+      "end_column": 2,
+      "start_byte": 398,
+      "end_byte": 431,
+      "body_span": {
+        "start_line": 29,
+        "start_column": 6,
+        "end_line": 31,
+        "end_column": 1,
+        "start_byte": 404,
+        "end_byte": 430
+      },
+      "body_hash": "b47ef6965cecfcca6ac64d281f02bc3d",
+      "signature": "setup()",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "is_test": true,
+        "test_lifecycle": true,
+        "test_role": "fixture_setup"
       },
       "annotations": [],
       "semantic_group": null,
@@ -202,6 +271,41 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/r/test_roles/test_source.r:teardown:33:0",
+      "name": "teardown",
+      "kind": "function",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/test_roles/test_source.r",
+      "start_line": 33,
+      "start_column": 0,
+      "end_line": 35,
+      "end_column": 2,
+      "start_byte": 433,
+      "end_byte": 469,
+      "body_span": {
+        "start_line": 33,
+        "start_column": 9,
+        "end_line": 35,
+        "end_column": 1,
+        "start_byte": 442,
+        "end_byte": 468
+      },
+      "body_hash": "732d9be7c639721d3a3ccb7e6341bec2",
+      "signature": "teardown()",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "is_test": true,
+        "test_lifecycle": true,
+        "test_role": "fixture_teardown"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/r/test_roles/test_source.r:test.named.case:11:0",
       "name": "test.named.case",
       "kind": "function",
@@ -224,12 +328,9 @@
       "body_hash": "75cd039e10588a2ee16ce14dfccf9fa9",
       "signature": "test.named.case <- function()",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
-      "metadata": {
-        "is_test": true,
-        "test_role": "test_case"
-      },
+      "metadata": {},
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -274,6 +375,22 @@
       "confidence": "0.700"
     },
     {
+      "from_key": "fixtures/extraction/r/test_roles/test_source.r:qualified case:37:0",
+      "callee_name": "expect_true",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/r/test_roles/test_source.r",
+      "line_number": 38,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/r/test_roles/test_source.r:setup:29:0",
+      "callee_name": "options",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/r/test_roles/test_source.r",
+      "line_number": 30,
+      "confidence": "0.700"
+    },
+    {
       "from_key": "fixtures/extraction/r/test_roles/test_source.r:sums:24:2",
       "callee_name": "add_one",
       "kind": "calls",
@@ -287,6 +404,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/r/test_roles/test_source.r",
       "line_number": 25,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/r/test_roles/test_source.r:teardown:33:0",
+      "callee_name": "options",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/r/test_roles/test_source.r",
+      "line_number": 34,
       "confidence": "0.700"
     }
   ],
@@ -345,6 +470,58 @@
     },
     {
       "pending": {
+        "from_key": "fixtures/extraction/r/test_roles/test_source.r:qualified case:37:0",
+        "callee_name": "expect_true",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/r/test_roles/test_source.r",
+        "line_number": 38,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "expect_true",
+        "terminal_name": "expect_true",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/r/test_roles/test_source.r:qualified case:37:0",
+      "span": {
+        "start_line": 38,
+        "start_column": 2,
+        "end_line": 38,
+        "end_column": 19,
+        "start_byte": 513,
+        "end_byte": 530
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/r/test_roles/test_source.r:setup:29:0",
+        "callee_name": "options",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/r/test_roles/test_source.r",
+        "line_number": 30,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "options",
+        "terminal_name": "options",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/r/test_roles/test_source.r:setup:29:0",
+      "span": {
+        "start_line": 30,
+        "start_column": 2,
+        "end_line": 30,
+        "end_column": 22,
+        "start_byte": 408,
+        "end_byte": 428
+      }
+    },
+    {
+      "pending": {
         "from_key": "fixtures/extraction/r/test_roles/test_source.r:sums:24:2",
         "callee_name": "add_one",
         "kind": "calls",
@@ -393,6 +570,32 @@
         "end_column": 47,
         "start_byte": 345,
         "end_byte": 388
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/r/test_roles/test_source.r:teardown:33:0",
+        "callee_name": "options",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/r/test_roles/test_source.r",
+        "line_number": 34,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "options",
+        "terminal_name": "options",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/r/test_roles/test_source.r:teardown:33:0",
+      "span": {
+        "start_line": 34,
+        "start_column": 2,
+        "end_line": 34,
+        "end_column": 22,
+        "start_byte": 446,
+        "end_byte": 466
       }
     }
   ],
@@ -510,6 +713,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/r/test_roles/test_source.r:expect_true:call:38:2",
+      "name": "expect_true",
+      "kind": "call",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/test_roles/test_source.r",
+      "start_line": 38,
+      "start_column": 2,
+      "end_line": 38,
+      "end_column": 13,
+      "start_byte": 513,
+      "end_byte": 524,
+      "containing_key": "fixtures/extraction/r/test_roles/test_source.r:qualified case:37:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/r/test_roles/test_source.r:expect_true:call:3:4",
       "name": "expect_true",
       "kind": "call",
@@ -558,6 +777,86 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/r/test_roles/test_source.r:options:call:30:2",
+      "name": "options",
+      "kind": "call",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/test_roles/test_source.r",
+      "start_line": 30,
+      "start_column": 2,
+      "end_line": 30,
+      "end_column": 9,
+      "start_byte": 408,
+      "end_byte": 415,
+      "containing_key": "fixtures/extraction/r/test_roles/test_source.r:setup:29:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/r/test_roles/test_source.r:options:call:34:2",
+      "name": "options",
+      "kind": "call",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/test_roles/test_source.r",
+      "start_line": 34,
+      "start_column": 2,
+      "end_line": 34,
+      "end_column": 9,
+      "start_byte": 446,
+      "end_byte": 453,
+      "containing_key": "fixtures/extraction/r/test_roles/test_source.r:teardown:33:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/r/test_roles/test_source.r:setup:call:29:0",
+      "name": "setup",
+      "kind": "call",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/test_roles/test_source.r",
+      "start_line": 29,
+      "start_column": 0,
+      "end_line": 29,
+      "end_column": 5,
+      "start_byte": 398,
+      "end_byte": 403,
+      "containing_key": "fixtures/extraction/r/test_roles/test_source.r:setup:29:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/r/test_roles/test_source.r:teardown:call:33:0",
+      "name": "teardown",
+      "kind": "call",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/test_roles/test_source.r",
+      "start_line": 33,
+      "start_column": 0,
+      "end_line": 33,
+      "end_column": 8,
+      "start_byte": 433,
+      "end_byte": 441,
+      "containing_key": "fixtures/extraction/r/test_roles/test_source.r:teardown:33:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/r/test_roles/test_source.r:test_that:call:37:0",
+      "name": "test_that",
+      "kind": "call",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/test_roles/test_source.r",
+      "start_line": 37,
+      "start_column": 0,
+      "end_line": 37,
+      "end_column": 19,
+      "start_byte": 471,
+      "end_byte": 490,
+      "containing_key": "fixtures/extraction/r/test_roles/test_source.r:qualified case:37:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/r/test_roles/test_source.r:test_that:call:7:0",
       "name": "test_that",
       "kind": "call",
@@ -584,18 +883,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "r",
       "file_path": "fixtures/extraction/r/test_roles/test_source.r",
-      "covered_lines": 28,
-      "covered_bytes": 397,
+      "covered_lines": 40,
+      "covered_bytes": 534,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 28,
+      "end_line": 40,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 397,
+      "end_byte": 534,
       "metadata": {
         "metric_version": 1
       }
@@ -690,6 +989,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/r/test_roles/test_source.r:qualified case:37:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/test_roles/test_source.r",
+      "covered_lines": 3,
+      "covered_bytes": 23,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 37,
+      "start_column": 38,
+      "end_line": 39,
+      "end_column": 1,
+      "start_byte": 509,
+      "end_byte": 532,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/r/test_roles/test_source.r:r roles:1:0",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "r",
@@ -712,6 +1033,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/r/test_roles/test_source.r:setup:29:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/test_roles/test_source.r",
+      "covered_lines": 3,
+      "covered_bytes": 26,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 29,
+      "start_column": 6,
+      "end_line": 31,
+      "end_column": 1,
+      "start_byte": 404,
+      "end_byte": 430,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/r/test_roles/test_source.r:sums:24:2",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "r",
@@ -728,6 +1071,28 @@
       "end_column": 3,
       "start_byte": 339,
       "end_byte": 392,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/r/test_roles/test_source.r:teardown:33:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/test_roles/test_source.r",
+      "covered_lines": 3,
+      "covered_bytes": 26,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 33,
+      "start_column": 9,
+      "end_line": 35,
+      "end_column": 1,
+      "start_byte": 442,
+      "end_byte": 468,
       "metadata": {
         "metric_version": 1
       }
@@ -821,6 +1186,22 @@
       "confidence": "1.000"
     },
     {
+      "literal_text": "qualified case",
+      "kind": "other",
+      "carrier": "testthat.test_that",
+      "arg_position": 0,
+      "language": "r",
+      "file_path": "fixtures/extraction/r/test_roles/test_source.r",
+      "start_line": 37,
+      "start_column": 20,
+      "end_line": 37,
+      "end_column": 36,
+      "start_byte": 491,
+      "end_byte": 507,
+      "containing_key": "fixtures/extraction/r/test_roles/test_source.r:qualified case:37:0",
+      "confidence": "1.000"
+    },
+    {
       "literal_text": "r roles",
       "kind": "other",
       "carrier": "describe",
@@ -891,6 +1272,19 @@
       "end_column": 36,
       "start_byte": 102,
       "end_byte": 128,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/test_roles/test_source.r",
+      "containing_key": "fixtures/extraction/r/test_roles/test_source.r:qualified case:37:0",
+      "start_line": 37,
+      "start_column": 20,
+      "end_line": 37,
+      "end_column": 36,
+      "start_byte": 491,
+      "end_byte": 507,
       "metadata": null
     },
     {

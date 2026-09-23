@@ -6,6 +6,7 @@ mod identifiers;
 mod idioms;
 mod non_s3;
 mod parameters;
+pub(crate) mod plumber;
 mod relationships;
 pub(crate) mod test_calls;
 mod text_args;
@@ -82,10 +83,14 @@ impl RExtractor {
             "call" => self
                 .extract_from_call(node, &parent_id)
                 .map(|symbol| symbol.id),
-            "function_definition" => self.value_owners.remove(&node.id()).inspect(|owner_id| {
-                let parameters = parameters::extract_parameter_symbols(self, node, owner_id);
-                self.symbols.extend(parameters);
-            }),
+            "function_definition" => match self.value_owners.remove(&node.id()) {
+                Some(owner_id) => {
+                    let parameters = parameters::extract_parameter_symbols(self, node, &owner_id);
+                    self.symbols.extend(parameters);
+                    Some(owner_id)
+                }
+                None => idioms::extract_plumber_handler(self, node, &parent_id).map(|s| s.id),
+            },
             _ => None,
         };
 
@@ -117,6 +122,17 @@ impl RExtractor {
                 }
                 let left = node.child(0)?;
                 let right = node.child(2)?;
+                if right.kind() == "function_definition"
+                    && let Some(symbol) =
+                        idioms::extract_s7_method(self, node, left, right, parent_id)
+                {
+                    return Some(symbol);
+                }
+                if right.kind() == "call"
+                    && idioms::call_name(self, right).as_deref() == Some("setClass")
+                {
+                    return None;
+                }
                 if right.kind() == "function_definition"
                     && let Some((receiver, member)) = idioms::member_function_target(self, left)
                 {
@@ -235,6 +251,7 @@ impl RExtractor {
             &mut metadata,
         );
 
+        let visibility = self.function_visibility(&name, doc_comment.as_deref(), parent_id);
         let options = SymbolOptions {
             parent_id: parent_id.clone(),
             signature: Some(signature),
@@ -244,6 +261,7 @@ impl RExtractor {
                 Some(metadata)
             },
             doc_comment,
+            visibility: Some(visibility),
             ..Default::default()
         };
         let symbol = self.base.create_symbol_from_span(
@@ -257,6 +275,32 @@ impl RExtractor {
         let parameter_symbols = parameters::extract_parameter_symbols(self, func_def, &symbol.id);
         self.symbols.extend(parameter_symbols);
         symbol
+    }
+
+    /// A function defined inside another callable is local to it. A top-level
+    /// function is public unless its name starts with a dot or roxygen marks
+    /// it `@keywords internal`.
+    fn function_visibility(
+        &self,
+        name: &str,
+        doc_comment: Option<&str>,
+        parent_id: &Option<String>,
+    ) -> crate::base::Visibility {
+        let nested = parent_id.as_ref().is_some_and(|parent_id| {
+            self.symbols.iter().any(|symbol| {
+                symbol.id == *parent_id
+                    && matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
+            })
+        });
+        let internal = doc_comment.is_some_and(|doc| {
+            doc.lines()
+                .any(|line| line.contains("@keywords") && line.contains("internal"))
+        });
+        if nested || internal {
+            crate::base::Visibility::Private
+        } else {
+            idioms::name_visibility(name)
+        }
     }
 
     /// Split an S3 method name into `(generic, class)`.
@@ -395,6 +439,9 @@ impl RExtractor {
         {
             self.symbols.push(test_sym.clone());
             return Some(test_sym);
+        }
+        if idioms::extract_refclass_methods(self, node) {
+            return None;
         }
         idioms::extract_s4_call(self, node, parent_id)
             .or_else(|| idioms::extract_import_call(self, node, parent_id))

@@ -330,9 +330,15 @@ const R_PATTERNS: &[CodeStructuralPattern] = &[
         query_family: "pipeline",
     },
     CodeStructuralPattern {
+        pattern_id: "r.namespace_directive.v1",
+        capture_name: "namespace_directive",
+        node_kinds: &["call"],
+        query_family: "module",
+    },
+    CodeStructuralPattern {
         pattern_id: "r.formula_expression.v1",
         capture_name: "formula_expression",
-        node_kinds: &["binary_operator"],
+        node_kinds: &["binary_operator", "unary_operator"],
         query_family: "modeling",
     },
 ];
@@ -890,6 +896,26 @@ fn enrich_metadata(
                 insert_string(metadata, "package_name", &package);
             }
         }
+        "r.namespace_directive.v1" => {
+            if let Some(directive) = r_namespace_directive(content, node) {
+                insert_string(metadata, "directive", directive);
+            }
+            metadata.insert(
+                "arguments".to_string(),
+                Value::Array(
+                    r_namespace_arguments(content, node)
+                        .into_iter()
+                        .map(Value::String)
+                        .collect(),
+                ),
+            );
+        }
+        "r.pipe_expression.v1" => {
+            if let Some(operator) = r_pipe_operator(content, node) {
+                insert_string(metadata, "pipe_operator", &operator);
+            }
+            insert_number(metadata, "stage_count", r_pipe_stage_count(content, node));
+        }
         "r.formula_expression.v1" => {
             if let Some(formula) = r_formula_text(content, node) {
                 insert_string(metadata, "formula_text", &formula);
@@ -999,9 +1025,17 @@ fn enrich_metadata(
             }
         }
         "bash.export_declaration.v1" => {
-            if let Some(name) = bash_export_variable_name(content, node) {
-                insert_string(metadata, "variable_name", &name);
+            let names: Vec<String> = crate::bash::declared_names(node)
+                .into_iter()
+                .map(|name| node_text(content, name))
+                .collect();
+            if let Some(first) = names.first() {
+                insert_string(metadata, "variable_name", first);
             }
+            metadata.insert(
+                "variable_names".to_string(),
+                Value::Array(names.into_iter().map(Value::String).collect()),
+            );
         }
         "powershell.cmdlet_binding_attribute.v1" => {
             if let Some(name) = powershell_attribute_name(content, node) {
@@ -1263,8 +1297,11 @@ fn matches_pattern(
             lua_table_field_count(node).is_some_and(|count| count > 0)
         }
         ("r", "r.library_call.v1") => r_library_kind(content, node).is_some(),
-        ("r", "r.pipe_expression.v1") => r_is_pipe_expression(node),
+        ("r", "r.pipe_expression.v1") => r_is_pipe_expression(content, node),
         ("r", "r.formula_expression.v1") => r_is_formula_expression(content, node),
+        ("r", "r.namespace_directive.v1") => {
+            r_is_namespace_file(file_path) && r_namespace_directive(content, node).is_some()
+        }
         ("zig", "zig.builtin_call.v1") => zig_is_builtin_call(content, node),
         ("zig", "zig.threadlocal_variable.v1") => zig_has_keyword(content, node, "threadlocal"),
         ("zig", "zig.inline_function.v1") => zig_has_keyword(content, node, "inline"),
@@ -1298,7 +1335,7 @@ fn matches_pattern(
         ("bash", "bash.command_substitution.v1") => true,
         ("bash", "bash.arithmetic_expansion.v1") => true,
         ("bash", "bash.export_declaration.v1") => {
-            bash_declaration_command(content, node).as_deref() == Some("export")
+            crate::bash::declaration_flags(content, node).exported
         }
         ("powershell", "powershell.cmdlet_binding_attribute.v1") => {
             powershell_attribute_name(content, node).as_deref() == Some("CmdletBinding")
@@ -1644,19 +1681,31 @@ fn lua_table_field_count(node: Node<'_>) -> Option<u64> {
 }
 
 fn r_library_kind(content: &str, node: Node<'_>) -> Option<&'static str> {
-    node.child_by_field_name("function")
-        .filter(|function| function.kind() == "identifier")
-        .map(|function| node_text(content, function))
-        .and_then(|name| match name.as_str() {
-            "library" => Some("library"),
-            "require" => Some("require"),
-            _ => None,
-        })
+    let function = node.child_by_field_name("function")?;
+    let name = match function.kind() {
+        "identifier" => node_text(content, function),
+        "namespace_operator" => node_text(content, function).replace(' ', ""),
+        _ => return None,
+    };
+    match name.as_str() {
+        "library" => Some("library"),
+        "require" => Some("require"),
+        "requireNamespace" => Some("requireNamespace"),
+        "pacman::p_load" => Some("pacman::p_load"),
+        "box::use" => Some("box::use"),
+        "import::from" => Some("import::from"),
+        _ => None,
+    }
 }
 
 fn r_library_package(content: &str, node: Node<'_>) -> Option<String> {
+    let kinds: &[&str] = if r_library_kind(content, node) == Some("requireNamespace") {
+        &["string"]
+    } else {
+        &["string", "identifier"]
+    };
     node.child_by_field_name("arguments").and_then(|args| {
-        first_named_identifier(content, args, &["string", "identifier"])
+        first_named_identifier(content, args, kinds)
             .map(|package| package.trim_matches('"').to_string())
     })
 }
@@ -1669,15 +1718,94 @@ fn r_formula_text(content: &str, node: Node<'_>) -> Option<String> {
 }
 
 fn r_is_formula_expression(content: &str, node: Node<'_>) -> bool {
-    let text = node_text(content, node);
-    text.contains('~') && !text.contains("<-") && !text.contains("<<-")
+    node.child_by_field_name("operator")
+        .is_some_and(|operator| node_text(content, operator) == "~")
 }
 
-fn r_is_pipe_expression(node: Node<'_>) -> bool {
-    node.kind() == "binary_operator"
-        && node
-            .child(1)
-            .is_some_and(|operator| operator.kind() == "|>")
+const R_NAMESPACE_DIRECTIVES: &[&str] = &[
+    "export",
+    "exportPattern",
+    "exportClasses",
+    "exportClassPattern",
+    "exportMethods",
+    "S3method",
+    "import",
+    "importFrom",
+    "importClassesFrom",
+    "importMethodsFrom",
+    "useDynLib",
+];
+
+fn r_is_namespace_file(file_path: &str) -> bool {
+    file_path.rsplit(['/', '\\']).next() == Some("NAMESPACE")
+}
+
+/// The directive name of a top-level `NAMESPACE` call.
+fn r_namespace_directive(content: &str, node: Node<'_>) -> Option<&'static str> {
+    if node
+        .parent()
+        .is_none_or(|parent| parent.kind() != "program")
+    {
+        return None;
+    }
+    let function = node
+        .child_by_field_name("function")
+        .filter(|function| function.kind() == "identifier")?;
+    let name = node_text(content, function);
+    R_NAMESPACE_DIRECTIVES
+        .iter()
+        .find(|directive| **directive == name)
+        .copied()
+}
+
+/// The directive's argument texts, with quotes and backticks removed.
+fn r_namespace_arguments(content: &str, node: Node<'_>) -> Vec<String> {
+    let Some(args) = node.child_by_field_name("arguments") else {
+        return Vec::new();
+    };
+    let mut cursor = args.walk();
+    args.children_by_field_name("argument", &mut cursor)
+        .map(|argument| {
+            node_text(content, argument)
+                .trim()
+                .trim_matches(|c| c == '"' || c == '\'' || c == '`')
+                .to_string()
+        })
+        .filter(|argument| !argument.is_empty())
+        .collect()
+}
+
+const R_PIPE_OPERATORS: &[&str] = &["|>", "%>%", "%<>%", "%T>%", "%$%"];
+
+fn r_pipe_operator(content: &str, node: Node<'_>) -> Option<String> {
+    if node.kind() != "binary_operator" {
+        return None;
+    }
+    let operator = node_text(content, node.child_by_field_name("operator")?);
+    R_PIPE_OPERATORS
+        .contains(&operator.as_str())
+        .then_some(operator)
+}
+
+/// One fact per pipe chain: the outermost pipe, which is not the left operand
+/// of another pipe.
+fn r_is_pipe_expression(content: &str, node: Node<'_>) -> bool {
+    r_pipe_operator(content, node).is_some()
+        && !node.parent().is_some_and(|parent| {
+            r_pipe_operator(content, parent).is_some()
+                && parent.child_by_field_name("lhs") == Some(node)
+        })
+}
+
+/// The number of pipe operators in the chain rooted at `node`.
+fn r_pipe_stage_count(content: &str, node: Node<'_>) -> u64 {
+    let mut count = 0;
+    let mut current = Some(node);
+    while let Some(pipe) = current.filter(|pipe| r_pipe_operator(content, *pipe).is_some()) {
+        count += 1;
+        current = pipe.child_by_field_name("lhs");
+    }
+    count
 }
 
 fn node_contains_token(node: Node<'_>, token: &str) -> bool {
@@ -1909,20 +2037,6 @@ fn qml_is_semantic_property_binding(content: &str, node: Node<'_>) -> bool {
         return false;
     }
     true
-}
-
-fn bash_declaration_command(content: &str, node: Node<'_>) -> Option<String> {
-    let text = node_text(content, node);
-    text.split_whitespace().next().map(str::to_string)
-}
-
-fn bash_export_variable_name(content: &str, node: Node<'_>) -> Option<String> {
-    first_descendant_of_kind(node, "variable_assignment").and_then(|assignment| {
-        assignment
-            .child_by_field_name("name")
-            .map(|name| node_text(content, name))
-            .or_else(|| first_named_identifier(content, assignment, &["variable_name"]))
-    })
 }
 
 fn powershell_attribute_name(content: &str, node: Node<'_>) -> Option<String> {

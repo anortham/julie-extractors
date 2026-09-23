@@ -697,11 +697,12 @@ fn map_identifiers(
         .map(|identifier| {
             let mut metadata = serde_json::Map::new();
             let identifier_kind = identifier.kind.to_string();
-            let source_receiver = matches!(identifier_kind.as_str(), "call" | "member_access")
-                .then(|| {
-                    receiver_before_identifier(source, identifier.start_byte, &identifier.language)
-                })
-                .flatten();
+            let source_receiver = (matches!(identifier_kind.as_str(), "call" | "member_access")
+                && language_has_member_access(&identifier.language))
+            .then(|| {
+                receiver_before_identifier(source, identifier.start_byte, &identifier.language)
+            })
+            .flatten();
             if let Some(receiver) = source_receiver {
                 metadata.insert("receiver".to_string(), serde_json::Value::String(receiver));
                 if let Some(qualifier) = receiver_qualifier_before_identifier(
@@ -750,6 +751,12 @@ fn map_identifiers(
         })
         .collect::<Result<Vec<_>, _>>()
         .map_err(|error| serialization_error(target, error))
+}
+
+/// Bash has no member access: a `.` before a command belongs to a comment,
+/// a path, or a script name, never to a receiver.
+fn language_has_member_access(language: &str) -> bool {
+    language != "bash"
 }
 
 /// The member-access token immediately before `at`, with the byte offset it starts
@@ -1820,6 +1827,16 @@ mod tests {
         assert_eq!(
             mapped_metadata_json(call_identifier("run", 8), "service.run()").as_deref(),
             Some(r#"{"receiver":"service"}"#)
+        );
+    }
+
+    #[test]
+    fn bash_commands_after_a_sentence_comment_have_no_receiver() {
+        let mut identifier = call_identifier("trap", 24);
+        identifier.language = "bash".to_string();
+        assert_eq!(
+            mapped_metadata_json(identifier, "# Run on interrupt.\n    trap cleanup EXIT"),
+            None
         );
     }
 

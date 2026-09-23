@@ -656,26 +656,20 @@ configure_app() {
             declarations.len()
         );
 
-        let version_var = declarations.iter().find(|d| d.name == "VERSION");
-        assert!(version_var.is_some(), "VERSION variable not found");
-        let version_var = version_var.unwrap();
-        assert_eq!(version_var.kind, SymbolKind::Constant); // readonly
-        // Now extracts real doc comment from code (readonly declaration comment)
-        assert!(
-            version_var.doc_comment.is_some(),
-            "VERSION should have doc comment"
-        );
-        // The comment is either "# Special declarations" or "declare -r ..." depending on
-        // how find_doc_comment locates it. Just verify it's not the old "[READONLY]" annotation.
-        let doc = version_var.doc_comment.as_ref().unwrap();
-        assert!(
-            !doc.contains("[READONLY]"),
-            "Should not have [READONLY] annotation anymore"
-        );
+        let version_var = declarations
+            .iter()
+            .find(|d| d.name == "VERSION")
+            .expect("VERSION variable not found");
+        assert_eq!(version_var.kind, SymbolKind::Constant);
+        assert_eq!(version_var.doc_comment, None);
 
         let counter_var = declarations.iter().find(|d| d.name == "COUNTER");
         assert!(counter_var.is_some(), "COUNTER variable not found");
         let counter_var = counter_var.unwrap();
+        assert_eq!(
+            counter_var.doc_comment.as_deref(),
+            Some("# Special declarations")
+        );
         assert_eq!(
             counter_var.signature,
             Some("declare -i COUNTER=0".to_string())
@@ -1637,50 +1631,22 @@ collect_files() {
         assert!(collect_files.is_some());
         assert_eq!(collect_files.unwrap().kind, SymbolKind::Function);
 
-        // Array variables and their elements should be extracted
-        // The extractor captures array declarations and individual element accesses
-        let fruits_elements = symbols
-            .iter()
-            .filter(|s| s.name.starts_with("fruits"))
-            .count();
+        for array in [
+            "fruits",
+            "colors",
+            "numbers",
+            "matrix",
+            "color_map",
+            "reversed",
+        ] {
+            assert!(
+                symbols.iter().any(|s| s.name == array),
+                "{array} declaration not found"
+            );
+        }
         assert!(
-            fruits_elements >= 3,
-            "Expected at least 3 fruits-related symbols, got {}",
-            fruits_elements
-        );
-
-        let colors_elements = symbols.iter().filter(|s| s.name.contains("colors")).count();
-        assert!(
-            colors_elements >= 4,
-            "Expected at least 4 colors-related symbols, got {}",
-            colors_elements
-        );
-
-        let numbers_elements = symbols.iter().filter(|s| s.name == "numbers").count();
-        assert!(
-            numbers_elements >= 4,
-            "Expected at least 4 numbers-related symbols, got {}",
-            numbers_elements
-        );
-
-        let matrix_elements = symbols.iter().filter(|s| s.name.contains("matrix")).count();
-        assert!(
-            matrix_elements >= 6,
-            "Expected at least 6 matrix-related symbols, got {}",
-            matrix_elements
-        );
-
-        // Verify specific array element access patterns
-        let red_color = symbols.iter().find(|s| s.name == "colors[\"red\"]");
-        assert!(
-            red_color.is_some(),
-            "colors[\"red\"] element access not found"
-        );
-
-        let matrix_00 = symbols.iter().find(|s| s.name == "matrix[\"0,0\"]");
-        assert!(
-            matrix_00.is_some(),
-            "matrix[\"0,0\"] element access not found"
+            symbols.iter().all(|s| !s.name.contains('[')),
+            "element writes are not declarations"
         );
     }
 }
@@ -1696,3 +1662,4 @@ mod test_detection; // shellspec/bats call-style test detection
 mod type_facts;
 mod types; // Phase 4: Type extraction verification tests
 mod wave1_gaps;
+mod wave2_gaps;

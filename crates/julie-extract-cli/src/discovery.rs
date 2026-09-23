@@ -983,6 +983,27 @@ mod tests {
     }
 
     #[test]
+    fn discover_selects_r_package_namespace_files_by_exact_name() {
+        let fixture = DiscoveryFixture::new();
+        let namespace = fixture.write("pkg/NAMESPACE", "export(add_one)\n");
+        let lowercase = fixture.write("other/namespace", "export(add_one)\n");
+        let policy = fixture.policy();
+
+        assert_eq!(
+            policy.select_file(&namespace),
+            FileSelection::Supported {
+                language: "r".to_string()
+            }
+        );
+        assert_eq!(
+            policy.select_file(&lowercase),
+            FileSelection::Unsupported {
+                reason: UnsupportedReason::UnsupportedExtension
+            }
+        );
+    }
+
+    #[test]
     fn discover_selects_bats_shell_dotfiles_and_shell_shebang_scripts_as_bash() {
         let fixture = DiscoveryFixture::new();
         let bash = FileSelection::Supported {

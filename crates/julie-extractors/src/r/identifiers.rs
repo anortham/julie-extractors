@@ -116,9 +116,14 @@ fn extract_identifier_from_node(
 
         // Variable references
         "identifier" => {
-            // Only create variable reference if not already handled
+            if is_placeholder(&extractor.base.get_node_text(&node)) {
+                return;
+            }
             if let Some(parent) = node.parent() {
                 match parent.kind() {
+                    "argument" | "for_statement"
+                        if parent.child_by_field_name("name") == Some(node)
+                            || parent.child_by_field_name("variable") == Some(node) => {}
                     // Skip if this is the function being called
                     "call" if parent.child(0).map(|c| c.id()) == Some(node.id()) => {}
                     "extract_operator" => {
@@ -214,6 +219,12 @@ fn extract_identifier_from_node(
 
         _ => {}
     }
+}
+
+/// The pipe placeholders `_` (native pipe) and `.` (magrittr) stand for the
+/// piped value, not a variable.
+fn is_placeholder(name: &str) -> bool {
+    matches!(name, "_" | ".")
 }
 
 fn push_identifier(
