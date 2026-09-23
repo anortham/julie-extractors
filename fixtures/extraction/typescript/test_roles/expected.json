@@ -86,7 +86,7 @@
         "end_byte": 283
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "@test addsALineItem(): : void",
+      "signature": "@test addsALineItem(): void",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/test_roles/source.ts:CartSuite:9:0",
@@ -96,7 +96,7 @@
         "isStatic": false,
         "is_test": true,
         "parameters": [],
-        "returnType": ": void",
+        "returnType": "void",
         "test_role": "test_case",
         "typeParameters": []
       },
@@ -205,7 +205,7 @@
         "end_byte": 513
       },
       "body_hash": "af4e7d35f6037da388746484f195bccc",
-      "signature": "buildCart(): : number",
+      "signature": "buildCart(): number",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/test_roles/source.ts:CartSuite:9:0",
@@ -214,7 +214,7 @@
         "isGenerator": false,
         "isStatic": false,
         "parameters": [],
-        "returnType": ": number",
+        "returnType": "number",
         "typeParameters": []
       },
       "annotations": [],
@@ -419,7 +419,7 @@
         "end_byte": 328
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "keepsAFocusedCase(): : void",
+      "signature": "keepsAFocusedCase(): void",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/test_roles/source.ts:CartSuite:9:0",
@@ -429,7 +429,7 @@
         "isStatic": false,
         "is_test": true,
         "parameters": [],
-        "returnType": ": void",
+        "returnType": "void",
         "test_role": "test_case",
         "typeParameters": []
       },
@@ -514,33 +514,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/typescript/test_roles/source.ts:quantity:19:26",
-      "name": "quantity",
-      "kind": "property",
-      "language": "typescript",
-      "file_path": "fixtures/extraction/typescript/test_roles/source.ts",
-      "start_line": 19,
-      "start_column": 26,
-      "end_line": 19,
-      "end_column": 42,
-      "start_byte": 410,
-      "end_byte": 426,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "quantity : : number",
-      "doc_comment": null,
-      "visibility": null,
-      "parent_key": "fixtures/extraction/typescript/test_roles/source.ts:scalesQuantity:19:2",
-      "metadata": {
-        "isReadonly": false,
-        "isStatic": false
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/typescript/test_roles/source.ts:scalesQuantity:19:2",
       "name": "scalesQuantity",
       "kind": "method",
@@ -561,7 +534,7 @@
         "end_byte": 470
       },
       "body_hash": "efcbc8cce40ac49e072ff453e89e71c5",
-      "signature": "@params @params scalesQuantity(input: { quantity: number }): : number",
+      "signature": "@params @params scalesQuantity(input: { quantity: number }): number",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/test_roles/source.ts:CartSuite:9:0",
@@ -570,8 +543,10 @@
         "isGenerator": false,
         "isStatic": false,
         "is_test": true,
-        "parameters": [],
-        "returnType": ": number",
+        "parameters": [
+          "input: { quantity: number }"
+        ],
+        "returnType": "number",
         "test_role": "parameterized_test",
         "typeParameters": []
       },
@@ -683,16 +658,19 @@
         "end_byte": 649
       },
       "body_hash": "3d766624cc354820d6256e55c3c472e3",
-      "signature": "test(_name: string, callback: () => void): : void",
+      "signature": "test(_name: string, callback: () => void): void",
       "doc_comment": null,
       "visibility": null,
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/typescript/test_roles/source.ts:ordinary:30:6",
       "metadata": {
         "isAsync": false,
         "isGenerator": false,
         "isStatic": false,
-        "parameters": [],
-        "returnType": ": void",
+        "parameters": [
+          "_name: string",
+          "callback: () => void"
+        ],
+        "returnType": "void",
         "typeParameters": []
       },
       "annotations": [],
@@ -721,7 +699,7 @@
         "end_byte": 557
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "testNamedButOrdinary(): : void",
+      "signature": "testNamedButOrdinary(): void",
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
@@ -729,7 +707,7 @@
         "isAsync": false,
         "isGenerator": false,
         "parameters": [],
-        "returnType": ": void",
+        "returnType": "void",
         "typeParameters": []
       },
       "annotations": [],
@@ -772,26 +750,7 @@
       "content_type": null
     }
   ],
-  "relationships": [
-    {
-      "from_key": "fixtures/extraction/typescript/test_roles/source.ts:beforeEach:5:2",
-      "to_key": "fixtures/extraction/typescript/test_roles/source.ts:beforeEach:5:2",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/typescript/test_roles/source.ts",
-      "line_number": 5,
-      "span": {
-        "start_line": 5,
-        "start_column": 2,
-        "end_line": 5,
-        "end_column": 22,
-        "start_byte": 146,
-        "end_byte": 166
-      },
-      "reference_site_is_exact": false,
-      "confidence": "1.000",
-      "metadata": null
-    }
-  ],
+  "relationships": [],
   "pending_relationships": [],
   "structured_pending_relationships": [],
   "identifiers": [
@@ -807,7 +766,7 @@
       "end_column": 12,
       "start_byte": 146,
       "end_byte": 156,
-      "containing_key": "fixtures/extraction/typescript/test_roles/source.ts:beforeEach:5:2",
+      "containing_key": "fixtures/extraction/typescript/test_roles/source.ts:typescript roles:4:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -871,7 +830,7 @@
       "end_column": 4,
       "start_byte": 170,
       "end_byte": 172,
-      "containing_key": "fixtures/extraction/typescript/test_roles/source.ts:extracts a TypeScript test case:6:2",
+      "containing_key": "fixtures/extraction/typescript/test_roles/source.ts:typescript roles:4:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1031,6 +990,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/typescript/test_roles/source.ts:buildCart:23:2",
+      "resolved_type": "number",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "typescript",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/typescript/test_roles/source.ts:ordinary:30:6",
       "resolved_type": "object",
       "generic_params": null,
@@ -1040,20 +1008,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/typescript/test_roles/source.ts:quantity:19:26",
+      "symbol_key": "fixtures/extraction/typescript/test_roles/source.ts:scalesQuantity:19:2",
       "resolved_type": "number",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
-      "language": "typescript",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/typescript/test_roles/source.ts:testNamedButOrdinary:28:0",
-      "resolved_type": "function",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
       "language": "typescript",
       "metadata": null
     }
@@ -1296,7 +1255,7 @@
       "end_column": 38,
       "start_byte": 173,
       "end_byte": 206,
-      "containing_key": "fixtures/extraction/typescript/test_roles/source.ts:extracts a TypeScript test case:6:2",
+      "containing_key": "fixtures/extraction/typescript/test_roles/source.ts:typescript roles:4:0",
       "confidence": "1.000"
     },
     {

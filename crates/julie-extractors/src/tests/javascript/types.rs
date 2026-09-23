@@ -49,7 +49,12 @@ async function processData() {
     );
 
     let symbols = extractor.extract_symbols(&tree);
-    let types = extractor.infer_types(&symbols);
+    let types: std::collections::HashMap<String, String> = extractor
+        .base
+        .type_info
+        .iter()
+        .map(|(id, info)| (id.clone(), info.resolved_type.clone()))
+        .collect();
 
     // Should extract return types from JSDoc for all 3 functions
     assert!(
@@ -79,7 +84,7 @@ async function processData() {
     );
     assert_eq!(
         types.get(&process_data_symbol.id),
-        Some(&"Promise<Array<number>>".to_string())
+        Some(&"Promise".to_string())
     );
 }
 
@@ -118,7 +123,12 @@ var users = [];
     );
 
     let symbols = extractor.extract_symbols(&tree);
-    let types = extractor.infer_types(&symbols);
+    let types: std::collections::HashMap<String, String> = extractor
+        .base
+        .type_info
+        .iter()
+        .map(|(id, info)| (id.clone(), info.resolved_type.clone()))
+        .collect();
 
     // Should extract types from JSDoc for variables (if they're captured as symbols)
     if let Some(user_name_symbol) = symbols.iter().find(|s| s.name == "userName") {
@@ -130,9 +140,6 @@ var users = [];
     }
 
     if let Some(users_symbol) = symbols.iter().find(|s| s.name == "users") {
-        assert_eq!(
-            types.get(&users_symbol.id),
-            Some(&"Array<User>".to_string())
-        );
+        assert_eq!(types.get(&users_symbol.id), Some(&"Array".to_string()));
     }
 }

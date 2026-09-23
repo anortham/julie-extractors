@@ -1002,15 +1002,7 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/vue/script_setup_macros/source.vue",
       "line_number": 21,
-      "confidence": "0.900"
-    },
-    {
-      "from_key": "fixtures/extraction/vue/script_setup_macros/source.vue:label:27:6",
-      "callee_name": "computed",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/vue/script_setup_macros/source.vue",
-      "line_number": 27,
-      "confidence": "0.900"
+      "confidence": "0.700"
     },
     {
       "from_key": "fixtures/extraction/vue/script_setup_macros/source.vue:logout:37:0",
@@ -1026,15 +1018,7 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/vue/script_setup_macros/source.vue",
       "line_number": 29,
-      "confidence": "0.900"
-    },
-    {
-      "from_key": "fixtures/extraction/vue/script_setup_macros/source.vue:page:26:6",
-      "callee_name": "ref",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/vue/script_setup_macros/source.vue",
-      "line_number": 26,
-      "confidence": "0.900"
+      "confidence": "0.700"
     },
     {
       "from_key": "fixtures/extraction/vue/script_setup_macros/source.vue:props:20:6",
@@ -1042,7 +1026,7 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/vue/script_setup_macros/source.vue",
       "line_number": 20,
-      "confidence": "0.900"
+      "confidence": "0.700"
     },
     {
       "from_key": "fixtures/extraction/vue/script_setup_macros/source.vue:props:20:6",
@@ -1050,15 +1034,7 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/vue/script_setup_macros/source.vue",
       "line_number": 20,
-      "confidence": "0.900"
-    },
-    {
-      "from_key": "fixtures/extraction/vue/script_setup_macros/source.vue:router:25:6",
-      "callee_name": "useRouter",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/vue/script_setup_macros/source.vue",
-      "line_number": 25,
-      "confidence": "0.900"
+      "confidence": "0.700"
     },
     {
       "from_key": "fixtures/extraction/vue/script_setup_macros/source.vue:visible:22:6",
@@ -1066,7 +1042,7 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/vue/script_setup_macros/source.vue",
       "line_number": 22,
-      "confidence": "0.900"
+      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
@@ -1155,7 +1131,7 @@
         "kind": "calls",
         "file_path": "fixtures/extraction/vue/script_setup_macros/source.vue",
         "line_number": 21,
-        "confidence": "0.900"
+        "confidence": "0.700"
       },
       "target": {
         "display_name": "defineEmits",
@@ -1169,35 +1145,9 @@
         "start_line": 21,
         "start_column": 13,
         "end_line": 21,
-        "end_column": 24,
+        "end_column": 83,
         "start_byte": 511,
-        "end_byte": 522
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/vue/script_setup_macros/source.vue:label:27:6",
-        "callee_name": "computed",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/vue/script_setup_macros/source.vue",
-        "line_number": 27,
-        "confidence": "0.900"
-      },
-      "target": {
-        "display_name": "computed",
-        "terminal_name": "computed",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/vue/script_setup_macros/source.vue:label:27:6",
-      "span": {
-        "start_line": 27,
-        "start_column": 14,
-        "end_line": 27,
-        "end_column": 22,
-        "start_byte": 733,
-        "end_byte": 741
+        "end_byte": 581
       }
     },
     {
@@ -1233,7 +1183,7 @@
         "kind": "calls",
         "file_path": "fixtures/extraction/vue/script_setup_macros/source.vue",
         "line_number": 29,
-        "confidence": "0.900"
+        "confidence": "0.700"
       },
       "target": {
         "display_name": "$fetch",
@@ -1247,35 +1197,9 @@
         "start_line": 29,
         "start_column": 17,
         "end_line": 29,
-        "end_column": 23,
+        "end_column": 34,
         "start_byte": 859,
-        "end_byte": 865
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/vue/script_setup_macros/source.vue:page:26:6",
-        "callee_name": "ref",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/vue/script_setup_macros/source.vue",
-        "line_number": 26,
-        "confidence": "0.900"
-      },
-      "target": {
-        "display_name": "ref",
-        "terminal_name": "ref",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/vue/script_setup_macros/source.vue:page:26:6",
-      "span": {
-        "start_line": 26,
-        "start_column": 13,
-        "end_line": 26,
-        "end_column": 16,
-        "start_byte": 704,
-        "end_byte": 707
+        "end_byte": 876
       }
     },
     {
@@ -1285,7 +1209,7 @@
         "kind": "calls",
         "file_path": "fixtures/extraction/vue/script_setup_macros/source.vue",
         "line_number": 20,
-        "confidence": "0.900"
+        "confidence": "0.700"
       },
       "target": {
         "display_name": "defineProps",
@@ -1299,9 +1223,9 @@
         "start_line": 20,
         "start_column": 27,
         "end_line": 20,
-        "end_column": 38,
+        "end_column": 47,
         "start_byte": 462,
-        "end_byte": 473
+        "end_byte": 482
       }
     },
     {
@@ -1311,7 +1235,7 @@
         "kind": "calls",
         "file_path": "fixtures/extraction/vue/script_setup_macros/source.vue",
         "line_number": 20,
-        "confidence": "0.900"
+        "confidence": "0.700"
       },
       "target": {
         "display_name": "withDefaults",
@@ -1325,35 +1249,9 @@
         "start_line": 20,
         "start_column": 14,
         "end_line": 20,
-        "end_column": 26,
+        "end_column": 62,
         "start_byte": 449,
-        "end_byte": 461
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/vue/script_setup_macros/source.vue:router:25:6",
-        "callee_name": "useRouter",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/vue/script_setup_macros/source.vue",
-        "line_number": 25,
-        "confidence": "0.900"
-      },
-      "target": {
-        "display_name": "useRouter",
-        "terminal_name": "useRouter",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/vue/script_setup_macros/source.vue:router:25:6",
-      "span": {
-        "start_line": 25,
-        "start_column": 15,
-        "end_line": 25,
-        "end_column": 24,
-        "start_byte": 679,
-        "end_byte": 688
+        "end_byte": 497
       }
     },
     {
@@ -1363,7 +1261,7 @@
         "kind": "calls",
         "file_path": "fixtures/extraction/vue/script_setup_macros/source.vue",
         "line_number": 22,
-        "confidence": "0.900"
+        "confidence": "0.700"
       },
       "target": {
         "display_name": "defineModel",
@@ -1377,9 +1275,9 @@
         "start_line": 22,
         "start_column": 16,
         "end_line": 22,
-        "end_column": 27,
+        "end_column": 66,
         "start_byte": 598,
-        "end_byte": 609
+        "end_byte": 648
       }
     }
   ],
@@ -1812,47 +1710,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/vue/script_setup_macros/source.vue:emit:21:6",
-      "resolved_type": "any",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "vue",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/vue/script_setup_macros/source.vue:goHome:32:0",
-      "resolved_type": "function",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "vue",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/vue/script_setup_macros/source.vue:label:27:6",
       "resolved_type": "ComputedRef<string>",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
-      "language": "vue",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/vue/script_setup_macros/source.vue:logout:37:0",
-      "resolved_type": "Promise<any>",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "vue",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/vue/script_setup_macros/source.vue:me:29:6",
-      "resolved_type": "any",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
       "language": "vue",
       "metadata": null
     },
@@ -1875,38 +1737,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/vue/script_setup_macros/source.vue:props:20:6",
-      "resolved_type": "any",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "vue",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/vue/script_setup_macros/source.vue:router:25:6",
-      "resolved_type": "any",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "vue",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/vue/script_setup_macros/source.vue:visible:22:37",
       "resolved_type": "boolean",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
-      "language": "vue",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/vue/script_setup_macros/source.vue:visible:22:6",
-      "resolved_type": "any",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
       "language": "vue",
       "metadata": null
     }
@@ -2556,19 +2391,6 @@
       "file_path": "fixtures/extraction/vue/script_setup_macros/source.vue",
       "containing_key": "fixtures/extraction/vue/script_setup_macros/source.vue:label:27:6",
       "start_line": 27,
-      "start_column": 23,
-      "end_line": 27,
-      "end_column": 29,
-      "start_byte": 742,
-      "end_byte": 748,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "vue",
-      "file_path": "fixtures/extraction/vue/script_setup_macros/source.vue",
-      "containing_key": "fixtures/extraction/vue/script_setup_macros/source.vue:label:27:6",
-      "start_line": 27,
       "start_column": 37,
       "end_line": 27,
       "end_column": 68,
@@ -2600,19 +2422,6 @@
       "end_column": 33,
       "start_byte": 866,
       "end_byte": 875,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "vue",
-      "file_path": "fixtures/extraction/vue/script_setup_macros/source.vue",
-      "containing_key": "fixtures/extraction/vue/script_setup_macros/source.vue:name:16:2",
-      "start_line": 16,
-      "start_column": 8,
-      "end_line": 16,
-      "end_column": 14,
-      "start_byte": 408,
-      "end_byte": 414,
       "metadata": null
     },
     {

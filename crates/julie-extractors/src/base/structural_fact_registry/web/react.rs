@@ -12,9 +12,9 @@ use super::super::{
 pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     StructuralFactPatternSpec {
         pattern_id: "react.route_reference.v1",
-        languages: &["javascript", "jsx", "tsx"],
+        languages: &["javascript", "jsx", "tsx", "typescript"],
         query_family: "frontend_navigation",
-        description: "A React Router link reference (`<Link to>`).",
+        description: "A React Router navigation reference: `<Link to>` or `navigate(\"/x\")` bound from `useNavigate()`.",
         metadata_keys: &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
@@ -34,20 +34,20 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
             key(
                 "attribute_name",
                 STR,
-                ALWAYS,
-                "The source attribute name (\"to\").",
+                OPT,
+                "The source attribute name (\"to\"); absent for navigation calls.",
             ),
             key(
                 "component_name",
                 STR,
-                ALWAYS,
-                "The JSX component/tag name (e.g. Link).",
+                OPT,
+                "The JSX component/tag name (e.g. Link); absent for navigation calls.",
             ),
             key(
                 "import_source",
                 STR,
                 ALWAYS,
-                "Module the link component was imported from.",
+                "Module the link component or navigation hook was imported from.",
             ),
             key(
                 "route_source",
@@ -59,7 +59,13 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "source_kind",
                 STR,
                 ALWAYS,
-                "Reference origin (\"react_router_link\").",
+                "Reference origin (\"react_router_link\" or \"react_router_navigate\").",
+            ),
+            key(
+                "navigation_call",
+                STR,
+                OPT,
+                "Callee text of a navigation call (e.g. `navigate`, `router.push`).",
             ),
             key(
                 "verb",

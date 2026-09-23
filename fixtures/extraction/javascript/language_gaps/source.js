@@ -81,3 +81,39 @@ const books = express.Router();
 books
   .route("/books/:id")
   .get((req, res) => res.json({}));
+
+function Queue() { this.clear(); }
+Queue.prototype.clear = function clear() { this.jobs = []; };
+Queue.prototype.drain = function drain() { this.clear(); };
+Queue.create = () => new Queue();
+
+/**
+ * @param {UserRepo} repo
+ * @returns {Promise<User>}
+ */
+async function loadUser(repo) { return repo.find(1); }
+
+class Service {
+  /** @type {Cache} */
+  cache = null;
+  @observable items = [];
+  constructor(store) { this.store = store; this.logger = new Logger(); }
+}
+
+const Widget = class extends Service { render() { return this.logger; } };
+const settings = { port: 3000, nested: { deep: 1 }, start() {} };
+track("load", { fetchUser: true });
+
+function a() {} function b() {}
+export { a, b as bee };
+export * from "./all.js";
+export * as ns from "./ns.js";
+export let m = 1, n = 2;
+export function* ids() {}
+
+const KoaRouter = require("@koa/router");
+const Hapi = require("@hapi/hapi");
+const koa = new KoaRouter({ prefix: "/v1" });
+koa.get("/orders/:id", async (ctx) => { ctx.body = {}; });
+const hapiServer = Hapi.server({ port: 3000 });
+hapiServer.route({ method: "GET", path: "/items/{id}", handler: (r) => r.params.id });

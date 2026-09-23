@@ -3,6 +3,7 @@ use tree_sitter::Tree;
 use super::structural_facts::sort_structural_facts;
 use super::types::{StructuralFact, Symbol};
 
+mod angular;
 mod css;
 mod fact_builders;
 mod html;
@@ -11,10 +12,12 @@ pub(in crate::base) mod js_imports;
 pub(in crate::base) mod js_object_scan;
 mod jsx_scan;
 mod nextjs_nuxt;
+mod programmatic_navigation;
 mod react;
 mod vue;
 
 use super::attach_containing_symbols;
+use angular::collect_angular_route_definitions;
 use css::collect_css_structural_facts;
 use html::collect_html_structural_facts;
 use http_client::{collect_http_client_requests, collect_nuxt_client_requests};
@@ -24,6 +27,7 @@ use nextjs_nuxt::{
     collect_nextjs_route_handlers, collect_nextjs_route_references, nextjs_file_route_fact,
     nuxt_file_route_fact, nuxt_server_route_fact,
 };
+use programmatic_navigation::collect_programmatic_navigation_references;
 use react::{collect_react_router_route_definitions, collect_react_router_route_references};
 use vue::{collect_vue_router_route_definitions, collect_vue_structural_facts};
 pub(crate) use vue::{vue_script_section_ranges, vue_section_ranges, vue_template_section_ranges};
@@ -64,6 +68,7 @@ const NEXTJS_ROUTE_HANDLER_PATTERN_ID: &str = "nextjs.route_handler.v1";
 const NUXT_ROUTE_REFERENCE_PATTERN_ID: &str = "nuxt.route_reference.v1";
 const NUXT_FILE_ROUTE_PATTERN_ID: &str = "nuxt.file_route.v1";
 const NUXT_SERVER_ROUTE_PATTERN_ID: &str = "nuxt.server_route.v1";
+const ANGULAR_ROUTE_DEFINITION_PATTERN_ID: &str = "angular.route_definition.v1";
 const HTTP_CLIENT_REQUEST_PATTERN_ID: &str = "http.client_request.v1";
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -137,12 +142,15 @@ const JSX_TSX_FRAMEWORK_WEB_PATTERN_IDS: &[&str] = &[
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const TS_FRAMEWORK_WEB_PATTERN_IDS: &[&str] = &[
+    ANGULAR_ROUTE_DEFINITION_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
     NEXTJS_FILE_ROUTE_PATTERN_ID,
     NEXTJS_ROUTE_HANDLER_PATTERN_ID,
+    NEXTJS_ROUTE_REFERENCE_PATTERN_ID,
     NUXT_FILE_ROUTE_PATTERN_ID,
     NUXT_SERVER_ROUTE_PATTERN_ID,
     REACT_ROUTE_DEFINITION_PATTERN_ID,
+    REACT_ROUTE_REFERENCE_PATTERN_ID,
     VUE_ROUTE_DEFINITION_PATTERN_ID,
 ];
 
@@ -256,6 +264,12 @@ fn collect_react_nextjs_structural_facts(
         language, tree, file_path, content, &imports,
     ));
     facts.extend(collect_nextjs_route_references(
+        language, tree, file_path, content, &imports,
+    ));
+    facts.extend(collect_programmatic_navigation_references(
+        language, tree, file_path, content, &imports,
+    ));
+    facts.extend(collect_angular_route_definitions(
         language, tree, file_path, content, &imports,
     ));
     facts.extend(collect_nextjs_route_handlers(

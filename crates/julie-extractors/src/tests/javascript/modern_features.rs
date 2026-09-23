@@ -314,14 +314,7 @@ class AsyncEventEmitter extends EventEmitter {
         .iter()
         .find(|s| s.name == "API_URL" && s.kind == SymbolKind::Export);
     assert!(api_url_export.is_some());
-    assert!(
-        api_url_export
-            .unwrap()
-            .signature
-            .as_ref()
-            .unwrap()
-            .contains("export const API_URL")
-    );
+    assert!(api_url_export.unwrap().signature.is_none());
 
     // Arrow functions
     let add_arrow = symbols.iter().find(|s| s.name == "add");

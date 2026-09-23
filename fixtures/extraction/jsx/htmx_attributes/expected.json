@@ -21,14 +21,15 @@
         "end_byte": 248
       },
       "body_hash": "2b2626ee9bc8015c9126160f289e80ee",
-      "signature": "export function TodoList({ dynamicUrl }) {\n  return (\n    <div>\n      <button hx-post=\"/todos\" hx-target=\"#list\">Add</button>\n      <button data-hx-get=\"/todos\">Refresh</button>\n      <button hx-delete={dynamicUrl}>Remove</button>\n    </div>\n  );\n}",
+      "signature": null,
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "exportedName": "TodoList",
         "isDefault": false,
-        "isNamed": true
+        "isNamed": true,
+        "localName": "TodoList"
       },
       "annotations": [],
       "semantic_group": null,
@@ -59,7 +60,7 @@
       "signature": "function TodoList({ dynamicUrl })",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/jsx/htmx_attributes/source.jsx:TodoList:1:0",
+      "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
         "isAsync": false,

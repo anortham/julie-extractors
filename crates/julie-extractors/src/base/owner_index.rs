@@ -18,13 +18,23 @@ pub(crate) struct OwnerIndex<'a> {
 
 impl<'a> OwnerIndex<'a> {
     pub(crate) fn new(base: &BaseExtractor, symbols: &'a [Symbol]) -> Self {
+        Self::new_filtered(base, symbols, |_| true)
+    }
+
+    /// An index over the symbols `keep` accepts, so a language can exclude
+    /// rows that name code without owning it (ECMAScript export rows).
+    pub(crate) fn new_filtered(
+        base: &BaseExtractor,
+        symbols: &'a [Symbol],
+        keep: impl Fn(&Symbol) -> bool,
+    ) -> Self {
         let callable_ids: HashSet<&str> = symbols
             .iter()
-            .filter(|symbol| is_callable(&symbol.kind))
+            .filter(|symbol| keep(symbol) && is_callable(&symbol.kind))
             .map(|symbol| symbol.id.as_str())
             .collect();
         let mut by_range = HashMap::new();
-        for symbol in symbols {
+        for symbol in symbols.iter().filter(|symbol| keep(symbol)) {
             let owns_code = match symbol.kind {
                 SymbolKind::Function
                 | SymbolKind::Method
@@ -48,7 +58,11 @@ impl<'a> OwnerIndex<'a> {
         }
         Self {
             by_range,
-            fallback: base.containing_symbol_index(symbols),
+            fallback: ContainingSymbolIndex::from_iter(
+                symbols
+                    .iter()
+                    .filter(|symbol| symbol.file_path == base.file_path && keep(symbol)),
+            ),
         }
     }
 

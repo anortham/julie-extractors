@@ -861,7 +861,7 @@
       "end_column": 7,
       "start_byte": 368,
       "end_byte": 373,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:after:16:2",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:calculator bdd:12:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -877,7 +877,7 @@
       "end_column": 11,
       "start_byte": 345,
       "end_byte": 354,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:afterEach:15:2",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:calculator bdd:12:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -893,7 +893,7 @@
       "end_column": 8,
       "start_byte": 301,
       "end_byte": 307,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:before:13:2",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:calculator bdd:12:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -909,7 +909,7 @@
       "end_column": 12,
       "start_byte": 321,
       "end_byte": 331,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:beforeEach:14:2",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:calculator bdd:12:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -941,7 +941,7 @@
       "end_column": 9,
       "start_byte": 388,
       "end_byte": 395,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:with two operands:18:2",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:calculator bdd:12:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -989,7 +989,7 @@
       "end_column": 6,
       "start_byte": 466,
       "end_byte": 468,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:divides:20:4",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:with two operands:18:2",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1037,7 +1037,7 @@
       "end_column": 11,
       "start_byte": 171,
       "end_byte": 175,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:keeps a focused case:8:2",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:calculator tdd:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1085,7 +1085,7 @@
       "end_column": 7,
       "start_byte": 58,
       "end_byte": 63,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:setup:3:2",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:calculator tdd:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1101,7 +1101,7 @@
       "end_column": 11,
       "start_byte": 218,
       "end_byte": 222,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:keeps a disabled case:9:2",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:calculator tdd:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1117,7 +1117,7 @@
       "end_column": 11,
       "start_byte": 429,
       "end_byte": 436,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:multiplies:19:4",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:with two operands:18:2",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1165,7 +1165,7 @@
       "end_column": 12,
       "start_byte": 34,
       "end_byte": 44,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:suiteSetup:2:2",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:calculator tdd:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1181,7 +1181,7 @@
       "end_column": 15,
       "start_byte": 99,
       "end_byte": 112,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:suiteTeardown:5:2",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:calculator tdd:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1197,7 +1197,7 @@
       "end_column": 10,
       "start_byte": 77,
       "end_byte": 85,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:teardown:4:2",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:calculator tdd:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1213,7 +1213,7 @@
       "end_column": 6,
       "start_byte": 127,
       "end_byte": 131,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:adds two operands:7:2",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:calculator tdd:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1261,7 +1261,7 @@
       "end_column": 10,
       "start_byte": 500,
       "end_byte": 508,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:disabled operands:23:2",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:calculator bdd:12:0",
       "target_key": null,
       "confidence": "1.000"
     }
@@ -1747,7 +1747,7 @@
       "end_column": 26,
       "start_byte": 132,
       "end_byte": 151,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:adds two operands:7:2",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:calculator tdd:1:0",
       "confidence": "1.000"
     },
     {
@@ -1795,7 +1795,7 @@
       "end_column": 30,
       "start_byte": 509,
       "end_byte": 528,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:disabled operands:23:2",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:calculator bdd:12:0",
       "confidence": "1.000"
     },
     {
@@ -1811,7 +1811,7 @@
       "end_column": 16,
       "start_byte": 469,
       "end_byte": 478,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:divides:20:4",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:with two operands:18:2",
       "confidence": "1.000"
     },
     {
@@ -1827,7 +1827,7 @@
       "end_column": 35,
       "start_byte": 223,
       "end_byte": 246,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:keeps a disabled case:9:2",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:calculator tdd:1:0",
       "confidence": "1.000"
     },
     {
@@ -1843,7 +1843,7 @@
       "end_column": 34,
       "start_byte": 176,
       "end_byte": 198,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:keeps a focused case:8:2",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:calculator tdd:1:0",
       "confidence": "1.000"
     },
     {
@@ -1875,7 +1875,7 @@
       "end_column": 24,
       "start_byte": 437,
       "end_byte": 449,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:multiplies:19:4",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:with two operands:18:2",
       "confidence": "1.000"
     },
     {
@@ -1891,7 +1891,7 @@
       "end_column": 29,
       "start_byte": 396,
       "end_byte": 415,
-      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:with two operands:18:2",
+      "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:calculator bdd:12:0",
       "confidence": "1.000"
     }
   ],

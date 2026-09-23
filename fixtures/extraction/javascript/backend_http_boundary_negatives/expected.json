@@ -17,7 +17,7 @@
       "signature": "app",
       "doc_comment": null,
       "visibility": null,
-      "parent_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
+      "parent_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:default:1:0",
       "metadata": {
         "role": "parameter"
       },
@@ -27,9 +27,9 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
-      "name": "exports",
-      "kind": "method",
+      "key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:default:1:0",
+      "name": "default",
+      "kind": "function",
       "language": "javascript",
       "file_path": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js",
       "start_line": 1,
@@ -47,14 +47,17 @@
         "end_byte": 85
       },
       "body_hash": "44353426813708699d38d35a4e3fc736",
-      "signature": "module.exports = function (app) {\n  app.get(\"/health\", handler);\n  app.get(\"port\");\n}",
+      "signature": "module.exports = function (app)",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "className": "module",
-        "isFunction": true,
-        "isStaticMethod": true
+        "isAsync": false,
+        "isCommonJSExport": true,
+        "isGenerator": false,
+        "parameters": [
+          "app"
+        ]
       },
       "annotations": [],
       "semantic_group": null,
@@ -78,7 +81,7 @@
       "end_column": 5,
       "start_byte": 36,
       "end_byte": 39,
-      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
+      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:default:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -94,7 +97,7 @@
       "end_column": 5,
       "start_byte": 67,
       "end_byte": 70,
-      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
+      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:default:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -110,7 +113,7 @@
       "end_column": 14,
       "start_byte": 7,
       "end_byte": 14,
-      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
+      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:default:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -126,7 +129,7 @@
       "end_column": 9,
       "start_byte": 40,
       "end_byte": 43,
-      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
+      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:default:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -142,7 +145,7 @@
       "end_column": 9,
       "start_byte": 71,
       "end_byte": 74,
-      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
+      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:default:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -158,7 +161,7 @@
       "end_column": 28,
       "start_byte": 55,
       "end_byte": 62,
-      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
+      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:default:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -174,7 +177,7 @@
       "end_column": 6,
       "start_byte": 0,
       "end_byte": 6,
-      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
+      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:default:1:0",
       "target_key": null,
       "confidence": "1.000"
     }
@@ -207,7 +210,7 @@
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
+      "symbol_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:default:1:0",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "javascript",
       "file_path": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js",
@@ -242,7 +245,7 @@
       "end_column": 19,
       "start_byte": 44,
       "end_byte": 53,
-      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
+      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:default:1:0",
       "confidence": "1.000"
     },
     {
@@ -258,7 +261,7 @@
       "end_column": 16,
       "start_byte": 75,
       "end_byte": 81,
-      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
+      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:default:1:0",
       "confidence": "1.000"
     }
   ],
@@ -267,7 +270,7 @@
       "kind": "string_literal",
       "language": "javascript",
       "file_path": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js",
-      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
+      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:default:1:0",
       "start_line": 2,
       "start_column": 10,
       "end_line": 2,
@@ -280,7 +283,7 @@
       "kind": "string_literal",
       "language": "javascript",
       "file_path": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js",
-      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:exports:1:0",
+      "containing_key": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js:default:1:0",
       "start_line": 3,
       "start_column": 10,
       "end_line": 3,

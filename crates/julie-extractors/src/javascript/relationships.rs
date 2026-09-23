@@ -7,7 +7,7 @@
 
 use crate::base::{
     LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex, Symbol, SymbolKind,
-    UnresolvedTarget,
+    UnresolvedTarget, is_test_call_symbol,
 };
 use crate::ecmascript_imports::is_ecmascript_global_direct_target;
 use crate::javascript::JavaScriptExtractor;
@@ -24,11 +24,13 @@ pub(crate) fn extract_relationships(
 ) -> Vec<Relationship> {
     let mut relationships = Vec::new();
     let symbol_index = ScopedSymbolIndex::new(symbols);
+    let owners = super::ecmascript_owner_index(extractor.base(), symbols);
     extract_call_relationships(
         extractor,
         tree.root_node(),
         symbols,
         &symbol_index,
+        &owners,
         &mut relationships,
         0,
     );
@@ -37,6 +39,7 @@ pub(crate) fn extract_relationships(
         tree.root_node(),
         symbols,
         &symbol_index,
+        &owners,
         &mut relationships,
         0,
     );
@@ -49,6 +52,7 @@ fn extract_new_expression_relationships(
     node: Node,
     symbols: &[Symbol],
     symbol_index: &ScopedSymbolIndex<'_>,
+    owners: &super::EcmaOwnerIndex<'_>,
     relationships: &mut Vec<Relationship>,
     depth: u32,
 ) {
@@ -60,7 +64,7 @@ fn extract_new_expression_relationships(
         && let Some(constructor_node) = node.child_by_field_name("constructor")
     {
         let target = extract_call_target(extractor, constructor_node);
-        let caller = find_containing_callable_symbol(node, symbols);
+        let caller = owners.find(node);
         if let Some(caller) = caller {
             let resolution = symbol_index.resolve_call_target(
                 &target.terminal_name,
@@ -75,6 +79,11 @@ fn extract_new_expression_relationships(
                     ) =>
                 {
                     Some(*type_symbol)
+                }
+                LocalTargetResolution::Resolved(function)
+                    if is_constructor_function(symbols, function) =>
+                {
+                    Some(*function)
                 }
                 _ if target.receiver.is_none() => {
                     unique_constructable_symbol(symbols, &target.terminal_name)
@@ -124,19 +133,30 @@ fn extract_new_expression_relationships(
             child,
             symbols,
             symbol_index,
+            owners,
             relationships,
             child_depth,
         );
     }
 }
 
+/// A function with members assigned to it (`Queue.prototype.clear = ...`):
+/// a pre-class constructor, so `new Queue()` instantiates it.
+fn is_constructor_function(symbols: &[Symbol], function: &Symbol) -> bool {
+    function.kind == SymbolKind::Function
+        && symbols.iter().any(|symbol| {
+            symbol.parent_id.as_deref() == Some(function.id.as_str())
+                && symbol.kind == SymbolKind::Method
+        })
+}
+
 fn unique_constructable_symbol<'a>(symbols: &'a [Symbol], name: &str) -> Option<&'a Symbol> {
     let mut matches = symbols.iter().filter(|symbol| {
         symbol.name == name
-            && matches!(
+            && (matches!(
                 symbol.kind,
                 SymbolKind::Class | SymbolKind::Type | SymbolKind::Interface
-            )
+            ) || is_constructor_function(symbols, symbol))
     });
     let symbol = matches.next()?;
     matches.next().is_none().then_some(symbol)
@@ -148,6 +168,7 @@ fn extract_call_relationships(
     node: Node,
     symbols: &[Symbol],
     symbol_index: &ScopedSymbolIndex<'_>,
+    owners: &super::EcmaOwnerIndex<'_>,
     relationships: &mut Vec<Relationship>,
     depth: u32,
 ) {
@@ -162,18 +183,22 @@ fn extract_call_relationships(
         let target = extract_call_target(extractor, function_node);
 
         // Find the calling function (containing function)
-        if let Some(caller_symbol) = find_containing_callable_symbol(node, symbols) {
+        if let Some(caller_symbol) = owners.find(node) {
             let resolved_symbol = match symbol_index.resolve_call_target(
                 &target.terminal_name,
                 Some(caller_symbol),
                 target.receiver.as_deref(),
             ) {
                 LocalTargetResolution::Resolved(symbol) => Some(symbol),
+                _ if target.receiver.as_deref() == Some("this") => {
+                    constructor_function_member(symbols, caller_symbol, &target.terminal_name)
+                }
                 _ if target.receiver.is_none() => {
                     unique_callable_symbol(symbols, &target.terminal_name)
                 }
                 _ => None,
             }
+            .filter(|symbol| !is_test_call_symbol(symbol))
             .filter(|symbol| {
                 target.receiver.is_some()
                     || !matches!(symbol.kind, SymbolKind::Method | SymbolKind::Constructor)
@@ -214,15 +239,36 @@ fn extract_call_relationships(
             child,
             symbols,
             symbol_index,
+            owners,
             relationships,
             child_depth,
         );
     }
 }
 
+/// `this.m()` inside a pre-class constructor function resolves to a method
+/// assigned to that function's prototype.
+fn constructor_function_member<'a>(
+    symbols: &'a [Symbol],
+    caller: &Symbol,
+    name: &str,
+) -> Option<&'a Symbol> {
+    if caller.kind != SymbolKind::Function {
+        return None;
+    }
+    let mut matches = symbols.iter().filter(|symbol| {
+        symbol.kind == SymbolKind::Method
+            && symbol.name == name
+            && symbol.parent_id.as_deref() == Some(caller.id.as_str())
+    });
+    let symbol = matches.next()?;
+    matches.next().is_none().then_some(symbol)
+}
+
 fn unique_callable_symbol<'a>(symbols: &'a [Symbol], name: &str) -> Option<&'a Symbol> {
     let mut matches = symbols.iter().filter(|symbol| {
         symbol.name == name
+            && !is_test_call_symbol(symbol)
             && matches!(
                 symbol.kind,
                 SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
@@ -230,20 +276,6 @@ fn unique_callable_symbol<'a>(symbols: &'a [Symbol], name: &str) -> Option<&'a S
     });
     let symbol = matches.next()?;
     matches.next().is_none().then_some(symbol)
-}
-
-fn find_containing_callable_symbol<'a>(node: Node, symbols: &'a [Symbol]) -> Option<&'a Symbol> {
-    let byte = node.start_byte() as u32;
-    symbols
-        .iter()
-        .filter(|symbol| {
-            matches!(
-                symbol.kind,
-                SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
-            ) && symbol.start_byte <= byte
-                && symbol.end_byte >= byte
-        })
-        .min_by_key(|symbol| symbol.end_byte - symbol.start_byte)
 }
 
 /// The callee of a call site: the `function` of a call expression, or the
@@ -418,15 +450,14 @@ fn collect_heritage_data(
     symbols: &[Symbol],
 ) -> Option<HeritageData> {
     let mut parent = node.parent()?;
-    while parent.kind() != "class_declaration" {
+    while !matches!(parent.kind(), "class_declaration" | "class") {
         parent = parent.parent()?;
     }
-
-    let class_name_node = parent.child_by_field_name("name")?;
-    let class_name = extractor.base().get_node_text(&class_name_node);
-    let class_symbol = symbols
-        .iter()
-        .find(|s| s.name == class_name && s.kind == SymbolKind::Class)?;
+    let class_symbol = symbols.iter().find(|s| {
+        s.kind == SymbolKind::Class
+            && s.start_byte == parent.start_byte() as u32
+            && s.end_byte == parent.end_byte() as u32
+    })?;
 
     let mut base_types = Vec::new();
     match node.kind() {

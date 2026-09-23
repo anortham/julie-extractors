@@ -12,9 +12,9 @@ use super::super::{
 pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     StructuralFactPatternSpec {
         pattern_id: "nextjs.route_reference.v1",
-        languages: &["javascript", "jsx", "tsx"],
+        languages: &["javascript", "jsx", "tsx", "typescript"],
         query_family: "frontend_navigation",
-        description: "A Next.js `<Link href>` navigation reference.",
+        description: "A Next.js navigation reference: `<Link href>` or `router.push/replace/prefetch(\"/x\")` bound from `useRouter()`.",
         metadata_keys: &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
@@ -28,20 +28,20 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
             key(
                 "attribute_name",
                 STR,
-                ALWAYS,
-                "The source attribute name (\"href\").",
+                OPT,
+                "The source attribute name (\"href\"); absent for navigation calls.",
             ),
             key(
                 "component_name",
                 STR,
-                ALWAYS,
-                "The Link component/tag name.",
+                OPT,
+                "The Link component/tag name; absent for navigation calls.",
             ),
             key(
                 "import_source",
                 STR,
                 ALWAYS,
-                "Module the link component was imported from.",
+                "Module the link component or navigation hook was imported from.",
             ),
             key(
                 "route_source",
@@ -53,7 +53,13 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "source_kind",
                 STR,
                 ALWAYS,
-                "Reference origin (\"next_link\").",
+                "Reference origin (\"next_link\" or \"next_router_navigation\").",
+            ),
+            key(
+                "navigation_call",
+                STR,
+                OPT,
+                "Callee text of a navigation call (e.g. `navigate`, `router.push`).",
             ),
             key(
                 "verb",

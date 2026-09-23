@@ -113,7 +113,7 @@ class C extends Repository<User> {}
     }
     let pending = pending_rows(&results);
     assert!(
-        has_row(&pending, "Extends Shape -> Entity recv= imp= rtype="),
+        has_row(&pending, "Extends Shape -> Entity recv= imp=Entity rtype="),
         "{pending:#?}"
     );
     assert!(

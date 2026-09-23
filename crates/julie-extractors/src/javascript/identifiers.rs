@@ -3,7 +3,7 @@
 //! Handles extraction of all identifier usages including function calls,
 //! member access, and other references used for LSP-quality find_references.
 
-use crate::base::{ContainingSymbolIndex, Identifier, IdentifierKind, Symbol};
+use crate::base::{Identifier, IdentifierKind, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::{Node, Tree};
 
@@ -11,7 +11,7 @@ impl super::JavaScriptExtractor {
     /// Extract all identifier usages (function calls, member access, etc.)
     /// Following the Rust extractor reference implementation pattern
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
-        let containing_symbols = self.base.containing_symbol_index(symbols);
+        let containing_symbols = super::ecmascript_owner_index(&self.base, symbols);
 
         // Walk the tree and extract identifiers
         self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, 0);
@@ -24,7 +24,7 @@ impl super::JavaScriptExtractor {
     fn walk_tree_for_identifiers(
         &mut self,
         node: Node,
-        containing_symbols: &ContainingSymbolIndex<'_>,
+        containing_symbols: &super::EcmaOwnerIndex<'_>,
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
@@ -48,7 +48,7 @@ impl super::JavaScriptExtractor {
     fn extract_identifier_from_node(
         &mut self,
         node: Node,
-        containing_symbols: &ContainingSymbolIndex<'_>,
+        containing_symbols: &super::EcmaOwnerIndex<'_>,
     ) {
         match node.kind() {
             "jsx_opening_element" | "jsx_self_closing_element" => {
@@ -93,12 +93,10 @@ impl super::JavaScriptExtractor {
                                 let name = self.base.get_node_text(&property_node);
                                 let containing_symbol_id =
                                     self.find_containing_symbol_id(node, containing_symbols);
-                                let receiver_type = function_node
-                                    .child_by_field_name("object")
-                                    .filter(|object| object.kind() == "this")
-                                    .and_then(|_| {
-                                        ecmascript_enclosing_class_name(&self.base, node)
-                                    });
+                                let receiver_type =
+                                    function_node.child_by_field_name("object").and_then(
+                                        |object| ecmascript_self_receiver_type(&self.base, object),
+                                    );
 
                                 self.base.create_identifier_with_receiver_type(
                                     &property_node,
@@ -211,7 +209,7 @@ impl super::JavaScriptExtractor {
     fn find_containing_symbol_id(
         &self,
         node: Node,
-        containing_symbols: &ContainingSymbolIndex<'_>,
+        containing_symbols: &super::EcmaOwnerIndex<'_>,
     ) -> Option<String> {
         containing_symbols.find(node).map(|s| s.id.clone())
     }
@@ -230,7 +228,7 @@ impl super::JavaScriptExtractor {
     fn record_call_arg_literals(
         &mut self,
         call_node: &Node,
-        containing_symbols: &ContainingSymbolIndex<'_>,
+        containing_symbols: &super::EcmaOwnerIndex<'_>,
     ) {
         let Some(function_node) = call_node.child_by_field_name("function") else {
             return;
@@ -323,26 +321,44 @@ impl super::JavaScriptExtractor {
 // node kinds in both grammars (never `identifier`), so keywords are structurally
 // excluded and no name-based builtin filter is needed.
 
-/// The enclosing class name for a `this.`-receiver call: the nearest class-like
-/// ancestor's declared name. Shared by the JavaScript and TypeScript extractors;
-/// an anonymous class expression yields nothing.
+/// The enclosing class name for a `this.`-receiver call: the name the nearest
+/// class-like ancestor binds, or `X` for a function assigned to
+/// `X.prototype.m`. Shared by the JavaScript and TypeScript extractors; an
+/// unbound anonymous class expression yields nothing.
 pub(crate) fn ecmascript_enclosing_class_name(
     base: &crate::base::BaseExtractor,
     node: Node,
 ) -> Option<String> {
     let mut current = node.parent();
     while let Some(candidate) = current {
-        if matches!(
-            candidate.kind(),
-            "class_declaration" | "abstract_class_declaration" | "class"
-        ) {
-            return candidate
-                .child_by_field_name("name")
-                .map(|name_node| base.get_node_text(&name_node));
+        match candidate.kind() {
+            "class_declaration" | "abstract_class_declaration" | "class" => {
+                return super::types::class_binding_name(base, candidate);
+            }
+            "function_expression" | "function" | "generator_function" => {
+                if let Some(owner) = prototype_owner(base, candidate) {
+                    return Some(owner);
+                }
+            }
+            _ => {}
         }
         current = candidate.parent();
     }
     None
+}
+
+/// `X` for a function assigned to `X.prototype.m`.
+fn prototype_owner(base: &crate::base::BaseExtractor, function: Node) -> Option<String> {
+    let assignment = function
+        .parent()
+        .filter(|parent| parent.kind() == "assignment_expression")?;
+    let left = assignment
+        .child_by_field_name("left")
+        .filter(|left| left.kind() == "member_expression")?;
+    let object = left.child_by_field_name("object")?;
+    base.get_node_text(&object)
+        .strip_suffix(".prototype")
+        .map(str::to_string)
 }
 
 /// The `receiver_type` of a `this`/`super` receiver: the enclosing class name
@@ -431,6 +447,7 @@ pub(crate) fn is_ecmascript_value_read_identifier(node: Node) -> bool {
         | "generator_function_declaration"
         | "function_expression"
         | "generator_function"
+        | "function_signature"
         | "class_declaration"
         | "class"
         | "enum_declaration"

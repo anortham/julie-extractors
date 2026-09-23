@@ -1585,6 +1585,16 @@ mod tests {
     }
 
     #[test]
+    fn comment_text_is_never_a_receiver() {
+        let source = "// see config.\ninit();";
+        let start = source.find("init").unwrap() as u32;
+        assert_eq!(
+            receiver_before_identifier(source, start, "typescript"),
+            None
+        );
+    }
+
+    #[test]
     fn arrow_is_a_receiver_separator_only_for_pointer_member_languages() {
         let source = "| Some value -> log value";
         let start = source.rfind("log").unwrap() as u32;

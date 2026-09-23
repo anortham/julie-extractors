@@ -1131,6 +1131,11 @@
           "name": "language_gaps",
           "source": "fixtures/extraction/typescript/language_gaps/source.ts",
           "expected": "fixtures/extraction/typescript/language_gaps/expected.json"
+        },
+        {
+          "name": "frontend_navigation",
+          "source": "fixtures/extraction/typescript/frontend_navigation/source.ts",
+          "expected": "fixtures/extraction/typescript/frontend_navigation/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1153,6 +1158,7 @@
             "import",
             "interface",
             "method",
+            "namespace",
             "property",
             "type",
             "variable"
@@ -1190,6 +1196,7 @@
             "import",
             "interface",
             "method",
+            "namespace",
             "property",
             "type",
             "variable"
@@ -1199,16 +1206,21 @@
         },
         "structural_facts": {
           "supported": [
+            "angular.route_definition.v1",
             "express.route.v1",
             "express.router_mount.v1",
             "fastify.route.v1",
+            "hapi.route.v1",
             "http.client_request.v1",
+            "koa.route.v1",
             "nestjs.route.v1",
             "nextjs.file_route.v1",
             "nextjs.route_handler.v1",
+            "nextjs.route_reference.v1",
             "nuxt.file_route.v1",
             "nuxt.server_route.v1",
             "react.route_definition.v1",
+            "react.route_reference.v1",
             "typescript.await_expression.v1",
             "vue.route_definition.v1"
           ],
@@ -1233,7 +1245,9 @@
         "annotations": {
           "supported": [
             "class",
-            "method"
+            "method",
+            "property",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1394,6 +1408,7 @@
             "import",
             "interface",
             "method",
+            "namespace",
             "property",
             "type",
             "variable"
@@ -1428,6 +1443,7 @@
             "import",
             "interface",
             "method",
+            "namespace",
             "type",
             "variable"
           ],
@@ -1642,6 +1658,7 @@
             "class",
             "constructor",
             "export",
+            "field",
             "function",
             "import",
             "method",
@@ -1653,7 +1670,9 @@
         },
         "relationships": {
           "supported": [
-            "calls"
+            "calls",
+            "extends",
+            "instantiates"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1686,9 +1705,12 @@
             "express.route.v1",
             "express.router_mount.v1",
             "fastify.route.v1",
+            "hapi.route.v1",
             "htmx.attribute.v1",
             "http.client_request.v1",
             "javascript.await_expression.v1",
+            "javascript.qml_directive.v1",
+            "koa.route.v1",
             "nestjs.route.v1",
             "nextjs.file_route.v1",
             "nextjs.route_handler.v1",
@@ -1697,8 +1719,7 @@
             "nuxt.server_route.v1",
             "react.route_definition.v1",
             "react.route_reference.v1",
-            "vue.route_definition.v1",
-            "javascript.qml_directive.v1"
+            "vue.route_definition.v1"
           ],
           "not_applicable": [],
           "open_gaps": [
@@ -1721,6 +1742,7 @@
         "annotations": {
           "supported": [
             "class",
+            "field",
             "method"
           ],
           "not_applicable": [],
@@ -1729,6 +1751,7 @@
         "doc_comments": {
           "supported": [
             "class",
+            "field",
             "function",
             "method"
           ],
@@ -8324,7 +8347,7 @@
         "confidence_semantics": "ceiling capped by source identifier or relationship confidence",
         "method": "tier3_static_type",
         "gating": "universal, but the tier only yields an edge where the extractor records visibility='public' on the receiver type (for cross-file binding) and static reachability (symbols.metadata_json.isStatic when present, else a standalone 'static' word in the member signature)",
-        "visibility_dependency": "A cross-file receiver is refused unless the type records visibility='public'. Measured emission: rust maps pub and pub(crate) to public, go maps exported to public, python always reports public, javascript reports public on the class symbol, csharp preserves internal as internal, and typescript records visibility='public' on exported type declarations (export class / export enum / etc.). Non-exported TypeScript types remain non-public so cross-file static binding still refuses. Same-file receivers bind regardless of visibility.",
+        "visibility_dependency": "A cross-file receiver is refused unless the type records visibility='public'. Measured emission: rust maps pub and pub(crate) to public, go maps exported to public, python always reports public, javascript reports public on a top-level class, function, or variable that the module exports by any ESM or CommonJS form (and on every top-level declaration of a script file with no module syntax) and private otherwise, csharp preserves internal as internal, and typescript records visibility='public' on exported type declarations (export class / export enum / etc.). Non-exported TypeScript types remain non-public so cross-file static binding still refuses. Same-file receivers bind regardless of visibility.",
         "visibility_gap_effect": "recall loss only, never a wrong edge",
         "visibility_required_closure": "relax the cross-file refusal to assembly-visible kinds; C# extraction now distinguishes internal from private, and TypeScript export visibility is fixture-proven for the static tier",
         "static_modifier_dependency": "A member other than an enum member, constant, or enum binds through a type name only if it is statically reachable, because Type.InstanceMethod() does not compile. Reachability prefers symbols.metadata_json.isStatic when set, then falls back to a standalone 'static' word in the presentation signature. Fixture-proven emission: csharp (signature + isStatic metadata), typescript (exported types + static methods with isStatic and signature 'static'), and javascript (public class + static methods). Remaining gaps: python spells the modifier '@staticmethod', rust associated functions carry no static marker, and other languages lack a fixture-proven contract.",

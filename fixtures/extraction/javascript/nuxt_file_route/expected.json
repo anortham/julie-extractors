@@ -21,7 +21,7 @@
         "end_byte": 87
       },
       "body_hash": "eb8ba4259ca039462841a73ef807b8d1",
-      "signature": "export default defineComponent({\n  render() {\n    return h(\"main\", \"Dashboard\");\n  },\n});",
+      "signature": null,
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
@@ -59,7 +59,7 @@
       "signature": "render()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/javascript/nuxt_file_route/app/pages/dashboard.js:default:1:0",
+      "parent_key": null,
       "metadata": {
         "isAsync": false,
         "isGenerator": false,
@@ -127,7 +127,7 @@
       "end_column": 30,
       "start_byte": 15,
       "end_byte": 30,
-      "containing_key": "fixtures/extraction/javascript/nuxt_file_route/app/pages/dashboard.js:default:1:0",
+      "containing_key": null,
       "target_key": null,
       "confidence": "1.000"
     },

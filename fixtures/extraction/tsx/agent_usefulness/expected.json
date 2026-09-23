@@ -1,6 +1,42 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:View:3:0",
+      "name": "View",
+      "kind": "export",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/agent_usefulness/source.tsx",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 59,
+      "start_byte": 151,
+      "end_byte": 210,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 34,
+        "end_line": 3,
+        "end_column": 44,
+        "start_byte": 185,
+        "end_byte": 195
+      },
+      "body_hash": "76cb04006e60b5a66f6db1bae6e870e9",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "exportedName": "View",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "View"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:View:3:20",
       "name": "View",
       "kind": "function",
@@ -23,7 +59,7 @@
       "body_hash": "9505440c2598b0a04e46fa62294e582b",
       "signature": "View()",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAsync": false,
@@ -137,15 +173,6 @@
     }
   ],
   "types": [
-    {
-      "symbol_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:View:3:20",
-      "resolved_type": "function",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "tsx",
-      "metadata": null
-    },
     {
       "symbol_key": "fixtures/extraction/tsx/agent_usefulness/source.tsx:attrs:1:6",
       "resolved_type": "object",

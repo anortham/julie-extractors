@@ -94,6 +94,43 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:handler:13:60",
+      "name": "handler",
+      "kind": "method",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx",
+      "start_line": 13,
+      "start_column": 60,
+      "end_line": 13,
+      "end_column": 95,
+      "start_byte": 406,
+      "end_byte": 441,
+      "body_span": {
+        "start_line": 13,
+        "start_column": 82,
+        "end_line": 13,
+        "end_column": 94,
+        "start_byte": 428,
+        "end_byte": 440
+      },
+      "body_hash": "4eafaf71540d372bbf161718ee9a04d2",
+      "signature": "handler()",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:routes:4:7",
+      "metadata": {
+        "isAsync": true,
+        "isGenerator": false,
+        "isStatic": false,
+        "parameters": [],
+        "typeParameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:router:6:8",
       "name": "router",
       "kind": "variable",
@@ -149,7 +186,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "routes",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "routes"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -176,7 +218,7 @@
         "end_byte": 447
       },
       "body_hash": "b9877b6988f03fd1654bc3007067954c",
-      "signature": "routes(): : void",
+      "signature": "routes(): void",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
@@ -184,7 +226,7 @@
         "isAsync": false,
         "isGenerator": false,
         "parameters": [],
-        "returnType": ": void",
+        "returnType": "void",
         "typeParameters": []
       },
       "annotations": [],
@@ -517,44 +559,7 @@
       "confidence": "1.000"
     }
   ],
-  "types": [
-    {
-      "symbol_key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:app:5:8",
-      "resolved_type": "any",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "tsx",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:router:6:8",
-      "resolved_type": "any",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "tsx",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:routes:4:0",
-      "resolved_type": "function",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "tsx",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:server:12:8",
-      "resolved_type": "any",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "tsx",
-      "metadata": null
-    }
-  ],
+  "types": [],
   "parse_diagnostics": [],
   "structural_facts": [
     {
@@ -714,6 +719,28 @@
       "end_column": 0,
       "start_byte": 0,
       "end_byte": 448,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:handler:13:60",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx",
+      "covered_lines": 1,
+      "covered_bytes": 12,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 13,
+      "start_column": 82,
+      "end_line": 13,
+      "end_column": 94,
+      "start_byte": 428,
+      "end_byte": 440,
       "metadata": {
         "metric_version": 1
       }

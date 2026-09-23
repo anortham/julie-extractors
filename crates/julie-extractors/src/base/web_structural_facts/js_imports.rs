@@ -10,7 +10,12 @@ pub(super) struct JsImportIndex {
     pub(super) react_router_links: HashMap<String, String>,
     pub(super) react_router_routes: HashMap<String, String>,
     pub(super) react_router_route_apis: HashMap<String, String>,
+    pub(super) react_router_navigate_hooks: HashMap<String, String>,
     pub(super) next_links: HashMap<String, String>,
+    pub(super) next_router_hooks: HashMap<String, String>,
+    /// Local name to imported name for the `@angular/router` route APIs:
+    /// `Routes`, `Route`, `RouterModule`, `provideRouter`.
+    pub(super) angular_router: HashMap<String, String>,
     pub(super) axios_clients: HashMap<String, String>,
 }
 
@@ -55,6 +60,11 @@ pub(super) fn collect_js_imports(content: &str) -> JsImportIndex {
                                 .react_router_route_apis
                                 .insert(local, source.clone());
                         }
+                        "useNavigate" => {
+                            imports
+                                .react_router_navigate_hooks
+                                .insert(local, source.clone());
+                        }
                         _ => {}
                     }
                 }
@@ -66,6 +76,24 @@ pub(super) fn collect_js_imports(content: &str) -> JsImportIndex {
                 for (imported, local) in parse_named_imports(statement) {
                     if imported == "Link" {
                         imports.next_links.insert(local, source.clone());
+                    }
+                }
+            }
+            "next/navigation" | "next/router" => {
+                for (imported, local) in parse_named_imports(statement) {
+                    if imported == "useRouter" {
+                        imports.next_router_hooks.insert(local, source.clone());
+                    }
+                }
+            }
+            "@angular/router" => {
+                let value_statement = statement.replacen("import type", "import", 1);
+                for (imported, local) in parse_named_imports(&value_statement) {
+                    if matches!(
+                        imported.as_str(),
+                        "Routes" | "Route" | "RouterModule" | "provideRouter"
+                    ) {
+                        imports.angular_router.insert(local, imported);
                     }
                 }
             }

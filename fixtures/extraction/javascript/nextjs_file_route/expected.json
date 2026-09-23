@@ -21,14 +21,15 @@
         "end_byte": 51
       },
       "body_hash": "e070e6c21a3a1a78ba58c0e669a825cd",
-      "signature": "export default function Page() {\n    return null;\n}",
+      "signature": null,
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "exportedName": "Page",
         "isDefault": true,
-        "isNamed": false
+        "isNamed": false,
+        "localName": "Page"
       },
       "annotations": [],
       "semantic_group": null,
@@ -59,7 +60,7 @@
       "signature": "function Page()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/javascript/nextjs_file_route/app/blog/page.js:Page:1:0",
+      "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
         "isAsync": false,

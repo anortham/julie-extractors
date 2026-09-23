@@ -9,6 +9,7 @@
 //! - Converts to Rust `Option<T>`, `Result<T>`, iterators, ownership system
 
 mod assignments;
+pub(crate) mod exports;
 mod functions;
 mod helpers;
 // pub(crate): identifiers exports `is_ecmascript_value_read_identifier`, the
@@ -36,16 +37,8 @@ use crate::ecmascript_imports::{
     is_ecmascript_global_direct_target,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use regex::Regex;
 use std::collections::{HashMap, HashSet};
-use std::sync::LazyLock;
 use tree_sitter::Tree;
-
-// Static regexes compiled once for performance
-static JSDOC_RETURNS_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"@returns?\s*\{([^}]+)\}").unwrap());
-static JSDOC_TYPE_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"@type\s*\{([^}]+)\}").unwrap());
 
 /// The function value a member-shaped declaration (`key: function () {}`,
 /// `A.prototype.m = function () {}`, `handler = () => {}` in a class body)
@@ -65,6 +58,79 @@ fn member_function_value(node: tree_sitter::Node) -> Option<tree_sitter::Node> {
     .then_some(value)
 }
 
+/// An object literal whose pairs are named declarations: the value of a
+/// variable, an `export default`, an assignment (`module.exports = {...}`), or
+/// a class field, directly or through enclosing object literals. Object
+/// literals in call arguments, JSX attributes, return values, and decorator
+/// arguments are anonymous data.
+fn is_declaration_bound_object(object: tree_sitter::Node) -> bool {
+    if object.kind() != "object" {
+        return false;
+    }
+    let mut current = object;
+    loop {
+        let Some(parent) = current.parent() else {
+            return false;
+        };
+        match parent.kind() {
+            "parenthesized_expression" => current = parent,
+            "pair" => match parent.parent() {
+                Some(enclosing) if enclosing.kind() == "object" => current = enclosing,
+                _ => return false,
+            },
+            "variable_declarator" | "export_statement" => return true,
+            "assignment_expression" => {
+                return parent
+                    .child_by_field_name("right")
+                    .is_some_and(|right| right.id() == current.id());
+            }
+            "field_definition" | "public_field_definition" | "property_definition" => {
+                return true;
+            }
+            _ => return false,
+        }
+    }
+}
+
+/// The owner index every ECMAScript pass uses to find the declaration that
+/// owns a call or identifier: the innermost function, method, class field,
+/// test call, or module-level variable around it. Export and import rows name
+/// code without owning it, so they never own a reference.
+pub(crate) fn ecmascript_owner_index<'a>(
+    base: &BaseExtractor,
+    symbols: &'a [Symbol],
+) -> EcmaOwnerIndex<'a> {
+    EcmaOwnerIndex(crate::base::OwnerIndex::new_filtered(
+        base,
+        symbols,
+        |symbol| !matches!(symbol.kind, SymbolKind::Export | SymbolKind::Import),
+    ))
+}
+
+pub(crate) struct EcmaOwnerIndex<'a>(crate::base::OwnerIndex<'a>);
+
+impl<'a> EcmaOwnerIndex<'a> {
+    /// The owner of `node`. A decorator written before `export`
+    /// (`@Component() export class A {}`) belongs to the declaration it
+    /// decorates, as it does without the `export`.
+    pub(crate) fn find(&self, node: tree_sitter::Node) -> Option<&'a Symbol> {
+        let mut current = node;
+        while let Some(parent) = current.parent() {
+            if current.kind() == "decorator" && parent.kind() == "export_statement" {
+                if let Some(body) = parent
+                    .child_by_field_name("declaration")
+                    .and_then(|declaration| declaration.child_by_field_name("body"))
+                {
+                    return self.0.find(body);
+                }
+                break;
+            }
+            current = parent;
+        }
+        self.0.find(node)
+    }
+}
+
 /// Callable node kinds that own the calls inside them.
 fn is_pending_scope_kind(kind: &str) -> bool {
     matches!(
@@ -79,8 +145,8 @@ fn is_pending_scope_kind(kind: &str) -> bool {
 }
 
 struct PendingCallContext<'a> {
-    symbols: &'a [Symbol],
     symbol_index: crate::base::ScopedSymbolIndex<'a>,
+    owners: EcmaOwnerIndex<'a>,
     typed_receivers: HashSet<String>,
     local_bindings: HashSet<String>,
 }
@@ -120,6 +186,7 @@ impl JavaScriptExtractor {
         let mut symbols = qml_directives::import_symbols(&self.base);
         self.test_dsl_active = test_symbols::test_dsl_is_active(&self.base, tree.root_node());
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
+        visibility::apply_module_visibility(&self.base, tree.root_node(), &mut symbols);
         symbols
     }
 
@@ -142,8 +209,8 @@ impl JavaScriptExtractor {
             symbol_map.entry(import.name.clone()).or_insert(import);
         }
         let context = PendingCallContext {
-            symbols,
             symbol_index: crate::base::ScopedSymbolIndex::new(symbols),
+            owners: ecmascript_owner_index(&self.base, symbols),
             typed_receivers: crate::typescript::typed_receiver_names(symbols, &self.base.type_info),
             local_bindings: symbols
                 .iter()
@@ -157,28 +224,26 @@ impl JavaScriptExtractor {
                 .collect(),
         };
 
-        self.walk_for_pending_calls(tree.root_node(), &context, &symbol_map, None, 0);
+        self.walk_for_pending_calls(tree.root_node(), &context, &symbol_map, 0);
     }
 
-    /// Walk the tree looking for calls that need cross-file resolution
+    /// Walk the tree looking for calls that need cross-file resolution. A
+    /// call's caller is the declaration that owns it, the same owner the
+    /// identifier and relationship passes use.
     fn walk_for_pending_calls<'a>(
         &mut self,
         node: tree_sitter::Node,
         context: &PendingCallContext<'a>,
         symbol_map: &HashMap<String, &'a Symbol>,
-        current_caller: Option<&'a Symbol>,
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
             return;
         }
 
-        let current_caller = self
-            .caller_for_pending_scope_node(node, context.symbols, symbol_map)
-            .or(current_caller);
-
-        if let (Some(caller_symbol), Some(function_node)) =
-            (current_caller, relationships::call_site_callee(self, node))
+        if let Some(function_node) = relationships::call_site_callee(self, node)
+            && !(self.test_dsl_active && test_symbols::is_test_dsl_call(&self.base, node))
+            && let Some(caller_symbol) = context.owners.find(node)
         {
             if function_node.kind() == "member_expression" {
                 self.emit_pending_member_call(
@@ -188,9 +253,7 @@ impl JavaScriptExtractor {
                     context,
                     symbol_map,
                 );
-            } else if function_node.kind() == "identifier"
-                && !(self.test_dsl_active && test_symbols::is_test_dsl_call(&self.base, node))
-            {
+            } else if function_node.kind() == "identifier" {
                 let function_name = self.base.get_node_text(&function_node);
                 let confidence = match symbol_map.get(function_name.as_str()) {
                     Some(called_symbol) if called_symbol.kind == SymbolKind::Import => Some(0.8),
@@ -214,19 +277,12 @@ impl JavaScriptExtractor {
             }
         }
 
-        // Recursively process children
         let Some(child_depth) = child_tree_depth(depth) else {
             return;
         };
         for index in 0..node.named_child_count() {
             if let Some(child) = node.named_child(index as u32) {
-                self.walk_for_pending_calls(
-                    child,
-                    context,
-                    symbol_map,
-                    current_caller,
-                    child_depth,
-                );
+                self.walk_for_pending_calls(child, context, symbol_map, child_depth);
             }
         }
     }
@@ -280,81 +336,6 @@ impl JavaScriptExtractor {
             )
             .with_receiver_type(receiver_type);
         self.add_structured_pending_relationship(pending);
-    }
-
-    fn caller_for_pending_scope_node<'a>(
-        &self,
-        node: tree_sitter::Node,
-        symbols: &'a [Symbol],
-        symbol_map: &'a HashMap<String, &'a Symbol>,
-    ) -> Option<&'a Symbol> {
-        if !is_pending_scope_kind(node.kind()) {
-            return None;
-        }
-
-        self.find_containing_function_in_symbols(node, symbols, symbol_map)
-    }
-
-    /// Find the containing function for a node by walking up the tree
-    fn find_containing_function_in_symbols<'a>(
-        &self,
-        node: tree_sitter::Node,
-        symbols: &'a [Symbol],
-        symbol_map: &'a HashMap<String, &'a Symbol>,
-    ) -> Option<&'a Symbol> {
-        if let Some(symbol) = self.base.find_containing_symbol(&node, symbols) {
-            return Some(symbol);
-        }
-
-        let mut current = node.parent();
-
-        while let Some(current_node) = current {
-            // Check for function declarations
-            if is_pending_scope_kind(current_node.kind()) {
-                // Get the function name
-                if let Some(name_node) = current_node.child_by_field_name("name") {
-                    let func_name = self.base.get_node_text(&name_node);
-                    if let Some(symbol) = symbol_map.get(&func_name)
-                        && matches!(
-                            symbol.kind,
-                            crate::base::SymbolKind::Function | crate::base::SymbolKind::Method
-                        )
-                    {
-                        return Some(symbol);
-                    }
-                }
-            }
-
-            // Check for test call expressions (it, test, describe, beforeEach, etc.)
-            // The arrow_function inside it("name", () => {...}) has no name field,
-            // so we look at the parent call_expression and use the test name.
-            if let Some(dsl_word) = test_symbols::dsl_word_of_call(&self.base, current_node)
-                && let Some(args) = current_node.child_by_field_name("arguments")
-            {
-                let mut cursor = args.walk();
-                if let Some(first_str) = args
-                    .children(&mut cursor)
-                    .find(|c| c.kind() == "string" || c.kind() == "template_string")
-                {
-                    let name = self
-                        .base
-                        .get_node_text(&first_str)
-                        .trim_matches(|c| c == '"' || c == '\'' || c == '`')
-                        .to_string();
-                    if let Some(symbol) = symbol_map.get(&name) {
-                        return Some(symbol);
-                    }
-                }
-                // For lifecycle (no string arg), look up by the DSL word
-                if let Some(symbol) = symbol_map.get(&dsl_word) {
-                    return Some(symbol);
-                }
-            }
-
-            current = current_node.parent();
-        }
-
-        None
     }
 
     fn call_terminal_name(&self, function_node: tree_sitter::Node) -> String {
@@ -721,45 +702,98 @@ impl JavaScriptExtractor {
     }
 
     /// Infer types from JSDoc comments (@returns, @type)
-    pub fn infer_types(&self, symbols: &[Symbol]) -> std::collections::HashMap<String, String> {
-        let mut type_map = std::collections::HashMap::new();
-
-        for symbol in symbols {
-            if let Some(ref doc_comment) = symbol.doc_comment {
-                // Extract type from JSDoc
-                if let Some(inferred_type) = self.extract_jsdoc_type(doc_comment, &symbol.kind) {
-                    type_map.insert(symbol.id.clone(), inferred_type);
-                }
-            }
-        }
-
-        type_map
+    /// JSDoc and constructor type facts are recorded during symbol
+    /// extraction, so nothing is inferred afterwards.
+    pub fn infer_types(&self, _symbols: &[Symbol]) -> std::collections::HashMap<String, String> {
+        std::collections::HashMap::new()
     }
 
-    fn extract_jsdoc_type(
-        &self,
-        doc_comment: &str,
-        kind: &crate::base::SymbolKind,
-    ) -> Option<String> {
-        use crate::base::SymbolKind;
-
-        match kind {
-            SymbolKind::Function | SymbolKind::Method => {
-                // Extract return type from @returns {Type} or @return {Type}
-                if let Some(captures) = JSDOC_RETURNS_RE.captures(doc_comment) {
-                    return Some(captures[1].trim().to_string());
-                }
+    /// The symbol `node` declares, if any. Symbols that never open a scope
+    /// (import and export rows, destructured bindings) go straight into
+    /// `symbols`. Kept out of the recursive frame so the walker stays small.
+    #[inline(never)]
+    fn extract_node_symbol(
+        &mut self,
+        node: tree_sitter::Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<&str>,
+    ) -> Option<Symbol> {
+        let parent = || parent_id.map(str::to_string);
+        match node.kind() {
+            "class_declaration" | "class" => self.extract_class(node, parent()),
+            "function_declaration"
+            | "function"
+            | "arrow_function"
+            | "function_expression"
+            | "generator_function"
+            | "generator_function_declaration"
+                if !self.member_callables.contains(&node.id()) =>
+            {
+                self.extract_function(node, parent())
             }
-            SymbolKind::Variable | SymbolKind::Property => {
-                // Extract type from @type {Type}
-                if let Some(captures) = JSDOC_TYPE_RE.captures(doc_comment) {
-                    return Some(captures[1].trim().to_string());
-                }
+            "method_definition" => self.extract_method(node, parent()),
+            "variable_declarator"
+                if node.child_by_field_name("name").is_some_and(|name| {
+                    matches!(name.kind(), "object_pattern" | "array_pattern")
+                }) =>
+            {
+                symbols.extend(self.extract_destructuring_variables(node, parent()));
+                None
             }
-            _ => {}
+            "variable_declarator" => self.extract_variable(node, parent()),
+            "import_statement" | "import_declaration" => {
+                let import_symbols = self.extract_import_specifiers(&node);
+                for specifier in import_symbols {
+                    let import_symbol = self.create_import_symbol(node, &specifier, parent());
+                    symbols.push(import_symbol);
+                }
+                None
+            }
+            "export_statement" | "export_declaration" => {
+                symbols.extend(exports::extract_export_rows(
+                    &mut self.base,
+                    node,
+                    parent_id,
+                ));
+                None
+            }
+            "call_expression"
+                if node
+                    .child_by_field_name("function")
+                    .is_some_and(|function| function.kind() == "import") =>
+            {
+                exports::dynamic_import_row(&mut self.base, node, parent_id)
+            }
+            "property_definition" | "public_field_definition" | "field_definition" => {
+                self.extract_property(node, parent())
+            }
+            "pair"
+                if member_function_value(node).is_some()
+                    || node.parent().is_some_and(is_declaration_bound_object) =>
+            {
+                self.extract_property(node, parent())
+            }
+            "assignment_expression" => self.extract_assignment(node, parent(), symbols),
+            "call_expression"
+                if self.test_dsl_active && test_symbols::is_test_dsl_call(&self.base, node) =>
+            {
+                let container = symbols
+                    .iter()
+                    .rev()
+                    .find(|s| {
+                        s.metadata
+                            .as_ref()
+                            .and_then(|m| m.get("test_container"))
+                            .and_then(|v| v.as_bool())
+                            == Some(true)
+                            && s.start_byte <= node.start_byte() as u32
+                            && s.end_byte >= node.end_byte() as u32
+                    })
+                    .map(|s| s.id.as_str());
+                test_symbols::extract_test_call(&mut self.base, node, container)
+            }
+            _ => None,
         }
-
-        None
     }
 
     /// Main tree traversal - ports visitNode function exactly
@@ -774,89 +808,16 @@ impl JavaScriptExtractor {
             return;
         }
 
-        let mut symbol: Option<Symbol> = None;
-
-        // Port switch statement exactly
-        match node.kind() {
-            "class_declaration" => {
-                symbol = self.extract_class(node, parent_id.clone());
-            }
-            "function_declaration"
-            | "function"
-            | "arrow_function"
-            | "function_expression"
-            | "generator_function"
-            | "generator_function_declaration"
-                if !self.member_callables.contains(&node.id()) =>
-            {
-                symbol = self.extract_function(node, parent_id.clone());
-            }
-            "method_definition" => {
-                symbol = self.extract_method(node, parent_id.clone());
-            }
-            "variable_declarator" => {
-                // Handle destructuring patterns that create multiple symbols (reference logic)
-                let name_node = node.child_by_field_name("name");
-                if let Some(name) = name_node {
-                    if name.kind() == "object_pattern" || name.kind() == "array_pattern" {
-                        let destructured_symbols =
-                            self.extract_destructuring_variables(node, parent_id.clone());
-                        symbols.extend(destructured_symbols);
-                    } else {
-                        symbol = self.extract_variable(node, parent_id.clone());
-                    }
-                } else {
-                    symbol = self.extract_variable(node, parent_id.clone());
-                }
-            }
-            "import_statement" | "import_declaration" => {
-                // Handle multiple import specifiers (reference logic)
-                let import_symbols = self.extract_import_specifiers(&node);
-                for specifier in import_symbols {
-                    let import_symbol =
-                        self.create_import_symbol(node, &specifier, parent_id.clone());
-                    symbols.push(import_symbol);
-                }
-            }
-            "export_statement" | "export_declaration" => {
-                symbol = self.extract_export(node, parent_id.clone());
-            }
-            "property_definition" | "public_field_definition" | "field_definition" | "pair" => {
-                symbol = self.extract_property(node, parent_id.clone());
-            }
-            "assignment_expression" => {
-                if let Some(assignment_symbol) = self.extract_assignment(node, parent_id.clone()) {
-                    symbol = Some(assignment_symbol);
-                }
-            }
-            // Test call expressions (describe, it, test, beforeEach, etc.)
-            "call_expression"
-                if self.test_dsl_active && test_symbols::is_test_dsl_call(&self.base, node) =>
-            {
-                let parent = symbols
-                    .iter()
-                    .rev()
-                    .find(|s| {
-                        s.metadata
-                            .as_ref()
-                            .and_then(|m| m.get("test_container"))
-                            .and_then(|v| v.as_bool())
-                            == Some(true)
-                            && s.start_byte <= node.start_byte() as u32
-                            && s.end_byte >= node.end_byte() as u32
-                    })
-                    .map(|s| s.id.as_str());
-                symbol = test_symbols::extract_test_call(&mut self.base, node, parent);
-            }
-            _ => {}
-        }
+        let symbol = self.extract_node_symbol(node, symbols, parent_id.as_deref());
 
         let current_parent_id = if let Some(sym) = &symbol {
+            type_facts::record_jsdoc_symbol_fact(&mut self.base, sym);
             symbols.push(sym.clone());
             let callable_node = if parameters::is_parameter_owner(node.kind()) {
                 Some(node)
             } else {
-                member_function_value(node).filter(|_| sym.kind == SymbolKind::Method)
+                member_function_value(node)
+                    .filter(|_| matches!(sym.kind, SymbolKind::Method | SymbolKind::Function))
             };
             if let Some(callable_node) = callable_node
                 && matches!(
@@ -868,6 +829,11 @@ impl JavaScriptExtractor {
                 for (param_symbol, _) in
                     parameters::extract_parameter_symbols(&mut self.base, callable_node, &sym.id)
                 {
+                    type_facts::record_jsdoc_param_fact(
+                        &mut self.base,
+                        &param_symbol,
+                        sym.doc_comment.as_deref(),
+                    );
                     symbols.push(param_symbol);
                 }
             }

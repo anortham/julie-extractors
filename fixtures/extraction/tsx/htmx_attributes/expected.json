@@ -56,7 +56,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "SaveButton",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "SaveButton"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -90,7 +95,9 @@
       "metadata": {
         "isAsync": false,
         "isGenerator": false,
-        "parameters": [],
+        "parameters": [
+          "{ endpoint }: Props"
+        ],
         "typeParameters": []
       },
       "annotations": [],
@@ -188,11 +195,11 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/tsx/htmx_attributes/source.tsx:SaveButton:5:0",
-      "resolved_type": "function",
+      "symbol_key": "fixtures/extraction/tsx/htmx_attributes/source.tsx:endpoint:2:2",
+      "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "tsx",
       "metadata": null
     }

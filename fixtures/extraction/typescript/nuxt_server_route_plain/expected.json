@@ -1,5 +1,41 @@
 {
-  "symbols": [],
+  "symbols": [
+    {
+      "key": "fixtures/extraction/typescript/nuxt_server_route_plain/server/routes/health.ts:default:1:0",
+      "name": "default",
+      "kind": "export",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nuxt_server_route_plain/server/routes/health.ts",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 3,
+      "start_byte": 0,
+      "end_byte": 74,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 40,
+        "end_line": 3,
+        "end_column": 1,
+        "start_byte": 40,
+        "end_byte": 72
+      },
+      "body_hash": "73277f978e78b77240ebcb2d8218f65e",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "exportedName": "default",
+        "isDefault": true,
+        "isNamed": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
   "relationships": [],
   "pending_relationships": [],
   "structured_pending_relationships": [],
@@ -78,7 +114,7 @@
       "kind": "string_literal",
       "language": "typescript",
       "file_path": "fixtures/extraction/typescript/nuxt_server_route_plain/server/routes/health.ts",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/typescript/nuxt_server_route_plain/server/routes/health.ts:default:1:0",
       "start_line": 2,
       "start_column": 21,
       "end_line": 2,

@@ -63,7 +63,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "entry",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "entry"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -90,7 +95,7 @@
         "end_byte": 448
       },
       "body_hash": "5a4bf29be608116dea62f868c5d696d9",
-      "signature": "entry(): : number",
+      "signature": "entry(): number",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
@@ -98,7 +103,7 @@
         "isAsync": false,
         "isGenerator": false,
         "parameters": [],
-        "returnType": ": number",
+        "returnType": "number",
         "typeParameters": []
       },
       "annotations": [],
@@ -127,7 +132,7 @@
         "end_byte": 359
       },
       "body_hash": "d2eca0a1521da9f57d8eeb7ec054d1bf",
-      "signature": "local_helper(): : number",
+      "signature": "local_helper(): number",
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
@@ -135,7 +140,7 @@
         "isAsync": false,
         "isGenerator": false,
         "parameters": [],
-        "returnType": ": number",
+        "returnType": "number",
         "typeParameters": []
       },
       "annotations": [],
@@ -220,7 +225,7 @@
         "terminal_name": "Foo",
         "receiver": null,
         "namespace_path": [],
-        "import_context": null
+        "import_context": "Foo"
       },
       "caller_scope_key": "fixtures/extraction/typescript/cross_file/source.ts:entry:12:7",
       "span": {
@@ -269,20 +274,20 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/typescript/cross_file/source.ts:entry:12:0",
-      "resolved_type": "function",
+      "symbol_key": "fixtures/extraction/typescript/cross_file/source.ts:entry:12:7",
+      "resolved_type": "number",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "typescript",
       "metadata": null
     },
     {
       "symbol_key": "fixtures/extraction/typescript/cross_file/source.ts:local_helper:8:0",
-      "resolved_type": "function",
+      "resolved_type": "number",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "typescript",
       "metadata": null
     },

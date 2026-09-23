@@ -309,6 +309,94 @@
     "query_family": "frontend_interaction"
   },
   {
+    "description": "An Angular Router route object in a `Routes` array or in the array passed to `RouterModule.forRoot/forChild` or `provideRouter`.",
+    "languages": [
+      "typescript"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing library (\"angular_router\").",
+        "key": "library",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Definition form (\"route_object\").",
+        "key": "source_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The route's own static `path` (may be empty).",
+        "key": "route_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Origin of the path (\"string_literal\").",
+        "key": "route_source",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Full route template from the parent paths and the own path.",
+        "key": "effective_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Effective template of the parent route when nested under `children`.",
+        "key": "parent_route_path",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The `component` identifier, when present.",
+        "key": "route_component",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The static `redirectTo` target, when present.",
+        "key": "redirect_to",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Module source imported by `loadChildren`, when present.",
+        "key": "lazy_module_source",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Module source imported by `loadComponent`, when present.",
+        "key": "lazy_component_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "angular.route_definition.v1",
+    "query_family": "frontend_navigation"
+  },
+  {
     "description": "An ASP.NET attribute-routing fact ([Route]/[RoutePrefix]/[Http*] on controllers or actions).",
     "languages": [
       "csharp",
@@ -4117,6 +4205,71 @@
     "query_family": "framework"
   },
   {
+    "description": "A static Hapi `server.route` object-form route on a server built by `Hapi.server` or `new Hapi.Server`.",
+    "languages": [
+      "javascript",
+      "typescript"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"call_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static `path` of the route object.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key with Hapi {param} segments normalized to :param.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "HTTP method from the `method` property; omitted for `*`.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested (\"attested\" for the method property).",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "hapi.route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "An HTML image-map area link (`<area href>`).",
     "languages": [
       "html"
@@ -5632,6 +5785,83 @@
     ],
     "pattern_id": "jsx.await_expression.v1",
     "query_family": "async"
+  },
+  {
+    "description": "A static Koa Router route registration on a router built from `@koa/router` or `koa-router`.",
+    "languages": [
+      "javascript",
+      "typescript"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"call_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path passed to the router method.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key with the router prefix applied and :param segments preserved.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "HTTP method for verb-restricted registrations; omitted for router.all.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested (\"attested\" for router verb methods).",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Literal `prefix` option of the router constructor.",
+        "key": "route_group_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Router prefix joined with the route template.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "koa.route.v1",
+    "query_family": "framework"
   },
   {
     "description": "A Kotlin annotation use.",
@@ -7253,11 +7483,12 @@
     "query_family": "framework"
   },
   {
-    "description": "A Next.js `<Link href>` navigation reference.",
+    "description": "A Next.js navigation reference: `<Link href>` or `router.push/replace/prefetch(\"/x\")` bound from `useRouter()`.",
     "languages": [
       "javascript",
       "jsx",
-      "tsx"
+      "tsx",
+      "typescript"
     ],
     "metadata_keys": [
       {
@@ -7285,19 +7516,19 @@
         "value_type": "string"
       },
       {
-        "description": "The source attribute name (\"href\").",
+        "description": "The source attribute name (\"href\"); absent for navigation calls.",
         "key": "attribute_name",
-        "presence": "always",
+        "presence": "optional",
         "value_type": "string"
       },
       {
-        "description": "The Link component/tag name.",
+        "description": "The Link component/tag name; absent for navigation calls.",
         "key": "component_name",
-        "presence": "always",
+        "presence": "optional",
         "value_type": "string"
       },
       {
-        "description": "Module the link component was imported from.",
+        "description": "Module the link component or navigation hook was imported from.",
         "key": "import_source",
         "presence": "always",
         "value_type": "string"
@@ -7309,9 +7540,15 @@
         "value_type": "string"
       },
       {
-        "description": "Reference origin (\"next_link\").",
+        "description": "Reference origin (\"next_link\" or \"next_router_navigation\").",
         "key": "source_kind",
         "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Callee text of a navigation call (e.g. `navigate`, `router.push`).",
+        "key": "navigation_call",
+        "presence": "optional",
         "value_type": "string"
       },
       {
@@ -10161,11 +10398,12 @@
     "query_family": "frontend_navigation"
   },
   {
-    "description": "A React Router link reference (`<Link to>`).",
+    "description": "A React Router navigation reference: `<Link to>` or `navigate(\"/x\")` bound from `useNavigate()`.",
     "languages": [
       "javascript",
       "jsx",
-      "tsx"
+      "tsx",
+      "typescript"
     ],
     "metadata_keys": [
       {
@@ -10199,19 +10437,19 @@
         "value_type": "string"
       },
       {
-        "description": "The source attribute name (\"to\").",
+        "description": "The source attribute name (\"to\"); absent for navigation calls.",
         "key": "attribute_name",
-        "presence": "always",
+        "presence": "optional",
         "value_type": "string"
       },
       {
-        "description": "The JSX component/tag name (e.g. Link).",
+        "description": "The JSX component/tag name (e.g. Link); absent for navigation calls.",
         "key": "component_name",
-        "presence": "always",
+        "presence": "optional",
         "value_type": "string"
       },
       {
-        "description": "Module the link component was imported from.",
+        "description": "Module the link component or navigation hook was imported from.",
         "key": "import_source",
         "presence": "always",
         "value_type": "string"
@@ -10223,9 +10461,15 @@
         "value_type": "string"
       },
       {
-        "description": "Reference origin (\"react_router_link\").",
+        "description": "Reference origin (\"react_router_link\" or \"react_router_navigate\").",
         "key": "source_kind",
         "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Callee text of a navigation call (e.g. `navigate`, `router.push`).",
+        "key": "navigation_call",
+        "presence": "optional",
         "value_type": "string"
       },
       {

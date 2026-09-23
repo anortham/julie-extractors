@@ -52,7 +52,7 @@
         "end_byte": 56
       },
       "body_hash": "3a8bab0d15ee0393c97587780528bc54",
-      "signature": "make(): : Result",
+      "signature": "make(): Result",
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
@@ -60,7 +60,7 @@
         "isAsync": false,
         "isGenerator": false,
         "parameters": [],
-        "returnType": ": Result",
+        "returnType": "Result",
         "typeParameters": []
       },
       "annotations": [],
@@ -93,10 +93,10 @@
   "types": [
     {
       "symbol_key": "fixtures/extraction/tsx/return_types/source.tsx:make:2:0",
-      "resolved_type": "function",
+      "resolved_type": "Result",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "tsx",
       "metadata": null
     }

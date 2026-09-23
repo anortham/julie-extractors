@@ -167,7 +167,7 @@
     {
       "key": "fixtures/extraction/vue/options_api/source.vue:data:20:2",
       "name": "data",
-      "kind": "property",
+      "kind": "method",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/options_api/source.vue",
       "start_line": 20,
@@ -185,12 +185,52 @@
         "end_byte": 568
       },
       "body_hash": "00875468765d34ff3dc36e3d626b2337",
-      "signature": "data: () => ({ open: false })",
+      "signature": "data()",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": null,
       "parent_key": null,
       "metadata": {
+        "isAsync": false,
+        "isGenerator": false,
+        "isStatic": false,
+        "parameters": [],
+        "typeParameters": [],
         "vueOption": "data"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vue/options_api/source.vue:default:15:0",
+      "name": "default",
+      "kind": "export",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/options_api/source.vue",
+      "start_line": 15,
+      "start_column": 0,
+      "end_line": 41,
+      "end_column": 2,
+      "start_byte": 410,
+      "end_byte": 953,
+      "body_span": {
+        "start_line": 15,
+        "start_column": 31,
+        "end_line": 41,
+        "end_column": 1,
+        "start_byte": 441,
+        "end_byte": 952
+      },
+      "body_hash": "8092fa907cf4ac70cc9f705a6d513a59",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "exportedName": "default",
+        "isDefault": true,
+        "isNamed": false
       },
       "annotations": [],
       "semantic_group": null,
@@ -547,7 +587,7 @@
         "end_byte": 679
       },
       "body_hash": "d0f769e841bc71464bcf34667ed05e94",
-      "signature": "reset(): : void",
+      "signature": "reset(): void",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/vue/options_api/source.vue:setup:21:2",
@@ -555,7 +595,7 @@
         "isAsync": false,
         "isGenerator": false,
         "parameters": [],
-        "returnType": ": void",
+        "returnType": "void",
         "typeParameters": []
       },
       "annotations": [],
@@ -592,7 +632,10 @@
         "isAsync": false,
         "isGenerator": false,
         "isStatic": false,
-        "parameters": [],
+        "parameters": [
+          "props",
+          "{ emit }"
+        ],
         "typeParameters": [],
         "vueOption": "setup"
       },
@@ -656,7 +699,9 @@
         "isAsync": false,
         "isGenerator": false,
         "isStatic": false,
-        "parameters": [],
+        "parameters": [
+          "next"
+        ],
         "typeParameters": [],
         "vueOption": "watch"
       },
@@ -694,7 +739,9 @@
         "isAsync": false,
         "isGenerator": false,
         "isStatic": false,
-        "parameters": [],
+        "parameters": [
+          "payload"
+        ],
         "typeParameters": [],
         "vueOption": "methods"
       },
@@ -1319,26 +1366,7 @@
       "confidence": "1.000"
     }
   ],
-  "types": [
-    {
-      "symbol_key": "fixtures/extraction/vue/options_api/source.vue:count:22:10",
-      "resolved_type": "any",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "vue",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/vue/options_api/source.vue:reset:23:4",
-      "resolved_type": "function",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "vue",
-      "metadata": null
-    }
-  ],
+  "types": [],
   "parse_diagnostics": [],
   "structural_facts": [
     {
@@ -1502,6 +1530,28 @@
       "end_column": 3,
       "start_byte": 725,
       "end_byte": 746,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vue/options_api/source.vue:data:20:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/options_api/source.vue",
+      "covered_lines": 1,
+      "covered_bytes": 15,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 20,
+      "start_column": 15,
+      "end_line": 20,
+      "end_column": 30,
+      "start_byte": 553,
+      "end_byte": 568,
       "metadata": {
         "metric_version": 1
       }
@@ -1710,6 +1760,45 @@
       "kind": "string_literal",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/options_api/source.vue",
+      "containing_key": "fixtures/extraction/vue/options_api/source.vue:default:15:0",
+      "start_line": 16,
+      "start_column": 8,
+      "end_line": 16,
+      "end_column": 20,
+      "start_byte": 451,
+      "end_byte": 463,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/options_api/source.vue",
+      "containing_key": "fixtures/extraction/vue/options_api/source.vue:default:15:0",
+      "start_line": 19,
+      "start_column": 10,
+      "end_line": 19,
+      "end_column": 17,
+      "start_byte": 519,
+      "end_byte": 526,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/options_api/source.vue",
+      "containing_key": "fixtures/extraction/vue/options_api/source.vue:default:15:0",
+      "start_line": 19,
+      "start_column": 19,
+      "end_line": 19,
+      "end_column": 26,
+      "start_byte": 528,
+      "end_byte": 535,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/options_api/source.vue",
       "containing_key": "fixtures/extraction/vue/options_api/source.vue:defineComponent:10:0",
       "start_line": 10,
       "start_column": 37,
@@ -1743,45 +1832,6 @@
       "end_column": 43,
       "start_byte": 890,
       "end_byte": 899,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "vue",
-      "file_path": "fixtures/extraction/vue/options_api/source.vue",
-      "containing_key": null,
-      "start_line": 16,
-      "start_column": 8,
-      "end_line": 16,
-      "end_column": 20,
-      "start_byte": 451,
-      "end_byte": 463,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "vue",
-      "file_path": "fixtures/extraction/vue/options_api/source.vue",
-      "containing_key": null,
-      "start_line": 19,
-      "start_column": 10,
-      "end_line": 19,
-      "end_column": 17,
-      "start_byte": 519,
-      "end_byte": 526,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "vue",
-      "file_path": "fixtures/extraction/vue/options_api/source.vue",
-      "containing_key": null,
-      "start_line": 19,
-      "start_column": 19,
-      "end_line": 19,
-      "end_column": 26,
-      "start_byte": 528,
-      "end_byte": 535,
       "metadata": null
     }
   ],

@@ -11,7 +11,7 @@ use crate::base::{
 use crate::ecmascript_imports::{ImportSourceKind, import_source_from_symbol, import_source_kind};
 use crate::embedded::{extract_expression, link_expression_identifiers, unique_by_name};
 use regex::Regex;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::sync::LazyLock;
 
 static COMPONENT_TAG_RE: LazyLock<Regex> =
@@ -28,9 +28,9 @@ pub(super) struct ComponentRows {
 }
 
 /// `script_identifiers` are the identifiers of every script block. Code
-/// outside any function or class runs as the component's setup. Its caller is
-/// the innermost declaration around it, as in a standalone script, and the
-/// component only when no declaration encloses it.
+/// outside every declaration runs as the component's setup, and the component
+/// is its caller. Code a declaration owns is linked by the script's own
+/// extractor, the same as in a standalone script.
 pub(super) fn collect_component_rows(
     base: &BaseExtractor,
     sfc: &ParsedVueSfc,
@@ -56,22 +56,11 @@ pub(super) fn collect_component_rows(
         )
     }));
 
-    let by_id: HashMap<&str, &Symbol> = symbols
-        .iter()
-        .map(|symbol| (symbol.id.as_str(), symbol))
-        .collect();
     let mut top_level: Vec<(&Symbol, Identifier)> = Vec::new();
     for identifier in script_identifiers.iter_mut() {
         if identifier.containing_symbol_id.is_none() {
             identifier.containing_symbol_id = Some(component.id.clone());
             top_level.push((component, identifier.clone()));
-        } else if !inside_callable(&by_id, identifier.containing_symbol_id.as_deref()) {
-            let owner = identifier
-                .containing_symbol_id
-                .as_deref()
-                .and_then(|id| by_id.get(id).copied())
-                .unwrap_or(component);
-            top_level.push((owner, identifier.clone()));
         }
     }
     for (owner, identifier) in &top_level {
@@ -126,23 +115,6 @@ pub(super) fn collect_component_rows(
     }
     options_extends_pending(base, sfc, component, symbols, &mut rows.pending);
     rows
-}
-
-fn inside_callable(by_id: &HashMap<&str, &Symbol>, id: Option<&str>) -> bool {
-    let mut current = id.and_then(|id| by_id.get(id).copied());
-    while let Some(symbol) = current {
-        if matches!(
-            symbol.kind,
-            SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor | SymbolKind::Class
-        ) {
-            return true;
-        }
-        current = symbol
-            .parent_id
-            .as_deref()
-            .and_then(|parent| by_id.get(parent).copied());
-    }
-    false
 }
 
 pub(super) fn is_component(symbol: &Symbol) -> bool {

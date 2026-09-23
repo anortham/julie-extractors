@@ -144,14 +144,15 @@
         "end_byte": 195
       },
       "body_hash": "76cb04006e60b5a66f6db1bae6e870e9",
-      "signature": "export const View = () => <button {...attrs}>Save</button>;",
+      "signature": null,
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "exportedName": "View",
         "isDefault": false,
-        "isNamed": true
+        "isNamed": true,
+        "localName": "View"
       },
       "annotations": [],
       "semantic_group": null,
@@ -182,7 +183,7 @@
       "signature": "const View = () =>",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/javascript/agent_usefulness/source.js:View:3:0",
+      "parent_key": null,
       "metadata": {
         "isArrowFunction": true,
         "isAsync": false,
@@ -218,7 +219,7 @@
       "body_hash": "fe84652cdd1eaf75cc00ef05198949e7",
       "signature": "const attrs = { 'hx-post': '/save', 'hx-trigger': 'click', 'hx-g...",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "declarationType": "const",
@@ -254,7 +255,7 @@
       "body_hash": "4a2efc87b0d2a0034915e06d86391ce4",
       "signature": "const logging = { 'hx-get': '/not-consumed' }",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "declarationType": "const",

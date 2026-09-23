@@ -93,6 +93,8 @@ pub(super) const EFCORE_ENTITY_CONFIGURATION_PATTERN_ID: &str = "efcore.entity_c
 pub(super) const EXPRESS_ROUTE_PATTERN_ID: &str = "express.route.v1";
 pub(super) const EXPRESS_ROUTER_MOUNT_PATTERN_ID: &str = "express.router_mount.v1";
 pub(super) const FASTIFY_ROUTE_PATTERN_ID: &str = "fastify.route.v1";
+pub(super) const KOA_ROUTE_PATTERN_ID: &str = "koa.route.v1";
+pub(super) const HAPI_ROUTE_PATTERN_ID: &str = "hapi.route.v1";
 pub(super) const NESTJS_ROUTE_PATTERN_ID: &str = "nestjs.route.v1";
 pub(super) const FASTAPI_ROUTE_PATTERN_ID: &str = "fastapi.route.v1";
 pub(super) const FASTAPI_INCLUDE_ROUTER_PATTERN_ID: &str = "fastapi.include_router.v1";
@@ -219,6 +221,8 @@ const JAVASCRIPT_FRAMEWORK_PATTERN_IDS: &[&str] = &[
     EXPRESS_ROUTE_PATTERN_ID,
     EXPRESS_ROUTER_MOUNT_PATTERN_ID,
     FASTIFY_ROUTE_PATTERN_ID,
+    HAPI_ROUTE_PATTERN_ID,
+    KOA_ROUTE_PATTERN_ID,
     NESTJS_ROUTE_PATTERN_ID,
     HTMX_ATTRIBUTE_PATTERN_ID,
 ];
@@ -584,6 +588,8 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
             EXPRESS_ROUTE_PATTERN_ID,
             EXPRESS_ROUTER_MOUNT_PATTERN_ID,
             FASTIFY_ROUTE_PATTERN_ID,
+            HAPI_ROUTE_PATTERN_ID,
+            KOA_ROUTE_PATTERN_ID,
             NESTJS_ROUTE_PATTERN_ID,
         ],
         "python" => PYTHON_WEB_PATTERN_IDS,

@@ -11,7 +11,10 @@ use super::scan::{
     find_matching_bracket_within, find_matching_paren, find_matching_paren_within,
     find_top_level_comma_or_end, route_fact,
 };
-use super::{EXPRESS_ROUTE_PATTERN_ID, EXPRESS_ROUTER_MOUNT_PATTERN_ID, FASTIFY_ROUTE_PATTERN_ID};
+use super::{
+    EXPRESS_ROUTE_PATTERN_ID, EXPRESS_ROUTER_MOUNT_PATTERN_ID, FASTIFY_ROUTE_PATTERN_ID,
+    HAPI_ROUTE_PATTERN_ID, KOA_ROUTE_PATTERN_ID,
+};
 use crate::base::http_boundary::ParamFlavor;
 use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
@@ -30,6 +33,19 @@ const JS_VERB_METHODS: &[(&str, Option<&str>)] = &[
     ("put", Some("PUT")),
     ("patch", Some("PATCH")),
     ("delete", Some("DELETE")),
+    ("head", Some("HEAD")),
+    ("options", Some("OPTIONS")),
+    ("all", None),
+];
+
+/// Koa Router adds the `del` alias for `delete`.
+const KOA_VERB_METHODS: &[(&str, Option<&str>)] = &[
+    ("get", Some("GET")),
+    ("post", Some("POST")),
+    ("put", Some("PUT")),
+    ("patch", Some("PATCH")),
+    ("delete", Some("DELETE")),
+    ("del", Some("DELETE")),
     ("head", Some("HEAD")),
     ("options", Some("OPTIONS")),
     ("all", None),
@@ -88,6 +104,14 @@ pub(super) fn collect_node_http_boundary_facts(
         &mask,
         &fastify_receivers,
     ));
+    if matches!(language, "javascript" | "typescript") {
+        facts.extend(collect_koa_route_calls(
+            language, tree, file_path, content, &mask, &imports,
+        ));
+        facts.extend(collect_hapi_route_objects(
+            language, tree, file_path, content, &mask, &imports,
+        ));
+    }
     facts
 }
 
@@ -98,6 +122,8 @@ struct NodeImports {
     direct_express_apps: BTreeSet<String>,
     direct_express_routers: BTreeSet<String>,
     fastify: BTreeSet<String>,
+    koa_routers: BTreeSet<String>,
+    hapi: BTreeSet<String>,
     project_relative: BTreeSet<String>,
 }
 
@@ -191,6 +217,22 @@ fn collect_es_imports(content: &str, mask: &SourceMask, imports: &mut NodeImport
             );
             continue;
         }
+        if matches!(
+            source.as_str(),
+            "@koa/router" | "koa-router" | "@hapi/hapi" | "hapi"
+        ) {
+            let targets = if source.contains("koa") {
+                &mut imports.koa_routers
+            } else {
+                &mut imports.hapi
+            };
+            targets.extend(
+                parse_default_import(statement)
+                    .into_iter()
+                    .chain(parse_namespace_import(statement)),
+            );
+            continue;
+        }
         if !matches!(source.as_str(), "express" | "fastify") {
             continue;
         }
@@ -217,7 +259,14 @@ fn collect_es_imports(content: &str, mask: &SourceMask, imports: &mut NodeImport
 }
 
 fn collect_require_imports(content: &str, mask: &SourceMask, imports: &mut NodeImports) {
-    for source in ["express", "fastify"] {
+    for source in [
+        "express",
+        "fastify",
+        "@koa/router",
+        "koa-router",
+        "@hapi/hapi",
+        "hapi",
+    ] {
         let needle = format!("require('{source}')");
         collect_require_imports_for(content, mask, &needle, source, imports);
         let needle = format!("require(\"{source}\")");
@@ -268,7 +317,11 @@ fn collect_require_imports_for(
             continue;
         }
         let after = content[cursor..].trim_start();
-        if source == "express" {
+        if source.contains("koa") {
+            imports.koa_routers.insert(local.to_string());
+        } else if source.contains("hapi") {
+            imports.hapi.insert(local.to_string());
+        } else if source == "express" {
             if after.starts_with(".Router()") {
                 imports.direct_express_routers.insert(local.to_string());
             } else if after.starts_with("()") {
@@ -956,4 +1009,208 @@ fn object_property_value_start(
         return Some(skip_ascii_whitespace_until(content, colon + 1, end));
     }
     None
+}
+
+/// Koa Router routes: `router.get('/x', handler)` on a receiver built by
+/// `new Router(...)` or `Router(...)` from `@koa/router` or `koa-router`. A
+/// literal `prefix` option in the constructor becomes the route group prefix.
+fn collect_koa_route_calls(
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    mask: &SourceMask,
+    imports: &NodeImports,
+) -> Vec<StructuralFact> {
+    let mut receivers: HashMap<String, Option<String>> = HashMap::new();
+    for local in &imports.koa_routers {
+        for call in [format!("new {local}("), format!("{local}(")] {
+            let mut names = BTreeSet::new();
+            collect_call_assignment_receiver_names(content, mask, &call, &mut names);
+            for name in names {
+                let prefix = constructor_prefix(content, mask, &name, &call);
+                receivers.entry(name).or_insert(prefix);
+            }
+        }
+    }
+    let mut facts = Vec::new();
+    for (receiver, prefix) in &receivers {
+        for (method, verb) in KOA_VERB_METHODS {
+            collect_route_method_calls(
+                language,
+                tree,
+                file_path,
+                content,
+                mask,
+                receiver,
+                method,
+                *verb,
+                "koa",
+                KOA_ROUTE_PATTERN_ID,
+                prefix.as_deref(),
+                &mut facts,
+            );
+        }
+    }
+    facts
+}
+
+/// The literal `prefix` option of `const receiver = new Router({ prefix })`.
+fn constructor_prefix(
+    content: &str,
+    mask: &SourceMask,
+    receiver: &str,
+    call: &str,
+) -> Option<String> {
+    let mut cursor = 0;
+    while let Some(relative) = content[cursor..].find(call) {
+        let call_start = cursor + relative;
+        cursor = call_start + call.len();
+        if mask.is_string_or_comment(call_start) {
+            continue;
+        }
+        let statement_start = content[..call_start]
+            .rfind(['\n', ';', '{'])
+            .map(|index| index + 1)
+            .unwrap_or(0);
+        if declared_binding(content[statement_start..call_start].trim())
+            .and_then(|binding| binding.split(':').next())
+            .map(str::trim)
+            != Some(receiver)
+        {
+            continue;
+        }
+        let open = call_start + call.len() - 1;
+        let close = find_matching_paren(content, mask, open)?;
+        let object_start = skip_ascii_whitespace_until(content, open + 1, close);
+        if content.as_bytes().get(object_start) != Some(&b'{') {
+            return None;
+        }
+        let object_end = find_matching_brace_within(content, mask, object_start, close)?;
+        return object_string_property(content, mask, object_start + 1, object_end, "prefix");
+    }
+    None
+}
+
+/// Hapi routes: `server.route({ method, path, handler })` and
+/// `server.route([{ ... }, { ... }])` on a receiver built by `Hapi.server(...)`
+/// or `new Hapi.Server(...)`. Hapi `{param}` segments normalize to `:param`.
+fn collect_hapi_route_objects(
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    mask: &SourceMask,
+    imports: &NodeImports,
+) -> Vec<StructuralFact> {
+    let mut receivers = BTreeSet::new();
+    for local in &imports.hapi {
+        for call in [
+            format!("{local}.server("),
+            format!("{local}.Server("),
+            format!("new {local}.Server("),
+        ] {
+            collect_call_assignment_receiver_names(content, mask, &call, &mut receivers);
+        }
+    }
+    let mut facts = Vec::new();
+    for receiver in &receivers {
+        let needle = format!("{receiver}.route");
+        let mut cursor = 0;
+        while let Some(relative) = content[cursor..].find(&needle) {
+            let call_start = cursor + relative;
+            cursor = call_start + needle.len();
+            if !is_identifier_boundary(content, call_start, needle.len())
+                || mask.is_string_or_comment(call_start)
+            {
+                continue;
+            }
+            let open = skip_ascii_whitespace_until(content, cursor, content.len());
+            if content.as_bytes().get(open) != Some(&b'(') {
+                continue;
+            }
+            let Some(close) = find_matching_paren(content, mask, open) else {
+                continue;
+            };
+            for (object_start, object_end) in route_object_ranges(content, mask, open + 1, close) {
+                let Some(route_template) =
+                    object_string_property(content, mask, object_start + 1, object_end, "path")
+                else {
+                    continue;
+                };
+                let verbs = object_method_verbs(content, mask, object_start + 1, object_end);
+                let verbs: Vec<Option<String>> = if verbs.is_empty() || verbs == ["*"] {
+                    vec![None]
+                } else {
+                    verbs.into_iter().map(Some).collect()
+                };
+                for verb in verbs {
+                    if let Some(fact) = route_fact(
+                        language,
+                        tree,
+                        file_path,
+                        content,
+                        object_start,
+                        object_end + 1,
+                        RouteFactSpec {
+                            framework: "hapi",
+                            pattern_id: HAPI_ROUTE_PATTERN_ID,
+                            capture_name: "route_call",
+                            api_style: "call_routing",
+                            route_template: &route_template,
+                            verb: verb.as_deref(),
+                            verb_source: verb.is_some().then_some("attested"),
+                            flavor: ParamFlavor::Braces,
+                            prefix: None,
+                            prefix_key: None,
+                        },
+                        |_| {},
+                    ) {
+                        facts.push(fact);
+                    }
+                }
+            }
+        }
+    }
+    facts
+}
+
+/// The route objects of a `route(...)` argument: one object, or each object
+/// of an array literal.
+fn route_object_ranges(
+    content: &str,
+    mask: &SourceMask,
+    start: usize,
+    end: usize,
+) -> Vec<(usize, usize)> {
+    let argument = skip_ascii_whitespace_until(content, start, end);
+    match content.as_bytes().get(argument) {
+        Some(b'{') => find_matching_brace_within(content, mask, argument, end)
+            .map(|object_end| vec![(argument, object_end)])
+            .unwrap_or_default(),
+        Some(b'[') => {
+            let Some(array_end) = find_matching_bracket_within(content, mask, argument, end) else {
+                return Vec::new();
+            };
+            let mut ranges = Vec::new();
+            let mut cursor = argument + 1;
+            while cursor < array_end {
+                cursor = skip_ascii_whitespace_until(content, cursor, array_end);
+                if content.as_bytes().get(cursor) != Some(&b'{') {
+                    break;
+                }
+                let Some(object_end) = find_matching_brace_within(content, mask, cursor, array_end)
+                else {
+                    break;
+                };
+                ranges.push((cursor, object_end));
+                cursor = skip_ascii_whitespace_until(content, object_end + 1, array_end);
+                if content.as_bytes().get(cursor) == Some(&b',') {
+                    cursor += 1;
+                }
+            }
+            ranges
+        }
+        _ => Vec::new(),
+    }
 }

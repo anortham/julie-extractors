@@ -37,9 +37,10 @@ use std::collections::{HashMap, HashSet};
 use tree_sitter::Tree;
 
 struct PendingCallContext<'a> {
-    symbols: &'a [Symbol],
     symbol_index: crate::base::ScopedSymbolIndex<'a>,
+    owners: crate::javascript::EcmaOwnerIndex<'a>,
     typed_receivers: HashSet<String>,
+    local_callables: HashSet<&'a str>,
 }
 
 /// Names of the file's bindings (variables, parameters, properties) that carry
@@ -156,33 +157,43 @@ impl TypeScriptExtractor {
         let symbol_map: HashMap<String, &Symbol> =
             crate::base::ScopedSymbolIndex::unique_symbol_map(symbols);
         let context = PendingCallContext {
-            symbols,
             symbol_index: crate::base::ScopedSymbolIndex::new(symbols),
+            owners: crate::javascript::ecmascript_owner_index(&self.base, symbols),
             typed_receivers: typed_receiver_names(symbols, &self.base.type_info),
+            local_callables: symbols
+                .iter()
+                .filter(|symbol| {
+                    matches!(
+                        symbol.kind,
+                        SymbolKind::Function | SymbolKind::Variable | SymbolKind::Class
+                    ) && !crate::base::is_test_call_symbol(symbol)
+                })
+                .map(|symbol| symbol.name.as_str())
+                .collect(),
         };
 
-        self.walk_for_pending_calls(tree.root_node(), &context, &symbol_map, None, 0);
+        self.walk_for_pending_calls(tree.root_node(), &context, &symbol_map, 0);
     }
 
-    /// Walk the tree looking for calls that need cross-file resolution
+    /// Walk the tree looking for calls that need cross-file resolution. A
+    /// call's caller is the declaration that owns it, the same owner the
+    /// identifier and relationship passes use.
     fn walk_for_pending_calls<'a>(
         &mut self,
         node: tree_sitter::Node,
         context: &PendingCallContext<'a>,
         symbol_map: &HashMap<String, &'a Symbol>,
-        current_caller: Option<&'a Symbol>,
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
             return;
         }
 
-        let current_caller = self
-            .caller_for_pending_scope_node(node, context.symbols, symbol_map)
-            .or(current_caller);
-
-        if let (Some(caller_symbol), Some(function_node)) =
-            (current_caller, relationships::call_site_callee(self, node))
+        if let Some(function_node) = relationships::call_site_callee(self, node)
+            && matches!(function_node.kind(), "identifier" | "member_expression")
+            && !(self.test_dsl_active
+                && crate::javascript::test_symbols::is_test_dsl_call(&self.base, node))
+            && let Some(caller_symbol) = context.owners.find(node)
         {
             if function_node.kind() == "member_expression" {
                 self.emit_pending_member_call(
@@ -197,7 +208,12 @@ impl TypeScriptExtractor {
                     .get(self.base.get_node_text(&function_node).as_str())
                 {
                     Some(called_symbol) if called_symbol.kind == SymbolKind::Import => Some(0.8),
-                    None => Some(0.7),
+                    None if !context
+                        .local_callables
+                        .contains(self.base.get_node_text(&function_node).as_str()) =>
+                    {
+                        Some(0.7)
+                    }
                     _ => None,
                 };
                 if let Some(confidence) = confidence
@@ -217,19 +233,12 @@ impl TypeScriptExtractor {
             }
         }
 
-        // Recursively process children
         let Some(child_depth) = child_tree_depth(depth) else {
             return;
         };
         for index in 0..node.named_child_count() {
             if let Some(child) = node.named_child(index as u32) {
-                self.walk_for_pending_calls(
-                    child,
-                    context,
-                    symbol_map,
-                    current_caller,
-                    child_depth,
-                );
+                self.walk_for_pending_calls(child, context, symbol_map, child_depth);
             }
         }
     }
@@ -285,85 +294,6 @@ impl TypeScriptExtractor {
             )
             .with_receiver_type(receiver_type);
         self.add_structured_pending_relationship(pending);
-    }
-
-    fn caller_for_pending_scope_node<'a>(
-        &self,
-        node: tree_sitter::Node,
-        symbols: &'a [Symbol],
-        symbol_map: &'a std::collections::HashMap<String, &'a Symbol>,
-    ) -> Option<&'a Symbol> {
-        if !matches!(
-            node.kind(),
-            "function_declaration" | "method_definition" | "arrow_function"
-        ) {
-            return None;
-        }
-
-        self.find_containing_function_in_symbols(node, symbols, symbol_map)
-    }
-
-    /// Find the containing function for a node by walking up the tree
-    fn find_containing_function_in_symbols<'a>(
-        &self,
-        node: tree_sitter::Node,
-        symbols: &'a [Symbol],
-        symbol_map: &'a std::collections::HashMap<String, &'a Symbol>,
-    ) -> Option<&'a Symbol> {
-        if let Some(symbol) = self.base.find_containing_symbol(&node, symbols) {
-            return Some(symbol);
-        }
-
-        let mut current = node.parent();
-
-        while let Some(current_node) = current {
-            // Check for function declarations
-            if current_node.kind() == "function_declaration"
-                || current_node.kind() == "method_definition"
-                || current_node.kind() == "arrow_function"
-            {
-                // Get the function name
-                if let Some(name_node) = current_node.child_by_field_name("name") {
-                    let func_name = self.base.get_node_text(&name_node);
-                    if let Some(symbol) = symbol_map.get(&func_name)
-                        && matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
-                    {
-                        return Some(symbol);
-                    }
-                }
-            }
-
-            // Check for test call expressions (it, test, describe, beforeEach, etc.)
-            // The arrow_function inside it("name", () => {...}) has no name field,
-            // so we look at the parent call_expression and use the test name.
-            if let Some(dsl_word) =
-                crate::javascript::test_symbols::dsl_word_of_call(&self.base, current_node)
-                && let Some(args) = current_node.child_by_field_name("arguments")
-            {
-                let mut cursor = args.walk();
-                if let Some(first_str) = args
-                    .children(&mut cursor)
-                    .find(|c| c.kind() == "string" || c.kind() == "template_string")
-                {
-                    let name = self
-                        .base
-                        .get_node_text(&first_str)
-                        .trim_matches(|c| c == '"' || c == '\'' || c == '`')
-                        .to_string();
-                    if let Some(symbol) = symbol_map.get(&name) {
-                        return Some(symbol);
-                    }
-                }
-                // For lifecycle (no string arg), look up by the DSL word
-                if let Some(symbol) = symbol_map.get(&dsl_word) {
-                    return Some(symbol);
-                }
-            }
-
-            current = current_node.parent();
-        }
-
-        None
     }
 
     fn call_terminal_name(&self, function_node: tree_sitter::Node) -> String {
@@ -649,7 +579,7 @@ impl TypeScriptExtractor {
     ) {
         let Some(clause) = import_node
             .children(&mut import_node.walk())
-            .find(|child| child.kind() == "import_clause")
+            .find(|child| matches!(child.kind(), "import_clause" | "import_require_clause"))
         else {
             return;
         };
@@ -657,6 +587,23 @@ impl TypeScriptExtractor {
         let mut cursor = clause.walk();
         for child in clause.children(&mut cursor) {
             match child.kind() {
+                "identifier" if clause.kind() == "import_require_clause" => {
+                    let source = clause
+                        .child_by_field_name("source")
+                        .map(|source| {
+                            self.base
+                                .get_node_text(&source)
+                                .trim_matches(|c| c == '"' || c == '\'' || c == '`')
+                                .to_string()
+                        })
+                        .unwrap_or_default();
+                    self.record_import_binding(
+                        self.base.get_node_text(&child),
+                        &source,
+                        bindings,
+                        binding_sources,
+                    );
+                }
                 "identifier" => {
                     self.record_import_binding(
                         self.base.get_node_text(&child),

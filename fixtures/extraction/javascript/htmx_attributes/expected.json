@@ -21,14 +21,15 @@
         "end_byte": 144
       },
       "body_hash": "652a41bd04ec4f5b36a54b87ef0c6a2a",
-      "signature": "export const NavButtons = () => (\n  <nav>\n    <button hx-get=\"/home\">Home</button>\n    <button data-hx-post=\"/logout\">Logout</button>\n  </nav>\n);",
+      "signature": null,
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
       "metadata": {
         "exportedName": "NavButtons",
         "isDefault": false,
-        "isNamed": true
+        "isNamed": true,
+        "localName": "NavButtons"
       },
       "annotations": [],
       "semantic_group": null,
@@ -59,7 +60,7 @@
       "signature": "const NavButtons = () =>",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/javascript/htmx_attributes/source.js:NavButtons:1:0",
+      "parent_key": null,
       "metadata": {
         "isArrowFunction": true,
         "isAsync": false,

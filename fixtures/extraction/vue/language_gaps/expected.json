@@ -155,6 +155,35 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/vue/language_gaps/source.vue:MAX_ROWS:26:0",
+      "name": "MAX_ROWS",
+      "kind": "export",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/language_gaps/source.vue",
+      "start_line": 26,
+      "start_column": 0,
+      "end_line": 26,
+      "end_column": 26,
+      "start_byte": 800,
+      "end_byte": 826,
+      "body_span": null,
+      "body_hash": null,
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "exportedName": "MAX_ROWS",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "MAX_ROWS"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:MAX_ROWS:26:13",
       "name": "MAX_ROWS",
       "kind": "variable",
@@ -170,7 +199,7 @@
       "body_hash": null,
       "signature": null,
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {},
       "annotations": [],
@@ -196,7 +225,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "Mode",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "Mode"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -315,7 +349,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "Row",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "Row"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -377,7 +416,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "RowStore",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "RowStore"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -441,7 +485,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "Status",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "Status"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -530,7 +579,7 @@
         "end_byte": 797
       },
       "body_hash": "8b4d2983d8fd7c66c1e693a5bb449e64",
-      "signature": "add(row: Row): : void",
+      "signature": "add(row: Row): void",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/vue/language_gaps/source.vue:RowStore:25:7",
@@ -538,8 +587,10 @@
         "isAsync": false,
         "isGenerator": false,
         "isStatic": false,
-        "parameters": [],
-        "returnType": ": void",
+        "parameters": [
+          "row: Row"
+        ],
+        "returnType": "void",
         "typeParameters": []
       },
       "annotations": [],
@@ -705,6 +756,41 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/vue/language_gaps/source.vue:default:28:0",
+      "name": "default",
+      "kind": "export",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/language_gaps/source.vue",
+      "start_line": 28,
+      "start_column": 0,
+      "end_line": 40,
+      "end_column": 2,
+      "start_byte": 828,
+      "end_byte": 1207,
+      "body_span": {
+        "start_line": 28,
+        "start_column": 31,
+        "end_line": 40,
+        "end_column": 1,
+        "start_byte": 859,
+        "end_byte": 1206
+      },
+      "body_hash": "1500132887fb91762a54e5ea159c779c",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "exportedName": "default",
+        "isDefault": true,
+        "isNamed": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:defineComponent:15:0",
       "name": "defineComponent",
       "kind": "import",
@@ -831,7 +917,12 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "exportedName": "formatRow",
+        "isDefault": false,
+        "isNamed": true,
+        "localName": "formatRow"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -858,15 +949,17 @@
         "end_byte": 711
       },
       "body_hash": "c726cbdc65705d82a760f42be69e66e8",
-      "signature": "formatRow(row: Row): : string",
+      "signature": "formatRow(row: Row): string",
       "doc_comment": "/** Formats a row label. */",
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAsync": false,
         "isGenerator": false,
-        "parameters": [],
-        "returnType": ": string",
+        "parameters": [
+          "row: Row"
+        ],
+        "returnType": "string",
         "typeParameters": []
       },
       "annotations": [],
@@ -1067,7 +1160,9 @@
         "isAsync": true,
         "isGenerator": false,
         "isStatic": false,
-        "parameters": [],
+        "parameters": [
+          "id: number"
+        ],
         "typeParameters": [],
         "vueOption": "methods"
       },
@@ -1411,7 +1506,7 @@
       "end_byte": 752,
       "body_span": null,
       "body_hash": null,
-      "signature": "rows : : Row[]",
+      "signature": "rows: Row[]",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/vue/language_gaps/source.vue:RowStore:25:7",
@@ -1488,7 +1583,9 @@
       "metadata": {
         "isAsync": false,
         "isGenerator": false,
-        "parameters": [],
+        "parameters": [
+          "item: Row"
+        ],
         "typeParameters": []
       },
       "annotations": [],
@@ -2154,7 +2251,7 @@
       "end_column": 33,
       "start_byte": 742,
       "end_byte": 745,
-      "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:RowStore:25:7",
+      "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:rows:25:24",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2892,11 +2989,20 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/vue/language_gaps/source.vue:formatRow:21:0",
-      "resolved_type": "function",
+      "symbol_key": "fixtures/extraction/vue/language_gaps/source.vue:formatRow:21:7",
+      "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
+      "language": "vue",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/vue/language_gaps/source.vue:id:17:23",
+      "resolved_type": "number",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "vue",
       "metadata": null
     },
@@ -2937,11 +3043,20 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/vue/language_gaps/source.vue:reload:57:0",
-      "resolved_type": "function",
+      "symbol_key": "fixtures/extraction/vue/language_gaps/source.vue:name:17:35",
+      "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
+      "language": "vue",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/vue/language_gaps/source.vue:pageSize:46:18",
+      "resolved_type": "number",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
       "language": "vue",
       "metadata": null
     },
@@ -2973,29 +3088,11 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/vue/language_gaps/source.vue:save:58:0",
-      "resolved_type": "function",
+      "symbol_key": "fixtures/extraction/vue/language_gaps/source.vue:title:46:37",
+      "resolved_type": "string",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
-      "language": "vue",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/vue/language_gaps/source.vue:select:56:0",
-      "resolved_type": "function",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "vue",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/vue/language_gaps/source.vue:user:35:12",
-      "resolved_type": "any",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "vue",
       "metadata": null
     },
@@ -3859,6 +3956,19 @@
       "kind": "string_literal",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/language_gaps/source.vue",
+      "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:default:28:0",
+      "start_line": 29,
+      "start_column": 8,
+      "end_line": 29,
+      "end_column": 18,
+      "start_byte": 869,
+      "end_byte": 879,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/language_gaps/source.vue",
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:defineComponent:15:0",
       "start_line": 15,
       "start_column": 32,
@@ -3905,19 +4015,6 @@
       "end_column": 62,
       "start_byte": 989,
       "end_byte": 1017,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "vue",
-      "file_path": "fixtures/extraction/vue/language_gaps/source.vue",
-      "containing_key": null,
-      "start_line": 29,
-      "start_column": 8,
-      "end_line": 29,
-      "end_column": 18,
-      "start_byte": 869,
-      "end_byte": 879,
       "metadata": null
     }
   ],

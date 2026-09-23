@@ -254,7 +254,7 @@
       "body_hash": "3912353bcdac8aa547b3222741cdaeff",
       "signature": "const ordinary = {\n  test(_name, callback) {\n    callback();\n  },\n}",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "declarationType": "const",
@@ -370,7 +370,7 @@
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "function testNamedButOrdinary()",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "isArrowFunction": false,
@@ -401,7 +401,7 @@
       "end_column": 12,
       "start_byte": 93,
       "end_byte": 103,
-      "containing_key": "fixtures/extraction/javascript/test_roles/source.js:beforeEach:4:2",
+      "containing_key": "fixtures/extraction/javascript/test_roles/source.js:javascript roles:3:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -481,7 +481,7 @@
       "end_column": 6,
       "start_byte": 117,
       "end_byte": 121,
-      "containing_key": "fixtures/extraction/javascript/test_roles/source.js:extracts a JavaScript test case:5:2",
+      "containing_key": "fixtures/extraction/javascript/test_roles/source.js:javascript roles:3:0",
       "target_key": null,
       "confidence": "1.000"
     }
@@ -637,7 +637,7 @@
       "end_column": 40,
       "start_byte": 122,
       "end_byte": 155,
-      "containing_key": "fixtures/extraction/javascript/test_roles/source.js:extracts a JavaScript test case:5:2",
+      "containing_key": "fixtures/extraction/javascript/test_roles/source.js:javascript roles:3:0",
       "confidence": "1.000"
     },
     {

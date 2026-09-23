@@ -74,7 +74,7 @@ impl super::JavaScriptExtractor {
 
             if matches!(
                 value.kind(),
-                "arrow_function" | "function_expression" | "generator_function"
+                "arrow_function" | "function_expression" | "generator_function" | "class"
             ) {
                 return None;
             }
