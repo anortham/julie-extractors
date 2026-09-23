@@ -57,7 +57,7 @@ pub fn collect_source_regions(
             .filter_map(|(start, end)| NormalizedSpan::from_content_range(content, start, end))
             .map(|span| region_for_span(file_path, language, span, SourceRegionKind::Comment, None))
             .collect();
-        attach_containing_symbols(&mut regions, symbols);
+        attach_containing_symbols(&mut regions, symbols, language, content);
         return regions;
     }
     let Some(config) = config_for_language(language) else {
