@@ -46,6 +46,10 @@ use tempfile::TempDir;
 /// Receiver-type facts add one `variable` symbol per distinct parameter name under
 /// each function (metadata role `parameter`, no visibility), so `telemetry.erl` now
 /// carries 52 rows: those 24 plus 28 parameters.
+///
+/// A comment between two clauses of one function no longer splits its clause run
+/// (3.4.0), so the `gc_1` clauses after `%% Handle control` in
+/// `unicode_util_compat.erl` add their parameters `CP` and `R1`: 206 rows became 208.
 const BASELINE: &[FileBaseline] = &[
     FileBaseline::new("certifi-2.15.0/src/certifi.erl", 5, 0),
     FileBaseline::new("certifi-2.15.0/src/certifi_pt.erl", 14, 0),
@@ -58,7 +62,7 @@ const BASELINE: &[FileBaseline] = &[
     FileBaseline::new("unicode_util_compat-0.7.1/src/string_compat.erl", 729, 0),
     FileBaseline::new(
         "unicode_util_compat-0.7.1/src/unicode_util_compat.erl",
-        206,
+        208,
         0,
     ),
 ];
