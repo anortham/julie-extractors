@@ -17,6 +17,10 @@ func GetAllUsers() ([]User, error) {
 func GetUserScores() map[string]int {
     return make(map[string]int)
 }
+
+func LoadUser() (*User, error) {
+    return nil, nil
+}
 "#;
 
     let results = extract_canonical("src/service.go", code, &workspace_root)
@@ -35,6 +39,7 @@ func GetUserScores() map[string]int {
         .collect();
 
     assert_eq!(type_map.get("GetUserName"), Some(&"string"));
-    assert_eq!(type_map.get("GetUserScores"), Some(&"map[string]int"));
+    assert_eq!(type_map.get("LoadUser"), Some(&"User"));
+    assert!(!type_map.contains_key("GetUserScores"));
     assert!(!type_map.contains_key("GetAllUsers"));
 }
