@@ -5945,6 +5945,11 @@
           "name": "gdunit_roles",
           "source": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd",
           "expected": "fixtures/extraction/gdscript/gdunit_roles/expected.json"
+        },
+        {
+          "name": "godot",
+          "source": "fixtures/extraction/gdscript/godot/source.gd",
+          "expected": "fixtures/extraction/gdscript/godot/expected.json"
         }
       ],
       "target_capabilities": {
@@ -6010,7 +6015,12 @@
             "gdscript.extends_declaration.v1",
             "gdscript.signal_declaration.v1",
             "gdscript.export_annotation.v1",
-            "gdscript.match_statement.v1"
+            "gdscript.match_statement.v1",
+            "godot.signal_connection.v1",
+            "godot.signal_emission.v1",
+            "godot.resource_reference.v1",
+            "godot.node_path.v1",
+            "godot.rpc_annotation.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -6025,7 +6035,9 @@
         },
         "annotations": {
           "supported": [
-            "field"
+            "class",
+            "field",
+            "method"
           ],
           "not_applicable": [],
           "open_gaps": []

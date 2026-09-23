@@ -2405,7 +2405,7 @@
     "query_family": "types"
   },
   {
-    "description": "A GDScript `@export` annotation.",
+    "description": "A GDScript variable export: an `@export` or `@export_*` annotation, or a Godot 3 `export var`.",
     "languages": [
       "gdscript"
     ],
@@ -2423,7 +2423,7 @@
         "value_type": "string"
       },
       {
-        "description": "The annotation name (always \"export\").",
+        "description": "The export annotation name (for example \"export\" or \"export_range\").",
         "key": "annotation_name",
         "presence": "always",
         "value_type": "string"
@@ -2827,6 +2827,218 @@
     ],
     "pattern_id": "go_router.route_reference.v1",
     "query_family": "frontend_navigation"
+  },
+  {
+    "description": "A static scene-tree node path: `$Path`, `%UniqueName`, or `get_node(\"path\")`.",
+    "languages": [
+      "gdscript"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The node path without the `$`/`%` sigil or quotes.",
+        "key": "node_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The access form: \"dollar\", \"unique_name\", or \"get_node\".",
+        "key": "access",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "godot.node_path.v1",
+    "query_family": "scene_tree"
+  },
+  {
+    "description": "A static Godot resource path loaded by `preload`, `load`, or `ResourceLoader.load`, or a script path after `extends`.",
+    "languages": [
+      "gdscript"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The resource path as written (for example \"res://scenes/bullet.tscn\").",
+        "key": "resource_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "How the resource is reached: \"preload\", \"load\", \"ResourceLoader.load\", or \"extends\".",
+        "key": "loader",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `const` or `var` whose initializer is the load call.",
+        "key": "bound_name",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "godot.resource_reference.v1",
+    "query_family": "imports"
+  },
+  {
+    "description": "An `@rpc` annotation on a function that peers may call over the network.",
+    "languages": [
+      "gdscript"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The annotated function.",
+        "key": "function_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The annotation arguments in order, strings unquoted (for example [\"any_peer\", \"call_local\", \"reliable\"]).",
+        "key": "rpc_arguments",
+        "presence": "always",
+        "value_type": "string_array"
+      }
+    ],
+    "pattern_id": "godot.rpc_annotation.v1",
+    "query_family": "networking"
+  },
+  {
+    "description": "A Godot signal connection: `emitter.signal.connect(handler)`, or `connect(\"signal\", ...)` with a static signal name.",
+    "languages": [
+      "gdscript"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The connected signal.",
+        "key": "signal_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Source text of the object that emits the signal; absent for the script itself.",
+        "key": "emitter",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The handler callable (`_on_hit`, `obj._on_hit`) or the Godot 3 method-name string; absent for a lambda.",
+        "key": "handler",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "godot.signal_connection.v1",
+    "query_family": "signals"
+  },
+  {
+    "description": "A Godot signal emission: `signal.emit(...)` or `emit_signal(\"signal\", ...)` with a static signal name.",
+    "languages": [
+      "gdscript"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The emitted signal.",
+        "key": "signal_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Source text of the object that emits the signal; absent for the script itself.",
+        "key": "emitter",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "godot.signal_emission.v1",
+    "query_family": "signals"
   },
   {
     "description": "An HTML image-map area link (`<area href>`).",

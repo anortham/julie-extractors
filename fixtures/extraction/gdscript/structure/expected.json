@@ -408,7 +408,7 @@
       "body_hash": null,
       "signature": "var count: int = 0",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Public",
       "parent_key": "fixtures/extraction/gdscript/structure/source.gd:ItemStack:32:0",
       "metadata": {
         "dataType": "int",
@@ -498,7 +498,7 @@
       "body_hash": null,
       "signature": "var h = player.stats.health",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": null,
       "parent_key": "fixtures/extraction/gdscript/structure/source.gd:setup:53:0",
       "metadata": {
         "dataType": "unknown",
@@ -526,7 +526,7 @@
       "body_hash": null,
       "signature": "var health: int = 100:\n\tset(value):\n\t\thealth = clampi(value, 0, 100)\n\t\trefresh_ui()\n\tget:\n\t\treturn compute()",
       "doc_comment": "## Current health, clamped to the valid range.",
-      "visibility": "Private",
+      "visibility": "Public",
       "parent_key": "fixtures/extraction/gdscript/structure/source.gd:Inventory:1:0",
       "metadata": {
         "dataType": "int",
@@ -606,7 +606,7 @@
       "body_hash": null,
       "signature": "var pool := ObjectPool.new(16)",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Public",
       "parent_key": "fixtures/extraction/gdscript/structure/source.gd:Inventory:1:0",
       "metadata": {
         "dataType": "Variant",
@@ -665,7 +665,7 @@
       "body_hash": null,
       "signature": "var ratio: float:\n\tget = get_ratio, set = set_ratio",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Public",
       "parent_key": "fixtures/extraction/gdscript/structure/source.gd:Inventory:1:0",
       "metadata": {
         "dataType": "float",
@@ -838,7 +838,7 @@
       "body_hash": null,
       "signature": "@onready var timer: Timer = get_node(\"Timer\")",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Public",
       "parent_key": "fixtures/extraction/gdscript/structure/source.gd:Inventory:1:0",
       "metadata": {
         "annotations": [
@@ -986,6 +986,24 @@
       "metadata": null
     },
     {
+      "from_key": "fixtures/extraction/gdscript/structure/source.gd:push:42:1",
+      "to_key": "fixtures/extraction/gdscript/structure/source.gd:add:35:1",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/gdscript/structure/source.gd",
+      "line_number": 43,
+      "span": {
+        "start_line": 43,
+        "start_column": 2,
+        "end_line": 43,
+        "end_column": 8,
+        "start_byte": 741,
+        "end_byte": 747
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
       "from_key": "fixtures/extraction/gdscript/structure/source.gd:ratio:23:0",
       "to_key": "fixtures/extraction/gdscript/structure/source.gd:get_ratio:64:0",
       "kind": "calls",
@@ -1061,14 +1079,6 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/gdscript/structure/source.gd",
       "line_number": 13,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/gdscript/structure/source.gd:push:42:1",
-      "callee_name": "add",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/gdscript/structure/source.gd",
-      "line_number": 43,
       "confidence": "0.700"
     },
     {
@@ -1242,32 +1252,6 @@
         "end_column": 30,
         "start_byte": 294,
         "end_byte": 301
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/gdscript/structure/source.gd:push:42:1",
-        "callee_name": "add",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/gdscript/structure/source.gd",
-        "line_number": 43,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "add",
-        "terminal_name": "add",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/gdscript/structure/source.gd:push:42:1",
-      "span": {
-        "start_line": 43,
-        "start_column": 2,
-        "end_line": 43,
-        "end_column": 8,
-        "start_byte": 741,
-        "end_byte": 747
       }
     },
     {
@@ -2525,6 +2509,50 @@
         "pattern_version": 1,
         "query_family": "signals",
         "signal_name": "changed"
+      }
+    },
+    {
+      "pattern_id": "godot.node_path.v1",
+      "capture_name": "node_path",
+      "node_kind": "call",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/structure/source.gd",
+      "containing_key": "fixtures/extraction/gdscript/structure/source.gd:setup:53:0",
+      "start_line": 54,
+      "start_column": 1,
+      "end_line": 54,
+      "end_column": 16,
+      "start_byte": 943,
+      "end_byte": 958,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "get_node",
+        "framework": "godot",
+        "node_path": "HUD",
+        "pattern_version": 1,
+        "query_family": "scene_tree"
+      }
+    },
+    {
+      "pattern_id": "godot.node_path.v1",
+      "capture_name": "node_path",
+      "node_kind": "call",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/structure/source.gd",
+      "containing_key": "fixtures/extraction/gdscript/structure/source.gd:timer:12:0",
+      "start_line": 12,
+      "start_column": 28,
+      "end_line": 12,
+      "end_column": 45,
+      "start_byte": 253,
+      "end_byte": 270,
+      "confidence": "1.000",
+      "metadata": {
+        "access": "get_node",
+        "framework": "godot",
+        "node_path": "Timer",
+        "pattern_version": 1,
+        "query_family": "scene_tree"
       }
     }
   ],

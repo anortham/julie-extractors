@@ -8,6 +8,7 @@ use super::StructuralFactPatternSpec;
 mod aspnet_node;
 mod dart;
 mod frontend;
+mod godot;
 mod jvm_go_ruby;
 mod kotlin_elixir;
 mod php;
@@ -30,6 +31,7 @@ pub(super) fn specs() -> Vec<StructuralFactPatternSpec> {
         rust::SPECS,
         swift::SPECS,
         dart::SPECS,
+        godot::SPECS,
         frontend::SPECS,
     ]
     .concat()

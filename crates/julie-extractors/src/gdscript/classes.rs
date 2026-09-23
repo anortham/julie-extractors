@@ -1,7 +1,11 @@
 //! Class extraction for GDScript
 
-use super::helpers::{doc_comment, doc_comment_after, find_child_by_type};
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use super::helpers::{
+    declaration_annotations, doc_comment, doc_comment_after, find_child_by_type, member_visibility,
+};
+use crate::base::{
+    BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations,
+};
 use serde_json::Value;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -37,13 +41,17 @@ pub(super) fn extract_script_classes(base: &mut BaseExtractor, root: Node) -> Ve
             .to_string();
         let signature = format!("extends {base_class}");
         let doc = doc_comment(base, extends).or_else(|| doc_comment_after(base, extends));
+        let annotations = declaration_annotations(base, extends, true).all;
         return vec![create_class(
             base,
             extends,
-            name,
-            signature,
-            Some(base_class),
-            doc,
+            ClassHeader {
+                name,
+                signature,
+                base_class: Some(base_class),
+                doc,
+                annotations,
+            },
         )];
     }
 
@@ -69,34 +77,46 @@ pub(super) fn extract_script_classes(base: &mut BaseExtractor, root: Node) -> Ve
             let doc = doc_comment(base, node)
                 .or_else(|| extends.and_then(|extends| doc_comment(base, extends)))
                 .or_else(|| doc_comment_after(base, last_header));
-            let signature = class_name_signature(base, node);
-            Some(create_class(base, node, name, signature, base_class, doc))
+            let annotations = declaration_annotations(base, node, true);
+            let signature = annotations.signature(&base.get_node_text(&node));
+            Some(create_class(
+                base,
+                node,
+                ClassHeader {
+                    name,
+                    signature,
+                    base_class,
+                    doc,
+                    annotations: annotations.all,
+                },
+            ))
         })
         .collect()
 }
 
-fn create_class(
-    base: &mut BaseExtractor,
-    anchor: Node,
+struct ClassHeader {
     name: String,
     signature: String,
     base_class: Option<String>,
     doc: Option<String>,
-) -> Symbol {
+    annotations: Vec<String>,
+}
+
+fn create_class(base: &mut BaseExtractor, anchor: Node, header: ClassHeader) -> Symbol {
     let mut symbol = base.create_symbol(
         &anchor,
-        name,
+        header.name,
         SymbolKind::Class,
         SymbolOptions {
-            signature: Some(signature),
+            signature: Some(header.signature),
             visibility: Some(Visibility::Public),
             parent_id: None,
-            metadata: base_class_metadata(base_class),
+            metadata: base_class_metadata(header.base_class),
             doc_comment: None,
-            annotations: Vec::new(),
+            annotations: normalize_annotations(&header.annotations, "gdscript"),
         },
     );
-    symbol.doc_comment = doc;
+    symbol.doc_comment = header.doc;
     symbol
 }
 
@@ -119,6 +139,9 @@ pub(super) fn extract_inner_class(
         None => format!("class {name}:"),
     };
     let doc = doc_comment(base, node);
+    let annotations = declaration_annotations(base, node, false);
+    let signature = annotations.signature(&signature);
+    let visibility = member_visibility(&name);
 
     let mut symbol = base.create_symbol(
         &node,
@@ -126,30 +149,15 @@ pub(super) fn extract_inner_class(
         SymbolKind::Class,
         SymbolOptions {
             signature: Some(signature),
-            visibility: Some(Visibility::Public),
+            visibility: Some(visibility),
             parent_id: parent_id.cloned(),
             metadata: base_class_metadata(base_class),
             doc_comment: None,
-            annotations: Vec::new(),
+            annotations: normalize_annotations(&annotations.all, "gdscript"),
         },
     );
     symbol.doc_comment = doc;
     Some(symbol)
-}
-
-/// `class_name X` text, preceded by the script annotation (`@tool`, `@icon`)
-/// found among the header lines above it.
-fn class_name_signature(base: &BaseExtractor, node: Node) -> String {
-    let signature = base.get_node_text(&node);
-    let mut current = node.prev_named_sibling();
-    while let Some(sibling) = current {
-        match sibling.kind() {
-            "annotation" => return format!("{}\n{signature}", base.get_node_text(&sibling)),
-            "comment" | "extends_statement" => current = sibling.prev_named_sibling(),
-            _ => break,
-        }
-    }
-    signature
 }
 
 /// `baseClass` (string) and canonical `base_types` (array) for a declared base.

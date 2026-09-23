@@ -465,7 +465,7 @@
       "body_hash": null,
       "signature": "var inferred_local := Foo.new()",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": null,
       "parent_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
       "metadata": {
         "dataType": "Variant",
@@ -524,7 +524,7 @@
       "body_hash": null,
       "signature": "var items: Array[Foo]",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": null,
       "parent_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
       "metadata": {
         "dataType": "Array[Foo]",
@@ -552,7 +552,7 @@
       "body_hash": null,
       "signature": "var loaded = load(\"res://x.tscn\").instantiate()",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": null,
       "parent_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
       "metadata": {
         "dataType": "unknown",
@@ -580,7 +580,7 @@
       "body_hash": null,
       "signature": "var made = make()",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": null,
       "parent_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
       "metadata": {
         "dataType": "unknown",
@@ -701,7 +701,7 @@
       "body_hash": null,
       "signature": "var total = 0",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": null,
       "parent_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:32:0",
       "metadata": {
         "dataType": "int",
@@ -729,7 +729,7 @@
       "body_hash": null,
       "signature": "var typed_local: Foo = null",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": null,
       "parent_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
       "metadata": {
         "dataType": "Foo",
@@ -788,7 +788,7 @@
       "body_hash": null,
       "signature": "var unknown_local = Unknown.new()",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": null,
       "parent_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
       "metadata": {
         "dataType": "unknown",
@@ -894,7 +894,7 @@
       "body_hash": null,
       "signature": "var worker_index: Array[Array[int]]",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Public",
       "parent_key": "fixtures/extraction/gdscript/basic/source.gd:Worker:1:0",
       "metadata": {
         "dataType": "Array[Array[int]]",
@@ -2651,6 +2651,28 @@
         "pattern_version": 1,
         "query_family": "signals",
         "signal_name": "activated"
+      }
+    },
+    {
+      "pattern_id": "godot.resource_reference.v1",
+      "capture_name": "resource_reference",
+      "node_kind": "call",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
+      "start_line": 52,
+      "start_column": 17,
+      "end_line": 52,
+      "end_column": 37,
+      "start_byte": 1081,
+      "end_byte": 1101,
+      "confidence": "1.000",
+      "metadata": {
+        "framework": "godot",
+        "loader": "load",
+        "pattern_version": 1,
+        "query_family": "imports",
+        "resource_path": "res://x.tscn"
       }
     }
   ],

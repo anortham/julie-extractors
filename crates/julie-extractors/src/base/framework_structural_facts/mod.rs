@@ -4,6 +4,7 @@ mod axum;
 mod blazor_navigation;
 mod consumed_attributes;
 mod dart;
+mod gdscript;
 mod go_http;
 mod helpers;
 mod htmx_templates;
@@ -348,6 +349,9 @@ pub fn collect_framework_structural_facts(
             ));
             dart_facts
         }
+        "gdscript" => {
+            gdscript::collect_gdscript_framework_facts(language, tree, file_path, content)
+        }
         "vue" => collect_vue_template_htmx_attributes(language, tree, file_path, content),
         _ => Vec::new(),
     };
@@ -400,6 +404,13 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
             "go_router.route_reference.v1",
             "shelf_router.route.v1",
             HTTP_CLIENT_REQUEST_PATTERN_ID,
+        ],
+        "gdscript" => &[
+            "godot.signal_connection.v1",
+            "godot.signal_emission.v1",
+            "godot.resource_reference.v1",
+            "godot.node_path.v1",
+            "godot.rpc_annotation.v1",
         ],
         "vue" => COMPONENT_MARKUP_FRAMEWORK_PATTERN_IDS,
         _ => &[],

@@ -22,9 +22,23 @@ pub(super) fn record_statement_type_facts(
         record_declared_type_node(base, symbol_id, type_node);
         return;
     }
-    if let Some(value) = statement.child_by_field_name("value") {
-        record_same_file_new_fact(base, symbol_id, value, same_file_class_names);
+    let Some(value) = statement.child_by_field_name("value") else {
+        return;
+    };
+    if let Some(cast_type) = cast_type(base, value) {
+        base.record_declared_type_fact(symbol_id, &cast_type, &TYPE_NAME_RULES, true);
+        return;
     }
+    record_same_file_new_fact(base, symbol_id, value, same_file_class_names);
+}
+
+/// The target type of an `expr as T` initializer.
+pub(super) fn cast_type(base: &BaseExtractor, value: Node) -> Option<String> {
+    let operand = super::identifiers::type_test_operand(value)?;
+    let is_cast = value
+        .child_by_field_name("op")
+        .is_some_and(|operator| operator.kind() == "as");
+    is_cast.then(|| base.get_node_text(&operand))
 }
 
 pub(super) fn record_declared_type_node(

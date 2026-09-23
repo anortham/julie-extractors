@@ -1,7 +1,9 @@
 //! Function and constructor extraction for GDScript
 
-use super::helpers::doc_comment;
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use super::helpers::{declaration_annotations, doc_comment, member_visibility};
+use crate::base::{
+    BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations,
+};
 use crate::test_detection::apply_callable_test_metadata;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -40,12 +42,9 @@ pub(super) fn extract_function_definition(
     in_class: bool,
 ) -> Option<Symbol> {
     let name = base.get_node_text(&node.child_by_field_name("name")?);
-    let signature = synthetic_signature(base, node);
-    let visibility = if name.starts_with('_') {
-        Visibility::Private
-    } else {
-        Visibility::Public
-    };
+    let annotations = declaration_annotations(base, node, false);
+    let signature = annotations.signature(&synthetic_signature(base, node));
+    let visibility = member_visibility(&name);
     let kind = function_kind(&name, in_class && node.kind() == "function_definition");
     let doc_comment = doc_comment(base, node);
 
@@ -74,10 +73,14 @@ pub(super) fn extract_function_definition(
                 Some(metadata)
             },
             doc_comment: None,
-            annotations: Vec::new(),
+            annotations: normalize_annotations(&annotations.all, "gdscript"),
         },
     );
     symbol.doc_comment = doc_comment;
+    if node.child_by_field_name("body").is_none() {
+        symbol.body_span = None;
+        symbol.body_hash = None;
+    }
     Some(symbol)
 }
 
@@ -154,11 +157,7 @@ pub(super) fn try_recover_function_from_error(
         .unwrap_or_else(|| "()".to_string());
 
     let signature = format!("func {}{}", func_name, params_text);
-    let visibility = if func_name.starts_with('_') {
-        Visibility::Private
-    } else {
-        Visibility::Public
-    };
+    let visibility = member_visibility(&func_name);
     let kind = function_kind(&func_name, in_class);
 
     let mut metadata = HashMap::new();

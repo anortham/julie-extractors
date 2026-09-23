@@ -1,6 +1,6 @@
 //! Enum extraction for GDScript
 
-use super::helpers::doc_comment;
+use super::helpers::{doc_comment, member_visibility};
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use tree_sitter::Node;
 
@@ -64,13 +64,18 @@ fn create(
     parent_id: Option<&String>,
 ) -> Symbol {
     let doc = doc_comment(base, node);
+    let visibility = if kind == SymbolKind::Enum {
+        member_visibility(&name)
+    } else {
+        Visibility::Public
+    };
     let mut symbol = base.create_symbol(
         &node,
         name,
         kind,
         SymbolOptions {
             signature: Some(signature),
-            visibility: Some(Visibility::Public),
+            visibility: Some(visibility),
             parent_id: parent_id.cloned(),
             metadata: None,
             doc_comment: None,

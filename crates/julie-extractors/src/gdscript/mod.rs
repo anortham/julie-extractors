@@ -34,9 +34,10 @@ use std::sync::LazyLock;
 use tree_sitter::{Node, Tree};
 
 // Static regexes compiled once for performance
-static FUNC_RETURN_TYPE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"->\s*(\w+)").unwrap());
+static FUNC_RETURN_TYPE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"->\s*(\w+(?:\.\w+)*)").unwrap());
 static VAR_CONST_TYPE_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?:var|const)\s+\w+\s*:\s*(\w+)").unwrap());
+    LazyLock::new(|| Regex::new(r"(?:var|const)\s+\w+\s*:\s*(\w+(?:\.\w+)*)").unwrap());
 
 /// The symbol that owns the declarations being visited, and whether that
 /// owner is a class (so a `func` there is a method).
