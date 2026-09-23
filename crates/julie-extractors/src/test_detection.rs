@@ -1677,8 +1677,10 @@ pub(crate) const SWIFT_TEST_MACRO_KEY: &str = "test";
 /// The normalized annotation key for Swift Testing's `@Suite` macro.
 pub(crate) const SWIFT_SUITE_MACRO_KEY: &str = "suite";
 
+/// ExUnit discovers tests only through the `test`/`property` macros, which the
+/// Elixir extractor marks itself. A `def test_*` function is never a test.
 fn detect_elixir(name: &str) -> bool {
-    name.starts_with("test_") || name.starts_with("test ")
+    name.starts_with("test ")
 }
 
 /// EUnit discovers a test from its name alone: `sum_test/0` is a test case and

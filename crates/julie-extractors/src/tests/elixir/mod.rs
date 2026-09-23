@@ -7,6 +7,7 @@ mod test_detection; // describe→test_container + setup/setup_all lifecycle
 mod type_arguments;
 mod type_facts;
 mod wave1_gaps;
+mod wave2_gaps;
 
 #[cfg(test)]
 mod elixir_tests {

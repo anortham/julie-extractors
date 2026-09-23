@@ -18,3 +18,18 @@ defmodule MyApp.ApiClient do
     Req.get("/users/#{id}")
   end
 end
+
+defmodule MyApp.GitHub do
+  use Tesla
+  plug Tesla.Middleware.BaseUrl, "https://api.github.com"
+
+  def repos, do: get("/user/repos")
+end
+
+defmodule MyApp.Aliased do
+  alias Req, as: R
+  alias MyApp.FakeReq, as: Req
+
+  def real, do: R.get!("https://example.com/real")
+  def fake, do: Req.get!("https://example.com/fake")
+end

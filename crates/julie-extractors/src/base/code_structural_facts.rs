@@ -1410,6 +1410,9 @@ fn elixir_is_module_attribute(node: Node<'_>) -> bool {
 
 fn elixir_module_attribute_name(content: &str, node: Node<'_>) -> Option<String> {
     let operand = node.child_by_field_name("operand")?;
+    if operand.kind() == "identifier" {
+        return Some(node_text(content, operand));
+    }
     elixir_call_target(content, operand)
 }
 

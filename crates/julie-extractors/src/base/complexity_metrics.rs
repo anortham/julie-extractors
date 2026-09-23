@@ -310,8 +310,10 @@ fn parameter_count_for_symbol(
 fn parameter_count_for_elixir_symbol(source: &str, root: Node<'_>, symbol: &Symbol) -> Option<u32> {
     let span = symbol_span(symbol);
     let def_call = find_elixir_def_call(root, source, span)?;
-    let container = elixir_function_head_arguments(def_call)?;
-    Some(count_elixir_parameters(container, source))
+    Some(
+        elixir_function_head_arguments(def_call)
+            .map_or(0, |container| container.named_child_count() as u32),
+    )
 }
 
 fn find_elixir_def_call<'tree>(
@@ -335,7 +337,20 @@ fn find_elixir_def_call_at_depth<'tree>(
     if !overlaps(node, span) {
         return None;
     }
-    if contains(span, node) && call_target_matches(node, source, &["def", "defp"]) {
+    if contains(span, node)
+        && call_target_matches(
+            node,
+            source,
+            &[
+                "def",
+                "defp",
+                "defmacro",
+                "defmacrop",
+                "defguard",
+                "defguardp",
+            ],
+        )
+    {
         return Some(node);
     }
     let child_depth = child_tree_depth(depth);
@@ -372,19 +387,6 @@ fn elixir_function_head_arguments(def_call: Node<'_>) -> Option<Node<'_>> {
         }
     }
     None
-}
-
-fn count_elixir_parameters(container: Node<'_>, _source: &str) -> u32 {
-    let mut count = 0;
-    let mut cursor = container.walk();
-    for child in container.children(&mut cursor) {
-        match child.kind() {
-            "identifier" => count += 1,
-            "call" => count += 1,
-            _ => {}
-        }
-    }
-    count
 }
 
 fn child_by_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {

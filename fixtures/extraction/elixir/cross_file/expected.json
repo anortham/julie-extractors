@@ -190,22 +190,6 @@
       "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
       "line_number": 20,
       "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
-      "callee_name": "for",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
-      "line_number": 13,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
-      "callee_name": "if",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
-      "line_number": 12,
-      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
@@ -235,58 +219,6 @@
         "end_column": 18,
         "start_byte": 545,
         "end_byte": 559
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
-        "callee_name": "for",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
-        "line_number": 13,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "for",
-        "terminal_name": "for",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
-      "span": {
-        "start_line": 13,
-        "start_column": 8,
-        "end_line": 15,
-        "end_column": 11,
-        "start_byte": 444,
-        "end_byte": 508
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
-        "callee_name": "if",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
-        "line_number": 12,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "if",
-        "terminal_name": "if",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
-      "span": {
-        "start_line": 12,
-        "start_column": 6,
-        "end_line": 18,
-        "end_column": 9,
-        "start_byte": 411,
-        "end_byte": 539
       }
     }
   ],
@@ -340,22 +272,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/elixir/cross_file/source.ex:for:call:13:8",
-      "name": "for",
-      "kind": "call",
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
-      "start_line": 13,
-      "start_column": 8,
-      "end_line": 13,
-      "end_column": 11,
-      "start_byte": 444,
-      "end_byte": 447,
-      "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/elixir/cross_file/source.ex:i:variable_ref:14:23",
       "name": "i",
       "kind": "variable_ref",
@@ -367,22 +283,6 @@
       "end_column": 24,
       "start_byte": 495,
       "end_byte": 496,
-      "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/elixir/cross_file/source.ex:if:call:12:6",
-      "name": "if",
-      "kind": "call",
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
-      "start_line": 12,
-      "start_column": 6,
-      "end_line": 12,
-      "end_column": 8,
-      "start_byte": 411,
-      "end_byte": 413,
       "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
       "target_key": null,
       "confidence": "1.000"
@@ -531,7 +431,7 @@
       "decision_count": 2,
       "loop_count": 1,
       "max_nesting_depth": 3,
-      "parameter_count": null,
+      "parameter_count": 0,
       "start_line": 10,
       "start_column": 12,
       "end_line": 22,
@@ -553,7 +453,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": null,
+      "parameter_count": 0,
       "start_line": 24,
       "start_column": 20,
       "end_line": 26,

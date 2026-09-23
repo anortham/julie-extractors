@@ -193,7 +193,7 @@
         "terminal_name": "request",
         "receiver": null,
         "namespace_path": [
-          ":httpc"
+          "httpc"
         ],
         "import_context": null
       },
@@ -221,7 +221,7 @@
         "terminal_name": "request",
         "receiver": null,
         "namespace_path": [
-          ":httpc"
+          "httpc"
         ],
         "import_context": null
       },
@@ -846,22 +846,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/elixir/http_client_deferred/source.ex:moduledoc:call:2:3",
-      "name": "moduledoc",
-      "kind": "call",
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/http_client_deferred/source.ex",
-      "start_line": 2,
-      "start_column": 3,
-      "end_line": 2,
-      "end_column": 12,
-      "start_byte": 37,
-      "end_byte": 46,
-      "containing_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:MyApp.DeferredClient:1:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/elixir/http_client_deferred/source.ex:post:member_access:6:10",
       "name": "post",
       "kind": "member_access",
@@ -905,6 +889,38 @@
       "end_column": 22,
       "start_byte": 257,
       "end_byte": 265,
+      "containing_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/elixir/http_client_deferred/source.ex:request:member_access:10:11",
+      "name": "request",
+      "kind": "member_access",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client_deferred/source.ex",
+      "start_line": 10,
+      "start_column": 11,
+      "end_line": 10,
+      "end_column": 18,
+      "start_byte": 369,
+      "end_byte": 376,
+      "containing_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/elixir/http_client_deferred/source.ex:request:member_access:11:11",
+      "name": "request",
+      "kind": "member_access",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client_deferred/source.ex",
+      "start_line": 11,
+      "start_column": 11,
+      "end_line": 11,
+      "end_column": 18,
+      "start_byte": 421,
+      "end_byte": 428,
       "containing_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2",
       "target_key": null,
       "confidence": "1.000"
@@ -1286,22 +1302,6 @@
       "start_byte": 518,
       "end_byte": 532,
       "containing_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2",
-      "confidence": "1.000"
-    },
-    {
-      "literal_text": "Deferred Elixir HTTP clients fixture.",
-      "kind": "other",
-      "carrier": "moduledoc",
-      "arg_position": 0,
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/http_client_deferred/source.ex",
-      "start_line": 2,
-      "start_column": 13,
-      "end_line": 2,
-      "end_column": 52,
-      "start_byte": 47,
-      "end_byte": 86,
-      "containing_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:MyApp.DeferredClient:1:0",
       "confidence": "1.000"
     },
     {

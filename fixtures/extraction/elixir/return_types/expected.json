@@ -69,8 +69,8 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/elixir/return_types/source.ex:result():2:1",
-      "name": "result()",
+      "key": "fixtures/extraction/elixir/return_types/source.ex:result:2:1",
+      "name": "result",
       "kind": "type",
       "language": "elixir",
       "file_path": "fixtures/extraction/elixir/return_types/source.ex",
@@ -89,11 +89,13 @@
         "end_byte": 49
       },
       "body_hash": "9c56806edf366206c5856ffae47709c5",
-      "signature": "@type type result() :: integer()",
+      "signature": "@type result() :: integer()",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/elixir/return_types/source.ex:Factory:1:0",
-      "metadata": {},
+      "metadata": {
+        "arity": 0
+      },
       "annotations": [
         {
           "annotation": "type",
@@ -122,7 +124,7 @@
       "end_column": 26,
       "start_byte": 40,
       "end_byte": 47,
-      "containing_key": "fixtures/extraction/elixir/return_types/source.ex:result():2:1",
+      "containing_key": "fixtures/extraction/elixir/return_types/source.ex:result:2:1",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -202,7 +204,7 @@
       "node_kind": "unary_operator",
       "language": "elixir",
       "file_path": "fixtures/extraction/elixir/return_types/source.ex",
-      "containing_key": "fixtures/extraction/elixir/return_types/source.ex:result():2:1",
+      "containing_key": "fixtures/extraction/elixir/return_types/source.ex:result:2:1",
       "start_line": 2,
       "start_column": 1,
       "end_line": 2,

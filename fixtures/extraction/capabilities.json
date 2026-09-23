@@ -4381,6 +4381,11 @@
           "name": "module_calls",
           "source": "fixtures/extraction/elixir/module_calls/source.ex",
           "expected": "fixtures/extraction/elixir/module_calls/expected.json"
+        },
+        {
+          "name": "language_forms",
+          "source": "fixtures/extraction/elixir/language_forms/source.ex",
+          "expected": "fixtures/extraction/elixir/language_forms/expected.json"
         }
       ],
       "target_capabilities": {
@@ -4394,6 +4399,7 @@
       "kind_coverage": {
         "symbols": {
           "supported": [
+            "constant",
             "field",
             "function",
             "import",
@@ -4407,7 +4413,8 @@
         },
         "relationships": {
           "supported": [
-            "calls"
+            "calls",
+            "implements"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -4426,6 +4433,7 @@
           "supported": [
             "function",
             "module",
+            "struct",
             "type"
           ],
           "not_applicable": [
@@ -4449,9 +4457,9 @@
           "open_gaps": [
             {
               "kind": "phoenix.non_route_macros",
-              "reason": "The Phoenix lane emits route/resource/forward facts only; the `pipe_through`, `live` (LiveView), `socket`, and `channel` router macros carry no request→handler HTTP boundary path literal in the same shape, so they emit nothing.",
-              "required_closure": "add collectors for the LiveView (`live`) and socket/channel surfaces if a live-route or websocket boundary lane is opened; `pipe_through` references a pipeline, not a route, and stays evidence-only",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2a (Phoenix non-route macro exclusions)"
+              "reason": "The Phoenix lane emits route/resource/forward facts and `live` LiveView routes; the `socket` and `channel` router macros declare websocket endpoints with no request→handler HTTP route, so they emit nothing.",
+              "required_closure": "add collectors for the socket/channel surfaces if a websocket boundary lane is opened; `pipe_through` references a pipeline, not a route, and stays evidence-only",
+              "planned_closure_task": "docs/plans/2026-09-22-language-gap-closure.md later waves"
             },
             {
               "kind": "phoenix.cross_file_scope_prefix",
@@ -4463,12 +4471,6 @@
               "kind": "elixir.http_client.tesla_middleware_base_url",
               "reason": "Tesla client middleware base URLs (`Tesla.client([{Tesla.Middleware.BaseUrl, \"https://api\"}])`) are declared apart from the request call, so `Tesla.get(client, \"/path\")` emits only the static path argument — the middleware base URL is not joined into target_path in-file.",
               "required_closure": "join same-file Tesla middleware base URLs into request facts if a same-file client-binding model is designed; static URL arguments already emit",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
-            },
-            {
-              "kind": "elixir.http_client.alias_resolution",
-              "reason": "Module receivers are matched by literal alias name (`Req.`, `Tesla.`, ...), not resolved through `alias` declarations: `alias MyApp.Fake, as: Req` makes a non-HTTP `Req.get(...)` emit, and `alias Req, as: R` makes real `R.get(...)` calls stay silent.",
-              "required_closure": "resolve `alias ... , as:` declarations to canonical module names before matching, if in-file alias resolution is added to the Elixir lane",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
             }
           ]
@@ -4509,6 +4511,7 @@
         "source_regions": {
           "supported": [
             "comment",
+            "embedded",
             "string_literal"
           ],
           "not_applicable": [],

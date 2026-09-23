@@ -122,10 +122,22 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "Controller/plug module alias as written at the route.",
             ),
             key(
+                "controller_module",
+                STR,
+                OPT,
+                "Controller module qualified by the enclosing same-file scope aliases.",
+            ),
+            key(
                 "action",
                 STR,
                 OPT,
                 "Controller action atom name (`:show` recorded as show).",
+            ),
+            key(
+                "handler_kind",
+                STR,
+                OPT,
+                "\"live_view\" for a LiveView `live` route; absent for a controller route.",
             ),
         ],
     },
@@ -161,6 +173,12 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 STR,
                 OPT,
                 "Controller module alias when statically resolvable.",
+            ),
+            key(
+                "controller_module",
+                STR,
+                OPT,
+                "Controller module qualified by the enclosing same-file scope aliases.",
             ),
             key(
                 "route_group_prefix",

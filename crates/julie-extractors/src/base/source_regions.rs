@@ -89,7 +89,9 @@ fn collect_node(
     }
 
     let node_kind = node.kind();
-    if config.embedded_node_kinds.contains(&node_kind) {
+    if language == "elixir" && node_kind == "sigil" {
+        regions.push(elixir_sigil_region(file_path, node, content));
+    } else if config.embedded_node_kinds.contains(&node_kind) {
         regions.push(region_for_node(
             file_path,
             language,
@@ -158,6 +160,53 @@ fn collect_node(
             regions,
             child_depth,
         );
+    }
+}
+
+/// An Elixir sigil: a template sigil (`~H` HEEx, `~E`/`~L` EEx) is an embedded
+/// template region; every other sigil (`~r`, `~s`, `~p`, `~w`, ...) is a string
+/// literal.
+fn elixir_sigil_region(file_path: &str, node: Node<'_>, content: &str) -> SourceRegion {
+    let sigil_name = {
+        let mut cursor = node.walk();
+        node.children(&mut cursor)
+            .find(|child| child.kind() == "sigil_name")
+            .and_then(|name| node_text(content, name))
+            .unwrap_or_default()
+    };
+    let template_language = match sigil_name {
+        "H" => Some("heex"),
+        "E" | "L" => Some("eex"),
+        _ => None,
+    };
+    match template_language {
+        Some(template_language) => region_for_node(
+            file_path,
+            "elixir",
+            node,
+            SourceRegionKind::Embedded,
+            Some(HashMap::from([
+                (
+                    "host_node_kind".to_string(),
+                    serde_json::Value::String("sigil".to_string()),
+                ),
+                (
+                    "sigil_name".to_string(),
+                    serde_json::Value::String(sigil_name.to_string()),
+                ),
+                (
+                    "embedded_language".to_string(),
+                    serde_json::Value::String(template_language.to_string()),
+                ),
+            ])),
+        ),
+        None => region_for_node(
+            file_path,
+            "elixir",
+            node,
+            SourceRegionKind::StringLiteral,
+            None,
+        ),
     }
 }
 

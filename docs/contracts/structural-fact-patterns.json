@@ -5303,6 +5303,12 @@
         "value_type": "string"
       },
       {
+        "description": "Controller module qualified by the enclosing same-file scope aliases.",
+        "key": "controller_module",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
         "description": "Same-file enclosing scope prefix governing the resource.",
         "key": "route_group_prefix",
         "presence": "optional",
@@ -5391,8 +5397,20 @@
         "value_type": "string"
       },
       {
+        "description": "Controller module qualified by the enclosing same-file scope aliases.",
+        "key": "controller_module",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
         "description": "Controller action atom name (`:show` recorded as show).",
         "key": "action",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "\"live_view\" for a LiveView `live` route; absent for a controller route.",
+        "key": "handler_kind",
         "presence": "optional",
         "value_type": "string"
       }

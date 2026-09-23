@@ -854,11 +854,13 @@
         "end_byte": 163
       },
       "body_hash": "2a95c2355aa5058de636ff007658169a",
-      "signature": "@type type worker_index :: list(list(integer()))",
+      "signature": "@type worker_index :: list(list(integer()))",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/elixir/basic/source.ex:Fixture.Worker:1:0",
-      "metadata": {},
+      "metadata": {
+        "arity": 0
+      },
       "annotations": [
         {
           "annotation": "type",
@@ -1047,30 +1049,6 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/elixir/basic/source.ex:evaluate:43:2",
-      "callee_name": "for",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/elixir/basic/source.ex",
-      "line_number": 45,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/elixir/basic/source.ex:evaluate:43:2",
-      "callee_name": "if",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/elixir/basic/source.ex",
-      "line_number": 44,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/elixir/basic/source.ex:evaluate:43:2",
-      "callee_name": "if",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/elixir/basic/source.ex",
-      "line_number": 49,
-      "confidence": "0.700"
-    },
-    {
       "from_key": "fixtures/extraction/elixir/basic/source.ex:piped:33:2",
       "callee_name": "Kernel.abs",
       "kind": "calls",
@@ -1084,14 +1062,6 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/elixir/basic/source.ex",
       "line_number": 37,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/elixir/basic/source.ex:safe_div:35:2",
-      "callee_name": "with",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/elixir/basic/source.ex",
-      "line_number": 36,
       "confidence": "0.700"
     }
   ],
@@ -1122,84 +1092,6 @@
         "end_column": 17,
         "start_byte": 1083,
         "end_byte": 1092
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/elixir/basic/source.ex:evaluate:43:2",
-        "callee_name": "for",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/elixir/basic/source.ex",
-        "line_number": 45,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "for",
-        "terminal_name": "for",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/elixir/basic/source.ex:evaluate:43:2",
-      "span": {
-        "start_line": 45,
-        "start_column": 6,
-        "end_line": 47,
-        "end_column": 9,
-        "start_byte": 868,
-        "end_byte": 932
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/elixir/basic/source.ex:evaluate:43:2",
-        "callee_name": "if",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/elixir/basic/source.ex",
-        "line_number": 44,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "if",
-        "terminal_name": "if",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/elixir/basic/source.ex:evaluate:43:2",
-      "span": {
-        "start_line": 44,
-        "start_column": 4,
-        "end_line": 50,
-        "end_column": 7,
-        "start_byte": 848,
-        "end_byte": 984
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/elixir/basic/source.ex:evaluate:43:2",
-        "callee_name": "if",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/elixir/basic/source.ex",
-        "line_number": 49,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "if",
-        "terminal_name": "if",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/elixir/basic/source.ex:evaluate:43:2",
-      "span": {
-        "start_line": 49,
-        "start_column": 6,
-        "end_line": 49,
-        "end_column": 34,
-        "start_byte": 948,
-        "end_byte": 976
       }
     },
     {
@@ -1254,32 +1146,6 @@
         "end_column": 15,
         "start_byte": 763,
         "end_byte": 772
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/elixir/basic/source.ex:safe_div:35:2",
-        "callee_name": "with",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/elixir/basic/source.ex",
-        "line_number": 36,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "with",
-        "terminal_name": "with",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/elixir/basic/source.ex:safe_div:35:2",
-      "span": {
-        "start_line": 36,
-        "start_column": 4,
-        "end_line": 40,
-        "end_column": 7,
-        "start_byte": 734,
-        "end_byte": 802
       }
     }
   ],
@@ -1509,38 +1375,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/elixir/basic/source.ex:doc:call:15:3",
-      "name": "doc",
-      "kind": "call",
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/basic/source.ex",
-      "start_line": 15,
-      "start_column": 3,
-      "end_line": 15,
-      "end_column": 6,
-      "start_byte": 301,
-      "end_byte": 304,
-      "containing_key": "fixtures/extraction/elixir/basic/source.ex:Fixture.Worker:1:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/elixir/basic/source.ex:doc:call:26:3",
-      "name": "doc",
-      "kind": "call",
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/basic/source.ex",
-      "start_line": 26,
-      "start_column": 3,
-      "end_line": 26,
-      "end_column": 6,
-      "start_byte": 486,
-      "end_byte": 489,
-      "containing_key": "fixtures/extraction/elixir/basic/source.ex:Fixture.Worker:1:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/elixir/basic/source.ex:enabled:variable_ref:44:7",
       "name": "enabled",
       "kind": "variable_ref",
@@ -1569,22 +1403,6 @@
       "start_byte": 561,
       "end_byte": 570,
       "containing_key": "fixtures/extraction/elixir/basic/source.ex:fetch_status:27:2",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/elixir/basic/source.ex:for:call:45:6",
-      "name": "for",
-      "kind": "call",
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/basic/source.ex",
-      "start_line": 45,
-      "start_column": 6,
-      "end_line": 45,
-      "end_column": 9,
-      "start_byte": 868,
-      "end_byte": 871,
-      "containing_key": "fixtures/extraction/elixir/basic/source.ex:evaluate:43:2",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1701,38 +1519,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/elixir/basic/source.ex:if:call:44:4",
-      "name": "if",
-      "kind": "call",
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/basic/source.ex",
-      "start_line": 44,
-      "start_column": 4,
-      "end_line": 44,
-      "end_column": 6,
-      "start_byte": 848,
-      "end_byte": 850,
-      "containing_key": "fixtures/extraction/elixir/basic/source.ex:evaluate:43:2",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/elixir/basic/source.ex:if:call:49:6",
-      "name": "if",
-      "kind": "call",
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/basic/source.ex",
-      "start_line": 49,
-      "start_column": 6,
-      "end_line": 49,
-      "end_column": 8,
-      "start_byte": 948,
-      "end_byte": 950,
-      "containing_key": "fixtures/extraction/elixir/basic/source.ex:evaluate:43:2",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/elixir/basic/source.ex:integer:type_usage:3:12",
       "name": "integer",
       "kind": "type_usage",
@@ -1825,22 +1611,6 @@
       "start_byte": 147,
       "end_byte": 151,
       "containing_key": "fixtures/extraction/elixir/basic/source.ex:worker_index:4:2",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/elixir/basic/source.ex:moduledoc:call:2:3",
-      "name": "moduledoc",
-      "kind": "call",
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/basic/source.ex",
-      "start_line": 2,
-      "start_column": 3,
-      "end_line": 2,
-      "end_column": 12,
-      "start_byte": 31,
-      "end_byte": 40,
-      "containing_key": "fixtures/extraction/elixir/basic/source.ex:Fixture.Worker:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1953,22 +1723,6 @@
       "start_byte": 1027,
       "end_byte": 1028,
       "containing_key": "fixtures/extraction/elixir/basic/source.ex:bind:53:2",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/elixir/basic/source.ex:with:call:36:4",
-      "name": "with",
-      "kind": "call",
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/basic/source.ex",
-      "start_line": 36,
-      "start_column": 4,
-      "end_line": 36,
-      "end_column": 8,
-      "start_byte": 734,
-      "end_byte": 738,
-      "containing_key": "fixtures/extraction/elixir/basic/source.ex:safe_div:35:2",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2349,7 +2103,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": 1,
+      "parameter_count": 2,
       "start_line": 53,
       "start_column": 34,
       "end_line": 53,
@@ -2393,7 +2147,7 @@
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
-      "parameter_count": null,
+      "parameter_count": 0,
       "start_line": 27,
       "start_column": 19,
       "end_line": 29,
@@ -2560,54 +2314,6 @@
     }
   ],
   "literals": [
-    {
-      "literal_text": "Checks the worker service health endpoint.",
-      "kind": "other",
-      "carrier": "doc",
-      "arg_position": 0,
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/basic/source.ex",
-      "start_line": 26,
-      "start_column": 7,
-      "end_line": 26,
-      "end_column": 51,
-      "start_byte": 490,
-      "end_byte": 534,
-      "containing_key": "fixtures/extraction/elixir/basic/source.ex:Fixture.Worker:1:0",
-      "confidence": "1.000"
-    },
-    {
-      "literal_text": "Increment a worker id.",
-      "kind": "other",
-      "carrier": "doc",
-      "arg_position": 0,
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/basic/source.ex",
-      "start_line": 15,
-      "start_column": 7,
-      "end_line": 15,
-      "end_column": 31,
-      "start_byte": 305,
-      "end_byte": 329,
-      "containing_key": "fixtures/extraction/elixir/basic/source.ex:Fixture.Worker:1:0",
-      "confidence": "1.000"
-    },
-    {
-      "literal_text": "Worker helpers for fixture extraction.",
-      "kind": "other",
-      "carrier": "moduledoc",
-      "arg_position": 0,
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/basic/source.ex",
-      "start_line": 2,
-      "start_column": 13,
-      "end_line": 2,
-      "end_column": 53,
-      "start_byte": 41,
-      "end_byte": 81,
-      "containing_key": "fixtures/extraction/elixir/basic/source.ex:Fixture.Worker:1:0",
-      "confidence": "1.000"
-    },
     {
       "literal_text": "https://api.example.com/workers/status",
       "kind": "other",
