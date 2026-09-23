@@ -39,6 +39,9 @@ const CSS_LAYER_PATTERN_ID: &str = "css.layer.v1";
 const CSS_CHARSET_PATTERN_ID: &str = "css.charset.v1";
 const CSS_NAMESPACE_PATTERN_ID: &str = "css.namespace.v1";
 const CSS_IMPORT_PATTERN_ID: &str = "css.import.v1";
+const CSS_SCOPE_PATTERN_ID: &str = "css.scope.v1";
+const CSS_TAILWIND_APPLY_PATTERN_ID: &str = "css.tailwind_apply.v1";
+const CSS_TAILWIND_DIRECTIVE_PATTERN_ID: &str = "css.tailwind_directive.v1";
 const HTML_LINK_PATTERN_ID: &str = "html.link.v1";
 const HTML_SCRIPT_PATTERN_ID: &str = "html.script.v1";
 const HTML_FORM_PATTERN_ID: &str = "html.form.v1";
@@ -72,8 +75,11 @@ const CSS_WEB_PATTERN_IDS: &[&str] = &[
     CSS_LAYER_PATTERN_ID,
     CSS_MEDIA_QUERY_PATTERN_ID,
     CSS_NAMESPACE_PATTERN_ID,
+    CSS_SCOPE_PATTERN_ID,
     CSS_SELECTOR_RULE_PATTERN_ID,
     CSS_SUPPORTS_PATTERN_ID,
+    CSS_TAILWIND_APPLY_PATTERN_ID,
+    CSS_TAILWIND_DIRECTIVE_PATTERN_ID,
 ];
 
 #[cfg(all(test, feature = "test-capability-matrix"))]

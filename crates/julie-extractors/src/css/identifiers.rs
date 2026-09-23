@@ -13,7 +13,12 @@ impl IdentifierExtractor {
         tree: &Tree,
         symbols: &[Symbol],
     ) -> Vec<Identifier> {
-        let containing_symbols = base.containing_symbol_index(symbols);
+        let file_path = base.file_path.clone();
+        let containing_symbols = ContainingSymbolIndex::innermost(
+            symbols
+                .iter()
+                .filter(|symbol| symbol.file_path == file_path),
+        );
 
         // Walk the tree and extract identifiers
         Self::walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
@@ -94,7 +99,12 @@ impl IdentifierExtractor {
                                         );
                                     }
                                 }
-                                if let Some(text) = base.decode_string_literal(&arg) {
+                                let url_path = (function_name.as_deref() == Some("url")
+                                    && arg.kind() == "plain_value")
+                                    .then(|| base.get_node_text(&arg));
+                                if let Some(text) =
+                                    url_path.or_else(|| base.decode_string_literal(&arg))
+                                {
                                     base.record_literal(
                                         &arg,
                                         text,
@@ -136,25 +146,60 @@ impl IdentifierExtractor {
             }
 
             "pseudo_class_selector" => {
-                let text = base.get_node_text(&node);
-                if let Some(name) = pseudo_call_name(&text) {
+                let mut cursor = node.walk();
+                let children: Vec<Node> = node.children(&mut cursor).collect();
+                let is_functional = children.iter().any(|child| child.kind() == "arguments");
+                if let Some(name_node) = children
+                    .iter()
+                    .find(|child| child.kind() == "class_name")
+                    .filter(|_| is_functional)
+                {
                     let containing_symbol_id =
                         Self::find_containing_symbol_id(node, containing_symbols);
                     base.create_identifier(
-                        &node,
-                        name.to_string(),
+                        name_node,
+                        base.get_node_text(name_node),
                         IdentifierKind::Call,
                         containing_symbol_id,
                     );
                 }
             }
 
-            _ => {
-                let text = base.get_node_text(&node);
-                if node.kind().contains("selector") {
-                    extract_pseudo_calls_from_selector_node(base, node, &text, containing_symbols);
-                }
+            "postcss_statement" if is_apply_statement(base, node) => {
+                let mut cursor = node.walk();
+                let classes: Vec<Node> = node
+                    .named_children(&mut cursor)
+                    .filter(|child| child.kind() == "plain_value")
+                    .collect();
+                Self::create_class_references(base, &classes, containing_symbols);
             }
+
+            "declaration" => {
+                let composed = composed_class_nodes(base, node);
+                Self::create_class_references(base, &composed, containing_symbols);
+            }
+
+            _ => {}
+        }
+    }
+
+    /// A class name used by `@apply` or `composes:` reads as a member access,
+    /// like the `.name` selector that declares it.
+    fn create_class_references(
+        base: &mut BaseExtractor,
+        nodes: &[Node],
+        containing_symbols: &ContainingSymbolIndex<'_>,
+    ) {
+        for class_node in nodes {
+            let name = base.get_node_text(class_node);
+            let containing_symbol_id =
+                Self::find_containing_symbol_id(*class_node, containing_symbols);
+            base.create_identifier(
+                class_node,
+                name,
+                IdentifierKind::MemberAccess,
+                containing_symbol_id,
+            );
         }
     }
 
@@ -167,73 +212,49 @@ impl IdentifierExtractor {
     }
 }
 
-fn extract_pseudo_calls_from_selector_node(
-    base: &mut BaseExtractor,
-    node: Node,
-    text: &str,
-    containing_symbols: &ContainingSymbolIndex<'_>,
-) {
-    for pseudo in [":has(", ":is(", ":where(", ":not("] {
-        let mut search_start = 0usize;
-        while let Some(relative) = text[search_start..].find(pseudo) {
-            let local_start = search_start + relative + 1;
-            let start_byte = node.start_byte() + local_start;
-            let name = pseudo.trim_start_matches(':').trim_end_matches('(');
-            if !base.identifiers.iter().any(|identifier| {
-                identifier.name == name && identifier.start_byte == start_byte as u32
-            }) && let Some((line, column)) = line_column_for_byte(&base.content, start_byte)
-            {
-                let containing_symbol_id =
-                    IdentifierExtractor::find_containing_symbol_id(node, containing_symbols);
-                let end_byte = start_byte + name.len();
-                base.identifiers.push(Identifier {
-                    id: base.generate_id(name, line, column),
-                    name: name.to_string(),
-                    kind: IdentifierKind::Call,
-                    language: base.language.clone(),
-                    file_path: base.file_path.clone(),
-                    start_line: line,
-                    start_column: column,
-                    end_line: line,
-                    end_column: column + name.len() as u32,
-                    start_byte: start_byte as u32,
-                    end_byte: end_byte as u32,
-                    containing_symbol_id,
-                    target_symbol_id: None,
-                    confidence: 1.0,
-                    receiver_type: None,
-                    code_context: None,
-                    metadata: None,
-                });
-            }
-            search_start = local_start + name.len();
-        }
-    }
+pub(super) fn is_apply_statement(base: &BaseExtractor, node: Node) -> bool {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .find(|child| child.kind() == "at_keyword")
+        .is_some_and(|keyword| base.get_node_text(&keyword).eq_ignore_ascii_case("@apply"))
 }
 
-fn pseudo_call_name(text: &str) -> Option<&str> {
-    let selector = text.strip_prefix(':')?;
-    let name = selector.split('(').next()?;
-    if name.is_empty() || name == selector {
-        None
-    } else {
-        Some(name)
+/// The class-name values of a CSS Modules `composes:` declaration, up to the
+/// `from` keyword that names another module.
+pub(super) fn composed_class_nodes<'t>(
+    base: &BaseExtractor,
+    declaration: Node<'t>,
+) -> Vec<Node<'t>> {
+    let mut cursor = declaration.walk();
+    let children: Vec<Node<'t>> = declaration.named_children(&mut cursor).collect();
+    let is_composes = children
+        .first()
+        .filter(|name| name.kind() == "property_name")
+        .is_some_and(|name| base.get_node_text(name).eq_ignore_ascii_case("composes"));
+    if !is_composes {
+        return Vec::new();
     }
+    children
+        .into_iter()
+        .skip(1)
+        .take_while(|value| value.kind() == "plain_value" && base.get_node_text(value) != "from")
+        .collect()
 }
 
-fn line_column_for_byte(content: &str, target: usize) -> Option<(u32, u32)> {
-    let mut line = 1u32;
-    let mut line_start = 0usize;
-    for (idx, byte) in content.bytes().enumerate() {
-        if idx == target {
-            return Some((line, (idx - line_start) as u32));
-        }
-        if byte == b'\n' {
-            line += 1;
-            line_start = idx + 1;
-        }
+/// The quoted module path after `from` in a `composes:` declaration.
+pub(super) fn composes_module_source<'t>(
+    base: &BaseExtractor,
+    declaration: Node<'t>,
+) -> Option<(Node<'t>, String)> {
+    let composed = composed_class_nodes(base, declaration);
+    let last = composed.last()?;
+    let from = last.next_named_sibling()?;
+    if base.get_node_text(&from) != "from" {
+        return None;
     }
-    (target == content.len()).then_some((line, (target - line_start) as u32))
+    let source = from.next_named_sibling()?;
+    let text = base.decode_string_literal(&source)?;
+    Some((source, text))
 }
 
 /// Decodes CSS escapes: `\:` is `:`, and `\31 ` (1 to 6 hex digits plus

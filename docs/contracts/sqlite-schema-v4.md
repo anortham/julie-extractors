@@ -855,6 +855,9 @@ Supported patterns are advertised in
 | `css.charset.v1` | `css`, `vue`, `html` | `charset` | `charset_statement` | `stylesheet_structure` | A CSS `@charset` rule. |
 | `css.namespace.v1` | `css`, `vue`, `html` | `namespace` | `namespace_statement` | `stylesheet_structure` | A CSS `@namespace` rule. |
 | `css.import.v1` | `css`, `vue`, `html` | `import` | `import_statement` | `stylesheet_structure` | A CSS `@import` of another stylesheet (`url`, optional `media`). |
+| `css.scope.v1` | `css`, `vue`, `html` | `scope` | `scope_statement` | `stylesheet_structure` | A CSS `@scope` rule (optional `root`, `limit` selectors). |
+| `css.tailwind_apply.v1` | `css`, `vue`, `html` | `tailwind_apply` | `postcss_statement` | `directives` | A Tailwind CSS `@apply` (`classes`). |
+| `css.tailwind_directive.v1` | `css`, `vue`, `html` | `tailwind_directive` | `at_rule` | `directives` | A Tailwind CSS directive such as `@tailwind` or `@utility` (`directive`, optional `argument`). |
 | `html.link.v1` | `html` | `link` | `element` | `document_navigation` | An HTML anchor link with an `href` target. |
 | `html.area_link.v1` | `html` | `area_link` | `element` | `document_navigation` | An HTML image-map area link (`<area href>`). |
 | `html.media.v1` | `html` | `media` | `element` | `document_assets` | An HTML media reference (`img`/`source`/audio/video/track with `src`). |

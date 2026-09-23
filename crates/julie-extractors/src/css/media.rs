@@ -33,7 +33,7 @@ impl MediaExtractor {
         Some(base.create_symbol(
             &node,
             media_query,
-            SymbolKind::Variable,
+            SymbolKind::Namespace,
             SymbolOptions {
                 signature: Some(signature),
                 visibility: Some(Visibility::Public),

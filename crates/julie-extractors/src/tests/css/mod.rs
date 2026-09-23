@@ -87,19 +87,19 @@ fn test_css_modern_at_rules_and_pseudo_selectors_are_extracted() {
         .iter()
         .find(|symbol| symbol.name == "@layer components")
         .expect("@layer symbol should include layer name");
-    assert_eq!(layer.kind, SymbolKind::Variable);
+    assert_eq!(layer.kind, SymbolKind::Namespace);
 
     let container = symbols
         .iter()
-        .find(|symbol| symbol.name == "@container sidebar")
+        .find(|symbol| symbol.name == "@container sidebar (min-width: 30rem)")
         .expect("@container symbol should include container name");
-    assert_eq!(container.kind, SymbolKind::Variable);
+    assert_eq!(container.kind, SymbolKind::Namespace);
 
     let property = symbols
         .iter()
         .find(|symbol| symbol.name == "@property --brand")
         .expect("@property symbol should include custom property name");
-    assert_eq!(property.kind, SymbolKind::Variable);
+    assert_eq!(property.kind, SymbolKind::Property);
 
     assert!(
         identifiers.iter().any(|identifier| {
@@ -325,3 +325,4 @@ pub mod pseudo_elements;
 pub mod responsive;
 pub mod structural_facts;
 pub mod utilities;
+pub mod wave2_gaps;

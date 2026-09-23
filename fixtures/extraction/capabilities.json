@@ -1960,8 +1960,11 @@
             "css.layer.v1",
             "css.media_query.v1",
             "css.namespace.v1",
+            "css.scope.v1",
             "css.selector_rule.v1",
             "css.supports.v1",
+            "css.tailwind_apply.v1",
+            "css.tailwind_directive.v1",
             "html.area_link.v1",
             "html.data_attribute.v1",
             "html.form.v1",
@@ -2086,6 +2089,7 @@
           "supported": [
             "function",
             "import",
+            "namespace",
             "property",
             "variable"
           ],
@@ -2113,6 +2117,7 @@
           "supported": [
             "function",
             "import",
+            "namespace",
             "property",
             "variable"
           ],
@@ -2130,8 +2135,11 @@
             "css.layer.v1",
             "css.media_query.v1",
             "css.namespace.v1",
+            "css.scope.v1",
             "css.selector_rule.v1",
-            "css.supports.v1"
+            "css.supports.v1",
+            "css.tailwind_apply.v1",
+            "css.tailwind_directive.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2156,7 +2164,8 @@
         },
         "doc_comments": {
           "supported": [
-            "import"
+            "import",
+            "namespace"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2334,8 +2343,11 @@
             "css.layer.v1",
             "css.media_query.v1",
             "css.namespace.v1",
+            "css.scope.v1",
             "css.selector_rule.v1",
             "css.supports.v1",
+            "css.tailwind_apply.v1",
+            "css.tailwind_directive.v1",
             "htmx.attribute.v1",
             "http.client_request.v1",
             "nuxt.file_route.v1",

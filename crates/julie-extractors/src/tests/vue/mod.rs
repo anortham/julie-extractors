@@ -1377,13 +1377,12 @@ mod vue_style_enhanced_tests {
         let mut extractor = create_extractor("id-selectors.vue", vue_code);
         let symbols = extractor.extract_symbols(None);
 
-        // Canonical contract: ID selector → name with '#' prefix, kind Variable
         let app = symbols
             .iter()
-            .find(|s| s.name == "#app" && s.kind == SymbolKind::Variable);
+            .find(|s| s.name == "#app" && s.kind == SymbolKind::Property);
         assert!(
             app.is_some(),
-            "Should extract #app ID selector with hash prefix and Variable kind"
+            "Should extract #app ID selector with hash prefix and Property kind"
         );
         assert!(
             app.unwrap().signature.as_ref().unwrap().starts_with("#app"),
@@ -1392,10 +1391,10 @@ mod vue_style_enhanced_tests {
 
         let sidebar = symbols
             .iter()
-            .find(|s| s.name == "#sidebar" && s.kind == SymbolKind::Variable);
+            .find(|s| s.name == "#sidebar" && s.kind == SymbolKind::Property);
         assert!(
             sidebar.is_some(),
-            "Should extract #sidebar ID selector with hash prefix and Variable kind"
+            "Should extract #sidebar ID selector with hash prefix and Property kind"
         );
         assert!(
             sidebar
@@ -1497,13 +1496,12 @@ mod vue_style_enhanced_tests {
             "Signature should start with class selector"
         );
 
-        // ID selector — canonical: prefixed name '#', kind Variable
         let main_content = symbols
             .iter()
-            .find(|s| s.name == "#main-content" && s.kind == SymbolKind::Variable);
+            .find(|s| s.name == "#main-content" && s.kind == SymbolKind::Property);
         assert!(
             main_content.is_some(),
-            "Should extract #main-content ID selector with hash prefix and Variable kind"
+            "Should extract #main-content ID selector with hash prefix and Property kind"
         );
         assert!(
             main_content

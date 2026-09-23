@@ -144,11 +144,23 @@ impl<'a> ContainingSymbolIndex<'a> {
     }
 
     pub(crate) fn from_iter(symbols: impl IntoIterator<Item = &'a Symbol>) -> Self {
+        Self::with_priority(symbols, symbol_priority)
+    }
+
+    /// An index that ignores symbol kind: the innermost span always wins.
+    pub(crate) fn innermost(symbols: impl IntoIterator<Item = &'a Symbol>) -> Self {
+        Self::with_priority(symbols, |_| 0)
+    }
+
+    fn with_priority(
+        symbols: impl IntoIterator<Item = &'a Symbol>,
+        priority: fn(&SymbolKind) -> u32,
+    ) -> Self {
         let mut symbols: Vec<IndexedSymbol<'a>> = symbols
             .into_iter()
             .map(|symbol| IndexedSymbol {
                 symbol,
-                priority: symbol_priority(&symbol.kind),
+                priority: priority(&symbol.kind),
                 size: symbol.end_byte.saturating_sub(symbol.start_byte),
             })
             .collect();

@@ -73,6 +73,78 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/vue/basic/source.vue:.title:98:2",
+      "name": ".title",
+      "kind": "property",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "start_line": 98,
+      "start_column": 2,
+      "end_line": 98,
+      "end_column": 30,
+      "start_byte": 1953,
+      "end_byte": 1981,
+      "body_span": {
+        "start_line": 98,
+        "start_column": 9,
+        "end_line": 98,
+        "end_column": 30,
+        "start_byte": 1960,
+        "end_byte": 1981
+      },
+      "body_hash": "4a18dfb9e1da0f4e1f20a2b70ebffef9",
+      "signature": ".title { font-weight: 600 }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/vue/basic/source.vue:@scope (.worker) to (.worker-body):97:0",
+      "metadata": {
+        "properties": [
+          "font-weight: 600;"
+        ],
+        "selector": ".title",
+        "type": "css-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vue/basic/source.vue:.worker-button:101:0",
+      "name": ".worker-button",
+      "kind": "property",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "start_line": 101,
+      "start_column": 0,
+      "end_line": 103,
+      "end_column": 1,
+      "start_byte": 1985,
+      "end_byte": 2026,
+      "body_span": {
+        "start_line": 101,
+        "start_column": 15,
+        "end_line": 103,
+        "end_column": 1,
+        "start_byte": 2000,
+        "end_byte": 2026
+      },
+      "body_hash": "0106de115f8c5083a213e4a88ec3240f",
+      "signature": ".worker-button",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "properties": [],
+        "selector": ".worker-button",
+        "type": "css-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/vue/basic/source.vue:.worker:63:0",
       "name": ".worker",
       "kind": "property",
@@ -207,7 +279,7 @@
       "signature": ".worker { padding: 1rem }",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/vue/basic/source.vue:@container (min-width::82:0",
+      "parent_key": "fixtures/extraction/vue/basic/source.vue:@container (min-width: 20rem):82:0",
       "metadata": {
         "properties": [
           "padding: 1rem;"
@@ -258,8 +330,8 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/vue/basic/source.vue:@charset:55:0",
-      "name": "@charset",
+      "key": "fixtures/extraction/vue/basic/source.vue:@charset \"UTF-8\":55:0",
+      "name": "@charset \"UTF-8\"",
       "kind": "variable",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
@@ -277,7 +349,8 @@
       "parent_key": null,
       "metadata": {
         "atRuleType": "charset",
-        "ruleName": "@charset",
+        "prelude": "\"UTF-8\"",
+        "ruleName": "@charset \"UTF-8\"",
         "type": "at-rule"
       },
       "annotations": [],
@@ -286,9 +359,9 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/vue/basic/source.vue:@container (min-width::82:0",
-      "name": "@container (min-width:",
-      "kind": "variable",
+      "key": "fixtures/extraction/vue/basic/source.vue:@container (min-width: 20rem):82:0",
+      "name": "@container (min-width: 20rem)",
+      "kind": "namespace",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
       "start_line": 82,
@@ -311,8 +384,9 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "atRuleType": "container (min-width:",
-        "ruleName": "@container (min-width:",
+        "atRuleType": "container",
+        "prelude": "(min-width: 20rem)",
+        "ruleName": "@container (min-width: 20rem)",
         "type": "at-rule"
       },
       "annotations": [],
@@ -321,9 +395,9 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/vue/basic/source.vue:@font-face:86:0",
-      "name": "@font-face",
-      "kind": "variable",
+      "key": "fixtures/extraction/vue/basic/source.vue:@font-face Worker:86:0",
+      "name": "@font-face Worker",
+      "kind": "namespace",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
       "start_line": 86,
@@ -347,7 +421,8 @@
       "parent_key": null,
       "metadata": {
         "atRuleType": "font-face",
-        "ruleName": "@font-face",
+        "fontFamily": "Worker",
+        "ruleName": "@font-face Worker",
         "type": "at-rule"
       },
       "annotations": [],
@@ -392,7 +467,7 @@
     {
       "key": "fixtures/extraction/vue/basic/source.vue:@layer utilities:91:0",
       "name": "@layer utilities",
-      "kind": "variable",
+      "kind": "namespace",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
       "start_line": 91,
@@ -415,7 +490,8 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "atRuleType": "layer utilities",
+        "atRuleType": "layer",
+        "prelude": "utilities",
         "ruleName": "@layer utilities",
         "type": "at-rule"
       },
@@ -427,7 +503,7 @@
     {
       "key": "fixtures/extraction/vue/basic/source.vue:@media (min-width: 40rem):67:0",
       "name": "@media (min-width: 40rem)",
-      "kind": "variable",
+      "kind": "namespace",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
       "start_line": 67,
@@ -459,9 +535,9 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/vue/basic/source.vue:@namespace:56:0",
-      "name": "@namespace",
-      "kind": "variable",
+      "key": "fixtures/extraction/vue/basic/source.vue:@namespace url(http://www.w3.org/1999/xhtml):56:0",
+      "name": "@namespace url(http://www.w3.org/1999/xhtml)",
+      "kind": "namespace",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
       "start_line": 56,
@@ -485,7 +561,44 @@
       "parent_key": null,
       "metadata": {
         "atRuleType": "namespace",
-        "ruleName": "@namespace",
+        "prelude": "url(http://www.w3.org/1999/xhtml)",
+        "ruleName": "@namespace url(http://www.w3.org/1999/xhtml)",
+        "type": "at-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vue/basic/source.vue:@scope (.worker) to (.worker-body):97:0",
+      "name": "@scope (.worker) to (.worker-body)",
+      "kind": "namespace",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "start_line": 97,
+      "start_column": 0,
+      "end_line": 99,
+      "end_column": 1,
+      "start_byte": 1914,
+      "end_byte": 1983,
+      "body_span": {
+        "start_line": 97,
+        "start_column": 35,
+        "end_line": 99,
+        "end_column": 1,
+        "start_byte": 1949,
+        "end_byte": 1983
+      },
+      "body_hash": "b6d9eac3249de8e69fdc71ec5225945b",
+      "signature": "@scope (.worker) to (.worker-body) {\n  .title { font-weight: 600; }\n}",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "atRuleType": "scope",
+        "prelude": "(.worker) to (.worker-body)",
+        "ruleName": "@scope (.worker) to (.worker-body)",
         "type": "at-rule"
       },
       "annotations": [],
@@ -496,7 +609,7 @@
     {
       "key": "fixtures/extraction/vue/basic/source.vue:@supports (display: grid):78:0",
       "name": "@supports (display: grid)",
-      "kind": "variable",
+      "kind": "namespace",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
       "start_line": 78,
@@ -521,6 +634,35 @@
       "metadata": {
         "condition": "@supports (display: grid)",
         "type": "supports-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vue/basic/source.vue:@tailwind utilities:95:0",
+      "name": "@tailwind utilities",
+      "kind": "namespace",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "start_line": 95,
+      "start_column": 0,
+      "end_line": 95,
+      "end_column": 20,
+      "start_byte": 1892,
+      "end_byte": 1912,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "@tailwind utilities;",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "atRuleType": "tailwind",
+        "prelude": "utilities",
+        "ruleName": "@tailwind utilities",
+        "type": "at-rule"
       },
       "annotations": [],
       "semantic_group": null,
@@ -597,19 +739,19 @@
       "file_path": "fixtures/extraction/vue/basic/source.vue",
       "start_line": 1,
       "start_column": 1,
-      "end_line": 94,
+      "end_line": 104,
       "end_column": 9,
       "start_byte": 0,
-      "end_byte": 1899,
+      "end_byte": 2035,
       "body_span": {
         "start_line": 4,
         "start_column": 8,
-        "end_line": 93,
+        "end_line": 103,
         "end_column": 1,
         "start_byte": 77,
-        "end_byte": 1890
+        "end_byte": 2026
       },
-      "body_hash": "74a85da821756dadc7033654f7917d40",
+      "body_hash": "d8fe889847e7ac7ed84ec041df3be0b9",
       "signature": "<Worker />",
       "doc_comment": "Vue Single File Component: Worker",
       "visibility": "Public",
@@ -1899,6 +2041,54 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/vue/basic/source.vue:px-4:member_access:102:9",
+      "name": "px-4",
+      "kind": "member_access",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "start_line": 102,
+      "start_column": 9,
+      "end_line": 102,
+      "end_column": 13,
+      "start_byte": 2011,
+      "end_byte": 2015,
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:.worker-button:101:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vue/basic/source.vue:rounded:member_access:102:14",
+      "name": "rounded",
+      "kind": "member_access",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "start_line": 102,
+      "start_column": 14,
+      "end_line": 102,
+      "end_column": 21,
+      "start_byte": 2016,
+      "end_byte": 2023,
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:.worker-button:101:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vue/basic/source.vue:title:member_access:98:3",
+      "name": "title",
+      "kind": "member_access",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "start_line": 98,
+      "start_column": 3,
+      "end_line": 98,
+      "end_column": 8,
+      "start_byte": 1954,
+      "end_byte": 1959,
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:.title:98:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/vue/basic/source.vue:title:variable_ref:10:65",
       "name": "title",
       "kind": "variable_ref",
@@ -2006,7 +2196,7 @@
       "end_column": 14,
       "start_byte": 1395,
       "end_byte": 1398,
-      "containing_key": "fixtures/extraction/vue/basic/source.vue:@namespace:56:0",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:@namespace url(http://www.w3.org/1999/xhtml):56:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2022,7 +2212,7 @@
       "end_column": 10,
       "start_byte": 1823,
       "end_byte": 1826,
-      "containing_key": "fixtures/extraction/vue/basic/source.vue:@font-face:86:0",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:@font-face Worker:86:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2039,6 +2229,38 @@
       "start_byte": 1037,
       "end_byte": 1042,
       "containing_key": "fixtures/extraction/vue/basic/source.vue:format:35:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vue/basic/source.vue:worker-body:member_access:97:22",
+      "name": "worker-body",
+      "kind": "member_access",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "start_line": 97,
+      "start_column": 22,
+      "end_line": 97,
+      "end_column": 33,
+      "start_byte": 1936,
+      "end_byte": 1947,
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:@scope (.worker) to (.worker-body):97:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vue/basic/source.vue:worker-button:member_access:101:1",
+      "name": "worker-button",
+      "kind": "member_access",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "start_line": 101,
+      "start_column": 1,
+      "end_line": 101,
+      "end_column": 14,
+      "start_byte": 1986,
+      "end_byte": 1999,
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:.worker-button:101:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2105,6 +2327,22 @@
       "containing_key": "fixtures/extraction/vue/basic/source.vue:.worker:83:2",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vue/basic/source.vue:worker:member_access:97:9",
+      "name": "worker",
+      "kind": "member_access",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "start_line": 97,
+      "start_column": 9,
+      "end_line": 97,
+      "end_column": 15,
+      "start_byte": 1923,
+      "end_byte": 1929,
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:@scope (.worker) to (.worker-body):97:0",
+      "target_key": null,
+      "confidence": "1.000"
     }
   ],
   "types": [
@@ -2119,6 +2357,24 @@
     },
     {
       "symbol_key": "fixtures/extraction/vue/basic/source.vue:.m-0:92:2",
+      "resolved_type": "css-rule",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "vue",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:.title:98:2",
+      "resolved_type": "css-rule",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "vue",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:.worker-button:101:0",
       "resolved_type": "css-rule",
       "generic_params": null,
       "constraints": null,
@@ -2172,7 +2428,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/vue/basic/source.vue:@charset:55:0",
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:@charset \"UTF-8\":55:0",
       "resolved_type": "at-rule",
       "generic_params": null,
       "constraints": null,
@@ -2181,7 +2437,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/vue/basic/source.vue:@container (min-width::82:0",
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:@container (min-width: 20rem):82:0",
       "resolved_type": "at-rule",
       "generic_params": null,
       "constraints": null,
@@ -2190,7 +2446,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/vue/basic/source.vue:@font-face:86:0",
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:@font-face Worker:86:0",
       "resolved_type": "at-rule",
       "generic_params": null,
       "constraints": null,
@@ -2226,7 +2482,16 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/vue/basic/source.vue:@namespace:56:0",
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:@namespace url(http://www.w3.org/1999/xhtml):56:0",
+      "resolved_type": "at-rule",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "vue",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:@scope (.worker) to (.worker-body):97:0",
       "resolved_type": "at-rule",
       "generic_params": null,
       "constraints": null,
@@ -2237,6 +2502,15 @@
     {
       "symbol_key": "fixtures/extraction/vue/basic/source.vue:@supports (display: grid):78:0",
       "resolved_type": "supports-rule",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "vue",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:@tailwind utilities:95:0",
+      "resolved_type": "at-rule",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -2427,7 +2701,7 @@
       "node_kind": "at_rule",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:@container (min-width: 20rem):82:0",
       "start_line": 82,
       "start_column": 0,
       "end_line": 84,
@@ -2467,7 +2741,7 @@
       "node_kind": "at_rule",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:@font-face Worker:86:0",
       "start_line": 86,
       "start_column": 0,
       "end_line": 89,
@@ -2477,6 +2751,7 @@
       "confidence": "1.000",
       "metadata": {
         "at_rule": "@font-face",
+        "font_family": "Worker",
         "pattern_version": 1,
         "query_family": "stylesheet_structure"
       }
@@ -2528,7 +2803,7 @@
       "node_kind": "at_rule",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:@layer utilities:91:0",
       "start_line": 91,
       "start_column": 0,
       "end_line": 93,
@@ -2548,7 +2823,7 @@
       "node_kind": "media_statement",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:@media (min-width: 40rem):67:0",
       "start_line": 67,
       "start_column": 0,
       "end_line": 71,
@@ -2568,7 +2843,7 @@
       "node_kind": "namespace_statement",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:@namespace url(http://www.w3.org/1999/xhtml):56:0",
       "start_line": 56,
       "start_column": 0,
       "end_line": 56,
@@ -2580,6 +2855,27 @@
         "namespace": "url(http://www.w3.org/1999/xhtml)",
         "pattern_version": 1,
         "query_family": "stylesheet_structure"
+      }
+    },
+    {
+      "pattern_id": "css.scope.v1",
+      "capture_name": "scope",
+      "node_kind": "scope_statement",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:@scope (.worker) to (.worker-body):97:0",
+      "start_line": 97,
+      "start_column": 0,
+      "end_line": 99,
+      "end_column": 1,
+      "start_byte": 1914,
+      "end_byte": 1983,
+      "confidence": "1.000",
+      "metadata": {
+        "limit": ".worker-body",
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "root": ".worker"
       }
     },
     {
@@ -2601,6 +2897,50 @@
         "pattern_version": 1,
         "query_family": "stylesheet_structure",
         "selector": ".m-0",
+        "selector_kind": "class"
+      }
+    },
+    {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:.title:98:2",
+      "start_line": 98,
+      "start_column": 2,
+      "end_line": 98,
+      "end_column": 30,
+      "start_byte": 1953,
+      "end_byte": 1981,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 1,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": ".title",
+        "selector_kind": "class"
+      }
+    },
+    {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:.worker-button:101:0",
+      "start_line": 101,
+      "start_column": 0,
+      "end_line": 103,
+      "end_column": 1,
+      "start_byte": 1985,
+      "end_byte": 2026,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 0,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": ".worker-button",
         "selector_kind": "class"
       }
     },
@@ -2720,7 +3060,7 @@
       "node_kind": "supports_statement",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:@supports (display: grid):78:0",
       "start_line": 78,
       "start_column": 0,
       "end_line": 80,
@@ -2732,6 +3072,50 @@
         "condition": "(display: grid)",
         "pattern_version": 1,
         "query_family": "feature_query"
+      }
+    },
+    {
+      "pattern_id": "css.tailwind_apply.v1",
+      "capture_name": "tailwind_apply",
+      "node_kind": "postcss_statement",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:.worker-button:101:0",
+      "start_line": 102,
+      "start_column": 2,
+      "end_line": 102,
+      "end_column": 22,
+      "start_byte": 2004,
+      "end_byte": 2024,
+      "confidence": "1.000",
+      "metadata": {
+        "classes": [
+          "px-4",
+          "rounded"
+        ],
+        "pattern_version": 1,
+        "query_family": "directives"
+      }
+    },
+    {
+      "pattern_id": "css.tailwind_directive.v1",
+      "capture_name": "tailwind_directive",
+      "node_kind": "at_rule",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:@tailwind utilities:95:0",
+      "start_line": 95,
+      "start_column": 0,
+      "end_line": 95,
+      "end_column": 20,
+      "start_byte": 1892,
+      "end_byte": 1912,
+      "confidence": "1.000",
+      "metadata": {
+        "argument": "utilities",
+        "directive": "tailwind",
+        "pattern_version": 1,
+        "query_family": "directives"
       }
     },
     {
@@ -2913,10 +3297,10 @@
       "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
       "start_line": 54,
       "start_column": 0,
-      "end_line": 94,
+      "end_line": 104,
       "end_column": 8,
       "start_byte": 1351,
-      "end_byte": 1899,
+      "end_byte": 2035,
       "confidence": "1.000",
       "metadata": {
         "pattern_version": 1,
@@ -3154,7 +3538,7 @@
       "end_column": 26,
       "start_byte": 1827,
       "end_byte": 1842,
-      "containing_key": "fixtures/extraction/vue/basic/source.vue:@font-face:86:0",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:@font-face Worker:86:0",
       "confidence": "1.000"
     },
     {
@@ -3171,6 +3555,22 @@
       "start_byte": 692,
       "end_byte": 700,
       "containing_key": "fixtures/extraction/vue/basic/source.vue:title:23:6",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "http://www.w3.org/1999/xhtml",
+      "kind": "other",
+      "carrier": "url",
+      "arg_position": 0,
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "start_line": 56,
+      "start_column": 15,
+      "end_line": 56,
+      "end_column": 43,
+      "start_byte": 1399,
+      "end_byte": 1427,
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:@namespace url(http://www.w3.org/1999/xhtml):56:0",
       "confidence": "1.000"
     },
     {
@@ -3217,10 +3617,10 @@
       "containing_key": null,
       "start_line": 54,
       "start_column": 0,
-      "end_line": 94,
+      "end_line": 104,
       "end_column": 8,
       "start_byte": 1351,
-      "end_byte": 1899,
+      "end_byte": 2035,
       "metadata": {
         "embedded_language": "css",
         "host_node_kind": "style_element",
@@ -3232,7 +3632,7 @@
       "kind": "string_literal",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "containing_key": "fixtures/extraction/vue/basic/source.vue:@charset:55:0",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:@charset \"UTF-8\":55:0",
       "start_line": 55,
       "start_column": 9,
       "end_line": 55,
@@ -3245,7 +3645,7 @@
       "kind": "string_literal",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "containing_key": "fixtures/extraction/vue/basic/source.vue:@font-face:86:0",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:@font-face Worker:86:0",
       "start_line": 87,
       "start_column": 15,
       "end_line": 87,
@@ -3258,7 +3658,7 @@
       "kind": "string_literal",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "containing_key": "fixtures/extraction/vue/basic/source.vue:@font-face:86:0",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:@font-face Worker:86:0",
       "start_line": 88,
       "start_column": 11,
       "end_line": 88,

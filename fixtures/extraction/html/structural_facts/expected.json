@@ -36,6 +36,41 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/html/structural_facts/source.html:.btn-primary:43:0",
+      "name": ".btn-primary",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "start_line": 43,
+      "start_column": 0,
+      "end_line": 43,
+      "end_column": 37,
+      "start_byte": 1465,
+      "end_byte": 1502,
+      "body_span": {
+        "start_line": 43,
+        "start_column": 13,
+        "end_line": 43,
+        "end_column": 37,
+        "start_byte": 1478,
+        "end_byte": 1502
+      },
+      "body_hash": "0106de115f8c5083a213e4a88ec3240f",
+      "signature": ".btn-primary",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "properties": [],
+        "selector": ".btn-primary",
+        "type": "css-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/html/structural_facts/source.html:.btn:34:0",
       "name": ".btn",
       "kind": "property",
@@ -96,7 +131,7 @@
       "signature": ".card { color: red }",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/html/structural_facts/source.html:@container (min-width::38:0",
+      "parent_key": "fixtures/extraction/html/structural_facts/source.html:@container (min-width: 20rem):38:0",
       "metadata": {
         "properties": [
           "color: red;"
@@ -184,6 +219,43 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/html/structural_facts/source.html:.title:42:33",
+      "name": ".title",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "start_line": 42,
+      "start_column": 33,
+      "end_line": 42,
+      "end_column": 61,
+      "start_byte": 1434,
+      "end_byte": 1462,
+      "body_span": {
+        "start_line": 42,
+        "start_column": 40,
+        "end_line": 42,
+        "end_column": 61,
+        "start_byte": 1441,
+        "end_byte": 1462
+      },
+      "body_hash": "4a18dfb9e1da0f4e1f20a2b70ebffef9",
+      "signature": ".title { font-weight: 600 }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/html/structural_facts/source.html:@scope (.card) to (.card-body):42:0",
+      "metadata": {
+        "properties": [
+          "font-weight: 600;"
+        ],
+        "selector": ".title",
+        "type": "css-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/html/structural_facts/source.html:.wide:35:28",
       "name": ".wide",
       "kind": "property",
@@ -258,8 +330,8 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/html/structural_facts/source.html:@charset:30:0",
-      "name": "@charset",
+      "key": "fixtures/extraction/html/structural_facts/source.html:@charset \"UTF-8\":30:0",
+      "name": "@charset \"UTF-8\"",
       "kind": "variable",
       "language": "css",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
@@ -277,7 +349,8 @@
       "parent_key": null,
       "metadata": {
         "atRuleType": "charset",
-        "ruleName": "@charset",
+        "prelude": "\"UTF-8\"",
+        "ruleName": "@charset \"UTF-8\"",
         "type": "at-rule"
       },
       "annotations": [],
@@ -286,9 +359,9 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/html/structural_facts/source.html:@container (min-width::38:0",
-      "name": "@container (min-width:",
-      "kind": "variable",
+      "key": "fixtures/extraction/html/structural_facts/source.html:@container (min-width: 20rem):38:0",
+      "name": "@container (min-width: 20rem)",
+      "kind": "namespace",
       "language": "css",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
       "start_line": 38,
@@ -311,8 +384,9 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "atRuleType": "container (min-width:",
-        "ruleName": "@container (min-width:",
+        "atRuleType": "container",
+        "prelude": "(min-width: 20rem)",
+        "ruleName": "@container (min-width: 20rem)",
         "type": "at-rule"
       },
       "annotations": [],
@@ -321,9 +395,9 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/html/structural_facts/source.html:@font-face:39:0",
-      "name": "@font-face",
-      "kind": "variable",
+      "key": "fixtures/extraction/html/structural_facts/source.html:@font-face Worker:39:0",
+      "name": "@font-face Worker",
+      "kind": "namespace",
       "language": "css",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
       "start_line": 39,
@@ -347,7 +421,8 @@
       "parent_key": null,
       "metadata": {
         "atRuleType": "font-face",
-        "ruleName": "@font-face",
+        "fontFamily": "Worker",
+        "ruleName": "@font-face Worker",
         "type": "at-rule"
       },
       "annotations": [],
@@ -392,7 +467,7 @@
     {
       "key": "fixtures/extraction/html/structural_facts/source.html:@layer utilities:40:0",
       "name": "@layer utilities",
-      "kind": "variable",
+      "kind": "namespace",
       "language": "css",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
       "start_line": 40,
@@ -415,7 +490,8 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "atRuleType": "layer utilities",
+        "atRuleType": "layer",
+        "prelude": "utilities",
         "ruleName": "@layer utilities",
         "type": "at-rule"
       },
@@ -427,7 +503,7 @@
     {
       "key": "fixtures/extraction/html/structural_facts/source.html:@media (min-width: 40rem):35:0",
       "name": "@media (min-width: 40rem)",
-      "kind": "variable",
+      "kind": "namespace",
       "language": "css",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
       "start_line": 35,
@@ -459,9 +535,9 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/html/structural_facts/source.html:@namespace:31:0",
-      "name": "@namespace",
-      "kind": "variable",
+      "key": "fixtures/extraction/html/structural_facts/source.html:@namespace url(http://www.w3.org/1999/xhtml):31:0",
+      "name": "@namespace url(http://www.w3.org/1999/xhtml)",
+      "kind": "namespace",
       "language": "css",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
       "start_line": 31,
@@ -485,7 +561,44 @@
       "parent_key": null,
       "metadata": {
         "atRuleType": "namespace",
-        "ruleName": "@namespace",
+        "prelude": "url(http://www.w3.org/1999/xhtml)",
+        "ruleName": "@namespace url(http://www.w3.org/1999/xhtml)",
+        "type": "at-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/html/structural_facts/source.html:@scope (.card) to (.card-body):42:0",
+      "name": "@scope (.card) to (.card-body)",
+      "kind": "namespace",
+      "language": "css",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "start_line": 42,
+      "start_column": 0,
+      "end_line": 42,
+      "end_column": 63,
+      "start_byte": 1401,
+      "end_byte": 1464,
+      "body_span": {
+        "start_line": 42,
+        "start_column": 31,
+        "end_line": 42,
+        "end_column": 63,
+        "start_byte": 1432,
+        "end_byte": 1464
+      },
+      "body_hash": "b6d9eac3249de8e69fdc71ec5225945b",
+      "signature": "@scope (.card) to (.card-body) { .title { font-weight: 600; } }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "atRuleType": "scope",
+        "prelude": "(.card) to (.card-body)",
+        "ruleName": "@scope (.card) to (.card-body)",
         "type": "at-rule"
       },
       "annotations": [],
@@ -496,7 +609,7 @@
     {
       "key": "fixtures/extraction/html/structural_facts/source.html:@supports (display: grid):37:0",
       "name": "@supports (display: grid)",
-      "kind": "variable",
+      "kind": "namespace",
       "language": "css",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
       "start_line": 37,
@@ -521,6 +634,35 @@
       "metadata": {
         "condition": "@supports (display: grid)",
         "type": "supports-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/html/structural_facts/source.html:@tailwind utilities:41:0",
+      "name": "@tailwind utilities",
+      "kind": "namespace",
+      "language": "css",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "start_line": 41,
+      "start_column": 0,
+      "end_line": 41,
+      "end_column": 20,
+      "start_byte": 1380,
+      "end_byte": 1400,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "@tailwind utilities;",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "atRuleType": "tailwind",
+        "prelude": "utilities",
+        "ruleName": "@tailwind utilities",
+        "type": "at-rule"
       },
       "annotations": [],
       "semantic_group": null,
@@ -1031,19 +1173,19 @@
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
       "start_line": 29,
       "start_column": 0,
-      "end_line": 41,
+      "end_line": 44,
       "end_column": 8,
       "start_byte": 887,
-      "end_byte": 1388,
+      "end_byte": 1511,
       "body_span": {
         "start_line": 33,
         "start_column": 6,
-        "end_line": 40,
-        "end_column": 40,
+        "end_line": 43,
+        "end_column": 37,
         "start_byte": 993,
-        "end_byte": 1379
+        "end_byte": 1502
       },
-      "body_hash": "00136d670426b4831c0fff4a2a93620a",
+      "body_hash": "93856180373fa8309c9034817e648d83",
       "signature": "<style>@charset \"UTF-8\";\n@namespace url(http://www.w3.org/1999/xhtml);\n@import \"theme.css\" screen;\n:root { ...",
       "doc_comment": null,
       "visibility": "Public",
@@ -1281,6 +1423,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/html/structural_facts/source.html:btn-primary:member_access:43:1",
+      "name": "btn-primary",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "start_line": 43,
+      "start_column": 1,
+      "end_line": 43,
+      "end_column": 12,
+      "start_byte": 1466,
+      "end_byte": 1477,
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:.btn-primary:43:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/html/structural_facts/source.html:btn:member_access:34:1",
       "name": "btn",
       "kind": "member_access",
@@ -1297,6 +1455,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/html/structural_facts/source.html:card-body:member_access:42:20",
+      "name": "card-body",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "start_line": 42,
+      "start_column": 20,
+      "end_line": 42,
+      "end_column": 29,
+      "start_byte": 1421,
+      "end_byte": 1430,
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@scope (.card) to (.card-body):42:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/html/structural_facts/source.html:card:member_access:38:33",
       "name": "card",
       "kind": "member_access",
@@ -1309,6 +1483,22 @@
       "start_byte": 1251,
       "end_byte": 1255,
       "containing_key": "fixtures/extraction/html/structural_facts/source.html:.card:38:32",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/html/structural_facts/source.html:card:member_access:42:9",
+      "name": "card",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "start_line": 42,
+      "start_column": 9,
+      "end_line": 42,
+      "end_column": 13,
+      "start_byte": 1410,
+      "end_byte": 1414,
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@scope (.card) to (.card-body):42:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1393,6 +1583,54 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/html/structural_facts/source.html:px-4:member_access:43:22",
+      "name": "px-4",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "start_line": 43,
+      "start_column": 22,
+      "end_line": 43,
+      "end_column": 26,
+      "start_byte": 1487,
+      "end_byte": 1491,
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:.btn-primary:43:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/html/structural_facts/source.html:rounded:member_access:43:27",
+      "name": "rounded",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "start_line": 43,
+      "start_column": 27,
+      "end_line": 43,
+      "end_column": 34,
+      "start_byte": 1492,
+      "end_byte": 1499,
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:.btn-primary:43:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/html/structural_facts/source.html:title:member_access:42:34",
+      "name": "title",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "start_line": 42,
+      "start_column": 34,
+      "end_line": 42,
+      "end_column": 39,
+      "start_byte": 1435,
+      "end_byte": 1440,
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:.title:42:33",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/html/structural_facts/source.html:todo-form:member_access:22:44",
       "name": "todo-form",
       "kind": "member_access",
@@ -1436,7 +1674,7 @@
       "end_column": 14,
       "start_byte": 924,
       "end_byte": 927,
-      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@namespace:31:0",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@namespace url(http://www.w3.org/1999/xhtml):31:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1452,7 +1690,7 @@
       "end_column": 44,
       "start_byte": 1315,
       "end_byte": 1318,
-      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@font-face:39:0",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@font-face Worker:39:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1500,6 +1738,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/html/structural_facts/source.html:.btn-primary:43:0",
+      "resolved_type": "css-rule",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "html",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/html/structural_facts/source.html:.btn:34:0",
       "resolved_type": "css-rule",
       "generic_params": null,
@@ -1536,6 +1783,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/html/structural_facts/source.html:.title:42:33",
+      "resolved_type": "css-rule",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "html",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/html/structural_facts/source.html:.wide:35:28",
       "resolved_type": "css-rule",
       "generic_params": null,
@@ -1554,7 +1810,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/html/structural_facts/source.html:@charset:30:0",
+      "symbol_key": "fixtures/extraction/html/structural_facts/source.html:@charset \"UTF-8\":30:0",
       "resolved_type": "at-rule",
       "generic_params": null,
       "constraints": null,
@@ -1563,7 +1819,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/html/structural_facts/source.html:@container (min-width::38:0",
+      "symbol_key": "fixtures/extraction/html/structural_facts/source.html:@container (min-width: 20rem):38:0",
       "resolved_type": "at-rule",
       "generic_params": null,
       "constraints": null,
@@ -1572,7 +1828,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/html/structural_facts/source.html:@font-face:39:0",
+      "symbol_key": "fixtures/extraction/html/structural_facts/source.html:@font-face Worker:39:0",
       "resolved_type": "at-rule",
       "generic_params": null,
       "constraints": null,
@@ -1608,7 +1864,16 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/html/structural_facts/source.html:@namespace:31:0",
+      "symbol_key": "fixtures/extraction/html/structural_facts/source.html:@namespace url(http://www.w3.org/1999/xhtml):31:0",
+      "resolved_type": "at-rule",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "html",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/html/structural_facts/source.html:@scope (.card) to (.card-body):42:0",
       "resolved_type": "at-rule",
       "generic_params": null,
       "constraints": null,
@@ -1619,6 +1884,15 @@
     {
       "symbol_key": "fixtures/extraction/html/structural_facts/source.html:@supports (display: grid):37:0",
       "resolved_type": "supports-rule",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "html",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/html/structural_facts/source.html:@tailwind utilities:41:0",
+      "resolved_type": "at-rule",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -1872,7 +2146,7 @@
       "node_kind": "at_rule",
       "language": "html",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@container (min-width: 20rem):38:0",
       "start_line": 38,
       "start_column": 0,
       "end_line": 38,
@@ -1912,7 +2186,7 @@
       "node_kind": "at_rule",
       "language": "html",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@font-face Worker:39:0",
       "start_line": 39,
       "start_column": 0,
       "end_line": 39,
@@ -1922,6 +2196,7 @@
       "confidence": "1.000",
       "metadata": {
         "at_rule": "@font-face",
+        "font_family": "Worker",
         "pattern_version": 1,
         "query_family": "stylesheet_structure"
       }
@@ -1973,7 +2248,7 @@
       "node_kind": "at_rule",
       "language": "html",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@layer utilities:40:0",
       "start_line": 40,
       "start_column": 0,
       "end_line": 40,
@@ -1993,7 +2268,7 @@
       "node_kind": "media_statement",
       "language": "html",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@media (min-width: 40rem):35:0",
       "start_line": 35,
       "start_column": 0,
       "end_line": 35,
@@ -2013,7 +2288,7 @@
       "node_kind": "namespace_statement",
       "language": "html",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@namespace url(http://www.w3.org/1999/xhtml):31:0",
       "start_line": 31,
       "start_column": 0,
       "end_line": 31,
@@ -2025,6 +2300,49 @@
         "namespace": "url(http://www.w3.org/1999/xhtml)",
         "pattern_version": 1,
         "query_family": "stylesheet_structure"
+      }
+    },
+    {
+      "pattern_id": "css.scope.v1",
+      "capture_name": "scope",
+      "node_kind": "scope_statement",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@scope (.card) to (.card-body):42:0",
+      "start_line": 42,
+      "start_column": 0,
+      "end_line": 42,
+      "end_column": 63,
+      "start_byte": 1401,
+      "end_byte": 1464,
+      "confidence": "1.000",
+      "metadata": {
+        "limit": ".card-body",
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "root": ".card"
+      }
+    },
+    {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:.btn-primary:43:0",
+      "start_line": 43,
+      "start_column": 0,
+      "end_line": 43,
+      "end_column": 37,
+      "start_byte": 1465,
+      "end_byte": 1502,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 0,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": ".btn-primary",
+        "selector_kind": "class"
       }
     },
     {
@@ -2121,6 +2439,28 @@
       "node_kind": "rule_set",
       "language": "html",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:.title:42:33",
+      "start_line": 42,
+      "start_column": 33,
+      "end_line": 42,
+      "end_column": 61,
+      "start_byte": 1434,
+      "end_byte": 1462,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 1,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": ".title",
+        "selector_kind": "class"
+      }
+    },
+    {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
       "containing_key": "fixtures/extraction/html/structural_facts/source.html:.wide:35:28",
       "start_line": 35,
       "start_column": 28,
@@ -2165,7 +2505,7 @@
       "node_kind": "supports_statement",
       "language": "html",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@supports (display: grid):37:0",
       "start_line": 37,
       "start_column": 0,
       "end_line": 37,
@@ -2177,6 +2517,50 @@
         "condition": "(display: grid)",
         "pattern_version": 1,
         "query_family": "feature_query"
+      }
+    },
+    {
+      "pattern_id": "css.tailwind_apply.v1",
+      "capture_name": "tailwind_apply",
+      "node_kind": "postcss_statement",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:.btn-primary:43:0",
+      "start_line": 43,
+      "start_column": 15,
+      "end_line": 43,
+      "end_column": 35,
+      "start_byte": 1480,
+      "end_byte": 1500,
+      "confidence": "1.000",
+      "metadata": {
+        "classes": [
+          "px-4",
+          "rounded"
+        ],
+        "pattern_version": 1,
+        "query_family": "directives"
+      }
+    },
+    {
+      "pattern_id": "css.tailwind_directive.v1",
+      "capture_name": "tailwind_directive",
+      "node_kind": "at_rule",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@tailwind utilities:41:0",
+      "start_line": 41,
+      "start_column": 0,
+      "end_line": 41,
+      "end_column": 20,
+      "start_byte": 1380,
+      "end_byte": 1400,
+      "confidence": "1.000",
+      "metadata": {
+        "argument": "utilities",
+        "directive": "tailwind",
+        "pattern_version": 1,
+        "query_family": "directives"
       }
     },
     {
@@ -2711,7 +3095,7 @@
       "end_column": 60,
       "start_byte": 1319,
       "end_byte": 1334,
-      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@font-face:39:0",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@font-face Worker:39:0",
       "confidence": "1.000"
     },
     {
@@ -2824,6 +3208,22 @@
       "start_byte": 13,
       "end_byte": 21,
       "containing_key": "fixtures/extraction/html/structural_facts/source.html:header:1:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "http://www.w3.org/1999/xhtml",
+      "kind": "other",
+      "carrier": "url",
+      "arg_position": 0,
+      "language": "css",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "start_line": 31,
+      "start_column": 15,
+      "end_line": 31,
+      "end_column": 43,
+      "start_byte": 928,
+      "end_byte": 956,
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@namespace url(http://www.w3.org/1999/xhtml):31:0",
       "confidence": "1.000"
     },
     {
@@ -3075,10 +3475,10 @@
       "containing_key": null,
       "start_line": 29,
       "start_column": 0,
-      "end_line": 41,
+      "end_line": 44,
       "end_column": 8,
       "start_byte": 887,
-      "end_byte": 1388,
+      "end_byte": 1511,
       "metadata": {
         "embedded_language": "css",
         "host_node_kind": "style_element",
@@ -3089,7 +3489,7 @@
       "kind": "string_literal",
       "language": "css",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
-      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@charset:30:0",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@charset \"UTF-8\":30:0",
       "start_line": 30,
       "start_column": 9,
       "end_line": 30,
@@ -3102,7 +3502,7 @@
       "kind": "string_literal",
       "language": "css",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
-      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@font-face:39:0",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@font-face Worker:39:0",
       "start_line": 39,
       "start_column": 26,
       "end_line": 39,
@@ -3115,7 +3515,7 @@
       "kind": "string_literal",
       "language": "css",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
-      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@font-face:39:0",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:@font-face Worker:39:0",
       "start_line": 39,
       "start_column": 45,
       "end_line": 39,

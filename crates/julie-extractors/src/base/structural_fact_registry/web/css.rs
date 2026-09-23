@@ -5,7 +5,7 @@
 //! [`super::super::structural_fact_pattern_specs`].
 
 use super::super::{
-    ALWAYS, K_PATTERN_VERSION, K_QUERY_FAMILY, NUM, OPT, STR, StructuralFactPatternSpec, key,
+    ALWAYS, ARR, K_PATTERN_VERSION, K_QUERY_FAMILY, NUM, OPT, STR, StructuralFactPatternSpec, key,
 };
 
 pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
@@ -27,13 +27,13 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "selector_kind",
                 STR,
                 ALWAYS,
-                "Coarse selector classification (class/id/pseudo/selector_list/compound).",
+                "Coarse selector classification (class/id/pseudo/type/selector_list/compound).",
             ),
             key(
                 "declaration_count",
                 NUM,
                 ALWAYS,
-                "Count of declarations inside the rule block.",
+                "Count of declarations directly inside the rule block; nested rules are not counted.",
             ),
         ],
     },
@@ -131,6 +131,12 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 ALWAYS,
                 "The at-rule keyword (\"@font-face\").",
             ),
+            key(
+                "font_family",
+                STR,
+                OPT,
+                "The unquoted `font-family` descriptor, when present.",
+            ),
         ],
     },
     StructuralFactPatternSpec {
@@ -200,6 +206,61 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 STR,
                 OPT,
                 "Media, supports, or layer conditions after the target, when present.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "css.scope.v1",
+        languages: &["css", "vue", "html"],
+        query_family: "stylesheet_structure",
+        description: "A CSS `@scope` rule.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key("root", STR, OPT, "The scoping root selector, when present."),
+            key(
+                "limit",
+                STR,
+                OPT,
+                "The scoping limit selector after `to`, when present.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "css.tailwind_apply.v1",
+        languages: &["css", "vue", "html"],
+        query_family: "directives",
+        description: "A Tailwind CSS `@apply` of utility or component classes.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "classes",
+                ARR,
+                ALWAYS,
+                "The applied class names in source order.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "css.tailwind_directive.v1",
+        languages: &["css", "vue", "html"],
+        query_family: "directives",
+        description: "A Tailwind CSS at-rule directive such as `@tailwind`, `@utility`, or `@theme`.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "directive",
+                STR,
+                ALWAYS,
+                "The directive keyword without `@` (`tailwind`, `utility`, `theme`).",
+            ),
+            key(
+                "argument",
+                STR,
+                OPT,
+                "The directive prelude (`base`, a utility name), when present.",
             ),
         ],
     },

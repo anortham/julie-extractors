@@ -38,4 +38,7 @@
 @container (min-width: 20rem) { .card { color: red; } }
 @font-face { font-family: "Worker"; src: url("/worker.woff2"); }
 @layer utilities { .m-0 { margin: 0; } }
+@tailwind utilities;
+@scope (.card) to (.card-body) { .title { font-weight: 600; } }
+.btn-primary { @apply px-4 rounded; }
 </style>

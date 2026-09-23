@@ -19,33 +19,44 @@ impl AtRuleExtractor {
         if node.kind() == "import_statement" {
             return Self::extract_import(base, node, parent_id);
         }
-        let rule_name = Self::extract_at_rule_name(base, &node)?;
+        let keyword = at_rule_keyword(base, node)?;
+        let prelude = at_rule_prelude(&base.content, node);
+        let font_family = (keyword.eq_ignore_ascii_case("@font-face"))
+            .then(|| font_face_family(&base.content, node))
+            .flatten();
+        let rule_name = match prelude.as_deref().or(font_family.as_deref()) {
+            Some(detail) => format!("{keyword} {detail}"),
+            None => keyword.clone(),
+        };
         let signature = base.get_node_text(&node);
-
-        // Determine symbol kind based on at-rule type - match reference logic
-        let symbol_kind = if rule_name == "@keyframes" {
-            SymbolKind::Function // Animations as functions
-        } else if rule_name == "@import" {
-            SymbolKind::Import
-        } else {
+        let is_registration = keyword.eq_ignore_ascii_case("@property");
+        let symbol_kind = if is_registration {
+            SymbolKind::Property
+        } else if node.kind() == "charset_statement" {
             SymbolKind::Variable
+        } else {
+            SymbolKind::Namespace
         };
 
-        // Create metadata
         let mut metadata = HashMap::new();
-        metadata.insert(
-            "type".to_string(),
-            serde_json::Value::String("at-rule".to_string()),
-        );
-        metadata.insert(
-            "ruleName".to_string(),
-            serde_json::Value::String(rule_name.clone()),
-        );
-        let at_rule_type = rule_name.strip_prefix('@').unwrap_or(&rule_name);
-        metadata.insert(
-            "atRuleType".to_string(),
-            serde_json::Value::String(at_rule_type.to_string()),
-        );
+        let mut insert = |key: &str, value: &str| {
+            metadata.insert(
+                key.to_string(),
+                serde_json::Value::String(value.to_string()),
+            );
+        };
+        insert("type", "at-rule");
+        insert("ruleName", &rule_name);
+        insert("atRuleType", keyword.strip_prefix('@').unwrap_or(&keyword));
+        if let Some(prelude) = prelude.as_deref() {
+            insert("prelude", prelude);
+            if is_registration {
+                insert("property", prelude);
+            }
+        }
+        if let Some(font_family) = font_family.as_deref() {
+            insert("fontFamily", font_family);
+        }
 
         // Extract CSS comment
         let doc_comment = base.find_doc_comment(&node);
@@ -120,36 +131,62 @@ impl AtRuleExtractor {
         ));
         Some(symbol)
     }
-
-    /// Extract at-rule name - port of extractAtRuleName
-    pub(super) fn extract_at_rule_name(base: &BaseExtractor, node: &Node) -> Option<String> {
-        let full_text = base.get_node_text(node);
-        if let Some(name) = modern_at_rule_name(&full_text) {
-            return Some(name);
-        }
-
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            if child.kind() == "at_keyword" {
-                return Some(base.get_node_text(&child));
-            }
-            let text = base.get_node_text(&child);
-            if text.starts_with('@') {
-                return Some(text.split_whitespace().next()?.to_string());
-            }
-        }
-        None
-    }
 }
 
-fn modern_at_rule_name(text: &str) -> Option<String> {
-    let mut parts = text.split_whitespace();
-    let rule = parts.next()?;
-    if !matches!(rule, "@layer" | "@container" | "@property") {
-        return None;
-    }
-    let name = parts.next()?.trim_end_matches('{');
-    Some(format!("{} {}", rule, name))
+/// The at-keyword (`@layer`, `@scope`, `@charset`) that opens an at-rule node.
+pub(super) fn at_rule_keyword(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .map(|child| base.get_node_text(&child))
+        .find(|text| text.starts_with('@'))
+}
+
+/// The whitespace-collapsed text between the at-keyword and the block or `;`.
+pub(super) fn at_rule_prelude(content: &str, node: Node) -> Option<String> {
+    let mut cursor = node.walk();
+    let children: Vec<Node> = node.children(&mut cursor).collect();
+    let keyword_end = children.iter().position(|child| {
+        content
+            .get(child.byte_range())
+            .is_some_and(|t| t.starts_with('@'))
+    })?;
+    let rest: Vec<&Node> = children[keyword_end + 1..]
+        .iter()
+        .take_while(|child| child.kind() != "block" && child.kind() != ";")
+        .collect();
+    let (first, last) = (rest.first()?, rest.last()?);
+    let text = content.get(first.start_byte()..last.end_byte())?;
+    let collapsed = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    (!collapsed.is_empty()).then_some(collapsed)
+}
+
+/// The unquoted `font-family` descriptor of an `@font-face` block.
+pub(crate) fn font_face_family(content: &str, node: Node) -> Option<String> {
+    let block = child_of_kind(node, "block")?;
+    let mut cursor = block.walk();
+    let declaration = block.named_children(&mut cursor).find(|child| {
+        child.kind() == "declaration"
+            && child_of_kind(*child, "property_name")
+                .and_then(|name| content.get(name.byte_range()))
+                .is_some_and(|name| name.eq_ignore_ascii_case("font-family"))
+    })?;
+    let name = child_of_kind(declaration, "property_name")?;
+    let value = content
+        .get(name.end_byte()..declaration.end_byte())?
+        .trim_start()
+        .trim_start_matches(':')
+        .trim()
+        .trim_end_matches(';')
+        .trim()
+        .trim_matches(|c| c == '"' || c == '\'')
+        .to_string();
+    (!value.is_empty()).then_some(value)
+}
+
+fn child_of_kind<'t>(node: Node<'t>, kind: &str) -> Option<Node<'t>> {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .find(|child| child.kind() == kind)
 }
 
 /// The unquoted `@import` path (a string, or `url(...)` holding a string or a

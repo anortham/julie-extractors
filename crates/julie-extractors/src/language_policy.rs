@@ -17,6 +17,7 @@ const EMBEDDED_LITERAL_CARRIER_POLICIES: &[(&str, &str)] = &[
     ("bash", include_str!("../../../languages/bash.toml")),
     ("c", include_str!("../../../languages/c.toml")),
     ("cpp", include_str!("../../../languages/cpp.toml")),
+    ("css", include_str!("../../../languages/css.toml")),
     ("csharp", include_str!("../../../languages/csharp.toml")),
     ("dart", include_str!("../../../languages/dart.toml")),
     ("elixir", include_str!("../../../languages/elixir.toml")),

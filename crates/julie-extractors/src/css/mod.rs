@@ -25,7 +25,7 @@ use properties::PropertyExtractor;
 use rules::RuleExtractor;
 use tree_sitter::Tree;
 
-pub(crate) use at_rules::import_target;
+pub(crate) use at_rules::{font_face_family, import_target};
 
 pub struct CSSExtractor {
     pub(crate) base: BaseExtractor,
@@ -72,7 +72,11 @@ impl CSSExtractor {
                     symbols.push(rule_symbol);
                 }
             }
-            "at_rule" | "import_statement" | "charset_statement" | "namespace_statement" => {
+            "at_rule"
+            | "import_statement"
+            | "charset_statement"
+            | "namespace_statement"
+            | "scope_statement" => {
                 if let Some(at_rule_symbol) = AtRuleExtractor::extract_at_rule(
                     &mut self.base,
                     node,

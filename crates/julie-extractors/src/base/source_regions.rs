@@ -64,7 +64,7 @@ pub fn collect_source_regions(
         &mut regions,
         0,
     );
-    attach_containing_symbols(&mut regions, symbols);
+    attach_containing_symbols(&mut regions, symbols, content);
     regions.sort_by(|left, right| {
         left.start_byte
             .cmp(&right.start_byte)
@@ -185,9 +185,13 @@ fn region_for_node(
     }
 }
 
-fn attach_containing_symbols(regions: &mut [SourceRegion], symbols: &[Symbol]) {
+fn attach_containing_symbols(regions: &mut [SourceRegion], symbols: &[Symbol], content: &str) {
     for region in regions {
         region.containing_symbol_id = match region.kind {
+            SourceRegionKind::DocComment if documents_by_adjacency(&region.language) => {
+                adjacent_documented_symbol_id(region, symbols, content)
+                    .or_else(|| containing_symbol_id(region, symbols))
+            }
             SourceRegionKind::DocComment => documented_symbol_id(region, symbols),
             SourceRegionKind::Comment | SourceRegionKind::StringLiteral => {
                 containing_symbol_id(region, symbols)
@@ -212,6 +216,32 @@ fn documented_symbol_id(region: &SourceRegion, symbols: &[Symbol]) -> Option<Str
         .iter()
         .filter(|symbol| symbol.doc_comment.is_some())
         .filter(|symbol| symbol.start_byte >= region.end_byte)
+        .min_by_key(|symbol| symbol.start_byte.saturating_sub(region.end_byte))
+        .map(|symbol| symbol.id.clone())
+}
+
+/// Languages whose doc-comment regions bind only to the symbol whose
+/// `doc_comment` holds that comment; any other doc comment is a plain comment
+/// of its enclosing symbol.
+fn documents_by_adjacency(language: &str) -> bool {
+    matches!(language, "css")
+}
+
+fn adjacent_documented_symbol_id(
+    region: &SourceRegion,
+    symbols: &[Symbol],
+    content: &str,
+) -> Option<String> {
+    let text = content.get(region.start_byte as usize..region.end_byte as usize)?;
+    symbols
+        .iter()
+        .filter(|symbol| symbol.start_byte >= region.end_byte)
+        .filter(|symbol| {
+            symbol
+                .doc_comment
+                .as_deref()
+                .is_some_and(|doc| doc.contains(text.trim()))
+        })
         .min_by_key(|symbol| symbol.start_byte.saturating_sub(region.end_byte))
         .map(|symbol| symbol.id.clone())
 }
