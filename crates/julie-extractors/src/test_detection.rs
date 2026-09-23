@@ -466,12 +466,21 @@ fn detect_java_kotlin(annotation_keys: &[String]) -> bool {
 
 fn dotnet_test_lifecycle_direction(annotation: &str) -> TestLifecycleDirection {
     match annotation {
-        "setup" | "onetimesetup" | "testinitialize" | "classinitialize" | "assemblyinitialize" => {
-            TestLifecycleDirection::Setup
-        }
-        "teardown" | "onetimeteardown" | "testcleanup" | "classcleanup" | "assemblycleanup" => {
-            TestLifecycleDirection::Teardown
-        }
+        "setup"
+        | "onetimesetup"
+        | "testinitialize"
+        | "classinitialize"
+        | "assemblyinitialize"
+        | "before"
+        | "beforeevery"
+        | "beforescenario"
+        | "beforefeature"
+        | "beforetestrun"
+        | "beforestep"
+        | "beforescenarioblock" => TestLifecycleDirection::Setup,
+        "teardown" | "onetimeteardown" | "testcleanup" | "classcleanup" | "assemblycleanup"
+        | "after" | "afterevery" | "afterscenario" | "afterfeature" | "aftertestrun"
+        | "afterstep" | "afterscenarioblock" => TestLifecycleDirection::Teardown,
         _ => TestLifecycleDirection::None,
     }
 }
@@ -493,7 +502,14 @@ fn is_dotnet_test_case_annotation(annotation: &str) -> bool {
 fn is_dotnet_parameterized_test_annotation(annotation: &str) -> bool {
     matches!(
         annotation,
-        "theory" | "datatestmethod" | "testcase" | "testcasesource"
+        "theory"
+            | "datatestmethod"
+            | "testcase"
+            | "testcasesource"
+            | "arguments"
+            | "methoddatasource"
+            | "classdatasource"
+            | "matrixdatasource"
     )
 }
 
@@ -505,7 +521,12 @@ fn is_dotnet_parameterized_test_annotation(annotation: &str) -> bool {
 fn is_dotnet_container_annotation(annotation: &str) -> bool {
     matches!(
         annotation,
-        "testfixture" | "testclass" | "collectiondefinition" | "setupfixture" | "testfixturesource"
+        "testfixture"
+            | "testclass"
+            | "collectiondefinition"
+            | "setupfixture"
+            | "testfixturesource"
+            | "binding"
     )
 }
 
@@ -711,6 +732,50 @@ fn qml_test_role(name: &str) -> Option<TestRole> {
         return Some(TestRole::TestCase);
     }
     None
+}
+
+/// Machine.Specifications contexts: a class whose fields are `It`,
+/// `Establish`, `Because`, or `Cleanup` delegates is a test container, and
+/// the lambda each field holds is a case (`It`) or a fixture hook.
+/// `field_type` returns the declared type of a field symbol.
+pub(crate) fn mark_mspec_contexts(
+    symbols: &mut [Symbol],
+    field_type: impl Fn(&Symbol) -> Option<String>,
+) {
+    let delegate_roles: HashMap<String, (String, TestRole)> = symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Field)
+        .filter_map(|field| {
+            let role = match field_type(field)?.as_str() {
+                "It" => TestRole::TestCase,
+                "Establish" | "Because" => TestRole::FixtureSetup,
+                "Cleanup" => TestRole::FixtureTeardown,
+                _ => return None,
+            };
+            Some((field.id.clone(), (field.parent_id.clone()?, role)))
+        })
+        .collect();
+    let contexts: HashSet<String> = delegate_roles
+        .values()
+        .filter(|(_, role)| *role != TestRole::FixtureTeardown)
+        .map(|(context, _)| context.clone())
+        .collect();
+    for symbol in symbols.iter_mut() {
+        if contexts.contains(&symbol.id) {
+            mark_class_test_container(symbol);
+            continue;
+        }
+        let Some((context, role)) = symbol
+            .parent_id
+            .as_ref()
+            .and_then(|parent_id| delegate_roles.get(parent_id))
+        else {
+            continue;
+        };
+        if is_callable(&symbol.kind) && contexts.contains(context) {
+            apply_test_role(symbol.metadata.get_or_insert_with(Default::default), *role);
+        }
+    }
 }
 
 fn mark_class_test_container(symbol: &mut Symbol) {

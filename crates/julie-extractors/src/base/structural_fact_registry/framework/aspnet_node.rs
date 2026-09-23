@@ -1,4 +1,4 @@
-//! ASP.NET Core and Node (Express/Fastify/NestJS) framework route SPECS.
+//! ASP.NET Core, EF Core, and Node (Express/Fastify/NestJS) framework SPECS.
 //!
 //! Authored metadata for [`super::super::StructuralFactPatternSpec`] entries.
 //! Public registry access remains through
@@ -85,6 +85,18 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 OPT,
                 "Dotted identifier path of a method-group handler.",
             ),
+            key(
+                "endpoint_kind",
+                STR,
+                OPT,
+                "Verb-less endpoint map: \"signalr_hub\" (MapHub), \"any_verb\" (Map), or \"health_checks\" (MapHealthChecks); absent on verb maps.",
+            ),
+            key(
+                "hub_type",
+                STR,
+                OPT,
+                "Hub class named by the MapHub generic argument.",
+            ),
         ],
     },
     StructuralFactPatternSpec {
@@ -126,6 +138,18 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 STR,
                 OPT,
                 "Variable the MapGroup result is assigned to, for linking child routes.",
+            ),
+            key(
+                "parent_route_prefix",
+                STR,
+                OPT,
+                "Effective prefix of the group this MapGroup is called on, when nested.",
+            ),
+            key(
+                "effective_route_template",
+                STR,
+                OPT,
+                "Parent prefix joined with this group's prefix, when nested.",
             ),
         ],
     },
@@ -178,13 +202,114 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "verb",
                 STR,
                 OPT,
-                "HTTP method for Http* verb attributes; absent on plain [Route] facts.",
+                "HTTP method for Http* verb attributes, one fact per AcceptVerbs verb; absent on plain [Route] facts.",
             ),
             key(
                 "controller_route_template",
                 STR,
                 OPT,
                 "Owning controller's [Route] template attached to a method fact.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "aspnet.conventional_route.v1",
+        languages: &["csharp", "vbnet"],
+        query_family: "framework",
+        description: "An ASP.NET conventional MVC route (MapControllerRoute/MapAreaControllerRoute/MapDefaultControllerRoute).",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key(
+                "api_style",
+                STR,
+                ALWAYS,
+                "Routing style (\"conventional_routing\").",
+            ),
+            key(
+                "route_template",
+                STR,
+                ALWAYS,
+                "Route pattern with {controller}/{action} tokens and defaults.",
+            ),
+            key(
+                "route_name",
+                STR,
+                OPT,
+                "Route name from the name argument (\"default\" for MapDefaultControllerRoute).",
+            ),
+            key(
+                "area_name",
+                STR,
+                OPT,
+                "Area from MapAreaControllerRoute's areaName argument.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "efcore.db_set.v1",
+        languages: &["csharp"],
+        query_family: "framework",
+        description: "An Entity Framework Core `DbSet<T>` property on a context class.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key(
+                "context_type",
+                STR,
+                ALWAYS,
+                "Class that declares the DbSet property.",
+            ),
+            key("property_name", STR, ALWAYS, "Name of the DbSet property."),
+            key(
+                "entity_type",
+                STR,
+                ALWAYS,
+                "Entity type argument of DbSet<T>.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "efcore.table_mapping.v1",
+        languages: &["csharp"],
+        query_family: "framework",
+        description: "An Entity Framework Core entity-to-table mapping (ToTable(\"t\") or [Table(\"t\")]).",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key("entity_type", STR, ALWAYS, "Mapped entity type."),
+            key("table_name", STR, ALWAYS, "Table name string literal."),
+            key(
+                "mapping_source",
+                STR,
+                ALWAYS,
+                "Origin: \"model_builder_entity\" (Entity<T>().ToTable), \"entity_type_builder\" (EntityTypeBuilder<T> parameter), or \"table_attribute\".",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "efcore.entity_configuration.v1",
+        languages: &["csharp"],
+        query_family: "framework",
+        description: "An Entity Framework Core `IEntityTypeConfiguration<T>` class.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key(
+                "configuration_type",
+                STR,
+                ALWAYS,
+                "Configuration class name.",
+            ),
+            key(
+                "entity_type",
+                STR,
+                ALWAYS,
+                "Configured entity type argument.",
             ),
         ],
     },

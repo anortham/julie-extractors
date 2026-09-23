@@ -69,4 +69,5 @@ pub mod runtime;
 mod test_containers;
 mod type_arguments; // Phase 2: ordered/nested generic type-argument capture
 mod type_facts;
-mod types; // Phase 4: Type extraction verification tests
+mod types;
+mod wave2; // Phase 4: Type extraction verification tests

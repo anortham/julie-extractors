@@ -30,6 +30,19 @@ const ASPNET_ROUTE_METHODS: &[(&str, &str)] = &[
     ("MapMethods", ""),
 ];
 
+/// Endpoint maps that register a route without an HTTP verb of their own.
+const ASPNET_ENDPOINT_METHODS: &[(&str, &str)] = &[
+    ("MapHub", "signalr_hub"),
+    ("Map", "any_verb"),
+    ("MapHealthChecks", "health_checks"),
+];
+
+#[derive(Clone, Copy)]
+enum RouteMethodKind {
+    Verb(&'static str),
+    Endpoint(&'static str),
+}
+
 pub(super) fn collect_aspnet_minimal_api_routes(
     language: &str,
     tree: &Tree,
@@ -43,13 +56,24 @@ pub(super) fn collect_aspnet_minimal_api_routes(
         .filter_map(|fact| {
             let metadata = fact.metadata.as_ref()?;
             let group_variable = metadata.get("group_variable")?.as_str()?;
-            let route_prefix = metadata.get("route_prefix")?.as_str()?;
+            let route_prefix = metadata
+                .get("effective_route_template")
+                .or_else(|| metadata.get("route_prefix"))?
+                .as_str()?;
             Some((group_variable.to_string(), route_prefix.to_string()))
         })
         .collect::<HashMap<_, _>>();
     facts.extend(route_groups);
 
-    for (method_name, verb) in ASPNET_ROUTE_METHODS {
+    let route_methods = ASPNET_ROUTE_METHODS
+        .iter()
+        .map(|(name, verb)| (*name, RouteMethodKind::Verb(verb)))
+        .chain(
+            ASPNET_ENDPOINT_METHODS
+                .iter()
+                .map(|(name, kind)| (*name, RouteMethodKind::Endpoint(kind))),
+        );
+    for (method_name, route_kind) in route_methods {
         let mut search_start = 0;
         while let Some(relative_start) = content[search_start..].find(method_name) {
             let method_start = search_start + relative_start;
@@ -59,7 +83,7 @@ pub(super) fn collect_aspnet_minimal_api_routes(
                 continue;
             }
 
-            let open_paren = skip_ascii_whitespace(content, search_start);
+            let (type_argument, open_paren) = generic_type_argument(content, search_start);
             if content.as_bytes().get(open_paren) != Some(&b'(') {
                 continue;
             }
@@ -103,7 +127,34 @@ pub(super) fn collect_aspnet_minimal_api_routes(
             }
             insert_normalized_route_template(&mut metadata, &normalized_source);
 
-            let (verbs, handler_arg_end) = if *method_name == "MapMethods" {
+            let verb = match route_kind {
+                RouteMethodKind::Verb(verb) => verb,
+                RouteMethodKind::Endpoint(endpoint_kind) => {
+                    insert_string(&mut metadata, "endpoint_kind", endpoint_kind);
+                    if let Some(hub_type) = type_argument {
+                        insert_string(&mut metadata, "hub_type", hub_type);
+                    }
+                    if let Some(handler) =
+                        parse_handler_argument(content, route_arg_end, close_paren)
+                    {
+                        insert_string(&mut metadata, "handler_kind", handler.kind);
+                        if let Some(name) = handler.name {
+                            insert_string(&mut metadata, "handler_name", &name);
+                        }
+                    }
+                    facts.push(fact_for_span(
+                        file_path,
+                        language,
+                        ASPNET_MINIMAL_API_ROUTE_PATTERN_ID,
+                        "route_call",
+                        node.kind(),
+                        span,
+                        metadata,
+                    ));
+                    continue;
+                }
+            };
+            let (verbs, handler_arg_end) = if method_name == "MapMethods" {
                 let comma = skip_ascii_whitespace_until(content, route_arg_end, close_paren);
                 let methods_start = skip_ascii_whitespace_until(content, comma + 1, close_paren);
                 let methods_end = find_top_level_comma_or_end(content, methods_start, close_paren);
@@ -112,7 +163,7 @@ pub(super) fn collect_aspnet_minimal_api_routes(
                     methods_end,
                 )
             } else {
-                (vec![Some((*verb).to_string())], route_arg_end)
+                (vec![Some(verb.to_string())], route_arg_end)
             };
             if let Some(handler) = parse_handler_argument(content, handler_arg_end, close_paren) {
                 insert_string(&mut metadata, "handler_kind", handler.kind);
@@ -142,6 +193,28 @@ pub(super) fn collect_aspnet_minimal_api_routes(
     }
 
     facts
+}
+
+/// A generic argument between a method name and its argument list: C#
+/// `MapHub<ChatHub>(` or VB `MapHub(Of ChatHub)(`. Returns the argument and
+/// the offset of the argument list's `(`.
+fn generic_type_argument(content: &str, after_name: usize) -> (Option<&str>, usize) {
+    let start = skip_ascii_whitespace(content, after_name);
+    let rest = &content[start..];
+    let (argument, end) = if rest.starts_with('<') {
+        let Some(close) = rest.find('>') else {
+            return (None, start);
+        };
+        (&rest[1..close], start + close + 1)
+    } else if rest.len() > 4 && rest[..4].eq_ignore_ascii_case("(Of ") {
+        let Some(close) = find_matching_paren(content, start) else {
+            return (None, start);
+        };
+        (&content[start + 4..close], close + 1)
+    } else {
+        return (None, start);
+    };
+    (Some(argument.trim()), skip_ascii_whitespace(content, end))
 }
 
 fn minimal_api_method_values(expression: &str) -> Vec<Option<String>> {
@@ -205,6 +278,7 @@ fn collect_aspnet_minimal_api_route_groups(
     content: &str,
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
+    let mut effective_prefixes: HashMap<String, String> = HashMap::new();
     let method_name = "MapGroup";
     let mut search_start = 0;
 
@@ -247,9 +321,22 @@ fn collect_aspnet_minimal_api_route_groups(
         insert_string(&mut metadata, "route_prefix", &route_prefix);
         insert_string(&mut metadata, "route_source", route_source);
         insert_string(&mut metadata, "source_kind", "map_group");
-        insert_normalized_route_template(&mut metadata, &route_prefix);
+        let parent_prefix = parse_csharp_member_receiver(content, method_start)
+            .and_then(|receiver| effective_prefixes.get(receiver).cloned())
+            .or_else(|| parse_chained_map_group_prefix(content, method_start));
+        let effective = match parent_prefix {
+            Some(parent_prefix) => {
+                let effective = join_route_templates(&parent_prefix, &route_prefix);
+                insert_string(&mut metadata, "parent_route_prefix", &parent_prefix);
+                insert_string(&mut metadata, "effective_route_template", &effective);
+                effective
+            }
+            None => route_prefix.clone(),
+        };
+        insert_normalized_route_template(&mut metadata, &effective);
         if let Some(group_variable) = parse_map_group_assignment_variable(content, method_start) {
             insert_string(&mut metadata, "group_variable", &group_variable);
+            effective_prefixes.insert(group_variable, effective);
         }
 
         facts.push(fact_for_span(
@@ -374,6 +461,7 @@ pub(super) fn collect_aspnet_attribute_routes(
 /// `Attribute` suffix) and its first positional argument.
 struct RouteAttribute<'t> {
     node: Node<'t>,
+    text: String,
     name: String,
     argument: AttributeRouteArgument,
 }
@@ -458,6 +546,9 @@ fn csharp_route_attributes<'t>(declaration: Node<'t>, content: &str) -> Vec<Rout
             if let Some(name) = attribute_route_name(content, attribute) {
                 attributes.push(RouteAttribute {
                     node: attribute,
+                    text: node_text(content, attribute)
+                        .unwrap_or_default()
+                        .to_string(),
                     name,
                     argument: attribute_route_argument(content, attribute),
                 });
@@ -524,6 +615,9 @@ fn vbnet_route_attributes<'t>(blocks: &[Node<'t>], content: &str) -> Vec<RouteAt
                 .find(|child| child.kind() == "argument_list");
             attributes.push(RouteAttribute {
                 node: attribute,
+                text: node_text(content, attribute)
+                    .unwrap_or_default()
+                    .to_string(),
                 name,
                 argument: vbnet_route_argument(content, arguments),
             });
@@ -622,66 +716,129 @@ fn emit_action_routes(
     controller_template: Option<&str>,
     facts: &mut Vec<StructuralFact>,
 ) {
+    let verbs_of = |attribute: &RouteAttribute<'_>| -> Vec<String> {
+        match attribute_route_verb(&attribute.name) {
+            Some(verb) => vec![verb.to_string()],
+            None if attribute.name == "AcceptVerbs" => accept_verbs(&attribute.text),
+            None => Vec::new(),
+        }
+    };
     let has_http_verb = action
         .attributes
         .iter()
-        .any(|attribute| attribute_route_verb(&attribute.name).is_some());
+        .any(|attribute| !verbs_of(attribute).is_empty());
+    let method_route_template = action.attributes.iter().find_map(|attribute| {
+        match (&attribute.argument, is_route_attribute(&attribute.name)) {
+            (AttributeRouteArgument::Literal(template), true) => Some(template.clone()),
+            _ => None,
+        }
+    });
 
     for attribute in &action.attributes {
-        let verb = attribute_route_verb(&attribute.name);
+        let verbs = verbs_of(attribute);
         let is_route = is_route_attribute(&attribute.name);
-        if verb.is_none() && !is_route {
+        if verbs.is_empty() && !is_route {
             continue;
         }
         // A method-level [Route] only emits its own `route` fact when the method
-        // has no Http* verb attribute; otherwise the verb attribute carries the
+        // has no verb attribute; otherwise the verb attributes carry its
         // template.
-        if verb.is_none() && has_http_verb {
+        if verbs.is_empty() && has_http_verb {
             continue;
         }
 
-        let method_template = match &attribute.argument {
-            AttributeRouteArgument::NonLiteral => continue,
-            AttributeRouteArgument::Absent => None,
-            AttributeRouteArgument::Literal(template) => Some(template.clone()),
+        let method_template = match (&attribute.argument, attribute.name.as_str()) {
+            (_, "AcceptVerbs") => method_route_template.clone(),
+            (AttributeRouteArgument::NonLiteral, _) => continue,
+            (AttributeRouteArgument::Absent, _) => method_route_template.clone(),
+            (AttributeRouteArgument::Literal(template), _) => Some(template.clone()),
         };
-
-        let mut metadata = base_metadata("framework", "aspnet");
-        insert_string(&mut metadata, "api_style", "attribute_routing");
-        if let Some(verb) = verb {
-            insert_string(&mut metadata, "verb", verb);
-            insert_string(&mut metadata, "attribute_kind", "http_method");
+        let verbs: Vec<Option<String>> = if verbs.is_empty() {
+            vec![None]
         } else {
-            insert_string(&mut metadata, "attribute_kind", "route");
-        }
-        if let Some(method_template) = method_template.as_deref() {
-            insert_string(&mut metadata, "route_template", method_template);
-        }
-        if let Some(controller_template) = controller_template {
-            insert_string(
-                &mut metadata,
-                "controller_route_template",
+            verbs.into_iter().map(Some).collect()
+        };
+        for verb in verbs {
+            emit_action_route(
+                action,
+                attribute,
+                verb.as_deref(),
+                method_template.as_deref(),
+                controller_token,
                 controller_template,
+                language,
+                file_path,
+                facts,
             );
         }
-
-        if let Some(raw) = join_effective_route(controller_template, method_template.as_deref()) {
-            let (effective, tokens) =
-                substitute_route_tokens(&raw, controller_token, action.name.as_deref());
-            insert_string(&mut metadata, "effective_route_template", &effective);
-            insert_normalized_route_template(&mut metadata, &effective);
-            insert_route_tokens(&mut metadata, tokens);
-        }
-
-        facts.push(fact_for_node(
-            file_path,
-            language,
-            ASPNET_ATTRIBUTE_ROUTE_PATTERN_ID,
-            "attribute_route",
-            attribute.node,
-            metadata,
-        ));
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn emit_action_route(
+    action: &RouteAction<'_>,
+    attribute: &RouteAttribute<'_>,
+    verb: Option<&str>,
+    method_template: Option<&str>,
+    controller_token: Option<&str>,
+    controller_template: Option<&str>,
+    language: &str,
+    file_path: &str,
+    facts: &mut Vec<StructuralFact>,
+) {
+    let mut metadata = base_metadata("framework", "aspnet");
+    insert_string(&mut metadata, "api_style", "attribute_routing");
+    if let Some(verb) = verb {
+        insert_string(&mut metadata, "verb", verb);
+        insert_string(&mut metadata, "attribute_kind", "http_method");
+    } else {
+        insert_string(&mut metadata, "attribute_kind", "route");
+    }
+    if let Some(method_template) = method_template {
+        insert_string(&mut metadata, "route_template", method_template);
+    }
+    if let Some(controller_template) = controller_template {
+        insert_string(
+            &mut metadata,
+            "controller_route_template",
+            controller_template,
+        );
+    }
+
+    if let Some(raw) = join_effective_route(controller_template, method_template) {
+        let (effective, tokens) =
+            substitute_route_tokens(&raw, controller_token, action.name.as_deref());
+        insert_string(&mut metadata, "effective_route_template", &effective);
+        insert_normalized_route_template(&mut metadata, &effective);
+        insert_route_tokens(&mut metadata, tokens);
+    }
+
+    facts.push(fact_for_node(
+        file_path,
+        language,
+        ASPNET_ATTRIBUTE_ROUTE_PATTERN_ID,
+        "attribute_route",
+        attribute.node,
+        metadata,
+    ));
+}
+
+/// The verbs an `[AcceptVerbs(...)]` attribute lists, as string literals
+/// (`"GET"`) or `HttpVerbs` members (`HttpVerbs.Post`).
+fn accept_verbs(attribute_text: &str) -> Vec<String> {
+    let arguments = attribute_text
+        .split_once('(')
+        .map_or("", |(_, arguments)| arguments);
+    arguments
+        .split(|c: char| !(c.is_ascii_alphanumeric() || c == '.'))
+        .filter_map(|token| {
+            let verb = token.strip_prefix("HttpVerbs.").unwrap_or(token);
+            let quoted = arguments.contains(&format!("\"{token}\""));
+            (quoted || token.starts_with("HttpVerbs."))
+                .then(|| verb.to_ascii_uppercase())
+                .filter(|verb| !verb.is_empty())
+        })
+        .collect()
 }
 
 /// Normalize an attribute's name: take the last `.`-separated segment and strip

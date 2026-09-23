@@ -62,7 +62,7 @@ fn visit_relationships(
             );
             extract_call_relationships(extractor, node, symbols, relationships);
         }
-        "object_creation_expression" => {
+        "object_creation_expression" | "implicit_object_creation_expression" => {
             extract_object_creation_relationships(extractor, node, symbols, relationships);
         }
         _ => {}
@@ -395,7 +395,23 @@ fn extract_object_creation_relationships(
 ) {
     let type_name = {
         let base = extractor.get_base();
-        find_first_type_identifier(base, node)
+        if node.kind() == "implicit_object_creation_expression" {
+            super::scope::target_type_of_implicit_new(node).and_then(|type_node| {
+                let text = base.get_node_text(&type_node);
+                let unqualified = text.split('<').next().unwrap_or(&text);
+                unqualified
+                    .rsplit('.')
+                    .next()
+                    .map(|name| name.trim().to_string())
+            })
+        } else {
+            find_first_type_identifier(base, node).filter(|name| {
+                !node
+                    .child_by_field_name("type")
+                    .is_some_and(|type_node| type_node.kind() == "identifier")
+                    || !super::scope::is_type_parameter_in_scope(&base.content, node, name)
+            })
+        }
     };
     let Some(type_name) = type_name else {
         return;
@@ -406,17 +422,20 @@ fn extract_object_creation_relationships(
 
     let target = UnresolvedTarget::simple(type_name);
 
-    let caller = extractor
-        .get_base()
-        .find_containing_symbol(&node, symbols)
+    let caller = find_caller(extractor.get_base(), node, symbols)
         .filter(|symbol| {
             matches!(
                 symbol.kind,
                 SymbolKind::Function
                     | SymbolKind::Method
                     | SymbolKind::Constructor
+                    | SymbolKind::Destructor
+                    | SymbolKind::Property
+                    | SymbolKind::Event
+                    | SymbolKind::Operator
                     | SymbolKind::Class
                     | SymbolKind::Struct
+                    | SymbolKind::Module
             )
         })
         .cloned();
@@ -427,13 +446,14 @@ fn extract_object_creation_relationships(
 
     let symbol_index = ScopedSymbolIndex::new(symbols);
     let resolution = symbol_index.resolve_call_target(&target.terminal_name, Some(&caller), None);
+    let resolved_type = match resolution {
+        LocalTargetResolution::Resolved(symbol) => Some(symbol),
+        _ => None,
+    }
+    .filter(|symbol| is_constructible_type(symbol))
+    .or_else(|| unique_constructible_type(symbols, &target.terminal_name));
 
-    if let LocalTargetResolution::Resolved(type_symbol) = resolution
-        && matches!(
-            type_symbol.kind,
-            SymbolKind::Class | SymbolKind::Struct | SymbolKind::Type
-        )
-    {
+    if let Some(type_symbol) = resolved_type {
         relationships.push(Relationship {
             id: format!(
                 "{}_{}_{:?}_{}",
@@ -464,6 +484,23 @@ fn extract_object_creation_relationships(
         Some(0.9),
     );
     extractor.add_structured_pending_relationship(pending);
+}
+
+fn is_constructible_type(symbol: &Symbol) -> bool {
+    matches!(
+        symbol.kind,
+        SymbolKind::Class | SymbolKind::Struct | SymbolKind::Type
+    )
+}
+
+/// The file's one class, struct, or record named `name`; a same-named
+/// constructor makes the name ambiguous as a call but not as a type.
+fn unique_constructible_type<'a>(symbols: &'a [Symbol], name: &str) -> Option<&'a Symbol> {
+    let mut matches = symbols
+        .iter()
+        .filter(|symbol| symbol.name == name && is_constructible_type(symbol));
+    let first = matches.next()?;
+    matches.next().is_none().then_some(first)
 }
 
 fn find_first_type_identifier(
@@ -553,7 +590,7 @@ fn handle_base_call(
     relationships: &mut Vec<Relationship>,
 ) {
     let base = extractor.get_base();
-    let Some(caller) = base.find_containing_symbol(&call_node, symbols).cloned() else {
+    let Some(caller) = find_caller(base, call_node, symbols).cloned() else {
         return;
     };
     let receiver_type = super::identifiers::self_receiver_type(base, call_node);
@@ -614,21 +651,38 @@ fn handle_call_target(
     let base = extractor.get_base();
     let symbol_index = ScopedSymbolIndex::new(symbols);
 
-    let caller = base.find_containing_symbol(&call_node, symbols).cloned();
+    let caller = find_caller(base, call_node, symbols).cloned();
     let Some(caller) = caller else {
         return;
     };
-    let receiver_type = super::identifiers::self_receiver_type(base, call_node);
+    let is_bare_call = call_node
+        .child_by_field_name("function")
+        .is_some_and(|function| matches!(function.kind(), "identifier" | "generic_name"));
+    let enclosing_type = is_bare_call
+        .then(|| find_containing_class(base, call_node, symbols))
+        .flatten();
+    let receiver_type = super::identifiers::self_receiver_type(base, call_node)
+        .or_else(|| enclosing_type.map(|ty| ty.name.clone()));
 
     let line_number = call_node.start_position().row as u32 + 1;
     let file_path = base.file_path.clone();
 
-    // Check if we can resolve the callee locally
-    match symbol_index.resolve_call_target(
+    let resolution = match symbol_index.resolve_call_target(
         &target.terminal_name,
         Some(&caller),
         target.receiver.as_deref(),
     ) {
+        LocalTargetResolution::Resolved(called_symbol) => {
+            LocalTargetResolution::Resolved(called_symbol)
+        }
+        other => match enclosing_type
+            .and_then(|ty| unique_member(symbols, &ty.id, &target.terminal_name))
+        {
+            Some(member) => LocalTargetResolution::Resolved(member),
+            None => other,
+        },
+    };
+    match resolution {
         LocalTargetResolution::Resolved(called_symbol) => {
             // Target is a local method - create resolved Relationship
             relationships.push(Relationship {
@@ -683,6 +737,17 @@ fn handle_call_target(
             extractor.add_structured_pending_relationship(pending);
         }
     }
+}
+
+/// The one method of the type `type_id` named `name`; `None` for overloads.
+fn unique_member<'a>(symbols: &'a [Symbol], type_id: &str, name: &str) -> Option<&'a Symbol> {
+    let mut members = symbols.iter().filter(|symbol| {
+        symbol.name == name
+            && symbol.kind == SymbolKind::Method
+            && symbol.parent_id.as_deref() == Some(type_id)
+    });
+    let member = members.next()?;
+    members.next().is_none().then_some(member)
 }
 
 fn unresolved_call_target(
@@ -761,4 +826,14 @@ fn collect_chain_parts(
             _ => {}
         }
     }
+}
+
+/// The symbol that owns a call or instantiation site; shared with the
+/// identifier pass so both agree on one containing symbol per site.
+fn find_caller<'a>(
+    base: &crate::base::BaseExtractor,
+    node: tree_sitter::Node,
+    symbols: &'a [Symbol],
+) -> Option<&'a Symbol> {
+    super::scope::MemberScope::new(symbols, &base.file_path).find(node)
 }

@@ -32,15 +32,43 @@ pub fn extract_modifiers(base: &BaseExtractor, node: &Node) -> Vec<String> {
     [attributes, modifiers].concat()
 }
 
-/// Extract canonical attribute markers from C# attribute lists.
+/// Extract canonical attribute markers from C# attribute lists. A targeted
+/// list (`[return: NotNull]`) carries its target (`return`) as the carrier.
 pub fn extract_annotations(base: &BaseExtractor, node: &Node) -> Vec<AnnotationMarker> {
-    let raw_attributes: Vec<String> = node
-        .children(&mut node.walk())
+    let mut markers: Vec<AnnotationMarker> = Vec::new();
+    let mut cursor = node.walk();
+    for list in node
+        .children(&mut cursor)
         .filter(|child| child.kind() == "attribute_list")
-        .map(|child| base.get_node_text(&child))
-        .collect();
-
-    normalize_annotations(&raw_attributes, "csharp")
+    {
+        let mut list_cursor = list.walk();
+        let target = list
+            .named_children(&mut list_cursor)
+            .find(|child| child.kind() == "attribute_target_specifier")
+            .map(|specifier| {
+                base.get_node_text(&specifier)
+                    .trim_end_matches(':')
+                    .trim()
+                    .to_string()
+            });
+        let mut list_cursor = list.walk();
+        let attributes: Vec<String> = list
+            .named_children(&mut list_cursor)
+            .filter(|child| child.kind() == "attribute")
+            .map(|attribute| base.get_node_text(&attribute))
+            .collect();
+        for mut marker in normalize_annotations(&attributes, "csharp") {
+            if markers
+                .iter()
+                .any(|existing| existing.annotation_key == marker.annotation_key)
+            {
+                continue;
+            }
+            marker.carrier = target.clone();
+            markers.push(marker);
+        }
+    }
+    markers
 }
 
 /// Determine visibility from modifiers, falling back to the C# default for
@@ -132,103 +160,26 @@ pub fn extract_type_parameters(base: &BaseExtractor, node: &Node) -> Option<Stri
     type_params.map(|tp| base.get_node_text(&tp))
 }
 
-/// Extract return type from a method node
+/// The written return type of a method or local function.
 pub fn extract_return_type(base: &BaseExtractor, node: &Node) -> Option<String> {
-    // Find method name identifier - comes before parameter_list (may have type_parameter_list in between)
-    let mut cursor = node.walk();
-    let children: Vec<Node> = node.children(&mut cursor).collect();
-    let param_list_index = children.iter().position(|c| c.kind() == "parameter_list")?;
-
-    // Look backwards from parameter_list to find the method name identifier
-    let name_node = children[..param_list_index]
-        .iter()
-        .rev()
-        .find(|c| c.kind() == "identifier")?;
-
-    let name_index = children.iter().position(|c| std::ptr::eq(c, name_node))?;
-    // Look for return type, but exclude modifiers
-    let return_type_node = children[..name_index].iter().find(|c| {
-        matches!(
-            c.kind(),
-            "predefined_type"
-                | "identifier"
-                | "qualified_name"
-                | "generic_name"
-                | "array_type"
-                | "nullable_type"
-                | "tuple_type"
-        )
-    });
-
-    return_type_node.map(|node| base.get_node_text(node))
+    node.child_by_field_name("returns")
+        .or_else(|| node.child_by_field_name("type"))
+        .map(|type_node| base.get_node_text(&type_node))
 }
 
-/// Extract property type from a property declaration
+/// The written type of a property declaration.
 pub fn extract_property_type(base: &BaseExtractor, node: &Node) -> Option<String> {
-    // In C# property declarations, the type is typically the first significant node
-    let mut cursor = node.walk();
-    let children: Vec<Node> = node.children(&mut cursor).collect();
-
-    // Skip modifiers and find the type node
-    let modifiers = [
-        "public",
-        "private",
-        "protected",
-        "internal",
-        "static",
-        "virtual",
-        "override",
-        "abstract",
-    ];
-
-    for child in &children {
-        let child_text = base.get_node_text(child);
-
-        // Skip modifier nodes
-        if modifiers.contains(&child_text.as_str()) {
-            continue;
-        }
-
-        // Look for type nodes
-        if matches!(
-            child.kind(),
-            "predefined_type"
-                | "identifier"
-                | "qualified_name"
-                | "generic_name"
-                | "array_type"
-                | "nullable_type"
-                | "tuple_type"
-        ) {
-            return Some(child_text);
-        }
-    }
-
-    None
+    node.child_by_field_name("type")
+        .map(|type_node| base.get_node_text(&type_node))
 }
 
-/// Extract field type from a field declaration
+/// The written type of a field declaration's variable declaration.
 pub fn extract_field_type(base: &BaseExtractor, node: &Node) -> Option<String> {
-    // Field type is the first child of variable_declaration
     let mut cursor = node.walk();
-    let var_declaration = node
-        .children(&mut cursor)
-        .find(|c| c.kind() == "variable_declaration")?;
-
-    let mut var_cursor = var_declaration.walk();
-    let type_node = var_declaration.children(&mut var_cursor).find(|c| {
-        matches!(
-            c.kind(),
-            "predefined_type"
-                | "identifier"
-                | "qualified_name"
-                | "generic_name"
-                | "array_type"
-                | "nullable_type"
-        )
-    });
-
-    type_node.map(|node| base.get_node_text(&node))
+    node.children(&mut cursor)
+        .find(|c| c.kind() == "variable_declaration")?
+        .child_by_field_name("type")
+        .map(|type_node| base.get_node_text(&type_node))
 }
 
 /// The body span of a C# declaration node: the block, arrow clause, accessor

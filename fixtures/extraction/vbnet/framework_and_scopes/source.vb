@@ -86,5 +86,10 @@ Module Program
         app.MapGet("/status", Function() "up")
         Dim api = app.MapGroup("/api")
         api.MapGet("/ping", Function() "pong")
+        Dim v1 = api.MapGroup("/v1")
+        v1.MapGet("/items", Function() "items")
+        app.MapHub(Of ChatHub)("/hubs/chat")
+        app.MapHealthChecks("/health")
+        app.MapControllerRoute(name:="default", pattern:="{controller=Home}/{action=Index}/{id?}")
     End Sub
 End Module

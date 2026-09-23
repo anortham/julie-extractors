@@ -22,7 +22,9 @@ pub(crate) mod member_type_relationships;
 pub(crate) mod members;
 pub(crate) mod operators;
 mod partial_classes;
+pub(crate) mod preprocessor;
 mod relationships;
+mod scope;
 mod type_inference;
 pub(crate) mod types;
 
@@ -139,6 +141,12 @@ impl CSharpExtractor {
         self.walk_tree(root, &mut symbols, None, 0);
         self.ensure_file_scope_symbol(root, &mut symbols);
         crate::test_detection::mark_dotnet_test_containers(&mut symbols);
+        crate::test_detection::mark_mspec_contexts(&mut symbols, |field| {
+            self.base
+                .type_info
+                .get(&field.id)
+                .map(|info| info.resolved_type.clone())
+        });
         symbols
     }
 
@@ -215,7 +223,26 @@ impl CSharpExtractor {
             return;
         }
 
-        let symbol = self.extract_symbol(node, parent_id.clone());
+        let sibling_binding = match node.kind() {
+            "parameter_list" => {
+                locals::extract_params_parameter(&mut self.base, node, parent_id.clone())
+            }
+            "declaration_pattern" | "recursive_pattern" => {
+                locals::extract_pattern_designation(&mut self.base, node, parent_id.clone())
+            }
+            _ => None,
+        };
+        symbols.extend(sibling_binding);
+
+        let mut symbol = self.extract_symbol(node, parent_id.clone());
+        if let Some(symbol) = symbol.as_mut()
+            && let Some(extended) = types::extension_receiver_type(&self.base, node)
+        {
+            symbol
+                .metadata
+                .get_or_insert_with(HashMap::new)
+                .insert("extendedType".to_string(), serde_json::json!(extended));
+        }
         let current_parent_id = if let Some(ref sym) = symbol {
             symbols.push(sym.clone());
             Some(sym.id.clone())
@@ -277,6 +304,7 @@ impl CSharpExtractor {
             "property_declaration" => members::extract_property(&mut self.base, node, parent_id),
             "field_declaration" => fields::extract_field(&mut self.base, node, parent_id),
             "event_field_declaration" => fields::extract_event(&mut self.base, node, parent_id),
+            "event_declaration" => fields::extract_accessor_event(&mut self.base, node, parent_id),
             "delegate_declaration" => members::extract_delegate(&mut self.base, node, parent_id),
             "record_declaration" => types::extract_record(&mut self.base, node, parent_id),
             "lambda_expression" | "anonymous_method_expression" => {
@@ -290,9 +318,12 @@ impl CSharpExtractor {
                 operators::extract_conversion_operator(&mut self.base, node, parent_id)
             }
             "indexer_declaration" => operators::extract_indexer(&mut self.base, node, parent_id),
-            "parameter" | "parameter_array" | "_parameter_array" | "implicit_parameter" => {
-                locals::extract_parameter(&mut self.base, node, parent_id)
+            "parameter" if types::positional_record(node).is_some() => {
+                let record = types::positional_record(node)?;
+                types::extract_positional_property(&mut self.base, node, record, parent_id)
             }
+            "parameter" | "parameter_array" | "_parameter_array" | "implicit_parameter"
+            | "receiver_parameter" => locals::extract_parameter(&mut self.base, node, parent_id),
             _ => None,
         }
     }
@@ -302,9 +333,9 @@ impl CSharpExtractor {
         relationships::extract_relationships(self, tree, symbols)
     }
 
-    /// Infer types - port of inferTypes
+    /// Recorded declared types plus `var x = other;` copies.
     pub fn infer_types(&self, symbols: &[Symbol]) -> HashMap<String, String> {
-        type_inference::infer_types(symbols)
+        type_inference::infer_types(symbols, &self.base.type_info)
     }
 
     /// Extract all identifier usages (function calls, member access, etc.)

@@ -1,8 +1,10 @@
 mod actix;
 mod aspnet;
+mod aspnet_conventional;
 mod axum;
 mod blazor_navigation;
 mod consumed_attributes;
+mod efcore;
 mod go_http;
 mod helpers;
 mod htmx_templates;
@@ -27,8 +29,10 @@ use tree_sitter::Tree;
 
 use self::actix::collect_actix_routes;
 use self::aspnet::{collect_aspnet_attribute_routes, collect_aspnet_minimal_api_routes};
+use self::aspnet_conventional::collect_aspnet_conventional_routes;
 use self::axum::collect_axum_routes;
 use self::blazor_navigation::collect_blazor_navigation_facts;
+use self::efcore::collect_efcore_facts;
 use self::go_http::collect_go_http_boundary_facts;
 use self::http_clients::{
     collect_backend_http_client_requests, collect_razor_http_client_requests,
@@ -57,6 +61,10 @@ pub(super) const ASPNET_MINIMAL_API_ROUTE_PATTERN_ID: &str = "aspnet.minimal_api
 pub(super) const ASPNET_MINIMAL_API_ROUTE_GROUP_PATTERN_ID: &str =
     "aspnet.minimal_api.route_group.v1";
 pub(super) const ASPNET_ATTRIBUTE_ROUTE_PATTERN_ID: &str = "aspnet.attribute_route.v1";
+pub(super) const ASPNET_CONVENTIONAL_ROUTE_PATTERN_ID: &str = "aspnet.conventional_route.v1";
+pub(super) const EFCORE_DB_SET_PATTERN_ID: &str = "efcore.db_set.v1";
+pub(super) const EFCORE_TABLE_MAPPING_PATTERN_ID: &str = "efcore.table_mapping.v1";
+pub(super) const EFCORE_ENTITY_CONFIGURATION_PATTERN_ID: &str = "efcore.entity_configuration.v1";
 pub(super) const EXPRESS_ROUTE_PATTERN_ID: &str = "express.route.v1";
 pub(super) const EXPRESS_ROUTER_MOUNT_PATTERN_ID: &str = "express.router_mount.v1";
 pub(super) const FASTIFY_ROUTE_PATTERN_ID: &str = "fastify.route.v1";
@@ -101,14 +109,19 @@ pub(super) const BLAZOR_COMPONENT_REFERENCE_PATTERN_ID: &str = "blazor.component
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const CSHARP_FRAMEWORK_PATTERN_IDS: &[&str] = &[
     ASPNET_ATTRIBUTE_ROUTE_PATTERN_ID,
+    ASPNET_CONVENTIONAL_ROUTE_PATTERN_ID,
     ASPNET_MINIMAL_API_ROUTE_GROUP_PATTERN_ID,
     ASPNET_MINIMAL_API_ROUTE_PATTERN_ID,
+    EFCORE_DB_SET_PATTERN_ID,
+    EFCORE_ENTITY_CONFIGURATION_PATTERN_ID,
+    EFCORE_TABLE_MAPPING_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
     RAZOR_ROUTE_REFERENCE_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const DOTNET_FRAMEWORK_PATTERN_IDS: &[&str] = &[
     ASPNET_ATTRIBUTE_ROUTE_PATTERN_ID,
+    ASPNET_CONVENTIONAL_ROUTE_PATTERN_ID,
     ASPNET_MINIMAL_API_ROUTE_GROUP_PATTERN_ID,
     ASPNET_MINIMAL_API_ROUTE_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
@@ -223,6 +236,10 @@ pub fn collect_framework_structural_facts(
             csharp_facts.extend(collect_aspnet_attribute_routes(
                 language, tree, file_path, content,
             ));
+            csharp_facts.extend(collect_aspnet_conventional_routes(
+                language, tree, file_path, content,
+            ));
+            csharp_facts.extend(collect_efcore_facts(language, tree, file_path, content));
             csharp_facts.extend(collect_backend_http_client_requests(
                 language, tree, file_path, content,
             ));
@@ -235,6 +252,9 @@ pub fn collect_framework_structural_facts(
             let mut vbnet_facts =
                 collect_aspnet_minimal_api_routes(language, tree, file_path, content);
             vbnet_facts.extend(collect_aspnet_attribute_routes(
+                language, tree, file_path, content,
+            ));
+            vbnet_facts.extend(collect_aspnet_conventional_routes(
                 language, tree, file_path, content,
             ));
             vbnet_facts.extend(collect_backend_http_client_requests(

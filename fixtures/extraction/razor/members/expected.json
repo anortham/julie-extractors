@@ -1865,6 +1865,17 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/razor/members/Counter.razor:OnChanged:31:4",
+      "resolved_type": "Action",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "razor",
+      "metadata": {
+        "declared": "Action<string>?"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/razor/members/Counter.razor:OnInitializedAsync:43:4",
       "resolved_type": "Task",
       "generic_params": null,

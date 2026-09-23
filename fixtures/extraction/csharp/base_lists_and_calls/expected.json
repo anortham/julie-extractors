@@ -325,7 +325,7 @@
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Name:12:27",
       "name": "Name",
-      "kind": "variable",
+      "kind": "property",
       "language": "csharp",
       "file_path": "fixtures/extraction/csharp/base_lists_and_calls/source.cs",
       "start_line": 12,
@@ -336,15 +336,11 @@
       "end_byte": 302,
       "body_span": null,
       "body_hash": null,
-      "signature": "string Name",
+      "signature": "public string Name { get; init; }",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Public",
       "parent_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:ShapeFixture:12:0",
-      "metadata": {
-        "isInferred": false,
-        "role": "parameter",
-        "variableType": "string"
-      },
+      "metadata": {},
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -452,7 +448,7 @@
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Radius:13:28",
       "name": "Radius",
-      "kind": "variable",
+      "kind": "property",
       "language": "csharp",
       "file_path": "fixtures/extraction/csharp/base_lists_and_calls/source.cs",
       "start_line": 13,
@@ -463,15 +459,11 @@
       "end_byte": 346,
       "body_span": null,
       "body_hash": null,
-      "signature": "double Radius",
+      "signature": "public double Radius { get; init; }",
       "doc_comment": null,
-      "visibility": "Private",
+      "visibility": "Public",
       "parent_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:CircleFixture:13:0",
-      "metadata": {
-        "isInferred": false,
-        "role": "parameter",
-        "variableType": "double"
-      },
+      "metadata": {},
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -1010,6 +1002,24 @@
     },
     {
       "from_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
+      "to_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Flush:29:4",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/csharp/base_lists_and_calls/source.cs",
+      "line_number": 26,
+      "span": {
+        "start_line": 26,
+        "start_column": 43,
+        "end_line": 26,
+        "end_column": 54,
+        "start_byte": 814,
+        "end_byte": 825
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
       "to_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:7:4",
       "kind": "calls",
       "file_path": "fixtures/extraction/csharp/base_lists_and_calls/source.cs",
@@ -1090,14 +1100,6 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/csharp/base_lists_and_calls/source.cs",
       "line_number": 24,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
-      "callee_name": "Flush",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/csharp/base_lists_and_calls/source.cs",
-      "line_number": 26,
       "confidence": "0.700"
     },
     {
@@ -1328,32 +1330,6 @@
         "end_column": 46,
         "start_byte": 690,
         "end_byte": 728
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
-        "callee_name": "Flush",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/csharp/base_lists_and_calls/source.cs",
-        "line_number": 26,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Flush",
-        "terminal_name": "Flush",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
-      "span": {
-        "start_line": 26,
-        "start_column": 43,
-        "end_line": 26,
-        "end_column": 54,
-        "start_byte": 814,
-        "end_byte": 825
       }
     },
     {
@@ -1742,7 +1718,7 @@
       "end_column": 55,
       "start_byte": 1098,
       "end_byte": 1120,
-      "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:NullConditionalFixture:40:0",
+      "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Name:42:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1892,9 +1868,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:T2:variable_ref:9:32",
+      "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:T2:type_usage:9:32",
       "name": "T2",
-      "kind": "variable_ref",
+      "kind": "type_usage",
       "language": "csharp",
       "file_path": "fixtures/extraction/csharp/base_lists_and_calls/source.cs",
       "start_line": 9,
@@ -1904,6 +1880,22 @@
       "start_byte": 238,
       "end_byte": 240,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Create:9:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:T:type_usage:5:46",
+      "name": "T",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/base_lists_and_calls/source.cs",
+      "start_line": 5,
+      "start_column": 46,
+      "end_line": 5,
+      "end_column": 47,
+      "start_byte": 110,
+      "end_byte": 111,
+      "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:RepositoryBase:5:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -1940,22 +1932,6 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:T:variable_ref:5:46",
-      "name": "T",
-      "kind": "variable_ref",
-      "language": "csharp",
-      "file_path": "fixtures/extraction/csharp/base_lists_and_calls/source.cs",
-      "start_line": 5,
-      "start_column": 46,
-      "end_line": 5,
-      "end_column": 47,
-      "start_byte": 110,
-      "end_byte": 111,
-      "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:RepositoryBase:5:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:i:variable_ref:43:30",
       "name": "i",
       "kind": "variable_ref",
@@ -1967,7 +1943,7 @@
       "end_column": 31,
       "start_byte": 1153,
       "end_byte": 1154,
-      "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:NullConditionalFixture:40:0",
+      "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:this[int i]:43:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2095,6 +2071,17 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Changed:17:4",
+      "resolved_type": "EventHandler",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "csharp",
+      "metadata": {
+        "declared": "EventHandler?"
+      }
+    },
+    {
       "symbol_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Create:9:4",
       "resolved_type": "T",
       "generic_params": null,
@@ -2109,33 +2096,6 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
-      "language": "csharp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Dispose:30:4",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "csharp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Flush:29:4",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "csharp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Flush:8:4",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
       "language": "csharp",
       "metadata": null
     },
@@ -2163,42 +2123,6 @@
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
-      "language": "csharp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Run:45:4",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "csharp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "csharp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:7:4",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "csharp",
-      "metadata": null
-    },
-    {
-      "symbol_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Secret:37:4",
-      "resolved_type": "void",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
       "language": "csharp",
       "metadata": null
     },
@@ -2436,6 +2360,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Name:42:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/base_lists_and_calls/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 33,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 42,
+      "start_column": 23,
+      "end_line": 42,
+      "end_column": 56,
+      "start_byte": 1088,
+      "end_byte": 1121,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Run:45:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "csharp",
@@ -2518,6 +2464,28 @@
       "end_column": 29,
       "start_byte": 1020,
       "end_byte": 1023,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:this[int i]:43:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/base_lists_and_calls/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 4,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 43,
+      "start_column": 27,
+      "end_line": 43,
+      "end_column": 31,
+      "start_byte": 1150,
+      "end_byte": 1154,
       "metadata": {
         "metric_version": 1
       }

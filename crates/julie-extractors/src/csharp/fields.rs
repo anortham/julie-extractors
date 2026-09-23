@@ -168,9 +168,49 @@ pub fn extract_events(
                 annotations: annotations.clone(),
             };
 
-            Some(base.create_symbol(&node, name, SymbolKind::Event, options))
+            let symbol = base.create_symbol(&node, name, SymbolKind::Event, options);
+            if let Some(type_node) = type_node {
+                super::type_inference::record_declared_type(base, &symbol.id, type_node);
+            }
+            Some(symbol)
         })
         .collect()
+}
+
+/// An event with explicit `add`/`remove` accessors (`event_declaration`).
+pub fn extract_accessor_event(
+    base: &mut BaseExtractor,
+    node: Node,
+    parent_id: Option<String>,
+) -> Option<Symbol> {
+    let name = base.get_node_text(&node.child_by_field_name("name")?);
+    let type_node = node.child_by_field_name("type");
+    let event_type = type_node
+        .map(|type_node| base.get_node_text(&type_node))
+        .unwrap_or_else(|| "EventHandler".to_string());
+    let modifiers = helpers::extract_modifiers(base, &node);
+    let signature = if modifiers.is_empty() {
+        format!("event {} {}", event_type, name)
+    } else {
+        format!("{} event {} {}", modifiers.join(" "), event_type, name)
+    };
+    let metadata = HashMap::from([(
+        "isStatic".to_string(),
+        serde_json::json!(modifiers.iter().any(|m| m == "static")),
+    )]);
+    let options = SymbolOptions {
+        signature: Some(signature),
+        visibility: Some(helpers::determine_visibility(&modifiers, &node)),
+        parent_id,
+        doc_comment: base.find_doc_comment(&node),
+        metadata: Some(metadata),
+        annotations: helpers::extract_annotations(base, &node),
+    };
+    let symbol = base.create_symbol(&node, name, SymbolKind::Event, options);
+    if let Some(type_node) = type_node {
+        super::type_inference::record_declared_type(base, &symbol.id, type_node);
+    }
+    Some(symbol)
 }
 
 fn extract_declarator_initializer(base: &BaseExtractor, declarator: Node) -> String {

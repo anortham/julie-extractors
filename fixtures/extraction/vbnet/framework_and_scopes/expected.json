@@ -189,19 +189,19 @@
       "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
       "start_line": 84,
       "start_column": 4,
-      "end_line": 90,
+      "end_line": 95,
       "end_column": 0,
       "start_byte": 2408,
-      "end_byte": 2606,
+      "end_byte": 2874,
       "body_span": {
         "start_line": 85,
         "start_column": 0,
-        "end_line": 89,
+        "end_line": 94,
         "end_column": 4,
         "start_byte": 2419,
-        "end_byte": 2598
+        "end_byte": 2866
       },
-      "body_hash": "9c7c958c73ef8666cd35e64c6b28cfd0",
+      "body_hash": "cfdf52832065d19c8155a1f5304350c0",
       "signature": "Sub Main()",
       "doc_comment": null,
       "visibility": "Public",
@@ -377,19 +377,19 @@
       "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
       "start_line": 83,
       "start_column": 0,
-      "end_line": 91,
-      "end_column": 0,
+      "end_line": 95,
+      "end_column": 10,
       "start_byte": 2389,
-      "end_byte": 2617,
+      "end_byte": 2884,
       "body_span": {
         "start_line": 84,
         "start_column": 0,
-        "end_line": 90,
+        "end_line": 95,
         "end_column": 0,
         "start_byte": 2404,
-        "end_byte": 2606
+        "end_byte": 2874
       },
-      "body_hash": "5a23644bb88f46fe99f67835e1129b27",
+      "body_hash": "8d378b625260788269095f854108df40",
       "signature": "Module Program",
       "doc_comment": null,
       "visibility": "Internal",
@@ -1181,6 +1181,30 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:v1:89:12",
+      "name": "v1",
+      "kind": "variable",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 89,
+      "start_column": 12,
+      "end_line": 89,
+      "end_column": 14,
+      "start_byte": 2606,
+      "end_byte": 2608,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "Dim v1",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:value:33:35",
       "name": "value",
       "kind": "variable",
@@ -1348,6 +1372,22 @@
     },
     {
       "from_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "callee_name": "api.MapGroup",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "line_number": 89,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "callee_name": "app.MapControllerRoute",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "line_number": 93,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "callee_name": "app.MapGet",
       "kind": "calls",
       "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
@@ -1360,6 +1400,30 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
       "line_number": 87,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "callee_name": "app.MapHealthChecks",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "line_number": 92,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "callee_name": "app.MapHub",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "line_number": 91,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "callee_name": "v1.MapGet",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "line_number": 90,
       "confidence": "0.700"
     },
     {
@@ -1637,6 +1701,58 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+        "callee_name": "api.MapGroup",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+        "line_number": 89,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "api.MapGroup",
+        "terminal_name": "MapGroup",
+        "receiver": "api",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "span": {
+        "start_line": 89,
+        "start_column": 17,
+        "end_line": 89,
+        "end_column": 36,
+        "start_byte": 2611,
+        "end_byte": 2630
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+        "callee_name": "app.MapControllerRoute",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+        "line_number": 93,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "app.MapControllerRoute",
+        "terminal_name": "MapControllerRoute",
+        "receiver": "app",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "span": {
+        "start_line": 93,
+        "start_column": 8,
+        "end_line": 93,
+        "end_column": 98,
+        "start_byte": 2771,
+        "end_byte": 2861
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
         "callee_name": "app.MapGet",
         "kind": "calls",
         "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
@@ -1684,6 +1800,84 @@
         "end_column": 38,
         "start_byte": 2526,
         "end_byte": 2546
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+        "callee_name": "app.MapHealthChecks",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+        "line_number": 92,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "app.MapHealthChecks",
+        "terminal_name": "MapHealthChecks",
+        "receiver": "app",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "span": {
+        "start_line": 92,
+        "start_column": 8,
+        "end_line": 92,
+        "end_column": 38,
+        "start_byte": 2732,
+        "end_byte": 2762
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+        "callee_name": "app.MapHub",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+        "line_number": 91,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "app.MapHub",
+        "terminal_name": "MapHub",
+        "receiver": "app",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "span": {
+        "start_line": 91,
+        "start_column": 8,
+        "end_line": 91,
+        "end_column": 30,
+        "start_byte": 2687,
+        "end_byte": 2709
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+        "callee_name": "v1.MapGet",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+        "line_number": 90,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "v1.MapGet",
+        "terminal_name": "MapGet",
+        "receiver": "v1",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "span": {
+        "start_line": 90,
+        "start_column": 8,
+        "end_line": 90,
+        "end_column": 47,
+        "start_byte": 2639,
+        "end_byte": 2678
       }
     },
     {
@@ -2020,6 +2214,22 @@
       "start_byte": 11,
       "end_byte": 26,
       "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ChatHub:variable_ref:91:22",
+      "name": "ChatHub",
+      "kind": "variable_ref",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 91,
+      "start_column": 22,
+      "end_line": 91,
+      "end_column": 29,
+      "start_byte": 2701,
+      "end_byte": 2708,
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2376,6 +2586,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:MapControllerRoute:call:93:12",
+      "name": "MapControllerRoute",
+      "kind": "call",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 93,
+      "start_column": 12,
+      "end_line": 93,
+      "end_column": 30,
+      "start_byte": 2775,
+      "end_byte": 2793,
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:MapGet:call:86:12",
       "name": "MapGet",
       "kind": "call",
@@ -2408,6 +2634,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:MapGet:call:90:11",
+      "name": "MapGet",
+      "kind": "call",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 90,
+      "start_column": 11,
+      "end_line": 90,
+      "end_column": 17,
+      "start_byte": 2642,
+      "end_byte": 2648,
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:MapGroup:call:87:22",
       "name": "MapGroup",
       "kind": "call",
@@ -2419,6 +2661,54 @@
       "end_column": 30,
       "start_byte": 2530,
       "end_byte": 2538,
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:MapGroup:call:89:21",
+      "name": "MapGroup",
+      "kind": "call",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 89,
+      "start_column": 21,
+      "end_line": 89,
+      "end_column": 29,
+      "start_byte": 2615,
+      "end_byte": 2623,
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:MapHealthChecks:call:92:12",
+      "name": "MapHealthChecks",
+      "kind": "call",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 92,
+      "start_column": 12,
+      "end_line": 92,
+      "end_column": 27,
+      "start_byte": 2736,
+      "end_byte": 2751,
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:MapHub:call:91:12",
+      "name": "MapHub",
+      "kind": "call",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 91,
+      "start_column": 12,
+      "end_line": 91,
+      "end_column": 18,
+      "start_byte": 2691,
+      "end_byte": 2697,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
       "confidence": "1.000"
@@ -2484,6 +2774,22 @@
       "start_byte": 846,
       "end_byte": 854,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Create:15:8",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Of:variable_ref:91:19",
+      "name": "Of",
+      "kind": "variable_ref",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 91,
+      "start_column": 19,
+      "end_line": 91,
+      "end_column": 21,
+      "start_byte": 2698,
+      "end_byte": 2700,
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2921,6 +3227,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:api:variable_ref:89:17",
+      "name": "api",
+      "kind": "variable_ref",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 89,
+      "start_column": 17,
+      "end_line": 89,
+      "end_column": 20,
+      "start_byte": 2611,
+      "end_byte": 2614,
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:app:variable_ref:86:8",
       "name": "app",
       "kind": "variable_ref",
@@ -2948,6 +3270,54 @@
       "end_column": 21,
       "start_byte": 2526,
       "end_byte": 2529,
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:app:variable_ref:91:8",
+      "name": "app",
+      "kind": "variable_ref",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 91,
+      "start_column": 8,
+      "end_line": 91,
+      "end_column": 11,
+      "start_byte": 2687,
+      "end_byte": 2690,
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:app:variable_ref:92:8",
+      "name": "app",
+      "kind": "variable_ref",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 92,
+      "start_column": 8,
+      "end_line": 92,
+      "end_column": 11,
+      "start_byte": 2732,
+      "end_byte": 2735,
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:app:variable_ref:93:8",
+      "name": "app",
+      "kind": "variable_ref",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 93,
+      "start_column": 8,
+      "end_line": 93,
+      "end_column": 11,
+      "start_byte": 2771,
+      "end_byte": 2774,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
       "confidence": "1.000"
@@ -3077,6 +3447,22 @@
       "start_byte": 829,
       "end_byte": 834,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Create:15:8",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:v1:variable_ref:90:8",
+      "name": "v1",
+      "kind": "variable_ref",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 90,
+      "start_column": 8,
+      "end_line": 90,
+      "end_column": 10,
+      "start_byte": 2639,
+      "end_byte": 2641,
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -3321,7 +3707,17 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": [],
+  "parse_diagnostics": [
+    {
+      "kind": "Error",
+      "start_line": 91,
+      "start_column": 19,
+      "end_line": 91,
+      "end_column": 21,
+      "start_byte": 2698,
+      "end_byte": 2700
+    }
+  ],
   "structural_facts": [
     {
       "pattern_id": "aspnet.attribute_route.v1",
@@ -3378,6 +3774,55 @@
       }
     },
     {
+      "pattern_id": "aspnet.conventional_route.v1",
+      "capture_name": "conventional_route",
+      "node_kind": "invocation",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "start_line": 93,
+      "start_column": 12,
+      "end_line": 93,
+      "end_column": 98,
+      "start_byte": 2775,
+      "end_byte": 2861,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "conventional_routing",
+        "framework": "aspnet",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_name": "default",
+        "route_template": "{controller=Home}/{action=Index}/{id?}"
+      }
+    },
+    {
+      "pattern_id": "aspnet.minimal_api.route.v1",
+      "capture_name": "route_call",
+      "node_kind": "element_access",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "start_line": 91,
+      "start_column": 12,
+      "end_line": 91,
+      "end_column": 44,
+      "start_byte": 2691,
+      "end_byte": 2723,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "minimal_api",
+        "endpoint_kind": "signalr_hub",
+        "framework": "aspnet",
+        "hub_type": "ChatHub",
+        "normalized_route_template": "/hubs/chat",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_source": "string_literal",
+        "route_template": "/hubs/chat"
+      }
+    },
+    {
       "pattern_id": "aspnet.minimal_api.route.v1",
       "capture_name": "route_call",
       "node_kind": "invocation",
@@ -3431,6 +3876,59 @@
       }
     },
     {
+      "pattern_id": "aspnet.minimal_api.route.v1",
+      "capture_name": "route_call",
+      "node_kind": "invocation",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "start_line": 90,
+      "start_column": 11,
+      "end_line": 90,
+      "end_column": 47,
+      "start_byte": 2642,
+      "end_byte": 2678,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "minimal_api",
+        "effective_route_template": "/api/v1/items",
+        "framework": "aspnet",
+        "normalized_route_template": "/api/v1/items",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_group_prefix": "/api/v1",
+        "route_group_source": "map_group",
+        "route_source": "string_literal",
+        "route_template": "/items",
+        "verb": "GET"
+      }
+    },
+    {
+      "pattern_id": "aspnet.minimal_api.route.v1",
+      "capture_name": "route_call",
+      "node_kind": "invocation",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "start_line": 92,
+      "start_column": 12,
+      "end_line": 92,
+      "end_column": 38,
+      "start_byte": 2736,
+      "end_byte": 2762,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "minimal_api",
+        "endpoint_kind": "health_checks",
+        "framework": "aspnet",
+        "normalized_route_template": "/health",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_source": "string_literal",
+        "route_template": "/health"
+      }
+    },
+    {
       "pattern_id": "aspnet.minimal_api.route_group.v1",
       "capture_name": "route_group",
       "node_kind": "invocation",
@@ -3452,6 +3950,34 @@
         "pattern_version": 1,
         "query_family": "framework",
         "route_prefix": "/api",
+        "route_source": "string_literal",
+        "source_kind": "map_group"
+      }
+    },
+    {
+      "pattern_id": "aspnet.minimal_api.route_group.v1",
+      "capture_name": "route_group",
+      "node_kind": "invocation",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "start_line": 89,
+      "start_column": 21,
+      "end_line": 89,
+      "end_column": 36,
+      "start_byte": 2615,
+      "end_byte": 2630,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "minimal_api",
+        "effective_route_template": "/api/v1",
+        "framework": "aspnet",
+        "group_variable": "v1",
+        "normalized_route_template": "/api/v1",
+        "parent_route_prefix": "/api",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_prefix": "/v1",
         "route_source": "string_literal",
         "source_kind": "map_group"
       }
@@ -3720,18 +4246,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "vbnet",
       "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
-      "covered_lines": 91,
-      "covered_bytes": 2617,
+      "covered_lines": 96,
+      "covered_bytes": 2885,
       "decision_count": 2,
       "loop_count": 1,
       "max_nesting_depth": 1,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 91,
+      "end_line": 96,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 2617,
+      "end_byte": 2885,
       "metadata": {
         "metric_version": 1
       }
@@ -3808,18 +4334,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "vbnet",
       "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
-      "covered_lines": 5,
-      "covered_bytes": 179,
+      "covered_lines": 10,
+      "covered_bytes": 447,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
       "start_line": 85,
       "start_column": 0,
-      "end_line": 89,
+      "end_line": 94,
       "end_column": 4,
       "start_byte": 2419,
-      "end_byte": 2598,
+      "end_byte": 2866,
       "metadata": {
         "metric_version": 1
       }
@@ -3953,6 +4479,38 @@
       "confidence": "1.000"
     },
     {
+      "literal_text": "/health",
+      "kind": "other",
+      "carrier": "MapHealthChecks",
+      "arg_position": 0,
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 92,
+      "start_column": 28,
+      "end_line": 92,
+      "end_column": 37,
+      "start_byte": 2752,
+      "end_byte": 2761,
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/items",
+      "kind": "other",
+      "carrier": "MapGet",
+      "arg_position": 0,
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 90,
+      "start_column": 18,
+      "end_line": 90,
+      "end_column": 26,
+      "start_byte": 2649,
+      "end_byte": 2657,
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "confidence": "1.000"
+    },
+    {
       "literal_text": "/ping",
       "kind": "other",
       "carrier": "MapGet",
@@ -3985,6 +4543,22 @@
       "confidence": "1.000"
     },
     {
+      "literal_text": "/v1",
+      "kind": "other",
+      "carrier": "MapGroup",
+      "arg_position": 0,
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 89,
+      "start_column": 30,
+      "end_line": 89,
+      "end_column": 35,
+      "start_byte": 2624,
+      "end_byte": 2629,
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "confidence": "1.000"
+    },
+    {
       "literal_text": "Server=.",
       "kind": "other",
       "carrier": "SqlConnection",
@@ -3998,6 +4572,22 @@
       "start_byte": 1832,
       "end_byte": 1842,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ShipAll:54:8",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "default",
+      "kind": "other",
+      "carrier": "MapControllerRoute",
+      "arg_position": 0,
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 93,
+      "start_column": 37,
+      "end_line": 93,
+      "end_column": 46,
+      "start_byte": 2800,
+      "end_byte": 2809,
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "confidence": "1.000"
     },
     {
@@ -4046,6 +4636,22 @@
       "start_byte": 543,
       "end_byte": 575,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Create:15:8",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "{controller=Home}/{action=Index}/{id?}",
+      "kind": "other",
+      "carrier": "MapControllerRoute",
+      "arg_position": 1,
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 93,
+      "start_column": 57,
+      "end_line": 93,
+      "end_column": 97,
+      "start_byte": 2820,
+      "end_byte": 2860,
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "confidence": "1.000"
     }
   ],
@@ -4165,6 +4771,97 @@
       "end_column": 45,
       "start_byte": 2586,
       "end_byte": 2592,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "start_line": 89,
+      "start_column": 30,
+      "end_line": 89,
+      "end_column": 35,
+      "start_byte": 2624,
+      "end_byte": 2629,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "start_line": 90,
+      "start_column": 18,
+      "end_line": 90,
+      "end_column": 26,
+      "start_byte": 2649,
+      "end_byte": 2657,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "start_line": 90,
+      "start_column": 39,
+      "end_line": 90,
+      "end_column": 46,
+      "start_byte": 2670,
+      "end_byte": 2677,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "start_line": 91,
+      "start_column": 31,
+      "end_line": 91,
+      "end_column": 43,
+      "start_byte": 2710,
+      "end_byte": 2722,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "start_line": 92,
+      "start_column": 28,
+      "end_line": 92,
+      "end_column": 37,
+      "start_byte": 2752,
+      "end_byte": 2761,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "start_line": 93,
+      "start_column": 37,
+      "end_line": 93,
+      "end_column": 46,
+      "start_byte": 2800,
+      "end_byte": 2809,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
+      "start_line": 93,
+      "start_column": 57,
+      "end_line": 93,
+      "end_column": 97,
+      "start_byte": 2820,
+      "end_byte": 2860,
       "metadata": null
     },
     {

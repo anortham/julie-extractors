@@ -1966,6 +1966,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:Value:16:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/calls_and_bodies/source.vb",
+      "covered_lines": 6,
+      "covered_bytes": 149,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 17,
+      "start_column": 0,
+      "end_line": 22,
+      "end_column": 8,
+      "start_byte": 450,
+      "end_byte": 599,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:operator <>:28:8",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "vbnet",

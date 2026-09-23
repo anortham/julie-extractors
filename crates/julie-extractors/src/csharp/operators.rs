@@ -45,6 +45,7 @@ pub fn extract_operator(
                 | "^"
                 | "<<"
                 | ">>"
+                | ">>>"
                 | "true"
                 | "false"
         )
@@ -56,14 +57,9 @@ pub fn extract_operator(
     let visibility = helpers::determine_visibility(&modifiers, &node);
 
     let children: Vec<Node> = node.children(&mut cursor).collect();
-    let operator_keyword_index = children
-        .iter()
-        .position(|c| base.get_node_text(c) == "operator")?;
-    let return_type_node = children[..operator_keyword_index]
-        .iter()
-        .find(|c| matches!(c.kind(), "predefined_type" | "identifier" | "generic_name"));
-    let return_type = return_type_node
-        .map(|node| base.get_node_text(node))
+    let return_type = node
+        .child_by_field_name("type")
+        .map(|type_node| base.get_node_text(&type_node))
         .unwrap_or_else(|| "void".to_string());
 
     let param_list = children.iter().find(|c| c.kind() == "parameter_list");
@@ -129,10 +125,15 @@ pub fn extract_conversion_operator(
     let operator_keyword_index = children
         .iter()
         .position(|c| base.get_node_text(c) == "operator")?;
-    let target_type_node = children[operator_keyword_index + 1..]
-        .iter()
-        .find(|c| matches!(c.kind(), "predefined_type" | "identifier" | "generic_name"));
-    let target_type = target_type_node.map(|node| base.get_node_text(node))?;
+    let target_type = node
+        .child_by_field_name("type")
+        .or_else(|| {
+            children[operator_keyword_index + 1..]
+                .iter()
+                .find(|c| matches!(c.kind(), "predefined_type" | "identifier" | "generic_name"))
+                .copied()
+        })
+        .map(|type_node| base.get_node_text(&type_node))?;
     let name = format!("{} operator {}", conversion_text, target_type);
 
     let param_list = children.iter().find(|c| c.kind() == "parameter_list");

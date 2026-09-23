@@ -356,7 +356,7 @@ fn extract_named_binding(
             parent_id,
             metadata: Some(metadata),
             doc_comment: None,
-            annotations: Vec::new(),
+            annotations: helpers::extract_annotations(base, &node),
         },
     );
     if !is_var && let Some(type_node) = node.child_by_field_name("type") {
@@ -408,7 +408,7 @@ pub fn extract_parameter(
             parent_id,
             metadata: Some(metadata),
             doc_comment: None,
-            annotations: Vec::new(),
+            annotations: helpers::extract_annotations(base, &node),
         },
     );
     if !is_var && let Some(type_node) = node.child_by_field_name("type") {
@@ -517,10 +517,51 @@ fn parameter_name(base: &BaseExtractor, node: Node) -> Option<String> {
 }
 
 fn parameter_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
-    if let Some(ty) = node.child_by_field_name("type") {
-        return Some(base.get_node_text(&ty));
-    }
-    type_name_from_declaration(base, node)
+    node.child_by_field_name("type")
+        .map(|ty| base.get_node_text(&ty))
+}
+
+/// The grammar flattens a `params T name` parameter into the parameter list
+/// itself (`type` and `name` fields, no `parameter` node).
+pub(super) fn extract_params_parameter(
+    base: &mut BaseExtractor,
+    parameter_list: Node,
+    parent_id: Option<String>,
+) -> Option<Symbol> {
+    let name_node = parameter_list.child_by_field_name("name")?;
+    let type_node = parameter_list.child_by_field_name("type")?;
+    let mut cursor = parameter_list.walk();
+    let start = parameter_list
+        .children(&mut cursor)
+        .find(|child| child.kind() == "params")
+        .unwrap_or(type_node);
+    let mut span = NormalizedSpan::from_node(&start);
+    let end = NormalizedSpan::from_node(&name_node);
+    span.end_line = end.end_line;
+    span.end_column = end.end_column;
+    span.end_byte = end.end_byte;
+
+    let name = base.get_node_text(&name_node);
+    let type_text = base.get_node_text(&type_node);
+    let mut metadata = HashMap::new();
+    metadata.insert("role".to_string(), serde_json::json!("parameter"));
+    metadata.insert("variableType".to_string(), serde_json::json!(type_text));
+    metadata.insert("isInferred".to_string(), serde_json::json!(false));
+    let symbol = base.create_symbol_from_span(
+        &name_node,
+        span,
+        name.clone(),
+        SymbolKind::Variable,
+        SymbolOptions {
+            signature: Some(format!("params {type_text} {name}")),
+            visibility: Some(Visibility::Private),
+            parent_id,
+            metadata: Some(metadata),
+            ..Default::default()
+        },
+    );
+    super::type_inference::record_declared_type(base, &symbol.id, type_node);
+    Some(symbol)
 }
 
 fn find_child<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
@@ -566,4 +607,46 @@ fn loop_binding_span(node: Node) -> Option<NormalizedSpan> {
     span.end_column = end.end_column;
     span.end_byte = end.end_byte;
     Some(span)
+}
+
+/// A pattern that binds a name (`o is Order order`, `case Customer c`,
+/// `Invoice { Id: 1 } inv`) declares a local of the matched type.
+pub(super) fn extract_pattern_designation(
+    base: &mut BaseExtractor,
+    pattern: Node,
+    parent_id: Option<String>,
+) -> Option<Symbol> {
+    let name_node = pattern.child_by_field_name("name")?;
+    let name = base.get_node_text(&name_node);
+    let type_node = pattern.child_by_field_name("type");
+    let type_text = type_node.map(|node| base.get_node_text(&node));
+    let signature = match &type_text {
+        Some(type_text) => format!("{type_text} {name}"),
+        None => format!("var {name}"),
+    };
+    let mut metadata = HashMap::new();
+    metadata.insert("role".to_string(), serde_json::json!("pattern"));
+    if let Some(type_text) = &type_text {
+        metadata.insert("variableType".to_string(), serde_json::json!(type_text));
+    }
+    metadata.insert(
+        "isInferred".to_string(),
+        serde_json::json!(type_node.is_none()),
+    );
+    let symbol = base.create_symbol(
+        &pattern,
+        name,
+        SymbolKind::Variable,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(Visibility::Private),
+            parent_id,
+            metadata: Some(metadata),
+            ..Default::default()
+        },
+    );
+    if let Some(type_node) = type_node {
+        super::type_inference::record_declared_type(base, &symbol.id, type_node);
+    }
+    Some(symbol)
 }
