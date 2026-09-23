@@ -100,6 +100,7 @@ pub(super) fn extract_variable_type(
                     | "type_identifier"
                     | "sized_type_specifier"
                     | "struct_specifier"
+                    | "union_specifier"
                     | "enum_specifier"
             )
         })

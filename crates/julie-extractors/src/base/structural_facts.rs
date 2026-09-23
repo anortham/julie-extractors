@@ -107,6 +107,7 @@ pub fn collect_structural_facts(
     language: &str,
     tree: &Tree,
     file_path: &str,
+    content: &str,
     symbols: &[Symbol],
 ) -> Vec<StructuralFact> {
     let patterns = patterns_for_language(language);
@@ -119,6 +120,7 @@ pub fn collect_structural_facts(
         tree.root_node(),
         language,
         file_path,
+        content,
         patterns,
         &mut facts,
         0,
@@ -174,6 +176,7 @@ fn collect_node(
     node: Node<'_>,
     language: &str,
     file_path: &str,
+    content: &str,
     patterns: &[StructuralPattern],
     facts: &mut Vec<StructuralFact>,
     depth: u32,
@@ -184,7 +187,7 @@ fn collect_node(
 
     for pattern in patterns {
         if pattern.node_kinds.contains(&node.kind()) {
-            facts.push(fact_for_node(file_path, language, node, *pattern));
+            facts.push(fact_for_node(file_path, language, content, node, *pattern));
         }
     }
 
@@ -193,18 +196,27 @@ fn collect_node(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_node(child, language, file_path, patterns, facts, child_depth);
+        collect_node(
+            child,
+            language,
+            file_path,
+            content,
+            patterns,
+            facts,
+            child_depth,
+        );
     }
 }
 
 fn fact_for_node(
     file_path: &str,
     language: &str,
+    content: &str,
     node: Node<'_>,
     pattern: StructuralPattern,
 ) -> StructuralFact {
     let span = NormalizedSpan::from_node(&node);
-    let metadata = HashMap::from([
+    let mut metadata = HashMap::from([
         (
             "pattern_version".to_string(),
             serde_json::Value::Number(serde_json::Number::from(1)),
@@ -214,6 +226,20 @@ fn fact_for_node(
             serde_json::Value::String(pattern.query_family.to_string()),
         ),
     ]);
+    if pattern.query_family == "preprocessor"
+        && let Some(name) = node
+            .child_by_field_name("name")
+            .and_then(|name| content.get(name.byte_range()))
+    {
+        metadata.insert(
+            "name".to_string(),
+            serde_json::Value::String(name.to_string()),
+        );
+        metadata.insert(
+            "function_like".to_string(),
+            serde_json::Value::Bool(node.kind() == "preproc_function_def"),
+        );
+    }
 
     StructuralFact {
         id: stable_location_id(

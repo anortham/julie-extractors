@@ -72,6 +72,59 @@ pub(super) fn record_field_fact(
     record_stated_type(base, symbol_id, field_node, type_node, declarator);
 }
 
+/// Record a callable's stated return type: the `type` of the declaration that
+/// owns its declarator, decorated by the pointer and reference declarators
+/// around it, or its trailing return type when the stated type is `auto`.
+pub(super) fn record_return_fact(
+    base: &mut BaseExtractor,
+    symbol_id: &str,
+    function_declarator: Node,
+) {
+    if function_declarator.kind() != "function_declarator" {
+        return;
+    }
+    let mut declarator = function_declarator;
+    while let Some(parent) = declarator
+        .parent()
+        .filter(|parent| matches!(parent.kind(), "pointer_declarator" | "reference_declarator"))
+    {
+        declarator = parent;
+    }
+    let Some(owner) = declarator.parent() else {
+        return;
+    };
+    let Some(type_node) = owner.child_by_field_name("type") else {
+        return;
+    };
+    if !is_auto_type(type_node) {
+        record_type(base, symbol_id, owner, type_node, Some(declarator));
+        return;
+    }
+    let mut cursor = function_declarator.walk();
+    let Some(descriptor) = function_declarator
+        .children(&mut cursor)
+        .find(|child| child.kind() == "trailing_return_type")
+        .and_then(|trailing| trailing.named_child(0))
+        .filter(|descriptor| descriptor.kind() == "type_descriptor")
+    else {
+        return;
+    };
+    let Some(base_name) = descriptor
+        .child_by_field_name("type")
+        .and_then(|stated| structural_base_name(base, stated, 0))
+    else {
+        return;
+    };
+    let declared = base.get_node_text(&descriptor);
+    base.record_declared_type_fact_with_declared(
+        symbol_id,
+        &base_name,
+        &declared,
+        &TYPE_NAME_RULES,
+        false,
+    );
+}
+
 fn record_stated_type(
     base: &mut BaseExtractor,
     symbol_id: &str,
@@ -82,6 +135,16 @@ fn record_stated_type(
     if declarator.is_some_and(|declarator| contains_function_declarator(declarator, 0)) {
         return;
     }
+    record_type(base, symbol_id, container, type_node, declarator);
+}
+
+fn record_type(
+    base: &mut BaseExtractor,
+    symbol_id: &str,
+    container: Node,
+    type_node: Node,
+    declarator: Option<Node>,
+) {
     let Some(base_name) = structural_base_name(base, type_node, 0) else {
         return;
     };

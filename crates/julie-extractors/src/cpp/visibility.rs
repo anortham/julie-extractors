@@ -48,8 +48,28 @@ fn extract_field_visibility(base: &BaseExtractor, node: Node) -> Visibility {
                 default_visibility
             }
         }
-        None => Visibility::Public, // Not inside a class/struct, assume public
+        None if has_internal_linkage(base, node) => Visibility::Private,
+        None => Visibility::Public,
     }
+}
+
+/// A namespace-scope `static`, and anything in an anonymous namespace, is
+/// visible only in its own translation unit.
+fn has_internal_linkage(base: &BaseExtractor, node: Node) -> bool {
+    let declaration = super::function_declarators::enclosing_declaration(node).unwrap_or(node);
+    let mut cursor = declaration.walk();
+    let is_static = declaration.children(&mut cursor).any(|child| {
+        child.kind() == "storage_class_specifier" && base.get_node_text(&child) == "static"
+    });
+    let mut ancestor = node.parent();
+    while let Some(current) = ancestor {
+        if current.kind() == "namespace_definition" && current.child_by_field_name("name").is_none()
+        {
+            return true;
+        }
+        ancestor = current.parent();
+    }
+    is_static
 }
 
 /// Find the parent class_specifier or struct_specifier node

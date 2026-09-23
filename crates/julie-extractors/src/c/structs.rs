@@ -5,6 +5,7 @@
 
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
 use crate::c::CExtractor;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -21,6 +22,7 @@ pub(super) fn extract_struct(
     node.child_by_field_name("body")?;
     let struct_name = helpers::extract_struct_name(&extractor.base, node)?;
     let signature = signatures::build_struct_signature(&extractor.base, node);
+    let annotations = helpers::child_attributes(&extractor.base, node);
 
     let doc_comment = extractor.base.find_doc_comment(&node);
 
@@ -34,7 +36,7 @@ pub(super) fn extract_struct(
             parent_id: parent_id.map(|s| s.to_string()),
             metadata: None,
             doc_comment,
-            annotations: Vec::new(),
+            annotations,
         },
     ))
 }
@@ -48,6 +50,7 @@ pub(super) fn extract_union(
     node.child_by_field_name("body")?;
     let union_name = helpers::extract_union_name(&extractor.base, node)?;
     let signature = signatures::build_union_signature(&extractor.base, node);
+    let annotations = helpers::child_attributes(&extractor.base, node);
 
     let doc_comment = extractor.base.find_doc_comment(&node);
 
@@ -61,7 +64,7 @@ pub(super) fn extract_union(
             parent_id: parent_id.map(|s| s.to_string()),
             metadata: None,
             doc_comment,
-            annotations: Vec::new(),
+            annotations,
         },
     ))
 }
@@ -93,80 +96,114 @@ pub(super) fn extract_enum(
     ))
 }
 
-/// Extract struct/union field symbols as SymbolKind::Field children
-///
-/// Delegates to `extract_struct_fields` for the field traversal, then wraps each
-/// `StructField` into a full `Symbol`. This avoids duplicating the tree-sitter
-/// walking logic between signature building and symbol extraction.
-///
-/// For each field we also need the tree-sitter node for position info and doc comments,
-/// so we walk the body a second time to pair fields with their declarator nodes.
+/// Extract struct/union field symbols as `SymbolKind::Field` children. A C11
+/// anonymous member (`union { long as_int; double as_float; };`) adds its fields
+/// to the enclosing record; the fields of an unnamed record type behind a named
+/// field (`struct { int line; } pos;`) belong to that field.
 pub(super) fn extract_struct_field_symbols(
     extractor: &mut CExtractor,
     node: tree_sitter::Node,
     parent_struct_id: &str,
 ) -> Vec<Symbol> {
     let mut field_symbols = Vec::new();
+    collect_field_symbols(extractor, node, parent_struct_id, &mut field_symbols, 0);
+    field_symbols
+}
 
-    let Some(body) = node.child_by_field_name("body") else {
-        return field_symbols;
+fn collect_field_symbols(
+    extractor: &mut CExtractor,
+    record: tree_sitter::Node,
+    owner_id: &str,
+    field_symbols: &mut Vec<Symbol>,
+    depth: u32,
+) {
+    let (Some(body), Some(child_depth)) = (
+        record.child_by_field_name("body"),
+        child_tree_depth(depth).filter(|_| should_visit_tree_depth(depth)),
+    ) else {
+        return;
     };
 
-    // Walk field_declarations to get both StructField data and the tree-sitter nodes
-    // needed for position info, signatures, and doc comments
     let mut cursor = body.walk();
     for child in body.children(&mut cursor) {
         if child.kind() != "field_declaration" {
             continue;
         }
-
-        let field_type = child
-            .child_by_field_name("type")
-            .map(|t| extractor.base.get_node_text(&t))
-            .unwrap_or_default();
+        let anonymous_record = child.child_by_field_name("type").filter(|record| {
+            matches!(record.kind(), "struct_specifier" | "union_specifier")
+                && record.child_by_field_name("name").is_none()
+        });
 
         let mut decl_cursor = child.walk();
-        for decl_child in child.children_by_field_name("declarator", &mut decl_cursor) {
-            let Some(field_name) = helpers::find_field_identifier_name(&extractor.base, decl_child)
+        let declarators: Vec<_> = child
+            .children_by_field_name("declarator", &mut decl_cursor)
+            .collect();
+        if declarators.is_empty()
+            && let Some(record) = anonymous_record
+        {
+            collect_field_symbols(extractor, record, owner_id, field_symbols, child_depth);
+            continue;
+        }
+        for declarator in declarators {
+            let Some(field_id) =
+                push_field_symbol(extractor, child, declarator, owner_id, field_symbols)
             else {
                 continue;
             };
-
-            let signature = format!(
-                "{} {}",
-                field_type,
-                extractor.base.get_node_text(&decl_child)
-            );
-            let doc_comment = extractor.base.find_doc_comment(&child);
-
-            let field_symbol = extractor.base.create_symbol(
-                &decl_child,
-                field_name,
-                SymbolKind::Field,
-                SymbolOptions {
-                    signature: Some(signature),
-                    visibility: Some(Visibility::Public),
-                    parent_id: Some(parent_struct_id.to_string()),
-                    metadata: Some(HashMap::from([(
-                        "fieldType".to_string(),
-                        Value::String(field_type.clone()),
-                    )])),
-                    doc_comment,
-                    annotations: Vec::new(),
-                },
-            );
-
-            type_facts::record_declared_from_declaration(
-                &mut extractor.base,
-                &field_symbol.id,
-                child,
-                decl_child,
-            );
-            field_symbols.push(field_symbol);
+            if let Some(record) = anonymous_record {
+                collect_field_symbols(extractor, record, &field_id, field_symbols, child_depth);
+            }
         }
     }
+}
 
-    field_symbols
+#[inline(never)]
+fn push_field_symbol(
+    extractor: &mut CExtractor,
+    declaration: tree_sitter::Node,
+    declarator: tree_sitter::Node,
+    owner_id: &str,
+    field_symbols: &mut Vec<Symbol>,
+) -> Option<String> {
+    let field_name = helpers::find_field_identifier_name(&extractor.base, declarator)?;
+    let field_type = declaration
+        .child_by_field_name("type")
+        .map(|t| extractor.base.get_node_text(&t))
+        .unwrap_or_default();
+    let signature = format!(
+        "{} {}",
+        field_type,
+        extractor.base.get_node_text(&declarator)
+    );
+    let doc_comment = extractor.base.find_doc_comment(&declaration);
+    let annotations = helpers::child_attributes(&extractor.base, declaration);
+
+    let field_symbol = extractor.base.create_symbol(
+        &declarator,
+        field_name,
+        SymbolKind::Field,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(Visibility::Public),
+            parent_id: Some(owner_id.to_string()),
+            metadata: Some(HashMap::from([(
+                "fieldType".to_string(),
+                Value::String(field_type),
+            )])),
+            doc_comment,
+            annotations,
+        },
+    );
+
+    type_facts::record_declared_from_declaration(
+        &mut extractor.base,
+        &field_symbol.id,
+        declaration,
+        declarator,
+    );
+    let field_id = field_symbol.id.clone();
+    field_symbols.push(field_symbol);
+    Some(field_id)
 }
 
 /// Extract enum value symbols

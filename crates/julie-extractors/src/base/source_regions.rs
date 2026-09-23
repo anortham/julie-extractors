@@ -76,7 +76,7 @@ pub fn collect_source_regions(
     if ADJACENT_DOC_REGION_LANGUAGES.contains(&language) {
         demote_detached_doc_comments(&mut regions, symbols, content);
     }
-    attach_containing_symbols(&mut regions, symbols);
+    attach_containing_symbols(&mut regions, symbols, language, content);
     regions.sort_by(|left, right| {
         left.start_byte
             .cmp(&right.start_byte)
@@ -326,9 +326,23 @@ fn is_in_doc_block(region: &SourceRegion, symbols: &[Symbol], content: &str) -> 
             .is_some_and(|doc| doc.lines().any(|line| line == text.trim_end()))
 }
 
-fn attach_containing_symbols(regions: &mut [SourceRegion], symbols: &[Symbol]) {
+fn attach_containing_symbols(
+    regions: &mut [SourceRegion],
+    symbols: &[Symbol],
+    language: &str,
+    content: &str,
+) {
+    let spec = crate::language_spec::language_spec(language);
     for region in regions {
+        let is_trailing_doc = spec.is_some_and(|spec| {
+            content
+                .get(region.start_byte as usize..region.end_byte as usize)
+                .is_some_and(|text| spec.is_trailing_doc_comment(text))
+        });
         region.containing_symbol_id = match region.kind {
+            SourceRegionKind::DocComment if is_trailing_doc => {
+                trailing_documented_symbol_id(region, symbols)
+            }
             SourceRegionKind::DocComment => documented_symbol_id(region, symbols),
             SourceRegionKind::Comment | SourceRegionKind::StringLiteral => {
                 containing_symbol_id(region, symbols)
@@ -374,6 +388,17 @@ fn sql_trailing_documented_symbol<'a>(
             symbol.end_byte <= region.start_byte && symbol.end_line == region.start_line
         })
         .max_by_key(|symbol| symbol.end_byte)
+}
+
+/// A trailing member doc (`int port; /**< TCP port. */`) documents the nearest
+/// symbol that ends before it.
+fn trailing_documented_symbol_id(region: &SourceRegion, symbols: &[Symbol]) -> Option<String> {
+    symbols
+        .iter()
+        .filter(|symbol| symbol.doc_comment.is_some())
+        .filter(|symbol| symbol.end_byte <= region.start_byte)
+        .min_by_key(|symbol| region.start_byte.saturating_sub(symbol.end_byte))
+        .map(|symbol| symbol.id.clone())
 }
 
 fn node_text<'a>(content: &'a str, node: Node<'_>) -> Option<&'a str> {

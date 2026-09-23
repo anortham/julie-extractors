@@ -4,8 +4,8 @@
 //! and header file imports.
 
 use crate::base::{
-    LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex, Symbol, SymbolKind,
-    UnresolvedTarget,
+    BaseExtractor, LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex,
+    Symbol, SymbolKind, UnresolvedTarget,
 };
 use crate::c::CExtractor;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -32,13 +32,14 @@ fn walk_relationships(
     relationships: &mut Vec<Relationship>,
     depth: u32,
 ) {
-    if !should_visit_tree_depth(depth) {
+    if !should_visit_tree_depth(depth) || helpers::is_attribute_node(node) {
         return;
     }
 
     match node.kind() {
         "call_expression"
-            if !super::test_calls::is_criterion_macro_call(&extractor.base, &node) =>
+            if !super::test_calls::is_criterion_macro_call(&extractor.base, &node)
+                && !helpers::is_static_assertion(&extractor.base, node) =>
         {
             extract_function_call_relationships(
                 extractor,
@@ -49,7 +50,7 @@ fn walk_relationships(
             );
         }
         "preproc_include" => {
-            extract_include_relationships(extractor, node, relationships);
+            relationships.extend(include_relationship(&extractor.base, node));
         }
         "type_identifier" => {
             extract_type_use_relationship(extractor, node, symbols, scoped_index, relationships);
@@ -84,6 +85,7 @@ fn extract_function_call_relationships(
     let Some(function_node) = node.child_by_field_name("function") else {
         return;
     };
+    let target_token = helpers::callee_token(function_node);
 
     let Some((unresolved_target, is_indirect)) =
         call_target_from_function_node(extractor, function_node)
@@ -114,7 +116,7 @@ fn extract_function_call_relationships(
                 containing_symbol_id,
                 called_symbol.id.clone(),
                 RelationshipKind::Calls,
-                &function_node,
+                &target_token,
                 Some(relationship_confidence),
                 None,
             ));
@@ -126,7 +128,7 @@ fn extract_function_call_relationships(
                     containing_symbol_id.clone(),
                     unresolved_target,
                     RelationshipKind::Calls,
-                    &function_node,
+                    &target_token,
                     Some(containing_symbol_id),
                     Some(pending_confidence),
                 );
@@ -170,44 +172,36 @@ fn call_target_from_function_node(
     extractor: &mut CExtractor,
     function_node: tree_sitter::Node,
 ) -> Option<(UnresolvedTarget, bool)> {
-    match function_node.kind() {
+    let callee = helpers::unwrapped_callee(function_node);
+    let dereferenced = callee.id() != function_node.id();
+    match callee.kind() {
         "identifier" => {
-            let function_name = extractor.get_base_mut().get_node_text(&function_node);
-            Some((UnresolvedTarget::simple(function_name), false))
+            let function_name = extractor.get_base_mut().get_node_text(&callee);
+            Some((UnresolvedTarget::simple(function_name), dereferenced))
         }
-        "field_expression" | "pointer_expression" => {
-            if let Some(field_node) = function_node.child_by_field_name("field") {
-                let terminal_name = extractor.get_base_mut().get_node_text(&field_node);
-                let expression_text = extractor.get_base_mut().get_node_text(&function_node);
-                let target = UnresolvedTarget::from_qualified_text(&expression_text, &[".", "->"])
-                    .unwrap_or_else(|| {
-                        let receiver = expression_text
-                            .rsplit_once("->")
-                            .or_else(|| expression_text.rsplit_once('.'))
-                            .map(|(left, _)| left.trim().to_string())
-                            .filter(|left| !left.is_empty());
-                        match receiver {
-                            Some(receiver) => UnresolvedTarget {
-                                display_name: expression_text,
-                                terminal_name,
-                                receiver: Some(receiver),
-                                namespace_path: Vec::new(),
-                                import_context: None,
-                            },
-                            None => UnresolvedTarget::simple(terminal_name),
-                        }
-                    });
-                Some((target, true))
-            } else {
-                let identifier = helpers::find_deepest_identifier(function_node)?;
-                let function_name = extractor.get_base_mut().get_node_text(&identifier);
-                Some((UnresolvedTarget::simple(function_name), true))
-            }
-        }
-        "parenthesized_expression" | "subscript_expression" => {
-            let identifier = helpers::find_deepest_identifier(function_node)?;
-            let function_name = extractor.get_base_mut().get_node_text(&identifier);
-            Some((UnresolvedTarget::simple(function_name), true))
+        "field_expression" => {
+            let field_node = callee.child_by_field_name("field")?;
+            let terminal_name = extractor.get_base_mut().get_node_text(&field_node);
+            let expression_text = extractor.get_base_mut().get_node_text(&callee);
+            let target = UnresolvedTarget::from_qualified_text(&expression_text, &[".", "->"])
+                .unwrap_or_else(|| {
+                    let receiver = expression_text
+                        .rsplit_once("->")
+                        .or_else(|| expression_text.rsplit_once('.'))
+                        .map(|(left, _)| left.trim().to_string())
+                        .filter(|left| !left.is_empty());
+                    match receiver {
+                        Some(receiver) => UnresolvedTarget {
+                            display_name: expression_text,
+                            terminal_name,
+                            receiver: Some(receiver),
+                            namespace_path: Vec::new(),
+                            import_context: None,
+                        },
+                        None => UnresolvedTarget::simple(terminal_name),
+                    }
+                });
+            Some((target, true))
         }
         _ => {
             let identifier = helpers::find_deepest_identifier(function_node)?;
@@ -224,7 +218,9 @@ fn extract_type_use_relationship(
     scoped_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
-    if helpers::is_type_declaration_name(node) {
+    if helpers::is_type_declaration_name(node)
+        || helpers::is_generic_default_label(&extractor.base, node)
+    {
         return;
     }
 
@@ -264,19 +260,15 @@ fn extract_type_use_relationship(
     }
 }
 
-/// Extract include file relationships
-fn extract_include_relationships(
-    extractor: &mut CExtractor,
+/// The file-to-header import an include directive declares; C++ shares it.
+pub(crate) fn include_relationship(
+    base: &BaseExtractor,
     node: tree_sitter::Node,
-    relationships: &mut Vec<Relationship>,
-) {
-    let Some(include_path) = helpers::extract_include_path(&extractor.base.get_node_text(&node))
-    else {
-        return;
-    };
-    let from_id = format!("file:{}", extractor.base.file_path);
+) -> Option<Relationship> {
+    let include_path = helpers::extract_include_path(&base.get_node_text(&node))?;
+    let from_id = format!("file:{}", base.file_path);
     let to_id = format!("header:{}", include_path);
-    relationships.push(Relationship {
+    Some(Relationship {
         id: format!(
             "{}_{}_{:?}_{}",
             from_id,
@@ -287,7 +279,7 @@ fn extract_include_relationships(
         from_symbol_id: from_id,
         to_symbol_id: to_id,
         kind: RelationshipKind::Imports,
-        file_path: extractor.base.file_path.clone(),
+        file_path: base.file_path.clone(),
         line_number: (node.start_position().row + 1) as u32,
         span: Some(crate::base::NormalizedSpan::from_node(&node)),
         reference_site_is_exact: false,
@@ -296,7 +288,7 @@ fn extract_include_relationships(
             "includePath".to_string(),
             serde_json::Value::String(include_path),
         )])),
-    });
+    })
 }
 
 /// Find the symbol that contains this node

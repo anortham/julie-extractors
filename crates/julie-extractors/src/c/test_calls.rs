@@ -1,4 +1,5 @@
-//! C Criterion call-style test extraction.
+//! C call-style test extraction: Criterion test macros and the call sites that
+//! register CMocka tests and hooks.
 //!
 //! Criterion declares tests with a macro that the C grammar parses as a *call*,
 //! not a function definition:
@@ -99,11 +100,10 @@ pub(super) fn is_criterion_macro_call(base: &BaseExtractor, node: &Node) -> bool
             })
 }
 
-pub fn apply_criterion_lifecycle_metadata(
-    base: &BaseExtractor,
-    root: Node,
-    symbols: &mut [Symbol],
-) {
+/// Give test roles to functions a call site registers: Criterion `.init`/`.fini`
+/// hooks, and CMocka tests and hooks named in `cmocka_unit_test*` and
+/// `cmocka_run_group_tests*` arguments.
+pub fn apply_call_site_test_roles(base: &BaseExtractor, root: Node, symbols: &mut [Symbol]) {
     let mut lifecycle_names = HashMap::new();
     collect_lifecycle_names(base, root, &mut lifecycle_names, 0);
     if lifecycle_names.is_empty() {
@@ -133,10 +133,17 @@ fn collect_lifecycle_names(
 
     if node.kind() == "call_expression"
         && let Some(function) = node.child_by_field_name("function")
-        && matches!(base.get_node_text(&function).as_str(), "Test" | "TestSuite")
         && let Some(arguments) = node.child_by_field_name("arguments")
     {
-        collect_designated_lifecycle_names(base, arguments, names);
+        let callee = base.get_node_text(&function);
+        if matches!(callee.as_str(), "Test" | "TestSuite") {
+            collect_designated_lifecycle_names(base, arguments, names);
+        } else if let Some((_, roles)) = CMOCKA_REGISTRATIONS
+            .iter()
+            .find(|(macro_name, _)| *macro_name == callee)
+        {
+            collect_positional_roles(base, arguments, roles, names);
+        }
     }
 
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -155,6 +162,69 @@ const CRITERION_LIFECYCLE_MARKERS: [(&str, TestRole); 2] = [
     (".init", TestRole::FixtureSetup),
     (".fini", TestRole::FixtureTeardown),
 ];
+
+/// The role CMocka gives each argument of a registration macro, by position.
+const CMOCKA_REGISTRATIONS: [(&str, &[Option<TestRole>]); 8] = [
+    ("cmocka_unit_test", &[Some(TestRole::TestCase)]),
+    (
+        "cmocka_unit_test_setup",
+        &[Some(TestRole::TestCase), Some(TestRole::FixtureSetup)],
+    ),
+    (
+        "cmocka_unit_test_teardown",
+        &[Some(TestRole::TestCase), Some(TestRole::FixtureTeardown)],
+    ),
+    (
+        "cmocka_unit_test_setup_teardown",
+        &[
+            Some(TestRole::TestCase),
+            Some(TestRole::FixtureSetup),
+            Some(TestRole::FixtureTeardown),
+        ],
+    ),
+    ("cmocka_unit_test_prestate", &[Some(TestRole::TestCase)]),
+    (
+        "cmocka_unit_test_prestate_setup_teardown",
+        &[
+            Some(TestRole::TestCase),
+            Some(TestRole::FixtureSetup),
+            Some(TestRole::FixtureTeardown),
+        ],
+    ),
+    (
+        "cmocka_run_group_tests",
+        &[
+            None,
+            Some(TestRole::FixtureSetup),
+            Some(TestRole::FixtureTeardown),
+        ],
+    ),
+    (
+        "cmocka_run_group_tests_name",
+        &[
+            None,
+            None,
+            Some(TestRole::FixtureSetup),
+            Some(TestRole::FixtureTeardown),
+        ],
+    ),
+];
+
+fn collect_positional_roles(
+    base: &BaseExtractor,
+    arguments: Node,
+    roles: &[Option<TestRole>],
+    names: &mut HashMap<String, TestRole>,
+) {
+    let mut cursor = arguments.walk();
+    for (argument, role) in arguments.named_children(&mut cursor).zip(roles) {
+        if let Some(role) = role
+            && argument.kind() == "identifier"
+        {
+            names.insert(base.get_node_text(&argument), *role);
+        }
+    }
+}
 
 fn collect_designated_lifecycle_names(
     base: &BaseExtractor,

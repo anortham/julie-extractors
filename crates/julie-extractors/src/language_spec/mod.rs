@@ -19,6 +19,8 @@ pub enum DocCommentStyle {
     PlainSlashStarBlock,
     HtmlBlock,
     TripleSlash,
+    /// Doxygen `/**`, `/*!`, `///`, and `//!` blocks; a `////` banner is not a doc.
+    Doxygen,
     RustInnerLine,
     RustInnerBlock,
     GoLine,
@@ -65,6 +67,15 @@ impl LanguageSpec {
             .iter()
             .any(|style| style.continues_doc_comment(trimmed))
     }
+
+    /// A doc comment that documents the member before it on the same line,
+    /// such as Doxygen `int port; /**< TCP port. */`.
+    pub fn is_trailing_doc_comment(&self, text: &str) -> bool {
+        let trimmed = text.trim_start();
+        self.doc_comment_styles
+            .iter()
+            .any(|style| style.starts_trailing_doc_comment(trimmed))
+    }
 }
 
 impl DocCommentStyle {
@@ -74,6 +85,12 @@ impl DocCommentStyle {
             Self::PlainSlashStarBlock => trimmed.starts_with("/*"),
             Self::HtmlBlock => trimmed.starts_with("<!--"),
             Self::TripleSlash => trimmed.starts_with("///"),
+            Self::Doxygen => {
+                ["/**", "/*!", "//!"]
+                    .iter()
+                    .any(|prefix| trimmed.starts_with(prefix))
+                    || (trimmed.starts_with("///") && !trimmed.starts_with("////"))
+            }
             Self::RustInnerLine => trimmed.starts_with("//!"),
             Self::RustInnerBlock => trimmed.starts_with("/*!"),
             Self::GoLine => trimmed.starts_with("//"),
@@ -92,6 +109,13 @@ impl DocCommentStyle {
             Self::VbTripleApostrophe => trimmed.starts_with("'''"),
             Self::ErlangPercentBlock => trimmed.starts_with("%%"),
         }
+    }
+
+    fn starts_trailing_doc_comment(self, trimmed: &str) -> bool {
+        self == Self::Doxygen
+            && ["/**<", "/*!<", "///<", "//!<"]
+                .iter()
+                .any(|prefix| trimmed.starts_with(prefix))
     }
 
     fn continues_doc_comment(self, trimmed: &str) -> bool {
@@ -163,10 +187,7 @@ const RUST_DOCS: &[DocCommentStyle] = &[
     DocCommentStyle::RustInnerLine,
     DocCommentStyle::RustInnerBlock,
 ];
-const C_DOCS: &[DocCommentStyle] = &[
-    DocCommentStyle::SlashStarDocBlock,
-    DocCommentStyle::TripleSlash,
-];
+const C_DOCS: &[DocCommentStyle] = &[DocCommentStyle::Doxygen];
 const GO_DOCS: &[DocCommentStyle] = &[
     DocCommentStyle::PlainSlashStarBlock,
     DocCommentStyle::GoLine,

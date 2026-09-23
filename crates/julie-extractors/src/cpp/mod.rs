@@ -30,8 +30,8 @@ mod types;
 mod visibility;
 
 use crate::base::{
-    BaseExtractor, PendingRelationship, Relationship, StructuredPendingRelationship, Symbol,
-    SymbolKind, SymbolOptions, Visibility,
+    BaseExtractor, ContainingSymbolIndex, PendingRelationship, Relationship,
+    StructuredPendingRelationship, Symbol, SymbolKind, SymbolOptions, Visibility,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::{HashMap, HashSet};
@@ -50,8 +50,10 @@ pub struct CppExtractor {
 
 impl CppExtractor {
     pub fn new(file_path: String, content: String, workspace_root: &std::path::Path) -> Self {
+        let mut base = BaseExtractor::new("cpp".to_string(), file_path, content, workspace_root);
+        base.body_span_rule = Some(crate::c::body_span);
         Self {
-            base: BaseExtractor::new("cpp".to_string(), file_path, content, workspace_root),
+            base,
             processed_nodes: HashSet::new(),
             additional_symbols: Vec::new(),
             detached_test_bodies: HashMap::new(),
@@ -119,7 +121,13 @@ impl CppExtractor {
         tree: &Tree,
         symbols: &[Symbol],
     ) -> Vec<crate::base::Identifier> {
-        let containing_symbols = self.base.containing_symbol_index(symbols);
+        let file_path = self.base.file_path.clone();
+        let containing_symbols = ContainingSymbolIndex::from_iter_ranked(
+            symbols
+                .iter()
+                .filter(|symbol| symbol.file_path == file_path),
+            container_priority,
+        );
         self.walk_tree_for_identifiers(tree.root_node(), &containing_symbols, 0);
         self.base.identifiers.clone()
     }
@@ -247,6 +255,10 @@ impl CppExtractor {
             "namespace_definition" => {
                 declarations::extract_namespace(&mut self.base, node, parent_id)
             }
+            "preproc_include" => crate::c::extract_include(&mut self.base, node, parent_id),
+            "preproc_def" | "preproc_function_def" => {
+                crate::c::extract_macro(&mut self.base, node, parent_id)
+            }
             "using_declaration" | "namespace_alias_definition" => {
                 declarations::extract_using(&mut self.base, node, parent_id)
             }
@@ -286,7 +298,19 @@ impl CppExtractor {
                 result
             }
             "friend_declaration" => {
-                declarations::extract_friend_declaration(&mut self.base, node, parent_id)
+                let result =
+                    declarations::extract_friend_declaration(&mut self.base, node, parent_id);
+                if result.is_some() {
+                    let mut cursor = node.walk();
+                    let inner = node
+                        .children(&mut cursor)
+                        .find(|child| child.kind() == "declaration");
+                    if let Some(inner) = inner {
+                        self.processed_nodes.insert(self.get_node_key(inner));
+                        self.own_declarators(inner);
+                    }
+                }
+                result
             }
             "type_definition" => typedefs::extract_typedef(&mut self.base, node, parent_id),
             "alias_declaration" => typedefs::extract_alias(&mut self.base, node, parent_id),
@@ -426,4 +450,15 @@ fn declarator_belongs_to_function_definition(node: Node) -> bool {
         }
     }
     false
+}
+
+/// A C++ struct, union, or enum is a class-like scope, so it owns the references
+/// in its body ahead of an enclosing namespace.
+fn container_priority(kind: &SymbolKind) -> u32 {
+    match kind {
+        SymbolKind::Struct | SymbolKind::Union | SymbolKind::Enum => {
+            crate::base::symbol_priority(&SymbolKind::Class)
+        }
+        _ => crate::base::symbol_priority(kind),
+    }
 }

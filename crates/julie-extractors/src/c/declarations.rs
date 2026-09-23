@@ -4,7 +4,10 @@
 //! function declarations, and variable declarations. Struct/union/enum extraction is in
 //! `structs.rs` and typedef handling is in `typedefs.rs`.
 
-use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations};
+use crate::base::{
+    BaseExtractor, NormalizedSpan, Symbol, SymbolKind, SymbolOptions, Visibility,
+    normalize_annotations,
+};
 use crate::c::CExtractor;
 use crate::test_detection::apply_callable_test_metadata;
 use serde_json::Value;
@@ -15,13 +18,13 @@ use super::signatures;
 use super::type_facts;
 use super::types;
 
-/// Extract an include directive as a symbol
-pub(super) fn extract_include(
-    extractor: &mut CExtractor,
+/// Extract an include directive as a symbol; C++ shares this builder.
+pub(crate) fn extract_include(
+    base: &mut BaseExtractor,
     node: tree_sitter::Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let signature = extractor.base.get_node_text(&node);
+    let signature = base.get_node_text(&node);
     let include_path = helpers::extract_include_path(&signature)?;
 
     let metadata = create_metadata_map(HashMap::from([
@@ -33,10 +36,12 @@ pub(super) fn extract_include(
         ),
     ]));
 
-    let doc_comment = extractor.base.find_doc_comment(&node);
+    let doc_comment = base.find_doc_comment(&node);
+    let span = directive_span(base, node);
 
-    Some(extractor.base.create_symbol(
+    Some(base.create_symbol_from_span(
         &node,
+        span,
         include_path.clone(),
         SymbolKind::Import,
         SymbolOptions {
@@ -50,14 +55,14 @@ pub(super) fn extract_include(
     ))
 }
 
-/// Extract a macro directive as a symbol
-pub(super) fn extract_macro(
-    extractor: &mut CExtractor,
+/// Extract a macro directive as a symbol; C++ shares this builder.
+pub(crate) fn extract_macro(
+    base: &mut BaseExtractor,
     node: tree_sitter::Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let signature = extractor.base.get_node_text(&node);
-    let macro_name = helpers::extract_macro_name(&extractor.base, node)?;
+    let signature = base.get_node_text(&node);
+    let macro_name = helpers::extract_macro_name(base, node)?;
 
     let metadata = create_metadata_map(HashMap::from([
         ("type".to_string(), "macro".to_string()),
@@ -69,10 +74,12 @@ pub(super) fn extract_macro(
         ("definition".to_string(), signature.clone()),
     ]));
 
-    let doc_comment = extractor.base.find_doc_comment(&node);
+    let doc_comment = base.find_doc_comment(&node);
+    let span = directive_span(base, node);
 
-    Some(extractor.base.create_symbol(
+    Some(base.create_symbol_from_span(
         &node,
+        span,
         macro_name.clone(),
         SymbolKind::Constant,
         SymbolOptions {
@@ -84,6 +91,15 @@ pub(super) fn extract_macro(
             annotations: Vec::new(),
         },
     ))
+}
+
+/// A directive's span without the line break the grammar folds into it, so the
+/// directive never contains the code on the next line.
+fn directive_span(base: &BaseExtractor, node: tree_sitter::Node) -> NormalizedSpan {
+    let text = base.get_node_text(&node);
+    let end = node.start_byte() + text.trim_end().len();
+    base.span_for_byte_range(node.start_byte(), end)
+        .unwrap_or_else(|| NormalizedSpan::from_node(&node))
 }
 
 /// Helper for converting string metadata to serde_json::Value metadata
@@ -109,9 +125,9 @@ pub(super) fn extract_declaration(
         .filter_map(|declarator| {
             let target = helpers::declarator_target(declarator)?;
             match target.function {
-                Some(function) => {
-                    extract_function_declaration(extractor, node, &target, function, parent_id)
-                }
+                Some(function) => extract_function_declaration(
+                    extractor, node, declarator, &target, function, parent_id,
+                ),
                 None => extract_variable_declaration(extractor, node, declarator, parent_id),
             }
         })
@@ -169,7 +185,7 @@ pub(super) fn extract_function_definition(
         &mut metadata,
     );
 
-    Some(extractor.base.create_symbol(
+    let symbol = extractor.base.create_symbol(
         &node,
         function_name,
         SymbolKind::Function,
@@ -185,13 +201,18 @@ pub(super) fn extract_function_definition(
             doc_comment,
             annotations,
         },
-    ))
+    );
+    if let Some(declarator) = node.child_by_field_name("declarator") {
+        type_facts::record_return_type(&mut extractor.base, &symbol.id, node, declarator);
+    }
+    Some(symbol)
 }
 
 /// Extract a function declaration
 fn extract_function_declaration(
     extractor: &mut CExtractor,
     node: tree_sitter::Node,
+    declarator: tree_sitter::Node,
     target: &helpers::DeclaratorTarget,
     function: tree_sitter::Node,
     parent_id: Option<&str>,
@@ -212,7 +233,7 @@ fn extract_function_declaration(
     let annotations =
         normalize_annotations(&helpers::extract_attributes(&extractor.base, node), "c");
 
-    Some(extractor.base.create_symbol(
+    let symbol = extractor.base.create_symbol(
         &node,
         function_name.clone(),
         SymbolKind::Function,
@@ -241,7 +262,9 @@ fn extract_function_declaration(
             doc_comment,
             annotations,
         },
-    ))
+    );
+    type_facts::record_return_type(&mut extractor.base, &symbol.id, node, declarator);
+    Some(symbol)
 }
 
 /// Extract a variable declaration
@@ -311,7 +334,7 @@ pub(super) fn extract_variable_declaration(
                 ),
             ])),
             doc_comment: extractor.base.find_doc_comment(&node),
-            annotations: Vec::new(),
+            annotations: helpers::child_attributes(&extractor.base, node),
         },
     );
     if target.derives_function {

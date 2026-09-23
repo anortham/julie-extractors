@@ -8,7 +8,7 @@ use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
 use super::CppExtractor;
-use super::helpers;
+use super::{function_declarators, helpers};
 
 impl CppExtractor {
     /// Walk the tree and extract identifiers
@@ -49,7 +49,7 @@ impl CppExtractor {
                 // first so it also covers template calls (`query<T>("SELECT ...")`),
                 // which the identifier logic below returns early for.
                 self.record_call_arg_literals(node, containing_symbols);
-                if super::test_calls::is_catch2_macro_call(&self.base, &node) {
+                if super::test_calls::is_test_macro_call(&self.base, &node) {
                     return;
                 }
                 if let Some(func_node) = node.child_by_field_name("function") {
@@ -122,7 +122,10 @@ impl CppExtractor {
             // (class MyClass, struct Foo, enum Bar) AND reference positions.
             // We only want references — declarations are filtered by parent context.
             "type_identifier" => {
-                if helpers::is_type_declaration_name(&node) {
+                if helpers::is_type_declaration_name(&node)
+                    || helpers::is_template_parameter_name(&self.base, &node)
+                    || function_declarators::is_test_macro_name(&self.base, node)
+                {
                     return;
                 }
 
@@ -150,7 +153,16 @@ impl CppExtractor {
             // member names are `field_identifier`, and `this` is its own node
             // kind. See the LOCKED SEMANTIC CONTRACT doc comment in
             // `csharp/identifiers.rs`.
-            "identifier" if is_cpp_value_read_identifier(node) => {
+            "identifier"
+                if is_cpp_value_read_identifier(node)
+                    && !node
+                        .parent()
+                        .filter(|arguments| arguments.kind() == "argument_list")
+                        .and_then(|arguments| arguments.parent())
+                        .is_some_and(|call| {
+                            super::test_calls::is_test_macro_call(&self.base, &call)
+                        }) =>
+            {
                 let name = self.base.get_node_text(&node);
                 // Rule 5: reuse the TypeUsage arm's noise filter, plus the
                 // pre-C++11 NULL macro (parses as a plain identifier).

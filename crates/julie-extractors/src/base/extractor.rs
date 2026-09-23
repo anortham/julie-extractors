@@ -302,7 +302,20 @@ impl BaseExtractor {
             }
         }
 
-        None
+        self.trailing_doc_comment(node)
+    }
+
+    /// A same-line trailing member doc (`int port; /**< TCP port. */`) that
+    /// follows the node.
+    fn trailing_doc_comment(&self, node: &Node) -> Option<String> {
+        let comment = node.next_named_sibling().filter(is_comment_node)?;
+        if comment.start_position().row != node.end_position().row {
+            return None;
+        }
+        let text = self.get_node_text(&comment);
+        crate::language::language_spec(&self.language)?
+            .is_trailing_doc_comment(&text)
+            .then_some(text)
     }
 
     fn should_search_ancestor_doc_comments(&self, ancestor: &Node) -> bool {
@@ -406,14 +419,13 @@ pub(crate) fn select_doc_comment_block(
     let comments_top_down = comments_nearest_first.iter().rev().collect::<Vec<_>>();
     for start_index in 0..comments_top_down.len() {
         let first = comments_top_down[start_index];
-        if !spec.is_doc_comment(first) {
+        if !spec.is_doc_comment(first) || spec.is_trailing_doc_comment(first) {
             continue;
         }
 
-        if comments_top_down[start_index + 1..]
-            .iter()
-            .all(|comment| spec.continues_doc_comment(comment))
-        {
+        if comments_top_down[start_index + 1..].iter().all(|comment| {
+            spec.continues_doc_comment(comment) && !spec.is_trailing_doc_comment(comment)
+        }) {
             return Some(
                 comments_top_down[start_index..]
                     .iter()

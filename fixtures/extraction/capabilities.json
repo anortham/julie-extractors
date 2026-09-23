@@ -286,6 +286,16 @@
           "name": "declarators",
           "source": "fixtures/extraction/c/declarators/source.c",
           "expected": "fixtures/extraction/c/declarators/expected.json"
+        },
+        {
+          "name": "members",
+          "source": "fixtures/extraction/c/members/source.c",
+          "expected": "fixtures/extraction/c/members/expected.json"
+        },
+        {
+          "name": "unity_cmocka_roles",
+          "source": "fixtures/extraction/c/unity_cmocka_roles/tests/test_math.c",
+          "expected": "fixtures/extraction/c/unity_cmocka_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -361,13 +371,19 @@
         },
         "annotations": {
           "supported": [
-            "function"
+            "field",
+            "function",
+            "struct",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
         },
         "doc_comments": {
           "supported": [
+            "constant",
+            "enum",
+            "field",
             "function",
             "struct"
           ],
@@ -457,6 +473,16 @@
           "name": "declarations",
           "source": "fixtures/extraction/cpp/declarations/source.cpp",
           "expected": "fixtures/extraction/cpp/declarations/expected.json"
+        },
+        {
+          "name": "members",
+          "source": "fixtures/extraction/cpp/members/source.cpp",
+          "expected": "fixtures/extraction/cpp/members/expected.json"
+        },
+        {
+          "name": "test_frameworks",
+          "source": "fixtures/extraction/cpp/test_frameworks/source.cpp",
+          "expected": "fixtures/extraction/cpp/test_frameworks/expected.json"
         }
       ],
       "target_capabilities": {
@@ -477,6 +503,7 @@
             "event",
             "field",
             "function",
+            "import",
             "method",
             "namespace",
             "operator",
@@ -492,6 +519,7 @@
           "supported": [
             "calls",
             "extends",
+            "imports",
             "uses"
           ],
           "not_applicable": [],
@@ -538,6 +566,7 @@
         },
         "annotations": {
           "supported": [
+            "class",
             "function",
             "method"
           ],
@@ -547,8 +576,11 @@
         "doc_comments": {
           "supported": [
             "class",
+            "enum_member",
+            "field",
             "function",
             "method",
+            "namespace",
             "type"
           ],
           "not_applicable": [],

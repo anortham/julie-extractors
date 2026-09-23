@@ -54,9 +54,37 @@
       "body_hash": "d2eca0a1521da9f57d8eeb7ec054d1bf",
       "signature": "static int local_helper()",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/cross_file/source.cpp:other.h:6:0",
+      "name": "other.h",
+      "kind": "import",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/cross_file/source.cpp",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 18,
+      "start_byte": 300,
+      "end_byte": 318,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "#include \"other.h\"\n",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "isSystemHeader": "false",
+        "path": "other.h",
+        "type": "include"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -81,6 +109,26 @@
       "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": null
+    },
+    {
+      "from_key": "unresolved:file:fixtures/extraction/cpp/cross_file/source.cpp",
+      "to_key": "unresolved:header:other.h",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/cpp/cross_file/source.cpp",
+      "line_number": 6,
+      "span": {
+        "start_line": 6,
+        "start_column": 0,
+        "end_line": 7,
+        "end_column": 0,
+        "start_byte": 300,
+        "end_byte": 319
+      },
+      "reference_site_is_exact": false,
+      "confidence": "1.000",
+      "metadata": {
+        "includePath": "other.h"
+      }
     }
   ],
   "pending_relationships": [
@@ -177,7 +225,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "cpp",
       "metadata": null
     },
@@ -186,7 +234,7 @@
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "cpp",
       "metadata": null
     }
@@ -319,7 +367,7 @@
       "kind": "string_literal",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/cross_file/source.cpp",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/cpp/cross_file/source.cpp:other.h:6:0",
       "start_line": 6,
       "start_column": 9,
       "end_line": 6,

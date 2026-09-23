@@ -129,8 +129,7 @@ pub(super) fn extract_from_expression_statement(
         if child.kind() == "identifier" {
             let identifier_name = extractor.base.get_node_text(&child);
 
-            // Check if this looks like a typedef name by looking at siblings
-            if helpers::looks_like_typedef_name(&extractor.base, &node, &identifier_name) {
+            if helpers::follows_detached_typedef_body(node) {
                 let signature =
                     signatures::build_typedef_signature(&extractor.base, &node, &identifier_name);
                 let doc_comment = extractor.base.find_doc_comment(&node);

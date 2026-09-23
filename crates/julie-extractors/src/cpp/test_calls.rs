@@ -1,4 +1,4 @@
-//! C++ Catch2 call-style test extraction.
+//! C++ call-style test extraction: Catch2, doctest, and Boost.Test suites.
 //!
 //! Catch2 declares tests with macros that the C++ grammar parses as *calls*, not
 //! function definitions:
@@ -33,17 +33,30 @@ use crate::test_calls::{
 };
 use tree_sitter::Node;
 
-/// Catch2 vocabulary.
-/// - Test cases: `TEST_CASE`, `SCENARIO` (BDD), `TEST_CASE_METHOD` (fixture).
-/// - Containers: `SECTION` and the BDD section aliases `GIVEN`/`WHEN`/`THEN`.
+/// Catch2 and doctest vocabulary.
+/// - Test cases: `TEST_CASE`, `SCENARIO` (BDD), `TEST_CASE_METHOD` (Catch2
+///   fixture), `TEST_CASE_FIXTURE` (doctest fixture).
+/// - Containers: `SECTION` and the BDD section aliases `GIVEN`/`WHEN`/`THEN`;
+///   doctest `TEST_SUITE` and `SUBCASE`.
 ///
-/// Catch2 has no call-style lifecycle hooks (fixtures are classes used via
-/// `TEST_CASE_METHOD`), so the lifecycle set is empty.
+/// Neither framework has call-style lifecycle hooks (fixtures are classes used
+/// via the fixture test macros), so the lifecycle set is empty.
 pub(crate) const CATCH2_VOCAB: TestCallVocab = TestCallVocab {
-    test: &["TEST_CASE", "SCENARIO", "TEST_CASE_METHOD"],
-    container: &["SECTION", "GIVEN", "WHEN", "THEN"],
+    test: &[
+        "TEST_CASE",
+        "SCENARIO",
+        "TEST_CASE_METHOD",
+        "TEST_CASE_FIXTURE",
+    ],
+    container: &["SECTION", "GIVEN", "WHEN", "THEN", "TEST_SUITE", "SUBCASE"],
     lifecycle: &[],
 };
+
+/// Boost.Test suite macros, named by their first identifier argument. The
+/// grammar reads them as calls; the matching `BOOST_AUTO_TEST_SUITE_END()`
+/// closes a suite and declares nothing.
+const BOOST_SUITE_MACROS: &[&str] = &["BOOST_AUTO_TEST_SUITE", "BOOST_FIXTURE_TEST_SUITE"];
+const BOOST_SUITE_END: &str = "BOOST_AUTO_TEST_SUITE_END";
 
 /// Materialize a Catch2 `TEST_CASE("name", ...) { ... }` (or `SECTION`, `SCENARIO`,
 /// …) call as a test / container symbol. Returns `None` for any call that is not a
@@ -61,6 +74,23 @@ pub fn extract_cpp_test_call(
 
     let function_node = node.child_by_field_name("function")?;
     let full_callee = base.get_node_text(&function_node);
+    if BOOST_SUITE_MACROS.contains(&full_callee.as_str()) {
+        let arguments = node.child_by_field_name("arguments")?;
+        let mut cursor = arguments.walk();
+        let suite = arguments
+            .named_children(&mut cursor)
+            .next()
+            .filter(|suite| suite.kind() == "identifier")?;
+        let name = base.get_node_text(&suite);
+        return Some(build_test_call_symbol(
+            base,
+            node,
+            &full_callee,
+            name,
+            TestCallCategory::Container,
+            parent_id,
+        ));
+    }
     // Exact match only (#66): a qualified/member callee (`TEST_CASE.configure(...)`,
     // function field = `field_expression`) never equals a dotless Catch2 macro
     // name, so the exact-matcher rejects it without the JS-only leading split.
@@ -93,13 +123,16 @@ pub fn extract_cpp_test_call(
     })
 }
 
-/// Whether a call is a Catch2 test or section macro, which declares a test
-/// rather than calling a function.
-pub(super) fn is_catch2_macro_call(base: &BaseExtractor, node: &Node) -> bool {
+/// Whether a call is a Catch2, doctest, or Boost.Test declaration macro, which
+/// declares a test or suite rather than calling a function.
+pub(super) fn is_test_macro_call(base: &BaseExtractor, node: &Node) -> bool {
     node.kind() == "call_expression"
         && node
             .child_by_field_name("function")
             .is_some_and(|function| {
-                classify_call_exact(&base.get_node_text(&function), &CATCH2_VOCAB).is_some()
+                let callee = base.get_node_text(&function);
+                classify_call_exact(&callee, &CATCH2_VOCAB).is_some()
+                    || BOOST_SUITE_MACROS.contains(&callee.as_str())
+                    || callee == BOOST_SUITE_END
             })
 }

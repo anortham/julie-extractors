@@ -122,15 +122,8 @@
       "end_column": 60,
       "start_byte": 0,
       "end_byte": 60,
-      "body_span": {
-        "start_line": 1,
-        "start_column": 9,
-        "end_line": 1,
-        "end_column": 60,
-        "start_byte": 9,
-        "end_byte": 60
-      },
-      "body_hash": "b290a42a1bf5958c261e10993548991f",
+      "body_span": null,
+      "body_hash": null,
       "signature": "TestSuite(\"math\")",
       "doc_comment": null,
       "visibility": null,
@@ -276,15 +269,8 @@
       "end_column": 24,
       "start_byte": 133,
       "end_byte": 153,
-      "body_span": {
-        "start_line": 4,
-        "start_column": 17,
-        "end_line": 4,
-        "end_column": 23,
-        "start_byte": 146,
-        "end_byte": 152
-      },
-      "body_hash": "9f094b8b38cc76cf5a1eccacaf04c60b",
+      "body_span": null,
+      "body_hash": null,
       "signature": "int sum = add(2, 2)",
       "doc_comment": null,
       "visibility": "Public",
@@ -629,7 +615,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "c",
       "metadata": null
     },
@@ -638,7 +624,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "c",
       "metadata": null
     },
@@ -647,7 +633,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "c",
       "metadata": null
     },
@@ -656,7 +642,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "c",
       "metadata": null
     },
@@ -665,7 +651,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "c",
       "metadata": null
     },
@@ -683,7 +669,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "c",
       "metadata": null
     },
@@ -692,7 +678,7 @@
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
-      "is_inferred": true,
+      "is_inferred": false,
       "language": "c",
       "metadata": null
     }
@@ -841,16 +827,16 @@
       "language": "c",
       "file_path": "fixtures/extraction/c/test_roles/source.c",
       "covered_lines": 1,
-      "covered_bytes": 51,
+      "covered_bytes": 60,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
-      "start_column": 9,
+      "start_column": 0,
       "end_line": 1,
       "end_column": 60,
-      "start_byte": 9,
+      "start_byte": 0,
       "end_byte": 60,
       "metadata": {
         "metric_version": 1

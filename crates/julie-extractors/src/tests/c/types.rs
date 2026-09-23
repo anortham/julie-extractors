@@ -1,6 +1,3 @@
-// TDD RED: Test for C type extraction
-// This test will fail until we implement infer_types() for CExtractor
-
 use crate::c::CExtractor;
 use std::path::PathBuf;
 use tree_sitter::Parser;
@@ -21,7 +18,6 @@ struct User* get_user() {
 }
 
 void process_data() {
-    // no return
 }
 "#;
 
@@ -41,40 +37,32 @@ void process_data() {
     );
 
     let symbols = extractor.extract_symbols(&tree);
-    let types = extractor.infer_types(&symbols);
+    let return_type = |name: &str| {
+        let symbol = symbols
+            .iter()
+            .find(|s| s.name == name)
+            .unwrap_or_else(|| panic!("missing {name}"));
+        extractor.base.type_info.get(&symbol.id).map(|fact| {
+            let declared = fact
+                .metadata
+                .as_ref()
+                .and_then(|m| m.get("declared"))
+                .and_then(|v| v.as_str())
+                .map(str::to_string);
+            (fact.resolved_type.clone(), declared)
+        })
+    };
 
-    // Should extract return types for functions
-    assert!(!types.is_empty(), "Should extract at least one type");
-
-    // Find function symbols
-    let get_count_symbol = symbols
-        .iter()
-        .find(|s| s.name == "get_count")
-        .expect("Should find get_count");
-    let get_name_symbol = symbols
-        .iter()
-        .find(|s| s.name == "get_name")
-        .expect("Should find get_name");
-    let get_user_symbol = symbols
-        .iter()
-        .find(|s| s.name == "get_user")
-        .expect("Should find get_user");
-    let process_data_symbol = symbols
-        .iter()
-        .find(|s| s.name == "process_data")
-        .expect("Should find process_data");
-
-    // Verify types were extracted
-    assert_eq!(types.get(&get_count_symbol.id), Some(&"int".to_string()));
-    assert_eq!(types.get(&get_name_symbol.id), Some(&"char*".to_string()));
+    assert_eq!(return_type("get_count"), Some(("int".into(), None)));
     assert_eq!(
-        types.get(&get_user_symbol.id),
-        Some(&"struct User*".to_string())
+        return_type("get_name"),
+        Some(("char".into(), Some("char *".into())))
     );
     assert_eq!(
-        types.get(&process_data_symbol.id),
-        Some(&"void".to_string())
+        return_type("get_user"),
+        Some(("User".into(), Some("struct User *".into())))
     );
+    assert_eq!(return_type("process_data"), Some(("void".into(), None)));
 }
 
 #[test]

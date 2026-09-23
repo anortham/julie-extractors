@@ -13,8 +13,8 @@
 //! - `identifiers` - Identifier usage tracking (calls, member access)
 
 use crate::base::{
-    BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
-    Symbol, SymbolKind,
+    BaseExtractor, BodySpan, Identifier, NormalizedSpan, PendingRelationship, Relationship,
+    StructuredPendingRelationship, Symbol, SymbolKind,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
@@ -22,6 +22,8 @@ use tree_sitter::{Node, Tree};
 
 // Internal modules
 mod declarations;
+pub(crate) use declarations::{extract_include, extract_macro};
+pub(crate) use relationships::include_relationship;
 mod helpers;
 mod identifiers;
 mod parameters;
@@ -49,8 +51,10 @@ impl CExtractor {
         content: String,
         workspace_root: &std::path::Path,
     ) -> Self {
+        let mut base = BaseExtractor::new(language, file_path, content, workspace_root);
+        base.body_span_rule = Some(body_span);
         Self {
-            base: BaseExtractor::new(language, file_path, content, workspace_root),
+            base,
             detached_test_bodies: HashMap::new(),
         }
     }
@@ -93,7 +97,7 @@ impl CExtractor {
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
 
         typedefs::fix_struct_alignment_attributes(&mut symbols);
-        test_calls::apply_criterion_lifecycle_metadata(&self.base, tree.root_node(), &mut symbols);
+        test_calls::apply_call_site_test_roles(&self.base, tree.root_node(), &mut symbols);
 
         symbols
     }
@@ -115,7 +119,8 @@ impl CExtractor {
         identifiers::extract_identifiers(self, tree, symbols)
     }
 
-    /// Infer types from C signatures (function return types, variable types)
+    /// Infer variable types from C signatures; return types are recorded from the
+    /// declaration during symbol extraction.
     pub fn infer_types(&self, symbols: &[Symbol]) -> std::collections::HashMap<String, String> {
         let mut type_map = std::collections::HashMap::new();
 
@@ -139,31 +144,11 @@ impl CExtractor {
     ) -> Option<String> {
         use crate::base::SymbolKind;
 
-        match kind {
-            SymbolKind::Function | SymbolKind::Method => {
-                // C function signatures: "int get_count()", "char* get_name()"
-                // Extract return type (everything before function name)
-                if let Some(name_pos) = signature.find(name) {
-                    let type_part = signature[..name_pos].trim();
-                    if is_type_text(type_part) {
-                        return Some(type_part.to_string());
-                    }
-                }
-            }
-            SymbolKind::Variable | SymbolKind::Property => {
-                // C variable declarations: "int count", "char* name"
-                // Extract type (everything before variable name)
-                if let Some(name_pos) = signature.find(name) {
-                    let type_part = signature[..name_pos].trim();
-                    if is_type_text(type_part) {
-                        return Some(type_part.to_string());
-                    }
-                }
-            }
-            _ => {}
+        if !matches!(kind, SymbolKind::Variable | SymbolKind::Property) {
+            return None;
         }
-
-        None
+        let type_part = signature[..signature.find(name)?].trim();
+        is_type_text(type_part).then(|| type_part.to_string())
     }
 
     /// Recursively visit nodes in the tree, extracting symbols
@@ -187,10 +172,10 @@ impl CExtractor {
 
         match node.kind() {
             "preproc_include" => {
-                symbol = declarations::extract_include(self, node, parent_id.as_deref());
+                symbol = declarations::extract_include(&mut self.base, node, parent_id.as_deref());
             }
             "preproc_def" | "preproc_function_def" => {
-                symbol = declarations::extract_macro(self, node, parent_id.as_deref());
+                symbol = declarations::extract_macro(&mut self.base, node, parent_id.as_deref());
             }
             "declaration" => {
                 let declaration_symbols =
@@ -225,7 +210,6 @@ impl CExtractor {
                     declarations::extract_linkage_specification(self, node, parent_id.as_deref());
             }
             "expression_statement" => {
-                // Handle cases like "} PACKED NetworkHeader;" where NetworkHeader is in expression_statement
                 symbol =
                     typedefs::extract_from_expression_statement(self, node, parent_id.as_deref());
             }
@@ -345,6 +329,19 @@ impl CExtractor {
             self.visit_node(child, symbols, Some(owner.clone()), child_depth);
         }
     }
+}
+
+/// The grammar body of a C or C++ definition: the `body` field of a function,
+/// record, enum, or namespace, or the record body of `typedef struct { ... } Name`.
+/// Prototypes, fields, variables, and macros have no body.
+pub(crate) fn body_span(node: &Node, _content: &str) -> Option<BodySpan> {
+    let body = node.child_by_field_name("body").or_else(|| {
+        (node.kind() == "type_definition")
+            .then(|| node.child_by_field_name("type"))
+            .flatten()
+            .and_then(|specifier| specifier.child_by_field_name("body"))
+    })?;
+    Some(NormalizedSpan::from_node(&body))
 }
 
 fn is_type_text(text: &str) -> bool {

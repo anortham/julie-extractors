@@ -605,7 +605,7 @@ pub(crate) fn overlaps(node: Node<'_>, span: NormalizedSpan) -> bool {
 fn config_for_language(language: &str) -> Option<ComplexityLanguageConfig> {
     match language {
         "c" => Some(C_LIKE_CONFIG),
-        "cpp" => Some(C_LIKE_CONFIG),
+        "cpp" => Some(CPP_CONFIG),
         "csharp" => Some(CSHARP_CONFIG),
         "dart" => Some(DART_CONFIG),
         "go" => Some(GO_CONFIG),
@@ -811,6 +811,30 @@ const C_LIKE_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
     loop_node_kinds: &["for_statement", "while_statement", "do_statement"],
     parameter_container_node_kinds: &["parameter_list"],
     parameter_node_kinds: &["parameter_declaration", "optional_parameter_declaration"],
+    ..DEFAULT_CONFIG
+};
+
+// C++ adds range-for loops, catch clauses, and variadic parameter packs to C.
+const CPP_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &[
+        "if_statement",
+        "switch_statement",
+        "case_statement",
+        "conditional_expression",
+        "catch_clause",
+    ],
+    loop_node_kinds: &[
+        "for_statement",
+        "for_range_loop",
+        "while_statement",
+        "do_statement",
+    ],
+    parameter_container_node_kinds: &["parameter_list"],
+    parameter_node_kinds: &[
+        "parameter_declaration",
+        "optional_parameter_declaration",
+        "variadic_parameter_declaration",
+    ],
     ..DEFAULT_CONFIG
 };
 

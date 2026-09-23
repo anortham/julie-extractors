@@ -905,6 +905,18 @@
         "key": "query_family",
         "presence": "always",
         "value_type": "string"
+      },
+      {
+        "description": "The macro name.",
+        "key": "name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Whether the macro takes parameters.",
+        "key": "function_like",
+        "presence": "always",
+        "value_type": "bool"
       }
     ],
     "pattern_id": "c.preprocessor_definition.v1",
@@ -1010,6 +1022,18 @@
         "key": "query_family",
         "presence": "always",
         "value_type": "string"
+      },
+      {
+        "description": "The macro name.",
+        "key": "name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Whether the macro takes parameters.",
+        "key": "function_like",
+        "presence": "always",
+        "value_type": "bool"
       }
     ],
     "pattern_id": "cpp.preprocessor_definition.v1",

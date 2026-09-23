@@ -7,6 +7,8 @@ use crate::base::{ContainingSymbolIndex, Identifier, IdentifierKind, Symbol, Sym
 use crate::c::CExtractor;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
+use super::helpers;
+
 /// Extract all identifiers from the syntax tree
 pub(super) fn extract_identifiers(
     extractor: &mut CExtractor,
@@ -30,7 +32,7 @@ fn walk_tree_for_identifiers(
     containing_symbols: &ContainingSymbolIndex<'_>,
     depth: u32,
 ) {
-    if !should_visit_tree_depth(depth) {
+    if !should_visit_tree_depth(depth) || helpers::is_attribute_node(node) {
         return;
     }
 
@@ -69,15 +71,14 @@ fn extract_identifier_from_node(
     match node.kind() {
         // Function calls: add(), printf()
         "call_expression" => {
-            if let Some(func_node) = node.child_by_field_name("function") {
-                let name = extractor.base.get_node_text(&func_node);
-
-                // Find containing symbol (which function contains this call)
+            if let Some(func_node) = node.child_by_field_name("function")
+                && !helpers::is_static_assertion(&extractor.base, node)
+            {
+                let token = helpers::callee_token(func_node);
+                let name = extractor.base.get_node_text(&token);
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
-
-                // Create identifier for this function call
                 extractor.base.create_identifier(
-                    &func_node,
+                    &token,
                     name,
                     IdentifierKind::Call,
                     containing_symbol_id,
@@ -92,8 +93,9 @@ fn extract_identifier_from_node(
         // C's tree-sitter grammar uses `type_identifier` for user-defined types
         // appearing in declarations, parameters, field types, casts, sizeof, etc.
         "type_identifier" => {
-            let is_definition_site = super::helpers::is_type_declaration_name(node);
-            if !is_definition_site {
+            if !helpers::is_type_declaration_name(node)
+                && !helpers::is_generic_default_label(&extractor.base, node)
+            {
                 let name = extractor.base.get_node_text(&node);
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 extractor.base.create_identifier(
@@ -107,10 +109,7 @@ fn extract_identifier_from_node(
 
         // Member/field access: p->x, obj.field
         "field_expression" => {
-            // Skip if parent is a call_expression (will be handled as function call)
-            if let Some(parent) = node.parent()
-                && parent.kind() == "call_expression"
-            {
+            if helpers::is_call_callee(node) {
                 return;
             }
 
@@ -190,17 +189,13 @@ fn is_c_value_read_identifier(node: tree_sitter::Node) -> bool {
     // one field check covers `init_declarator`, `function_declarator`,
     // `array_declarator`, `pointer_declarator`, `parameter_declaration`, and a
     // bare `declaration declarator: (identifier)` uniformly.
-    if parent.child_by_field_name("declarator").map(|d| d.id()) == Some(node.id()) {
+    if parent.child_by_field_name("declarator").map(|d| d.id()) == Some(node.id())
+        || helpers::is_call_callee(node)
+    {
         return false;
     }
 
     match parent.kind() {
-        // Rule 2: the callee is owned by the Call arm; arguments live under the
-        // separate `argument_list` node and stay reads.
-        "call_expression" => {
-            parent.child_by_field_name("function").map(|f| f.id()) != Some(node.id())
-        }
-
         // Rule 3: `#define NAME ...` / `#define NAME(args) ...` define NAME and
         // its macro parameters; `enumerator` defines the enum constant. Their
         // non-name children (e.g. an enumerator's explicit value) stay reads.
@@ -208,14 +203,6 @@ fn is_c_value_read_identifier(node: tree_sitter::Node) -> bool {
             parent.child_by_field_name("name").map(|n| n.id()) != Some(node.id())
         }
         "preproc_params" => false,
-
-        // Meta positions: `[[nodiscard]]` attribute names and the arguments of
-        // `__attribute__((...))` are not value reads.
-        "attribute" => false,
-        "argument_list" => parent
-            .parent()
-            .map(|gp| gp.kind() != "attribute_specifier")
-            .unwrap_or(true),
 
         // Rule 4: the LHS of a PLAIN assignment (`x = 5`) is write-only; a
         // compound assignment (`x += 1`) reads its target. `x++`/`x--` are the
@@ -277,7 +264,7 @@ fn record_c_call_arg_literals(
     let Some(args) = node.child_by_field_name("arguments") else {
         return;
     };
-    let carrier = c_carrier(extractor, func_node);
+    let carrier = c_carrier(extractor, helpers::unwrapped_callee(func_node));
     let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
     let mut cursor = args.walk();
