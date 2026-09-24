@@ -157,22 +157,38 @@ before they count as a mixin on the enclosing class, which keeps
   and namespace-qualified constructors out.
 - A method's declared return type comes from the annotations a Ruby type
   checker enforces: a Sorbet `sig { ... returns(T) }` or an RBS inline
-  `#: (..) -> T`, `#|` continuation, or `# @rbs return: T` comment directly
-  above the `def`. YARD `@return` tags are unchecked documentation and are
-  not read.
+  `#: (..) -> T` (with `#|` continuation lines), `# @rbs (..) -> T`, or
+  `# @rbs return: T` comment directly above the `def`. Several overloads must
+  agree; the `# @rbs ... | (..) -> U` overload form records no fact. YARD
+  `@return` tags are unchecked documentation and are not read.
 - A local or instance variable assigned with `=` or `||=` gets an inferred
   type fact from a call to a same-file method with a declared return type: a
   receiverless or `self.` call on the current `self` (instance methods in an
   instance method, class methods in a class body or class method), or
-  `Foo.m` for a class method of a same-file class or module. Same-named
-  methods on that `self` must agree, and a same-named `def` whose `self` the
-  file does not settle blocks the name. `T.nilable(X)`, `X?`, and `X | nil`
-  record `X`; `T.must(x)` and `#: as !nil` keep the type of `x`. A chained or
-  other-receiver call, a local that shadows the method name, a block that
-  rebinds `self` (`instance_eval`, `class_eval`, ...), `void`, a union,
-  `T.untyped`, `T::Boolean`, a `T::` generic, a type parameter, or a Sorbet
-  `type_member` records no fact. Other files are out of scope because each
-  file is extracted alone.
+  `Foo.m` for a class method of a same-file class or module. Methods are keyed
+  by the full lexical path of their class, so `B::Item` never takes a type
+  from `A::Item`. `Foo` resolves through the call's lexical nesting,
+  innermost first, the way Ruby resolves constants. A `def` after a bare
+  `module_function`, named by `module_function :m`, written as
+  `module_function def m`, or in a module with `extend self` is both an
+  instance and a module method. Same-named methods on that `self` must agree,
+  and a same-named `def` whose `self` the file does not settle blocks the
+  name. `T.nilable(X)`, `X?`, and `X | nil` record `X`; `T.must(x)` and
+  `#: as !nil` keep the type of `x`.
+- These record no fact: a chained or other-receiver call, a `::Foo.m` or
+  `A::Foo.m` receiver, a local that shadows the method name, a block that
+  rebinds `self` (`instance_eval`, `class_eval`, `define_method`, ...), any
+  block or lambda directly in a class or module body (`before_action`,
+  `scope`, `included`, ...), `void`, a union, `T.untyped`, `T::Boolean`, a
+  `T::` generic, a type parameter, a Sorbet `type_member`, or a
+  `T.type_alias`. Other files are out of scope because each file is
+  extracted alone.
+- An instance variable field gets no type fact, literal, inferred, or
+  written, when its class uses that `@x` at more than one `self` level: in
+  instance methods, and also in a class body, a class method, `class << self`,
+  or a block whose `self` is not settled. The class-level `@x` is a different
+  variable from the instance `@x`, and the one field stands for both. A field
+  used at one level only keeps its type.
 - A written type wins over inference and is not inferred: Sorbet
   `T.let(x, T)` / `T.cast(x, T)`, or a trailing RBS `#: T` / `#: as T`
   comment. A trailing written type with no single class records no fact.

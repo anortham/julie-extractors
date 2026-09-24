@@ -3,7 +3,6 @@
 //! `#: (..) -> T` comment directly above the `def`. YARD `@return` tags are
 //! unchecked documentation and are not read.
 
-use super::helpers::declared_name;
 use crate::base::BaseExtractor;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::{HashMap, HashSet};
@@ -12,21 +11,21 @@ use tree_sitter::Node;
 /// What `self` is at a point in the file.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(super) struct SelfScope {
-    /// The enclosing class or module name; `None` at the top level.
+    /// The full lexical path of the enclosing class or module, such as
+    /// `A::Item`; `None` at the top level.
     owner: Option<String>,
     owner_is_class: bool,
     /// `self` is the class or module object, not an instance of it.
-    singleton: bool,
+    pub(super) singleton: bool,
 }
 
 impl SelfScope {
-    /// The class object `Name` as a call receiver.
-    pub(super) fn class_object(name: String) -> Self {
-        Self {
-            owner: Some(name),
-            owner_is_class: true,
-            singleton: true,
-        }
+    fn of_owner(base: &BaseExtractor, owner: Node, singleton: bool) -> Option<Self> {
+        Some(Self {
+            owner: Some(owner_path(base, owner)?),
+            owner_is_class: owner.kind() == "class",
+            singleton,
+        })
     }
 
     fn key(&self) -> (Option<String>, bool) {
@@ -58,6 +57,10 @@ pub(super) struct DeclaredType {
 pub(super) struct ReturnTypeIndex {
     entries: HashMap<String, Vec<ReturnEntry>>,
     generics: HashSet<String>,
+    /// Full paths of the file's classes and modules; `true` for a class.
+    owners: HashMap<String, bool>,
+    /// The `self` levels at which each class uses each `@ivar`.
+    ivar_levels: HashMap<(Option<String>, String), HashSet<Option<bool>>>,
 }
 
 #[derive(Debug)]
@@ -73,7 +76,7 @@ impl ReturnTypeIndex {
     pub(super) fn build(base: &BaseExtractor, root: Node) -> Self {
         let mut definitions = Vec::new();
         let mut index = Self::default();
-        collect(base, root, 0, &mut definitions, &mut index.generics);
+        collect(base, root, 0, &mut definitions, &mut index);
         for definition in definitions {
             let Some(name) = definition.child_by_field_name("name") else {
                 continue;
@@ -82,16 +85,61 @@ impl ReturnTypeIndex {
             let return_type = scope
                 .as_ref()
                 .and_then(|scope| index.annotated_return(base, definition, scope));
-            index
-                .entries
-                .entry(base.get_node_text(&name))
-                .or_default()
-                .push(ReturnEntry {
-                    key: scope.map(|scope| scope.key()),
-                    return_type,
+            let entries = index.entries.entry(base.get_node_text(&name)).or_default();
+            if let Some(scope) = scope.as_ref().filter(|scope| {
+                !scope.singleton && scope.owner.is_some() && is_module_function(base, definition)
+            }) {
+                entries.push(ReturnEntry {
+                    key: Some((scope.owner.clone(), true)),
+                    return_type: return_type.clone(),
                 });
+            }
+            entries.push(ReturnEntry {
+                key: scope.map(|scope| scope.key()),
+                return_type,
+            });
         }
         index
+    }
+
+    /// Whether the class that owns the `@ivar` target of `assignment` uses
+    /// that name where `self` is an instance and also where `self` is the
+    /// class or is not settled. The field then stands for two variables, so
+    /// it gets no type.
+    pub(super) fn ivar_has_mixed_levels(&self, base: &BaseExtractor, assignment: Node) -> bool {
+        assignment
+            .child_by_field_name("left")
+            .filter(|target| target.kind() == "instance_variable")
+            .and_then(|target| self.ivar_levels.get(&ivar_key(base, target)))
+            .is_some_and(|levels| levels.len() > 1)
+    }
+
+    /// The same-file class or module a constant receiver names at `node`,
+    /// resolved through the lexical nesting the way Ruby does, innermost
+    /// first. `None` when no same-file class or module matches.
+    pub(super) fn constant_receiver(
+        &self,
+        base: &BaseExtractor,
+        node: Node,
+        name: &str,
+    ) -> Option<SelfScope> {
+        let mut candidates = Vec::new();
+        let mut current = node.parent();
+        while let Some(ancestor) = current {
+            if matches!(ancestor.kind(), "class" | "module") {
+                candidates.push(format!("{}::{name}", owner_path(base, ancestor)?));
+            }
+            current = ancestor.parent();
+        }
+        candidates.push(name.to_string());
+        let (path, is_class) = candidates
+            .into_iter()
+            .find_map(|path| self.owners.get(&path).map(|is_class| (path, *is_class)))?;
+        Some(SelfScope {
+            owner: Some(path),
+            owner_is_class: is_class,
+            singleton: true,
+        })
     }
 
     /// The return type every same-named method on this `self` agrees on.
@@ -177,19 +225,26 @@ impl ReturnTypeIndex {
         }
         comments.reverse();
         let mut overloads: Vec<String> = Vec::new();
+        let mut rbs_method_type_seen = false;
         for comment in &comments {
             let comment = comment.trim();
             if let Some(method_type) = comment.strip_prefix("#:") {
                 overloads.push(method_type.to_string());
-            } else if let Some(continued) = comment.strip_prefix("#|") {
+                continue;
+            }
+            if let Some(continued) = comment.strip_prefix("#|") {
                 overloads.last_mut()?.push_str(continued);
-            } else if let Some(returned) = comment
-                .strip_prefix('#')
-                .map(str::trim_start)
-                .and_then(|text| text.strip_prefix("@rbs return:"))
-            {
+                continue;
+            }
+            let text = comment.strip_prefix('#').unwrap_or(comment).trim_start();
+            if let Some(returned) = text.strip_prefix("@rbs return:") {
                 let returned = returned.split(" -- ").next().unwrap_or_default();
                 overloads.push(format!("-> {returned}"));
+            } else if let Some(method_type) = rbs_tag_method_type(text) {
+                overloads.push(method_type.to_string());
+                rbs_method_type_seen = true;
+            } else if rbs_method_type_seen && text.starts_with('|') {
+                return None;
             }
         }
         let mut returns = overloads
@@ -324,20 +379,21 @@ impl ReturnTypeIndex {
 
 /// What `self` is at `node`, or `None` where the file does not settle it:
 /// in a `class << self` body, or in a block that rebinds `self`.
+///
+/// A block or lambda directly in a class or module body settles nothing:
+/// `define_method`, `before_action`, `scope` and most other class-level DSLs
+/// run their block with an instance or another object as `self`.
 pub(super) fn self_scope(base: &BaseExtractor, node: Node) -> Option<SelfScope> {
+    let mut in_block = false;
     let mut current = node.parent();
     while let Some(ancestor) = current {
         match ancestor.kind() {
             "method" | "singleton_method" => return definition_scope(base, ancestor),
-            "class" | "module" => {
-                return Some(SelfScope {
-                    owner: declared_name(base, ancestor),
-                    owner_is_class: ancestor.kind() == "class",
-                    singleton: true,
-                });
-            }
+            "class" | "module" if in_block => return None,
+            "class" | "module" => return SelfScope::of_owner(base, ancestor, true),
             "singleton_class" => return None,
             "block" | "do_block" if rebinds_self(base, ancestor) => return None,
+            "block" | "do_block" | "lambda" => in_block = true,
             _ => {}
         }
         current = ancestor.parent();
@@ -354,13 +410,7 @@ fn definition_scope(base: &BaseExtractor, definition: Node) -> Option<SelfScope>
     let mut current = definition.parent();
     while let Some(ancestor) = current {
         match ancestor.kind() {
-            "class" | "module" => {
-                return Some(SelfScope {
-                    owner: declared_name(base, ancestor),
-                    owner_is_class: ancestor.kind() == "class",
-                    singleton,
-                });
-            }
+            "class" | "module" => return SelfScope::of_owner(base, ancestor, singleton),
             "singleton_class"
                 if !singleton && ancestor.child_by_field_name("value")?.kind() == "self" =>
             {
@@ -392,8 +442,106 @@ fn rebinds_self(base: &BaseExtractor, block: Node) -> bool {
                     | "module_exec"
                     | "new"
                     | "define"
+                    | "define_method"
+                    | "define_singleton_method"
             )
         })
+}
+
+/// The full lexical path of a class or module node: `B::Item` for `class
+/// Item` in `module B`. A `::Name` declaration starts from the top level.
+fn owner_path(base: &BaseExtractor, owner: Node) -> Option<String> {
+    let mut segments = Vec::new();
+    let mut current = Some(owner);
+    while let Some(node) = current {
+        if matches!(node.kind(), "class" | "module") {
+            let name = base.get_node_text(&node.child_by_field_name("name")?);
+            if let Some(absolute) = name.strip_prefix("::") {
+                segments.push(absolute.to_string());
+                break;
+            }
+            segments.push(name);
+        }
+        current = node.parent();
+    }
+    segments.reverse();
+    Some(segments.join("::"))
+}
+
+/// An `@ivar` by the full path of its lexically enclosing class or module.
+fn ivar_key(base: &BaseExtractor, ivar: Node) -> (Option<String>, String) {
+    let mut owner = ivar.parent();
+    while let Some(node) = owner.filter(|node| !matches!(node.kind(), "class" | "module")) {
+        owner = node.parent();
+    }
+    (
+        owner.and_then(|owner| owner_path(base, owner)),
+        base.get_node_text(&ivar),
+    )
+}
+
+/// Whether a `def` in a module body is also a module method: it follows a
+/// bare `module_function`, is named by `module_function :name` or wrapped as
+/// `module_function def`, or the body has `extend self`.
+fn is_module_function(base: &BaseExtractor, definition: Node) -> bool {
+    let anchor = visibility_call_around(definition).unwrap_or(definition);
+    if anchor != definition {
+        return call_method(base, anchor).as_deref() == Some("module_function");
+    }
+    let Some(body) = anchor
+        .parent()
+        .filter(|node| node.kind() == "body_statement")
+    else {
+        return false;
+    };
+    let Some(name) = definition.child_by_field_name("name") else {
+        return false;
+    };
+    let symbol = format!(":{}", base.get_node_text(&name));
+    let declared_by_statement = body.named_children(&mut body.walk()).any(|statement| {
+        let Some(arguments) = statement.child_by_field_name("arguments") else {
+            return false;
+        };
+        let mut cursor = arguments.walk();
+        let mut arguments = arguments.named_children(&mut cursor);
+        match call_method(base, statement).as_deref() {
+            Some("extend") => arguments.all(|argument| argument.kind() == "self"),
+            Some("module_function") => {
+                arguments.any(|argument| base.get_node_text(&argument) == symbol)
+            }
+            _ => false,
+        }
+    });
+    let mut previous = anchor.prev_named_sibling();
+    while let Some(statement) = previous {
+        if statement.kind() == "identifier" {
+            match base.get_node_text(&statement).as_str() {
+                "module_function" => return true,
+                "public" | "private" | "protected" => break,
+                _ => {}
+            }
+        }
+        previous = statement.prev_named_sibling();
+    }
+    declared_by_statement
+}
+
+/// The method name of a receiverless call.
+fn call_method(base: &BaseExtractor, node: Node) -> Option<String> {
+    if node.kind() != "call" || node.child_by_field_name("receiver").is_some() {
+        return None;
+    }
+    Some(base.get_node_text(&node.child_by_field_name("method")?))
+}
+
+/// The method type of an RBS inline `# @rbs (..) -> T` annotation, given the
+/// comment text after `#`.
+fn rbs_tag_method_type(text: &str) -> Option<&str> {
+    let method_type = text.strip_prefix("@rbs")?.trim_start();
+    ["(", "[", "?{", "{", "->"]
+        .iter()
+        .any(|start| method_type.starts_with(start))
+        .then_some(method_type)
 }
 
 /// The named node before `node`. Comments above the first statement of a
@@ -464,40 +612,53 @@ fn collect<'tree>(
     node: Node<'tree>,
     depth: u32,
     definitions: &mut Vec<Node<'tree>>,
-    generics: &mut HashSet<String>,
+    index: &mut ReturnTypeIndex,
 ) {
     if !should_visit_tree_depth(depth) {
         return;
     }
     match node.kind() {
         "method" | "singleton_method" => definitions.push(node),
-        "comment" => generics.extend(comment_generics(&base.get_node_text(&node))),
-        "assignment" => generics.extend(sorbet_type_member(base, node)),
+        "class" | "module" => {
+            if let Some(path) = owner_path(base, node) {
+                index.owners.insert(path, node.kind() == "class");
+            }
+        }
+        "instance_variable" => {
+            let level = self_scope(base, node).map(|scope| scope.singleton);
+            index
+                .ivar_levels
+                .entry(ivar_key(base, node))
+                .or_default()
+                .insert(level);
+        }
+        "comment" => index
+            .generics
+            .extend(comment_generics(&base.get_node_text(&node))),
+        "assignment" => index.generics.extend(sorbet_type_constant(base, node)),
         _ => {}
     }
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
     for child in node.named_children(&mut node.walk()) {
-        collect(base, child, child_depth, definitions, generics);
+        collect(base, child, child_depth, definitions, index);
     }
 }
 
-/// Type parameter names an RBS comment declares: `#: [T, U] ...` or
-/// `# @rbs generic T`.
+/// Type parameter names an RBS comment declares: `#: [T, U] ...`,
+/// `# @rbs [T] ...` or `# @rbs generic T`.
 fn comment_generics(comment: &str) -> Vec<String> {
     let text = comment.trim();
-    let declared = if let Some(rest) = text.strip_prefix("#:") {
+    let tag = text.strip_prefix('#').unwrap_or(text).trim_start();
+    let method_type = text.strip_prefix("#:").or_else(|| rbs_tag_method_type(tag));
+    let declared = if let Some(rest) = method_type {
         rest.trim_start()
             .strip_prefix('[')
             .and_then(|rest| rest.split_once(']'))
             .map(|(parameters, _)| parameters.split(',').collect::<Vec<_>>())
             .unwrap_or_default()
-    } else if let Some(rest) = text
-        .strip_prefix('#')
-        .map(str::trim_start)
-        .and_then(|rest| rest.strip_prefix("@rbs generic"))
-    {
+    } else if let Some(rest) = tag.strip_prefix("@rbs generic") {
         vec![rest]
     } else {
         Vec::new()
@@ -519,20 +680,22 @@ fn comment_generics(comment: &str) -> Vec<String> {
         .collect()
 }
 
-/// The constant a Sorbet `Elem = type_member` or `type_template` declares.
-fn sorbet_type_member(base: &BaseExtractor, assignment: Node) -> Option<String> {
+/// The constant a Sorbet `Elem = type_member`, `type_template` or
+/// `T.type_alias { .. }` declares. None of them names one class.
+fn sorbet_type_constant(base: &BaseExtractor, assignment: Node) -> Option<String> {
     let left = assignment.child_by_field_name("left")?;
     let right = assignment.child_by_field_name("right")?;
+    let receiver = right
+        .child_by_field_name("receiver")
+        .map(|receiver| base.get_node_text(&receiver));
     let method = match right.kind() {
         "identifier" => right,
-        "call" if right.child_by_field_name("receiver").is_none() => {
-            right.child_by_field_name("method")?
-        }
+        "call" => right.child_by_field_name("method")?,
         _ => return None,
     };
-    let is_type_member = matches!(
-        base.get_node_text(&method).as_str(),
-        "type_member" | "type_template"
+    let is_type_constant = matches!(
+        (receiver.as_deref(), base.get_node_text(&method).as_str()),
+        (None, "type_member" | "type_template") | (Some("T"), "type_alias")
     );
-    (left.kind() == "constant" && is_type_member).then(|| base.get_node_text(&left))
+    (left.kind() == "constant" && is_type_constant).then(|| base.get_node_text(&left))
 }

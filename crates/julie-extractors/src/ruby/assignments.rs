@@ -72,7 +72,8 @@ pub(super) fn extract_assignment(
     } else {
         parent_id
     };
-    let record_type = matches!(kind, SymbolKind::Variable | SymbolKind::Field);
+    let mixed_level_ivar = context.return_types.ivar_has_mixed_levels(base, node);
+    let record_type = matches!(kind, SymbolKind::Variable | SymbolKind::Field) && !mixed_level_ivar;
     let symbol = base.create_symbol(
         &node,
         name,
@@ -86,7 +87,8 @@ pub(super) fn extract_assignment(
             annotations: Vec::new(),
         },
     );
-    if node.kind() == "assignment"
+    if !mixed_level_ivar
+        && node.kind() == "assignment"
         && let Some(literal_type) = right_side.and_then(literal_type)
     {
         context

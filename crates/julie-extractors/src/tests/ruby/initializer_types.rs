@@ -557,3 +557,269 @@ fn rbs_not_nil_assertion_keeps_the_inferred_type() {
 fn same_file_new_still_records_the_class() {
     assert_eq!(sorbet_local("w = Widget.new(1)"), inferred("Widget"));
 }
+
+const LABEL_ON_BOTH_SIDES: &str = r#"class Foo
+  extend T::Sig
+  sig { returns(String) }
+  def self.label; "x"; end
+  sig { returns(Integer) }
+  def label; 1; end
+  define_method(:thing) do
+    dm_v = label
+  end
+  before_action do
+    ba_v = label
+  end
+  scope :recent, -> { sc_v = label }
+  class_body_v = label
+end
+"#;
+
+#[test]
+fn a_block_in_a_class_body_records_no_fact() {
+    for name in ["dm_v", "ba_v", "sc_v"] {
+        assert_eq!(fact_for(LABEL_ON_BOTH_SIDES, name), None, "{name}");
+    }
+    assert_eq!(
+        fact_for(LABEL_ON_BOTH_SIDES, "class_body_v"),
+        inferred("String")
+    );
+}
+
+#[test]
+fn define_method_in_a_method_records_no_fact() {
+    let source = r#"class Foo
+  extend T::Sig
+  sig { returns(String) }
+  def self.label; "x"; end
+  sig { returns(Integer) }
+  def label; 1; end
+  def self.install
+    define_method(:thing) { dm_v = label }
+    define_singleton_method(:other) { ds_v = label }
+    [1].each { each_v = label }
+  end
+end
+"#;
+    assert_eq!(fact_for(source, "dm_v"), None);
+    assert_eq!(fact_for(source, "ds_v"), None);
+    assert_eq!(fact_for(source, "each_v"), inferred("String"));
+}
+
+#[test]
+fn a_receiverless_call_in_a_same_named_class_of_another_namespace_records_no_fact() {
+    let source = r#"module A
+  class Item
+    extend T::Sig
+    sig { returns(String) }
+    def name; "a"; end
+
+    def own
+      own_v = name
+    end
+  end
+end
+module B
+  class Item
+    def show
+      ns_inst = name
+    end
+  end
+end
+"#;
+    assert_eq!(fact_for(source, "ns_inst"), None);
+    assert_eq!(fact_for(source, "own_v"), inferred("String"));
+}
+
+#[test]
+fn a_class_receiver_resolves_through_the_lexical_nesting() {
+    let source = r#"class Item
+  extend T::Sig
+  sig { returns(String) }
+  def self.build; "a"; end
+end
+module Shop
+  class Item
+  end
+  class Cart
+    def add
+      cart_item = Item.build
+    end
+  end
+  class Order
+    extend T::Sig
+    sig { returns(Integer) }
+    def self.count; 1; end
+  end
+  class Report
+    def run
+      order_count = Order.count
+    end
+  end
+end
+class Shop::Ledger
+  def run
+    outer_count = Order.count
+  end
+end
+"#;
+    assert_eq!(fact_for(source, "cart_item"), None);
+    assert_eq!(fact_for(source, "order_count"), inferred("Integer"));
+    assert_eq!(fact_for(source, "outer_count"), None);
+}
+
+#[test]
+fn an_ivar_used_by_the_class_and_by_instances_records_no_type() {
+    let source = r#"class Registry; end
+class Cache
+  extend T::Sig
+  sig { returns(Registry) }
+  def self.registry; Registry.new; end
+  def self.setup
+    @store = registry
+  end
+  def initialize
+    @store = {}
+  end
+  def get(k)
+    @store.fetch(k)
+  end
+end
+"#;
+    assert_eq!(fact_for(source, "@store"), None);
+    let instance_side = "def get
+    @x.fetch
+  end";
+    for (class_side, name) in [
+        ("def self.setup\n    @x = Registry.new\n  end", "@x"),
+        (
+            "class << self\n    def setup\n      @x = Registry.new\n    end\n  end",
+            "@x",
+        ),
+        ("@x = Registry.new", "@x"),
+        ("@x = T.let(Registry.new, Registry)", "@x"),
+        ("before_action do\n    @x = Registry.new\n  end", "@x"),
+    ] {
+        let source =
+            format!("class Registry; end\nclass Cache\n  {class_side}\n  {instance_side}\nend\n");
+        assert_eq!(fact_for(&source, name), None, "{class_side}");
+    }
+}
+
+#[test]
+fn an_ivar_used_only_by_the_class_keeps_its_type() {
+    let source = "class Registry; end\nclass Cache\n  class << self\n    def setup\n      @x = Registry.new\n    end\n\n    def get\n      @x.fetch\n    end\n  end\nend\n";
+    assert_eq!(fact_for(source, "@x"), inferred("Registry"));
+}
+
+#[test]
+fn rbs_tag_method_types_record_the_return_type() {
+    let source = r#"class P
+  # @rbs () -> String
+  def label; ""; end
+
+  # @rbs (Integer) -> String
+  # @rbs (String) -> String
+  def agreed(x); ""; end
+
+  # @rbs () -> String
+  #    | (Integer) -> Integer
+  def overloaded(x = nil); ""; end
+
+  # @rbs [T] (T) -> T
+  def identity(x); x; end
+
+  def run
+    at_v = label
+    agreed_v = agreed(1)
+    overloaded_v = overloaded
+    identity_v = identity(1)
+  end
+end
+"#;
+    assert_eq!(fact_for(source, "at_v"), inferred("String"));
+    assert_eq!(fact_for(source, "agreed_v"), inferred("String"));
+    assert_eq!(fact_for(source, "overloaded_v"), None);
+    assert_eq!(fact_for(source, "identity_v"), None);
+}
+
+#[test]
+fn a_sorbet_type_alias_records_no_fact() {
+    let source = r#"Amount = T.type_alias { T.any(Integer, Float) }
+class Calc
+  extend T::Sig
+  sig { returns(Amount) }
+  def total; 1; end
+  def run
+    alias_v = total
+  end
+end
+"#;
+    assert_eq!(fact_for(source, "alias_v"), None);
+}
+
+#[test]
+fn module_function_and_extend_self_methods_type_module_calls() {
+    let source = r#"module Util
+  extend T::Sig
+  sig { returns(Symbol) }
+  def before; :a; end
+  module_function
+  sig { returns(Symbol) }
+  def sym; :a; end
+  private
+  sig { returns(Symbol) }
+  def hidden; :a; end
+end
+module Named
+  extend T::Sig
+  sig { returns(Symbol) }
+  def one; :a; end
+  module_function :one
+  sig { returns(Symbol) }
+  module_function def two; :a; end
+end
+module Shared
+  extend self
+  extend T::Sig
+  sig { returns(Symbol) }
+  def three; :a; end
+end
+mf_sym = Util.sym
+mf_before = Util.before
+mf_hidden = Util.hidden
+mf_one = Named.one
+mf_two = Named.two
+es_three = Shared.three
+"#;
+    for name in ["mf_sym", "mf_one", "mf_two", "es_three"] {
+        assert_eq!(fact_for(source, name), inferred("Symbol"), "{name}");
+    }
+    for name in ["mf_before", "mf_hidden"] {
+        assert_eq!(fact_for(source, name), None, "{name}");
+    }
+}
+
+#[test]
+fn an_ivar_used_at_two_self_levels_gets_no_literal_type() {
+    let source = "class Cache\n  def self.setup\n    @store = {}\n  end\n  LIMIT = 3\n  def initialize\n    @size = 1\n    @store.clear\n  end\nend\n";
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_ruby::LANGUAGE.into())
+        .unwrap();
+    let tree = parser.parse(source, None).unwrap();
+    let mut extractor = RubyExtractor::new(
+        "initializer_types.rb".to_string(),
+        source.to_string(),
+        &PathBuf::from("/tmp/test"),
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let literal_types = extractor.infer_types(&symbols);
+    let literal_type_of = |name: &str| {
+        let symbol = symbols.iter().find(|s| s.name == name).unwrap();
+        literal_types.get(&symbol.id).cloned()
+    };
+    assert_eq!(literal_type_of("@store"), None);
+    assert_eq!(literal_type_of("LIMIT"), Some("Integer".to_string()));
+    assert_eq!(literal_type_of("@size"), Some("Integer".to_string()));
+}

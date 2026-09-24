@@ -153,7 +153,7 @@ impl Inference<'_, '_> {
                 };
                 match receiver.kind() {
                     "self" => self.on_self(&method),
-                    "constant" => self.on_class(self.base.get_node_text(&receiver), &method),
+                    "constant" => self.on_class(receiver, &method),
                     _ => None,
                 }
             }
@@ -165,7 +165,8 @@ impl Inference<'_, '_> {
         self.context.return_types.lookup(method, self.scope?)
     }
 
-    fn on_class(&self, owner: String, method: &str) -> Option<DeclaredType> {
+    fn on_class(&self, receiver: Node, method: &str) -> Option<DeclaredType> {
+        let owner = self.base.get_node_text(&receiver);
         if method == "new" {
             return self
                 .context
@@ -176,9 +177,9 @@ impl Inference<'_, '_> {
                     declared: owner,
                 });
         }
-        self.context
-            .return_types
-            .lookup(method, &SelfScope::class_object(owner))
+        let return_types = self.context.return_types;
+        let class_object = return_types.constant_receiver(self.base, receiver, &owner)?;
+        return_types.lookup(method, &class_object)
     }
 }
 
