@@ -853,3 +853,138 @@ class Sub : Parent() {
     assert_inferred(source, "inner", "Int", "Int");
     assert_inferred(source, "ownNested", "Int", "Int");
 }
+
+#[test]
+fn nearer_classifier_that_shadows_an_object_receiver_records_nothing() {
+    let source = r#"
+object Mode {
+    fun valueOf(name: String): String = name
+}
+class Outer {
+    enum class Mode { A, B }
+    fun probe() {
+        val nestedMode = Mode.valueOf("A")
+    }
+}
+class Held {
+    companion object {
+        enum class Mode { A }
+    }
+    fun probe() {
+        val companionNested = Mode.valueOf("A")
+    }
+}
+fun top() {
+    val topMode = Mode.valueOf("A")
+}
+"#;
+    assert_no_fact(source, "nestedMode");
+    assert_no_fact(source, "companionNested");
+    assert_inferred(source, "topMode", "String", "String");
+}
+
+#[test]
+fn nearer_classifier_that_shadows_a_companion_receiver_records_nothing() {
+    let source = r#"
+class Mode {
+    companion object {
+        fun valueOf(name: String): String = name
+    }
+}
+class Outer {
+    enum class Mode { A }
+    fun probe() {
+        val nestedMode = Mode.valueOf("A")
+    }
+}
+fun top() {
+    val topMode = Mode.valueOf("A")
+}
+"#;
+    assert_no_fact(source, "nestedMode");
+    assert_inferred(source, "topMode", "String", "String");
+}
+
+#[test]
+fn nearer_object_or_enum_entry_hides_a_class_or_function_name() {
+    let source = r#"
+class Other
+class Repo
+fun load(): Repo = Repo()
+class Outer {
+    object Repo {
+        operator fun invoke(): Other = Other()
+    }
+    fun probe() {
+        val shadowedCtor = Repo()
+    }
+}
+enum class Kind {
+    Repo;
+    operator fun invoke(): Other = Other()
+    fun probe() {
+        val entryCtor = Repo()
+    }
+}
+class Holder {
+    object load {
+        operator fun invoke(): Other = Other()
+    }
+    fun probe() {
+        val objectHidesFun = load()
+    }
+}
+fun top() {
+    val topCtor = Repo()
+    val topLoad = load()
+}
+"#;
+    assert_no_fact(source, "shadowedCtor");
+    assert_no_fact(source, "entryCtor");
+    assert_no_fact(source, "objectHidesFun");
+    assert_inferred(source, "topCtor", "Repo", "Repo");
+    assert_inferred(source, "topLoad", "Repo", "Repo");
+}
+
+#[test]
+fn enum_companion_factory_records_its_return_type() {
+    let source = r#"
+enum class Color {
+    RED;
+    companion object {
+        fun fromCode(code: Int): Color? = null
+    }
+}
+class Probe {
+    fun probe() {
+        val fromFactory = Color.fromCode(1)
+    }
+}
+"#;
+    assert_inferred(source, "fromFactory", "Color", "Color?");
+}
+
+#[test]
+fn enum_companion_member_named_like_an_enum_builtin_records_nothing() {
+    let source = r#"
+enum class Shade {
+    DARK;
+    companion object {
+        fun values(): String = ""
+        fun valueOf(name: String): String = name
+        fun entries(): String = ""
+        fun parse(name: String): String = name
+    }
+}
+fun probe() {
+    val shadeValues = Shade.values()
+    val shadeValueOf = Shade.valueOf("DARK")
+    val shadeEntries = Shade.entries()
+    val shadeParse = Shade.parse("DARK")
+}
+"#;
+    assert_no_fact(source, "shadeValues");
+    assert_no_fact(source, "shadeValueOf");
+    assert_no_fact(source, "shadeEntries");
+    assert_inferred(source, "shadeParse", "String", "String");
+}

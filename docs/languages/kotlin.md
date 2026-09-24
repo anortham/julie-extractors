@@ -238,7 +238,8 @@ one `type_usage` for its last segment, with the leading segments in the
   initializer: a same-file class constructor (`Repo()`) where the class is
   declared in scope, or a call with a declared return type to a same-file
   function reached by bare name (`load()`), `this.load()` in the enclosing
-  class, or `Type.create()` on a same-file object or companion in scope.
+  class, or `Type.create()` on a same-file object or companion in scope
+  (an enum class companion included, as in `Color.fromCode(1)`).
   Parentheses pass the type through, `!!` drops `?`, and `T?` records `T`.
   Every same-named candidate must agree and one must accept the argument
   count. No fact for:
@@ -254,8 +255,14 @@ one `type_usage` for its last segment, with the leading segments in the
   - `this.m(args)` or `Type.m(args)` with arguments when the file declares
     an extension function named `m`, because Kotlin calls the extension
     when no member accepts the argument types;
-  - a name that a parameter, an earlier local, or a property in scope also
-    uses, because Kotlin calls that value through `invoke`;
+  - a name that a parameter, an earlier local, a property, an object, or an
+    enum entry in scope also uses, because Kotlin calls that value through
+    `invoke`;
+  - `Type.m()` when the nearest class, object, or enum entry named `Type`
+    around the call is not an object or a class with a companion, such as a
+    nested enum that shadows a top-level object;
+  - `E.values()`, `E.valueOf()`, or `E.entries()` on an enum class, because
+    the enum's built-in statics out-rank a companion member of that name;
   - an `Any` member name (`toString`, `hashCode`, `equals`) inside a class or
     object;
   - a bare call, `this.m()`, or `Type.m()` inside a lambda or extension,

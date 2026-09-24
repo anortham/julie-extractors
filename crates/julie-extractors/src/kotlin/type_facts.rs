@@ -126,8 +126,6 @@ impl ReturnEntry {
 /// An object or companion object that `TypeName.call()` reaches.
 #[derive(Debug)]
 struct StaticOwner {
-    /// Node id of the node that declares the type; the name is visible below it.
-    declared_in: usize,
     body: usize,
     /// The object has a supertype, so inherited overloads may out-rank its own.
     hidden_members: bool,
@@ -156,15 +154,30 @@ struct ValueEntry {
     visible_from: usize,
 }
 
+/// A same-file class, object, or enum entry with a name.
+#[derive(Debug)]
+struct Declaration {
+    /// Node id of the node whose descendants see the name.
+    scope: usize,
+    node: usize,
+    /// An object or enum entry, which a call `Name()` reaches through `invoke`.
+    is_value: bool,
+    /// An enum class, whose built-in statics out-rank its companion's members.
+    is_enum: bool,
+}
+
 /// Same-file facts that initializer inference reads, built once per file:
-/// where each class is declared, function return types, the objects and
-/// companions each type name reaches, value names, and the names that
-/// explicit imports bring in.
+/// where each class is declared, every named class, object, and enum entry,
+/// function return types, the objects and companions each declaration
+/// reaches as `Name.call()`, value names, and the names that explicit
+/// imports bring in.
 #[derive(Debug, Default)]
 pub(super) struct InitializerIndex {
     classes: HashMap<String, Vec<ClassEntry>>,
+    declarations: HashMap<String, Vec<Declaration>>,
     functions: HashMap<String, Vec<ReturnEntry>>,
-    static_owners: HashMap<String, Vec<StaticOwner>>,
+    /// Keyed by the node id of the class or object declaration.
+    static_owners: HashMap<usize, Vec<StaticOwner>>,
     values: HashMap<String, Vec<ValueEntry>>,
     imported: HashSet<String>,
 }
@@ -176,6 +189,7 @@ impl InitializerIndex {
         while let Some(node) = stack.pop() {
             match node.kind() {
                 "class_declaration" | "object_declaration" => index.add_type(base, node),
+                "enum_entry" => index.add_declaration(base, node, false),
                 "function_declaration" => {
                     if let Some((name, entry)) = return_entry(base, node) {
                         index.functions.entry(name).or_default().push(entry);
@@ -199,13 +213,12 @@ impl InitializerIndex {
         let Some(declared_in) = node.parent() else {
             return;
         };
+        self.add_declaration(base, node, has_child(node, "enum_class_body"));
         let owners = if node.kind() == "object_declaration" {
             vec![node]
         } else {
             let companions = companion_objects(node);
-            let is_interface = node
-                .children(&mut node.walk())
-                .any(|child| child.kind() == "interface");
+            let is_interface = has_child(node, "interface");
             self.classes
                 .entry(name.clone())
                 .or_default()
@@ -221,12 +234,29 @@ impl InitializerIndex {
         };
         let owners = owners.into_iter().filter_map(|owner| {
             Some(StaticOwner {
-                declared_in: declared_in.id(),
                 body: body_id(owner)?,
                 hidden_members: has_hidden_members(base, owner),
             })
         });
-        self.static_owners.entry(name).or_default().extend(owners);
+        self.static_owners
+            .entry(node.id())
+            .or_default()
+            .extend(owners);
+    }
+
+    fn add_declaration(&mut self, base: &BaseExtractor, node: Node, is_enum: bool) {
+        let (Some(name), Some(scope)) = (first_identifier(node), node.parent()) else {
+            return;
+        };
+        self.declarations
+            .entry(identifier_text(base, name))
+            .or_default()
+            .push(Declaration {
+                scope: scope.id(),
+                node: node.id(),
+                is_value: node.kind() != "class_declaration",
+                is_enum,
+            });
     }
 
     /// The type an initializer produces: a same-file class constructor, or a
@@ -266,7 +296,10 @@ impl InitializerIndex {
         match callee.kind() {
             "identifier" => {
                 let name = identifier_text(base, callee);
-                if self.imported.contains(&name) || self.value_hides(&name, call) {
+                if self.imported.contains(&name)
+                    || self.value_hides(&name, call)
+                    || self.object_hides(&name, call)
+                {
                     return None;
                 }
                 if let Some(classes) = self.classes.get(&name) {
@@ -336,13 +369,17 @@ impl InitializerIndex {
         {
             return None;
         }
-        let reachable = static_owner_reach(base, call);
-        let owners: Vec<&StaticOwner> = self
-            .static_owners
-            .get(&type_name)?
-            .iter()
-            .filter(|owner| reachable.contains(&owner.declared_in))
-            .collect();
+        let (level, nearest) = self.nearest_declarations(&type_name, call)?;
+        if !static_owner_reach(base, call).contains(&level)
+            || (ENUM_STATIC_NAMES.contains(&name)
+                && nearest.iter().any(|declaration| declaration.is_enum))
+        {
+            return None;
+        }
+        let mut owners: Vec<&StaticOwner> = Vec::new();
+        for declaration in nearest {
+            owners.extend(self.static_owners.get(&declaration.node)?.iter());
+        }
         let hidden_members = owners.iter().any(|owner| owner.hidden_members);
         self.agreed(name, arg_count, hidden_members, |entry| {
             owners.iter().any(|owner| owner.body == entry.container)
@@ -386,19 +423,50 @@ impl InitializerIndex {
         let Some(values) = self.values.get(name) else {
             return false;
         };
-        std::iter::successors(call.parent(), Node::parent)
-            .flat_map(|node| {
-                let companions = match node.kind() {
-                    "class_declaration" => companion_objects(node),
-                    _ => Vec::new(),
-                };
-                std::iter::once(node.id()).chain(companions.into_iter().filter_map(body_id))
-            })
-            .any(|scope| {
-                values
-                    .iter()
-                    .any(|value| value.scope == scope && value.visible_from <= call.start_byte())
-            })
+        scopes_at(call).any(|scope| {
+            values
+                .iter()
+                .any(|value| value.scope == scope && value.visible_from <= call.start_byte())
+        })
+    }
+
+    /// Whether an object or enum entry named `name` is in scope at `call`:
+    /// `name()` then calls its `invoke`.
+    fn object_hides(&self, name: &str, call: Node) -> bool {
+        let Some(declarations) = self.declarations.get(name) else {
+            return false;
+        };
+        scopes_at(call).any(|scope| {
+            declarations
+                .iter()
+                .any(|declaration| declaration.is_value && declaration.scope == scope)
+        })
+    }
+
+    /// The declarations named `name` at the nearest scope level around `call`
+    /// that declares one, and the node id of that level. A class body and the
+    /// class's companion body form one level.
+    fn nearest_declarations(&self, name: &str, call: Node) -> Option<(usize, Vec<&Declaration>)> {
+        let declarations = self.declarations.get(name)?;
+        std::iter::successors(call.parent(), Node::parent).find_map(|node| {
+            let companions = match node.parent() {
+                Some(class)
+                    if class.kind() == "class_declaration"
+                        && matches!(node.kind(), "class_body" | "enum_class_body") =>
+                {
+                    companion_objects(class)
+                }
+                _ => Vec::new(),
+            };
+            let level: Vec<usize> = std::iter::once(node.id())
+                .chain(companions.into_iter().filter_map(body_id))
+                .collect();
+            let nearest: Vec<&Declaration> = declarations
+                .iter()
+                .filter(|declaration| level.contains(&declaration.scope))
+                .collect();
+            (!nearest.is_empty()).then_some((node.id(), nearest))
+        })
     }
 
     /// The shared shape of the same-named candidates `reaches` selects.
@@ -436,6 +504,9 @@ impl InitializerIndex {
             .then(|| first.clone())
     }
 }
+
+/// Statics every enum class has, which Kotlin calls before a companion member.
+const ENUM_STATIC_NAMES: [&str; 3] = ["values", "valueOf", "entries"];
 
 /// Members every class and object inherits from `Any`.
 const ANY_MEMBER_NAMES: [&str; 3] = ["toString", "hashCode", "equals"];
@@ -557,10 +628,27 @@ fn has_hidden_members(base: &BaseExtractor, node: Node) -> bool {
             })
 }
 
+/// Node ids of `call`'s ancestors and of the companion bodies of its
+/// enclosing classes.
+fn scopes_at(call: Node) -> impl Iterator<Item = usize> {
+    std::iter::successors(call.parent(), Node::parent).flat_map(|node| {
+        let companions = match node.kind() {
+            "class_declaration" => companion_objects(node),
+            _ => Vec::new(),
+        };
+        std::iter::once(node.id()).chain(companions.into_iter().filter_map(body_id))
+    })
+}
+
+fn has_child(node: Node, kind: &str) -> bool {
+    node.children(&mut node.walk())
+        .any(|child| child.kind() == kind)
+}
+
 fn companion_objects(class: Node) -> Vec<Node> {
     class
         .children(&mut class.walk())
-        .filter(|child| child.kind() == "class_body")
+        .filter(|child| matches!(child.kind(), "class_body" | "enum_class_body"))
         .flat_map(|body| {
             body.children(&mut body.walk())
                 .filter(|member| member.kind() == "companion_object")
