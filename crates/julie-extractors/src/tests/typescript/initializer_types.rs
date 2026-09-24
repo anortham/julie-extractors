@@ -789,3 +789,130 @@ export const sat = load() satisfies User;
 "#;
     assert_eq!(inferred_type(source, "sat"), inferred("User"));
 }
+
+const THIS_PARAMETER: &str = r#"
+class User {}
+class Admin {}
+class Other { load(): Admin { return null!; } static create(): Admin { return null!; } }
+class Repo {
+    load(): User { return null!; }
+    static create(): User { return null!; }
+    BODY
+}
+"#;
+
+fn with_this_parameter(body: &str, local: &str) -> Option<(String, bool)> {
+    inferred_type(&THIS_PARAMETER.replace("BODY", body), local)
+}
+
+#[test]
+fn a_method_with_a_this_parameter_records_nothing_for_this_calls() {
+    assert_eq!(
+        with_this_parameter("m(this: Other) { const user = this.load(); }", "user"),
+        None
+    );
+}
+
+#[test]
+fn an_arrow_in_a_method_with_a_this_parameter_records_nothing_for_this_calls() {
+    assert_eq!(
+        with_this_parameter(
+            "m(this: Other) { const f = () => { const user = this.load(); }; }",
+            "user"
+        ),
+        None
+    );
+}
+
+#[test]
+fn a_static_method_with_a_this_parameter_records_nothing_for_this_calls() {
+    assert_eq!(
+        with_this_parameter(
+            "static h(this: typeof Other) { const user = this.create(); }",
+            "user"
+        ),
+        None
+    );
+}
+
+#[test]
+fn a_method_without_a_this_parameter_keeps_its_class() {
+    assert_eq!(
+        with_this_parameter("m(other: Other) { const user = this.load(); }", "user"),
+        inferred("User")
+    );
+}
+
+#[test]
+fn a_this_call_in_a_member_decorator_records_nothing() {
+    let source = r#"
+class User {}
+class Admin {}
+class Other {
+    load(): Admin { return null!; }
+    m() {
+        class Repo {
+            load(): User { return null!; }
+            @dec(() => { const user = this.load(); }) x() {}
+        }
+    }
+}
+"#;
+    assert_eq!(inferred_type(source, "user"), None);
+}
+
+#[test]
+fn a_this_call_in_a_field_decorator_records_nothing() {
+    let source = r#"
+class User {}
+class Repo {
+    load(): User { return null!; }
+    @dec(() => { const user = this.load(); }) field = 1;
+}
+"#;
+    assert_eq!(inferred_type(source, "user"), None);
+}
+
+#[test]
+fn await_on_a_file_local_promise_class_records_nothing() {
+    let source = r#"
+class User { u = 1; }
+class Promise<T> { constructor(public v: T) {} }
+function load(): Promise<User> { return null!; }
+async function f() { const user = await load(); }
+"#;
+    assert_eq!(inferred_type(source, "user"), None);
+}
+
+#[test]
+fn await_with_a_promise_like_interface_in_the_file_records_nothing() {
+    let source = r#"
+class User {}
+interface PromiseLike<T> { v: T; }
+function load(): PromiseLike<User> { return null!; }
+async function f() { const user = await load(); }
+"#;
+    assert_eq!(inferred_type(source, "user"), None);
+}
+
+#[test]
+fn await_with_an_imported_promise_records_nothing() {
+    let source = r#"
+import { Promise } from "bluebird-like";
+class User {}
+function load(): Promise<User> { return null!; }
+async function f() { const user = await load(); }
+"#;
+    assert_eq!(inferred_type(source, "user"), None);
+}
+
+#[test]
+fn await_with_a_promise_type_alias_in_the_file_records_nothing() {
+    let source = r#"
+class User {}
+type Promise<T> = { v: T };
+function load(): Promise<User> { return null!; }
+async function f() { const user = await load(); }
+"#;
+    assert_eq!(inferred_type(source, "user"), None);
+}

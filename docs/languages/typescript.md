@@ -138,14 +138,19 @@ Express/Fastify routes on exported and type-annotated receivers.
   name) blocks the fact. Class members belong to one class declaration, so
   two same-named classes never share methods, and `Repo.create()` needs
   `Repo` to name exactly one visible class. `await` removes one
-  `Promise`/`PromiseLike` layer; `!` removes `null`/`undefined`; a
-  `T | null` result without `!` records nothing. `satisfies` keeps the call
+  `Promise`/`PromiseLike` layer, unless the file declares or imports its own
+  `Promise` or `PromiseLike` (class, interface, type alias, enum, namespace,
+  or import anywhere in the file), which blocks every `await` fact. `!`
+  removes `null`/`undefined`; a `T | null` result without `!` records
+  nothing. `satisfies` keeps the call
   type. `: this` resolves to the enclosing class, and `: this[]` to its
   array (`Repo[]`). A result that is a bare type parameter (`T`, or `T` after
   `await`) records no fact. A generic result keeps its base type and its
   declared text as written, so `make<K>(): Map<K, User>` records `Map` with
   declared `Map<K, User>`. A getter, an optional call (`?.`), a method after
-  the call, `this` rebound by a `function` or object literal, a
+  the call, `this` rebound by a `function`, an object literal, or a
+  method's `this` parameter (`m(this: Other)`), `this` inside a decorator
+  (it runs in the scope around the class), a
   namespace-qualified call (`Ns.load()`), a method inherited from a base
   class through `this`, `super.load()`, or a callee in another file records
   no fact. Other files are out of scope because each file is extracted

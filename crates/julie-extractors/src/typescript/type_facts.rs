@@ -188,6 +188,8 @@ fn record_call_initializer_fact(
     base.record_declared_type_fact(symbol_id, &declared, &TYPE_NAME_RULES, true);
 }
 
+const PROMISE_NAMES: [&str; 2] = ["Promise", "PromiseLike"];
+
 /// A return type reduced to what initializer inference needs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct TypeShape {
@@ -211,10 +213,10 @@ impl TypeShape {
     }
 
     fn is_promise(&self) -> bool {
-        matches!(
-            self.generic_name.as_deref(),
-            Some("Promise" | "PromiseLike")
-        ) && self.args.len() == 1
+        self.generic_name
+            .as_deref()
+            .is_some_and(|name| PROMISE_NAMES.contains(&name))
+            && self.args.len() == 1
     }
 
     fn awaited(self) -> Option<TypeShape> {
@@ -250,6 +252,9 @@ pub(super) struct ReturnTypeIndex {
     members: HashMap<(usize, String), Vec<MemberEntry>>,
     /// Every namespace or module block by its qualified name path.
     namespaces: Vec<(Vec<String>, Range<usize>)>,
+    /// The file declares or imports its own `Promise` or `PromiseLike`, so
+    /// `await` cannot trust the name to mean the global thenable.
+    promise_shadowed: bool,
 }
 
 #[derive(Debug)]
@@ -286,6 +291,9 @@ impl ReturnTypeIndex {
             index.add_node(base, node);
             stack.extend(node.named_children(&mut node.walk()));
         }
+        index.promise_shadowed |= PROMISE_NAMES
+            .iter()
+            .any(|name| index.values.contains_key(*name));
         index
     }
 
@@ -354,6 +362,11 @@ impl ReturnTypeIndex {
                 }
             }
             "enum_declaration" => self.add_name(base, node, block_scope(node), None, None),
+            "interface_declaration" | "type_alias_declaration" => {
+                self.promise_shadowed |= node.child_by_field_name("name").is_some_and(|name| {
+                    PROMISE_NAMES.contains(&base.get_node_text(&name).as_str())
+                });
+            }
             _ => {}
         }
     }
@@ -811,7 +824,7 @@ impl InitializerScope<'_> {
             "satisfies_expression" => {
                 self.shape_of(value.named_child(0)?, child_tree_depth(depth)?)
             }
-            "await_expression" => self
+            "await_expression" if !self.return_types.promise_shadowed => self
                 .shape_of(value.named_child(0)?, child_tree_depth(depth)?)?
                 .awaited(),
             "non_null_expression" => self
@@ -857,8 +870,9 @@ impl InitializerScope<'_> {
 }
 
 /// The start byte of the class `this` names at `node`, and whether `this` is
-/// the class itself (a static context). A non-arrow function or an object
-/// literal rebinds `this`, so it yields `None`.
+/// the class itself (a static context). A non-arrow function, an object
+/// literal, or a method's `this` parameter rebinds `this`, and a decorator
+/// runs in the scope around the class, so each yields `None`.
 fn this_class(node: Node) -> Option<(usize, bool)> {
     let mut is_static = false;
     let mut current = node.parent();
@@ -868,7 +882,9 @@ fn this_class(node: Node) -> Option<(usize, bool)> {
             | "function_expression"
             | "generator_function"
             | "generator_function_declaration"
-            | "object" => return None,
+            | "object"
+            | "decorator" => return None,
+            "method_definition" if has_this_parameter(scope) => return None,
             "method_definition" | "public_field_definition" => {
                 is_static = has_child_kind(scope, "static");
             }
@@ -879,4 +895,12 @@ fn this_class(node: Node) -> Option<(usize, bool)> {
         current = scope.parent();
     }
     None
+}
+
+fn has_this_parameter(method: Node) -> bool {
+    method
+        .child_by_field_name("parameters")
+        .and_then(|parameters| parameters.named_child(0))
+        .and_then(|parameter| parameter.child_by_field_name("pattern"))
+        .is_some_and(|pattern| pattern.kind() == "this")
 }
