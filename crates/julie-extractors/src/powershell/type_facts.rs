@@ -2,6 +2,7 @@ use crate::base::BaseExtractor;
 use crate::base::types::TypeNameRules;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::{HashMap, HashSet};
+use std::ops::Range;
 use tree_sitter::Node;
 
 use super::helpers::{
@@ -72,12 +73,46 @@ fn is_plain_assignment(base: &BaseExtractor, node: Node) -> bool {
             .is_some_and(|operator| base.get_node_text(&operator).trim() == "=")
 }
 
+/// Type name endings of collections that PowerShell unrolls into the
+/// pipeline when a function outputs them.
+const UNROLLED_NAME_SUFFIXES: &[&str] = &[
+    "collection",
+    "list",
+    "array",
+    "enumerable",
+    "enumerator",
+    "queue",
+    "stack",
+    "datatable",
+];
+
+const ALIAS_COMMANDS: &[&str] = &["set-alias", "new-alias", "sal", "nal"];
+
+/// `(name, takes_value)` for the parameters of `Set-Alias` and `New-Alias`.
+const ALIAS_PARAMETERS: &[(&str, bool)] = &[
+    ("name", true),
+    ("value", true),
+    ("description", true),
+    ("option", true),
+    ("scope", true),
+    ("force", false),
+    ("passthru", false),
+    ("whatif", false),
+    ("confirm", false),
+];
+
 /// The file's class names and the declared return types of its functions
 /// (`[OutputType([T])]`) and class methods, keyed case-insensitively.
 #[derive(Debug, Default)]
 pub(super) struct ReturnTypeIndex {
     classes: HashSet<String>,
+    class_bases: HashMap<String, Vec<String>>,
     callables: HashMap<(Option<String>, String), Vec<ReturnEntry>>,
+    /// Names that `Set-Alias` or `New-Alias` define. An alias wins over a
+    /// function of the same name.
+    aliases: HashSet<String>,
+    /// A `Set-Alias` or `New-Alias` whose name is not a literal.
+    has_unknown_alias: bool,
 }
 
 #[derive(Debug)]
@@ -85,6 +120,9 @@ struct ReturnEntry {
     is_static: bool,
     /// `None` when the callable declares no single return type.
     returns: Option<ReducedType>,
+    /// The byte range of the function or method that holds a nested function.
+    /// PowerShell defines the function only in that scope.
+    scope: Option<Range<usize>>,
 }
 
 impl ReturnTypeIndex {
@@ -95,9 +133,11 @@ impl ReturnTypeIndex {
             match node.kind() {
                 "class_statement" => {
                     if let Some(name) = find_class_name_node(node) {
+                        let name_text = base.get_node_text(&name).to_ascii_lowercase();
                         index
-                            .classes
-                            .insert(base.get_node_text(&name).to_ascii_lowercase());
+                            .class_bases
+                            .insert(name_text.clone(), class_base_names(base, node, name));
+                        index.classes.insert(name_text);
                     }
                 }
                 "function_statement" => {
@@ -105,9 +145,14 @@ impl ReturnTypeIndex {
                         let raw = base.get_node_text(&name);
                         let key = (None, split_function_scope(&raw).1.to_ascii_lowercase());
                         let returns = output_type(base, node);
-                        index.add(key, false, returns);
+                        let scope = enclosing_scope(node).map(|scope| scope.byte_range());
+                        index.add(key, false, returns, scope);
+                        for attribute in function_attributes(base, node, "Alias") {
+                            index.add_alias_attribute(base, attribute);
+                        }
                     }
                 }
+                "command" => index.add_alias(base, node),
                 "class_method_definition" => {
                     if let (Some(owner), Some(name)) = (
                         enclosing_class_name(base, node),
@@ -119,7 +164,7 @@ impl ReturnTypeIndex {
                         );
                         let returns = direct_child(node, "type_literal")
                             .and_then(|type_node| reduce_type_literal(base, type_node));
-                        index.add(key, has_modifier(base, node, "static"), returns);
+                        index.add(key, has_modifier(base, node, "static"), returns, None);
                     }
                 }
                 _ => {}
@@ -134,39 +179,247 @@ impl ReturnTypeIndex {
         key: (Option<String>, String),
         is_static: bool,
         returns: Option<ReducedType>,
+        scope: Option<Range<usize>>,
     ) {
-        self.callables
-            .entry(key)
-            .or_default()
-            .push(ReturnEntry { is_static, returns });
+        self.callables.entry(key).or_default().push(ReturnEntry {
+            is_static,
+            returns,
+            scope,
+        });
+    }
+
+    /// Record the name a `Set-Alias` or `New-Alias` command defines: the
+    /// `-Name` value, or else the first positional argument.
+    fn add_alias(&mut self, base: &BaseExtractor, command: Node) {
+        let Some(name_node) = command.child_by_field_name("command_name") else {
+            return;
+        };
+        let command_name = base.get_node_text(&name_node).to_ascii_lowercase();
+        let command_name = command_name.rsplit('\\').next().unwrap_or_default();
+        if !ALIAS_COMMANDS.contains(&command_name) {
+            return;
+        }
+        match alias_name(base, command) {
+            Some(name) => {
+                self.aliases.insert(name);
+            }
+            None => self.has_unknown_alias = true,
+        }
+    }
+
+    /// Record the names a function's `[Alias(...)]` attribute defines.
+    fn add_alias_attribute(&mut self, base: &BaseExtractor, attribute: Node) {
+        let mut stack = vec![attribute];
+        while let Some(node) = stack.pop() {
+            match node.kind() {
+                "attribute_name" => {}
+                "string_literal" => match literal_alias_name(&base.get_node_text(&node)) {
+                    Some(name) => {
+                        self.aliases.insert(name);
+                    }
+                    None => self.has_unknown_alias = true,
+                },
+                "variable" | "sub_expression" | "expandable_string_literal" => {
+                    self.has_unknown_alias = true
+                }
+                _ => stack.extend(node.named_children(&mut node.walk())),
+            }
+        }
     }
 
     fn has_class(&self, name: &str) -> bool {
         self.classes.contains(&name.to_ascii_lowercase())
     }
 
-    /// The return type every same-named callable of `owner` with this
+    /// The return type every same-named method of `owner` with this
     /// staticness agrees on.
-    fn lookup(&self, owner: Option<&str>, name: &str, is_static: bool) -> Option<&ReducedType> {
-        let key = (
-            owner.map(str::to_ascii_lowercase),
-            name.to_ascii_lowercase(),
-        );
-        let mut returns = self
-            .callables
-            .get(&key)?
-            .iter()
-            .filter(|entry| entry.is_static == is_static)
-            .map(|entry| entry.returns.as_ref());
-        let first = returns.next()??;
-        returns.all(|other| other == Some(first)).then_some(first)
+    fn lookup_method(&self, owner: &str, name: &str, is_static: bool) -> Option<&ReducedType> {
+        let key = (Some(owner.to_ascii_lowercase()), name.to_ascii_lowercase());
+        agreed_return(
+            self.callables
+                .get(&key)?
+                .iter()
+                .filter(|entry| entry.is_static == is_static),
+        )
     }
+
+    /// The output type every same-named function agrees on, when `call` can
+    /// see one of them and no alias hides the name. A collection output type
+    /// records nothing: PowerShell unrolls it, so the variable holds one item,
+    /// an `object[]`, or `$null`.
+    fn lookup_function(&self, name: &str, call: Node) -> Option<&ReducedType> {
+        let name = name.to_ascii_lowercase();
+        if self.has_unknown_alias || self.aliases.contains(&name) {
+            return None;
+        }
+        let entries = self.callables.get(&(None, name))?;
+        let visible = entries.iter().any(|entry| {
+            entry
+                .scope
+                .as_ref()
+                .is_none_or(|scope| scope.contains(&call.start_byte()))
+        });
+        if !visible {
+            return None;
+        }
+        agreed_return(entries.iter()).filter(|returns| !self.is_unrolled(returns))
+    }
+
+    fn is_unrolled(&self, returns: &ReducedType) -> bool {
+        returns.is_array || returns.is_generic || self.is_collection_name(&returns.base_name, 0)
+    }
+
+    /// A known collection name, or a same-file class that derives from one.
+    fn is_collection_name(&self, name: &str, depth: u32) -> bool {
+        if !should_visit_tree_depth(depth) {
+            return true;
+        }
+        let name = name.to_ascii_lowercase();
+        let last = name.rsplit('.').next().unwrap_or_default();
+        UNROLLED_NAME_SUFFIXES
+            .iter()
+            .any(|suffix| last.ends_with(suffix))
+            || self.class_bases.get(&name).is_some_and(|bases| {
+                bases
+                    .iter()
+                    .any(|base_name| self.is_collection_name(base_name, depth + 1))
+            })
+    }
+}
+
+fn agreed_return<'a>(
+    mut entries: impl Iterator<Item = &'a ReturnEntry>,
+) -> Option<&'a ReducedType> {
+    let first = entries.next()?.returns.as_ref()?;
+    entries
+        .all(|other| other.returns.as_ref() == Some(first))
+        .then_some(first)
+}
+
+/// The function or method that scopes a nested function. A function in a
+/// script block counts as top level, because Pester blocks and dot-sourced
+/// blocks define it in the caller's scope. An enclosing node with a parse
+/// error is not trusted: error recovery often nests later top-level functions
+/// in a function that is missing its closing brace.
+fn enclosing_scope(node: Node) -> Option<Node> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if matches!(
+            candidate.kind(),
+            "function_statement" | "class_method_definition"
+        ) {
+            return (!candidate.has_error()).then_some(candidate);
+        }
+        current = candidate.parent();
+    }
+    None
+}
+
+/// The base type names after `class Name :`, with generic arguments removed.
+/// The grammar parses a generic base as an ERROR node, so this reads the text.
+fn class_base_names(base: &BaseExtractor, class: Node, name: Node) -> Vec<String> {
+    let text = base.get_node_text(&class);
+    let header = text
+        .get(name.end_byte() - class.start_byte()..)
+        .unwrap_or_default();
+    let header = header.split('{').next().unwrap_or_default().trim_start();
+    let Some(bases) = header.strip_prefix(':') else {
+        return Vec::new();
+    };
+    let mut names = Vec::new();
+    let mut depth = 0usize;
+    let mut current = String::new();
+    for ch in bases.chars() {
+        match ch {
+            '[' => depth += 1,
+            ']' => depth = depth.saturating_sub(1),
+            ',' if depth == 0 => names.push(std::mem::take(&mut current)),
+            _ if depth == 0 => current.push(ch),
+            _ => {}
+        }
+    }
+    names.push(current);
+    names
+        .into_iter()
+        .map(|name| name.trim().to_ascii_lowercase())
+        .filter(|name| !name.is_empty())
+        .collect()
+}
+
+/// The lowercased literal name a `Set-Alias` or `New-Alias` command defines.
+/// `None` when the name is not a literal or the command has no name.
+fn alias_name(base: &BaseExtractor, command: Node) -> Option<String> {
+    let elements = direct_child(command, "command_elements")?;
+    let mut cursor = elements.walk();
+    let mut expects_value = false;
+    let mut expects_name = false;
+    let mut positional = 0;
+    for element in elements.named_children(&mut cursor) {
+        if element.kind() == "command_argument_sep" {
+            continue;
+        }
+        let text = base.get_node_text(&element);
+        if element.kind() == "command_parameter" {
+            let parameter = text.trim_start_matches('-').to_ascii_lowercase();
+            let has_colon = parameter.ends_with(':');
+            let parameter = parameter.trim_end_matches(':');
+            let mut matches = ALIAS_PARAMETERS
+                .iter()
+                .filter(|(name, _)| name.starts_with(parameter));
+            let known = match (matches.next(), matches.next()) {
+                (Some(only), None) => Some(*only),
+                _ => ALIAS_PARAMETERS
+                    .iter()
+                    .find(|(name, _)| *name == parameter)
+                    .copied(),
+            };
+            match known {
+                Some(("name", _)) => expects_name = true,
+                Some((_, takes_value)) => expects_value = takes_value || has_colon,
+                None => return None,
+            }
+            continue;
+        }
+        if text.trim_start().starts_with('@') {
+            return None;
+        }
+        if expects_name || (!expects_value && positional == 0) {
+            return literal_alias_name(&text);
+        }
+        if !expects_value {
+            positional += 1;
+        }
+        expects_value = false;
+    }
+    None
+}
+
+fn literal_alias_name(text: &str) -> Option<String> {
+    let name = text.trim().trim_matches(['"', '\'']);
+    let is_literal = !name.is_empty()
+        && !name.contains([
+            '$', '@', '(', ')', '{', '}', '[', ']', ',', ';', '`', '"', '\'',
+        ]);
+    is_literal.then(|| name.to_ascii_lowercase())
 }
 
 /// The one type a function's `[OutputType(...)]` attributes declare. A string
 /// or literal output type, or two different types, declares none.
 fn output_type(base: &BaseExtractor, function: Node) -> Option<ReducedType> {
     let mut types = Vec::new();
+    for attribute in function_attributes(base, function, "OutputType") {
+        collect_output_types(base, attribute, &mut types, 0)?;
+    }
+    let first = types.first()?;
+    types
+        .iter()
+        .all(|other| other == first)
+        .then(|| first.clone())
+}
+
+/// The function's own attributes (on its `param` block) with this name.
+fn function_attributes<'a>(base: &BaseExtractor, function: Node<'a>, name: &str) -> Vec<Node<'a>> {
+    let mut found = Vec::new();
     let mut cursor = function.walk();
     for block in function
         .children(&mut cursor)
@@ -181,25 +434,16 @@ fn output_type(base: &BaseExtractor, function: Node) -> Option<ReducedType> {
             .filter(|child| child.kind() == "attribute_list")
         {
             let mut attributes = list.walk();
-            for attribute in list
-                .children(&mut attributes)
-                .filter(|child| child.kind() == "attribute")
-            {
-                let is_output_type =
-                    direct_child(attribute, "attribute_name").is_some_and(|name| {
-                        base.get_node_text(&name).eq_ignore_ascii_case("OutputType")
-                    });
-                if is_output_type {
-                    collect_output_types(base, attribute, &mut types, 0)?;
-                }
-            }
+            found.extend(list.children(&mut attributes).filter(|attribute| {
+                attribute.kind() == "attribute"
+                    && direct_child(*attribute, "attribute_name").is_some_and(|attribute_name| {
+                        base.get_node_text(&attribute_name)
+                            .eq_ignore_ascii_case(name)
+                    })
+            }));
         }
     }
-    let first = types.first()?;
-    types
-        .iter()
-        .all(|other| other == first)
-        .then(|| first.clone())
+    found
 }
 
 /// Push the positional type literals of an `OutputType` attribute. `None`
@@ -321,6 +565,7 @@ struct ReducedType {
     base_name: String,
     declared: String,
     is_array: bool,
+    is_generic: bool,
 }
 
 fn reduce_type_literal(base: &BaseExtractor, type_literal: Node) -> Option<ReducedType> {
@@ -331,15 +576,18 @@ fn reduce_type_literal(base: &BaseExtractor, type_literal: Node) -> Option<Reduc
             base_name: base.get_node_text(&spec).trim().to_string(),
             declared,
             is_array: true,
+            is_generic: false,
         });
     }
-    let name = direct_child(spec, "generic_type_name")
+    let generic = direct_child(spec, "generic_type_name");
+    let name = generic
         .and_then(|generic| direct_child(generic, "type_name"))
         .or_else(|| direct_child(spec, "type_name"))?;
     Some(ReducedType {
         base_name: base.get_node_text(&name).trim().to_string(),
         declared,
         is_array: false,
+        is_generic: generic.is_some(),
     })
 }
 
@@ -405,23 +653,23 @@ fn call_return_type<'a>(
             if base.get_node_text(&target).contains(['/', '\\']) {
                 return None;
             }
-            index.lookup(None, &name, false)
+            index.lookup_function(&name, core)
         }
         "invokation_expression" | "invocation_expression" => {
             let (_, method) = invocation_member_name(base, core)?;
             let is_static = direct_child(core, "::").is_some();
             if is_static {
                 let owner = reduce_type_literal(base, direct_child(core, "type_literal")?)?;
-                if owner.is_array {
+                if owner.is_array || owner.is_generic {
                     return None;
                 }
-                index.lookup(Some(&owner.base_name), &method, true)
+                index.lookup_method(&owner.base_name, &method, true)
             } else {
                 if in_script_block_within_class(core) {
                     return None;
                 }
                 let owner = this_receiver_type(base, core)?;
-                index.lookup(Some(&owner), &method, false)
+                index.lookup_method(&owner, &method, false)
             }
         }
         _ => None,
@@ -441,7 +689,7 @@ fn inferred_constructor_name(
             }
             let type_node = direct_child(core, "type_literal")?;
             let reduced = reduce_type_literal(base, type_node)?;
-            if reduced.is_array || reduced.base_name.contains('.') {
+            if reduced.is_array || reduced.is_generic || reduced.base_name.contains('.') {
                 return None;
             }
             index

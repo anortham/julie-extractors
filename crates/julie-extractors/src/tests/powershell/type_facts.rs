@@ -620,26 +620,53 @@ $w = Get-Workspace
 }
 
 #[test]
-fn output_type_generic_records_base_name_and_declared_text() {
-    let fact = inferred(
+fn output_type_collection_records_no_fact() {
+    for output_type in [
+        "[string[]]",
+        "[System.Collections.Generic.List[string]]",
+        "[System.Collections.ArrayList]",
+        "[System.Collections.Queue]",
+        "[System.Collections.Stack]",
+        "[Bag]",
+    ] {
+        assert_not_inferred(
+            &format!(
+                "class Bag : System.Collections.Generic.List[string] {{ }}\nfunction Get-Items {{\n    [OutputType({output_type})]\n    param()\n    return @('a', 'b')\n}}\n$items = Get-Items\n"
+            ),
+            "items",
+        );
+    }
+}
+
+#[test]
+fn output_type_hashtable_records_inferred_fact() {
+    assert_inferred(
         r#"
-function Get-Names {
-    [OutputType([System.Collections.Generic.List[string]])]
+function Get-Table {
+    [OutputType([hashtable])]
     param()
 }
-$names = Get-Names
+$table = Get-Table
 "#,
-        "names",
-    )
-    .expect("missing type fact for `names`");
-    assert_eq!(fact.resolved_type, "System.Collections.Generic.List");
-    assert_eq!(
-        declared_metadata(&fact),
-        Some(&serde_json::json!(
-            "[System.Collections.Generic.List[string]]"
-        ))
+        "table",
+        "hashtable",
     );
-    assert!(fact.is_inferred);
+}
+
+#[test]
+fn method_returning_array_records_inferred_fact() {
+    let code = r#"
+class Foo {
+    static [string[]] Names() { return @('a', 'b') }
+    [string[]] Keys() { return @('a', 'b') }
+    [void] Use() {
+        $keys = $this.Keys()
+    }
+}
+$names = [Foo]::Names()
+"#;
+    assert_inferred(code, "names", "string[]");
+    assert_inferred(code, "keys", "string[]");
 }
 
 #[test]
@@ -1017,4 +1044,119 @@ class Foo {
 fn redirected_call_records_no_fact() {
     assert_not_inferred_with_callables("$redir = Get-Foo > $null", "redir");
     assert_not_inferred_with_callables("$merged = Get-Foo 2>&1", "merged");
+}
+
+#[test]
+fn generic_owner_static_call_records_no_fact() {
+    assert_not_inferred_with_callables("$made = [Foo[int]]::Create()", "made");
+    assert_not_inferred_with_callables("$built = [Foo[int]]::new()", "built");
+    assert_not_inferred(
+        r#"
+using namespace System.Collections.Generic
+class Comparer {
+    static [string] Create([object]$c) { return '' }
+}
+$cmp = [Comparer[int]]::Create({ param($a, $b) $a - $b })
+"#,
+        "cmp",
+    );
+}
+
+#[test]
+fn alias_with_function_name_records_no_fact() {
+    for alias in [
+        "Set-Alias -Name Get-Foo -Value Get-Date",
+        "New-Alias Get-Foo Get-Date",
+        "Set-Alias -Value Get-Date -Name 'Get-Foo' -Force",
+        "Set-Alias -Name:Get-Foo -Value Get-Date",
+        "sal get-foo Get-Date",
+        "Set-Alias -Name $aliasName -Value Get-Date",
+        "Set-Alias @aliasArgs",
+        "function Get-Date2 {\n    [Alias('Get-Foo')]\n    param()\n}",
+    ] {
+        assert_not_inferred_with_callables(&format!("{alias}\n$aliased = Get-Foo"), "aliased");
+    }
+}
+
+#[test]
+fn alias_to_function_keeps_inferred_fact() {
+    assert_inferred(
+        &format!("{FOO_CALLABLES}Set-Alias -Name gf -Value Get-Foo\n$w = Get-Foo\n"),
+        "w",
+        "Foo",
+    );
+}
+
+#[test]
+fn nested_function_records_fact_only_inside_its_scope() {
+    let code = r#"
+function Get-Nested {
+    function Get-Inner {
+        [OutputType([int])]
+        param()
+        1
+    }
+    $inside = Get-Inner
+}
+class Holder {
+    [void] Run() {
+        function Get-MethodInner {
+            [OutputType([int])]
+            param()
+            1
+        }
+    }
+}
+$outside = Get-Inner
+$fromMethod = Get-MethodInner
+"#;
+    assert_inferred(code, "inside", "int");
+    assert_not_inferred(code, "outside");
+    assert_not_inferred(code, "fromMethod");
+}
+
+#[test]
+fn comparison_around_call_records_no_fact() {
+    assert_not_inferred_with_callables("$same = [Foo]::Create() -eq $null", "same");
+    assert_not_inferred_with_callables("$equal = (Get-Foo) -eq $null", "equal");
+}
+
+#[test]
+fn function_in_script_block_records_fact_for_the_whole_file() {
+    assert_inferred(
+        r#"
+BeforeAll {
+    function New-Settings {
+        [OutputType([hashtable])]
+        param()
+        @{}
+    }
+}
+It 'uses settings' {
+    $settings = New-Settings
+}
+"#,
+        "settings",
+        "hashtable",
+    );
+}
+
+#[test]
+fn function_nested_by_parse_error_recovery_records_fact() {
+    assert_inferred(
+        r#"
+function Use {
+    $w = Get-Workspace
+}
+function Broken {
+    if ($x) {
+    }
+function Get-Workspace {
+    [OutputType([Workspace])]
+    param()
+}
+"#,
+        "w",
+        "Workspace",
+    );
 }
