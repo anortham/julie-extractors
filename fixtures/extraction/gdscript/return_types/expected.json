@@ -32,6 +32,62 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/gdscript/return_types/source.gd:awaited:7:1",
+      "name": "awaited",
+      "kind": "variable",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
+      "start_line": 7,
+      "start_column": 1,
+      "end_line": 7,
+      "end_column": 33,
+      "start_byte": 96,
+      "end_byte": 128,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "var awaited := await self.make()",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/gdscript/return_types/source.gd:run:5:0",
+      "metadata": {
+        "dataType": "Variant",
+        "isExported": false,
+        "isOnReady": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/return_types/source.gd:made:6:1",
+      "name": "made",
+      "kind": "variable",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
+      "start_line": 6,
+      "start_column": 1,
+      "end_line": 6,
+      "end_column": 18,
+      "start_byte": 77,
+      "end_byte": 94,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "var made = make()",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/gdscript/return_types/source.gd:run:5:0",
+      "metadata": {
+        "dataType": "unknown",
+        "isExported": false,
+        "isOnReady": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/gdscript/return_types/source.gd:make:3:0",
       "name": "make",
       "kind": "function",
@@ -61,9 +117,59 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/return_types/source.gd:run:5:0",
+      "name": "run",
+      "kind": "function",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 33,
+      "start_byte": 64,
+      "end_byte": 128,
+      "body_span": {
+        "start_line": 5,
+        "start_column": 11,
+        "end_line": 7,
+        "end_column": 33,
+        "start_byte": 75,
+        "end_byte": 128
+      },
+      "body_hash": "730cb7ede8fc0517f44f60bb9f4edcf3",
+      "signature": "func run():",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
-  "relationships": [],
+  "relationships": [
+    {
+      "from_key": "fixtures/extraction/gdscript/return_types/source.gd:run:5:0",
+      "to_key": "fixtures/extraction/gdscript/return_types/source.gd:make:3:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
+      "line_number": 6,
+      "span": {
+        "start_line": 6,
+        "start_column": 12,
+        "end_line": 6,
+        "end_column": 18,
+        "start_byte": 88,
+        "end_byte": 94
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    }
+  ],
   "pending_relationships": [
     {
       "from_key": "fixtures/extraction/gdscript/return_types/source.gd:make:3:0",
@@ -71,6 +177,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
       "line_number": 4,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/gdscript/return_types/source.gd:run:5:0",
+      "callee_name": "self.make()",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
+      "line_number": 7,
       "confidence": "0.700"
     }
   ],
@@ -99,6 +213,32 @@
         "end_column": 20,
         "start_byte": 58,
         "end_byte": 63
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gdscript/return_types/source.gd:run:5:0",
+        "callee_name": "self.make()",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
+        "line_number": 7,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "self.make()",
+        "terminal_name": "make",
+        "receiver": "self",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/gdscript/return_types/source.gd:run:5:0",
+      "span": {
+        "start_line": 7,
+        "start_column": 27,
+        "end_line": 7,
+        "end_column": 33,
+        "start_byte": 122,
+        "end_byte": 128
       }
     }
   ],
@@ -136,6 +276,38 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/gdscript/return_types/source.gd:make:call:6:12",
+      "name": "make",
+      "kind": "call",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
+      "start_line": 6,
+      "start_column": 12,
+      "end_line": 6,
+      "end_column": 16,
+      "start_byte": 88,
+      "end_byte": 92,
+      "containing_key": "fixtures/extraction/gdscript/return_types/source.gd:run:5:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/return_types/source.gd:make:call:7:27",
+      "name": "make",
+      "kind": "call",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
+      "start_line": 7,
+      "start_column": 27,
+      "end_line": 7,
+      "end_column": 31,
+      "start_byte": 122,
+      "end_byte": 126,
+      "containing_key": "fixtures/extraction/gdscript/return_types/source.gd:run:5:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/gdscript/return_types/source.gd:new:call:4:15",
       "name": "new",
       "kind": "call",
@@ -153,6 +325,24 @@
     }
   ],
   "types": [
+    {
+      "symbol_key": "fixtures/extraction/gdscript/return_types/source.gd:awaited:7:1",
+      "resolved_type": "Result",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "gdscript",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/gdscript/return_types/source.gd:made:6:1",
+      "resolved_type": "Result",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "gdscript",
+      "metadata": null
+    },
     {
       "symbol_key": "fixtures/extraction/gdscript/return_types/source.gd:make:3:0",
       "resolved_type": "Result",
@@ -172,18 +362,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "gdscript",
       "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
-      "covered_lines": 5,
-      "covered_bytes": 64,
+      "covered_lines": 8,
+      "covered_bytes": 129,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 5,
+      "end_line": 8,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 64,
+      "end_byte": 129,
       "metadata": {
         "metric_version": 1
       }
@@ -206,6 +396,28 @@
       "end_column": 20,
       "start_byte": 42,
       "end_byte": 63,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/return_types/source.gd:run:5:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/return_types/source.gd",
+      "covered_lines": 3,
+      "covered_bytes": 53,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 5,
+      "start_column": 11,
+      "end_line": 7,
+      "end_column": 33,
+      "start_byte": 75,
+      "end_byte": 128,
       "metadata": {
         "metric_version": 1
       }
