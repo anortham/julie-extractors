@@ -112,6 +112,9 @@ struct ReturnEntry {
     /// `None` for no declared return type, a type parameter, or a shape with
     /// no single base name.
     shape: Option<TypeShape>,
+    /// The receiver type text of an extension function, which Kotlin calls
+    /// when no member accepts the argument types.
+    receiver: Option<String>,
 }
 
 impl ReturnEntry {
@@ -130,6 +133,19 @@ struct StaticOwner {
     hidden_members: bool,
 }
 
+/// A same-file class that a constructor-like call `Name(args)` may reach.
+#[derive(Debug)]
+struct ClassEntry {
+    /// Node id of the node that declares the class; the name is visible below it.
+    declared_in: usize,
+    companion_bodies: Vec<usize>,
+    /// An interface with a companion, which has no constructor for the call,
+    /// or a class whose companion has a supertype that may declare an
+    /// `operator fun invoke`. An interface with no companion takes only a
+    /// SAM conversion, which has the interface type.
+    no_constructor: bool,
+}
+
 /// A parameter, local, or property whose name hides a same-named function or
 /// object: Kotlin calls the closer value through `invoke`.
 #[derive(Debug)]
@@ -146,7 +162,7 @@ struct ValueEntry {
 /// explicit imports bring in.
 #[derive(Debug, Default)]
 pub(super) struct InitializerIndex {
-    classes: HashMap<String, Vec<usize>>,
+    classes: HashMap<String, Vec<ClassEntry>>,
     functions: HashMap<String, Vec<ReturnEntry>>,
     static_owners: HashMap<String, Vec<StaticOwner>>,
     values: HashMap<String, Vec<ValueEntry>>,
@@ -186,11 +202,22 @@ impl InitializerIndex {
         let owners = if node.kind() == "object_declaration" {
             vec![node]
         } else {
+            let companions = companion_objects(node);
+            let is_interface = node
+                .children(&mut node.walk())
+                .any(|child| child.kind() == "interface");
             self.classes
                 .entry(name.clone())
                 .or_default()
-                .push(declared_in.id());
-            companion_objects(node)
+                .push(ClassEntry {
+                    declared_in: declared_in.id(),
+                    companion_bodies: companions.iter().copied().filter_map(body_id).collect(),
+                    no_constructor: (is_interface && !companions.is_empty())
+                        || companions
+                            .iter()
+                            .any(|companion| has_hidden_members(base, *companion)),
+                });
+            companions
         };
         let owners = owners.into_iter().filter_map(|owner| {
             Some(StaticOwner {
@@ -242,10 +269,15 @@ impl InitializerIndex {
                 if self.imported.contains(&name) || self.value_hides(&name, call) {
                     return None;
                 }
-                if let Some(declared_in) = self.classes.get(&name) {
+                if let Some(classes) = self.classes.get(&name) {
                     let visible = std::iter::successors(call.parent(), Node::parent)
-                        .any(|node| declared_in.contains(&node.id()));
-                    return (visible && !self.functions.contains_key(&name)).then(|| TypeShape {
+                        .any(|node| classes.iter().any(|class| class.declared_in == node.id()));
+                    let constructs = visible
+                        && !self.functions.contains_key(&name)
+                        && !classes
+                            .iter()
+                            .any(|class| self.invoke_may_win(&name, class));
+                    return constructs.then(|| TypeShape {
                         declared: name.clone(),
                         name,
                     });
@@ -274,6 +306,9 @@ impl InitializerIndex {
                 match receiver.kind() {
                     "this_expression" if receiver.named_child_count() == 0 => {
                         let (body, hidden_members) = this_body(base, call)?;
+                        if self.extension_may_win(&name, arg_count) {
+                            return None;
+                        }
                         self.agreed(&name, arg_count, hidden_members, |entry| {
                             entry.container == body
                         })
@@ -295,22 +330,53 @@ impl InitializerIndex {
         arg_count: usize,
     ) -> Option<TypeShape> {
         let type_name = identifier_text(base, receiver);
-        if self.imported.contains(&type_name) || self.value_hides(&type_name, call) {
+        if self.imported.contains(&type_name)
+            || self.value_hides(&type_name, call)
+            || self.extension_may_win(name, arg_count)
+        {
             return None;
         }
-        let ancestors: HashSet<usize> = std::iter::successors(call.parent(), Node::parent)
-            .map(|node| node.id())
-            .collect();
+        let reachable = static_owner_reach(base, call);
         let owners: Vec<&StaticOwner> = self
             .static_owners
             .get(&type_name)?
             .iter()
-            .filter(|owner| ancestors.contains(&owner.declared_in))
+            .filter(|owner| reachable.contains(&owner.declared_in))
             .collect();
         let hidden_members = owners.iter().any(|owner| owner.hidden_members);
         self.agreed(name, arg_count, hidden_members, |entry| {
             owners.iter().any(|owner| owner.body == entry.container)
         })
+    }
+
+    /// Whether a same-file extension named `name` may take a call with
+    /// arguments through a receiver: Kotlin calls it when no member accepts
+    /// the argument types, which arity alone cannot rule out. A member that
+    /// accepts zero arguments always wins over an extension.
+    fn extension_may_win(&self, name: &str, arg_count: usize) -> bool {
+        arg_count > 0
+            && self
+                .functions
+                .get(name)
+                .is_some_and(|entries| entries.iter().any(|entry| entry.receiver.is_some()))
+    }
+
+    /// Whether `Name(args)` may call `Name.Companion.invoke` instead of a
+    /// constructor: Kotlin does so when no constructor accepts the arguments.
+    /// The invoke is a companion member or an extension whose receiver names
+    /// the class, such as `Name.Companion`.
+    fn invoke_may_win(&self, name: &str, class: &ClassEntry) -> bool {
+        class.no_constructor
+            || self.functions.get("invoke").is_some_and(|entries| {
+                entries.iter().any(|entry| {
+                    class.companion_bodies.contains(&entry.container)
+                        || entry.receiver.as_deref().is_some_and(|receiver| {
+                            receiver
+                                .split(|c: char| !c.is_alphanumeric() && c != '_')
+                                .any(|segment| segment == name)
+                        })
+                })
+            })
     }
 
     /// Whether a parameter, a local declared before `call`, or a property in
@@ -426,6 +492,29 @@ fn bare_call_reach(base: &BaseExtractor, call: Node) -> Option<BareCallReach> {
         }
     }
     Some(reach)
+}
+
+/// The nodes whose declared objects and companions `Type.m()` at `call` may
+/// name: its ancestors up to the first lambda or extension, whose receiver
+/// may have a property with the type name, or the first type with hidden
+/// members, which may inherit a nested classifier with that name.
+fn static_owner_reach(base: &BaseExtractor, call: Node) -> HashSet<usize> {
+    let mut reachable = HashSet::new();
+    for node in std::iter::successors(call.parent(), Node::parent) {
+        if changes_implicit_receiver(base, node) {
+            break;
+        }
+        reachable.insert(node.id());
+        if TYPE_SCOPE_KINDS.contains(&node.kind())
+            && (has_hidden_members(base, node)
+                || companion_objects(node)
+                    .into_iter()
+                    .any(|companion| has_hidden_members(base, companion)))
+        {
+            break;
+        }
+    }
+    reachable
 }
 
 /// The class body `this` names at `call` and whether that type has hidden
@@ -549,6 +638,7 @@ fn return_entry(base: &BaseExtractor, function: Node) -> Option<(String, ReturnE
         required_args,
         max_args,
         shape,
+        receiver: helpers::extract_receiver_type(base, &function),
     };
     Some((name, entry))
 }

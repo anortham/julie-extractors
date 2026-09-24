@@ -246,11 +246,24 @@ one `type_usage` for its last segment, with the leading segments in the
     `Node<K, V>?`);
   - an explicitly imported name, or a constructor name that a same-file
     function also uses;
+  - a constructor call that a companion `operator fun invoke` may take: a
+    same-file `invoke` in the companion, an `invoke` extension whose receiver
+    names the class (`Foo.Companion`), a companion with a supertype, or an
+    interface with a companion. An interface with no companion takes only a
+    SAM conversion (`Handler { }`), which records the interface;
+  - `this.m(args)` or `Type.m(args)` with arguments when the file declares
+    an extension function named `m`, because Kotlin calls the extension
+    when no member accepts the argument types;
   - a name that a parameter, an earlier local, or a property in scope also
     uses, because Kotlin calls that value through `invoke`;
   - an `Any` member name (`toString`, `hashCode`, `equals`) inside a class or
     object;
-  - a call inside a lambda or extension (another implicit receiver);
+  - a bare call, `this.m()`, or `Type.m()` inside a lambda or extension,
+    whose implicit receiver may declare a function or a property with that
+    name;
+  - `Type.m()` on an object declared outside an enclosing type with hidden
+    members (see the next item), because that type may inherit a nested type
+    or a property with the name `Type`;
   - an outer function behind a type with members its body does not declare
     (a supertype, a companion with a supertype, a data class, an enum). A
     candidate in such a type records only for a zero-argument call to an
@@ -259,10 +272,9 @@ one `type_usage` for its last segment, with the leading segments in the
   - a local function declared after the call, or a chain ending in any other
     call (`load().copy()`, `?.let`, `?:`).
 
-  Other files are out of scope because each file is extracted alone. A
-  nested class of a supertype, or a property of a supertype or a lambda
-  receiver, with the name of a same-file object is not seen, so
-  `Registry.make()` there still reads the same-file object.
+  Other files are out of scope because each file is extracted alone, so an
+  extension or an `invoke` in another file that out-ranks the same-file
+  candidate is not seen.
 - A primary-constructor parameter without `val` or `var` stays a class
   `property`, as the receiver-type-facts decision requires, but it is not a
   public member: its visibility is `private`, its signature has no invented

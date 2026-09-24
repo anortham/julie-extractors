@@ -708,3 +708,148 @@ fun run() {
     assert_no_fact(source, "nestedInside");
     assert_inferred(source, "leaf", "Leaf", "Leaf");
 }
+
+#[test]
+fn same_file_extension_may_take_a_receiver_call_with_arguments() {
+    let source = r#"
+object Registry {
+    fun make(x: Int): String = ""
+}
+fun Registry.make(x: String): Long = 1L
+class Svc {
+    fun load(x: Int): String = ""
+    fun peek(): String = ""
+    fun f() {
+        val thisExt = this.load("a")
+        val thisZero = this.peek()
+    }
+}
+fun Svc.load(x: String): Long = 1L
+fun Svc.peek(x: Int = 0): Long = 1L
+class Repo {
+    companion object {
+        fun create(x: Int): Repo = Repo()
+    }
+}
+fun Repo.Companion.create(x: String): Long = 1L
+fun g() {
+    val staticExt = Registry.make("a")
+    val companionExt = Repo.create("a")
+}
+"#;
+    assert_no_fact(source, "thisExt");
+    assert_no_fact(source, "staticExt");
+    assert_no_fact(source, "companionExt");
+    assert_inferred(source, "thisZero", "String", "String");
+}
+
+#[test]
+fn companion_invoke_or_interface_blocks_the_constructor_type() {
+    let source = r#"
+class Foo(val x: Int) {
+    companion object {
+        operator fun invoke(s: String): Other = Other()
+    }
+}
+class Other
+interface Api {
+    companion object {
+        operator fun invoke(): Impl = Impl()
+    }
+}
+class Impl : Api
+class Box private constructor(val v: Int) {
+    companion object {
+        operator fun invoke(s: String): Box? = null
+    }
+}
+open class Factory {
+    operator fun invoke(s: String): Other = Other()
+}
+class Made(val x: Int) {
+    companion object : Factory()
+}
+interface Keyed {
+    companion object
+}
+class Plain(val x: Int) {
+    companion object
+}
+operator fun Plain.Companion.invoke(s: String): Other = Other()
+fun interface Handler {
+    fun run()
+}
+fun g() {
+    val invokeCtor = Foo("a")
+    val ifaceInvoke = Api()
+    val nullableInvoke = Box("x")
+    val inheritedInvoke = Made("a")
+    val keyed = Keyed()
+    val extInvoke = Plain("a")
+    val sam = Handler { }
+    val plain = Other()
+}
+"#;
+    assert_no_fact(source, "invokeCtor");
+    assert_no_fact(source, "ifaceInvoke");
+    assert_no_fact(source, "nullableInvoke");
+    assert_no_fact(source, "inheritedInvoke");
+    assert_no_fact(source, "keyed");
+    assert_no_fact(source, "extInvoke");
+    assert_inferred(source, "sam", "Handler", "Handler");
+    assert_inferred(source, "plain", "Other", "Other");
+}
+
+#[test]
+fn object_receiver_behind_another_implicit_receiver_or_hidden_members_records_nothing() {
+    let source = r#"
+object Registry {
+    fun make(): String = ""
+}
+class Holder(val Registry: Other)
+class Other {
+    fun make(): Long = 1L
+}
+fun Holder.ext2() {
+    val extCtorParam = Registry.make()
+}
+fun useWith(holder: Holder) {
+    with(holder) {
+        val lambdaRecv = Registry.make()
+    }
+}
+open class Parent {
+    object Registry {
+        fun make(): Int = 1
+    }
+}
+class Child : Parent() {
+    fun f() {
+        val nestedSuper = Registry.make()
+    }
+}
+class Plain {
+    object Inner {
+        fun make(): Int = 1
+    }
+    fun f() {
+        val direct = Registry.make()
+        val inner = Inner.make()
+    }
+}
+class Sub : Parent() {
+    object Own {
+        fun make(): Int = 1
+    }
+    fun f() {
+        val ownNested = Own.make()
+    }
+}
+"#;
+    assert_no_fact(source, "extCtorParam");
+    assert_no_fact(source, "lambdaRecv");
+    assert_no_fact(source, "nestedSuper");
+    assert_inferred(source, "direct", "String", "String");
+    assert_inferred(source, "inner", "Int", "Int");
+    assert_inferred(source, "ownNested", "Int", "Int");
+}
