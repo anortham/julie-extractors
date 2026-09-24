@@ -369,11 +369,33 @@ local config, session = load(), open()
 }
 
 #[test]
-fn same_file_class_constructor_wins_over_annotated_return_type() {
+fn annotated_return_type_wins_over_the_class_constructor_rule() {
     let source = r#"
 local Account = {}
 Account.__index = Account
 ---@return AccountProxy
+function Account.new()
+  return setmetatable({}, Account)
+end
+function Account:deposit() end
+---@class Shape
+local Shape = {}
+---@class Circle
+local Circle = {}
+---@return Circle
+function Shape.new() return setmetatable({}, Circle) end
+local account = Account.new()
+local f1 = Shape.new()
+"#;
+    assert_inferred(source, "account", "AccountProxy");
+    assert_inferred(source, "f1", "Circle");
+}
+
+#[test]
+fn class_constructor_rule_applies_when_the_constructor_has_no_return_annotation() {
+    let source = r#"
+local Account = {}
+Account.__index = Account
 function Account.new()
   return setmetatable({}, Account)
 end
@@ -656,4 +678,116 @@ local h11 = no()
     for name in ["h6", "h7", "h11"] {
         assert_no_fact(source, name);
     }
+}
+
+#[test]
+fn instance_field_assignments_on_self_block_self_method_inference() {
+    let source = r#"
+---@class Foo
+local Foo = {}
+local View = {}
+function View:init()
+  self.update = throttle(function() self:render() end)
+  self.load = 5
+  self.open = function() end
+end
+---@return Foo
+function View:update() end
+---@return Foo
+function View:load() end
+---@return Foo
+function View:open() end
+---@return Foo
+function View:render() end
+function View:tick()
+  local p1 = self:update()
+  local p2 = self:load()
+  local p3 = self:open()
+  local p4 = self:render()
+end
+"#;
+    for name in ["p1", "p2", "p3"] {
+        assert_no_fact(source, name);
+    }
+    assert_inferred(source, "p4", "Foo");
+}
+
+#[test]
+fn owner_bound_once_to_something_other_than_an_earlier_new_table_records_no_fact() {
+    let source = r#"
+---@class Foo
+local Foo = {}
+---@return Foo
+function M.load() end
+M = require("other")
+local a1 = M.load()
+local R = require("other")
+---@return Foo
+function R.load() end
+local a2 = R.load()
+local function reset() N = {} end
+---@return Foo
+function N.load() end
+local a3 = N.load()
+"#;
+    for name in ["a1", "a2", "a3"] {
+        assert_no_fact(source, name);
+    }
+}
+
+#[test]
+fn table_constructor_field_that_is_rebound_records_no_fact() {
+    let source = r#"
+local A = { b = {} }
+---@return Foo
+function A.b.load() end
+A.b = require("other")
+local b1 = A.b.load()
+"#;
+    assert_no_fact(source, "b1");
+}
+
+#[test]
+fn bracket_and_global_table_rebindings_record_no_fact() {
+    let source = r#"
+local M = {}
+---@return Foo
+function M.load() end
+M["load"] = 5
+local c1 = M.load()
+---@return Foo
+function open() end
+_G["open"] = function() return 1 end
+local c2 = open()
+---@return Foo
+function find() end
+_G.find = 5
+local c3 = find()
+"#;
+    for name in ["c1", "c2", "c3"] {
+        assert_no_fact(source, name);
+    }
+}
+
+#[test]
+fn table_constructor_field_functions_record_annotated_return_types() {
+    let source = r#"
+local T = {
+  ---@return Foo
+  load = function() end,
+  nested = {
+    ---@return Bar
+    open = function() end,
+  },
+}
+local M = setmetatable({}, { __index = T })
+---@return Baz
+function M.make() end
+local p2 = T.load()
+local p3 = T.nested.open()
+local p4 = M.make()
+"#;
+    assert_inferred(source, "p2", "Foo");
+    assert_inferred(source, "p3", "Bar");
+    assert_inferred(source, "p4", "Baz");
 }
