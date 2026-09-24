@@ -805,3 +805,75 @@ struct Plain {
     assert_eq!(type_of(source, "inRemote"), None);
     assert_eq!(type_of(source, "inPlain"), inferred("Int", None));
 }
+
+#[test]
+fn receiver_shadowed_by_a_generic_parameter_or_member_typealias_records_nothing() {
+    let source = r#"
+struct Item {}
+struct Other {}
+protocol Maker { static func make() -> Other }
+struct Factory { static func make() -> Item { Item() } }
+struct Box<Factory: Maker> { func run() { let a = Factory.make() } }
+func outer<Factory: Maker>(_ f: Factory.Type) { let b = Factory.make() }
+struct OtherFactory { static func make() -> Other { Other() } }
+struct Holder { typealias Factory = OtherFactory; func run() { let c = Factory.make() } }
+struct Plain { func run() { let control = Factory.make() } }
+"#;
+    assert_eq!(type_of(source, "a"), None);
+    assert_eq!(type_of(source, "b"), None);
+    assert_eq!(type_of(source, "c"), None);
+    assert_eq!(type_of(source, "control"), inferred("Item", None));
+}
+
+#[test]
+fn return_type_name_that_means_another_type_at_the_binding_records_nothing() {
+    let source = r#"
+struct Item {}
+func load() -> Item { Item() }
+struct Store {
+    struct Item {}
+    static func make() -> Item { Item() }
+    func f() { let d = load() }
+    func h() { let inside = Self.make() }
+}
+let e = Store.make()
+struct Outer {
+    struct Entry {}
+    static func helper() -> Entry { Entry() }
+    struct Inner { typealias Entry = Int; func f() { let g = helper() } }
+    struct Sibling { func f() { let kept = helper() } }
+}
+struct Thing {}
+struct Other {}
+struct Builder {
+    typealias Thing = Other
+    static func build() -> Thing { Other() }
+}
+let t = Builder.build()
+func generic<Item>(_ value: Item) { let shadowed = load() }
+func plain() { let top = load() }
+"#;
+    assert_eq!(type_of(source, "d"), None);
+    assert_eq!(type_of(source, "e"), None);
+    assert_eq!(type_of(source, "g"), None);
+    assert_eq!(type_of(source, "t"), None);
+    assert_eq!(type_of(source, "shadowed"), None);
+    assert_eq!(type_of(source, "inside"), inferred("Item", None));
+    assert_eq!(type_of(source, "kept"), inferred("Entry", None));
+    assert_eq!(type_of(source, "top"), inferred("Item", None));
+}
+
+#[test]
+fn callee_name_bound_by_a_capture_list_records_nothing() {
+    let source = r#"
+struct A {}
+struct B {}
+func fetch() -> A { A() }
+func run(other: @escaping () -> B) {
+    let c = { [fetch = other] in
+        let x = fetch()
+    }
+}
+"#;
+    assert_eq!(type_of(source, "x"), None);
+}

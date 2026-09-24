@@ -63,13 +63,18 @@ The golden fixture `swift:structure` holds the evidence for these rules.
   `await` keep the type, `try?` makes the declared text optional, and a
   postfix `!` removes one optional layer. A `Type.make()` receiver names a
   nested type only inside a type that declares it, and names a top-level
-  type anywhere else. An `extension` whose name matches only a nested type
+  type anywhere else, unless a generic parameter, typealias, or other type
+  of that name shadows it at the call. The first name of the return type
+  must mean the same declaration at the binding as at the callee: a
+  callee's nested `Item` read at file scope, a top-level `Item` read inside
+  a type that nests its own `Item`, or a name that a generic parameter or
+  typealias shadows at the binding records nothing. An `extension` whose name matches only a nested type
   extends a type from another file. No fact comes from a generic return type
   (a typealias for a generic parameter counts as generic), a chain that ends
   in another call, a call with both parentheses and a trailing closure
   (`load(x) { }`), a subscript (`Foo[0]`), a receiver other than `self` or a
   same-file type name, a callee name that is also a value (a parameter, a
-  variable, or an `if let` binding), a protocol or other-file extension
+  variable, an `if let` binding, or a capture-list name), a protocol or other-file extension
   member, a local type used as a receiver, or a type name that the file
   declares more than once (two nested `Node` types). A type with an
   inheritance clause records nothing for its own member calls, for

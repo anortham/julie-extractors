@@ -149,6 +149,20 @@ enum Owner {
     Type(String),
 }
 
+/// The declaration a bare type name refers to from some point in the file.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum NameScope {
+    /// A top-level declaration, or a name the file does not declare.
+    File,
+    /// A nested type, typealias, or generic parameter of a same-file type.
+    Type(String),
+    /// A generic parameter of a function, or a type declared in a local body.
+    Local(std::ops::Range<usize>),
+    /// A scope whose declarations are unknown: a protocol, an inheriting
+    /// type, or an extension of a type declared elsewhere.
+    Unknown,
+}
+
 /// Where a same-file type is declared, which decides where its bare name
 /// is visible.
 #[derive(Debug, PartialEq, Eq)]
@@ -187,8 +201,9 @@ struct ReturnEntry {
     owner: Owner,
     is_static: bool,
     parameters: Vec<Parameter>,
-    /// `None` when the function declares no usable return type.
-    shape: Option<TypeShape>,
+    /// `None` when the function declares no usable return type. The scope
+    /// is what the head of the return type names at the callee.
+    shape: Option<(TypeShape, NameScope)>,
 }
 
 impl ReturnEntry {
@@ -243,6 +258,9 @@ pub(super) struct ReturnTypeIndex {
     /// Same-file types with an inheritance clause on a declaration or extension.
     inheriting_types: HashSet<String>,
     type_parents: HashMap<String, TypeParent>,
+    /// Nested type, typealias, and generic parameter names of each same-file
+    /// type, from its declaration and its same-file extensions.
+    type_members: HashMap<String, HashSet<String>>,
 }
 
 impl ReturnTypeIndex {
@@ -253,12 +271,16 @@ impl ReturnTypeIndex {
         let mut functions = Vec::new();
         let mut members = Vec::new();
         let mut typealiases = Vec::new();
+        let mut type_declarations = Vec::new();
         let mut stack = vec![root];
         while let Some(node) = stack.pop() {
             index.value_names.extend(
                 node.children_by_field_name("bound_identifier", &mut node.walk())
                     .map(|name| base.get_node_text(&name)),
             );
+            if node.kind() == "class_declaration" {
+                type_declarations.push(node);
+            }
             match node.kind() {
                 "class_declaration" if !is_extension(base, node) => {
                     if let Some(name) = node.child_by_field_name("name") {
@@ -281,6 +303,14 @@ impl ReturnTypeIndex {
                         .value_names
                         .extend(named_identifiers(node).map(|name| base.get_node_text(&name)));
                 }
+                "capture_list_item" => {
+                    if let Some(name) = node
+                        .child_by_field_name("name")
+                        .filter(|name| name.kind() == "simple_identifier")
+                    {
+                        index.value_names.insert(base.get_node_text(&name));
+                    }
+                }
                 _ => {}
             }
             stack.extend(node.named_children(&mut node.walk()));
@@ -292,6 +322,16 @@ impl ReturnTypeIndex {
             .collect();
         index.inheriting_types = inheriting_types(base, root, &index.declared_types);
         index.add_generic_typealiases(base, &typealiases, &mut type_generics);
+        for declaration in type_declarations {
+            let TypeContext::Type(owner) = index.type_context(base, declaration) else {
+                continue;
+            };
+            let members = index.type_members.entry(owner.clone()).or_default();
+            members.extend(type_generics.get(&owner).into_iter().flatten().cloned());
+            if let Some(body) = declaration.child_by_field_name("body") {
+                members.extend(declared_type_names(base, body));
+            }
+        }
         for member in members {
             let TypeContext::Type(owner) = index.member_context(base, member) else {
                 continue;
@@ -431,6 +471,7 @@ impl ReturnTypeIndex {
                 }
                 _ => name,
             };
+            let scope = self.name_scope(base, name.split('.').next()?, function);
             let implicitly_unwrapped = type_node
                 .next_sibling()
                 .is_some_and(|next| next.kind() == "!");
@@ -444,7 +485,7 @@ impl ReturnTypeIndex {
                     "?".repeat(optional_layers)
                 )
             };
-            Some(TypeShape { name, declared })
+            Some((TypeShape { name, declared }, scope))
         });
         let entry = ReturnEntry {
             owner,
@@ -476,29 +517,54 @@ impl ReturnTypeIndex {
     }
 
     /// Whether the bare type name at `call` refers to the same-file type of
-    /// that name: a nested type only inside its parent, a top-level type
-    /// anywhere. Lookup stops at a type context that is unknown or inherits,
-    /// because it may hold an unseen nested type of that name.
+    /// that name and not to a generic parameter, typealias, or other type
+    /// that shadows it. A local type is never visible this way.
     fn type_visible(&self, base: &BaseExtractor, name: &str, call: Node) -> bool {
-        let Some(parent) = self.type_parents.get(name) else {
-            return false;
+        let declared_in = match self.type_parents.get(name) {
+            Some(TypeParent::TopLevel) => NameScope::File,
+            Some(TypeParent::Type(parent)) => NameScope::Type(parent.clone()),
+            _ => return false,
         };
-        let mut current = call.parent();
+        self.name_scope(base, name, call) == declared_in
+    }
+
+    /// The declaration a bare type name refers to at `from`: the nearest
+    /// enclosing generic parameter list, local body, or same-file type that
+    /// declares it, else file scope. A scope with unknown declarations on
+    /// the way gives `Unknown`.
+    fn name_scope(&self, base: &BaseExtractor, name: &str, from: Node) -> NameScope {
+        let mut current = Some(from);
         while let Some(node) = current {
-            if node.kind() == "class_declaration" {
-                let TypeContext::Type(owner) = self.type_context(base, node) else {
-                    return false;
-                };
-                if *parent == TypeParent::Type(owner.clone()) {
-                    return true;
+            match node.kind() {
+                "function_declaration" | "init_declaration" | "subscript_declaration"
+                    if type_parameter_names(base, node).iter().any(|g| g == name) =>
+                {
+                    return NameScope::Local(node.byte_range());
                 }
-                if self.inheriting_types.contains(&owner) {
-                    return false;
+                "statements" if declared_type_names(base, node).any(|n| n == name) => {
+                    return NameScope::Local(node.byte_range());
                 }
+                "class_declaration" => {
+                    let TypeContext::Type(owner) = self.type_context(base, node) else {
+                        return NameScope::Unknown;
+                    };
+                    if self
+                        .type_members
+                        .get(&owner)
+                        .is_some_and(|members| members.contains(name))
+                    {
+                        return NameScope::Type(owner);
+                    }
+                    if self.inheriting_types.contains(&owner) {
+                        return NameScope::Unknown;
+                    }
+                }
+                "protocol_declaration" => return NameScope::Unknown,
+                _ => {}
             }
             current = node.parent();
         }
-        *parent == TypeParent::TopLevel
+        NameScope::File
     }
 
     /// The type context enclosing `node`, from the nearest type declaration.
@@ -518,7 +584,7 @@ impl ReturnTypeIndex {
     fn resolve<'a>(
         entries: impl IntoIterator<Item = &'a ReturnEntry>,
         arguments: &[Argument],
-    ) -> Option<TypeShape> {
+    ) -> Option<(TypeShape, NameScope)> {
         let mut any_sure_fit = false;
         let mut shapes = Vec::new();
         for entry in entries {
@@ -542,7 +608,7 @@ impl ReturnTypeIndex {
         name: &str,
         static_only: bool,
         arguments: &[Argument],
-    ) -> Option<TypeShape> {
+    ) -> Option<(TypeShape, NameScope)> {
         if self.inheriting_types.contains(owner)
             || self
                 .member_values
@@ -573,7 +639,7 @@ impl ReturnTypeIndex {
         name: &str,
         call: Node,
         arguments: &[Argument],
-    ) -> Option<TypeShape> {
+    ) -> Option<(TypeShape, NameScope)> {
         if self.value_names.contains(name) {
             return None;
         }
@@ -657,19 +723,33 @@ impl InitializerScope<'_> {
         }
     }
 
+    /// A call's return type, kept only when the head of its name means the
+    /// same declaration at the call as at the callee.
     fn call_shape(&self, call: Node) -> Option<TypeShape> {
-        let arguments = call_arguments(self.base, call)?;
         let callee = call.named_child(0)?;
+        if callee.kind() == "simple_identifier" {
+            let name = self.base.get_node_text(&callee);
+            if self.same_file_type_names.contains(&name) {
+                call_arguments(self.base, call)?;
+                return Some(TypeShape {
+                    declared: name.clone(),
+                    name,
+                });
+            }
+        }
+        let (shape, scope) = self.callee_shape(call, callee)?;
+        let head = shape.name.split('.').next()?;
+        (scope != NameScope::Unknown
+            && self.return_types.name_scope(self.base, head, call) == scope)
+            .then_some(shape)
+    }
+
+    fn callee_shape(&self, call: Node, callee: Node) -> Option<(TypeShape, NameScope)> {
+        let arguments = call_arguments(self.base, call)?;
         let index = self.return_types;
         match callee.kind() {
             "simple_identifier" => {
                 let name = self.base.get_node_text(&callee);
-                if self.same_file_type_names.contains(&name) {
-                    return Some(TypeShape {
-                        declared: name.clone(),
-                        name,
-                    });
-                }
                 index.unqualified_call(self.base, &name, call, &arguments)
             }
             "navigation_expression" => {
@@ -841,6 +921,25 @@ fn optional_payload<'a>(base: &BaseExtractor, user_type: Node<'a>) -> Option<Nod
         [payload] => Some(*payload),
         _ => None,
     }
+}
+
+/// Names of the types, typealiases, protocols, and associated types declared
+/// directly in `body`.
+fn declared_type_names<'a>(
+    base: &'a BaseExtractor,
+    body: Node<'a>,
+) -> impl Iterator<Item = String> + 'a {
+    let mut cursor = body.walk();
+    body.named_children(&mut cursor)
+        .filter(|child| match child.kind() {
+            "class_declaration" => !is_extension(base, *child),
+            "typealias_declaration" | "protocol_declaration" | "associatedtype_declaration" => true,
+            _ => false,
+        })
+        .filter_map(|child| child.child_by_field_name("name"))
+        .map(|name| base.get_node_text(&name))
+        .collect::<Vec<_>>()
+        .into_iter()
 }
 
 fn type_identifiers(node: Node) -> Vec<Node> {
