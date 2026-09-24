@@ -239,6 +239,28 @@ def run():
 }
 
 #[test]
+fn wrapper_of_two_real_types_records_no_fact() {
+    let source = r#"
+def run():
+    either: Union[int, str] = 0
+    typed_either: typing.Union[Task, None, str] = None
+    maybe_either: Optional[int | str] = None
+    nested: Optional[Union[Task, Repo]] = None
+    wrapped: Final[Task | Repo] = None
+"#;
+    let (symbols, extractor) = extract(source);
+    for name in [
+        "either",
+        "typed_either",
+        "maybe_either",
+        "nested",
+        "wrapped",
+    ] {
+        no_fact(&extractor, &symbols, name, SymbolKind::Variable);
+    }
+}
+
+#[test]
 fn string_forward_reference_records_the_named_type() {
     let source = r#"
 def run():
