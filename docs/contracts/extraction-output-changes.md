@@ -88,6 +88,132 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 3.6.0
+
+classification: compatible
+
+This release infers the type of a binding whose value is a call to a same-file
+callee with a declared return type. See
+[2026-09-24-call-initializer-type-facts.md](../decisions/2026-09-24-call-initializer-type-facts.md).
+No SQLite or report-schema column is added, removed, or retyped: SQLite schema
+remains 7, report schema remains 3, and extraction identity epoch remains 10.
+`EXTRACTION_CONTRACT_VERSION` adds `call-initializer-type-facts-v1` because
+canonical output changes.
+
+`type_facts` gains inferred rows (`is_inferred = 1`) in every general-purpose
+language. Each `docs/languages/<lang>.md` page states which call forms infer a
+type and when no row is recorded. The rules for every language:
+
+- The callee must be in the same file, and every same-named candidate must
+  agree on one return type.
+- A generic or type-parameter return records nothing.
+- A local, parameter, import, or inherited member that the call may bind
+  instead records nothing.
+- A chain that ends in an unknown method records nothing.
+- Only the language's own unwrap layers are removed, such as `?`, `await`,
+  `try`, `!!`, and `.unwrap()`. The row's `metadata.declared` keeps the full
+  written return type.
+- A written type always wins.
+
+In most languages the rows also land on top-level variables, class fields, or
+properties, not only on locals. Each language page names the declarations that
+get a row. In the compat fixture this adds one TypeScript row
+(`made` = `number`) and two `language_capability_fixtures` rows.
+
+Other rows change where the old output was wrong or where the new scoping rules
+apply. By language:
+
+- C: the parser reads `auto w = make();` as a prototype of `make`. The old
+  output was a function `make` with return type `w`. It is now a variable `w`
+  with a `calls` edge and a `call` identifier. `auto t = make(1);` and
+  `auto n = 5;` now give named variables, not empty names. Every `__auto_type`
+  declared row is removed, together with the `uses` rows, type-usage
+  identifiers, and complexity rows of the misread symbols.
+- C++: a macro before the return type (`MACRO_ATTR static T f()`) is no longer
+  recorded as the return type. `const auto& [p, q]` and `auto&& [l, r]` now emit
+  symbols. `auto [y] = One();` loses its old inferred row.
+- Zig: `Self` (an alias of `@This()`) resolves by scope. Declared rows on fields
+  and parameters, and `receiver_type` on call identifiers and pending calls,
+  change to match. An `init` that the type declares supplies its own return
+  type (`declared: "!Real"`). An alias of another type, a `void` init, a type
+  with `usingnamespace`, and destructuring record nothing.
+- Go: a type-parameter result records nothing. A generic result records only
+  its base name. If the enclosing function redeclares the callee name, the row
+  is withheld.
+- Rust: `Self::new()` and `Self {}` in an impl record the impl type, with
+  `declared: "Self"`. `Type::new()` uses the same-file `new`, so
+  `fn new() -> Result<Self, ()>` records `Result`. `Self` outside an impl and
+  `T::new()` on a type parameter record nothing.
+- Java: `try (var r = new Foo())` gets a row.
+- Kotlin: some old constructor rows are gone (a constructor on an `object`, an
+  imported name, a nested class that is not in scope). `(Repo())` and
+  `Repo()!!` now get a row.
+- Scala: with a companion `apply` that returns `Option[Foo]`, `Foo(1)` records
+  `Option`. Some case-class rows, and rows where a parameter has the class
+  name, are gone.
+- Swift: tuple destructuring (`let (a, b) = Foo()`) and subscripts (`Foo[0]`)
+  lose their wrong old rows. `try`, `await`, and `!` around a constructor keep
+  the type.
+- Dart: `Foo.create()` records the return type of the static method, not
+  `Foo`. A parameter or member with the constructor's name blocks the row.
+- Python: an annotation that wraps a union of two real types
+  (`Union[int, str]`) records no row; it recorded the wrapper name. A `Foo()`
+  row is gone when a parameter or assignment of the same name shadows `Foo`.
+  Enum members get no inferred row.
+- Ruby: `T.let`, `T.cast`, and trailing `#: T` comments give declared rows,
+  also on constants. An `@ivar` used at more than one `self` level gets no row.
+  Pattern variables and regex named groups are locals: their reads change from
+  `call` to `variable_ref` identifiers, and their `calls` pending rows are gone.
+- Lua: `---@return Foo, string` records `Foo`, not `Foo, string`. `Foo | Bar`
+  records nothing. `Foo | nil` records `Foo` with the full text in
+  `metadata.declared`. An explicit `---@return` on a constructor changes or
+  turns off the old constructor rows.
+- R: a same-file constructor row is gone when the file rebinds the class name,
+  or when a `setGeneric`, a Reference Class, or a `with()` block can bind the
+  call. Parenthesized values and `->` / `->>` assignments give constructor rows.
+- JavaScript: a doc comment before `let a = 1, b = 2;` documents only `a`, so
+  `b` loses its doc and its JSDoc type rows. Declared types come only from the
+  last `/** */` block. `@overload`, and `@callback` or `@typedef` in the last
+  block, give no declared row. A declared `@type` replaces an inferred `new`
+  row.
+- QML: a typed local such as `let n: int = 5` gets a declared row, which
+  replaces an inferred `new Bar()` row. A bare call links only through the
+  nearest object and the component root. A call to a name that is not unique
+  in the file, or through an `id` that two objects in one component declare,
+  becomes a pending row.
+- Razor: constructor rows appear on `var` locals in `using (...)` and
+  `for (...)` headers and in `@{ }` blocks.
+- F#: curried static members get a declared return row. A type written on the
+  pattern (`let (x: int64) = 5`) gives a declared row, not an inferred one.
+  `as` patterns and `let!` constructor bindings lose their inferred rows. In
+  `let rec ... and`, the first binding no longer takes a later binding's type.
+  `use` bindings get literal and constructor rows. `this.X()` in an object
+  expression inside a type loses `receiver_type`.
+- Elixir: `{:ok, x} = ...` makes a local symbol `x`. An `alias` or nested
+  `defmodule` applies only from its own position, so an earlier call becomes a
+  pending row. A trailing `do` block counts as a call argument and comments do
+  not, which moves call edges and the `arity` metadata of `@type` and
+  `@callback`. A `@spec` after its `def` matches it; disagreeing specs give no
+  row.
+- Erlang: `{ok, X} = ...`, `X ?= ...`, and `{ok, X} ?= ...` make local symbols.
+  Comments no longer count toward arity, which changes `name/N` signatures,
+  `arity` metadata, export visibility, call edges, and `-spec` parameter rows.
+  An inferred record row drops when another pattern in the function binds the
+  same name.
+- GDScript: a `Foo.new()` row is withheld when a parameter, local, or member
+  named `Foo` hides the class, or when an `extends` cannot be resolved.
+- PowerShell: cast and constructor rows are withheld for compound assignments,
+  values wrapped by an operator or a leading comma, commands with a
+  redirection, and generic types (`[Foo[int]]::new()`). Values in parentheses
+  get a row.
+
+C#, VB.NET, TypeScript, and PHP change nothing beyond the new inferred rows.
+
+Consumer action: none for a reader built for 3.5.0. Receiver calls that had no
+typed receiver now resolve through `type_facts`, so a consumer that resolves
+calls at query time finds more callers. Replace the binary and rebuild every
+artifact. No schema migration is required.
+
 ## 3.5.0
 
 classification: compatible
