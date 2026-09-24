@@ -823,3 +823,168 @@ fn an_ivar_used_at_two_self_levels_gets_no_literal_type() {
     assert_eq!(literal_type_of("LIMIT"), Some("Integer".to_string()));
     assert_eq!(literal_type_of("@size"), Some("Integer".to_string()));
 }
+
+#[test]
+fn a_class_receiver_that_ruby_finds_through_ancestors_records_no_fact() {
+    let items = r#"class Item
+  #: -> String
+  def self.count; end
+end
+class Base
+  class Item
+    #: -> Integer
+    def self.count; end
+  end
+end
+module Mixin
+  class Item
+    #: -> Integer
+    def self.count; end
+  end
+end
+"#;
+    for (holder, name) in [
+        (
+            "class Child < Base\n  def f\n    v = Item.count\n  end\nend",
+            "superclass",
+        ),
+        (
+            "class Child\n  include Mixin\n  def f\n    v = Item.count\n  end\nend",
+            "include",
+        ),
+        (
+            "class Child\n  prepend Mixin\n  def f\n    v = Item.count\n  end\nend",
+            "prepend",
+        ),
+        (
+            "class Child < Base; end\nclass Child\n  def f\n    v = Item.count\n  end\nend",
+            "reopened",
+        ),
+        (
+            "class Child\n  extend Mixin\n  class << self\n    def f\n      v = Item.count\n    end\n  end\nend",
+            "extend",
+        ),
+        (
+            "class Child\n  include Mixin\n  class << self\n    def f\n      v = Item.count\n    end\n  end\nend",
+            "include seen from class << self",
+        ),
+        (
+            "class Child\n  def f\n    v = Item.count\n  end\nend\nChild.include(Mixin)",
+            "include on a constant receiver",
+        ),
+    ] {
+        assert_eq!(fact_for(&format!("{items}{holder}\n"), "v"), None, "{name}");
+    }
+    for holder in [
+        "class Child\n  def f\n    v = Item.count\n  end\nend",
+        "class Child\n  extend Mixin\n  def f\n    v = Item.count\n  end\nend",
+        "class Base\n  def f\n    v = Item.count\n  end\nend",
+    ] {
+        let expected = if holder.starts_with("class Base") {
+            "Integer"
+        } else {
+            "String"
+        };
+        assert_eq!(
+            fact_for(&format!("{items}{holder}\n"), "v"),
+            inferred(expected),
+            "{holder}"
+        );
+    }
+}
+
+#[test]
+fn a_same_file_constant_assignment_shadows_a_class() {
+    let source = r#"class Widget
+  #: -> String
+  def self.make; end
+end
+class Other
+  #: -> Integer
+  def self.make; end
+end
+class Holder
+  Widget = Other
+  def f
+    via_alias = Widget.make
+  end
+end
+class Plain
+  def f
+    via_class = Widget.make
+  end
+end
+"#;
+    assert_eq!(fact_for(source, "via_alias"), None);
+    assert_eq!(fact_for(source, "via_class"), inferred("String"));
+}
+
+#[test]
+fn a_receiverless_call_in_a_top_level_block_records_no_fact() {
+    let source = r#"#: -> String
+def value; "s"; end
+
+RSpec.describe "x" do
+  let(:value) { 42 }
+  it "works" do
+    in_example = value
+  end
+end
+
+outside = value
+"#;
+    assert_eq!(fact_for(source, "in_example"), None);
+    assert_eq!(fact_for(source, "outside"), inferred("String"));
+}
+
+#[test]
+fn a_method_redefined_without_def_records_no_fact() {
+    let typed = "  #: -> String\n  def label; end\n  #: -> Integer\n  def count; end\n  #: -> String\n  def other; end\n";
+    for redefinition in [
+        "alias label count",
+        "alias :label :count",
+        "alias_method :label, :count",
+        "attr_reader :label",
+        "attr_accessor :label",
+        "attr :label",
+        "private attr_reader :label",
+        "define_method(:label) { 1 }",
+        "define_method('label') { 1 }",
+        "delegate :label, to: :target",
+        "def_delegators :@target, :label",
+        "[:label].each { |name| define_method(name) { 1 } }",
+        "prepend Loud",
+    ] {
+        let source = format!(
+            "module Loud\n  def label; 1; end\nend\nclass A\n{typed}  {redefinition}\n  def f\n    v = label\n    kept = other\n  end\nend\n"
+        );
+        assert_eq!(fact_for(&source, "v"), None, "{redefinition}");
+        let kept = if redefinition.contains("each") || redefinition.starts_with("prepend") {
+            None
+        } else {
+            inferred("String")
+        };
+        assert_eq!(fact_for(&source, "kept"), kept, "{redefinition}");
+    }
+    let class_side = "class A\n  #: -> String\n  def self.label; end\n  define_singleton_method(:label) { 1 }\n  class << self\n    def f\n      v = label\n    end\n  end\nend\n";
+    assert_eq!(fact_for(class_side, "v"), None);
+    for prepend in [
+        "A.prepend(Loud)",
+        "Other.prepend(Loud)",
+        "base.prepend(Loud)",
+    ] {
+        let source = format!(
+            "module Loud\n  def label; 1; end\nend\nclass A\n  #: -> String\n  def label; end\n  def f\n    v = label\n  end\nend\n{prepend}\n"
+        );
+        let expected = if prepend.starts_with("Other") {
+            inferred("String")
+        } else {
+            None
+        };
+        assert_eq!(fact_for(&source, "v"), expected, "{prepend}");
+    }
+    let prefixed = "class A\n  #: -> String\n  def target_label; end\n  delegate :label, to: :target, prefix: true\n  def f\n    v = target_label\n  end\nend\n";
+    assert_eq!(fact_for(prefixed, "v"), None);
+    let other_owner = "class A\n  #: -> String\n  def label; end\n  def f\n    v = label\n  end\nend\nclass B\n  attr_reader :label\nend\n";
+    assert_eq!(fact_for(other_owner, "v"), inferred("String"));
+}

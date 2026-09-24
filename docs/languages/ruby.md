@@ -168,18 +168,30 @@ before they count as a mixin on the enclosing class, which keeps
   `Foo.m` for a class method of a same-file class or module. Methods are keyed
   by the full lexical path of their class, so `B::Item` never takes a type
   from `A::Item`. `Foo` resolves through the call's lexical nesting,
-  innermost first, the way Ruby resolves constants. A `def` after a bare
+  innermost first, then at the top level. The first same-file constant found
+  must be a class or module: `Widget = Other` in the nesting records no fact.
+  The top-level step is skipped when Ruby would look in the innermost
+  class's ancestors first: a superclass, an `include` or `prepend`, an
+  `extend` seen from `class << self`, or `Foo.include(M)` on that class
+  anywhere in the file. A `def` after a bare
   `module_function`, named by `module_function :m`, written as
   `module_function def m`, or in a module with `extend self` is both an
   instance and a module method. Same-named methods on that `self` must agree,
   and a same-named `def` whose `self` the file does not settle blocks the
-  name. `T.nilable(X)`, `X?`, and `X | nil` record `X`; `T.must(x)` and
+  name. `alias`, `alias_method`, `attr_reader`, `attr_accessor`, `attr`,
+  `define_method`, `define_singleton_method`, `delegate`, `def_delegator`,
+  and `def_delegators` also define the name without a type, so it records no
+  fact. A method name the file does not spell out (`define_method(name)`,
+  `delegate ..., prefix:`) blocks every lookup on that class, and a
+  `prepend` blocks every lookup on the class it targets (every class for
+  `base.prepend(M)`). `T.nilable(X)`, `X?`, and `X | nil` record `X`; `T.must(x)` and
   `#: as !nil` keep the type of `x`.
 - These record no fact: a chained or other-receiver call, a `::Foo.m` or
   `A::Foo.m` receiver, a local that shadows the method name, a block that
   rebinds `self` (`instance_eval`, `class_eval`, `define_method`, ...), any
   block or lambda directly in a class or module body (`before_action`,
-  `scope`, `included`, ...), `void`, a union, `T.untyped`, `T::Boolean`, a
+  `scope`, `included`, ...) or at the top level (RSpec `describe`, `it`,
+  `let`, ...), `void`, a union, `T.untyped`, `T::Boolean`, a
   `T::` generic, a type parameter, a Sorbet `type_member`, or a
   `T.type_alias`. Other files are out of scope because each file is
   extracted alone.
@@ -189,6 +201,11 @@ before they count as a mixin on the enclosing class, which keeps
   or a block whose `self` is not settled. The class-level `@x` is a different
   variable from the instance `@x`, and the one field stands for both. A field
   used at one level only keeps its type.
+- A reassigned local or field keeps the type of its first assignment. This
+  holds for literal, `Foo.new`, and call initializers alike, so
+  `x = name; x = size` records the type of `name`. Include and extend
+  calls on a receiver the file does not name, such as `base.extend(M)` in an
+  `included` hook, are not tracked.
 - A written type wins over inference and is not inferred: Sorbet
   `T.let(x, T)` / `T.cast(x, T)`, or a trailing RBS `#: T` / `#: as T`
   comment. A trailing written type with no single class records no fact.

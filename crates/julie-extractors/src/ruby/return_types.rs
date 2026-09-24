@@ -8,6 +8,9 @@ use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
 
+/// A `self` by owner path and whether it is the class or module object.
+type SelfKey = (Option<String>, bool);
+
 /// What `self` is at a point in the file.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(super) struct SelfScope {
@@ -28,7 +31,7 @@ impl SelfScope {
         })
     }
 
-    fn key(&self) -> (Option<String>, bool) {
+    fn key(&self) -> SelfKey {
         (self.owner.clone(), self.singleton)
     }
 
@@ -59,6 +62,29 @@ pub(super) struct ReturnTypeIndex {
     generics: HashSet<String>,
     /// Full paths of the file's classes and modules; `true` for a class.
     owners: HashMap<String, bool>,
+    /// Full paths of the file's other constants, such as `Holder::Widget` for
+    /// `Widget = Other` in `class Holder`.
+    constants: HashSet<String>,
+    /// Owners, by `self` level, whose ancestors reach past `Object`: a
+    /// superclass, `include` or `prepend`, or `extend` for the class level.
+    /// Ruby looks a constant up in them before the top level.
+    has_ancestors: HashSet<(String, bool)>,
+    /// Owners, by `self` level, that `prepend` a module, whose methods then
+    /// run before the owner's own.
+    prepends: HashSet<SelfKey>,
+    /// Last path segments of constants that `Foo.include`, `Foo.extend` or
+    /// `Foo.prepend` give ancestors, and of those that `Foo.prepend` targets.
+    named_ancestors: HashSet<String>,
+    named_prepends: HashSet<String>,
+    /// A `prepend` on a receiver the file does not name, such as
+    /// `base.prepend(M)`, can reach any class.
+    prepend_anywhere: bool,
+    /// Owners that define methods under names the file does not spell out,
+    /// such as `define_method(name)`.
+    dynamic_owners: HashSet<Option<String>>,
+    /// Methods that `alias`, `attr_reader`, `define_method` and similar
+    /// statements define, with the `self` they define them on.
+    redefinitions: Vec<(String, Option<SelfKey>)>,
     /// The `self` levels at which each class uses each `@ivar`.
     ivar_levels: HashMap<(Option<String>, String), HashSet<Option<bool>>>,
 }
@@ -68,7 +94,7 @@ struct ReturnEntry {
     /// `None` for a `def` whose `self` the file does not settle, such as one
     /// in a block. Such an entry never matches a lookup's owner, so it blocks
     /// every lookup of its name.
-    key: Option<(Option<String>, bool)>,
+    key: Option<SelfKey>,
     return_type: Option<DeclaredType>,
 }
 
@@ -77,6 +103,12 @@ impl ReturnTypeIndex {
         let mut definitions = Vec::new();
         let mut index = Self::default();
         collect(base, root, 0, &mut definitions, &mut index);
+        for (name, key) in std::mem::take(&mut index.redefinitions) {
+            index.entries.entry(name).or_default().push(ReturnEntry {
+                key,
+                return_type: None,
+            });
+        }
         for definition in definitions {
             let Some(name) = definition.child_by_field_name("name") else {
                 continue;
@@ -114,30 +146,54 @@ impl ReturnTypeIndex {
             .is_some_and(|levels| levels.len() > 1)
     }
 
-    /// The same-file class or module a constant receiver names at `node`,
-    /// resolved through the lexical nesting the way Ruby does, innermost
-    /// first. `None` when no same-file class or module matches.
+    /// The same-file class or module a constant receiver names at `node`.
+    /// Ruby looks in each lexically enclosing class or module, innermost
+    /// first, then in the ancestors of the innermost one, then at the top
+    /// level. `None` when the first same-file constant found is not a class or
+    /// module, or when the ancestors could hold the constant.
     pub(super) fn constant_receiver(
         &self,
         base: &BaseExtractor,
         node: Node,
         name: &str,
     ) -> Option<SelfScope> {
-        let mut candidates = Vec::new();
+        let mut nesting = Vec::new();
+        let mut innermost = None;
         let mut current = node.parent();
         while let Some(ancestor) = current {
-            if matches!(ancestor.kind(), "class" | "module") {
-                candidates.push(format!("{}::{name}", owner_path(base, ancestor)?));
+            match ancestor.kind() {
+                "class" | "module" => {
+                    let path = owner_path(base, ancestor)?;
+                    innermost.get_or_insert((path.clone(), false));
+                    nesting.push(path);
+                }
+                "singleton_class" if innermost.is_none() => {
+                    if ancestor.child_by_field_name("value")?.kind() != "self" {
+                        return None;
+                    }
+                    let owner = ancestor.parent().and_then(enclosing_owner)?;
+                    innermost = Some((owner_path(base, owner)?, true));
+                }
+                _ => {}
             }
             current = ancestor.parent();
         }
-        candidates.push(name.to_string());
-        let (path, is_class) = candidates
-            .into_iter()
-            .find_map(|path| self.owners.get(&path).map(|is_class| (path, *is_class)))?;
+        let lexical = nesting.iter().map(|path| format!("{path}::{name}"));
+        let top_level = innermost
+            .is_none_or(|innermost| {
+                !self.has_ancestors.contains(&innermost)
+                    && !self.named_ancestors.contains(last_segment(&innermost.0))
+            })
+            .then(|| name.to_string());
+        let path = lexical
+            .chain(top_level)
+            .find(|path| self.constants.contains(path) || self.owners.contains_key(path))?;
+        if self.constants.contains(&path) {
+            return None;
+        }
         Some(SelfScope {
+            owner_is_class: self.owners[&path],
             owner: Some(path),
-            owner_is_class: is_class,
             singleton: true,
         })
     }
@@ -145,6 +201,17 @@ impl ReturnTypeIndex {
     /// The return type every same-named method on this `self` agrees on.
     pub(super) fn lookup(&self, name: &str, scope: &SelfScope) -> Option<DeclaredType> {
         let key = scope.key();
+        let named_prepend = scope
+            .owner
+            .as_deref()
+            .is_some_and(|owner| self.named_prepends.contains(last_segment(owner)));
+        if self.prepend_anywhere
+            || named_prepend
+            || self.prepends.contains(&key)
+            || self.dynamic_owners.contains(&scope.owner)
+        {
+            return None;
+        }
         let mut candidates = self
             .entries
             .get(name)?
@@ -380,16 +447,17 @@ impl ReturnTypeIndex {
 /// What `self` is at `node`, or `None` where the file does not settle it:
 /// in a `class << self` body, or in a block that rebinds `self`.
 ///
-/// A block or lambda directly in a class or module body settles nothing:
-/// `define_method`, `before_action`, `scope` and most other class-level DSLs
-/// run their block with an instance or another object as `self`.
+/// A block or lambda directly in a class or module body, or at the top level,
+/// settles nothing: `define_method`, `before_action`, `scope`, RSpec
+/// `describe` and most other DSLs run their block with an instance or another
+/// object as `self`.
 pub(super) fn self_scope(base: &BaseExtractor, node: Node) -> Option<SelfScope> {
     let mut in_block = false;
     let mut current = node.parent();
     while let Some(ancestor) = current {
         match ancestor.kind() {
             "method" | "singleton_method" => return definition_scope(base, ancestor),
-            "class" | "module" if in_block => return None,
+            "class" | "module" | "program" if in_block => return None,
             "class" | "module" => return SelfScope::of_owner(base, ancestor, true),
             "singleton_class" => return None,
             "block" | "do_block" if rebinds_self(base, ancestor) => return None,
@@ -468,16 +536,30 @@ fn owner_path(base: &BaseExtractor, owner: Node) -> Option<String> {
     Some(segments.join("::"))
 }
 
+fn last_segment(path: &str) -> &str {
+    path.rsplit("::").next().unwrap_or(path)
+}
+
+/// The class or module at or around `node`.
+fn enclosing_owner(node: Node) -> Option<Node> {
+    let mut current = Some(node);
+    while let Some(candidate) = current {
+        if matches!(candidate.kind(), "class" | "module") {
+            return Some(candidate);
+        }
+        current = candidate.parent();
+    }
+    None
+}
+
+/// The full path of the class or module lexically around `node`.
+fn lexical_owner(base: &BaseExtractor, node: Node) -> Option<String> {
+    owner_path(base, enclosing_owner(node.parent()?)?)
+}
+
 /// An `@ivar` by the full path of its lexically enclosing class or module.
 fn ivar_key(base: &BaseExtractor, ivar: Node) -> (Option<String>, String) {
-    let mut owner = ivar.parent();
-    while let Some(node) = owner.filter(|node| !matches!(node.kind(), "class" | "module")) {
-        owner = node.parent();
-    }
-    (
-        owner.and_then(|owner| owner_path(base, owner)),
-        base.get_node_text(&ivar),
-    )
+    (lexical_owner(base, ivar), base.get_node_text(&ivar))
 }
 
 /// Whether a `def` in a module body is also a module method: it follows a
@@ -621,9 +703,23 @@ fn collect<'tree>(
         "method" | "singleton_method" => definitions.push(node),
         "class" | "module" => {
             if let Some(path) = owner_path(base, node) {
+                if node.child_by_field_name("superclass").is_some() {
+                    index.has_ancestors.insert((path.clone(), false));
+                    index.has_ancestors.insert((path.clone(), true));
+                }
                 index.owners.insert(path, node.kind() == "class");
             }
         }
+        "alias" => {
+            if let Some(name) = node.child_by_field_name("name") {
+                let name = base.get_node_text(&name);
+                let key = definition_scope(base, node).map(|scope| scope.key());
+                index
+                    .redefinitions
+                    .push((name.trim_start_matches(':').to_string(), key));
+            }
+        }
+        "call" => collect_call(base, node, index),
         "instance_variable" => {
             let level = self_scope(base, node).map(|scope| scope.singleton);
             index
@@ -635,7 +731,10 @@ fn collect<'tree>(
         "comment" => index
             .generics
             .extend(comment_generics(&base.get_node_text(&node))),
-        "assignment" => index.generics.extend(sorbet_type_constant(base, node)),
+        "assignment" => {
+            index.generics.extend(sorbet_type_constant(base, node));
+            index.constants.extend(constant_target(base, node));
+        }
         _ => {}
     }
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -698,4 +797,181 @@ fn sorbet_type_constant(base: &BaseExtractor, assignment: Node) -> Option<String
         (None, "type_member" | "type_template") | (Some("T"), "type_alias")
     );
     (left.kind() == "constant" && is_type_constant).then(|| base.get_node_text(&left))
+}
+
+/// The full path of the constant an assignment such as `Widget = Other`
+/// declares.
+fn constant_target(base: &BaseExtractor, assignment: Node) -> Option<String> {
+    let left = assignment.child_by_field_name("left")?;
+    if !matches!(left.kind(), "constant" | "scope_resolution") {
+        return None;
+    }
+    let name = base.get_node_text(&left);
+    if let Some(absolute) = name.strip_prefix("::") {
+        return Some(absolute.to_string());
+    }
+    Some(match lexical_owner(base, assignment) {
+        Some(owner) => format!("{owner}::{name}"),
+        None => name,
+    })
+}
+
+/// Record what a call changes about method and constant lookup: `include`,
+/// `extend` and `prepend` add ancestors, and `alias_method`, `attr_reader`,
+/// `define_method` and similar calls define methods without a `def`.
+fn collect_call(base: &BaseExtractor, call: Node, index: &mut ReturnTypeIndex) {
+    let Some(method) = call.child_by_field_name("method") else {
+        return;
+    };
+    let method = base.get_node_text(&method);
+    if !matches!(
+        method.as_str(),
+        "include"
+            | "extend"
+            | "prepend"
+            | "alias_method"
+            | "define_method"
+            | "define_singleton_method"
+            | "attr_reader"
+            | "attr_accessor"
+            | "attr"
+            | "delegate"
+            | "def_delegator"
+            | "def_delegators"
+    ) {
+        return;
+    }
+    let receiver = call.child_by_field_name("receiver");
+    if matches!(method.as_str(), "include" | "extend" | "prepend") {
+        collect_ancestor_call(base, call, receiver, &method, index);
+        return;
+    }
+    let scope = definition_scope(base, call)
+        .filter(|_| receiver.is_none_or(|receiver| receiver.kind() == "self"));
+    let Some(arguments) = call.child_by_field_name("arguments") else {
+        return;
+    };
+    let mut cursor = arguments.walk();
+    let (arguments, options): (Vec<Node>, Vec<Node>) = arguments
+        .named_children(&mut cursor)
+        .partition(|argument| argument.kind() != "pair");
+    let first = &arguments[..arguments.len().min(1)];
+    let (defined, scope) = match method.as_str() {
+        "alias_method" | "define_method" => (first, scope),
+        "attr_reader" | "attr_accessor" => (&arguments[..], scope),
+        "delegate" => {
+            let prefixed = options.iter().any(|option| {
+                option
+                    .child_by_field_name("key")
+                    .is_some_and(|key| base.get_node_text(&key).starts_with("prefix"))
+            });
+            if prefixed {
+                index.dynamic_owners.insert(lexical_owner(base, call));
+            }
+            (&arguments[..], scope)
+        }
+        "attr" => (
+            &arguments[..],
+            scope.filter(|_| {
+                !arguments
+                    .iter()
+                    .any(|argument| matches!(argument.kind(), "true" | "false"))
+            }),
+        ),
+        "def_delegators" => (arguments.get(1..).unwrap_or_default(), scope),
+        "def_delegator" => (
+            arguments
+                .get(2..3)
+                .or_else(|| arguments.get(1..2))
+                .unwrap_or_default(),
+            scope,
+        ),
+        _ => (
+            first,
+            scope
+                .filter(|scope| !scope.singleton)
+                .map(|scope| SelfScope {
+                    singleton: true,
+                    ..scope
+                }),
+        ),
+    };
+    let key = scope.map(|scope| scope.key());
+    for argument in defined {
+        match literal_method_name(base, *argument) {
+            Some(name) => index.redefinitions.push((name, key.clone())),
+            None => {
+                index.dynamic_owners.insert(lexical_owner(base, call));
+            }
+        }
+    }
+}
+
+/// Record the ancestors an `include`, `extend` or `prepend` adds. An
+/// `include` or `prepend` counts for both `self` levels, since a module's
+/// `included` hook can `extend` the class too. One whose target the file does
+/// not settle, such as one in a block or a method, counts for both levels of
+/// its lexical owner.
+fn collect_ancestor_call(
+    base: &BaseExtractor,
+    call: Node,
+    receiver: Option<Node>,
+    method: &str,
+    index: &mut ReturnTypeIndex,
+) {
+    if let Some(receiver) = receiver.filter(|receiver| receiver.kind() != "self") {
+        if matches!(receiver.kind(), "constant" | "scope_resolution") {
+            let name = last_segment(&base.get_node_text(&receiver)).to_string();
+            if method == "prepend" {
+                index.named_prepends.insert(name.clone());
+            }
+            index.named_ancestors.insert(name);
+        } else {
+            index.prepend_anywhere |= method == "prepend";
+        }
+        return;
+    }
+    let scope = definition_scope(base, call);
+    let ancestor_levels: &[bool] = match (&scope, method) {
+        (Some(scope), _) if scope.singleton => &[true],
+        (Some(_), "extend") => &[true],
+        _ => &[false, true],
+    };
+    let prepend_levels: &[bool] = match &scope {
+        Some(scope) if scope.singleton => &[true],
+        Some(_) => &[false],
+        None => &[false, true],
+    };
+    let owner = match scope {
+        Some(scope) => scope.owner,
+        None => lexical_owner(base, call),
+    };
+    if let Some(owner) = owner.clone() {
+        for singleton in ancestor_levels {
+            index.has_ancestors.insert((owner.clone(), *singleton));
+        }
+    }
+    if method == "prepend" {
+        for singleton in prepend_levels {
+            index.prepends.insert((owner.clone(), *singleton));
+        }
+    }
+}
+
+/// The method name a `:name`, `:"name"` or `'name'` argument spells out.
+fn literal_method_name(base: &BaseExtractor, argument: Node) -> Option<String> {
+    match argument.kind() {
+        "simple_symbol" => Some(base.get_node_text(&argument)[1..].to_string()),
+        "string" | "delimited_symbol" => {
+            let mut cursor = argument.walk();
+            let mut parts = argument.named_children(&mut cursor);
+            match (parts.next(), parts.next()) {
+                (Some(content), None) if content.kind() == "string_content" => {
+                    Some(base.get_node_text(&content))
+                }
+                _ => None,
+            }
+        }
+        _ => None,
+    }
 }
