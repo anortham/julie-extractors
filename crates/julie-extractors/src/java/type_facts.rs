@@ -22,7 +22,7 @@ pub(super) fn record_declared_type(base: &mut BaseExtractor, symbol_id: &str, ty
 /// innermost named enclosing type; `Type.method(..)` resolves in the one
 /// same-file type named `Type` in scope at the call, to `static` methods
 /// only. The arity-compatible candidates of that type, its same-file
-/// supertypes, and `java.lang.Object` must agree, and the return type text
+/// supertypes, `java.lang.Object`, and for an enum `java.lang.Enum` must agree, and the return type text
 /// must name the same type at the call as at the callee. `void`,
 /// type-parameter returns, and any other initializer record nothing.
 pub(super) fn record_initializer_type(
@@ -215,6 +215,10 @@ impl ReturnTypeIndex {
             .insert(id, written_supertype_names(base, declaration));
     }
 
+    /// Index the members every record or enum has without declaring them.
+    /// An enum also gets the `java.lang.Enum` methods that a same-file
+    /// method can overload: `compareTo(E)` (`int`) and the generic static
+    /// `<T> T valueOf(Class<T>, String)`, which records nothing.
     fn add_implicit_methods(&mut self, base: &BaseExtractor, declaration: Node) {
         match declaration.kind() {
             "record_declaration" => self.add_record_accessors(base, declaration),
@@ -224,12 +228,23 @@ impl ReturnTypeIndex {
                 };
                 let name = base.get_node_text(&name);
                 let id = declaration.id();
-                self.add_method(
-                    "values".to_string(),
-                    enum_method(id, 0, format!("{name}[]")),
-                    declaration,
-                );
-                self.add_method("valueOf".to_string(), enum_method(id, 1, name), declaration);
+                let values = format!("{name}[]");
+                let implicit = [
+                    ("values", 0, Some(values), true),
+                    ("valueOf", 1, Some(name), true),
+                    ("valueOf", 2, None, true),
+                    ("compareTo", 1, Some("int".to_string()), false),
+                ];
+                for (method, parameter_count, declared, is_static) in implicit {
+                    let entry = ReturnEntry {
+                        owner: id,
+                        declared,
+                        parameter_count,
+                        variadic: false,
+                        is_static,
+                    };
+                    self.add_method(method.to_string(), entry, declaration);
+                }
             }
             _ => {}
         }
@@ -423,16 +438,6 @@ fn written_supertype_names(base: &BaseExtractor, declaration: Node) -> Vec<Strin
         stack.extend(node.named_children(&mut node.walk()));
     }
     names
-}
-
-fn enum_method(owner: usize, parameter_count: usize, declared: String) -> ReturnEntry {
-    ReturnEntry {
-        owner,
-        declared: Some(declared),
-        parameter_count,
-        variadic: false,
-        is_static: true,
-    }
 }
 
 fn method_entry(base: &BaseExtractor, method: Node) -> Option<(String, ReturnEntry)> {

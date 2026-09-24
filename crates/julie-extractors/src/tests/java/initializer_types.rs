@@ -507,3 +507,29 @@ fn overload_of_an_object_method_records_no_fact() {
                      void f() { var text = toString(); }\n}\n";
     assert_eq!(inferred_type(override_, "text"), inferred("String"));
 }
+
+#[test]
+fn overload_of_the_enum_compare_to_records_no_fact() {
+    let disagrees = "class Workspace {}\nenum Color { RED, GREEN;\n  \
+                     Workspace compareTo(String s) { return null; }\n  \
+                     void f() { var enumCmp = compareTo(RED); var enumCmpThis = this.compareTo(GREEN); }\n}\n";
+    assert_eq!(inferred_type(disagrees, "enumCmp"), None);
+    assert_eq!(inferred_type(disagrees, "enumCmpThis"), None);
+    let agrees = "enum Color { RED;\n  int compareTo(String s) { return 0; }\n  \
+                  void f() { var sameCmp = compareTo(RED); }\n}\n";
+    assert_eq!(inferred_type(agrees, "sameCmp"), inferred("int"));
+}
+
+#[test]
+fn overload_of_the_generic_enum_value_of_records_no_fact() {
+    let source = "class Workspace {}\nenum Color { RED, GREEN;\n  \
+                  static Workspace valueOf(Object c, String s) { return null; }\n  \
+                  static Workspace valueOf(Object c, String s, int n) { return null; }\n  \
+                  void f() { var v2 = valueOf(Color.class, \"RED\"); var v3 = Color.valueOf(Color.class, \"GREEN\");\n    \
+                  var otherEnum = valueOf(Other.class, \"X\"); var threeArgs = valueOf(null, \"RED\", 1); }\n}\n\
+                  enum Other { X }\n";
+    assert_eq!(inferred_type(source, "v2"), None);
+    assert_eq!(inferred_type(source, "v3"), None);
+    assert_eq!(inferred_type(source, "otherEnum"), None);
+    assert_eq!(inferred_type(source, "threeArgs"), inferred("Workspace"));
+}

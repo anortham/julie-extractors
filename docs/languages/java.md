@@ -199,6 +199,11 @@ from its initializer:
   `java.lang.Object` methods that a same-file method can overload:
   `equals(Object)` (`boolean`) and `wait(long)` and `wait(long, int)`
   (`void`). So `Workspace equals(String s)` records no fact for `equals(o)`.
+  In an enum, the candidates also include the `java.lang.Enum` methods that
+  a same-file method can overload: `compareTo(E)` (`int`) and the generic
+  static `<T> T valueOf(Class<T>, String)`, which records no fact. So
+  `Workspace compareTo(String s)` records no fact for `compareTo(RED)`, and
+  no two-argument `valueOf(..)` call records a fact.
   At least one candidate must be declared in the resolved type itself.
 - The return type text is written in the callee's scope but recorded in the
   caller's scope. If its first name is a type declared in the file, exactly
@@ -217,8 +222,9 @@ Known limit: a supertype in another file can declare an overload with the
 same argument count, a member type that hides `Type` or the return type name,
 or a field named `Type`. Java then resolves the name to that member, and the
 recorded type can be wrong. The extractor cannot see other files, so it
-cannot detect this case. `java.lang.Object` is not part of this limit: its
-methods are fixed by the language, and the extractor checks them.
+cannot detect this case. `java.lang.Object` and, for an enum,
+`java.lang.Enum` are not part of this limit: their methods are fixed by the
+language, and the extractor checks them.
 
 ## Frameworks
 
