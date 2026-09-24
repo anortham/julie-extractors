@@ -126,15 +126,25 @@ Express/Fastify routes on exported and type-annotated receivers.
   from a call to a same-file callee with a declared return type: a function,
   an overload set, a function-valued `const` (`const make = (): User => ..`),
   a class method or arrow field through `this` in that class, or a static
-  method through the class name (`Repo.create()`). Same-named candidates
-  must agree, and any other binding of the name (import, parameter, local)
-  blocks the fact. `await` removes one `Promise`/`PromiseLike` layer; `!`
-  removes `null`/`undefined`; a `T | null` result without `!` records
-  nothing. `: this` resolves to the enclosing class. A generic type
-  parameter result, a getter, an optional call (`?.`), a method after the
-  call, `this` rebound by a `function` or object literal, or a callee in
-  another file records no fact. Other files are out of scope because each
-  file is extracted alone.
+  method through the class name (`Repo.create()`). Only bindings whose
+  lexical scope contains the call count: a function nested in another
+  function does not reach calls outside it. All visible same-named
+  candidates must agree, and any other visible binding of the name (import,
+  `import x = A.b`, parameter, local, namespace, enum, function-expression
+  name) blocks the fact. Class members belong to one class declaration, so
+  two same-named classes never share methods, and `Repo.create()` needs
+  `Repo` to name exactly one visible class. `await` removes one
+  `Promise`/`PromiseLike` layer; `!` removes `null`/`undefined`; a
+  `T | null` result without `!` records nothing. `: this` resolves to the
+  enclosing class. A result that is a bare type parameter (`T`, or `T` after
+  `await`) records no fact. A generic result keeps its base type and its
+  declared text as written, so `make<K>(): Map<K, User>` records `Map` with
+  declared `Map<K, User>`. A getter, an optional call (`?.`), a method after
+  the call, `this` rebound by a `function` or object literal, a
+  namespace-qualified call (`Ns.load()`), a method inherited from a base
+  class through `this`, `super.load()`, or a callee in another file records
+  no fact. Other files are out of scope because each file is extracted
+  alone.
 - The `string` type keyword is not a `string_literal` source region.
 
 ## Frontend navigation facts

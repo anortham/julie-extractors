@@ -5,6 +5,7 @@ use crate::base::types::TypeNameRules;
 use crate::javascript::type_facts::record_new_expression_fact;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
+use std::ops::Range;
 use tree_sitter::Node;
 
 pub(super) const TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
@@ -238,18 +239,29 @@ impl TypeShape {
 }
 
 /// Declared return types of the file's functions, function-valued consts,
-/// and class methods, by name. Other value bindings of a name (parameters,
-/// imports, plain variables) are entries with no shape, so a call through a
-/// shadowing binding never agrees on a type.
+/// and class methods. Every value binding of a name is an entry with the
+/// byte range where it is visible; bindings that are not typed callables
+/// (parameters, imports, namespaces, plain variables) have no shape, so a call
+/// that can reach one never agrees on a type.
 #[derive(Debug, Default)]
-pub(super) struct ReturnTypeIndex(HashMap<String, Vec<ReturnEntry>>);
+pub(super) struct ReturnTypeIndex {
+    values: HashMap<String, Vec<ValueEntry>>,
+    /// Class members by the class node's start byte and the member name.
+    members: HashMap<(usize, String), Vec<MemberEntry>>,
+}
 
 #[derive(Debug)]
-struct ReturnEntry {
-    /// The class of a method; `None` for functions and other value bindings.
-    owner: Option<String>,
-    is_static: bool,
+struct ValueEntry {
+    scope: Range<usize>,
+    /// The class node's start byte when the binding names a class.
+    class: Option<usize>,
     /// `None` when the binding is not a function or declares no return type.
+    shape: Option<TypeShape>,
+}
+
+#[derive(Debug)]
+struct MemberEntry {
+    is_static: bool,
     shape: Option<TypeShape>,
 }
 
@@ -267,136 +279,262 @@ impl ReturnTypeIndex {
     fn add_node(&mut self, base: &BaseExtractor, node: Node) {
         match node.kind() {
             "function_declaration" | "generator_function_declaration" | "function_signature" => {
-                if let Some(name) = node.child_by_field_name("name") {
-                    let shape = return_shape(base, node, None);
-                    self.push(base.get_node_text(&name), None, false, shape);
-                }
+                let shape = return_shape(base, node, None);
+                self.add_name(base, node, block_scope(node), None, shape);
             }
-            "variable_declarator" => {
-                let Some(name) = node.child_by_field_name("name") else {
-                    return;
-                };
-                if name.kind() != "identifier" {
-                    self.shadow_pattern(base, name);
-                    return;
-                }
-                let shape = callable_value(node)
-                    .filter(|_| node.child_by_field_name("type").is_none())
-                    .and_then(|callable| return_shape(base, callable, None));
-                self.push(base.get_node_text(&name), None, false, shape);
+            "function_expression" | "generator_function" => {
+                let shape = return_shape(base, node, None);
+                self.add_name(base, node, node.byte_range(), None, shape);
             }
+            "class_declaration" | "abstract_class_declaration" => {
+                self.add_name(base, node, block_scope(node), Some(node.start_byte()), None);
+            }
+            "class" => {
+                self.add_name(base, node, node.byte_range(), Some(node.start_byte()), None);
+            }
+            "variable_declarator" => self.add_declarator(base, node),
             "method_definition"
             | "method_signature"
             | "abstract_method_signature"
             | "public_field_definition" => self.add_class_member(base, node),
             "required_parameter" | "optional_parameter" => {
-                self.shadow_field(base, node, "pattern");
+                let owner = node
+                    .parent()
+                    .filter(|parent| parent.kind() == "formal_parameters")
+                    .and_then(|parameters| parameters.parent())
+                    .unwrap_or(node);
+                self.shadow_field(base, node, "pattern", owner.byte_range());
             }
-            "arrow_function" | "catch_clause" => self.shadow_field(base, node, "parameter"),
-            "for_in_statement" => self.shadow_field(base, node, "left"),
+            "arrow_function" | "catch_clause" => {
+                self.shadow_field(base, node, "parameter", node.byte_range());
+            }
+            "for_in_statement" => self.shadow_field(base, node, "left", node.byte_range()),
             "import_specifier" => {
                 let field = if node.child_by_field_name("alias").is_some() {
                     "alias"
                 } else {
                     "name"
                 };
-                self.shadow_field(base, node, field);
+                self.shadow_field(base, node, field, block_scope(node));
             }
-            "import_clause" | "namespace_import" | "import_require_clause" => {
-                for child in node.named_children(&mut node.walk()) {
-                    if child.kind() == "identifier" {
-                        self.shadow_pattern(base, child);
-                    }
+            "import_clause" | "namespace_import" | "import_require_clause" | "import_alias" => {
+                if let Some(name) = node
+                    .named_children(&mut node.walk())
+                    .find(|child| child.kind() == "identifier")
+                {
+                    self.push_value(base, name, block_scope(node), None, None);
                 }
             }
+            "internal_module" | "module" => {
+                let mut name = node.child_by_field_name("name");
+                while let Some(nested) = name.filter(|n| n.kind() == "nested_identifier") {
+                    name = nested.named_child(0);
+                }
+                if let Some(name) = name.filter(|name| name.kind() == "identifier") {
+                    self.push_value(base, name, block_scope(node), None, None);
+                }
+            }
+            "enum_declaration" => self.add_name(base, node, block_scope(node), None, None),
             _ => {}
         }
     }
 
+    fn add_declarator(&mut self, base: &BaseExtractor, declarator: Node) {
+        let Some(name) = declarator.child_by_field_name("name") else {
+            return;
+        };
+        let scope = if declarator
+            .parent()
+            .is_some_and(|parent| parent.kind() == "variable_declaration")
+        {
+            function_scope(declarator)
+        } else {
+            block_scope(declarator)
+        };
+        if name.kind() != "identifier" {
+            self.shadow_pattern(base, name, scope);
+            return;
+        }
+        let class = declarator
+            .child_by_field_name("value")
+            .filter(|value| value.kind() == "class")
+            .map(|class| class.start_byte());
+        let shape = callable_value(declarator)
+            .filter(|_| declarator.child_by_field_name("type").is_none())
+            .and_then(|callable| return_shape(base, callable, None));
+        self.push_value(base, name, scope, class, shape);
+    }
+
     fn add_class_member(&mut self, base: &BaseExtractor, member: Node) {
-        let Some(owner) = member
+        let Some(class) = member
             .parent()
             .filter(|parent| parent.kind() == "class_body")
             .and_then(|body| body.parent())
-            .and_then(|class| class_name(base, class))
         else {
             return;
         };
         let Some(name) = member.child_by_field_name("name") else {
             return;
         };
-        if has_child_kind(member, "get") || has_child_kind(member, "set") {
-            return;
-        }
-        let callable = if member.kind() == "public_field_definition" {
-            match callable_value(member).filter(|_| member.child_by_field_name("type").is_none()) {
-                Some(callable) => callable,
-                None => return,
-            }
+        let callable = if has_child_kind(member, "get") || has_child_kind(member, "set") {
+            None
+        } else if member.kind() == "public_field_definition" {
+            callable_value(member).filter(|_| member.child_by_field_name("type").is_none())
         } else {
-            member
+            Some(member)
         };
-        let shape = return_shape(base, callable, Some(&owner));
-        self.push(
-            base.get_node_text(&name),
-            Some(owner),
-            has_child_kind(member, "static"),
-            shape,
-        );
+        let owner = class_name(base, class);
+        let shape = callable.and_then(|callable| return_shape(base, callable, owner.as_deref()));
+        self.members
+            .entry((class.start_byte(), base.get_node_text(&name)))
+            .or_default()
+            .push(MemberEntry {
+                is_static: has_child_kind(member, "static"),
+                shape,
+            });
     }
 
-    fn shadow_field(&mut self, base: &BaseExtractor, node: Node, field: &str) {
-        if let Some(pattern) = node.child_by_field_name(field) {
-            self.shadow_pattern(base, pattern);
+    fn add_name(
+        &mut self,
+        base: &BaseExtractor,
+        node: Node,
+        scope: Range<usize>,
+        class: Option<usize>,
+        shape: Option<TypeShape>,
+    ) {
+        if let Some(name) = node.child_by_field_name("name") {
+            self.push_value(base, name, scope, class, shape);
         }
     }
 
-    fn shadow_pattern(&mut self, base: &BaseExtractor, pattern: Node) {
+    fn shadow_field(&mut self, base: &BaseExtractor, node: Node, field: &str, scope: Range<usize>) {
+        if let Some(pattern) = node.child_by_field_name(field) {
+            self.shadow_pattern(base, pattern, scope);
+        }
+    }
+
+    fn shadow_pattern(&mut self, base: &BaseExtractor, pattern: Node, scope: Range<usize>) {
         let mut stack = vec![pattern];
         while let Some(node) = stack.pop() {
             if matches!(
                 node.kind(),
                 "identifier" | "shorthand_property_identifier_pattern"
             ) {
-                self.push(base.get_node_text(&node), None, false, None);
+                self.push_value(base, node, scope.clone(), None, None);
             }
             stack.extend(node.named_children(&mut node.walk()));
         }
     }
 
-    fn push(
+    fn push_value(
         &mut self,
-        name: String,
-        owner: Option<String>,
-        is_static: bool,
+        base: &BaseExtractor,
+        name: Node,
+        scope: Range<usize>,
+        class: Option<usize>,
         shape: Option<TypeShape>,
     ) {
-        self.0.entry(name).or_default().push(ReturnEntry {
-            owner,
-            is_static,
-            shape,
-        });
+        self.values
+            .entry(base.get_node_text(&name))
+            .or_default()
+            .push(ValueEntry {
+                scope,
+                class,
+                shape,
+            });
     }
 
-    /// The return type every same-named callable with this owner agrees on.
-    fn lookup(&self, name: &str, owner: Option<&str>, is_static: bool) -> Option<TypeShape> {
-        let mut shapes = self
-            .0
-            .get(name)?
-            .iter()
-            .filter(|entry| entry.owner.as_deref() == owner && entry.is_static == is_static)
-            .map(|entry| entry.shape.as_ref());
-        let first = shapes.next()??;
-        shapes
-            .all(|shape| shape == Some(first))
-            .then(|| first.clone())
-    }
-
-    fn binds_value(&self, name: &str) -> bool {
-        self.0
+    fn visible_values<'a>(
+        &'a self,
+        name: &str,
+        at: usize,
+    ) -> impl Iterator<Item = &'a ValueEntry> + 'a {
+        self.values
             .get(name)
-            .is_some_and(|entries| entries.iter().any(|entry| entry.owner.is_none()))
+            .into_iter()
+            .flatten()
+            .filter(move |entry| entry.scope.contains(&at))
     }
+
+    /// The return type every binding of `name` visible at `at` agrees on.
+    fn function_shape(&self, name: &str, at: usize) -> Option<TypeShape> {
+        agreed(
+            self.visible_values(name, at)
+                .map(|entry| entry.shape.as_ref()),
+        )
+    }
+
+    /// The class `name` names at `at`, when it is the only binding visible
+    /// there: a namespace, enum, or second class of that name blocks it.
+    fn class_at(&self, name: &str, at: usize) -> Option<usize> {
+        let mut visible = self.visible_values(name, at);
+        let only = visible.next()?;
+        visible.next().is_none().then_some(only.class)?
+    }
+
+    /// The return type every same-named member of one class agrees on.
+    fn member_shape(&self, class: usize, name: &str, is_static: bool) -> Option<TypeShape> {
+        agreed(
+            self.members
+                .get(&(class, name.to_string()))?
+                .iter()
+                .filter(|entry| entry.is_static == is_static)
+                .map(|entry| entry.shape.as_ref()),
+        )
+    }
+}
+
+fn agreed<'a>(mut shapes: impl Iterator<Item = Option<&'a TypeShape>>) -> Option<TypeShape> {
+    let first = shapes.next()??;
+    shapes
+        .all(|shape| shape == Some(first))
+        .then(|| first.clone())
+}
+
+/// Where a `let`, `const`, class, function, or import binding is visible: the
+/// nearest enclosing block.
+fn block_scope(node: Node) -> Range<usize> {
+    enclosing_scope(
+        node,
+        &[
+            "program",
+            "statement_block",
+            "switch_body",
+            "for_statement",
+            "for_in_statement",
+        ],
+    )
+}
+
+/// Where a `var` binding is visible: the nearest enclosing function,
+/// namespace, static block, or the file.
+fn function_scope(node: Node) -> Range<usize> {
+    enclosing_scope(
+        node,
+        &[
+            "program",
+            "function_declaration",
+            "generator_function_declaration",
+            "function_expression",
+            "generator_function",
+            "arrow_function",
+            "method_definition",
+            "class_static_block",
+            "internal_module",
+            "module",
+        ],
+    )
+}
+
+fn enclosing_scope(node: Node, kinds: &[&str]) -> Range<usize> {
+    let mut current = node.parent();
+    while let Some(scope) = current {
+        if kinds.contains(&scope.kind()) {
+            return scope.byte_range();
+        }
+        current = scope.parent();
+    }
+    node.byte_range()
 }
 
 fn has_child_kind(node: Node, kind: &str) -> bool {
@@ -587,11 +725,11 @@ impl InitializerScope<'_> {
         if has_child_kind(call, "?.") || has_child_kind(function, "optional_chain") {
             return None;
         }
+        let at = call.start_byte();
         match function.kind() {
-            "identifier" => {
-                self.return_types
-                    .lookup(&self.base.get_node_text(&function), None, false)
-            }
+            "identifier" => self
+                .return_types
+                .function_shape(&self.base.get_node_text(&function), at),
             "member_expression" => {
                 let object = function.child_by_field_name("object")?;
                 let method = self
@@ -599,15 +737,14 @@ impl InitializerScope<'_> {
                     .get_node_text(&function.child_by_field_name("property")?);
                 match object.kind() {
                     "this" => {
-                        let (owner, is_static) = this_class(self.base, object)?;
-                        self.return_types.lookup(&method, Some(&owner), is_static)
+                        let (class, is_static) = this_class(object)?;
+                        self.return_types.member_shape(class, &method, is_static)
                     }
                     "identifier" => {
-                        let class = self.base.get_node_text(&object);
-                        if self.return_types.binds_value(&class) {
-                            return None;
-                        }
-                        self.return_types.lookup(&method, Some(&class), true)
+                        let class = self
+                            .return_types
+                            .class_at(&self.base.get_node_text(&object), at)?;
+                        self.return_types.member_shape(class, &method, true)
                     }
                     _ => None,
                 }
@@ -617,10 +754,10 @@ impl InitializerScope<'_> {
     }
 }
 
-/// The class `this` names at `node`, and whether that is the class itself
-/// (a static context). A non-arrow function or an object literal rebinds
-/// `this`, so it yields `None`.
-fn this_class(base: &BaseExtractor, node: Node) -> Option<(String, bool)> {
+/// The start byte of the class `this` names at `node`, and whether `this` is
+/// the class itself (a static context). A non-arrow function or an object
+/// literal rebinds `this`, so it yields `None`.
+fn this_class(node: Node) -> Option<(usize, bool)> {
     let mut is_static = false;
     let mut current = node.parent();
     while let Some(scope) = current {
@@ -634,7 +771,7 @@ fn this_class(base: &BaseExtractor, node: Node) -> Option<(String, bool)> {
                 is_static = has_child_kind(scope, "static");
             }
             "class_static_block" => is_static = true,
-            "class_body" => return Some((class_name(base, scope.parent()?)?, is_static)),
+            "class_body" => return Some((scope.parent()?.start_byte(), is_static)),
             _ => {}
         }
         current = scope.parent();

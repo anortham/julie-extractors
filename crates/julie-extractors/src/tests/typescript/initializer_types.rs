@@ -1,3 +1,4 @@
+use crate::base::SymbolKind;
 use crate::typescript::TypeScriptExtractor;
 use std::path::PathBuf;
 
@@ -16,7 +17,7 @@ fn fact_of(source: &str, local: &str) -> Option<(String, bool, Option<String>)> 
     let symbols = extractor.extract_symbols(&tree);
     let local = symbols
         .iter()
-        .find(|s| s.name == local)
+        .find(|s| s.name == local && s.kind != SymbolKind::Export)
         .unwrap_or_else(|| panic!("missing local {local}"));
     extractor.base.type_info.get(&local.id).map(|fact| {
         (
@@ -341,11 +342,94 @@ fn same_named_functions_with_different_return_types_record_nothing() {
 function load(): User { return null!; }
 function other() {
     function load(): Admin { return null!; }
+    const user = load();
+    return user;
+}
+"#;
+    assert_eq!(inferred_type(source, "user"), None);
+}
+
+#[test]
+fn a_nested_function_does_not_reach_calls_outside_its_scope() {
+    let source = r#"
+function load(): User { return null!; }
+function other() {
+    function load(): Admin { return null!; }
     return load();
 }
 function run() { const user = load(); }
 "#;
+    assert_eq!(inferred_type(source, "user"), inferred("User"));
+}
+
+#[test]
+fn a_nested_function_is_a_callee_inside_its_own_scope() {
+    let source = r#"
+function other() {
+    function load(): Admin { return null!; }
+    const admin = load();
+    return admin;
+}
+"#;
+    assert_eq!(inferred_type(source, "admin"), inferred("Admin"));
+}
+
+#[test]
+fn an_out_of_scope_function_does_not_type_a_global_call() {
+    let source = r#"
+export function helper() {
+    function open(): Door { return new Door(); }
+    return open();
+}
+export const b1 = open("https://x");
+"#;
+    assert_eq!(inferred_type(source, "b1"), None);
+}
+
+#[test]
+fn a_function_expression_name_shadows_the_outer_function_in_its_body() {
+    let source = r#"
+export function load(): User { return null!; }
+export const g = function load(): Admin {
+    const a1 = load();
+    return a1;
+};
+"#;
+    assert_eq!(inferred_type(source, "a1"), None);
+}
+
+#[test]
+fn an_import_alias_blocks_a_nested_function_of_the_same_name() {
+    let source = r#"
+export function outer() {
+    function load(): User { return null!; }
+    return load();
+}
+import load = Other.load;
+export const d1 = load();
+"#;
+    assert_eq!(inferred_type(source, "d1"), None);
+}
+
+#[test]
+fn a_var_in_a_nested_block_shadows_the_function_in_the_whole_function() {
+    let source = r#"
+function load(): User { return null!; }
+function run(flag: boolean) {
+    if (flag) { var load = () => null; }
+    const user = load();
+}
+"#;
     assert_eq!(inferred_type(source, "user"), None);
+}
+
+#[test]
+fn a_namespace_or_enum_of_the_same_name_blocks_a_function_call() {
+    for binding in ["namespace load { }", "enum load { A }"] {
+        let source =
+            format!("function load(): User {{ return null!; }}\n{binding}\nconst user = load();\n");
+        assert_eq!(inferred_type(&source, "user"), None, "{binding}");
+    }
 }
 
 #[test]
@@ -478,5 +562,115 @@ fn call_on_another_receiver_records_nothing() {
     assert_eq!(
         in_repo("run() { const user = this.repo.load(\"a\"); }", "user"),
         None
+    );
+}
+
+#[test]
+fn static_call_through_a_namespace_does_not_reach_an_out_of_scope_class() {
+    let source = r#"
+namespace Repo { export function create(): Admin { return null!; } }
+export function h() {
+    class Repo { static create(): User { return null!; } }
+    return Repo;
+}
+export const f1 = Repo.create();
+"#;
+    assert_eq!(inferred_type(source, "f1"), None);
+}
+
+#[test]
+fn static_call_on_a_class_merged_with_a_namespace_records_nothing() {
+    let class = REPO.replace("BODY", "");
+    let namespace = "namespace Repo { export const x = 1; }\n";
+    for declarations in [format!("{class}{namespace}"), format!("{namespace}{class}")] {
+        let source = format!("{declarations}const repo = Repo.create();");
+        assert_eq!(inferred_type(&source, "repo"), None, "{declarations}");
+    }
+}
+
+#[test]
+fn static_call_on_a_local_class_records_its_return_type() {
+    let source = r#"
+export function mk() {
+    class Impl { static create(): User { return null!; } }
+    const made = Impl.create();
+    return made;
+}
+"#;
+    assert_eq!(inferred_type(source, "made"), inferred("User"));
+}
+
+#[test]
+fn static_call_on_a_class_expression_const_records_its_return_type() {
+    let source = r#"
+const Repo = class { static create(): User { return null!; } };
+const repo = Repo.create();
+"#;
+    assert_eq!(inferred_type(source, "repo"), inferred("User"));
+}
+
+#[test]
+fn same_named_classes_keep_their_own_methods() {
+    let source = r#"
+class Base { load(): Admin { return null!; } }
+export function mkA() {
+    class Impl extends Base {
+        f() { const c1 = this.load(); return c1; }
+    }
+    return Impl;
+}
+export function mkB() {
+    class Impl {
+        load(): User { return null!; }
+        g() { const c2 = this.load(); return c2; }
+    }
+    return Impl;
+}
+"#;
+    assert_eq!(inferred_type(source, "c1"), None);
+    assert_eq!(inferred_type(source, "c2"), inferred("User"));
+}
+
+#[test]
+fn an_annotated_field_is_not_mixed_with_a_same_named_class_method() {
+    let source = r#"
+export function mkA() {
+    class Impl {
+        load: () => Admin = () => null!;
+        f() { const c1 = this.load(); return c1; }
+    }
+    return Impl;
+}
+export function mkB() {
+    class Impl { load(): User { return null!; } }
+    return Impl;
+}
+"#;
+    assert_eq!(inferred_type(source, "c1"), None);
+}
+
+#[test]
+fn super_and_namespace_qualified_calls_record_nothing() {
+    let source = r#"
+class Base { load(): User { return null!; } }
+namespace Ns { export function load(): User { return null!; } }
+class Repo extends Base {
+    load(): User { const viaSuper = super.load(); return viaSuper; }
+}
+const viaNamespace = Ns.load();
+"#;
+    assert_eq!(inferred_type(source, "viaSuper"), None);
+    assert_eq!(inferred_type(source, "viaNamespace"), None);
+}
+
+#[test]
+fn a_generic_callee_keeps_the_base_type_and_the_declared_text() {
+    let source = r#"
+export function make<K>(): Map<K, User> { return new Map(); }
+const made = make<string>();
+"#;
+    assert_eq!(
+        fact_of(source, "made"),
+        Some(("Map".to_string(), true, Some("Map<K, User>".to_string())))
     );
 }
