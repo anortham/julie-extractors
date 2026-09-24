@@ -33,6 +33,9 @@ pub struct GoExtractor {
     ginkgo_node_ids: HashSet<String>,
     ginkgo_scoped_ids: HashSet<String>,
     test_role_ids: HashSet<String>,
+    /// Declared result types of the file's functions and methods, for
+    /// initializer inference.
+    result_types: type_facts::ResultTypeIndex,
 }
 
 impl GoExtractor {
@@ -49,6 +52,7 @@ impl GoExtractor {
             ginkgo_node_ids: HashSet::new(),
             ginkgo_scoped_ids: HashSet::new(),
             test_role_ids: HashSet::new(),
+            result_types: type_facts::ResultTypeIndex::default(),
         }
     }
 
@@ -84,6 +88,7 @@ impl GoExtractor {
         self.ginkgo_enabled = test_calls::file_enables_ginkgo(&self.base, tree.root_node());
         self.ginkgo_alias = test_calls::ginkgo_package_alias(&self.base, tree.root_node());
         self.test_role_ids.clear();
+        self.result_types = type_facts::ResultTypeIndex::build(&self.base, tree.root_node());
 
         let mut symbols = Vec::new();
         self.walk_tree(tree.root_node(), &mut symbols, None, 0);
