@@ -471,3 +471,240 @@ fun run() {
         extractor.base.type_info
     );
 }
+
+#[test]
+fn value_with_the_function_name_hides_the_function() {
+    let source = r#"
+class Repo
+class Other
+fun load(): Repo = Repo()
+fun create(): Repo = Repo()
+fun withLocalLambda() {
+    val load = { Other() }
+    val shadowLocal = load()
+}
+fun withParam(create: () -> Other) {
+    val shadowParam = create()
+}
+class Holder(val load: () -> Other) {
+    fun f() {
+        val shadowProp = load()
+    }
+}
+class Member {
+    val create: () -> Other = { Other() }
+    fun f() {
+        val shadowMember = create()
+    }
+}
+class WithCompanion {
+    companion object {
+        val load: () -> Other = { Other() }
+    }
+    fun f() {
+        val shadowCompanion = load()
+    }
+}
+"#;
+    assert_no_fact(source, "shadowLocal");
+    assert_no_fact(source, "shadowParam");
+    assert_no_fact(source, "shadowProp");
+    assert_no_fact(source, "shadowMember");
+    assert_no_fact(source, "shadowCompanion");
+}
+
+#[test]
+fn local_value_declared_after_the_call_or_being_declared_does_not_hide_the_function() {
+    let source = r#"
+class Repo
+class Other
+fun load(): Repo = Repo()
+fun run() {
+    val early = load()
+    val load = { Other() }
+}
+fun same() {
+    val load = load()
+}
+"#;
+    assert_inferred(source, "early", "Repo", "Repo");
+    let (symbols, extractor) = extract(source);
+    let own = symbols
+        .iter()
+        .filter(|s| {
+            s.name == "load" && matches!(s.kind, SymbolKind::Variable | SymbolKind::Property)
+        })
+        .find_map(|s| extractor.base.type_info.get(&s.id))
+        .expect("type fact for the local load");
+    assert_eq!(own.resolved_type, "Repo");
+}
+
+#[test]
+fn value_with_the_object_name_hides_the_object_receiver() {
+    let source = r#"
+class Repo
+class OtherF {
+    fun make(): Int = 1
+}
+object Factory {
+    fun make(): Repo = Repo()
+}
+class User {
+    val Factory = OtherF()
+    fun f() {
+        val objShadow = Factory.make()
+    }
+}
+fun param(Factory: OtherF) {
+    val paramShadow = Factory.make()
+}
+"#;
+    assert_no_fact(source, "objShadow");
+    assert_no_fact(source, "paramShadow");
+}
+
+#[test]
+fn implicit_members_of_the_enclosing_type_hide_top_level_functions() {
+    let source = r#"
+class Repo
+class Other
+fun toString(): Repo = Repo()
+fun hashCode(): Repo = Repo()
+fun copy(): Repo = Repo()
+fun component1(): Repo = Repo()
+fun values(): Repo = Repo()
+fun load(): Repo = Repo()
+data class Point(val x: Int) {
+    fun f() {
+        val anyToString = toString()
+        val anyHash = hashCode()
+        val dataCopy = copy()
+        val dataComp = component1()
+    }
+}
+enum class Color {
+    RED;
+    fun f() {
+        val enumValues = values()
+    }
+}
+object O {
+    fun equals(other: Int): Repo = Repo()
+    fun f() {
+        val objToString = toString()
+        val objThisEquals = this.equals("s")
+    }
+}
+open class Base {
+    fun load(): Other = Other()
+}
+class A {
+    companion object : Base()
+    fun f() {
+        val companionInherited = load()
+    }
+}
+"#;
+    for name in [
+        "anyToString",
+        "anyHash",
+        "dataCopy",
+        "dataComp",
+        "enumValues",
+        "objToString",
+        "objThisEquals",
+        "companionInherited",
+    ] {
+        assert_no_fact(source, name);
+    }
+}
+
+#[test]
+fn inherited_overloads_may_outrank_own_candidates_so_only_exact_zero_parameter_calls_record() {
+    let source = r#"
+class A
+class B
+open class Base {
+    fun load(): A = A()
+}
+class Sub : Base() {
+    fun load(x: Int = 0): B = B()
+    fun find(x: Int): B = B()
+    fun exact(): B = B()
+    fun f() {
+        val inheritThis = this.load()
+        val inheritBare = load()
+        val withArgs = find(1)
+        val zeroParam = exact()
+    }
+}
+object Registry : Base() {
+    fun make(x: Int): B = B()
+}
+fun run() {
+    val objectArgs = Registry.make(1)
+}
+"#;
+    assert_no_fact(source, "inheritThis");
+    assert_no_fact(source, "inheritBare");
+    assert_no_fact(source, "withArgs");
+    assert_no_fact(source, "objectArgs");
+    assert_inferred(source, "zeroParam", "B", "B");
+}
+
+#[test]
+fn return_type_with_a_type_parameter_argument_records_nothing() {
+    let source = r#"
+class Repo
+fun <T> gen(): List<T> = emptyList()
+fun <T> nested(): Map<String, List<T>> = emptyMap()
+class Tree<K, V> {
+    inner class Node<A, B>
+    fun find(): Node<K, V>? = null
+    fun run() {
+        val found = find()
+    }
+}
+fun run() {
+    val genV = gen<Repo>()
+    val nestedV = nested<Repo>()
+}
+"#;
+    assert_no_fact(source, "genV");
+    assert_no_fact(source, "nestedV");
+    assert_no_fact(source, "found");
+}
+
+#[test]
+fn constructor_call_needs_a_visible_class_and_no_same_named_function() {
+    let source = r#"
+class Outer {
+    class Node
+    class Leaf
+    fun inside() {
+        val nestedInside = Node()
+        val leaf = Leaf()
+    }
+}
+class Other
+class Repo
+fun Node(): Other = Other()
+fun Repo(id: Int): Other = Other()
+object Registry
+class Holder {
+    class Hidden
+}
+fun run() {
+    val hiddenCtor = Hidden()
+    val nestedCtor = Node()
+    val factory = Repo()
+    val objectInvoke = Registry()
+}
+"#;
+    assert_no_fact(source, "hiddenCtor");
+    assert_no_fact(source, "nestedCtor");
+    assert_no_fact(source, "factory");
+    assert_no_fact(source, "objectInvoke");
+    assert_no_fact(source, "nestedInside");
+    assert_inferred(source, "leaf", "Leaf", "Leaf");
+}

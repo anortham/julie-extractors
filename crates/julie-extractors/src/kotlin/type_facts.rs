@@ -126,16 +126,30 @@ struct StaticOwner {
     /// Node id of the node that declares the type; the name is visible below it.
     declared_in: usize,
     body: usize,
+    /// The object has a supertype, so inherited overloads may out-rank its own.
+    hidden_members: bool,
+}
+
+/// A parameter, local, or property whose name hides a same-named function or
+/// object: Kotlin calls the closer value through `invoke`.
+#[derive(Debug)]
+struct ValueEntry {
+    /// Node id of the node whose descendants see the value.
+    scope: usize,
+    /// A local is visible only after its declaration ends.
+    visible_from: usize,
 }
 
 /// Same-file facts that initializer inference reads, built once per file:
-/// class and object names, function return types, the objects and companions
-/// each type name reaches, and the names that explicit imports bring in.
+/// where each class is declared, function return types, the objects and
+/// companions each type name reaches, value names, and the names that
+/// explicit imports bring in.
 #[derive(Debug, Default)]
 pub(super) struct InitializerIndex {
-    type_names: HashSet<String>,
+    classes: HashMap<String, Vec<usize>>,
     functions: HashMap<String, Vec<ReturnEntry>>,
     static_owners: HashMap<String, Vec<StaticOwner>>,
+    values: HashMap<String, Vec<ValueEntry>>,
     imported: HashSet<String>,
 }
 
@@ -154,6 +168,9 @@ impl InitializerIndex {
                 "import" => index.imported.extend(imported_name(base, node)),
                 _ => {}
             }
+            if let Some((name, entry)) = value_entry(base, node) {
+                index.values.entry(name).or_default().push(entry);
+            }
             stack.extend(node.named_children(&mut node.walk()));
         }
         index
@@ -163,25 +180,26 @@ impl InitializerIndex {
         let Some((name, _)) = helpers::declared_name(base, &node) else {
             return;
         };
+        let Some(declared_in) = node.parent() else {
+            return;
+        };
         let owners = if node.kind() == "object_declaration" {
             vec![node]
         } else {
-            companion_objects(node)
-        };
-        if let Some(declared_in) = node.parent() {
-            let owners = owners
-                .into_iter()
-                .filter_map(body_id)
-                .map(|body| StaticOwner {
-                    declared_in: declared_in.id(),
-                    body,
-                });
-            self.static_owners
+            self.classes
                 .entry(name.clone())
                 .or_default()
-                .extend(owners);
-        }
-        self.type_names.insert(name);
+                .push(declared_in.id());
+            companion_objects(node)
+        };
+        let owners = owners.into_iter().filter_map(|owner| {
+            Some(StaticOwner {
+                declared_in: declared_in.id(),
+                body: body_id(owner)?,
+                hidden_members: has_hidden_members(base, owner),
+            })
+        });
+        self.static_owners.entry(name).or_default().extend(owners);
     }
 
     /// The type an initializer produces: a same-file class constructor, or a
@@ -221,18 +239,23 @@ impl InitializerIndex {
         match callee.kind() {
             "identifier" => {
                 let name = identifier_text(base, callee);
-                if self.type_names.contains(&name) {
-                    return Some(TypeShape {
+                if self.imported.contains(&name) || self.value_hides(&name, call) {
+                    return None;
+                }
+                if let Some(declared_in) = self.classes.get(&name) {
+                    let visible = std::iter::successors(call.parent(), Node::parent)
+                        .any(|node| declared_in.contains(&node.id()));
+                    return (visible && !self.functions.contains_key(&name)).then(|| TypeShape {
                         declared: name.clone(),
                         name,
                     });
                 }
-                if self.imported.contains(&name) {
+                let reach = bare_call_reach(base, call)?;
+                if reach.in_type && ANY_MEMBER_NAMES.contains(&name.as_str()) {
                     return None;
                 }
-                let containers = bare_call_containers(base, call)?;
-                self.agreed(&name, arg_count, |entry| {
-                    containers.contains(&entry.container)
+                self.agreed(&name, arg_count, reach.hidden_members, |entry| {
+                    reach.containers.contains(&entry.container)
                         && (!entry.local || entry.start_byte < call.start_byte())
                 })
             }
@@ -245,10 +268,15 @@ impl InitializerIndex {
                     return None;
                 }
                 let name = identifier_text(base, *member);
+                if ANY_MEMBER_NAMES.contains(&name.as_str()) {
+                    return None;
+                }
                 match receiver.kind() {
                     "this_expression" if receiver.named_child_count() == 0 => {
-                        let body = this_body(base, call)?;
-                        self.agreed(&name, arg_count, |entry| entry.container == body)
+                        let (body, hidden_members) = this_body(base, call)?;
+                        self.agreed(&name, arg_count, hidden_members, |entry| {
+                            entry.container == body
+                        })
                     }
                     "identifier" => self.static_call(base, *receiver, call, &name, arg_count),
                     _ => None,
@@ -267,26 +295,55 @@ impl InitializerIndex {
         arg_count: usize,
     ) -> Option<TypeShape> {
         let type_name = identifier_text(base, receiver);
-        if self.imported.contains(&type_name) {
+        if self.imported.contains(&type_name) || self.value_hides(&type_name, call) {
             return None;
         }
         let ancestors: HashSet<usize> = std::iter::successors(call.parent(), Node::parent)
             .map(|node| node.id())
             .collect();
-        let bodies: Vec<usize> = self
+        let owners: Vec<&StaticOwner> = self
             .static_owners
             .get(&type_name)?
             .iter()
             .filter(|owner| ancestors.contains(&owner.declared_in))
-            .map(|owner| owner.body)
             .collect();
-        self.agreed(name, arg_count, |entry| bodies.contains(&entry.container))
+        let hidden_members = owners.iter().any(|owner| owner.hidden_members);
+        self.agreed(name, arg_count, hidden_members, |entry| {
+            owners.iter().any(|owner| owner.body == entry.container)
+        })
     }
 
+    /// Whether a parameter, a local declared before `call`, or a property in
+    /// scope at `call` (its own class, an enclosing class, a companion of
+    /// either, or the file) has the name `name`.
+    fn value_hides(&self, name: &str, call: Node) -> bool {
+        let Some(values) = self.values.get(name) else {
+            return false;
+        };
+        std::iter::successors(call.parent(), Node::parent)
+            .flat_map(|node| {
+                let companions = match node.kind() {
+                    "class_declaration" => companion_objects(node),
+                    _ => Vec::new(),
+                };
+                std::iter::once(node.id()).chain(companions.into_iter().filter_map(body_id))
+            })
+            .any(|scope| {
+                values
+                    .iter()
+                    .any(|value| value.scope == scope && value.visible_from <= call.start_byte())
+            })
+    }
+
+    /// The shared shape of the same-named candidates `reaches` selects.
+    /// Behind `hidden_members` an unseen inherited or synthesized overload
+    /// may out-rank every candidate that takes arguments or has defaults, so
+    /// only a zero-argument call with an exact zero-parameter candidate is safe.
     fn agreed(
         &self,
         name: &str,
         arg_count: usize,
+        hidden_members: bool,
         reaches: impl Fn(&ReturnEntry) -> bool,
     ) -> Option<TypeShape> {
         let candidates: Vec<&ReturnEntry> = self
@@ -295,7 +352,15 @@ impl InitializerIndex {
             .iter()
             .filter(|entry| reaches(entry))
             .collect();
-        if !candidates.iter().any(|entry| entry.accepts(arg_count)) {
+        let applicable = if hidden_members {
+            arg_count == 0
+                && candidates
+                    .iter()
+                    .any(|entry| entry.required_args == 0 && entry.max_args == Some(0))
+        } else {
+            candidates.iter().any(|entry| entry.accepts(arg_count))
+        };
+        if !applicable {
             return None;
         }
         let first = candidates.first()?.shape.as_ref()?;
@@ -306,6 +371,9 @@ impl InitializerIndex {
     }
 }
 
+/// Members every class and object inherits from `Any`.
+const ANY_MEMBER_NAMES: [&str; 3] = ["toString", "hashCode", "equals"];
+
 const TYPE_SCOPE_KINDS: [&str; 5] = [
     "class_declaration",
     "object_declaration",
@@ -314,37 +382,62 @@ const TYPE_SCOPE_KINDS: [&str; 5] = [
     "enum_entry",
 ];
 
-/// The containers whose functions a bare call reaches: its enclosing blocks,
-/// class bodies and their companions, and the file, stopping after the first
-/// type with a supertype, whose inherited members hide outer functions.
+/// What a bare call reaches.
+struct BareCallReach {
+    /// Its enclosing blocks, class bodies and their companions, and the file,
+    /// up to and including the first type with hidden members.
+    containers: HashSet<usize>,
+    /// The walk stopped at a type with inherited or synthesized members.
+    hidden_members: bool,
+    /// The call sits inside a class or object body, so `Any` members apply.
+    in_type: bool,
+}
+
 /// `None` inside a lambda or an extension, whose implicit receiver may
 /// declare a function of the same name.
-fn bare_call_containers(base: &BaseExtractor, call: Node) -> Option<HashSet<usize>> {
-    let mut containers = HashSet::new();
+fn bare_call_reach(base: &BaseExtractor, call: Node) -> Option<BareCallReach> {
+    let mut reach = BareCallReach {
+        containers: HashSet::new(),
+        hidden_members: false,
+        in_type: false,
+    };
     for node in std::iter::successors(call.parent(), Node::parent) {
         if changes_implicit_receiver(base, node) {
             return None;
         }
-        containers.insert(node.id());
-        if node.kind() == "class_declaration" {
-            containers.extend(companion_objects(node).into_iter().filter_map(body_id));
+        reach.containers.insert(node.id());
+        if !TYPE_SCOPE_KINDS.contains(&node.kind()) {
+            continue;
         }
-        if TYPE_SCOPE_KINDS.contains(&node.kind()) && has_supertype(node) {
+        reach.in_type = true;
+        let companions = match node.kind() {
+            "class_declaration" => companion_objects(node),
+            _ => Vec::new(),
+        };
+        reach.hidden_members = has_hidden_members(base, node)
+            || companions
+                .iter()
+                .any(|companion| has_hidden_members(base, *companion));
+        reach
+            .containers
+            .extend(companions.into_iter().filter_map(body_id));
+        if reach.hidden_members {
             break;
         }
     }
-    Some(containers)
+    Some(reach)
 }
 
-/// The class body `this` names at `call`; `None` inside a lambda or an
-/// extension, where `this` may name another receiver.
-fn this_body(base: &BaseExtractor, call: Node) -> Option<usize> {
+/// The class body `this` names at `call` and whether that type has hidden
+/// members; `None` inside a lambda or an extension, where `this` may name
+/// another receiver.
+fn this_body(base: &BaseExtractor, call: Node) -> Option<(usize, bool)> {
     for node in std::iter::successors(call.parent(), Node::parent) {
         if changes_implicit_receiver(base, node) {
             return None;
         }
         if TYPE_SCOPE_KINDS.contains(&node.kind()) {
-            return body_id(node);
+            return Some((body_id(node)?, has_hidden_members(base, node)));
         }
     }
     None
@@ -360,11 +453,19 @@ fn changes_implicit_receiver(base: &BaseExtractor, node: Node) -> bool {
     }
 }
 
-fn has_supertype(node: Node) -> bool {
+/// Whether a type has members its body does not declare beyond `Any`'s: a
+/// supertype, an enum entry or enum class, or a data class.
+fn has_hidden_members(base: &BaseExtractor, node: Node) -> bool {
     node.kind() == "enum_entry"
         || node
             .children(&mut node.walk())
-            .any(|child| child.kind() == "delegation_specifiers")
+            .any(|child| match child.kind() {
+                "delegation_specifiers" | "enum_class_body" => true,
+                "modifiers" => child.named_children(&mut child.walk()).any(|modifier| {
+                    modifier.kind() == "class_modifier" && base.get_node_text(&modifier) == "data"
+                }),
+                _ => false,
+            })
 }
 
 fn companion_objects(class: Node) -> Vec<Node> {
@@ -430,13 +531,14 @@ fn return_entry(base: &BaseExtractor, function: Node) -> Option<(String, ReturnE
     let container = function.parent()?;
     let generics = visible_type_parameters(base, function);
     let (required_args, max_args) = parameter_arity(base, function);
-    let shape = helpers::return_type_node(function).and_then(|return_type| {
-        let name = base_type_name(base, return_type)?;
-        (!generics.contains(&name)).then(|| TypeShape {
-            name,
-            declared: base.get_node_text(&return_type),
-        })
-    });
+    let shape = helpers::return_type_node(function)
+        .filter(|return_type| !mentions_type_parameter(base, *return_type, &generics))
+        .and_then(|return_type| {
+            Some(TypeShape {
+                name: base_type_name(base, return_type)?,
+                declared: base.get_node_text(&return_type),
+            })
+        });
     let entry = ReturnEntry {
         container: container.id(),
         local: !matches!(
@@ -449,6 +551,78 @@ fn return_entry(base: &BaseExtractor, function: Node) -> Option<(String, ReturnE
         shape,
     };
     Some((name, entry))
+}
+
+/// Whether a type names a type parameter at any depth: `T`, `List<T>`,
+/// `Map<K, List<V>>`. The caller's type arguments are unknown, so such a
+/// return records nothing.
+fn mentions_type_parameter(base: &BaseExtractor, type_node: Node, generics: &[String]) -> bool {
+    if generics.is_empty() {
+        return false;
+    }
+    let mut stack = vec![(type_node, 0)];
+    while let Some((node, depth)) = stack.pop() {
+        if node.kind() == "identifier" && generics.contains(&identifier_text(base, node)) {
+            return true;
+        }
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return true;
+        };
+        stack.extend(
+            node.named_children(&mut node.walk())
+                .map(|child| (child, child_depth)),
+        );
+    }
+    false
+}
+
+/// A value name and its scope: a function, constructor, or setter parameter,
+/// a property or local, a `for` or `when` subject variable, or a caught
+/// exception.
+fn value_entry(base: &BaseExtractor, node: Node) -> Option<(String, ValueEntry)> {
+    let parent = node.parent()?;
+    let (name_node, scope, visible_from) = match node.kind() {
+        "variable_declaration" => {
+            let holder = if parent.kind() == "multi_variable_declaration" {
+                parent.parent()?
+            } else {
+                parent
+            };
+            let name = first_identifier(node)?;
+            match holder.kind() {
+                "property_declaration" => {
+                    let scope = holder.parent()?;
+                    let member = matches!(
+                        scope.kind(),
+                        "source_file" | "class_body" | "enum_class_body"
+                    );
+                    (name, scope, if member { 0 } else { holder.end_byte() })
+                }
+                "when_subject" | "lambda_parameters" => (name, holder.parent()?, 0),
+                _ => (name, holder, 0),
+            }
+        }
+        "parameter" => (first_identifier(node)?, parent.parent()?, 0),
+        "class_parameter" => {
+            let class = std::iter::successors(Some(parent), Node::parent)
+                .find(|ancestor| ancestor.kind() == "class_declaration")?;
+            (first_identifier(node)?, class, 0)
+        }
+        "catch_block" | "setter" => (first_identifier(node)?, node, 0),
+        _ => return None,
+    };
+    Some((
+        identifier_text(base, name_node),
+        ValueEntry {
+            scope: scope.id(),
+            visible_from,
+        },
+    ))
+}
+
+fn first_identifier(node: Node) -> Option<Node> {
+    node.named_children(&mut node.walk())
+        .find(|child| child.kind() == "identifier")
 }
 
 /// Type parameter names of the function and of every enclosing function and class.
