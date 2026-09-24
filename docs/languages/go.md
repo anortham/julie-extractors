@@ -141,8 +141,8 @@ an enclosing test symbol remain unclassified.
     parameter, or local type (`type s = Other`);
   - a function name (including the `new` builtin) or composite literal type
     name that the enclosing top-level declaration declares again (a local
-    `load := func() ...`, a `load` parameter, a local
-    `type Server struct{...}`, or a type parameter such as `load` in
+    `load := func() ...` or `load := []func() ...` called as `load[0]()`, a
+    `load` parameter, a local `type Server struct{...}`, or a type parameter such as `load` in
     `func Conv[load ~int]` or `func (n *Num[load]) ...`);
   - a method that the receiver type gets from an embedded field
     (`w.cfg()` where `cfg` is declared on the embedded `Base`);

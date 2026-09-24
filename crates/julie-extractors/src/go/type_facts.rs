@@ -95,6 +95,9 @@ pub(super) fn record_inferred_value_type(
         "generic_type" => function
             .child_by_field_name("type")
             .filter(|name| name.kind() == "type_identifier"),
+        "index_expression" => function
+            .child_by_field_name("operand")
+            .filter(|name| name.kind() == "identifier"),
         _ => None,
     }
     .map(|name| base.get_node_text(&name))
@@ -105,7 +108,7 @@ pub(super) fn record_inferred_value_type(
         return;
     }
     let candidates = match function.kind() {
-        "identifier" | "generic_type" => {
+        "identifier" | "generic_type" | "index_expression" => {
             callee_name.and_then(|name| result_types.functions.get(&name))
         }
         "selector_expression" => method_owner(base, function, result_types).and_then(|owner| {

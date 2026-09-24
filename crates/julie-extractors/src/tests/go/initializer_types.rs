@@ -466,3 +466,44 @@ func (b Base) Run() { direct := b.cfg() }
     assert_eq!(inferred_type(source, "promoted"), None);
     assert_eq!(inferred_type(source, "direct"), typed("Other", "*Other"));
 }
+
+const INSTANTIATED: &str = r#"
+package main
+
+type Set[T comparable] struct{}
+type Config struct{}
+type Other struct{}
+
+func NewSet[T comparable](xs ...T) *Set[T] { return nil }
+func Cfg[T any]() Config { return Config{} }
+func PConf[T any]() *Config { return nil }
+func load() *Config { return nil }
+"#;
+
+#[test]
+fn no_argument_call_with_one_type_argument_records_the_result_type() {
+    let source = format!(
+        "{INSTANTIATED}\nfunc Use() {{\n    set := NewSet[string]()\n    var spec = NewSet[string]()\n    cfg := Cfg[int]()\n    pconf := PConf[int]()\n}}\n"
+    );
+    assert_eq!(inferred_type(&source, "set"), typed("Set", ""));
+    assert_eq!(inferred_type(&source, "spec"), typed("Set", ""));
+    assert_eq!(inferred_type(&source, "cfg"), typed("Config", ""));
+    assert_eq!(inferred_type(&source, "pconf"), typed("Config", "*Config"));
+}
+
+#[test]
+fn indexed_call_on_a_local_that_hides_a_function_records_nothing() {
+    let source = format!(
+        "{INSTANTIATED}\nfunc Use() {{\n    load := []func() *Other{{nil}}\n    hidden := load[0]()\n}}\n\nfunc Param(Cfg map[int]func() *Other) {{\n    param := Cfg[1]()\n}}\n"
+    );
+    assert_eq!(inferred_type(&source, "hidden"), None);
+    assert_eq!(inferred_type(&source, "param"), None);
+}
+
+#[test]
+fn indexed_call_on_a_non_function_records_nothing() {
+    let source = format!(
+        "{INSTANTIATED}\nvar loaders = []func() *Other{{nil}}\n\nfunc Use() {{\n    loaded := loaders[0]()\n}}\n"
+    );
+    assert_eq!(inferred_type(&source, "loaded"), None);
+}
