@@ -823,3 +823,162 @@ run() ->
     no_fact(&extractor, &symbols, "N", SymbolKind::Variable);
     assert_eq!(inferred_type(&extractor, &symbols, "S"), "state");
 }
+
+#[test]
+fn variable_bound_by_any_other_pattern_in_the_function_records_nothing() {
+    let source = r#"
+-module(bank).
+-record(state, {c}).
+
+-spec load() -> #state{}.
+load() -> #state{}.
+
+a(x) -> S = load(), S;
+a(y) -> {error, S} = other:get(), S.
+b(x) -> S = load(), S;
+b(y) -> [S | _] = other:get(), S.
+c(x) -> S = load(), S;
+c(y) -> case other:get() of S -> S end.
+d(x) -> S = load(), S;
+d(y) -> receive S -> S end.
+e(x) -> S = load(), S;
+e(y) -> try other:get() catch _:S -> S end.
+f(x) -> S = load(), S;
+f(y) -> [S || S <- other:get()].
+g(x) -> S = load(), S;
+g(y) -> {ok, S, _} = other:get(), S.
+h(x) -> S = load(), S;
+h(y) -> #{k := S} = other:get(), S.
+i(x) -> S = load(), S;
+i(y) -> F = fun(S) -> S end, F(1).
+j(x) -> S = load(), S;
+j(y) -> #state{c = S} = load(), S.
+k(x) -> S = load(), S;
+k(y) -> maybe {error, S} ?= other:get(), S end.
+kept(x) -> Kept = load(), Kept;
+kept(y) -> {error, R} = other:get(), R.
+"#;
+    let (symbols, extractor) = extract(source);
+    let locals = variables_named(&symbols, "S");
+    assert_eq!(locals.len(), 11);
+    for local in locals {
+        assert!(
+            !extractor.base.type_info.contains_key(&local.id),
+            "unexpected type fact for S in {:?}",
+            local.parent_id
+        );
+    }
+    assert_eq!(inferred_type(&extractor, &symbols, "Kept"), "state");
+}
+
+#[test]
+fn maybe_conditional_match_binds_like_a_match() {
+    let source = r#"
+-module(bank).
+-record(state, {c}).
+
+-spec open() -> {ok, #state{}} | {error, term()}.
+open() -> {ok, #state{}}.
+
+-spec load() -> #state{}.
+load() -> #state{}.
+
+-spec named() -> {ok, a()} | result().
+named() -> ok.
+
+run() ->
+    maybe
+        {ok, A} ?= open(),
+        B ?= load(),
+        C = load(),
+        {ok, N} ?= named(),
+        {ok, R} ?= other:open(),
+        {A, B, C, N, R}
+    end.
+"#;
+    let (symbols, extractor) = extract(source);
+    assert_eq!(inferred_type(&extractor, &symbols, "A"), "state");
+    assert_eq!(inferred_type(&extractor, &symbols, "B"), "state");
+    assert_eq!(inferred_type(&extractor, &symbols, "C"), "state");
+    no_fact(&extractor, &symbols, "N", SymbolKind::Variable);
+    no_fact(&extractor, &symbols, "R", SymbolKind::Variable);
+}
+
+#[test]
+fn parenthesized_and_block_values_take_the_call_type() {
+    let source = r#"
+-module(bank).
+-record(state, {c}).
+
+-spec load() -> #state{}.
+load() -> #state{}.
+
+-spec open() -> {ok, #state{}} | {error, term()}.
+open() -> {ok, #state{}}.
+
+run() ->
+    U = (load()),
+    V = begin log(), load() end,
+    {ok, K} = (open()),
+    {ok, L} = begin open() end,
+    W = begin load(), other:get() end,
+    {U, V, K, L, W}.
+"#;
+    let (symbols, extractor) = extract(source);
+    for name in ["U", "V", "K", "L"] {
+        assert_eq!(inferred_type(&extractor, &symbols, name), "state", "{name}");
+    }
+    no_fact(&extractor, &symbols, "W", SymbolKind::Variable);
+}
+
+#[test]
+fn named_list_and_map_types_record_their_base_name_but_literal_syntax_does_not() {
+    let source = r#"
+-module(bank).
+
+-spec l1() -> list(integer()).
+l1() -> [].
+
+-spec l2() -> nonempty_list(integer()).
+l2() -> [1].
+
+-spec m1() -> map().
+m1() -> #{}.
+
+-spec l3() -> [integer()].
+l3() -> [].
+
+-spec m2() -> #{atom() => integer()}.
+m2() -> #{}.
+
+run() ->
+    A = l1(),
+    B = l2(),
+    C = m1(),
+    D = l3(),
+    E = m2(),
+    {A, B, C, D, E}.
+"#;
+    let (symbols, extractor) = extract(source);
+    assert_eq!(inferred_type(&extractor, &symbols, "A"), "list");
+    assert_eq!(inferred_type(&extractor, &symbols, "B"), "nonempty_list");
+    assert_eq!(inferred_type(&extractor, &symbols, "C"), "map");
+    no_fact(&extractor, &symbols, "D", SymbolKind::Variable);
+    no_fact(&extractor, &symbols, "E", SymbolKind::Variable);
+}
+
+#[test]
+fn record_match_inside_another_pattern_keeps_the_record_type() {
+    let source = r#"
+-module(bank).
+-record(state, {c}).
+
+run(x) -> S = #state{c = 1}, S;
+run(y) -> case other:get() of S = #state{} -> S end.
+wrap(x) -> W = #state{c = 1}, W;
+wrap(y) -> {ok, #state{} = W} = other:get(), W.
+"#;
+    let (symbols, extractor) = extract(source);
+    assert_eq!(inferred_type(&extractor, &symbols, "S"), "state");
+    assert_eq!(inferred_type(&extractor, &symbols, "W"), "state");
+}

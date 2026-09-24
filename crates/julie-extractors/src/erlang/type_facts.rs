@@ -1,16 +1,21 @@
 //! Type facts for Erlang variables.
 //!
 //! Head record patterns (`#foo{} = X`) are syntax-stated. A body match
-//! `X = Value` records an inferred fact when `Value` is a record literal or
-//! record update (`Old#foo{..}`) of a same-file `-record`, or a call to a same-file function whose `-spec`
-//! clauses all return one base type: `load()`, `?MODULE:load()`, or
-//! `this_module:load()`. `X = Y = Value` gives both variables that type.
-//! `{ok, X} = load()` binds `X` and gives it `T` when every `{ok, T}`
+//! `X = Value` or `X ?= Value` records an inferred fact when `Value` is a
+//! record literal or record update (`Old#foo{..}`) of a same-file `-record`,
+//! or a call to a same-file function whose `-spec` clauses all return one
+//! base type: `load()`, `?MODULE:load()`, or `this_module:load()`. Parentheses
+//! and `begin .. end` pass the value of their last expression through.
+//! `X = Y = Value` gives both variables that type. `{ok, X} = load()` and
+//! `{ok, X} ?= load()` bind `X` and give it `T` when every `{ok, T}`
 //! alternative of the spec agrees and no other alternative can match. A
 //! variable bound by several matches in one function keeps a fact only when
-//! every match gives it the same type. Calls to other modules, funs, macros,
-//! `catch`, atom literals, `no_return()`, and type-variable, union, tuple, or
-//! list returns record nothing.
+//! every match gives it the same type, and no other pattern in the function
+//! (a match of another shape, a `case`, `receive`, `try`, or `catch` clause, a
+//! generator, or a fun head) binds it, unless a record match inside that
+//! pattern types it. Calls to other modules, funs, macros,
+//! `catch`, atom literals, `no_return()`, and type-variable, union, tuple,
+//! `[t()]`, or `#{..}` returns record nothing.
 
 use std::collections::{HashMap, HashSet};
 
@@ -109,11 +114,9 @@ impl InitializerScope {
                     name,
                 }),
             "call" | "remote" => self.call_return(extractor, value)?.value.clone(),
-            "match_expr" => self.value_type(
-                extractor,
-                value.child_by_field_name("rhs")?,
-                child_tree_depth(depth)?,
-            ),
+            "match_expr" | "paren_expr" | "block_expr" => {
+                self.value_type(extractor, result_expr(value)?, child_tree_depth(depth)?)
+            }
             _ => None,
         }
     }
@@ -129,11 +132,9 @@ impl InitializerScope {
             return None;
         }
         match value.kind() {
-            "match_expr" => self.ok_payload_type(
-                extractor,
-                value.child_by_field_name("rhs")?,
-                child_tree_depth(depth)?,
-            ),
+            "match_expr" | "paren_expr" | "block_expr" => {
+                self.ok_payload_type(extractor, result_expr(value)?, child_tree_depth(depth)?)
+            }
             _ => self.call_return(extractor, value)?.ok_payload.clone(),
         }
     }
@@ -176,11 +177,68 @@ impl InitializerScope {
     }
 }
 
-/// One variable bound by `Var = Value` or `{ok, Var} = Value` matches in a
-/// function body: its first binding site and the type every match agrees on.
+/// The expression whose value `Y = V`, `(V)`, and `begin .., V end` return.
+fn result_expr(node: Node) -> Option<Node> {
+    let field = match node.kind() {
+        "match_expr" => "rhs",
+        "paren_expr" => "expr",
+        _ => "exprs",
+    };
+    let mut cursor = node.walk();
+    node.children_by_field_name(field, &mut cursor).last()
+}
+
+/// One variable bound by `Var = Value`, `Var ?= Value`, or `{ok, Var} = Value`
+/// matches in a function body: its first binding site and the type every
+/// match agrees on.
 struct Binding<'tree> {
+    name: String,
     var: Node<'tree>,
     value_type: Option<DeclaredType>,
+}
+
+/// Every binding a function body makes. Erlang emits one symbol per variable
+/// name per function, so a name that any other pattern also binds keeps no
+/// type.
+#[derive(Default)]
+struct BodyBindings<'tree> {
+    tracked: Vec<Binding<'tree>>,
+    by_name: HashMap<String, usize>,
+    untracked: HashSet<String>,
+}
+
+impl<'tree> BodyBindings<'tree> {
+    fn track(&mut self, name: String, var: Node<'tree>, value_type: Option<DeclaredType>) {
+        match self.by_name.get(&name) {
+            Some(&index) => {
+                let binding = &mut self.tracked[index];
+                if binding.value_type != value_type {
+                    binding.value_type = None;
+                }
+            }
+            None => {
+                self.by_name.insert(name.clone(), self.tracked.len());
+                self.tracked.push(Binding {
+                    name,
+                    var,
+                    value_type,
+                });
+            }
+        }
+    }
+
+    fn into_bindings(self) -> Vec<Binding<'tree>> {
+        let untracked = self.untracked;
+        self.tracked
+            .into_iter()
+            .map(|mut binding| {
+                if untracked.contains(&binding.name) {
+                    binding.value_type = None;
+                }
+                binding
+            })
+            .collect()
+    }
 }
 
 pub(super) fn extract_body_locals(
@@ -190,8 +248,7 @@ pub(super) fn extract_body_locals(
     scope: &InitializerScope,
     seen: &mut HashSet<String>,
 ) -> Vec<Symbol> {
-    let mut bindings = Vec::new();
-    let mut by_name = HashMap::new();
+    let mut bindings = BodyBindings::default();
     for declaration in clauses {
         let Some(clause) = super::helpers::find_child_by_type(declaration, "function_clause")
         else {
@@ -200,52 +257,101 @@ pub(super) fn extract_body_locals(
         let Some(body) = clause.child_by_field_name("body") else {
             continue;
         };
-        walk_body(extractor, body, scope, &mut bindings, &mut by_name, 0);
+        walk_body(extractor, body, scope, &mut bindings, 0);
     }
     bindings
+        .into_bindings()
         .into_iter()
         .filter_map(|binding| emit_local(extractor, binding, callable_id, seen))
         .collect()
+}
+
+/// The fields of a node of this kind that hold patterns. A pattern binds
+/// every variable in it that is not bound yet.
+fn pattern_fields(kind: &str) -> &'static [&'static str] {
+    match kind {
+        "match_expr" | "cond_match_expr" | "generator" | "b_generator" | "map_generator" => {
+            &["lhs"]
+        }
+        "cr_clause" => &["pat"],
+        "catch_clause" => &["class", "pat", "stack"],
+        "fun_clause" => &["name", "args"],
+        _ => &[],
+    }
 }
 
 fn walk_body<'tree>(
     extractor: &ErlangExtractor,
     node: Node<'tree>,
     scope: &InitializerScope,
-    bindings: &mut Vec<Binding<'tree>>,
-    by_name: &mut HashMap<String, usize>,
+    bindings: &mut BodyBindings<'tree>,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
         return;
     }
 
-    if node.kind() == "match_expr"
-        && let Some((var, value_type)) = match_binding(extractor, node, scope, depth)
-    {
-        let name = extractor.base.get_node_text(&var);
-        match by_name.get(&name) {
-            Some(&index) => {
-                let binding: &mut Binding = &mut bindings[index];
-                if binding.value_type != value_type {
-                    binding.value_type = None;
-                }
-            }
-            None => {
-                by_name.insert(name, bindings.len());
-                bindings.push(Binding { var, value_type });
-            }
+    let tracked = matches!(node.kind(), "match_expr" | "cond_match_expr")
+        .then(|| match_binding(extractor, node, scope, depth))
+        .flatten();
+    let tracked_var = tracked.as_ref().map(|(var, _)| var.id());
+    for field in pattern_fields(node.kind()) {
+        let mut cursor = node.walk();
+        for pattern in node.children_by_field_name(field, &mut cursor) {
+            mark_untracked(extractor, scope, pattern, tracked_var, bindings, depth);
         }
+    }
+    if let Some((var, value_type)) = tracked {
+        bindings.track(extractor.base.get_node_text(&var), var, value_type);
     }
 
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
     for child in named_children(&node) {
-        walk_body(extractor, child, scope, bindings, by_name, child_depth);
+        walk_body(extractor, child, scope, bindings, child_depth);
     }
 }
 
+/// Record every variable in `pattern` as bound to a value of unknown type,
+/// except the tracked one and one that a nested match in the pattern types
+/// (`Session = #stream{}` in a `case` clause).
+fn mark_untracked(
+    extractor: &ErlangExtractor,
+    scope: &InitializerScope,
+    pattern: Node,
+    tracked_var: Option<usize>,
+    bindings: &mut BodyBindings,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    if pattern.kind() == "var" {
+        if Some(pattern.id()) != tracked_var {
+            bindings
+                .untracked
+                .insert(extractor.base.get_node_text(&pattern));
+        }
+        return;
+    }
+    let tracked_var = if pattern.kind() == "match_expr"
+        && let Some((var, Some(_))) = match_binding(extractor, pattern, scope, depth)
+    {
+        Some(var.id())
+    } else {
+        tracked_var
+    };
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    for child in named_children(&pattern) {
+        mark_untracked(extractor, scope, child, tracked_var, bindings, child_depth);
+    }
+}
+
+/// The variable a `match_expr` or `cond_match_expr` binds with a type this
+/// walk can state, and that type.
 fn match_binding<'tree>(
     extractor: &ErlangExtractor,
     node: Node<'tree>,
@@ -285,7 +391,7 @@ fn emit_local(
     callable_id: &str,
     seen: &mut HashSet<String>,
 ) -> Option<Symbol> {
-    let name = extractor.base.get_node_text(&binding.var);
+    let name = binding.name;
     if name.is_empty() || name == "_" || !seen.insert(name.clone()) {
         return None;
     }

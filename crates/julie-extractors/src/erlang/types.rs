@@ -8,8 +8,10 @@
 //! independently and produces only type facts.
 //!
 //! Only the declared base type name is recorded; nothing is inferred from
-//! function bodies. A declared shape with no single base name (list, tuple,
-//! union, fun, range, map, binary, type variable) records nothing.
+//! function bodies. A declared shape with no single base name (`[t()]`,
+//! tuple, union, fun, range, `#{..}`, binary, type variable) records nothing.
+//! The named types `list(t())`, `nonempty_list(t())`, and `map()` record
+//! their base name.
 
 use std::collections::HashMap;
 
