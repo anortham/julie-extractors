@@ -1,6 +1,7 @@
 mod complexity;
 mod cross_file_pending;
 mod identifiers;
+mod initializer_types;
 mod literals;
 mod structural_facts;
 mod test_detection; // describe→test_container + setup/setup_all lifecycle

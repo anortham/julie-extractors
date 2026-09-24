@@ -9,7 +9,6 @@ use super::helpers;
 use super::parameters;
 use super::test_calls;
 use super::type_facts;
-use super::types_inference;
 use crate::base::TestRole;
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations};
 use crate::test_detection::{apply_callable_test_metadata, apply_test_role};
@@ -274,22 +273,18 @@ fn extract_defmacro(
     Some((symbol, false))
 }
 
-/// Give a definition the return type of the `@spec` with its module, name,
-/// and full arity.
+/// Queue a definition for the `@spec` with its module, name, and full arity.
+/// The match waits for the end of the file because a spec may follow the
+/// definition it describes.
 fn record_spec_type(extractor: &mut ElixirExtractor, node: &Node, symbol: &Symbol) {
     let arity = helpers::definition_arity(&extractor.base, node).1;
     let key = (
-        extractor.module_stack.last().cloned(),
+        type_facts::module_scope(&extractor.base, node),
+        type_facts::quote_scope(&extractor.base, node),
         symbol.name.clone(),
         arity,
     );
-    if let Some(base_type) = extractor
-        .specs
-        .get(&key)
-        .and_then(|return_type| types_inference::spec_base_type_name(return_type))
-    {
-        extractor.spec_types.insert(symbol.id.clone(), base_type);
-    }
+    extractor.spec_definitions.push((symbol.id.clone(), key));
 }
 
 fn extract_callable_bindings(

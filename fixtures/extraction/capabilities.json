@@ -5060,6 +5060,11 @@
           "name": "language_forms",
           "source": "fixtures/extraction/elixir/language_forms/source.ex",
           "expected": "fixtures/extraction/elixir/language_forms/expected.json"
+        },
+        {
+          "name": "call_initializers",
+          "source": "fixtures/extraction/elixir/call_initializers/source.ex",
+          "expected": "fixtures/extraction/elixir/call_initializers/expected.json"
         }
       ],
       "target_capabilities": {

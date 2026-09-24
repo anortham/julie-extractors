@@ -435,6 +435,15 @@ pub(super) fn definition_head_argument<'a>(
     find_child_by_type(node, "arguments")?.named_child(0)
 }
 
+/// The named children of an `arguments` node without comments, which the
+/// grammar places among the arguments.
+pub(super) fn argument_nodes<'a>(args: &Node<'a>) -> Vec<Node<'a>> {
+    let mut cursor = args.walk();
+    args.named_children(&mut cursor)
+        .filter(|child| !child.is_extra())
+        .collect()
+}
+
 /// Arity range of a definition node: defaults (`\\`) make parameters optional.
 pub(super) fn definition_arity(base: &BaseExtractor, node: &Node) -> (usize, usize) {
     let Some(mut head) = definition_head_argument(base, node) else {
@@ -448,8 +457,7 @@ pub(super) fn definition_arity(base: &BaseExtractor, node: &Node) -> (usize, usi
     let Some(args) = find_child_by_type(&head, "arguments") else {
         return (0, 0);
     };
-    let mut cursor = args.walk();
-    let params: Vec<Node> = args.named_children(&mut cursor).collect();
+    let params = argument_nodes(&args);
     let defaults = params
         .iter()
         .filter(|param| {
