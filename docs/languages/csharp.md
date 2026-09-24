@@ -161,12 +161,29 @@ of any other class publish no role. See the
   A simple name finds an in-scope local function, then the innermost enclosing
   type that declares the name. The search stops at a type with a base list or
   `partial`, which may get members from another file. Overloads that accept
-  the argument count must agree. `await` removes one `Task<T>` or
+  the argument count must agree. A call with explicit type arguments matches
+  only methods with that many type parameters, and a call with no arguments
+  and no type arguments skips generic methods. `await` removes one `Task<T>` or
   `ValueTask<T>` layer, also through `.ConfigureAwait(..)`. `!` and
   parentheses keep the type. A type-parameter return, a tuple or `void`
   return, a call on any other receiver, a chained call, or a callee in another
   file records no fact. Razor applies the same rule to `@code` and `@{ }`
   blocks, and `@typeparam` names count as type parameters.
+- The receiver of a static `Type.Create()` binds the way C# name lookup does.
+  A type nested directly in an enclosing type wins, innermost first. Then a
+  top-level type of the call's namespace, of each outer namespace, and of the
+  global namespace. The receiver's type argument count must match. The first
+  scope with a same-named type decides, so a nested type without `Create`
+  records no fact. A type nested in some other type, a type in an unrelated
+  namespace, a type reached only through `using`, and a receiver named like a
+  type parameter record no fact.
+- A type with a base list or `partial` may get an overload from a base type or
+  another part, in this file or another one. Its methods count only for a call
+  with no arguments to candidates with no parameters. There, a derived-type
+  method removes every base method, and a parameterless method beats one with
+  optional or `params` parameters. Otherwise the call records no fact. This
+  holds for a simple name, a `this.` call, and a static call. In Razor it holds
+  for every method of the file class.
 - A binding with the callee's name hides the method, so the call records no
   fact. The binding can be a local, a parameter, a lambda parameter, a
   `foreach`, pattern, catch, or query variable, a Razor `@inject` or
@@ -183,17 +200,16 @@ of any other class publish no role. See the
 - The declared text of an inferred fact is the callee's written return type.
   It can name the callee's type parameters (`List<T>` for `Gen<int>.Empty()`).
   The resolved base type is exact. The Rust rule does the same.
-- Open gap: overloads in another file. The extractor has no argument types,
-  so it filters overloads by argument count only. A base class, another
-  `partial` part, or a Razor `.razor.cs` code-behind can declare an overload
-  with the same argument count and a different return type. When the argument
-  types fit only that overload, the fact is wrong. A base class or another
-  part in a different file can also declare a field or property with the
-  callee's or the receiver's name, which the rule cannot see. A spot check
-  of 60 corpus facts found no such case. Closure: check the argument types
-  (literals, written-type locals, parameters) against the parameter types,
-  and record nothing for a type with a base list or `partial` when an
-  argument type is unknown. The closure task belongs to the brief
+- Open gap: bindings in another file. A base type or another `partial` part
+  in a different file can declare a field or property with the callee's or
+  the receiver's name, or a nested type with the receiver's name. A type in a
+  closer namespace in another file can also hide a same-file receiver type.
+  The rule cannot see these, and the fact can then be wrong. A spot check of
+  60 corpus facts found no such case. Closure: record no fact when a type
+  with a base list or `partial` lies on the lookup path of the callee or
+  receiver name, or when the call is in a namespace other than the receiver
+  type's. That drops most facts in derived types, so the closure task weighs
+  it against the corpus loss. The closure task belongs to the brief
   `.memories/briefs/infer-local-types-from-call-initializers-in-every-.md`.
 - The innermost member owns a reference site: a property, indexer, or event
   accessor body owns its calls, identifiers, and complexity metric.

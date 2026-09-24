@@ -146,3 +146,15 @@ fn markup_bindings_named_like_the_method_record_nothing() {
     let control = "@{ var widget = Load(); }\n@code { int Load() => 1; }\n";
     assert_eq!(inferred(control, "widget").as_deref(), Some("int"));
 }
+
+#[test]
+fn code_block_call_with_arguments_records_nothing() {
+    let source = r#"
+@code {
+    Widget Load(int id) => null;
+    void Run() { var widget = Load(1); var self = this.Load(1); }
+}
+"#;
+    assert_eq!(inferred(source, "widget"), None);
+    assert_eq!(inferred(source, "self"), None);
+}

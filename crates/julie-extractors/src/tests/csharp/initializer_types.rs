@@ -591,3 +591,154 @@ class Plain { void M() { var control = Stat.Create(); } }
     }
     assert_eq!(resolved(source, "control").as_deref(), Some("int"));
 }
+
+#[test]
+fn static_call_on_a_type_nested_in_another_type_records_nothing() {
+    let source = r#"
+class Outer { static class Helpers { public static int Make() => 1; } }
+class Other { void M() { var n2 = Helpers.Make(); } }
+"#;
+    assert_eq!(inferred(source, "n2"), None);
+}
+
+#[test]
+fn static_call_receiver_bound_to_a_nested_type_without_the_method_records_nothing() {
+    let source = r#"
+class Maker { public static int Make() => 1; }
+class Svc {
+  class Maker : Lib.MakerBase { }
+  void M() { var m4 = Maker.Make(); }
+}
+"#;
+    assert_eq!(inferred(source, "m4"), None);
+}
+
+#[test]
+fn static_call_on_a_type_in_an_unrelated_namespace_records_nothing() {
+    let source = r#"
+namespace A { static class Factory { public static int Create() => 1; } }
+namespace B { class User { void M() { var n1 = Factory.Create(); } } }
+"#;
+    assert_eq!(inferred(source, "n1"), None);
+}
+
+#[test]
+fn static_call_resolves_through_nesting_and_namespace_scopes() {
+    let source = r#"
+namespace A {
+  static class Factory { public static Widget Create() => null; }
+  namespace B {
+    static class Factory { public static Gadget Create() => null; }
+    class User { void M() { var inner = Factory.Create(); } }
+  }
+  class Svc {
+    static class Factory { public static Part Create() => null; }
+    void M() { var nested = Factory.Create(); }
+  }
+  class Plain { void M() { var outer = Factory.Create(); } }
+}
+static class Registry { public static Widget Open() => null; }
+namespace C.D { class User { void M() { var global = Registry.Open(); } } }
+"#;
+    assert_eq!(resolved(source, "inner").as_deref(), Some("Gadget"));
+    assert_eq!(resolved(source, "nested").as_deref(), Some("Part"));
+    assert_eq!(resolved(source, "outer").as_deref(), Some("Widget"));
+    assert_eq!(resolved(source, "global").as_deref(), Some("Widget"));
+}
+
+#[test]
+fn static_call_sees_types_of_a_file_scoped_namespace() {
+    let source = r#"
+namespace A.B;
+static class Factory { public static Widget Create() => null; }
+class User { void M() { var widget = Factory.Create(); } }
+"#;
+    assert_eq!(resolved(source, "widget").as_deref(), Some("Widget"));
+}
+
+#[test]
+fn static_call_receiver_matches_the_type_argument_count() {
+    let source = r#"
+class Factory<T> { public static Gadget Create() => null; }
+class Factory { public static Widget Create() => null; }
+class User { void M() { var plain = Factory.Create(); var generic = Factory<int>.Create(); } }
+"#;
+    assert_eq!(resolved(source, "plain").as_deref(), Some("Widget"));
+    assert_eq!(resolved(source, "generic").as_deref(), Some("Gadget"));
+}
+
+#[test]
+fn static_call_receiver_named_like_a_type_parameter_records_nothing() {
+    let source = r#"
+class Factory { public static Widget Create() => null; }
+class User<Factory> { void M() { var item = Factory.Create(); } }
+"#;
+    assert_eq!(inferred(source, "item"), None);
+}
+
+#[test]
+fn call_with_arguments_into_a_type_with_a_base_list_records_nothing() {
+    let source = r#"
+class Base { protected string Load(string s) => ""; }
+class D : Base {
+  int Load(int x) => 1;
+  void M() { var m1 = Load("s"); var m2 = this.Load("s"); }
+}
+"#;
+    assert_eq!(inferred(source, "m1"), None);
+    assert_eq!(inferred(source, "m2"), None);
+}
+
+#[test]
+fn static_call_with_arguments_into_an_open_type_records_nothing() {
+    let source = r#"
+class Base { public static string Create(string s) => ""; }
+class Factory : Base { public static int Create(int x) => 1; }
+partial class Pp { public static int Build(int x) => 1; }
+class User { void M() { var m3 = Factory.Create("s"); var m5 = Pp.Build("s"); } }
+"#;
+    assert_eq!(inferred(source, "m3"), None);
+    assert_eq!(inferred(source, "m5"), None);
+}
+
+#[test]
+fn parameterless_call_into_an_open_type_infers_its_return_type() {
+    let source = r#"
+class D : Base {
+  Widget Load() => null;
+  static Widget Make() => null;
+  void M() { var simple = Load(); var self = this.Load(); var type = D.Make(); }
+}
+"#;
+    assert_eq!(resolved(source, "simple").as_deref(), Some("Widget"));
+    assert_eq!(resolved(source, "self").as_deref(), Some("Widget"));
+    assert_eq!(resolved(source, "type").as_deref(), Some("Widget"));
+}
+
+#[test]
+fn open_type_candidates_with_optional_params_or_type_parameters_record_nothing() {
+    let source = r#"
+partial class D {
+  Widget Optional(int x = 0) => null;
+  Widget Many(params int[] xs) => null;
+  Widget Generic<T>() => null;
+  void M() { var optional = Optional(); var many = Many(); var generic = Generic(); }
+}
+"#;
+    assert_eq!(inferred(source, "optional"), None);
+    assert_eq!(inferred(source, "many"), None);
+    assert_eq!(inferred(source, "generic"), None);
+}
+
+#[test]
+fn local_function_with_arguments_inside_an_open_type_infers_its_return_type() {
+    let source = r#"
+class D : Base {
+  void M() {
+    Widget Make(int x) => null;
+    var widget = Make(1);
+  }
+}
+"#;
+    assert_eq!(resolved(source, "widget").as_deref(), Some("Widget"));
+}

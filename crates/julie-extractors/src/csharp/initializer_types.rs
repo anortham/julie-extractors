@@ -43,6 +43,22 @@ impl TypeShape {
     }
 }
 
+/// Where a type is declared: directly inside another type, or at the top
+/// level of a namespace (`""` for the global namespace).
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Container {
+    Type(TypeKey),
+    Namespace(String),
+}
+
+#[derive(Debug)]
+struct TypeDecl {
+    key: TypeKey,
+    container: Container,
+    type_parameters: usize,
+    open: bool,
+}
+
 #[derive(Debug, Clone, Copy)]
 struct Arity {
     required: usize,
@@ -63,9 +79,37 @@ struct Callable {
     /// The byte range a local function is visible in; `None` for a method.
     local_scope: Option<Range<usize>>,
     is_static: bool,
+    type_parameters: usize,
     arity: Arity,
     /// `None` for `void` and for type-parameter returns.
     shape: Option<TypeShape>,
+}
+
+impl Callable {
+    /// Whether a call with `arguments` and `type_arguments` explicit type
+    /// arguments can bind to this callable. With no arguments and no type
+    /// arguments, a generic callable cannot infer its type parameters.
+    fn accepts(&self, arguments: usize, type_arguments: usize) -> bool {
+        let generics_fit = if type_arguments > 0 {
+            self.type_parameters == type_arguments
+        } else {
+            arguments > 0 || self.type_parameters == 0
+        };
+        generics_fit && self.arity.accepts(arguments)
+    }
+
+    fn parameterless(&self) -> bool {
+        self.arity.total == 0 && !self.arity.variadic
+    }
+}
+
+/// A type with a base list or `partial` may get an overload from a base type
+/// or another part. The same-file candidates win only when the call has no
+/// arguments and every candidate has no parameters: an applicable method of
+/// the derived type removes base methods, and among parts a parameterless
+/// method beats one with optional or `params` parameters.
+fn safe_in_open_type(open: bool, arguments: usize, candidates: &[&Callable]) -> bool {
+    !open || (arguments == 0 && candidates.iter().all(|c| c.parameterless()))
 }
 
 /// Where a name is visible: a type (`None` for top-level code) and, for a
@@ -100,6 +144,16 @@ const TYPE_KINDS: &[&str] = &[
     "extension_declaration",
 ];
 
+/// Named type declarations a `Type.Method()` receiver can bind to.
+const NAMED_TYPE_KINDS: &[&str] = &[
+    "class_declaration",
+    "struct_declaration",
+    "record_declaration",
+    "interface_declaration",
+    "enum_declaration",
+    "delegate_declaration",
+];
+
 const MEMBER_KINDS: &[&str] = &[
     "method_declaration",
     "constructor_declaration",
@@ -119,6 +173,7 @@ const MEMBER_KINDS: &[&str] = &[
 pub(crate) struct ReturnTypeIndex {
     callables: HashMap<String, Vec<Callable>>,
     bindings: HashMap<String, Vec<Scope>>,
+    types: HashMap<String, Vec<TypeDecl>>,
     file_class: bool,
 }
 
@@ -138,12 +193,16 @@ impl ReturnTypeIndex {
         let mut index = Self {
             callables: HashMap::new(),
             bindings: HashMap::new(),
+            types: HashMap::new(),
             file_class,
         };
         let mut stack = vec![root];
         while let Some(node) = stack.pop() {
             if let Some((name, callable)) = index.callable(base, node, file_generics) {
                 index.callables.entry(name).or_default().push(callable);
+            }
+            if let Some((name, declaration)) = index.type_decl(base, node) {
+                index.types.entry(name).or_default().push(declaration);
             }
             for (name, declaration) in bindings(base, node) {
                 if let Some(scope) = index.scope(base, declaration) {
@@ -194,6 +253,7 @@ impl ReturnTypeIndex {
             owner,
             local_scope,
             is_static: has_modifier(base, node, "static"),
+            type_parameters: type_parameter_count(node),
             arity: arity(node),
             shape,
         };
@@ -201,6 +261,72 @@ impl ReturnTypeIndex {
             base.get_node_text(&node.child_by_field_name("name")?),
             callable,
         ))
+    }
+
+    fn type_decl(&self, base: &BaseExtractor, node: Node) -> Option<(String, TypeDecl)> {
+        if !NAMED_TYPE_KINDS.contains(&node.kind()) {
+            return None;
+        }
+        let name = base.get_node_text(&node.child_by_field_name("name")?);
+        let container = match self.enclosing_types(base, node)?.into_iter().next() {
+            Some((owner, _)) => Container::Type(owner),
+            None => Container::Namespace(namespace_of(base, node)),
+        };
+        let declaration = TypeDecl {
+            key: TypeKey {
+                name: name.clone(),
+                start: node.start_byte(),
+            },
+            container,
+            type_parameters: type_parameter_count(node),
+            open: is_open(base, node),
+        };
+        Some((name, declaration))
+    }
+
+    /// The same-file types a `Type.Method()` receiver binds to, by C# name
+    /// lookup: types nested directly in an enclosing type, innermost first,
+    /// then top-level types of the call's namespace and each outer namespace.
+    /// Only a type with `type_arguments` type parameters matches. `None` when
+    /// no same-file type matches.
+    fn receiver_types(
+        &self,
+        base: &BaseExtractor,
+        name: &str,
+        type_arguments: usize,
+        call: Node,
+    ) -> Option<Vec<&TypeDecl>> {
+        let matching: Vec<&TypeDecl> = self
+            .types
+            .get(name)?
+            .iter()
+            .filter(|declaration| declaration.type_parameters == type_arguments)
+            .collect();
+        let in_container = |container: &Container| -> Vec<&TypeDecl> {
+            matching
+                .iter()
+                .copied()
+                .filter(|declaration| &declaration.container == container)
+                .collect()
+        };
+        let mut containers: Vec<Container> = self
+            .enclosing_types(base, call)?
+            .into_iter()
+            .map(|(owner, _)| Container::Type(owner))
+            .collect();
+        let mut namespace = namespace_of(base, call);
+        loop {
+            containers.push(Container::Namespace(namespace.clone()));
+            match namespace.rfind('.') {
+                Some(dot) => namespace.truncate(dot),
+                None if !namespace.is_empty() => namespace.clear(),
+                None => break,
+            }
+        }
+        containers
+            .iter()
+            .map(in_container)
+            .find(|found| !found.is_empty())
     }
 
     /// The declared text of the type a `var` initializer produces, or `None`
@@ -248,45 +374,56 @@ impl ReturnTypeIndex {
             "member_access_expression" => function.child_by_field_name("name")?,
             _ => function,
         };
+        let type_arguments = type_argument_count(name);
         let name = simple_name(base, name)?;
         if INHERITED_NAMES.contains(&name.as_str()) {
             return None;
         }
+        let accepts = |c: &&Callable| c.accepts(arguments, type_arguments);
         match function.kind() {
-            "identifier" | "generic_name" => self.simple_name_call(base, &name, call, arguments),
+            "identifier" | "generic_name" => {
+                self.simple_name_call(base, &name, call, arguments, type_arguments)
+            }
             "member_access_expression" => {
                 let receiver = function.child_by_field_name("expression")?;
+                let candidates: Vec<&Callable>;
+                let open;
                 match receiver.kind() {
                     "this" => {
-                        let (owner, _) = self.enclosing_types(base, call)?.into_iter().next()?;
-                        agree(
-                            self.members(&name, &owner)
-                                .filter(|c| c.arity.accepts(arguments)),
-                        )
+                        let (owner, owner_open) =
+                            self.enclosing_types(base, call)?.into_iter().next()?;
+                        candidates = self.members(&name, &owner).filter(accepts).collect();
+                        open = owner_open;
                     }
                     "identifier" | "generic_name" => {
                         let type_name = simple_name(base, receiver)?;
-                        if self.visible_binding(base, &type_name, call)? {
+                        if self.visible_binding(base, &type_name, call)?
+                            || enclosing_type_parameters(base, call).contains(&type_name)
+                        {
                             return None;
                         }
-                        let candidates: Vec<&Callable> = self
-                            .callables
-                            .get(&name)
-                            .into_iter()
-                            .flatten()
-                            .filter(|c| {
-                                c.local_scope.is_none()
-                                    && c.owner.as_ref().is_some_and(|o| o.name == type_name)
-                                    && c.arity.accepts(arguments)
-                            })
+                        let owners = self.receiver_types(
+                            base,
+                            &type_name,
+                            type_argument_count(receiver),
+                            call,
+                        )?;
+                        candidates = owners
+                            .iter()
+                            .flat_map(|owner| self.members(&name, &owner.key))
+                            .filter(accepts)
                             .collect();
                         if !candidates.iter().all(|c| c.is_static) {
                             return None;
                         }
-                        agree(candidates.into_iter())
+                        open = owners.iter().any(|owner| owner.open);
                     }
-                    _ => None,
+                    _ => return None,
                 }
+                if !safe_in_open_type(open, arguments, &candidates) {
+                    return None;
+                }
+                agree(candidates.into_iter())
             }
             _ => None,
         }
@@ -295,7 +432,8 @@ impl ReturnTypeIndex {
     /// A call by simple name: a local function in scope, or a method of the
     /// innermost enclosing type that declares the name. A type with a base
     /// list or `partial` may inherit or share members from another file, so
-    /// the search stops there. A same-named local, parameter, field,
+    /// the search stops there, and its methods count only when
+    /// `safe_in_open_type` holds. A same-named local, parameter, field,
     /// property, or event hides the methods, so the call records nothing.
     fn simple_name_call(
         &self,
@@ -303,6 +441,7 @@ impl ReturnTypeIndex {
         name: &str,
         call: Node,
         arguments: usize,
+        type_arguments: usize,
     ) -> Option<TypeShape> {
         let types = self.enclosing_types(base, call)?;
         let owner = types.first().map(|(owner, _)| owner);
@@ -316,16 +455,29 @@ impl ReturnTypeIndex {
                     .is_some_and(|scope| scope.contains(&call.start_byte()))
         });
         let mut members = Vec::new();
+        let mut members_open = false;
         for (owner, open) in &types {
             if self.bound(name, Some(owner), None) {
                 return None;
             }
             members = self.members(name, owner).collect();
             if !members.is_empty() || *open {
+                members_open = *open;
                 break;
             }
         }
-        agree(locals.chain(members).filter(|c| c.arity.accepts(arguments)))
+        let members: Vec<&Callable> = members
+            .into_iter()
+            .filter(|c| c.accepts(arguments, type_arguments))
+            .collect();
+        if !members.is_empty() && !safe_in_open_type(members_open, arguments, &members) {
+            return None;
+        }
+        agree(
+            locals
+                .filter(|c| c.accepts(arguments, type_arguments))
+                .chain(members),
+        )
     }
 
     /// Whether a non-method binding named `name` is visible at `node`, from
@@ -364,12 +516,13 @@ impl ReturnTypeIndex {
         })
     }
 
-    fn members<'a>(&'a self, name: &str, owner: &'a TypeKey) -> impl Iterator<Item = &'a Callable> {
+    fn members<'a>(&'a self, name: &str, owner: &TypeKey) -> impl Iterator<Item = &'a Callable> {
+        let owner = owner.clone();
         self.callables
             .get(name)
             .into_iter()
             .flatten()
-            .filter(move |c| c.local_scope.is_none() && c.owner.as_ref() == Some(owner))
+            .filter(move |c| c.local_scope.is_none() && c.owner.as_ref() == Some(&owner))
     }
 
     /// The types around `node`, innermost first, each with whether it may
@@ -385,16 +538,11 @@ impl ReturnTypeIndex {
                 | "record_declaration"
                 | "interface_declaration" => {
                     let name = base.get_node_text(&ancestor.child_by_field_name("name")?);
-                    let mut cursor = ancestor.walk();
-                    let open = ancestor
-                        .children(&mut cursor)
-                        .any(|child| child.kind() == "base_list")
-                        || has_modifier(base, ancestor, "partial");
                     let key = TypeKey {
                         name,
                         start: ancestor.start_byte(),
                     };
-                    types.push((key, open));
+                    types.push((key, is_open(base, ancestor)));
                 }
                 "extension_declaration" => return None,
                 _ => {}
@@ -507,6 +655,60 @@ fn local_scope(function: Node) -> Option<Range<usize>> {
         parent
     };
     Some(scope.byte_range())
+}
+
+/// Whether a type may get members from another file: it has a base list or
+/// `partial`.
+fn is_open(base: &BaseExtractor, declaration: Node) -> bool {
+    let mut cursor = declaration.walk();
+    declaration
+        .children(&mut cursor)
+        .any(|child| child.kind() == "base_list")
+        || has_modifier(base, declaration, "partial")
+}
+
+/// The dotted name of the block namespaces around `node`; `""` for the
+/// global namespace. A file-scoped namespace holds every declaration of its
+/// file, so it never tells two same-file types apart and is left out.
+fn namespace_of(base: &BaseExtractor, node: Node) -> String {
+    let mut parts = Vec::new();
+    let mut current = node.parent();
+    while let Some(ancestor) = current {
+        if ancestor.kind() == "namespace_declaration"
+            && let Some(name) = ancestor.child_by_field_name("name")
+        {
+            parts.push(base.get_node_text(&name));
+        }
+        current = ancestor.parent();
+    }
+    parts.reverse();
+    parts
+        .join(".")
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .collect()
+}
+
+/// The number of type arguments a `generic_name` supplies; 0 otherwise.
+fn type_argument_count(node: Node) -> usize {
+    if node.kind() != "generic_name" {
+        return 0;
+    }
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .filter(|child| child.kind() == "type_argument_list")
+        .map(|list| list.named_child_count())
+        .sum()
+}
+
+/// The number of type parameters a declaration introduces.
+fn type_parameter_count(declaration: Node) -> usize {
+    let mut cursor = declaration.walk();
+    declaration
+        .children(&mut cursor)
+        .filter(|child| child.kind() == "type_parameter_list")
+        .map(|list| list.named_child_count())
+        .sum()
 }
 
 fn simple_name(base: &BaseExtractor, node: Node) -> Option<String> {
