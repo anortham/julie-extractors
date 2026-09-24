@@ -140,9 +140,14 @@ control.
   callees must agree. `?T` records `T`; `self` and `static` record the
   declaring class. A union, intersection, `void`, or `parent` return type, a
   missing return type, a trait or anonymous-class method, `$this` or `self`
-  inside a closure, `parent::`, any other receiver, a chained call, and a
-  callee in another file record no fact. Other files are out of scope
-  because each file is extracted alone.
+  inside a closure or a nested named function, `parent::`, any other
+  receiver, a chained call, and a callee in another file record no fact.
+  First-class callable syntax (`load(...)`, `$this->m(...)`, `self::m(...)`,
+  `Type::m(...)`) records no fact, because it makes a `Closure` and does not
+  call the callee. A class or function name that a `use` declaration in the
+  caller's namespace block imports (by last segment or `as` alias) records
+  no fact, because the import names another namespace. Other files are out
+  of scope because each file is extracted alone.
 - A trait `use` in a class, trait, or enum body gives a `uses` relationship:
   resolved to a same-file trait, pending otherwise. It is not an import. The
   names in its conflict list (`A::m as protected alias`) give no identifiers.

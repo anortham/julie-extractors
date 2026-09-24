@@ -96,6 +96,9 @@ impl ReturnTypeIndex {
     }
 
     fn call_return_type(&self, base: &BaseExtractor, call: Node) -> Option<&ReturnType> {
+        if is_first_class_callable(call) {
+            return None;
+        }
         let (owner, name) = match call.kind() {
             "function_call_expression" => (None, call.child_by_field_name("function")?),
             "member_call_expression" => {
@@ -115,19 +118,92 @@ impl ReturnTypeIndex {
                     "relative_scope" if is_self_or_static(&scope_text) => {
                         lexical_class_name(base, call)?
                     }
-                    "name" => scope_text,
+                    "name" if !imports_name(base, call, &scope_text, ImportKind::Class) => {
+                        scope_text
+                    }
                     _ => return None,
                 };
                 (Some(owner), call.child_by_field_name("name")?)
             }
             _ => return None,
         };
+        let name = base.get_node_text(&name);
+        if owner.is_none() && imports_name(base, call, &name, ImportKind::Function) {
+            return None;
+        }
         self.lookup(&CalleeKey::new(
             &namespace_of(base, call),
             owner.as_deref(),
-            &base.get_node_text(&name),
+            &name,
         ))
     }
+}
+
+/// `f(...)` builds a `Closure` from `f` and does not call it.
+fn is_first_class_callable(call: Node) -> bool {
+    call.child_by_field_name("arguments")
+        .is_some_and(|arguments| {
+            arguments
+                .named_children(&mut arguments.walk())
+                .any(|argument| argument.kind() == "variadic_placeholder")
+        })
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ImportKind {
+    Class,
+    Function,
+    Const,
+}
+
+/// Whether a `use` declaration in `node`'s namespace block imports `name`
+/// as `kind`. Imports reset at each namespace declaration, so an imported
+/// name refers to another namespace even when this file declares it too.
+fn imports_name(base: &BaseExtractor, node: Node, name: &str, kind: ImportKind) -> bool {
+    namespace_block(node).1.into_iter().any(|statement| {
+        statement.kind() == "namespace_use_declaration"
+            && use_declaration_imports(base, statement, name, kind)
+    })
+}
+
+fn use_declaration_imports(
+    base: &BaseExtractor,
+    declaration: Node,
+    name: &str,
+    kind: ImportKind,
+) -> bool {
+    let declaration_kind = import_kind(declaration).unwrap_or(ImportKind::Class);
+    let mut clauses: Vec<Node> = declaration
+        .named_children(&mut declaration.walk())
+        .filter(|child| child.kind() == "namespace_use_clause")
+        .collect();
+    if let Some(group) = declaration.child_by_field_name("body") {
+        clauses.extend(group.named_children(&mut group.walk()));
+    }
+    clauses.into_iter().any(|clause| {
+        import_kind(clause).unwrap_or(declaration_kind) == kind
+            && import_alias(base, clause).is_some_and(|alias| alias.eq_ignore_ascii_case(name))
+    })
+}
+
+fn import_kind(node: Node) -> Option<ImportKind> {
+    match node.child_by_field_name("type")?.kind() {
+        "function" => Some(ImportKind::Function),
+        "const" => Some(ImportKind::Const),
+        _ => None,
+    }
+}
+
+/// The local name a `use` clause binds: its `as` alias, or the last segment.
+fn import_alias(base: &BaseExtractor, clause: Node) -> Option<String> {
+    if let Some(alias) = clause.child_by_field_name("alias") {
+        return Some(base.get_node_text(&alias));
+    }
+    let imported = clause
+        .named_children(&mut clause.walk())
+        .find(|child| matches!(child.kind(), "name" | "qualified_name"))?;
+    let text = base.get_node_text(&imported);
+    text.rsplit('\\').next().map(str::to_string)
 }
 
 fn return_entry(base: &BaseExtractor, node: Node) -> Option<(CalleeKey, Option<ReturnType>)> {
@@ -189,7 +265,9 @@ fn lexical_class_name(base: &BaseExtractor, node: Node) -> Option<String> {
                     .child_by_field_name("name")
                     .map(|name| base.get_node_text(&name));
             }
-            "anonymous_class" | "anonymous_function" | "arrow_function" => return None,
+            "anonymous_class" | "anonymous_function" | "arrow_function" | "function_definition" => {
+                return None;
+            }
             _ => current = ancestor.parent(),
         }
     }
@@ -199,31 +277,48 @@ fn lexical_class_name(base: &BaseExtractor, node: Node) -> Option<String> {
 /// The namespace `node` is declared in: the enclosing braced `namespace { }`
 /// block, or the last `namespace X;` statement before it.
 fn namespace_of(base: &BaseExtractor, node: Node) -> String {
+    namespace_block(node)
+        .0
+        .and_then(|namespace| namespace.child_by_field_name("name"))
+        .map(|name| base.get_node_text(&name))
+        .unwrap_or_default()
+}
+
+/// The namespace declaration that holds `node`, if any, and the top-level
+/// statements of its block: the braced body, or the statements between the
+/// surrounding `namespace X;` statements.
+fn namespace_block(node: Node<'_>) -> (Option<Node<'_>>, Vec<Node<'_>>) {
     let mut statement = node;
     while let Some(parent) = statement.parent() {
         if parent.kind() == "namespace_definition" {
-            return namespace_name(base, parent);
+            return (
+                Some(parent),
+                statement.named_children(&mut statement.walk()).collect(),
+            );
         }
         if parent.kind() == "program" {
             break;
         }
         statement = parent;
     }
+    let is_boundary = |sibling: &Node| sibling.kind() == "namespace_definition";
+    let mut statements = vec![statement];
+    let mut namespace = None;
     let mut sibling = statement.prev_named_sibling();
     while let Some(previous) = sibling {
-        if previous.kind() == "namespace_definition" {
-            return namespace_name(base, previous);
+        if is_boundary(&previous) {
+            namespace = Some(previous);
+            break;
         }
+        statements.push(previous);
         sibling = previous.prev_named_sibling();
     }
-    String::new()
-}
-
-fn namespace_name(base: &BaseExtractor, namespace: Node) -> String {
-    namespace
-        .child_by_field_name("name")
-        .map(|name| base.get_node_text(&name))
-        .unwrap_or_default()
+    let mut sibling = statement.next_named_sibling();
+    while let Some(next) = sibling.filter(|next| !is_boundary(next)) {
+        statements.push(next);
+        sibling = next.next_named_sibling();
+    }
+    (namespace, statements)
 }
 
 fn record_type_node(base: &mut BaseExtractor, symbol_id: &str, type_node: Node, is_inferred: bool) {

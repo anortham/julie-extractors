@@ -354,3 +354,173 @@ class Service {
 "#;
     assert_eq!(inferred_type(source, "x"), None);
 }
+
+#[test]
+fn first_class_callable_syntax_records_nothing() {
+    let source = r#"<?php
+namespace App;
+class Foo {}
+function load(): Foo {}
+class Svc {
+    public function make(): Foo {}
+    public static function create(): Foo {}
+    public function run(): void {
+        $fccFn = load(...);
+        $fccThis = $this->make(...);
+        $fccSelf = self::create(...);
+        $fccStatic = Svc::create(...);
+        $called = load();
+    }
+}
+"#;
+    for local in ["fccFn", "fccThis", "fccSelf", "fccStatic"] {
+        assert_eq!(inferred_type(source, local), None, "{local}");
+    }
+    assert_eq!(inferred_type(source, "called"), inferred("Foo"));
+}
+
+#[test]
+fn imported_names_in_a_braced_namespace_block_record_nothing() {
+    let source = r#"<?php
+namespace App {
+    use Lib\Svc;
+    use function Lib\load;
+    function f() {
+        $aliasStatic = Svc::create();
+        $aliasFn = load();
+    }
+}
+namespace App {
+    class Foo {}
+    class Svc { public static function create(): Foo {} }
+    function load(): Foo {}
+    function g() {
+        $local = load();
+    }
+}
+"#;
+    assert_eq!(inferred_type(source, "aliasStatic"), None);
+    assert_eq!(inferred_type(source, "aliasFn"), None);
+    assert_eq!(inferred_type(source, "local"), inferred("Foo"));
+}
+
+#[test]
+fn imported_names_in_an_unbraced_namespace_record_nothing() {
+    let source = r#"<?php
+namespace App;
+class Foo {}
+class Svc { public static function create(): Foo {} }
+function load(): Foo {}
+function g() {
+    $local = Svc::create();
+}
+namespace App;
+use Lib\Svc;
+use function Lib\load;
+function f() {
+    $aliasStatic = Svc::create();
+    $aliasFn = load();
+}
+"#;
+    assert_eq!(inferred_type(source, "aliasStatic"), None);
+    assert_eq!(inferred_type(source, "aliasFn"), None);
+    assert_eq!(inferred_type(source, "local"), inferred("Foo"));
+}
+
+#[test]
+fn aliased_and_grouped_imports_record_nothing() {
+    let source = r#"<?php
+namespace App;
+use Lib\Other as SVC;
+use Lib\{Thing, function Load};
+class Foo {}
+class Svc { public static function create(): Foo {} }
+function load(): Foo {}
+$aliasStatic = Svc::create();
+$aliasFn = load();
+"#;
+    assert_eq!(inferred_type(source, "aliasStatic"), None);
+    assert_eq!(inferred_type(source, "aliasFn"), None);
+}
+
+#[test]
+fn unrelated_and_other_kind_imports_do_not_block_resolution() {
+    let source = r#"<?php
+namespace App;
+use Lib\Other;
+use Lib\load;
+use function Lib\Svc;
+use const Lib\load as LOADED;
+class Foo {}
+class Svc { public static function create(): Foo {} }
+function load(): Foo {}
+$x = Svc::create();
+$y = load();
+"#;
+    assert_eq!(inferred_type(source, "x"), inferred("Foo"));
+    assert_eq!(inferred_type(source, "y"), inferred("Foo"));
+}
+
+#[test]
+fn this_and_self_inside_a_nested_named_function_record_nothing() {
+    let source = r#"<?php
+class Foo {}
+class Svc {
+    public function make(): Foo {}
+    public static function create(): Foo {}
+    public function run(): void {
+        function inner() {
+            $nestedThis = $this->make();
+            $nestedSelf = self::create();
+        }
+    }
+}
+"#;
+    assert_eq!(inferred_type(source, "nestedThis"), None);
+    assert_eq!(inferred_type(source, "nestedSelf"), None);
+}
+
+#[test]
+fn method_inherited_from_a_used_trait_records_nothing() {
+    let source = r#"<?php
+trait Loads {
+    public function load(): Project {}
+}
+class Service {
+    use Loads;
+    public function run() {
+        $x = $this->load();
+    }
+}
+"#;
+    assert_eq!(inferred_type(source, "x"), None);
+}
+
+#[test]
+fn static_call_on_a_trait_records_nothing() {
+    let source = r#"<?php
+trait Loads {
+    public static function load(): Workspace {}
+}
+$x = Loads::load();
+"#;
+    assert_eq!(inferred_type(source, "x"), None);
+}
+
+#[test]
+fn this_and_self_inside_a_trait_ignore_a_same_named_class_method() {
+    let source = r#"<?php
+class Service {
+    public function load(): Project {}
+    public static function create(): Project {}
+}
+trait Loads {
+    public function run() {
+        $x = $this->load();
+        $y = self::create();
+    }
+}
+"#;
+    assert_eq!(inferred_type(source, "x"), None);
+    assert_eq!(inferred_type(source, "y"), None);
+}
