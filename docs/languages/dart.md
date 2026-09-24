@@ -15,6 +15,10 @@ its initializer is one of these forms:
 
 - `Type(..)`, `new Type(..)`, `const Type(..)`, or `Type.named(..)` for a
   same-file type with no same-file static member of that name: records `Type`.
+  `Type(..)` and `Type.named(..)` also need that no parameter, local, local
+  function, or enclosing-type member is named `Type`, because Dart finds
+  those before the type. With a member named `Type`, `Type(..)` records the
+  return type of that member.
 - `load()`: a same-file top-level function with a declared return type. It
   may be declared before or after the use.
 - `m()` inside a class, mixin, enum, named extension, or extension type: the
@@ -40,8 +44,8 @@ These cases record no fact, because the type would be a guess:
   type, or is `void` or `dynamic` (also `await` of `Future<dynamic>`).
 - `await` of a type that is not a `Future` or `FutureOr`.
 - Same-named candidates in one scope disagree on the return type.
-- A parameter, local variable, local function, or pattern binding has the
-  callee's name.
+- A parameter, local variable, local function, or pattern binding anywhere
+  in the file has the callee's name or the constructed type's name.
 - The name is a getter, setter, field, enum constant, or extension type
   representation field in that scope. This includes abstract, external,
   `external static`, and `covariant late final` fields.

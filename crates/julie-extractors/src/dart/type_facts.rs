@@ -515,7 +515,7 @@ impl InitializerScope<'_> {
         match function.kind() {
             "identifier" => {
                 let name = self.base.get_node_text(&function);
-                if self.same_file_types.contains(&name) {
+                if !self.binds_value(&name) && self.same_file_types.contains(&name) {
                     Some(TypeShape::named(name))
                 } else {
                     self.unqualified_call(&name)
@@ -541,6 +541,18 @@ impl InitializerScope<'_> {
         }
     }
 
+    /// Whether a local, a parameter, or a member of the enclosing type may bind
+    /// `name` before Dart's lexical lookup reaches a library declaration.
+    /// Unnamed extension members are not indexed, so any name may be bound.
+    fn binds_value(&self, name: &str) -> bool {
+        self.return_types.local_names.contains(name)
+            || match &self.owner {
+                Owner::Library => false,
+                Owner::Unnamed => true,
+                Owner::Type(owner) => self.return_types.declares(owner, name),
+            }
+    }
+
     fn unqualified_call(&self, name: &str) -> Option<TypeShape> {
         if self.return_types.local_names.contains(name) {
             return None;
@@ -556,7 +568,9 @@ impl InitializerScope<'_> {
 
     /// `Type.member()`: a same-file static member, else a named constructor.
     fn static_call(&self, owner: String, member: &str) -> Option<TypeShape> {
-        if self.return_types.declares(&owner, member) {
+        if self.binds_value(&owner) {
+            None
+        } else if self.return_types.declares(&owner, member) {
             self.return_types.lookup(Some(&owner), member)
         } else if self.same_file_types.contains(&owner) {
             Some(TypeShape::named(owner))

@@ -555,3 +555,70 @@ void outside() {
 "#;
     assert_no_fact(source, &["enumConstBare", "enumConstQualified"]);
 }
+
+#[test]
+fn members_parameters_and_local_functions_shadow_same_file_type_names() {
+    let source = r#"
+class Item {}
+class Other {}
+class Page {
+  static Other Item() => Other();
+  void build() {
+    final memberShadow = Item();
+    final staticShadow = Item.named();
+  }
+}
+void run(Other Function() Item) {
+  final paramShadow = Item();
+}
+void run2() {
+  Other Item() => Other();
+  final localFnShadow = Item();
+}
+extension on Other {
+  void run() {
+    final unnamedExtension = Item();
+  }
+}
+"#;
+    assert_no_fact(
+        source,
+        &[
+            "staticShadow",
+            "paramShadow",
+            "localFnShadow",
+            "unnamedExtension",
+        ],
+    );
+}
+
+#[test]
+fn class_member_named_like_a_same_file_type_records_the_member_return_type() {
+    let source = r#"
+class Item {}
+class Other {}
+class Page {
+  static Other Item() => Other();
+  void build() {
+    final memberShadow = Item();
+  }
+}
+"#;
+    assert_inferred(source, "memberShadow", "Other", None);
+}
+
+#[test]
+fn constructor_call_inside_its_own_class_records_the_class() {
+    let source = r#"
+class Item {
+  Item();
+  Item.named();
+  static void make() {
+    final plain = Item();
+    final named = Item.named();
+  }
+}
+"#;
+    assert_inferred(source, "plain", "Item", None);
+    assert_inferred(source, "named", "Item", None);
+}
