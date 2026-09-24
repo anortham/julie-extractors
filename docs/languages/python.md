@@ -114,17 +114,29 @@ assignment (`x = ...` or `self.x = ...`):
   (`Workspace.create()`), or a method on such a call's result
   (`Workspace.open().root()`) records the callee's declared return type,
   reduced by the annotation rules above. `-> Self` records the owning class.
+  `TypeGuard[X]`, `TypeIs[X]`, and `Literal[...]` returns record nothing,
+  because the value is a `bool` or a literal, not the named type.
 - Every same-named candidate with the same owner must declare the same return
   type. An `async def` counts only under `await`; an awaited plain `def`
   records nothing.
 - A bare name follows Python scope rules. A parameter, assignment, `for` or
   `with` target, import, lambda, or comprehension variable of the same name
   in the call's function or an enclosing one, or at module level, records
-  nothing. A nested `def` counts only for calls inside its function. A method
-  counts only through `self`, `cls`, or its class, also when it is defined in
-  an `if` or `try` block of the class body. A `from m import *` does not count
-  as a binding, because the names it binds are in another file.
-- A return type that is a `TypeVar`/`ParamSpec`/`TypeVarTuple` of the file, a
+  nothing. A walrus (`:=`) inside a comprehension binds in the enclosing
+  function, as in Python. A nested `def` counts only for calls inside its
+  function. A method counts only through `self`, `cls`, or its class, also
+  when it is defined in an `if` or `try` block of the class body. A
+  `from m import *` does not count as a binding, because the names it binds
+  are in another file.
+- A class is identified by its definition, not by its name. `self` and `cls`
+  are the class of the method whose parameter they are, so two same-named
+  classes in different functions or classes keep their own methods. A class
+  name that has two definitions in one scope records no method type. A
+  method name that the class body also binds another way
+  (`load = contextmanager(load)`) records nothing. Inherited methods record
+  nothing.
+- A return type that is a `TypeVar`/`ParamSpec`/`TypeVarTuple` of the file
+  (also through an alias such as `from typing import TypeVar as TV`), a
   PEP 695 type parameter, or a type argument of the class bases records
   nothing. The callee's parameter annotations, and those of the functions
   around it, can also show that an imported name is a type variable. The
@@ -141,8 +153,12 @@ assignment (`x = ...` or `self.x = ...`):
   a class.
 - A callee with a decorator other than `staticmethod`, `classmethod`,
   `abstractmethod`, `overload`, `override`, `final`, `cache`, or `lru_cache`
-  records nothing. So does a call to anything in another file, because each
-  file is extracted alone.
+  records nothing. These names count only when the file does not bind them
+  (a builtin or an unseen import) or imports them from `functools`, `typing`,
+  `typing_extensions`, `abc`, or `builtins`, also through an alias
+  (`from functools import cache as memo`, `import typing as t`). A same-file
+  `def cache` or `from mylib import cache` records nothing. So does a call to
+  anything in another file, because each file is extracted alone.
 
 Imports, variables, constants, attributes, and parameters have no body span.
 

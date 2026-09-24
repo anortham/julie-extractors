@@ -831,3 +831,214 @@ b = fallback(None)
     assert_eq!(inferred_type(source, "a"), None);
     assert_eq!(inferred_type(source, "b").as_deref(), Some("Item"));
 }
+
+#[test]
+fn same_named_local_classes_keep_their_own_methods() {
+    let source = r#"
+class Base:
+    def get(self) -> str:
+        ...
+
+def test_a():
+    class Handler(Base):
+        def get(self) -> int:
+            ...
+
+        def run(self):
+            a1 = self.get()
+
+    a2 = Handler.get(Handler())
+
+def test_b():
+    class Handler(Base):
+        def run(self):
+            n1 = self.get()
+
+    n2 = Handler.get(Handler())
+"#;
+    assert_eq!(inferred_type(source, "a1").as_deref(), Some("int"));
+    assert_eq!(inferred_type(source, "a2").as_deref(), Some("int"));
+    assert_eq!(inferred_type(source, "n1"), None);
+    assert_eq!(inferred_type(source, "n2"), None);
+}
+
+#[test]
+fn same_named_nested_classes_keep_their_own_methods() {
+    let source = r#"
+class A:
+    class Config:
+        def get(self) -> int:
+            ...
+
+        def run(self):
+            i1 = self.get()
+
+class B:
+    class Config(Base):
+        def run(self):
+            s1 = self.get()
+"#;
+    assert_eq!(inferred_type(source, "i1").as_deref(), Some("int"));
+    assert_eq!(inferred_type(source, "s1"), None);
+}
+
+#[test]
+fn self_in_a_class_nested_in_a_method_is_the_outer_instance() {
+    let source = r#"
+class A:
+    def load(self) -> int:
+        ...
+
+    def run(self):
+        class Inner:
+            def load(self) -> str:
+                ...
+
+            def go(self):
+                s1 = self.load()
+
+            d1 = self.load()
+"#;
+    assert_eq!(inferred_type(source, "s1").as_deref(), Some("str"));
+    assert_eq!(inferred_type(source, "d1").as_deref(), Some("int"));
+}
+
+#[test]
+fn class_name_with_two_definitions_in_one_scope_records_no_method_type() {
+    let source = r#"
+if FAST:
+    class Handler:
+        def get(self) -> int:
+            ...
+else:
+    class Handler:
+        def get(self) -> int:
+            ...
+
+h1 = Handler.get(None)
+h2 = Handler().get()
+"#;
+    assert_eq!(inferred_type(source, "h1"), None);
+    assert_eq!(inferred_type(source, "h2"), None);
+}
+
+#[test]
+fn walrus_in_a_generator_binds_in_the_enclosing_function() {
+    let source = r#"
+def load() -> int:
+    ...
+
+def f(v, items):
+    if any((load := x) for x in items):
+        w1 = load()
+
+def g(items):
+    [load for load in items]
+    w2 = load()
+"#;
+    assert_eq!(inferred_type(source, "w1"), None);
+    assert_eq!(inferred_type(source, "w2").as_deref(), Some("int"));
+}
+
+#[test]
+fn method_rebound_in_the_class_body_records_nothing() {
+    let source = r#"
+from contextlib import contextmanager
+
+class A:
+    def load(self) -> int:
+        ...
+
+    load = contextmanager(load)
+
+    def run(self):
+        r1 = self.load()
+
+r2 = A.load()
+"#;
+    assert_eq!(inferred_type(source, "r1"), None);
+    assert_eq!(inferred_type(source, "r2"), None);
+}
+
+#[test]
+fn same_file_or_foreign_decorator_named_like_a_transparent_one_records_nothing() {
+    let source = r#"
+def cache(fn):
+    return lambda *a: str(fn(*a))
+
+@cache
+def load() -> int:
+    ...
+
+i1 = load()
+"#;
+    assert_eq!(inferred_type(source, "i1"), None);
+
+    let source = r#"
+from mylib import lru_cache
+
+@lru_cache
+def load() -> int:
+    ...
+
+i2 = load()
+"#;
+    assert_eq!(inferred_type(source, "i2"), None);
+}
+
+#[test]
+fn imported_or_aliased_transparent_decorator_keeps_the_return_type() {
+    let source = r#"
+from functools import cache as memo
+import typing as t
+
+@memo
+def load() -> int:
+    ...
+
+@t.final
+def save() -> str:
+    ...
+
+i1 = load()
+s1 = save()
+"#;
+    assert_eq!(inferred_type(source, "i1").as_deref(), Some("int"));
+    assert_eq!(inferred_type(source, "s1").as_deref(), Some("str"));
+}
+
+#[test]
+fn type_variable_from_an_aliased_factory_records_nothing() {
+    let source = r#"
+from typing import TypeVar as TV
+
+T = TV("T")
+
+def pick(xs) -> T:
+    ...
+
+l3 = pick([1])
+"#;
+    assert_eq!(inferred_type(source, "l3"), None);
+}
+
+#[test]
+fn type_guard_and_literal_returns_record_nothing() {
+    let source = r#"
+def isfoo(x) -> TypeGuard[Foo]:
+    ...
+
+def isbar(x) -> typing_extensions.TypeIs[Bar]:
+    ...
+
+def mode() -> Literal["a"]:
+    ...
+
+f1 = isfoo(1)
+f2 = isbar(1)
+f3 = mode()
+"#;
+    assert_eq!(inferred_type(source, "f1"), None);
+    assert_eq!(inferred_type(source, "f2"), None);
+    assert_eq!(inferred_type(source, "f3"), None);
+}

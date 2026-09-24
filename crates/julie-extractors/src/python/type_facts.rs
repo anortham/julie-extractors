@@ -5,10 +5,11 @@
 /// `Annotated[X, ...]`, `ClassVar[X]`, `Final[X]`, `Mapped[X]`) and string
 /// forward references (`"X"`) unwrap to `X`. Other unions and inline
 /// callables record nothing.
-use super::{PythonExtractor, helpers, signatures};
+use super::{PythonExtractor, signatures};
 use crate::base::BaseExtractor;
 use crate::base::types::{TypeNameRules, strip_type_decorations};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
 
@@ -58,7 +59,8 @@ pub(super) fn record_initializer_fact(
     }
 }
 
-/// Decorators that return the function they wrap, keeping its return type.
+/// Decorators that return the function they wrap, keeping its return type,
+/// when they are builtins or come from [`DECORATOR_MODULES`].
 const TRANSPARENT_DECORATORS: &[&str] = &[
     "staticmethod",
     "classmethod",
@@ -70,13 +72,27 @@ const TRANSPARENT_DECORATORS: &[&str] = &[
     "lru_cache",
 ];
 
+const DECORATOR_MODULES: &[&str] = &[
+    "builtins",
+    "functools",
+    "typing",
+    "typing_extensions",
+    "abc",
+];
+
 const TYPE_VARIABLE_FACTORIES: &[&str] = &["TypeVar", "ParamSpec", "TypeVarTuple"];
 
-/// The type a value produces: its base name and its written return type.
+/// Returns whose runtime value is not the named type: `TypeGuard[X]` and
+/// `TypeIs[X]` return a `bool`, `Literal["a"]` a value of the literal's type.
+const NON_TYPE_RETURNS: &[&str] = &["TypeGuard", "TypeIs", "Literal"];
+
+/// The type a value produces: its base name, its written return type, and
+/// the same-file class definition (by node id) the name refers to, if known.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct InferredType {
     name: String,
     declared: String,
+    class: Option<usize>,
 }
 
 /// What a call to a same-file function produces: `returns` is `None` when
@@ -95,29 +111,42 @@ impl Callee {
     }
 }
 
-/// Where a function name is bound: the module, a class body (a method), or
-/// the function whose body defines it (a nested function, by node id).
+/// Where a function name is bound: the module, a class body (a method, by
+/// class node id), or the function whose body defines it (by node id).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum Scope {
     Module,
-    Class(String),
+    Class(usize),
     Function(usize),
 }
 
-/// How one scope binds a name: only by `def`s, only by `class`es, or by
-/// anything else (a parameter, assignment, loop or `with` target, import, ...).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// How one scope binds a name: only by `def`s, only by `class`es (their node
+/// ids), only by one import (its qualified name, `functools.cache`), or by
+/// anything else (a parameter, assignment, loop or `with` target, ...).
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Binding {
     Functions,
-    Classes,
+    Classes(Vec<usize>),
+    Import(String),
     Other,
 }
 
-/// What a bare name at a call site refers to.
+impl Binding {
+    fn merge(&mut self, other: Binding) {
+        match (&mut *self, other) {
+            (Binding::Classes(nodes), Binding::Classes(more)) => nodes.extend(more),
+            (existing, other) if *existing == other => {}
+            (existing, _) => *existing = Binding::Other,
+        }
+    }
+}
+
+/// What a bare name at a call site refers to. `Class` holds the class node
+/// when exactly one definition binds the name.
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Resolved {
     Functions(Scope),
-    Class,
+    Class(Option<usize>),
     Shadowed,
 }
 
@@ -127,25 +156,22 @@ enum Resolved {
 pub(crate) struct ReturnTypeIndex {
     returns: HashMap<(String, Scope), Vec<Callee>>,
     bindings: HashMap<(usize, String), Binding>,
+    type_variables: HashSet<String>,
 }
 
 impl ReturnTypeIndex {
     pub(super) fn build(base: &BaseExtractor, root: Node, class_names: &HashSet<String>) -> Self {
         let mut functions = Vec::new();
-        let mut type_variables = HashSet::new();
-        let mut bindings = HashMap::new();
+        let mut assignments = Vec::new();
+        let mut index = Self::default();
         let mut stack = vec![(root, root.id())];
         while let Some((node, scope)) = stack.pop() {
             match node.kind() {
                 "function_definition" => functions.push(node),
-                "assignment" => {
-                    if let Some(name) = type_variable_name(base, node) {
-                        type_variables.insert(name);
-                    }
-                }
+                "assignment" => assignments.push(node),
                 _ => {}
             }
-            record_bindings(base, node, scope, &mut bindings);
+            record_bindings(base, node, scope, &mut index.bindings);
             let inner = if introduces_scope(node) {
                 node.id()
             } else {
@@ -156,42 +182,41 @@ impl ReturnTypeIndex {
                     .map(|child| (child, inner)),
             );
         }
-        let mut returns: HashMap<_, Vec<Callee>> = HashMap::new();
+        index.type_variables = assignments
+            .into_iter()
+            .filter_map(|assignment| index.type_variable_name(base, assignment))
+            .collect();
         for function in functions {
             let Some(name) = function.child_by_field_name("name") else {
                 continue;
             };
-            let (scope, owner_name) = match defining_scope(function) {
+            let (scope, owner) = match defining_scope(function) {
                 DefiningScope::Module => (Scope::Module, None),
                 DefiningScope::Function(outer) => (Scope::Function(outer.id()), None),
                 DefiningScope::Class(class) => {
                     let Some(class_name) = class.child_by_field_name("name") else {
                         continue;
                     };
-                    let class_name = base.get_node_text(&class_name);
-                    (Scope::Class(class_name.clone()), Some(class_name))
+                    (
+                        Scope::Class(class.id()),
+                        Some((base.get_node_text(&class_name), class.id())),
+                    )
                 }
             };
             let callee = Callee {
                 is_async: signatures::has_async_keyword(&function),
-                returns: has_only_transparent_decorators(base, function)
-                    .then(|| {
-                        declared_return(
-                            base,
-                            function,
-                            owner_name.as_deref(),
-                            &type_variables,
-                            class_names,
-                        )
-                    })
+                returns: index
+                    .has_only_transparent_decorators(base, function)
+                    .then(|| index.declared_return(base, function, owner, class_names))
                     .flatten(),
             };
-            returns
+            index
+                .returns
                 .entry((base.get_node_text(&name), scope))
                 .or_default()
                 .push(callee);
         }
-        Self { returns, bindings }
+        index
     }
 
     /// The callee every same-named function in this scope agrees on.
@@ -201,11 +226,11 @@ impl ReturnTypeIndex {
         callees.all(|callee| callee == first).then_some(first)
     }
 
-    /// Resolve a bare name used at `node` by Python's scope rules: the
-    /// innermost enclosing function, lambda, or comprehension that binds it,
-    /// a class body only for code directly inside it, then the module.
-    /// `None` when no scope binds the name.
-    fn resolve(&self, name: &str, node: Node) -> Option<Resolved> {
+    /// The scope that binds a bare name used at `node`, by Python's scope
+    /// rules: the innermost enclosing function, lambda, or comprehension that
+    /// binds it, a class body only for code directly inside it, then the
+    /// module. `None` when no scope binds the name.
+    fn binding<'t>(&self, name: &str, node: Node<'t>) -> Option<(Node<'t>, &Binding)> {
         let mut class_body_visible = true;
         let mut current = node;
         while let Some(parent) = current.parent() {
@@ -217,32 +242,181 @@ impl ReturnTypeIndex {
             if let Some(binding) = self.bindings.get(&(current.id(), name.to_string()))
                 && (class_body_visible || !is_class)
             {
-                return Some(match (current.kind(), binding) {
-                    (_, Binding::Classes) => Resolved::Class,
-                    ("function_definition", Binding::Functions) => {
-                        Resolved::Functions(Scope::Function(current.id()))
-                    }
-                    ("module", Binding::Functions) => Resolved::Functions(Scope::Module),
-                    _ => Resolved::Shadowed,
-                });
+                return Some((current, binding));
             }
             class_body_visible = false;
         }
         None
     }
+
+    fn resolve(&self, name: &str, node: Node) -> Option<Resolved> {
+        let (scope, binding) = self.binding(name, node)?;
+        Some(match (scope.kind(), binding) {
+            (_, Binding::Classes(nodes)) => Resolved::Class(match nodes.as_slice() {
+                [only] => Some(*only),
+                _ => None,
+            }),
+            ("function_definition", Binding::Functions) => {
+                Resolved::Functions(Scope::Function(scope.id()))
+            }
+            ("module", Binding::Functions) => Resolved::Functions(Scope::Module),
+            _ => Resolved::Shadowed,
+        })
+    }
+
+    /// The qualified name of an identifier or dotted name through the
+    /// file's imports (`ft.cache` after `import functools as ft` is
+    /// `functools.cache`). A name the file does not bind keeps its spelling,
+    /// since it is a builtin or comes from an unseen import. `None` when the
+    /// file binds the root name some other way.
+    fn qualified_name(&self, base: &BaseExtractor, node: Node) -> Option<String> {
+        let mut root = node;
+        while root.kind() == "attribute" {
+            root = root.child_by_field_name("object")?;
+        }
+        if root.kind() != "identifier" {
+            return None;
+        }
+        let text = base.get_node_text(&node);
+        let root_text = base.get_node_text(&root);
+        match self.binding(&root_text, node) {
+            None => Some(text),
+            Some((_, Binding::Import(qualified))) => {
+                Some(format!("{qualified}{}", &text[root_text.len()..]))
+            }
+            Some(_) => None,
+        }
+    }
+
+    fn type_variable_name(&self, base: &BaseExtractor, assignment: Node) -> Option<String> {
+        let left = assignment
+            .child_by_field_name("left")
+            .filter(|left| left.kind() == "identifier")?;
+        let factory = assignment
+            .child_by_field_name("right")
+            .filter(|right| right.kind() == "call")?
+            .child_by_field_name("function")?;
+        let is_factory =
+            |name: &str| TYPE_VARIABLE_FACTORIES.contains(&name.rsplit('.').next().unwrap_or(name));
+        (is_factory(&base.get_node_text(&factory))
+            || self
+                .qualified_name(base, factory)
+                .is_some_and(|name| is_factory(&name)))
+        .then(|| base.get_node_text(&left))
+    }
+
+    fn has_only_transparent_decorators(&self, base: &BaseExtractor, function: Node) -> bool {
+        let Some(decorated) = function
+            .parent()
+            .filter(|parent| parent.kind() == "decorated_definition")
+        else {
+            return true;
+        };
+        decorated
+            .named_children(&mut decorated.walk())
+            .filter(|child| child.kind() == "decorator")
+            .all(|decorator| {
+                let Some(expression) = decorator.named_child(0) else {
+                    return false;
+                };
+                let callee = if expression.kind() == "call" {
+                    expression.child_by_field_name("function")
+                } else {
+                    Some(expression)
+                };
+                callee
+                    .and_then(|callee| self.qualified_name(base, callee))
+                    .is_some_and(|name| match name.rsplit_once('.') {
+                        None => TRANSPARENT_DECORATORS.contains(&name.as_str()),
+                        Some((module, name)) => {
+                            DECORATOR_MODULES.contains(&module)
+                                && TRANSPARENT_DECORATORS.contains(&name)
+                        }
+                    })
+            })
+    }
+
+    fn declared_return(
+        &self,
+        base: &BaseExtractor,
+        function: Node,
+        owner: Option<(String, usize)>,
+        class_names: &HashSet<String>,
+    ) -> Option<InferredType> {
+        let return_type = function.child_by_field_name("return_type")?;
+        let named = plainly_named_annotation(base, return_type)?;
+        let name = strip_type_decorations(&named, &PYTHON_TYPE_NAME_RULES);
+        let last = name.rsplit('.').next().unwrap_or(&name);
+        let (name, class) = match last {
+            "Self" => {
+                let (owner_name, owner_id) = owner?;
+                (owner_name, Some(owner_id))
+            }
+            _ if NON_TYPE_RETURNS.contains(&last)
+                || self.type_variables.contains(&name)
+                || is_generic_parameter(base, function, &name, class_names) =>
+            {
+                return None;
+            }
+            _ => {
+                let class = match self.resolve(&name, function) {
+                    Some(Resolved::Class(class)) => class,
+                    _ => None,
+                };
+                (name, class)
+            }
+        };
+        Some(InferredType {
+            name,
+            declared: base.get_node_text(&return_type),
+            class,
+        })
+    }
 }
 
 fn introduces_scope(node: Node) -> bool {
+    is_comprehension(node)
+        || matches!(
+            node.kind(),
+            "function_definition" | "class_definition" | "lambda"
+        )
+}
+
+fn is_comprehension(node: Node) -> bool {
     matches!(
         node.kind(),
-        "function_definition"
-            | "class_definition"
-            | "lambda"
-            | "list_comprehension"
+        "list_comprehension"
             | "set_comprehension"
             | "dictionary_comprehension"
             | "generator_expression"
     )
+}
+
+/// The scope a walrus binds in: the nearest enclosing scope that is not a
+/// comprehension (PEP 572).
+fn walrus_scope(node: Node) -> usize {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        current = parent;
+        if introduces_scope(current) && !is_comprehension(current) {
+            break;
+        }
+    }
+    current.id()
+}
+
+fn insert_binding(
+    bindings: &mut HashMap<(usize, String), Binding>,
+    scope: usize,
+    name: String,
+    binding: Binding,
+) {
+    match bindings.entry((scope, name)) {
+        Entry::Occupied(mut existing) => existing.get_mut().merge(binding),
+        Entry::Vacant(slot) => {
+            slot.insert(binding);
+        }
+    }
 }
 
 /// Record the names `node` binds in `scope`.
@@ -252,6 +426,7 @@ fn record_bindings(
     scope: usize,
     bindings: &mut HashMap<(usize, String), Binding>,
 ) {
+    let mut scope = scope;
     let mut targets = Vec::new();
     let binding =
         match node.kind() {
@@ -261,7 +436,7 @@ fn record_bindings(
             }
             "class_definition" => {
                 targets.extend(node.child_by_field_name("name"));
-                Binding::Classes
+                Binding::Classes(vec![node.id()])
             }
             "assignment"
             | "augmented_assignment"
@@ -272,6 +447,7 @@ fn record_bindings(
                 Binding::Other
             }
             "named_expression" => {
+                scope = walrus_scope(node);
                 targets.extend(node.child_by_field_name("name"));
                 Binding::Other
             }
@@ -280,8 +456,8 @@ fn record_bindings(
                 Binding::Other
             }
             "import_statement" | "import_from_statement" => {
-                targets.extend(node.children_by_field_name("name", &mut node.walk()));
-                Binding::Other
+                record_import_bindings(base, node, scope, bindings);
+                return;
             }
             "parameters" | "lambda_parameters" | "global_statement" | "nonlocal_statement" => {
                 targets.push(node);
@@ -299,39 +475,60 @@ fn record_bindings(
     while let Some(target) = stack.pop() {
         match target.kind() {
             "identifier" => {
-                bindings
-                    .entry((scope, base.get_node_text(&target)))
-                    .and_modify(|existing| {
-                        if *existing != binding {
-                            *existing = Binding::Other;
-                        }
-                    })
-                    .or_insert(binding);
+                insert_binding(
+                    bindings,
+                    scope,
+                    base.get_node_text(&target),
+                    binding.clone(),
+                );
             }
             "attribute" | "subscript" | "type" => {}
             "default_parameter" | "typed_default_parameter" => {
                 stack.extend(target.child_by_field_name("name"));
             }
-            "aliased_import" => stack.extend(target.child_by_field_name("alias")),
             "dotted_name" => stack.extend(target.named_child(0)),
             _ => stack.extend(target.named_children(&mut target.walk())),
         }
     }
 }
 
-fn type_variable_name(base: &BaseExtractor, assignment: Node) -> Option<String> {
-    let left = assignment
-        .child_by_field_name("left")
-        .filter(|left| left.kind() == "identifier")?;
-    let factory = assignment
-        .child_by_field_name("right")
-        .filter(|right| right.kind() == "call")?
-        .child_by_field_name("function")?;
-    let factory = base.get_node_text(&factory);
-    let factory = factory.rsplit('.').next().unwrap_or(&factory);
-    TYPE_VARIABLE_FACTORIES
-        .contains(&factory)
-        .then(|| base.get_node_text(&left))
+/// Bind each imported name to its qualified name: `import a.b` binds `a` to
+/// `a`, `import a.b as c` binds `c` to `a.b`, and `from m import x as y`
+/// binds `y` to `m.x`.
+fn record_import_bindings(
+    base: &BaseExtractor,
+    node: Node,
+    scope: usize,
+    bindings: &mut HashMap<(usize, String), Binding>,
+) {
+    let module = node
+        .child_by_field_name("module_name")
+        .map(|module| base.get_node_text(&module));
+    for name in node.children_by_field_name("name", &mut node.walk()) {
+        let (path, alias) = if name.kind() == "aliased_import" {
+            let (Some(path), Some(alias)) = (
+                name.child_by_field_name("name"),
+                name.child_by_field_name("alias"),
+            ) else {
+                continue;
+            };
+            (base.get_node_text(&path), Some(base.get_node_text(&alias)))
+        } else {
+            (base.get_node_text(&name), None)
+        };
+        let (bound, qualified) = match (&module, alias) {
+            (Some(module), alias) => (
+                alias.unwrap_or_else(|| path.clone()),
+                format!("{module}.{path}"),
+            ),
+            (None, Some(alias)) => (alias, path),
+            (None, None) => {
+                let root = path.split('.').next().unwrap_or(&path).to_string();
+                (root.clone(), root)
+            }
+        };
+        insert_binding(bindings, scope, bound, Binding::Import(qualified));
+    }
 }
 
 enum DefiningScope<'a> {
@@ -352,31 +549,6 @@ fn defining_scope(function: Node) -> DefiningScope {
         }
     }
     DefiningScope::Module
-}
-
-fn declared_return(
-    base: &BaseExtractor,
-    function: Node,
-    owner_name: Option<&str>,
-    type_variables: &HashSet<String>,
-    class_names: &HashSet<String>,
-) -> Option<InferredType> {
-    let return_type = function.child_by_field_name("return_type")?;
-    let named = plainly_named_annotation(base, return_type)?;
-    let name = strip_type_decorations(&named, &PYTHON_TYPE_NAME_RULES);
-    let name = match name.rsplit('.').next() {
-        Some("Self") => owner_name?.to_string(),
-        _ if type_variables.contains(&name)
-            || is_generic_parameter(base, function, &name, class_names) =>
-        {
-            return None;
-        }
-        _ => name,
-    };
-    Some(InferredType {
-        name,
-        declared: base.get_node_text(&return_type),
-    })
 }
 
 /// Builtin classes and `typing` names; a type variable cannot have these
@@ -535,32 +707,6 @@ fn is_type_variable_spelling(name: &str) -> bool {
     short_capitals || lowercase_then_t || name == "AnyStr"
 }
 
-fn has_only_transparent_decorators(base: &BaseExtractor, function: Node) -> bool {
-    let Some(decorated) = function
-        .parent()
-        .filter(|parent| parent.kind() == "decorated_definition")
-    else {
-        return true;
-    };
-    decorated
-        .named_children(&mut decorated.walk())
-        .filter(|child| child.kind() == "decorator")
-        .all(|decorator| {
-            let Some(expression) = decorator.named_child(0) else {
-                return false;
-            };
-            let callee = if expression.kind() == "call" {
-                expression.child_by_field_name("function")
-            } else {
-                Some(expression)
-            };
-            callee.is_some_and(|callee| {
-                let text = base.get_node_text(&callee);
-                TRANSPARENT_DECORATORS.contains(&text.rsplit('.').next().unwrap_or(&text))
-            })
-        })
-}
-
 /// PEP 695 type parameter names declared on a function or class.
 fn type_parameter_names(base: &BaseExtractor, definition: Node) -> Vec<String> {
     let Some(parameters) = definition.child_by_field_name("type_parameters") else {
@@ -632,42 +778,55 @@ fn call_result(
     let (name, scope) = match function.kind() {
         "identifier" => {
             let name = base.get_node_text(&function);
-            match index.resolve(&name, function) {
-                Some(Resolved::Functions(scope)) => (name, scope),
-                Some(Resolved::Class) | None if extractor.same_file_class_names.contains(&name) => {
-                    return (!awaited).then(|| InferredType {
-                        name: name.clone(),
-                        declared: name,
-                    });
+            let class = match index.resolve(&name, function) {
+                Some(Resolved::Functions(scope)) => {
+                    return index.lookup(&name, scope)?.result(awaited);
                 }
+                Some(Resolved::Class(class)) => class,
+                None if extractor.same_file_class_names.contains(&name) => None,
                 _ => return None,
-            }
+            };
+            return (!awaited).then(|| InferredType {
+                name: name.clone(),
+                declared: name,
+                class,
+            });
         }
         "attribute" => {
             let object = function.child_by_field_name("object")?;
             let owner = if object.kind() == "identifier" {
                 let receiver = base.get_node_text(&object);
                 match receiver.as_str() {
-                    "self" | "cls" => helpers::enclosing_class_name(base, &function)?,
-                    _ if extractor.same_file_class_names.contains(&receiver)
-                        && matches!(
-                            index.resolve(&receiver, object),
-                            Some(Resolved::Class) | None
-                        ) =>
-                    {
-                        receiver
-                    }
-                    _ => return None,
+                    "self" | "cls" => receiver_class(index, &receiver, object)?,
+                    _ => match index.resolve(&receiver, object) {
+                        Some(Resolved::Class(Some(class))) => class,
+                        _ => return None,
+                    },
                 }
             } else {
-                value_type(extractor, object, depth)?.name
+                value_type(extractor, object, depth)?.class?
             };
             let method = base.get_node_text(&function.child_by_field_name("attribute")?);
+            if index.bindings.get(&(owner, method.clone())) != Some(&Binding::Functions) {
+                return None;
+            }
             (method, Scope::Class(owner))
         }
         _ => return None,
     };
     index.lookup(&name, scope)?.result(awaited)
+}
+
+/// The class whose method binds `self`/`cls` as a parameter at `receiver`.
+fn receiver_class(index: &ReturnTypeIndex, name: &str, receiver: Node) -> Option<usize> {
+    let (scope, _) = index.binding(name, receiver)?;
+    if scope.kind() != "function_definition" {
+        return None;
+    }
+    match defining_scope(scope) {
+        DefiningScope::Class(class) => Some(class.id()),
+        _ => None,
+    }
 }
 
 fn plainly_named_annotation(base: &BaseExtractor, node: Node) -> Option<String> {
