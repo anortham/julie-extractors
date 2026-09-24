@@ -125,7 +125,9 @@ functions, not method receivers. Wave 2 records no `receiver_type`.
 
 Core Ruby syntax states no declared types. RBS and Sorbet annotations are
 out of scope. Wave 2 records inferred facts only from same-file
-`Foo.new(...)`.
+`Foo.new(...)`. Superseded later: `docs/languages/ruby.md` now reads Sorbet
+and RBS inline annotations for written variable types and for the return
+types of same-file methods that type call initializers.
 
 ### Lua: declared types
 

@@ -152,9 +152,30 @@ before they count as a mixin on the enclosing class, which keeps
   are `variable_ref` identifiers; the declaring assignment is not.
 - Inferred type facts come from literal initializers (`String`, `Array`,
   `Hash`, `Symbol`, `Regexp`, `Boolean`, `NilClass`, `Integer`, `Float`,
-  `Range`) and from same-file `Foo.new(...)`. A method call result gives no
-  fact. `docs/decisions/2026-09-08-receiver-type-facts-wave-2.md` keeps
-  imported and namespace-qualified constructors out.
+  `Range`) and from same-file `Foo.new(...)`.
+  `docs/decisions/2026-09-08-receiver-type-facts-wave-2.md` keeps imported
+  and namespace-qualified constructors out.
+- A method's declared return type comes from the annotations a Ruby type
+  checker enforces: a Sorbet `sig { ... returns(T) }` or an RBS inline
+  `#: (..) -> T`, `#|` continuation, or `# @rbs return: T` comment directly
+  above the `def`. YARD `@return` tags are unchecked documentation and are
+  not read.
+- A local or instance variable assigned with `=` or `||=` gets an inferred
+  type fact from a call to a same-file method with a declared return type: a
+  receiverless or `self.` call on the current `self` (instance methods in an
+  instance method, class methods in a class body or class method), or
+  `Foo.m` for a class method of a same-file class or module. Same-named
+  methods on that `self` must agree, and a same-named `def` whose `self` the
+  file does not settle blocks the name. `T.nilable(X)`, `X?`, and `X | nil`
+  record `X`; `T.must(x)` and `#: as !nil` keep the type of `x`. A chained or
+  other-receiver call, a local that shadows the method name, a block that
+  rebinds `self` (`instance_eval`, `class_eval`, ...), `void`, a union,
+  `T.untyped`, `T::Boolean`, a `T::` generic, a type parameter, or a Sorbet
+  `type_member` records no fact. Other files are out of scope because each
+  file is extracted alone.
+- A written type wins over inference and is not inferred: Sorbet
+  `T.let(x, T)` / `T.cast(x, T)`, or a trailing RBS `#: T` / `#: as T`
+  comment. A trailing written type with no single class records no fact.
 
 ## Rake files
 
