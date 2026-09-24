@@ -23,8 +23,11 @@ pub(super) fn record_declared_type(base: &mut BaseExtractor, symbol_id: &str, ty
 /// same-file type named `Type` in scope at the call, to `static` methods
 /// only. The arity-compatible candidates of that type, its same-file
 /// supertypes, `java.lang.Object`, and for an enum `java.lang.Enum` must agree, and the return type text
-/// must name the same type at the call as at the callee. `void`,
-/// type-parameter returns, and any other initializer record nothing.
+/// must name the same type at the call as at the callee. A type that can
+/// inherit from another file, and for `Type.method(..)` any type around the
+/// call that can, records nothing: its unseen members can add an overload
+/// or hide a name. `void`, type-parameter returns, and any other
+/// initializer record nothing.
 pub(super) fn record_initializer_type(
     base: &mut BaseExtractor,
     symbol_id: &str,
@@ -56,6 +59,8 @@ pub(super) struct ReturnTypeIndex {
     /// Every type name written in the `extends`/`implements` clauses of a
     /// type declaration, keyed by the declaration's node id.
     supertype_names: HashMap<usize, Vec<String>>,
+    /// Named type declarations and anonymous class bodies, keyed by node id.
+    scopes: HashMap<usize, TypeScope>,
     /// Names bound anywhere in the file by a variable, parameter, field,
     /// pattern, enum constant, or single static import. Such a name used as
     /// a call qualifier may denote the variable, not the type.
@@ -83,6 +88,18 @@ impl TypeDeclaration {
     }
 }
 
+/// A type whose members Java looks up through its supertypes.
+#[derive(Debug)]
+struct TypeScope {
+    /// The same-file declarations of the written supertypes, or `None` when
+    /// some supertype is not the one same-file type of its name in scope at
+    /// the declaration: its members are then out of sight.
+    supertypes: Option<Vec<usize>>,
+    /// The type scopes around this one. Their inherited members can hide a
+    /// written supertype name.
+    enclosing: Vec<usize>,
+}
+
 #[derive(Debug)]
 struct ReturnEntry {
     owner: usize,
@@ -107,13 +124,20 @@ impl ReturnTypeIndex {
     pub(super) fn build(base: &BaseExtractor, root: Node) -> Self {
         let mut index = Self::default();
         let mut members = Vec::new();
+        let mut scopes = Vec::new();
         let mut stack = vec![root];
         while let Some(node) = stack.pop() {
             if node.kind() == "method_declaration" || is_named_type_declaration(node.kind()) {
                 members.push(node);
             }
+            if is_type_scope(node) {
+                scopes.push(node);
+            }
             index.visit(base, node);
             stack.extend(node.named_children(&mut node.walk()));
+        }
+        for scope in scopes {
+            index.add_scope(base, scope);
         }
         for node in members {
             if node.kind() == "method_declaration" {
@@ -215,6 +239,42 @@ impl ReturnTypeIndex {
             .insert(id, written_supertype_names(base, declaration));
     }
 
+    fn add_scope(&mut self, base: &BaseExtractor, scope: Node) {
+        let supertypes = written_supertypes(scope).and_then(|written| {
+            written
+                .into_iter()
+                .map(|supertype| self.same_file_type(base, supertype, scope))
+                .collect()
+        });
+        let enclosing = std::iter::successors(scope.parent(), Node::parent)
+            .filter(|ancestor| is_type_scope(*ancestor))
+            .map(|ancestor| ancestor.id())
+            .collect();
+        self.scopes.insert(
+            scope.id(),
+            TypeScope {
+                supertypes,
+                enclosing,
+            },
+        );
+    }
+
+    /// The one same-file type that a plain or generic supertype name
+    /// denotes at `site`. A dotted or annotated name is never resolved.
+    fn same_file_type(&self, base: &BaseExtractor, type_node: Node, site: Node) -> Option<usize> {
+        let name = match type_node.kind() {
+            "type_identifier" => type_node,
+            "generic_type" => type_node
+                .named_child(0)
+                .filter(|name| name.kind() == "type_identifier")?,
+            _ => return None,
+        };
+        let [declaration] = self.types.get(&base.get_node_text(&name))?.as_slice() else {
+            return None;
+        };
+        declaration.in_scope(site).then_some(declaration.id)
+    }
+
     /// Index the members every record or enum has without declaring them.
     /// An enum also gets the `java.lang.Enum` methods that a same-file
     /// method can overload: `compareTo(E)` (`int`) and the generic static
@@ -290,6 +350,13 @@ impl ReturnTypeIndex {
             }
             Some(_) => return None,
         };
+        let mut scopes = vec![owner];
+        if type_qualified {
+            scopes.extend(std::iter::successors(call.parent(), Node::parent).map(|node| node.id()));
+        }
+        if self.inherits_unseen_members(scopes) {
+            return None;
+        }
         let name = base.get_node_text(&call.child_by_field_name("name")?);
         let argument_count = non_comment_count(call.child_by_field_name("arguments")?);
         let declared = self.lookup(&name, owner, argument_count, type_qualified)?;
@@ -368,6 +435,31 @@ impl ReturnTypeIndex {
         }
         seen
     }
+
+    /// True when a type scope in `start` can inherit members that the file
+    /// does not show: it or a same-file supertype has a supertype outside
+    /// the file, or it has a written supertype and a type scope around it
+    /// can inherit such members, which can hide the supertype's name.
+    fn inherits_unseen_members(&self, start: impl IntoIterator<Item = usize>) -> bool {
+        let mut seen = HashSet::new();
+        let mut pending: Vec<usize> = start.into_iter().collect();
+        while let Some(id) = pending.pop() {
+            let Some(scope) = self.scopes.get(&id) else {
+                continue;
+            };
+            if !seen.insert(id) {
+                continue;
+            }
+            let Some(supertypes) = &scope.supertypes else {
+                return true;
+            };
+            if !supertypes.is_empty() {
+                pending.extend(supertypes);
+                pending.extend(&scope.enclosing);
+            }
+        }
+        false
+    }
 }
 
 /// The return type of the `java.lang.Object` instance method that a
@@ -399,6 +491,39 @@ fn is_named_type_declaration(kind: &str) -> bool {
             | "record_declaration"
             | "annotation_type_declaration"
     )
+}
+
+/// A named type declaration or an anonymous class creation.
+fn is_type_scope(node: Node) -> bool {
+    is_named_type_declaration(node.kind())
+        || (node.kind() == "object_creation_expression"
+            && node
+                .named_children(&mut node.walk())
+                .any(|child| child.kind() == "class_body"))
+}
+
+/// The supertype type nodes written for a type scope: the `extends` and
+/// `implements` types, or the created type of an anonymous class. `None`
+/// for `outer.new Inner() {..}`, whose type is a member of `outer`'s type.
+fn written_supertypes(scope: Node) -> Option<Vec<Node>> {
+    if scope.kind() == "object_creation_expression" {
+        return (scope.child(0)?.kind() == "new")
+            .then(|| scope.child_by_field_name("type").into_iter().collect());
+    }
+    let mut supertypes = Vec::new();
+    for clause in scope.named_children(&mut scope.walk()) {
+        match clause.kind() {
+            "superclass" => supertypes.extend(clause.named_children(&mut clause.walk())),
+            "super_interfaces" | "extends_interfaces" => {
+                for list in clause.named_children(&mut clause.walk()) {
+                    supertypes.extend(list.named_children(&mut list.walk()));
+                }
+            }
+            _ => {}
+        }
+    }
+    supertypes.retain(|node| !matches!(node.kind(), "line_comment" | "block_comment"));
+    Some(supertypes)
 }
 
 /// The identifier a declaration node binds through its `name` field.
