@@ -4,7 +4,7 @@ use tree_sitter::Node;
 
 use super::helpers::extract_variable_declaration_annotations;
 use super::imports;
-use super::type_facts;
+use super::type_facts::{self, ReturnTypeIndex};
 
 const VALUE_SUMMARY_CHARS: usize = 80;
 
@@ -16,6 +16,7 @@ pub(super) fn extract_variable(
     node: Node,
     parent_id: Option<&String>,
     is_public_fn: fn(&BaseExtractor, Node) -> bool,
+    return_types: &ReturnTypeIndex,
 ) -> Option<Symbol> {
     let is_const = type_facts::has_keyword(node, "const");
     if !is_const && !type_facts::has_keyword(node, "var") {
@@ -65,9 +66,19 @@ pub(super) fn extract_variable(
             )),
             "function_signature" => Some(extract_function_type(base, declaration, value)),
             _ if is_error_set_value(value) => Some(extract_error_set(base, declaration, value)),
-            _ => Some(extract_standard_variable(base, declaration, is_const)),
+            _ => Some(extract_standard_variable(
+                base,
+                declaration,
+                is_const,
+                return_types,
+            )),
         },
-        None => Some(extract_standard_variable(base, declaration, is_const)),
+        None => Some(extract_standard_variable(
+            base,
+            declaration,
+            is_const,
+            return_types,
+        )),
     }
 }
 
@@ -237,6 +248,7 @@ pub(super) fn extract_destructured_names(
     node: Node,
     parent_id: Option<&String>,
     is_public_fn: fn(&BaseExtractor, Node) -> bool,
+    return_types: &ReturnTypeIndex,
 ) -> Vec<Symbol> {
     if node.kind() != "variable_declaration" {
         return Vec::new();
@@ -262,25 +274,27 @@ pub(super) fn extract_destructured_names(
                 parent_id,
                 visibility: declared_visibility(node, is_public),
             };
-            extract_standard_variable(base, declaration, is_const)
+            extract_standard_variable(base, declaration, is_const, return_types)
         })
         .collect()
 }
 
-/// `pub const max_size: usize`, from the declaration up to its `=`. Without a
-/// stated type the signature shows the value after `=`, never as the type.
-fn standard_signature(base: &BaseExtractor, declaration: &Declaration) -> String {
-    let node = declaration.node;
-    let declared_names = node
-        .children(&mut node.walk())
+fn declared_name_count(node: Node) -> usize {
+    node.children(&mut node.walk())
         .filter(|child| {
             child.kind() == "identifier"
                 && child
                     .prev_sibling()
                     .is_some_and(|keyword| matches!(keyword.kind(), "const" | "var"))
         })
-        .count();
-    if declared_names > 1 {
+        .count()
+}
+
+/// `pub const max_size: usize`, from the declaration up to its `=`. Without a
+/// stated type the signature shows the value after `=`, never as the type.
+fn standard_signature(base: &BaseExtractor, declaration: &Declaration) -> String {
+    let node = declaration.node;
+    if declared_name_count(node) > 1 {
         return format!("{} {}", declaration.keyword, declaration.name);
     }
     let children: Vec<Node> = node.children(&mut node.walk()).collect();
@@ -320,6 +334,7 @@ fn extract_standard_variable(
     base: &mut BaseExtractor,
     declaration: Declaration,
     is_const: bool,
+    return_types: &ReturnTypeIndex,
 ) -> Symbol {
     let node = declaration.node;
     let symbol_kind = if !is_const || type_facts::nearest_symbol_ancestor_is_callable(node) {
@@ -347,8 +362,8 @@ fn extract_standard_variable(
     set_value_body(base, &mut symbol, value);
     if let Some(declared_type) = node.child_by_field_name("type") {
         type_facts::record_declared_type(base, &symbol.id, declared_type);
-    } else if let Some(value) = value {
-        type_facts::record_initializer_type(base, &symbol.id, value);
+    } else if let Some(value) = value.filter(|_| declared_name_count(node) == 1) {
+        type_facts::record_initializer_type(base, &symbol.id, value, return_types);
     }
     symbol
 }

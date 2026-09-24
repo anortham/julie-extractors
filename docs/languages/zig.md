@@ -53,6 +53,22 @@ belongs to that type, not to the declaration.
   `Tokenizer`).
 - In a file-as-struct, `self.peek()` from a top-level function resolves to the
   file's own top-level `peek`.
+- A `const` or `var` with no written type and a single name gets an inferred
+  type fact from its initializer: a same-file container literal
+  (`Store{ .. }`), or a call to a same-file function with a declared return
+  type. The callee is a bare function in an enclosing container (`load()`), a
+  function of a same-file container named directly (`Store.open()`,
+  `Self.open()`, `@This().open()`), or a method through the typed receiver
+  parameter (`self.next()`). Same-named candidates must agree, and a
+  same-named non-function declaration blocks inference. `try` and a `catch`
+  with a noreturn fallback (`unreachable`, `return`, `break`, `continue`, a
+  block) remove one error-union layer. `.?` and an `orelse` with a noreturn
+  fallback remove one optional layer. `Type.init(..)` on a same-file container
+  with no `init` records `Type`. A value fallback, a chain that ends in any
+  other member, a `void` or `comptime T: type` return, a function of an
+  anonymous container, a local or parameter receiver, a qualified receiver
+  (`other.Store.open()`), and a callee in another file record no fact. Other
+  files are out of scope because each file is extracted alone.
 - Types inside `?T`, `[]T`, `[N]T`, pointer types, generic type arguments in
   type position, and struct literals (`Node{ .. }`) are `type_usage`
   identifiers.

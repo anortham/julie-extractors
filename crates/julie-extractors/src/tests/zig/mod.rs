@@ -3,6 +3,7 @@ mod annotations;
 mod complexity;
 pub mod extractor;
 mod identifiers;
+mod initializer_types;
 #[cfg(test)]
 mod task15;
 
