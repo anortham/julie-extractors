@@ -251,12 +251,27 @@ enum Member {
     Other,
 }
 
+/// Where the `extends` of an inner class leads.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum BaseLink {
+    /// No `extends`, or a base that no same-file declaration names: a
+    /// native class, another file's class, or a `"res://..."` path.
+    Outside,
+    Inner(ClassPath),
+    /// A base that names same-file declarations but not exactly one class,
+    /// or a class path declared twice.
+    Unknown,
+}
+
 /// What initializer inference needs to know about the file: the names each
-/// class declares and the declared return types of its functions, keyed by
-/// owning class path.
+/// class declares, where each inner class inherits from, and the declared
+/// return types of its functions, keyed by owning class path.
 #[derive(Debug, Default)]
 pub(super) struct SameFileTypes {
     members: HashMap<(ClassPath, String), Vec<Member>>,
+    bases: HashMap<ClassPath, BaseLink>,
+    /// `extends` names not resolved yet. Empty once `build` returns.
+    unresolved_bases: HashMap<ClassPath, Vec<String>>,
     script_class: Option<String>,
     /// `(owner path, function name)` to each same-named declaration's return
     /// type. More than one entry only comes from duplicate declarations.
@@ -267,6 +282,7 @@ impl SameFileTypes {
     pub(super) fn build(base: &BaseExtractor, root: Node) -> Self {
         let mut types = Self::default();
         types.collect(base, root, &[], 0);
+        types.resolve_bases();
         types
     }
 
@@ -287,6 +303,22 @@ impl SameFileTypes {
                 self.add_member(owner, name.clone(), Member::Class);
                 let mut path = owner.to_vec();
                 path.push(name);
+                let extends = node
+                    .child_by_field_name("extends")
+                    .and_then(|extends| extends.named_child(0))
+                    .filter(|base_type| base_type.kind() == "type")
+                    .map(|base_type| base.get_node_text(&base_type))
+                    .filter(|base_type| !base_type.starts_with(['"', '\'']));
+                if self.bases.contains_key(&path) || self.unresolved_bases.contains_key(&path) {
+                    self.unresolved_bases.remove(&path);
+                    self.bases.insert(path.clone(), BaseLink::Unknown);
+                } else if let Some(extends) = extends {
+                    let segments = extends.split('.').map(|s| s.trim().to_string());
+                    self.unresolved_bases
+                        .insert(path.clone(), segments.collect());
+                } else {
+                    self.bases.insert(path.clone(), BaseLink::Outside);
+                }
                 self.collect_children(base, node, &path, depth);
             }
             ("class_definition", None) => {}
@@ -337,6 +369,85 @@ impl SameFileTypes {
         }
     }
 
+    /// Resolves every `extends` name, in rounds, because a name can only be
+    /// read once the bases of the classes around it are known. A name still
+    /// unresolved when a round makes no progress is part of a loop.
+    fn resolve_bases(&mut self) {
+        loop {
+            let resolved: Vec<(ClassPath, BaseLink)> = self
+                .unresolved_bases
+                .iter()
+                .filter_map(|(class, extends)| {
+                    let outer = &class[..class.len() - 1];
+                    Some((class.clone(), self.resolve_base(extends, outer)?))
+                })
+                .collect();
+            if resolved.is_empty() {
+                break;
+            }
+            for (class, link) in resolved {
+                self.unresolved_bases.remove(&class);
+                self.bases.insert(class, link);
+            }
+        }
+        for class in std::mem::take(&mut self.unresolved_bases).into_keys() {
+            self.bases.insert(class, BaseLink::Unknown);
+        }
+    }
+
+    /// Reads a dotted `extends` name in `outer`, the scope around the class.
+    /// `None` while a class it depends on has an unresolved base.
+    fn resolve_base(&self, extends: &[String], outer: &[String]) -> Option<BaseLink> {
+        let (head, rest) = extends.split_first()?;
+        let mut path = match self.visible(head, outer)?.as_slice() {
+            [] => return Some(BaseLink::Outside),
+            [(path, Member::Class)] => path.clone(),
+            _ => return Some(BaseLink::Unknown),
+        };
+        for segment in rest {
+            path = match self.members_of(&path, segment)?.as_slice() {
+                [(member, Member::Class)] => member.clone(),
+                _ => return Some(BaseLink::Unknown),
+            };
+        }
+        Some(BaseLink::Inner(path))
+    }
+
+    /// `class` followed by the same-file classes it inherits from, nearest
+    /// first. `None` when a base in the chain is unknown or the chain loops.
+    fn lineage(&self, class: &[String]) -> Option<Vec<ClassPath>> {
+        let mut chain = vec![class.to_vec()];
+        loop {
+            let current = chain.last()?;
+            let link = match self.bases.get(current) {
+                Some(link) => link,
+                None if self.unresolved_bases.contains_key(current) => return None,
+                None => return Some(chain),
+            };
+            match link {
+                BaseLink::Outside => return Some(chain),
+                BaseLink::Unknown => return None,
+                BaseLink::Inner(base) if chain.contains(base) => return None,
+                BaseLink::Inner(base) => chain.push(base.clone()),
+            }
+        }
+    }
+
+    /// Every declaration named `name` that `class` declares or inherits from
+    /// a same-file base, as its path and kind.
+    fn members_of(&self, class: &[String], name: &str) -> Option<Vec<(ClassPath, Member)>> {
+        let mut found = Vec::new();
+        for owner in self.lineage(class)? {
+            let key = (owner, name.to_string());
+            if let Some(kinds) = self.members.get(&key) {
+                let mut path = key.0;
+                path.push(key.1);
+                found.extend(kinds.iter().map(|kind| (path.clone(), *kind)));
+            }
+        }
+        Some(found)
+    }
+
     /// The return type every same-named function of this owner agrees on.
     fn return_type(&self, owner: &[String], name: &str) -> Option<String> {
         let mut candidates = self
@@ -363,22 +474,31 @@ impl SameFileTypes {
     }
 
     /// Every same-file declaration that the bare name `name` can mean inside
-    /// `scope`: a member of `scope` or of any class around it, or the
-    /// script's `class_name`. Each one is the declared path and its kind.
-    fn visible(&self, name: &str, scope: &[String]) -> Vec<(ClassPath, Member)> {
-        let mut found = Vec::new();
+    /// `scope`: a member that `scope` or any class around it declares or
+    /// inherits from a same-file base, or the script's `class_name`. Each one
+    /// is the declared path and its kind. `None` when a class on the way has
+    /// a base that cannot be resolved.
+    fn visible(&self, name: &str, scope: &[String]) -> Option<Vec<(ClassPath, Member)>> {
+        let mut found: Vec<(ClassPath, Member)> = Vec::new();
+        let mut searched: Vec<ClassPath> = Vec::new();
         for depth in 0..=scope.len() {
-            let key = (scope[..depth].to_vec(), name.to_string());
-            if let Some(kinds) = self.members.get(&key) {
-                let mut path = key.0;
-                path.push(key.1);
-                found.extend(kinds.iter().map(|kind| (path.clone(), *kind)));
+            for owner in self.lineage(&scope[..depth])? {
+                if searched.contains(&owner) {
+                    continue;
+                }
+                let key = (owner, name.to_string());
+                if let Some(kinds) = self.members.get(&key) {
+                    let mut path = key.0.clone();
+                    path.push(key.1);
+                    found.extend(kinds.iter().map(|kind| (path.clone(), *kind)));
+                }
+                searched.push(key.0);
             }
         }
         if self.script_class.as_deref() == Some(name) {
             found.push((ClassPath::new(), Member::Class));
         }
-        found
+        Some(found)
     }
 
     /// Whether every type name in `type_text`, written in `callee`, names the
@@ -390,10 +510,12 @@ impl SameFileTypes {
             || type_text
                 .split(|c: char| !(c.is_alphanumeric() || c == '_' || c == '.'))
                 .filter_map(|name| name.split('.').next().filter(|head| !head.is_empty()))
-                .all(|name| {
-                    let written = self.visible(name, callee);
-                    written.len() <= 1 && written == self.visible(name, caller)
-                })
+                .all(
+                    |name| match (self.visible(name, callee), self.visible(name, caller)) {
+                        (Some(written), Some(read)) => written.len() <= 1 && written == read,
+                        _ => false,
+                    },
+                )
     }
 }
 
@@ -474,7 +596,7 @@ impl InitializerScope<'_, '_> {
         if self.declares_local(&receiver) {
             return None;
         }
-        let visible = self.types.visible(&receiver, &self.owner);
+        let visible = self.types.visible(&receiver, &self.owner)?;
         if let [(target, Member::Class)] = visible.as_slice()
             && self.types.declares(target, &method)
         {
@@ -488,7 +610,7 @@ impl InitializerScope<'_, '_> {
             .then_some(receiver)
     }
 
-    /// Whether the function or lambda that holds the statement declares
+    /// Whether the function, lambda or accessor that holds the statement declares
     /// `name` as a parameter or local anywhere in its body. Godot resolves
     /// those before class names. A declaration in another block also counts,
     /// which can only drop a fact.
@@ -498,9 +620,7 @@ impl InitializerScope<'_, '_> {
         while let Some(ancestor) = current {
             match ancestor.kind() {
                 "class_definition" | "source" => break,
-                "function_definition" | "constructor_definition" | "lambda" => {
-                    root = Some(ancestor)
-                }
+                kind if super::helpers::is_callable_scope(kind) => root = Some(ancestor),
                 _ => {}
             }
             current = ancestor.parent();

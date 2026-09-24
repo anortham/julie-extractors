@@ -493,3 +493,143 @@ fn chain_after_same_file_static_call_records_nothing() {
     );
     assert_eq!(workspace_type("var workspace = Inner.build().value"), None);
 }
+
+const ACCESSOR_SHADOWS: &str = "extends Node
+class Foo:
+\tstatic func make() -> int:
+\t\treturn 1
+var p1: int:
+\tset(Foo):
+\t\tvar set_param_call = Foo.make()
+\t\tvar set_param_new = Foo.new()
+\tget:
+\t\tvar Foo = 3
+\t\tvar get_local_call = Foo.make()
+\t\tvar get_local_new = Foo.new()
+\t\treturn 0
+var p2: int:
+\tset(value):
+\t\tvar set_unshadowed = Foo.make()
+";
+
+#[test]
+fn static_call_in_accessor_on_unshadowed_class_records_return_type() {
+    assert_eq!(
+        inferred_type(ACCESSOR_SHADOWS, "set_unshadowed"),
+        inferred("int")
+    );
+}
+
+#[test]
+fn static_call_on_name_shadowed_by_accessor_parameter_or_local_records_nothing() {
+    for variable in [
+        "set_param_call",
+        "set_param_new",
+        "get_local_call",
+        "get_local_new",
+    ] {
+        assert_eq!(
+            inferred_type(ACCESSOR_SHADOWS, variable),
+            None,
+            "{variable}"
+        );
+    }
+}
+
+const INHERITED_MEMBERS: &str = "extends Node
+class Item:
+\tstatic func make() -> int:
+\t\treturn 1
+class Foo:
+\tstatic func make() -> int:
+\t\treturn 1
+class Kind:
+\tpass
+class A:
+\tstatic func k() -> Kind:
+\t\treturn null
+class Base:
+\tclass Item:
+\t\tstatic func make() -> String:
+\t\t\treturn \"\"
+\tclass Tool:
+\t\tstatic func t() -> int:
+\t\t\treturn 1
+\tclass Kind:
+\t\tpass
+\tvar Foo = null
+class Derived extends Base:
+\tfunc use():
+\t\tvar inherited_class = Item.make()
+\t\tvar inherited_var_call = Foo.make()
+\t\tvar inherited_var_new = Foo.new()
+\t\tvar inherited_return_name = A.k()
+\t\tvar inherited_tool = Tool.t()
+\tclass Deep:
+\t\tfunc use():
+\t\t\tvar deep_inherited = Item.make()
+class Grand extends Derived:
+\tfunc use():
+\t\tvar grand_inherited = Item.make()
+class Plain extends Node:
+\tfunc use():
+\t\tvar plain_item = Item.make()
+\t\tvar plain_kind = A.k()
+class Broken extends Base.Missing:
+\tfunc use():
+\t\tvar broken_base = Item.make()
+class Loop1 extends Loop2:
+\tfunc use():
+\t\tvar loop_base = Item.make()
+class Loop2 extends Loop1:
+\tpass
+";
+
+#[test]
+fn static_call_on_name_that_a_same_file_base_class_declares_records_nothing() {
+    for variable in [
+        "inherited_class",
+        "inherited_var_call",
+        "inherited_var_new",
+        "inherited_return_name",
+        "deep_inherited",
+        "grand_inherited",
+    ] {
+        assert_eq!(
+            inferred_type(INHERITED_MEMBERS, variable),
+            None,
+            "{variable}"
+        );
+    }
+}
+
+#[test]
+fn static_call_on_class_inherited_from_same_file_base_records_return_type() {
+    assert_eq!(
+        inferred_type(INHERITED_MEMBERS, "inherited_tool"),
+        inferred("int")
+    );
+}
+
+#[test]
+fn static_call_in_class_with_outside_base_records_return_type() {
+    assert_eq!(
+        inferred_type(INHERITED_MEMBERS, "plain_item"),
+        inferred("int")
+    );
+    assert_eq!(
+        inferred_type(INHERITED_MEMBERS, "plain_kind"),
+        inferred("Kind")
+    );
+}
+
+#[test]
+fn static_call_in_class_with_unresolved_or_looping_base_records_nothing() {
+    for variable in ["broken_base", "loop_base"] {
+        assert_eq!(
+            inferred_type(INHERITED_MEMBERS, variable),
+            None,
+            "{variable}"
+        );
+    }
+}

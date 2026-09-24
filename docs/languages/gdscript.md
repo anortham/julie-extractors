@@ -29,10 +29,12 @@ inner classes with the same name never share functions.
   that holds the variable.
 - `Foo.f()`: records the declared return type of `f` in class `Foo`. `Foo`
   must mean exactly one same-file class at the call site: an inner class of
-  the current scope or of a scope around it, or the script's `class_name`.
-  No parameter or local of the function, and no other member (const, var,
-  enum, signal, function) of the current scope or a scope around it, can
-  have the name `Foo`.
+  the current scope or of a scope around it, an inner class that one of
+  those scopes inherits from a same-file base class, or the script's
+  `class_name`. No parameter or local of the function or accessor
+  (`set(value):`, `get:`), and no other member (const, var, enum, signal,
+  function) of those scopes or their same-file base classes, can have the
+  name `Foo`.
 - `await expr` and `(expr)` pass the type of `expr` through.
 
 ## Initializers that record nothing
@@ -42,10 +44,20 @@ inner classes with the same name never share functions.
   arguments, not a `Signal`. The call without `await` records `Signal`.
 - Duplicate declarations of one function in one scope that disagree on the
   return type.
-- A function that only a base class declares, also when the base class is in
-  the same file. `class B extends A` inherits from `A`, but `B` can also
-  override the function or `A` can be another file's class. The extractor does
-  not follow `extends`.
+- A bare call to a function that only a base class declares, also when the
+  base class is in the same file. The call records only a function that the
+  scope itself declares.
+- `Foo.f()` or `Foo.new()` when the name `Foo` means more than one same-file
+  declaration once same-file base classes count. For example, in
+  `class Derived extends Base`, `Item.make()` records nothing when both the
+  script and `Base` declare a class `Item`, and `Foo.make()` records nothing
+  when `Base` has `var Foo`. A return type such as `Kind` records nothing when
+  `Kind` means a class of `Base` at the call site but a different class where
+  the function is written.
+- Any `Foo.f()` or `Foo.new()` inside a class whose same-file `extends`
+  cannot be resolved to exactly one class, such as `extends Base.Missing`, or
+  whose `extends` chain loops. The extractor cannot know which names that
+  class inherits.
 - A bare call from an inner class to a function of an outer class, or from the
   script to a function of an inner class.
 - A bare call `f()` when `f` is a built-in type (`String`, `Vector2`), a
