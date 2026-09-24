@@ -171,6 +171,24 @@ enums, records, annotation types and record components, carries its
 annotations. Bodies come only from the grammar's `body` field, so abstract
 methods, annotation elements and locals have no body span.
 
+A `var` local or `var` try-with-resources binding gets an inferred type fact
+from its initializer:
+
+- `new Foo<..>(..)` records the constructed type `Foo`.
+- A call to a same-file method with a declared return type records that type:
+  an unqualified `load(..)` or `this.load(..)` resolves only in the innermost
+  named class, interface, enum, or record around the call, and
+  `Type.create(..)` resolves in the same-file types named `Type` and only to
+  `static` methods.
+- The candidates that accept the call's argument count must all declare the
+  same return type text. A varargs method accepts one fewer argument and more.
+- `void`, a return type that is a method or enclosing type parameter
+  (`<T> T get()`, `T[] all()`), an old-style `Foo load()[]` return, any other
+  receiver (`super`, a variable, a field, a call chain), a call inside an
+  anonymous class, and a callee in another file record no fact. Java has no
+  language-level unwrap operator, so no wrapper layer is removed. Other files
+  are out of scope because each file is extracted alone.
+
 ## Frameworks
 
 - Spring MVC routes (`spring.request_mapping.v1`) are read from the tree.
