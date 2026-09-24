@@ -37,6 +37,25 @@ Scala uses `tree-sitter-scala`. The extractor reads `.scala`, `.sc`, and
   type (`Shape`) with `extendedType` metadata, as Swift names
   `extension Shape`. Its methods are its members.
 
+## Type facts
+
+- A `val` or `var` with no written type gets an inferred type fact from its
+  initializer: `new T(..)`, `T(..)` for a same-file class `T`, or a call to or
+  reference of a same-file `def` with a declared return type. The `def` can
+  be local, top-level, a member of an enclosing class, object, or trait
+  (`load()`, `this.load()`), or an object member (`Repo.create()`,
+  `Repo.current`). The call must supply the def's explicit parameter lists,
+  or all of them with its `implicit`/`using` list.
+- `Name(..)` uses the `apply` methods of the same-file object `Name` when it
+  declares any. For a case class the result must be `Name`.
+- Same-named defs in the resolving scope must agree. `.get` removes one
+  `Option`, `Some`, `Try`, or `Success` layer. Any other trailing method,
+  a type parameter or abstract type member, a name bound by a parameter,
+  pattern, or `val`, or a name an enclosing template can inherit (an
+  `extends` clause, a self type, a case class, an anonymous class, an enum or
+  given body, or an `Any` member such as `toString`) records no fact. Other
+  files are out of scope because each file is extracted alone.
+
 ## Relationships and identifiers
 
 - Inheritance edges come from the definition at the same span, so a

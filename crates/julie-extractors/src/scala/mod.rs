@@ -29,6 +29,7 @@ use tree_sitter::{Node, Tree};
 
 pub struct ScalaExtractor {
     pub(crate) base: BaseExtractor,
+    return_types: type_facts::ReturnTypeIndex,
 }
 
 impl ScalaExtractor {
@@ -40,6 +41,7 @@ impl ScalaExtractor {
     ) -> Self {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
+            return_types: type_facts::ReturnTypeIndex::default(),
         }
     }
 
@@ -72,6 +74,7 @@ impl ScalaExtractor {
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
+        self.return_types = type_facts::ReturnTypeIndex::build(&self.base, tree.root_node());
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
         crate::test_detection::mark_scala_test_containers(&mut symbols);
         symbols
@@ -128,7 +131,8 @@ impl ScalaExtractor {
                 declarations::extract_function(base, &node, parent_id)
             }
             "val_definition" | "val_declaration" | "var_definition" | "var_declaration" => {
-                let mut bindings = properties::extract_bindings(base, &node, parent_id);
+                let mut bindings =
+                    properties::extract_bindings(base, &node, parent_id, &self.return_types);
                 if bindings.len() != 1 {
                     symbols.append(&mut bindings);
                     return None;
