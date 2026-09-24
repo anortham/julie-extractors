@@ -8,8 +8,8 @@ use super::type_facts;
 
 /// Create one `variable` symbol per declarator of a `local_variable_declaration`,
 /// parented to the enclosing symbol. Stated types record a declared-type fact;
-/// `var` locals record the constructed type of a `new Foo(...)` initializer
-/// (`is_inferred=true`) and record nothing for any other initializer.
+/// `var` locals record the type their initializer produces (`is_inferred=true`),
+/// as `type_facts::record_initializer_type` defines it.
 pub(super) fn extract_locals(
     extractor: &mut JavaExtractor,
     node: Node,
@@ -51,7 +51,12 @@ pub(super) fn extract_locals(
         if let Some(type_node) = type_node {
             if type_facts::is_var_type(extractor.base(), type_node) {
                 if let Some(value) = declarator.child_by_field_name("value") {
-                    type_facts::record_new_expression_type(extractor.base_mut(), &symbol.id, value);
+                    type_facts::record_initializer_type(
+                        &mut extractor.base,
+                        &symbol.id,
+                        value,
+                        &extractor.return_types,
+                    );
                 }
             } else if declarator.child_by_field_name("dimensions").is_none() {
                 type_facts::record_declared_type(extractor.base_mut(), &symbol.id, type_node);
@@ -98,17 +103,27 @@ fn extract_resource(
         .child_by_field_name("name")
         .filter(|name| name.kind() == "identifier")?;
     let type_node = node.child_by_field_name("type");
-    let record_type = type_node
-        .is_some_and(|type_node| !type_facts::is_var_type(extractor.base(), type_node))
-        && node.child_by_field_name("dimensions").is_none();
-    Some(binding_symbol(
+    let is_var =
+        type_node.is_some_and(|type_node| type_facts::is_var_type(extractor.base(), type_node));
+    let record_type =
+        type_node.is_some() && !is_var && node.child_by_field_name("dimensions").is_none();
+    let symbol = binding_symbol(
         extractor,
         node,
         name_node,
         type_node,
         parent_id,
         record_type,
-    ))
+    );
+    if is_var && let Some(value) = node.child_by_field_name("value") {
+        type_facts::record_initializer_type(
+            &mut extractor.base,
+            &symbol.id,
+            value,
+            &extractor.return_types,
+        );
+    }
+    Some(symbol)
 }
 
 fn extract_enhanced_for(
