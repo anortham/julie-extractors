@@ -120,6 +120,9 @@ pub(super) fn extract_declaration(
     let declarators: Vec<_> = node
         .children_by_field_name("declarator", &mut cursor)
         .collect();
+    if let Some(auto) = helpers::c23_auto_declaration(&extractor.base, node) {
+        return extract_auto_declaration(extractor, node, auto, declarators, parent_id);
+    }
     declarators
         .into_iter()
         .filter_map(|declarator| {
@@ -343,8 +346,85 @@ pub(super) fn extract_variable_declaration(
             Value::String("true".to_string()),
         );
     }
-    type_facts::record_declared_from_declaration(&mut extractor.base, &symbol.id, node, declarator);
+    type_facts::record_variable_type(
+        &mut extractor.base,
+        &symbol.id,
+        node,
+        declarator,
+        &extractor.return_types,
+    );
     Some(symbol)
+}
+
+/// Extract the variables of a C23 `auto` declaration, each typed by its
+/// initializer. The first variable's name is the node tree-sitter-c reads as
+/// the declaration's type.
+fn extract_auto_declaration(
+    extractor: &mut CExtractor,
+    node: tree_sitter::Node,
+    auto: helpers::AutoDeclaration,
+    declarators: Vec<tree_sitter::Node>,
+    parent_id: Option<&str>,
+) -> Vec<Symbol> {
+    let prefix = extractor.base.content[node.start_byte()..auto.name.start_byte()]
+        .trim_end()
+        .to_string();
+    let rest = declarators.into_iter().skip(1).filter_map(|declarator| {
+        let name = declarator
+            .child_by_field_name("declarator")
+            .filter(|name| declarator.kind() == "init_declarator" && name.kind() == "identifier")?;
+        Some((name, declarator.child_by_field_name("value")))
+    });
+    let variables: Vec<_> = std::iter::once((auto.name, Some(auto.value)))
+        .chain(rest)
+        .collect();
+    let is_static = helpers::is_static_function(&extractor.base, node);
+    variables
+        .into_iter()
+        .map(|(name, value)| {
+            let variable_name = extractor.base.get_node_text(&name);
+            let initializer = value
+                .map(|value| extractor.base.get_node_text(&value))
+                .unwrap_or_default();
+            let mut signature = format!("{prefix} {variable_name}");
+            if !initializer.is_empty() {
+                signature.push_str(" = ");
+                signature.push_str(&initializer);
+            }
+            let symbol = extractor.base.create_symbol(
+                &node,
+                variable_name.clone(),
+                SymbolKind::Variable,
+                SymbolOptions {
+                    signature: Some(signature),
+                    visibility: Some(if is_static {
+                        Visibility::Private
+                    } else {
+                        Visibility::Public
+                    }),
+                    parent_id: parent_id.map(|s| s.to_string()),
+                    metadata: Some(HashMap::from([
+                        ("type".to_string(), Value::String("variable".to_string())),
+                        ("name".to_string(), Value::String(variable_name)),
+                        ("dataType".to_string(), Value::String("auto".to_string())),
+                        ("isStatic".to_string(), Value::String(is_static.to_string())),
+                        ("initializer".to_string(), Value::String(initializer)),
+                    ])),
+                    doc_comment: extractor.base.find_doc_comment(&node),
+                    annotations: helpers::child_attributes(&extractor.base, node),
+                },
+            );
+            if let Some(value) = value {
+                type_facts::record_initializer_type(
+                    &mut extractor.base,
+                    &symbol.id,
+                    value,
+                    &extractor.return_types,
+                );
+            }
+            symbol
+        })
+        .collect()
 }
 
 /// Extract a linkage specification (extern "C" block)

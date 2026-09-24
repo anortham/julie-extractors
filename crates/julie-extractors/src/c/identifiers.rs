@@ -92,9 +92,20 @@ fn extract_identifier_from_node(
         // Type references: typedef names, struct tags, enum tags in type positions.
         // C's tree-sitter grammar uses `type_identifier` for user-defined types
         // appearing in declarations, parameters, field types, casts, sizeof, etc.
+        "type_identifier" if helpers::is_misread_auto_argument(&extractor.base, node) => {
+            let name = extractor.base.get_node_text(&node);
+            let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            extractor.base.create_identifier(
+                &node,
+                name,
+                IdentifierKind::VariableRef,
+                containing_symbol_id,
+            );
+        }
         "type_identifier" => {
             if !helpers::is_type_declaration_name(node)
                 && !helpers::is_generic_default_label(&extractor.base, node)
+                && !helpers::is_inferred_type_placeholder(&extractor.base, node)
             {
                 let name = extractor.base.get_node_text(&node);
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
@@ -102,6 +113,19 @@ fn extract_identifier_from_node(
                     &node,
                     name,
                     IdentifierKind::TypeUsage,
+                    containing_symbol_id,
+                );
+            }
+        }
+
+        "function_declarator" => {
+            if let Some(callee) = helpers::misread_auto_callee(&extractor.base, node) {
+                let name = extractor.base.get_node_text(&callee);
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                extractor.base.create_identifier(
+                    &callee,
+                    name,
+                    IdentifierKind::Call,
                     containing_symbol_id,
                 );
             }

@@ -37,6 +37,40 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/c/return_types/source.c:made:3:17",
+      "name": "made",
+      "kind": "variable",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/return_types/source.c",
+      "start_line": 3,
+      "start_column": 17,
+      "end_line": 3,
+      "end_column": 43,
+      "start_byte": 100,
+      "end_byte": 126,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "__auto_type made = make()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/c/return_types/source.c:use:3:0",
+      "metadata": {
+        "dataType": "__auto_type",
+        "initializer": "make()",
+        "isArray": "false",
+        "isConst": "false",
+        "isExtern": "false",
+        "isStatic": "false",
+        "isVolatile": "false",
+        "name": "made",
+        "type": "variable"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/c/return_types/source.c:make:2:0",
       "name": "make",
       "kind": "function",
@@ -67,6 +101,44 @@
         "name": "make",
         "parameters": "void",
         "returnType": "Result",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/c/return_types/source.c:use:3:0",
+      "name": "use",
+      "kind": "function",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/return_types/source.c",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 45,
+      "start_byte": 83,
+      "end_byte": 128,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 15,
+        "end_line": 3,
+        "end_column": 45,
+        "start_byte": 98,
+        "end_byte": 128
+      },
+      "body_hash": "eaf942caae9ff1362710391ccf91d6b9",
+      "signature": "void use(void)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "isDefinition": "true",
+        "isStatic": "false",
+        "name": "use",
+        "parameters": "void",
+        "returnType": "void",
         "type": "function"
       },
       "annotations": [],
@@ -153,6 +225,24 @@
       "reference_site_is_exact": true,
       "confidence": "0.800",
       "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/c/return_types/source.c:use:3:0",
+      "to_key": "fixtures/extraction/c/return_types/source.c:make:2:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/c/return_types/source.c",
+      "line_number": 3,
+      "span": {
+        "start_line": 3,
+        "start_column": 36,
+        "end_line": 3,
+        "end_column": 40,
+        "start_byte": 119,
+        "end_byte": 123
+      },
+      "reference_site_is_exact": true,
+      "confidence": "1.000",
+      "metadata": null
     }
   ],
   "pending_relationships": [],
@@ -191,6 +281,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/c/return_types/source.c:make:call:3:36",
+      "name": "make",
+      "kind": "call",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/return_types/source.c",
+      "start_line": 3,
+      "start_column": 36,
+      "end_line": 3,
+      "end_column": 40,
+      "start_byte": 119,
+      "end_byte": 123,
+      "containing_key": "fixtures/extraction/c/return_types/source.c:use:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/c/return_types/source.c:x:variable_ref:2:37",
       "name": "x",
       "kind": "variable_ref",
@@ -209,8 +315,26 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/c/return_types/source.c:made:3:17",
+      "resolved_type": "Result",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "c",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/c/return_types/source.c:make:2:0",
       "resolved_type": "Result",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": false,
+      "language": "c",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/c/return_types/source.c:use:3:0",
+      "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
       "is_inferred": false,
@@ -245,18 +369,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "c",
       "file_path": "fixtures/extraction/c/return_types/source.c",
-      "covered_lines": 3,
-      "covered_bytes": 83,
+      "covered_lines": 4,
+      "covered_bytes": 129,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 3,
+      "end_line": 4,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 83,
+      "end_byte": 129,
       "metadata": {
         "metric_version": 1
       }
@@ -279,6 +403,28 @@
       "end_column": 41,
       "start_byte": 59,
       "end_byte": 82,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/c/return_types/source.c:use:3:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/return_types/source.c",
+      "covered_lines": 1,
+      "covered_bytes": 30,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 3,
+      "start_column": 15,
+      "end_line": 3,
+      "end_column": 45,
+      "start_byte": 98,
+      "end_byte": 128,
       "metadata": {
         "metric_version": 1
       }
