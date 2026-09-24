@@ -4,10 +4,13 @@
 //! `X = Value` records an inferred fact when `Value` is a record literal or
 //! record update (`Old#foo{..}`) of a same-file `-record`, or a call to a same-file function whose `-spec`
 //! clauses all return one base type: `load()`, `?MODULE:load()`, or
-//! `this_module:load()`. `X = Y = Value` gives both variables that type. A
+//! `this_module:load()`. `X = Y = Value` gives both variables that type.
+//! `{ok, X} = load()` binds `X` and gives it `T` when every `{ok, T}`
+//! alternative of the spec agrees and no other alternative can match. A
 //! variable bound by several matches in one function keeps a fact only when
 //! every match gives it the same type. Calls to other modules, funs, macros,
-//! `catch`, and type-variable, union, tuple, or list returns record nothing.
+//! `catch`, atom literals, `no_return()`, and type-variable, union, tuple, or
+//! list returns record nothing.
 
 use std::collections::{HashMap, HashSet};
 
@@ -15,7 +18,7 @@ use tree_sitter::Node;
 
 use super::ErlangExtractor;
 use super::helpers::{NameArity, arg_count, first_atom_text, named_children, unquote_atom};
-use super::types::{DeclaredType, DeclaredTypes};
+use super::types::{DeclaredType, DeclaredTypes, SpecReturn, is_ok_atom};
 use crate::base::types::TypeNameRules;
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -60,7 +63,7 @@ pub(super) fn record_expr_name(base: &BaseExtractor, node: &Node) -> Option<Stri
 /// What body-match inference resolves against, built once per file.
 pub(super) struct InitializerScope {
     records: HashSet<String>,
-    returns: HashMap<NameArity, DeclaredType>,
+    returns: HashMap<NameArity, SpecReturn>,
     module_name: Option<String>,
 }
 
@@ -76,7 +79,7 @@ impl InitializerScope {
         Self {
             records: same_file_record_names(base, declarations),
             returns: declared
-                .agreed_spec_returns()
+                .spec_returns()
                 .filter(|(identity, _)| defined.contains_key(*identity))
                 .map(|(identity, returned)| (identity.clone(), returned.clone()))
                 .collect(),
@@ -105,8 +108,7 @@ impl InitializerScope {
                     declared: name.clone(),
                     name,
                 }),
-            "call" => self.local_call_type(extractor, value),
-            "remote" => self.remote_call_type(extractor, value),
+            "call" | "remote" => self.call_return(extractor, value)?.value.clone(),
             "match_expr" => self.value_type(
                 extractor,
                 value.child_by_field_name("rhs")?,
@@ -116,7 +118,35 @@ impl InitializerScope {
         }
     }
 
-    fn local_call_type(&self, extractor: &ErlangExtractor, call: Node) -> Option<DeclaredType> {
+    /// The `T` that `{ok, X} = value` binds `X` to.
+    fn ok_payload_type(
+        &self,
+        extractor: &ErlangExtractor,
+        value: Node,
+        depth: u32,
+    ) -> Option<DeclaredType> {
+        if !should_visit_tree_depth(depth) {
+            return None;
+        }
+        match value.kind() {
+            "match_expr" => self.ok_payload_type(
+                extractor,
+                value.child_by_field_name("rhs")?,
+                child_tree_depth(depth)?,
+            ),
+            _ => self.call_return(extractor, value)?.ok_payload.clone(),
+        }
+    }
+
+    fn call_return(&self, extractor: &ErlangExtractor, value: Node) -> Option<&SpecReturn> {
+        match value.kind() {
+            "call" => self.local_call_return(extractor, value),
+            "remote" => self.remote_call_return(extractor, value),
+            _ => None,
+        }
+    }
+
+    fn local_call_return(&self, extractor: &ErlangExtractor, call: Node) -> Option<&SpecReturn> {
         let callee = call
             .child_by_field_name("expr")
             .filter(|callee| callee.kind() == "atom")?;
@@ -124,10 +154,10 @@ impl InitializerScope {
             unquote_atom(&extractor.base.get_node_text(&callee)),
             arg_count(&call.child_by_field_name("args")?),
         );
-        self.returns.get(&identity).cloned()
+        self.returns.get(&identity)
     }
 
-    fn remote_call_type(&self, extractor: &ErlangExtractor, remote: Node) -> Option<DeclaredType> {
+    fn remote_call_return(&self, extractor: &ErlangExtractor, remote: Node) -> Option<&SpecReturn> {
         let own_module = self.module_name.as_deref()?;
         let module = remote
             .child_by_field_name("module")?
@@ -141,13 +171,13 @@ impl InitializerScope {
             .child_by_field_name("fun")
             .filter(|call| call.kind() == "call")?;
         names_own_module
-            .then(|| self.local_call_type(extractor, call))
+            .then(|| self.local_call_return(extractor, call))
             .flatten()
     }
 }
 
-/// One variable bound by `Var = Value` matches in a function body: its first
-/// binding site and the type every match agrees on.
+/// One variable bound by `Var = Value` or `{ok, Var} = Value` matches in a
+/// function body: its first binding site and the type every match agrees on.
 struct Binding<'tree> {
     var: Node<'tree>,
     value_type: Option<DeclaredType>,
@@ -227,6 +257,16 @@ fn match_binding<'tree>(
 
     if lhs.kind() == "var" {
         return Some((lhs, scope.value_type(extractor, rhs, depth)));
+    }
+    if lhs.kind() == "tuple" {
+        let mut cursor = lhs.walk();
+        let elements: Vec<Node> = lhs.children_by_field_name("expr", &mut cursor).collect();
+        return match elements.as_slice() {
+            [tag, var] if is_ok_atom(&extractor.base, tag) && var.kind() == "var" => {
+                Some((*var, scope.ok_payload_type(extractor, rhs, depth)))
+            }
+            _ => None,
+        };
     }
 
     let record = record_expr_name(&extractor.base, &lhs)?;

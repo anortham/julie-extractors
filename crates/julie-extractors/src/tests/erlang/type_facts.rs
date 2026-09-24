@@ -658,3 +658,168 @@ next(Stream0) ->
     let (symbols, extractor) = extract(source);
     no_fact(&extractor, &symbols, "Stream", SymbolKind::Variable);
 }
+
+#[test]
+fn ok_tuple_match_takes_the_ok_payload_of_the_spec() {
+    let source = r#"
+-module(bank).
+
+-spec load() -> {ok, state()}.
+load() ->
+    {ok, #{}}.
+
+-spec open() -> {ok, conn()} | {error, term()}.
+open() ->
+    {ok, 1}.
+
+-spec start() -> {ok, Pid :: server()} | ignore | {error, any(), any()}.
+start() ->
+    ignore.
+
+run() ->
+    {ok, S} = load(),
+    {ok, C} = ?MODULE:open(),
+    {'ok', P} = Started = start(),
+    {ok, _} = load(),
+    {S, C, P, Started}.
+"#;
+    let (symbols, extractor) = extract(source);
+    assert_eq!(inferred_type(&extractor, &symbols, "S"), "state");
+    assert_eq!(
+        declared_metadata(&extractor, &symbols, "S").as_deref(),
+        Some("state()")
+    );
+    assert_eq!(inferred_type(&extractor, &symbols, "C"), "conn");
+    assert_eq!(inferred_type(&extractor, &symbols, "P"), "server");
+    no_fact(&extractor, &symbols, "Started", SymbolKind::Variable);
+    assert!(variables_named(&symbols, "_").is_empty());
+}
+
+#[test]
+fn ok_tuple_match_without_one_certain_payload_records_nothing() {
+    let source = r#"
+-module(bank).
+-type result() :: {ok, state()}.
+
+-spec two() -> {ok, a()} | {ok, b()}.
+two() -> ok.
+
+-spec named() -> {ok, a()} | result().
+named() -> ok.
+
+-spec var() -> {ok, T} when T :: a().
+var() -> ok.
+
+-spec atom() -> {ok, done}.
+atom() -> ok.
+
+-spec list() -> {ok, [a()]}.
+list() -> ok.
+
+-spec failed() -> {error, a()}.
+failed() -> ok.
+
+-spec alias() -> result().
+alias() -> ok.
+
+-spec load() -> {ok, a()}.
+load() -> ok.
+
+run() ->
+    {ok, Two} = two(),
+    {ok, Named} = named(),
+    {ok, Var} = var(),
+    {ok, Atom} = atom(),
+    {ok, List} = list(),
+    {ok, Failed} = failed(),
+    {ok, Alias} = alias(),
+    {ok, Remote} = other:load(),
+    {ok, Fun} = (fun load/0)(),
+    {ok, Known} = load(),
+    {Two, Named, Var, Atom, List, Failed, Alias, Remote, Fun, Known}.
+"#;
+    let (symbols, extractor) = extract(source);
+    for name in [
+        "Two", "Named", "Var", "Atom", "List", "Failed", "Alias", "Remote", "Fun",
+    ] {
+        no_fact(&extractor, &symbols, name, SymbolKind::Variable);
+    }
+    assert_eq!(inferred_type(&extractor, &symbols, "Known"), "a");
+}
+
+#[test]
+fn only_an_ok_pair_pattern_binds_a_local() {
+    let source = r#"
+-module(bank).
+
+-spec load() -> {ok, a()}.
+load() -> ok.
+
+run() ->
+    {error, Reason} = load(),
+    {ok, Value, Extra} = load(),
+    {Tag, Payload} = load(),
+    {Reason, Value, Extra, Tag, Payload}.
+"#;
+    let (symbols, _) = extract(source);
+    for name in ["Reason", "Value", "Extra", "Tag", "Payload"] {
+        assert!(variables_named(&symbols, name).is_empty(), "{name} bound");
+    }
+}
+
+#[test]
+fn atom_literal_spec_return_records_nothing() {
+    let source = r#"
+-module(bank).
+-type ok() :: {ok, integer()}.
+
+-spec stop() -> ok.
+stop() -> ok.
+
+-spec quit() -> Result :: 'ok'.
+quit() -> ok.
+
+-spec start() -> ok().
+start() -> {ok, 1}.
+
+run() ->
+    A = stop(),
+    Q = quit(),
+    B = start(),
+    {A, Q, B}.
+"#;
+    let (symbols, extractor) = extract(source);
+    no_fact(&extractor, &symbols, "A", SymbolKind::Variable);
+    no_fact(&extractor, &symbols, "Q", SymbolKind::Variable);
+    assert_eq!(inferred_type(&extractor, &symbols, "B"), "ok");
+    assert_eq!(
+        declared_metadata(&extractor, &symbols, "B").as_deref(),
+        Some("ok()")
+    );
+}
+
+#[test]
+fn spec_return_without_values_records_nothing() {
+    let source = r#"
+-module(bank).
+
+-spec halt() -> no_return().
+halt() -> exit(x).
+
+-spec never() -> none().
+never() -> exit(x).
+
+-spec load() -> state().
+load() -> ok.
+
+run() ->
+    G = halt(),
+    N = never(),
+    S = load(),
+    {G, N, S}.
+"#;
+    let (symbols, extractor) = extract(source);
+    no_fact(&extractor, &symbols, "G", SymbolKind::Variable);
+    no_fact(&extractor, &symbols, "N", SymbolKind::Variable);
+    assert_eq!(inferred_type(&extractor, &symbols, "S"), "state");
+}

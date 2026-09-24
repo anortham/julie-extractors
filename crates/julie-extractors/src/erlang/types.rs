@@ -33,9 +33,18 @@ pub(crate) struct DeclaredTypes {
     spec_args: HashMap<NameArity, Vec<Option<String>>>,
     callbacks: HashMap<NameArity, String>,
     aliases: HashMap<NameArity, String>,
-    /// The return type every clause of every `-spec` for a function agrees
-    /// on; `None` when a clause states no single base name or two disagree.
-    spec_returns: HashMap<NameArity, Option<DeclaredType>>,
+    /// What the `-spec` of each function says a call returns; empty when two
+    /// `-spec` attributes for one function disagree.
+    spec_returns: HashMap<NameArity, SpecReturn>,
+}
+
+/// The types a call to a function with a `-spec` hands back.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct SpecReturn {
+    /// The type every spec clause returns: `X = load()` gets it.
+    pub(super) value: Option<DeclaredType>,
+    /// The `T` of every `{ok, T}` alternative: `{ok, X} = load()` gets it.
+    pub(super) ok_payload: Option<DeclaredType>,
 }
 
 /// A declared type as its base name and the text written for it.
@@ -50,11 +59,11 @@ impl DeclaredTypes {
         self.spec_args.get(identity).map_or(&[], Vec::as_slice)
     }
 
-    /// Functions whose `-spec` clauses all agree on one base return type.
-    pub(super) fn agreed_spec_returns(&self) -> impl Iterator<Item = (&NameArity, &DeclaredType)> {
+    /// Functions whose `-spec` returns a usable value or `{ok, T}` type.
+    pub(super) fn spec_returns(&self) -> impl Iterator<Item = (&NameArity, &SpecReturn)> {
         self.spec_returns
             .iter()
-            .filter_map(|(identity, agreed)| Some((identity, agreed.as_ref()?)))
+            .filter(|(_, returned)| returned.value.is_some() || returned.ok_payload.is_some())
     }
 }
 
@@ -75,7 +84,7 @@ pub(super) fn collect(base: &BaseExtractor, declarations: &[Node]) -> DeclaredTy
                         .entry(identity)
                         .and_modify(|agreed| {
                             if *agreed != returned {
-                                *agreed = None;
+                                *agreed = SpecReturn::default();
                             }
                         })
                         .or_insert(returned);
@@ -158,36 +167,103 @@ fn spec_argument_types(
     Some(((name, types.len() as u32), types))
 }
 
-/// The return type all clauses of `-spec` agree on:
-/// `-spec load(a) -> state(); (b) -> state().` gives `state`, and clauses
-/// with different or shapeless returns give `None`.
-fn spec_return(
-    base: &BaseExtractor,
-    declaration: &Node,
-) -> Option<(NameArity, Option<DeclaredType>)> {
+/// What all clauses of one `-spec` return:
+/// `-spec load(a) -> state(); (b) -> state().` gives the value type `state`,
+/// and `-spec open() -> {ok, conn()} | {error, term()}.` gives the `{ok, T}`
+/// payload `conn`.
+fn spec_return(base: &BaseExtractor, declaration: &Node) -> Option<(NameArity, SpecReturn)> {
     let name = first_atom_text(base, declaration)?;
     let mut cursor = declaration.walk();
     let signatures: Vec<Node> = declaration
         .children_by_field_name("sigs", &mut cursor)
         .collect();
-    let first = signatures.first()?;
-    let arity = arg_count(&first.child_by_field_name("args")?);
-    let first_return = first.child_by_field_name("ty")?;
-    let returned = base_type_name(base, &first_return)
-        .filter(|name| {
-            signatures[1..].iter().all(|signature| {
-                signature
-                    .child_by_field_name("ty")
-                    .and_then(|ty| base_type_name(base, &ty))
-                    .as_ref()
-                    == Some(name)
-            })
-        })
-        .map(|name| DeclaredType {
-            name,
-            declared: base.get_node_text(&first_return),
-        });
+    let arity = arg_count(&signatures.first()?.child_by_field_name("args")?);
+    let returns = signatures
+        .iter()
+        .map(|signature| signature.child_by_field_name("ty"))
+        .collect::<Option<Vec<Node>>>()?;
+    let returned = SpecReturn {
+        value: agreed(returns.iter().map(|returned| value_type(base, *returned))),
+        ok_payload: ok_payload(base, returns),
+    };
     Some(((name, arity), returned))
+}
+
+/// The first type when every item names the same base type.
+fn agreed(mut types: impl Iterator<Item = Option<DeclaredType>>) -> Option<DeclaredType> {
+    let first = types.next()??;
+    types
+        .all(|other| other.is_some_and(|other| other.name == first.name))
+        .then_some(first)
+}
+
+/// The type of the values a declared form describes. A bare atom (`-> ok`)
+/// is one literal value, not a type, and `no_return()` and `none()` describe
+/// no value at all, so these give `None`.
+fn value_type(base: &BaseExtractor, declared: Node) -> Option<DeclaredType> {
+    let form = strip_annotation(declared)?;
+    if form.kind() == "atom" {
+        return None;
+    }
+    let name = base_type_name(base, &form)
+        .filter(|name| !matches!(name.as_str(), "no_return" | "none"))?;
+    Some(DeclaredType {
+        name,
+        declared: base.get_node_text(&declared),
+    })
+}
+
+/// `R :: t()` and `(t())` describe the same values as `t()`.
+fn strip_annotation(mut form: Node) -> Option<Node> {
+    loop {
+        form = match form.kind() {
+            "ann_type" => form.child_by_field_name("ty")?,
+            "paren_expr" => form.child_by_field_name("expr")?,
+            _ => return Some(form),
+        };
+    }
+}
+
+/// The `T` that every `{ok, T}` alternative of the returns agrees on. Atoms
+/// and tuples with another tag or size cannot match `{ok, X}`. Any other
+/// alternative (a named type, a type variable) might, so it gives `None`.
+fn ok_payload(base: &BaseExtractor, returns: Vec<Node>) -> Option<DeclaredType> {
+    let mut payload: Option<DeclaredType> = None;
+    let mut alternatives = returns;
+    while let Some(alternative) = alternatives.pop() {
+        let form = strip_annotation(alternative)?;
+        match form.kind() {
+            "pipe" => {
+                alternatives.push(form.child_by_field_name("lhs")?);
+                alternatives.push(form.child_by_field_name("rhs")?);
+            }
+            "atom" => {}
+            "tuple" => {
+                let mut cursor = form.walk();
+                let elements: Vec<Node> =
+                    form.children_by_field_name("expr", &mut cursor).collect();
+                match elements.as_slice() {
+                    [tag, value] if is_ok_atom(base, tag) => {
+                        let found = value_type(base, *value)?;
+                        match &payload {
+                            Some(agreed) if agreed.name != found.name => return None,
+                            Some(_) => {}
+                            None => payload = Some(found),
+                        }
+                    }
+                    [tag, ..] if tag.kind() == "atom" => {}
+                    [] => {}
+                    _ => return None,
+                }
+            }
+            _ => return None,
+        }
+    }
+    payload
+}
+
+pub(super) fn is_ok_atom(base: &BaseExtractor, node: &Node) -> bool {
+    node.kind() == "atom" && unquote_atom(&base.get_node_text(node)) == "ok"
 }
 
 /// `-type account() :: #account{}.` names the alias in a `type_name` child and
