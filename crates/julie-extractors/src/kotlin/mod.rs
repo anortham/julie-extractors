@@ -40,7 +40,8 @@ pub struct KotlinExtractor {
     /// matcher they exercise, and without this set every such call resolved to
     /// the case that contains it.
     dsl_call_symbol_ids: HashSet<String>,
-    same_file_type_names: HashSet<String>,
+    /// Same-file names and return types for property initializer inference.
+    initializer_index: type_facts::InitializerIndex,
     annotation_repair: Option<annotation_repair::AnnotationRepair>,
     /// Whether the file may hold Kotest / Spek DSL calls at all.
     test_dsl_active: bool,
@@ -56,7 +57,7 @@ impl KotlinExtractor {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
             dsl_call_symbol_ids: HashSet::new(),
-            same_file_type_names: HashSet::new(),
+            initializer_index: type_facts::InitializerIndex::default(),
             annotation_repair: None,
             test_dsl_active: false,
         }
@@ -92,7 +93,7 @@ impl KotlinExtractor {
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         self.annotation_repair = annotation_repair::repair(&self.base.content, tree);
         let tree = self.working_tree(tree);
-        self.same_file_type_names = type_facts::collect_type_names(&self.base, tree.root_node());
+        self.initializer_index = type_facts::InitializerIndex::build(&self.base, tree.root_node());
         self.test_dsl_active = test_calls::test_dsl_is_active(&self.base);
         let mut symbols = Vec::new();
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
@@ -159,13 +160,12 @@ impl KotlinExtractor {
             }
             "property_declaration" | "property_signature" => {
                 let parent_kind = parent_kind();
-                let type_names = self.same_file_type_names.clone();
                 properties::extract_property(
                     &mut self.base,
                     &node,
                     parent_id,
                     parent_kind,
-                    &type_names,
+                    &self.initializer_index,
                 )
             }
             // An accessor is named `get`/`set`, never a call target.

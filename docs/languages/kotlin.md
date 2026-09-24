@@ -234,6 +234,18 @@ one `type_usage` for its last segment, with the leading segments in the
   and references in its body.
 - `this.m()` inside an extension function records the extension receiver type
   as `receiver_type`.
+- A `val` or `var` with no written type gets an inferred type fact from its
+  initializer: a same-file class constructor (`Repo()`), or a call with a
+  declared return type to a same-file function reached by bare name
+  (`load()`), `this.load()` in the enclosing class, or `Type.create()` on a
+  same-file object or companion in scope. Parentheses pass the type through,
+  `!!` drops `?`, and `T?` records `T`. Every same-named candidate must agree
+  and one must accept the argument count. No fact for a type-parameter return
+  (`T`), an explicitly imported name, a call inside a lambda or extension (another
+  implicit receiver), an outer function hidden by a class with a supertype, a
+  local function declared after the call, or a chain ending in any other call
+  (`load().copy()`, `?.let`, `?:`). Other files are out of scope because each
+  file is extracted alone.
 - A primary-constructor parameter without `val` or `var` stays a class
   `property`, as the receiver-type-facts decision requires, but it is not a
   public member: its visibility is `private`, its signature has no invented
