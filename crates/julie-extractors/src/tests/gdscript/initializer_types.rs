@@ -211,7 +211,7 @@ fn static_call_on_class_without_that_function_records_nothing() {
 }
 
 #[test]
-fn disagreeing_same_named_functions_record_nothing() {
+fn disagreeing_duplicate_declarations_record_nothing() {
     let source = format!(
         "{LOADERS}\nfunc twin() -> Workspace:\n    return null\nfunc twin() -> Node:\n    return null\nfunc run():\n    var workspace = twin()\n"
     );
@@ -219,9 +219,116 @@ fn disagreeing_same_named_functions_record_nothing() {
 }
 
 #[test]
-fn agreeing_same_named_functions_record_return_type() {
+fn agreeing_duplicate_declarations_record_return_type() {
     let source = format!(
         "{LOADERS}\nfunc twin() -> Workspace:\n    return null\nfunc twin() -> Workspace:\n    return null\nfunc run():\n    var workspace = twin()\n"
     );
     assert_eq!(inferred_type(&source, "workspace"), inferred("Workspace"));
+}
+
+const SAME_NAMED_CLASSES: &str = "extends Node
+class Base:
+\tfunc f() -> String:
+\t\treturn \"\"
+\tstatic func build() -> String:
+\t\treturn \"\"
+class Inner extends Base:
+\tfunc g():
+\t\tvar nested_collide = f()
+class Outer:
+\tclass Inner:
+\t\tfunc f() -> int:
+\t\t\treturn 1
+\t\tstatic func build() -> int:
+\t\t\treturn 1
+\t\tfunc h():
+\t\t\tvar own_nested = f()
+\tfunc outer_run():
+\t\tvar ambiguous_build = Inner.build()
+func top():
+\tvar static_collide = Inner.build()
+";
+
+#[test]
+fn bare_call_in_class_does_not_use_same_named_nested_class() {
+    assert_eq!(inferred_type(SAME_NAMED_CLASSES, "nested_collide"), None);
+}
+
+#[test]
+fn static_call_does_not_use_same_named_nested_class() {
+    assert_eq!(inferred_type(SAME_NAMED_CLASSES, "static_collide"), None);
+}
+
+#[test]
+fn bare_call_in_nested_class_uses_its_own_functions() {
+    assert_eq!(
+        inferred_type(SAME_NAMED_CLASSES, "own_nested"),
+        inferred("int")
+    );
+}
+
+#[test]
+fn static_call_on_class_name_with_two_visible_classes_records_nothing() {
+    assert_eq!(inferred_type(SAME_NAMED_CLASSES, "ambiguous_build"), None);
+}
+
+const SCOPED_RETURNS: &str = "extends Node
+class Result:
+\tfunc top_only():
+\t\tpass
+class A:
+\tclass Result:
+\t\tfunc a_only():
+\t\t\tpass
+\tclass Local:
+\t\tpass
+\tstatic func make() -> Result:
+\t\treturn Result.new()
+\tstatic func make_local() -> Local:
+\t\treturn Local.new()
+\tstatic func make_self() -> A:
+\t\treturn A.new()
+\tstatic func count() -> int:
+\t\treturn 1
+\tstatic func peers() -> Array[A]:
+\t\treturn []
+\tclass Deep:
+\t\tstatic func make_local() -> Local:
+\t\t\treturn null
+\tfunc a_run():
+\t\tvar inside_leak = Deep.make_local()
+func top():
+\tvar scope_leak = A.make()
+\tvar other_file_leak = A.make_local()
+\tvar same_class = A.make_self()
+\tvar builtin = A.count()
+\tvar generic_same = A.peers()
+";
+
+#[test]
+fn return_type_naming_a_different_class_at_the_call_site_records_nothing() {
+    assert_eq!(inferred_type(SCOPED_RETURNS, "scope_leak"), None);
+}
+
+#[test]
+fn return_type_naming_a_class_not_visible_at_the_call_site_records_nothing() {
+    assert_eq!(inferred_type(SCOPED_RETURNS, "other_file_leak"), None);
+}
+
+#[test]
+fn return_type_visible_from_both_scopes_records_it() {
+    assert_eq!(inferred_type(SCOPED_RETURNS, "same_class"), inferred("A"));
+    assert_eq!(inferred_type(SCOPED_RETURNS, "builtin"), inferred("int"));
+    assert_eq!(
+        fact_with_declared(SCOPED_RETURNS, "generic_same"),
+        Some(("Array".to_string(), true, Some("Array[A]".to_string())))
+    );
+}
+
+#[test]
+fn return_type_from_nested_class_visible_at_outer_call_site_records_it() {
+    assert_eq!(
+        inferred_type(SCOPED_RETURNS, "inside_leak"),
+        inferred("Local")
+    );
 }
