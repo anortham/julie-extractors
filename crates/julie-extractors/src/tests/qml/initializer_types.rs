@@ -271,3 +271,80 @@ Item {
 "#;
     assert_eq!(local_type(source, "inComponent"), inferred("Bar"));
 }
+
+#[test]
+fn var_loop_binding_anywhere_in_the_function_shadows_the_callee() {
+    for body in [
+        "for (var loadWorkspace of [panel.panelWorkspace]) {} let workspace = loadWorkspace()",
+        "for (var loadWorkspace in helpers) {} let workspace = loadWorkspace()",
+        "for (var panel of [root]) {} let workspace = panel.panelWorkspace()",
+    ] {
+        assert_eq!(workspace_type(body), None, "{body}");
+    }
+}
+
+#[test]
+fn var_loop_binding_in_a_nested_function_does_not_shadow_the_callee() {
+    assert_eq!(
+        workspace_type(
+            "const other = () => { for (var loadWorkspace of xs) {} }; let workspace = loadWorkspace()"
+        ),
+        inferred("Workspace")
+    );
+}
+
+#[test]
+fn id_receiver_inside_an_inline_component_resolves_only_its_own_ids() {
+    let source = r#"
+Item {
+    id: root
+    function load(): Foo { return null }
+    Item {
+        id: panel
+        function load(): Baz { return null }
+    }
+    component Fancy: Item {
+        id: root
+        function load(): Bar { return null }
+        function run() {
+            let fancyRoot = root.load()
+            let fancyPanel = panel.load()
+        }
+    }
+}
+"#;
+    assert_eq!(local_type(source, "fancyRoot"), inferred("Bar"));
+    assert_eq!(local_type(source, "fancyPanel"), None);
+}
+
+#[test]
+fn id_declared_twice_in_one_component_records_nothing() {
+    let source = r#"
+Item {
+    Item {
+        id: panel
+        function load(): Foo { return null }
+    }
+    Item {
+        id: panel
+        function load(): Foo { return null }
+    }
+    function run() { let twice = panel.load() }
+}
+"#;
+    assert_eq!(local_type(source, "twice"), None);
+}
+
+#[test]
+fn id_receiver_of_the_enclosing_component_records_nothing_in_an_inline_component() {
+    let source = r#"
+Item {
+    id: root
+    function load(): Foo { return null }
+    component Fancy: Item {
+        function run() { let outer = root.load() }
+    }
+}
+"#;
+    assert_eq!(local_type(source, "outer"), None);
+}

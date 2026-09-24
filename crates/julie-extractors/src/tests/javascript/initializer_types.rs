@@ -885,3 +885,39 @@ fn callback_block_before_a_function_does_not_type_the_function() {
     );
     assert_eq!(extractor.base.type_info.get(&load.id), None);
 }
+
+#[test]
+fn var_loop_binding_anywhere_in_the_function_shadows_a_same_file_callee() {
+    for body in [
+        "for (var loadWorkspace of loaders) {} const workspace = loadWorkspace();",
+        "for (var loadWorkspace in loaders) {} const workspace = loadWorkspace();",
+        "for (var { loadWorkspace } of loaders) {} const workspace = loadWorkspace();",
+        "const workspace = loadWorkspace(); for (var loadWorkspace of loaders) {}",
+        "for (var loadWorkspace of loaders) {} const later = () => { const workspace = loadWorkspace(); };",
+        "for (var Workspace of classes) {} const workspace = Workspace.open();",
+    ] {
+        assert_eq!(workspace_type(body), None, "{body}");
+    }
+}
+
+#[test]
+fn var_loop_binding_in_a_nested_function_does_not_shadow_the_callee() {
+    assert_eq!(
+        workspace_type(
+            "const other = () => { for (var loadWorkspace of loaders) {} }; const workspace = loadWorkspace();"
+        ),
+        inferred("Workspace")
+    );
+}
+
+#[test]
+fn jsdoc_cast_on_the_initializer_records_nothing() {
+    for body in [
+        "const workspace = /** @type {Folder} */ (loadWorkspace());",
+        "const workspace = /** @type {Folder} */ (new Workspace());",
+        "const workspace = await /** @type {Promise<Folder>} */ (fetchWorkspace());",
+        "const workspace = /** @type {Other} */ (loadWorkspace()).child();",
+    ] {
+        assert_eq!(workspace_type(body), None, "{body}");
+    }
+}

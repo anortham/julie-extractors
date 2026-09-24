@@ -197,7 +197,10 @@ The JavaScript extractor follows the TypeScript contract in
   decorator (it runs outside the class), a parameter, loop, or catch binding or
   the own name of a named function expression that shadows the
   callee, a chain that ends in any other method, or a callee in another file
-  records no fact.
+  records no fact. A `for (var x of ..)` or `for (var x in ..)` head binds `x`
+  in its whole function, so a call to `x` anywhere in that function records
+  nothing. An initializer with a JSDoc cast (`/** @type {T} */ (load())`)
+  records nothing, since the cast type, not the callee's type, applies.
 - A doc comment before a `const`, `let`, or `var` with several declarators
   documents only the first declarator. JSDoc is the only source of return types, so a callee with no
   `@returns` records nothing.

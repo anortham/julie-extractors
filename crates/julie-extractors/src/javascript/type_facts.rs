@@ -265,6 +265,7 @@ struct InitializerScope<'a> {
     root: Node<'a>,
     by_id: HashMap<&'a str, &'a Symbol>,
     by_name: HashMap<&'a str, Vec<&'a Symbol>>,
+    var_loops: Vec<VarLoopHead<'a>>,
 }
 
 /// The type an expression evaluates to, with the callables whose `@returns`
@@ -298,6 +299,7 @@ impl<'a> InitializerScope<'a> {
                 .map(|symbol| (symbol.id.as_str(), symbol))
                 .collect(),
             by_name,
+            var_loops: var_loop_heads(root),
         }
     }
 
@@ -306,7 +308,7 @@ impl<'a> InitializerScope<'a> {
             return None;
         }
         match value.kind() {
-            "parenthesized_expression" => {
+            "parenthesized_expression" if !is_jsdoc_cast(self.base, value) => {
                 self.shape_of(value.named_child(0)?, child_tree_depth(depth)?)
             }
             "await_expression" => {
@@ -460,10 +462,10 @@ impl<'a> InitializerScope<'a> {
 
     /// Lexical bindings named `name` whose declaring scope contains `at`, or
     /// none when a parameter, loop, catch, or named-expression binding of
-    /// `name` encloses `at`, or when a same-named function declaration is
+    /// `name` shadows `at`, or when a same-named function declaration is
     /// block-scoped in strict code but hoisted in sloppy code at `at`.
     fn visible(&self, name: &str, at: Node) -> Vec<&'a Symbol> {
-        if pattern_binding_encloses(self.base, name, at) {
+        if pattern_binding_shadows(self.base, &self.var_loops, name, at) {
             return Vec::new();
         }
         let mut visible = Vec::new();
@@ -633,10 +635,50 @@ fn encloses(scope: Node, at: Node) -> bool {
     scope.start_byte() <= at.start_byte() && at.end_byte() <= scope.end_byte()
 }
 
+/// A `for (var .. in/of ..)` head's binding pattern and the function its
+/// `var` hoists to. The binding covers that whole function, not only the loop.
+pub(crate) struct VarLoopHead<'a> {
+    pattern: Node<'a>,
+    function: Node<'a>,
+}
+
+/// Every `var` loop head in the tree. Iterative, so no depth budget hides one.
+pub(crate) fn var_loop_heads(root: Node) -> Vec<VarLoopHead> {
+    let mut heads = vec![];
+    let mut stack = vec![root];
+    while let Some(node) = stack.pop() {
+        if node.kind() == "for_in_statement"
+            && node
+                .child_by_field_name("kind")
+                .is_some_and(|kind| kind.kind() == "var")
+            && let Some(pattern) = node.child_by_field_name("left")
+        {
+            heads.push(VarLoopHead {
+                pattern,
+                function: function_scope(node),
+            });
+        }
+        stack.extend(node.named_children(&mut node.walk()));
+    }
+    heads
+}
+
 /// Whether a parameter, loop, or catch binding of `name`, or the own name of
-/// a named function expression, encloses `at`, so a bare `name`
-/// there cannot mean a declaration outside it.
-pub(crate) fn pattern_binding_encloses(base: &BaseExtractor, name: &str, at: Node) -> bool {
+/// a named function expression, shadows `at`, so a bare `name` there cannot
+/// mean a declaration outside it. A `var` loop head shadows its whole
+/// function, even when the loop comes before or after `at`.
+pub(crate) fn pattern_binding_shadows(
+    base: &BaseExtractor,
+    var_loops: &[VarLoopHead],
+    name: &str,
+    at: Node,
+) -> bool {
+    if var_loops
+        .iter()
+        .any(|head| encloses(head.function, at) && pattern_mentions(base, head.pattern, name, 0))
+    {
+        return true;
+    }
     let mut current = at.parent();
     while let Some(scope) = current {
         if matches!(scope.kind(), "function_expression" | "generator_function")
@@ -685,6 +727,23 @@ fn pattern_mentions(base: &BaseExtractor, pattern: Node, name: &str, depth: u32)
     pattern
         .named_children(&mut pattern.walk())
         .any(|child| pattern_mentions(base, child, name, child_depth))
+}
+
+/// Whether a JSDoc `@type` comment directly precedes `node`, which makes a
+/// parenthesized expression a type cast whose written type the call cannot
+/// know.
+fn is_jsdoc_cast(base: &BaseExtractor, node: Node) -> bool {
+    let mut current = node;
+    loop {
+        if let Some(previous) = current.prev_sibling() {
+            return previous.kind() == "comment"
+                && JSDOC_TYPE_RE.is_match(&base.get_node_text(&previous));
+        }
+        let Some(parent) = current.parent() else {
+            return false;
+        };
+        current = parent;
+    }
 }
 
 fn has_optional_chain(node: Node) -> bool {

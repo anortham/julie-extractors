@@ -206,7 +206,9 @@ pub(super) struct LocalCall<'n, 's> {
 /// The same-file function or signal a call names, resolved by QML scope.
 ///
 /// An id receiver (`root.refresh()`) names the object that declares the
-/// member. A bare call looks in the scope object and then its component's
+/// member. The call's own component is searched first, then each component
+/// around it, and an id that two objects of one component declare resolves
+/// nothing. A bare call looks in the scope object and then its component's
 /// root object. A bare name that QML scope does not resolve falls back to
 /// the one visible same-file symbol of that name.
 pub(super) fn resolve_local_callee<'a>(
@@ -257,11 +259,15 @@ pub(super) fn resolve_scoped_callee<'a>(
         if is_shadowed_by_local(receiver, symbols, call.caller) {
             return None;
         }
-        return symbols
-            .iter()
-            .filter(|symbol| declares_id(symbol, receiver))
-            .filter(|symbol| symbol_is_visible_from_component(symbol, component, symbols))
-            .find_map(|symbol| callable_in(id_member_scope(symbol)?));
+        let mut current = Some(component);
+        while let Some(scope_component) = current {
+            match component_id_scopes(receiver, symbols, scope_component).as_slice() {
+                [] => current = containing_component(scope_component, symbols),
+                [scope] => return callable_in(scope),
+                _ => return None,
+            }
+        }
+        return None;
     }
 
     let declares_name = |scope_id: &str| {
@@ -281,6 +287,26 @@ pub(super) fn resolve_scoped_callee<'a>(
         skip += 1;
     }
     None
+}
+
+/// The member scopes of the objects in `component` itself (not in a nested
+/// inline component) that declare the id `receiver`.
+pub(super) fn component_id_scopes<'a>(
+    receiver: &str,
+    symbols: &'a [Symbol],
+    component: &Symbol,
+) -> Vec<&'a str> {
+    let mut scopes: Vec<&str> = symbols
+        .iter()
+        .filter(|symbol| declares_id(symbol, receiver))
+        .filter(|symbol| {
+            containing_component(symbol, symbols).is_some_and(|owner| owner.id == component.id)
+        })
+        .filter_map(id_member_scope)
+        .collect();
+    scopes.sort_unstable();
+    scopes.dedup();
+    scopes
 }
 
 fn is_shadowed_by_local(receiver: &str, symbols: &[Symbol], caller: &Symbol) -> bool {

@@ -73,8 +73,10 @@ directives are `qmldir.static.v1` and `qmldir.system.v1` facts.
   (`let doc: DocumentModel = pick()`) records its annotation.
 - A function local with no annotation gets an inferred type fact from its
   initializer: `new T()`, or a call to a same-file function with a return
-  annotation, named bare (`load()`) or through a same-file id
-  (`root.load()`). A bare call records a type only when the scope object (the
+  annotation, named bare (`load()`) or through an id of the call's own
+  component (`root.load()`). An inline component sees the ids of the
+  component around it only under `pragma ComponentBehavior: Bound`, so a
+  call through such an id records nothing. A bare call records a type only when the scope object (the
   nearest enclosing object) declares the callee or is the root object of its
   component. Any other scope object also has the members of its type (a Qt
   type, a type from another file, or a same-file inline component), and one
@@ -83,8 +85,8 @@ directives are `qmldir.static.v1` and `qmldir.system.v1` facts.
   `void` return, a signal, a callee that only an unrelated object declares,
   a name that an object between the scope object and the root declares, a
   parameter, local, nested function, loop, or catch binding that shadows the
-  name, an optional call, a chain, or a callee in another file records no
-  fact.
+  name (a `for (var x of ..)` head shadows `x` in its whole function), an
+  optional call, a chain, or a callee in another file records no fact.
 - A nested object with an `id` records its object type, so `docModel.flush()`
   can resolve through the `docModel` row. The root object's `id` records the
   file's component.
@@ -122,7 +124,10 @@ setup, and `cleanup*` is fixture teardown.
 ## Call and property resolution
 
 - A call with an id receiver (`root.refresh()`) resolves to the function the
-  object with that id declares. A bare call resolves in the scope object (the
+  object with that id declares. The call's own component is searched first,
+  so an inline component's own id wins over the same id in the component
+  around it. An id that two objects of one component declare resolves
+  nothing. A bare call resolves in the scope object (the
   nearest enclosing object) and then the root object of its component, as
   Qt's scope rules say. Objects in between are not in scope. When one of
   them declares the name, scope resolution stops, because that object may be

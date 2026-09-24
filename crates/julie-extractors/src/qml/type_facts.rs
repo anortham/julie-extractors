@@ -1,11 +1,12 @@
 use crate::base::types::TypeNameRules;
 use crate::base::{BaseExtractor, ContainingSymbolIndex, Symbol, SymbolKind};
-use crate::javascript::type_facts::pattern_binding_encloses;
+use crate::javascript::type_facts::{pattern_binding_shadows, var_loop_heads};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
 use super::relationships::{
-    LocalCall, find_containing_component, object_owner, object_owner_map, resolve_scoped_callee,
+    LocalCall, component_id_scopes, find_containing_component, object_owner, object_owner_map,
+    resolve_scoped_callee,
 };
 
 pub(super) const TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
@@ -93,8 +94,10 @@ pub(super) fn record_named_type(base: &mut BaseExtractor, symbol_id: &str, type_
 
 /// Record an inferred type fact for each local whose initializer calls a
 /// same-file function with a return annotation, named bare in an enclosing
-/// object's scope or through a same-file id. Runs after the symbol walk, so
-/// a written local type wins.
+/// object's scope or through an id of the call's own component. An id of an
+/// enclosing component is visible from an inline component only under
+/// `pragma ComponentBehavior: Bound`, so it records nothing. Runs after the
+/// symbol walk, so a written local type wins.
 pub(super) fn record_call_initializer_facts(
     base: &mut BaseExtractor,
     root: Node,
@@ -110,6 +113,7 @@ pub(super) fn record_call_initializer_facts(
             .filter(|symbol| symbol.kind == SymbolKind::Class),
     );
     let object_owners = object_owner_map(symbols);
+    let var_loops = var_loop_heads(root);
     let facts: Vec<(String, String, String)> = symbols
         .iter()
         .filter(|local| local.kind == SymbolKind::Variable)
@@ -135,12 +139,17 @@ pub(super) fn record_call_initializer_facts(
                 _ => return None,
             };
             let bound = receiver.as_deref().unwrap_or(&function_name);
-            if pattern_binding_encloses(base, bound, call)
+            if pattern_binding_shadows(base, &var_loops, bound, call)
                 || declared_in_enclosing_functions(bound, caller, symbols, &by_id)
             {
                 return None;
             }
             let component = find_containing_component(call, &class_symbols)?;
+            if receiver.as_deref().is_some_and(|receiver| {
+                component_id_scopes(receiver, symbols, component).is_empty()
+            }) {
+                return None;
+            }
             let callee = resolve_scoped_callee(
                 &LocalCall {
                     node: call,
