@@ -29,6 +29,8 @@ use tree_sitter::{Node, Tree};
 pub struct SwiftExtractor {
     pub(crate) base: BaseExtractor,
     pub(crate) same_file_type_names: HashSet<String>,
+    /// Declared return types of the file's functions, for binding inference.
+    return_types: type_facts::ReturnTypeIndex,
 }
 
 impl SwiftExtractor {
@@ -41,6 +43,7 @@ impl SwiftExtractor {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
             same_file_type_names: HashSet::new(),
+            return_types: type_facts::ReturnTypeIndex::default(),
         }
     }
 
@@ -75,6 +78,7 @@ impl SwiftExtractor {
     /// Implementation of extractSymbols method with comprehensive Swift support
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         self.same_file_type_names = type_facts::collect_type_names(&self.base, tree.root_node());
+        self.return_types = type_facts::ReturnTypeIndex::build(&self.base, tree.root_node());
         let mut symbols = Vec::new();
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
         test_roles::apply_swift_test_roles(&mut symbols);

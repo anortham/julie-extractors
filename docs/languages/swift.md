@@ -41,6 +41,20 @@ The golden fixture `swift:structure` holds the evidence for these rules.
   the declared return type as a non-inferred type fact. `some P` and `any P`
   record `P`. No declaration keyword (`class`, `extension`, `initializer`)
   and no placeholder (`Any`, `Void`) is ever a type fact.
+- **Initializer inference.** A `let` or `var` with one name and no written
+  type gets an inferred type fact from its initializer. `Type(...)` records a
+  same-file type. A call records the declared return type of a same-file
+  callee: a free function (`load()`), an in-scope local function, a member of
+  the enclosing same-file type or its same-file extensions (`load()`,
+  `self.load()`), or a static or class member (`Type.make()`, `Self.make()`).
+  `-> Self` records the enclosing type. Same-named candidates must agree.
+  `try`, `try!`, and `await` keep the type, `try?` makes the declared text
+  optional, and a postfix `!` removes one optional layer. No fact comes from a
+  generic return type, a chain that ends in another call, a receiver other
+  than `self` or a same-file type name, a callee name that is also a value,
+  a protocol or other-file extension member, or an unqualified call inside a
+  type with an inheritance clause (a base type can hide the callee). Other
+  files are out of scope because each file is extracted alone.
 - **Access levels.** An explicit modifier wins. Without one, a declaration is
   `internal`, a member of a private type is `fileprivate`, an extension member
   takes the extension's level (`private` there means `fileprivate`), and a

@@ -1,0 +1,489 @@
+use crate::swift::SwiftExtractor;
+use std::path::PathBuf;
+
+#[derive(Debug, PartialEq, Eq)]
+struct Inferred {
+    resolved: String,
+    is_inferred: bool,
+    declared: Option<String>,
+}
+
+fn inferred(resolved: &str, declared: Option<&str>) -> Option<Inferred> {
+    Some(Inferred {
+        resolved: resolved.to_string(),
+        is_inferred: true,
+        declared: declared.map(str::to_string),
+    })
+}
+
+fn type_of(source: &str, local: &str) -> Option<Inferred> {
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_swift::LANGUAGE.into())
+        .unwrap();
+    let tree = parser.parse(source, None).unwrap();
+    let mut extractor = SwiftExtractor::new(
+        "swift".to_string(),
+        "initializer_types.swift".to_string(),
+        source.to_string(),
+        &PathBuf::from("/tmp/test"),
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let matching: Vec<_> = symbols.iter().filter(|s| s.name == local).collect();
+    assert_eq!(matching.len(), 1, "expected one symbol named {local}");
+    extractor
+        .base
+        .type_info
+        .get(&matching[0].id)
+        .map(|fact| Inferred {
+            resolved: fact.resolved_type.clone(),
+            is_inferred: fact.is_inferred,
+            declared: fact
+                .metadata
+                .as_ref()
+                .and_then(|m| m.get("declared"))
+                .and_then(|v| v.as_str())
+                .map(str::to_string),
+        })
+}
+
+const LOADERS: &str = r#"
+class Workspace {}
+func loadWorkspace() -> Workspace { fatalError() }
+func findWorkspace() -> Workspace? { fatalError() }
+func openWorkspace() throws -> Workspace { fatalError() }
+func fetchWorkspace() async throws -> Workspace { fatalError() }
+func qualifiedWorkspace() -> Store.Workspace { fatalError() }
+func noResult() {}
+"#;
+
+fn in_function(body: &str) -> String {
+    format!("{LOADERS}\nfunc run() async throws {{\n    {body}\n}}\n")
+}
+
+#[test]
+fn same_file_function_call_records_return_type_as_inferred() {
+    assert_eq!(
+        type_of(&in_function("let ws = loadWorkspace()"), "ws"),
+        inferred("Workspace", None)
+    );
+}
+
+#[test]
+fn optional_return_records_base_name_and_optional_declared_text() {
+    assert_eq!(
+        type_of(&in_function("let ws = findWorkspace()"), "ws"),
+        inferred("Workspace", Some("Workspace?"))
+    );
+}
+
+#[test]
+fn qualified_return_records_qualified_name() {
+    assert_eq!(
+        type_of(&in_function("let ws = qualifiedWorkspace()"), "ws"),
+        inferred("Store.Workspace", None)
+    );
+}
+
+#[test]
+fn try_and_await_pass_the_call_type_through() {
+    for value in [
+        "try openWorkspace()",
+        "try! openWorkspace()",
+        "await fetchWorkspace()",
+        "try await fetchWorkspace()",
+    ] {
+        assert_eq!(
+            type_of(&in_function(&format!("let ws = {value}")), "ws"),
+            inferred("Workspace", None),
+            "{value}"
+        );
+    }
+}
+
+#[test]
+fn optional_try_records_optional_declared_text() {
+    assert_eq!(
+        type_of(&in_function("let ws = try? openWorkspace()"), "ws"),
+        inferred("Workspace", Some("Workspace?"))
+    );
+    assert_eq!(
+        type_of(&in_function("let ws = try? findWorkspace()"), "ws"),
+        inferred("Workspace", Some("Workspace?"))
+    );
+}
+
+#[test]
+fn force_unwrap_removes_the_optional_from_declared_text() {
+    assert_eq!(
+        type_of(&in_function("let ws = findWorkspace()!"), "ws"),
+        inferred("Workspace", None)
+    );
+}
+
+#[test]
+fn constructor_through_try_still_records_the_type() {
+    assert_eq!(
+        type_of(&in_function("let ws = try Workspace()"), "ws"),
+        inferred("Workspace", None)
+    );
+}
+
+#[test]
+fn top_level_binding_records_return_type() {
+    let source = format!("{LOADERS}\nlet shared = loadWorkspace()\n");
+    assert_eq!(type_of(&source, "shared"), inferred("Workspace", None));
+}
+
+#[test]
+fn trailing_closure_call_records_return_type() {
+    let source = r#"
+class Workspace {}
+func withWorkspace(_ body: () -> Void) -> Workspace { fatalError() }
+func run() {
+    let ws = withWorkspace { }
+}
+"#;
+    assert_eq!(type_of(source, "ws"), inferred("Workspace", None));
+}
+
+const SESSION: &str = r#"
+class Request {}
+final class Session {
+    func request() -> Request { fatalError() }
+    static func make() -> Self { fatalError() }
+    class func shared() -> Session { fatalError() }
+    func run() {
+        BODY
+    }
+}
+extension Session {
+    func extraRequest() throws -> Request { fatalError() }
+}
+"#;
+
+fn in_session(body: &str) -> String {
+    SESSION.replace("BODY", body)
+}
+
+#[test]
+fn self_method_call_records_member_return_type() {
+    assert_eq!(
+        type_of(&in_session("let req = self.request()"), "req"),
+        inferred("Request", None)
+    );
+}
+
+#[test]
+fn implicit_self_call_records_member_return_type() {
+    assert_eq!(
+        type_of(&in_session("let req = request()"), "req"),
+        inferred("Request", None)
+    );
+}
+
+#[test]
+fn same_file_extension_member_counts_as_member() {
+    assert_eq!(
+        type_of(&in_session("let req = try self.extraRequest()"), "req"),
+        inferred("Request", None)
+    );
+}
+
+#[test]
+fn static_calls_on_type_name_and_self_type_record_return_type() {
+    assert_eq!(
+        type_of(&in_session("let made = Session.make()"), "made"),
+        inferred("Session", Some("Self"))
+    );
+    assert_eq!(
+        type_of(&in_session("let made = Self.make()"), "made"),
+        inferred("Session", Some("Self"))
+    );
+    assert_eq!(
+        type_of(&in_session("let made = Session.shared()"), "made"),
+        inferred("Session", None)
+    );
+}
+
+#[test]
+fn implicit_call_in_type_without_inheritance_falls_back_to_free_function() {
+    let source = r#"
+class Workspace {}
+func loadWorkspace() -> Workspace { fatalError() }
+struct Loader {
+    func run() {
+        let ws = loadWorkspace()
+    }
+}
+"#;
+    assert_eq!(type_of(source, "ws"), inferred("Workspace", None));
+}
+
+#[test]
+fn in_scope_local_function_shadows_free_function() {
+    let source = r#"
+class Workspace {}
+class Draft {}
+func load() -> Workspace { fatalError() }
+func run() {
+    func load() -> Draft { fatalError() }
+    let item = load()
+}
+"#;
+    assert_eq!(type_of(source, "item"), inferred("Draft", None));
+}
+
+#[test]
+fn written_type_wins_over_call_inference() {
+    let source = in_function("let ws: Store.Workspace = loadWorkspace()");
+    let fact = type_of(&source, "ws").unwrap();
+    assert_eq!(fact.resolved, "Store.Workspace");
+    assert!(!fact.is_inferred);
+}
+
+#[test]
+fn unknown_or_void_callee_records_nothing() {
+    assert_eq!(type_of(&in_function("let ws = elsewhere()"), "ws"), None);
+    assert_eq!(type_of(&in_function("let ws = noResult()"), "ws"), None);
+}
+
+#[test]
+fn disagreeing_overloads_record_nothing() {
+    let source = r#"
+class Workspace {}
+class Draft {}
+func load(id: Int) -> Workspace { fatalError() }
+func load(name: String) -> Draft { fatalError() }
+func run() {
+    let item = load(id: 1)
+}
+"#;
+    assert_eq!(type_of(source, "item"), None);
+}
+
+#[test]
+fn agreeing_overloads_record_the_shared_type() {
+    let source = r#"
+class Workspace {}
+func load(id: Int) -> Workspace { fatalError() }
+func load(name: String) -> Workspace { fatalError() }
+func run() {
+    let item = load(id: 1)
+}
+"#;
+    assert_eq!(type_of(source, "item"), inferred("Workspace", None));
+}
+
+#[test]
+fn generic_returns_record_nothing() {
+    let source = r#"
+func decode<T>() -> T { fatalError() }
+class Box<Element> {
+    func first() -> Element? { fatalError() }
+    func run() {
+        let decoded = decode()
+        let head = self.first()
+    }
+}
+"#;
+    assert_eq!(type_of(source, "decoded"), None);
+    assert_eq!(type_of(source, "head"), None);
+}
+
+#[test]
+fn chain_ending_in_unknown_method_records_nothing() {
+    assert_eq!(
+        type_of(&in_session("let req = self.request().retry()"), "req"),
+        None
+    );
+}
+
+#[test]
+fn receivers_other_than_self_or_a_same_file_type_record_nothing() {
+    assert_eq!(
+        type_of(&in_session("let req = other.request()"), "req"),
+        None
+    );
+    assert_eq!(
+        type_of(&in_session("let req = super.request()"), "req"),
+        None
+    );
+    assert_eq!(
+        type_of(&in_session("let req = Remote.request()"), "req"),
+        None
+    );
+}
+
+#[test]
+fn type_name_call_to_instance_method_records_nothing() {
+    assert_eq!(
+        type_of(&in_session("let req = Session.request()"), "req"),
+        None
+    );
+}
+
+#[test]
+fn implicit_call_in_inheriting_type_records_nothing() {
+    let source = r#"
+class Workspace {}
+func loadWorkspace() -> Workspace { fatalError() }
+class Loader: Base {
+    func run() {
+        let ws = loadWorkspace()
+    }
+}
+"#;
+    assert_eq!(type_of(source, "ws"), None);
+}
+
+#[test]
+fn implicit_call_in_extension_of_other_file_type_records_nothing() {
+    let source = r#"
+class Workspace {}
+func loadWorkspace() -> Workspace { fatalError() }
+extension Remote {
+    func loadWorkspace() -> Workspace { fatalError() }
+    func run() {
+        let ws = loadWorkspace()
+        let other = self.loadWorkspace()
+    }
+}
+"#;
+    assert_eq!(type_of(source, "ws"), None);
+    assert_eq!(type_of(source, "other"), None);
+}
+
+#[test]
+fn protocol_extension_members_record_nothing() {
+    let source = r#"
+protocol Store {
+    associatedtype Item
+}
+extension Store {
+    func first() -> Item { fatalError() }
+    func run() {
+        let head = self.first()
+    }
+}
+"#;
+    assert_eq!(type_of(source, "head"), None);
+}
+
+#[test]
+fn callee_name_bound_as_a_value_records_nothing() {
+    let source = r#"
+class Workspace {}
+class Draft {}
+func load() -> Workspace { fatalError() }
+func run(load: () -> Draft) {
+    let item = load()
+}
+"#;
+    assert_eq!(type_of(source, "item"), None);
+}
+
+#[test]
+fn member_call_colliding_with_member_property_records_nothing() {
+    let source = r#"
+class Workspace {}
+class Draft {}
+class Session {
+    var load: () -> Draft = { fatalError() }
+    func load(id: Int) -> Workspace { fatalError() }
+    func run() {
+        let item = self.load()
+    }
+}
+"#;
+    assert_eq!(type_of(source, "item"), None);
+}
+
+#[test]
+fn local_function_in_another_scope_records_nothing() {
+    let source = r#"
+class Workspace {}
+func setup() {
+    func helper() -> Workspace { fatalError() }
+}
+func run() {
+    let item = helper()
+}
+"#;
+    assert_eq!(type_of(source, "item"), None);
+}
+
+#[test]
+fn destructured_bindings_record_nothing() {
+    let source = r#"
+class Workspace {}
+func pair() -> Workspace { fatalError() }
+func run() {
+    let (first, second) = pair()
+    let (left, right) = Workspace()
+}
+"#;
+    assert_eq!(type_of(source, "first"), None);
+    assert_eq!(type_of(source, "second"), None);
+    assert_eq!(type_of(source, "left"), None);
+    assert_eq!(type_of(source, "right"), None);
+}
+
+#[test]
+fn optional_try_on_implicitly_unwrapped_return_records_optional_declared_text() {
+    let source = r#"
+class Workspace {}
+func lenientWorkspace() throws -> Workspace! { fatalError() }
+func run() {
+    let ws = try? lenientWorkspace()
+}
+"#;
+    assert_eq!(
+        type_of(source, "ws"),
+        inferred("Workspace", Some("Workspace?"))
+    );
+}
+
+#[test]
+fn stored_property_initializer_records_return_type() {
+    let source = r#"
+class Workspace {}
+func loadWorkspace() -> Workspace { fatalError() }
+struct Holder {
+    let ws = loadWorkspace()
+}
+"#;
+    assert_eq!(type_of(source, "ws"), inferred("Workspace", None));
+}
+
+#[test]
+fn local_function_returning_a_generic_of_an_enclosing_init_or_subscript_records_nothing() {
+    let source = r#"
+struct Holder {
+    init<Seed>(seed: Seed) {
+        func echo() -> Seed { seed }
+        let fromInit = echo()
+    }
+    subscript<Key>(key: Key) -> Int {
+        func echo() -> Key { key }
+        let fromSubscript = echo()
+        return 0
+    }
+}
+"#;
+    assert_eq!(type_of(source, "fromInit"), None);
+    assert_eq!(type_of(source, "fromSubscript"), None);
+}
+
+#[test]
+fn local_function_in_extension_of_other_file_type_records_nothing() {
+    let source = r#"
+extension Remote {
+    func run() {
+        func head() -> Element { fatalError() }
+        let first = head()
+    }
+}
+"#;
+    assert_eq!(type_of(source, "first"), None);
+}
