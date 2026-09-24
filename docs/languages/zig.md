@@ -58,7 +58,8 @@ belongs to that type, not to the declaration.
 - A `const` or `var` with no written type and a single name gets an inferred
   type fact from its initializer: a same-file container literal
   (`Store{ .. }`), or a call to a same-file function with a declared return
-  type. The callee is a bare function in an enclosing container (`load()`), a
+  type. A return type of `@This()` (also `!@This()`, `?*@This()`) names the
+  container that declares the function. The callee is a bare function in an enclosing container (`load()`), a
   function of a same-file container named directly (`Store.open()`,
   `Self.open()`, `@This().open()`, `Outer.Inner.open()`), or a method through
   the typed receiver parameter (`self.next()`). The receiver is the first
@@ -75,11 +76,18 @@ belongs to that type, not to the declaration.
   (`unreachable`, `return`, `break`, `continue`, an unlabeled block, `@panic`,
   `@trap`, `@compileError`) remove one error-union layer. `.?` and an `orelse`
   with a noreturn fallback remove one optional layer. `Type.init(..)` on a
-  same-file container with no `init` records `Type`.
+  same-file container with no `init` and no `usingnamespace` records `Type`.
+- A return type counts only when its leading name resolves to a
+  container-level declaration or to a function-local container. A parameter
+  (`comptime T: type`), a loop capture (`|T|`), a function-local alias
+  (`const V = @TypeOf(value);`), or an unresolved name can stand for another
+  type on each instantiation, so it records no fact.
 - These record no fact: a value fallback, a chain that ends in any other
-  member, a `void` or `comptime T: type` return, a function of an anonymous
-  container or of a container declared inside a function with `comptime` type
-  parameters, a local receiver, a receiver that is not the first parameter, a
+  member, a `void` return, a function of an anonymous container, a function of
+  a container declared inside a function with a `comptime`, `type`, or
+  `anytype` parameter or inside an `inline for`/`inline while` body,
+  `Type.init(..)` on a container with `usingnamespace` (the mixin may supply
+  `init`), a local receiver, a receiver that is not the first parameter, a
   receiver qualified by an import (`other.Store.open()`), and a callee in
   another file. Other files are out of scope because each file is extracted
   alone.

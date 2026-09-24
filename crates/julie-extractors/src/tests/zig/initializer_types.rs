@@ -611,3 +611,139 @@ fn run() void {
     assert_eq!(fact(source, "call"), inferred("u16"));
     assert_eq!(fact(source, "external_literal"), None);
 }
+
+#[test]
+fn container_inside_an_anytype_function_records_no_fact() {
+    let source = r#"
+fn Wrap(value: anytype) type {
+    const V = @TypeOf(value);
+    const S = struct {
+        const Local = struct {};
+        fn get() V {}
+        fn size() usize {}
+        fn local() Local {}
+        fn run() void {
+            const any_alias = get();
+            const any_size = size();
+            const any_local = local();
+        }
+    };
+    return S;
+}
+fn Sized(comptime n: usize) type {
+    const S = struct {
+        fn size() usize {}
+        fn run() void {
+            const comptime_size = size();
+        }
+    };
+    return S;
+}
+"#;
+    for local in ["any_alias", "any_size", "any_local", "comptime_size"] {
+        assert_eq!(fact(source, local), None, "{local}");
+    }
+}
+
+#[test]
+fn container_inside_an_inline_loop_records_no_fact() {
+    let source = r#"
+fn loop() void {
+    const types = [_]type{ u8, u16 };
+    inline for (types) |T| {
+        const S = struct {
+            fn get() T {}
+            fn size() usize {}
+        };
+        const capture = S.get();
+        const inline_for_size = S.size();
+    }
+    comptime var i = 0;
+    inline while (i < 2) : (i += 1) {
+        const W = struct {
+            fn size() usize {}
+        };
+        const inline_while_size = W.size();
+    }
+}
+"#;
+    for local in ["capture", "inline_for_size", "inline_while_size"] {
+        assert_eq!(fact(source, local), None, "{local}");
+    }
+}
+
+#[test]
+fn return_type_named_by_a_capture_or_a_block_alias_records_no_fact() {
+    let source = r#"
+fn loop(items: []const u8) void {
+    for (items) |T| {
+        const S = struct {
+            fn get() T {}
+        };
+        const runtime_capture = S.get();
+    }
+    const V = u32;
+    const Local = struct {};
+    const S = struct {
+        fn get() V {}
+        fn local() Local {}
+        fn size() usize {}
+    };
+    const block_alias = S.get();
+    const block_container = S.local();
+    const block_size = S.size();
+}
+"#;
+    assert_eq!(fact(source, "runtime_capture"), None);
+    assert_eq!(fact(source, "block_alias"), None);
+    assert_eq!(fact(source, "block_container"), inferred("Local"));
+    assert_eq!(fact(source, "block_size"), inferred("usize"));
+}
+
+#[test]
+fn return_type_of_a_same_file_type_function_records_its_name() {
+    let source = r#"
+fn Pool(comptime T: type) type {
+    return struct { item: T };
+}
+fn make() Pool(u8) {}
+fn run() void {
+    const pool = make();
+}
+"#;
+    assert_eq!(fact(source, "pool"), inferred_as("Pool", "Pool(u8)"));
+}
+
+#[test]
+fn this_return_type_records_the_declaring_container() {
+    let source = r#"
+const Node = struct {
+    fn make() @This() {}
+    fn open() !@This() {}
+    fn find() ?*@This() {}
+};
+fn run() !void {
+    const made = Node.make();
+    const opened = try Node.open();
+    const found = Node.find().?;
+}
+"#;
+    assert_eq!(fact(source, "made"), inferred_as("Node", "@This()"));
+    assert_eq!(fact(source, "opened"), inferred_as("Node", "@This()"));
+    assert_eq!(fact(source, "found"), inferred_as("Node", "*@This()"));
+}
+
+#[test]
+fn init_from_a_usingnamespace_mixin_records_no_fact() {
+    let source = r#"
+const Mixin = struct {};
+const Store = struct {
+    usingnamespace Mixin;
+    fn open() u16 {}
+};
+fn run() void {
+    const mixed = Store.init();
+}
+"#;
+    assert_eq!(fact(source, "mixed"), None);
+}

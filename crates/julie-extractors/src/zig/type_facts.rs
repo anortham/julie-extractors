@@ -92,7 +92,8 @@ struct ReturnEntry {
     owner: usize,
     /// `None` for a non-function, a generic or valueless return, or a
     /// function of an anonymous container or of a container declared inside a
-    /// generic function (its types may alias `comptime` parameters).
+    /// function with `comptime`/`anytype` parameters or an inline loop (its
+    /// types may alias values that change per instantiation).
     shape: Option<TypeShape>,
 }
 
@@ -165,19 +166,17 @@ fn return_entry(base: &BaseExtractor, declaration: Node) -> Option<(String, Retu
     let (name, shape) = match declaration.kind() {
         "function_declaration" => {
             let name = base.get_node_text(&declaration.child_by_field_name("name")?);
-            let generics = comptime_type_parameters(base, declaration);
             let shape = declaration
                 .child_by_field_name("type")
-                .and_then(|return_type| type_shape(base, return_type, &generics, 0));
+                .and_then(|return_type| type_shape(base, return_type, 0));
             (name, shape)
         }
         "variable_declaration" => (declaration_name(base, declaration)?, None),
         _ => return None,
     };
     let owner = nearest_container(declaration);
-    let generic_owner = container_type_name(base, owner).is_none()
-        || enclosing_function(owner)
-            .is_some_and(|function| !comptime_type_parameters(base, function).is_empty());
+    let generic_owner =
+        container_type_name(base, owner).is_none() || is_inside_comptime_variation(base, owner);
     let entry = ReturnEntry {
         owner: owner.id(),
         shape: shape.filter(|_| !generic_owner),
@@ -185,40 +184,44 @@ fn return_entry(base: &BaseExtractor, declaration: Node) -> Option<(String, Retu
     Some((name, entry))
 }
 
-/// The `comptime T: type` parameter names of a function and of every function
-/// that encloses it.
-fn comptime_type_parameters(base: &BaseExtractor, function: Node) -> Vec<String> {
-    let mut names = Vec::new();
-    let mut current = Some(function);
-    while let Some(node) = current {
-        if node.kind() == "function_declaration"
-            && let Some(parameters) = node
-                .named_children(&mut node.walk())
-                .find(|child| child.kind() == "parameters")
-        {
-            names.extend(
-                parameters
-                    .named_children(&mut parameters.walk())
-                    .filter(|parameter| {
-                        parameter
-                            .child_by_field_name("type")
-                            .is_some_and(|type_node| base.get_node_text(&type_node) == "type")
-                    })
-                    .filter_map(|parameter| parameter.child_by_field_name("name"))
-                    .map(|name| base.get_node_text(&name)),
-            );
+/// Whether the types visible at `node` can differ between instantiations: an
+/// enclosing function has a `comptime`, `type`, or `anytype` parameter, or an
+/// enclosing `inline for`/`inline while` rebinds its captures on each pass.
+fn is_inside_comptime_variation(base: &BaseExtractor, node: Node) -> bool {
+    let mut current = node.parent();
+    while let Some(scope) = current {
+        let varies = match scope.kind() {
+            "function_declaration" => scope
+                .named_children(&mut scope.walk())
+                .filter(|child| child.kind() == "parameters")
+                .any(|parameters| {
+                    parameters
+                        .named_children(&mut parameters.walk())
+                        .any(|parameter| is_comptime_parameter(base, parameter))
+                }),
+            "for_statement" | "for_expression" | "while_statement" | "while_expression" => {
+                has_keyword(scope, "inline")
+            }
+            _ => false,
+        };
+        if varies {
+            return true;
         }
-        current = node.parent();
+        current = scope.parent();
     }
-    names
+    false
 }
 
-fn type_shape(
-    base: &BaseExtractor,
-    node: Node,
-    generics: &[String],
-    depth: u32,
-) -> Option<TypeShape> {
+fn is_comptime_parameter(base: &BaseExtractor, parameter: Node) -> bool {
+    has_keyword(parameter, "comptime")
+        || parameter
+            .child_by_field_name("type")
+            .is_some_and(|type_node| {
+                matches!(base.get_node_text(&type_node).as_str(), "type" | "anytype")
+            })
+}
+
+fn type_shape(base: &BaseExtractor, node: Node, depth: u32) -> Option<TypeShape> {
     if !should_visit_tree_depth(depth) {
         return None;
     }
@@ -229,7 +232,7 @@ fn type_shape(
     };
     let declared = base.get_node_text(&node);
     if let Some(inner) = inner {
-        let inner = Box::new(type_shape(base, inner, generics, child_tree_depth(depth)?)?);
+        let inner = Box::new(type_shape(base, inner, child_tree_depth(depth)?)?);
         let name = inner.name.clone();
         let layer = if node.kind() == "error_union_type" {
             Layer::ErrorUnion(inner)
@@ -242,14 +245,12 @@ fn type_shape(
             layer,
         });
     }
-    let name_node = base_type_name_node(node)?;
     let name = match this_type_name(base, node) {
         Some(this_type) => this_type,
-        None => base.get_node_text(&name_node),
+        None if names_fixed_type(base, node) => base.get_node_text(&base_type_name_node(node)?),
+        None => return None,
     };
-    if generics.contains(&base.get_node_text(&name_node))
-        || matches!(name.as_str(), "void" | "noreturn" | "type" | "anytype")
-    {
+    if matches!(name.as_str(), "void" | "noreturn" | "type" | "anytype") {
         return None;
     }
     Some(TypeShape {
@@ -257,6 +258,38 @@ fn type_shape(
         declared,
         layer: Layer::Plain,
     })
+}
+
+/// Whether a type expression names one type for every instantiation: its
+/// leading name resolves to a container-level declaration, or to a
+/// function-local container. A parameter, a loop capture, a function-local
+/// alias, or an unresolved name may stand for a different type each time.
+fn names_fixed_type(base: &BaseExtractor, type_node: Node) -> bool {
+    let Some(leading) = leading_type_identifier(type_node, 0) else {
+        return true;
+    };
+    nearest_declaration(base, leading).is_some_and(|declaration| {
+        declaration.parent().is_some_and(is_container_or_root)
+            || declaration
+                .named_children(&mut declaration.walk())
+                .any(is_container)
+    })
+}
+
+/// The first identifier of a type expression (`std` in `std.ArrayList(u8)`,
+/// `T` in `?*T`); `None` for primitives and builtins.
+fn leading_type_identifier(node: Node, depth: u32) -> Option<Node> {
+    let child_depth = child_tree_depth(depth).filter(|_| should_visit_tree_depth(depth))?;
+    let next = match node.kind() {
+        "identifier" => return Some(node),
+        "pointer_type" | "nullable_type" | "slice_type" => inner_type_child(node)?,
+        "error_union_type" => node.child_by_field_name("ok")?,
+        "parenthesized_expression" => node.named_child(0)?,
+        "field_expression" => node.child_by_field_name("object")?,
+        "call_expression" => node.child_by_field_name("function")?,
+        _ => return None,
+    };
+    leading_type_identifier(next, child_depth)
 }
 
 struct InitializerScope<'a> {
@@ -327,7 +360,7 @@ impl InitializerScope<'_> {
         if self.return_types.declares_member(member, owner.id()) {
             return self.return_types.lookup_member(member, owner.id());
         }
-        if member != "init" {
+        if member != "init" || declares_mixin(owner) {
             return None;
         }
         Some(TypeShape {
@@ -336,6 +369,14 @@ impl InitializerScope<'_> {
             layer: Layer::Plain,
         })
     }
+}
+
+/// A container with `usingnamespace` may take `init` from the mixin, whose
+/// return type this file does not know.
+fn declares_mixin(container: Node) -> bool {
+    container
+        .named_children(&mut container.walk())
+        .any(|child| child.kind() == "using_namespace_declaration")
 }
 
 /// A fallback that never yields a value, so `catch`/`orelse` keeps the
@@ -618,9 +659,9 @@ fn type_container<'t>(base: &BaseExtractor, type_node: Node<'t>, depth: u32) -> 
         .map(|_| nearest_container(declaration))
 }
 
-/// The declaration (`variable_declaration` or function `parameter`) that the
-/// identifier `name` refers to: the nearest one in an enclosing block,
-/// function, or container, searched outward from `name`.
+/// The declaration (`variable_declaration`, `function_declaration`, or
+/// function `parameter`) that the identifier `name` refers to: the nearest one
+/// in an enclosing block, function, or container, searched outward from `name`.
 fn nearest_declaration<'t>(base: &BaseExtractor, name: Node<'t>) -> Option<Node<'t>> {
     let text = base.get_node_text(&name);
     let mut current = name.parent();
@@ -640,7 +681,12 @@ fn nearest_declaration<'t>(base: &BaseExtractor, name: Node<'t>) -> Option<Node<
                 }),
             _ if scope.kind() == "block" || is_container_or_root(scope) => scope
                 .named_children(&mut scope.walk())
-                .filter(|child| child.kind() == "variable_declaration")
+                .filter(|child| {
+                    matches!(
+                        child.kind(),
+                        "variable_declaration" | "function_declaration"
+                    )
+                })
                 .find(|declaration| declaration_name(base, *declaration).as_deref() == Some(&text)),
             _ => None,
         };
