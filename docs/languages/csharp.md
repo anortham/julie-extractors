@@ -167,6 +167,34 @@ of any other class publish no role. See the
   return, a call on any other receiver, a chained call, or a callee in another
   file records no fact. Razor applies the same rule to `@code` and `@{ }`
   blocks, and `@typeparam` names count as type parameters.
+- A binding with the callee's name hides the method, so the call records no
+  fact. The binding can be a local, a parameter, a lambda parameter, a
+  `foreach`, pattern, catch, or query variable, a Razor `@inject` or
+  `@foreach` name, or a field, property, event, or primary-constructor
+  parameter of an enclosing type. A local counts anywhere in the member body
+  that holds the call. A Razor markup binding counts in the whole file class.
+  A static `Type.Create()` records no fact when a binding has the receiver's
+  name, `Color Color` included.
+- A call to a name that every type inherits or that a record synthesizes
+  (`Equals`, `ReferenceEquals`, `GetHashCode`, `GetType`, `ToString`,
+  `MemberwiseClone`, `Finalize`, `PrintMembers`, `Deconstruct`) records no
+  fact. The inherited member can win the call, and no same-file declaration
+  shows it.
+- The declared text of an inferred fact is the callee's written return type.
+  It can name the callee's type parameters (`List<T>` for `Gen<int>.Empty()`).
+  The resolved base type is exact. The Rust rule does the same.
+- Open gap: overloads in another file. The extractor has no argument types,
+  so it filters overloads by argument count only. A base class, another
+  `partial` part, or a Razor `.razor.cs` code-behind can declare an overload
+  with the same argument count and a different return type. When the argument
+  types fit only that overload, the fact is wrong. A base class or another
+  part in a different file can also declare a field or property with the
+  callee's or the receiver's name, which the rule cannot see. A spot check
+  of 60 corpus facts found no such case. Closure: check the argument types
+  (literals, written-type locals, parameters) against the parameter types,
+  and record nothing for a type with a base list or `partial` when an
+  argument type is unknown. The closure task belongs to the brief
+  `.memories/briefs/infer-local-types-from-call-initializers-in-every-.md`.
 - The innermost member owns a reference site: a property, indexer, or event
   accessor body owns its calls, identifiers, and complexity metric.
 

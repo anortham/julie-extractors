@@ -507,3 +507,87 @@ class Service {
 "#;
     assert_eq!(inferred(source, "item"), None);
 }
+
+#[test]
+fn local_bindings_named_like_the_method_record_nothing() {
+    let source = r#"
+class Shadows {
+  int Load() => 1;
+  void Local() { Func<string> Load = () => ""; var local = Load(); }
+  void Cast() { var Load = (Func<string>)(() => ""); var cast = Load(); }
+  void Parameter(Func<string> Load) { var parameter = Load(); }
+  void Each(List<Func<string>> list) { foreach (var Load in list) { var each = Load(); } }
+  void Lambda() { Run(Load => { var lambda = Load(); }); }
+  void Pattern(object o) { if (o is Func<string> Load) { var pattern = Load(); } }
+  void Out() { Get(out Func<string> Load); var output = Load(); }
+  void Control() { var control = Load(); }
+}
+"#;
+    for local in [
+        "local",
+        "cast",
+        "parameter",
+        "each",
+        "lambda",
+        "pattern",
+        "output",
+    ] {
+        assert_eq!(inferred(source, local), None, "{local}");
+    }
+    assert_eq!(resolved(source, "control").as_deref(), Some("int"));
+}
+
+#[test]
+fn nested_type_members_named_like_the_outer_method_record_nothing() {
+    let source = r#"
+class Outer {
+  int Load() => 1;
+  class WithProperty { Func<string> Load { get; } = null; void M() { var property = Load(); } }
+  class WithField { Func<string> Load = null; void M() { var field = Load(); } }
+  class WithEvent { event Func<string> Load; void M() { var evt = Load(); } }
+  class WithPrimary(Func<string> Load) { void M() { var primary = Load(); } }
+  class Middle { Func<string> Load = null; class Deep { void M() { var deep = Load(); } } }
+  class Plain { void M() { var control = Load(); } }
+}
+"#;
+    for local in ["property", "field", "evt", "primary", "deep"] {
+        assert_eq!(inferred(source, local), None, "{local}");
+    }
+    assert_eq!(resolved(source, "control").as_deref(), Some("int"));
+}
+
+#[test]
+fn object_member_names_do_not_reach_the_outer_type() {
+    let source = r#"
+class Widget {}
+class Outer {
+  public static Widget Equals(int a, int b) => null;
+  public static Widget Make() => null;
+  class Inner {
+    void M() {
+      var inherited = Equals(1, 2);
+      var control = Make();
+    }
+  }
+}
+"#;
+    assert_eq!(inferred(source, "inherited"), None);
+    assert_eq!(resolved(source, "control").as_deref(), Some("Widget"));
+}
+
+#[test]
+fn type_receiver_named_like_a_binding_records_nothing() {
+    let source = r#"
+class Stat { public static int Create() => 1; }
+class Wrapper { public string Create() => ""; }
+class FieldReceiver { Wrapper Stat = new Wrapper(); void M() { var field = Stat.Create(); } }
+class PropertyReceiver { Wrapper Stat { get; } void M() { var property = Stat.Create(); } }
+class ParameterReceiver { void M(Wrapper Stat) { var parameter = Stat.Create(); } }
+class LocalReceiver { void M() { var Stat = new Wrapper(); var local = Stat.Create(); } }
+class Plain { void M() { var control = Stat.Create(); } }
+"#;
+    for local in ["field", "property", "parameter", "local"] {
+        assert_eq!(inferred(source, local), None, "{local}");
+    }
+    assert_eq!(resolved(source, "control").as_deref(), Some("int"));
+}

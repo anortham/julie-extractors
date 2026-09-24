@@ -68,12 +68,57 @@ struct Callable {
     shape: Option<TypeShape>,
 }
 
-/// Declared return types of the file's methods and local functions, by name.
-/// Explicit interface implementations are left out: no simple name or
-/// `this.` access reaches them.
+/// Where a name is visible: a type (`None` for top-level code) and, for a
+/// binding inside a member body, that member's start byte.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Scope {
+    owner: Option<TypeKey>,
+    member: Option<usize>,
+}
+
+/// Names that every class, struct, and record inherits from `object` or
+/// `ValueType`, or that a record synthesizes. A call by one of these names can
+/// bind to an inherited member that no same-file declaration shows.
+const INHERITED_NAMES: &[&str] = &[
+    "Equals",
+    "ReferenceEquals",
+    "GetHashCode",
+    "GetType",
+    "ToString",
+    "MemberwiseClone",
+    "Finalize",
+    "PrintMembers",
+    "Deconstruct",
+];
+
+const TYPE_KINDS: &[&str] = &[
+    "class_declaration",
+    "struct_declaration",
+    "record_declaration",
+    "interface_declaration",
+    "enum_declaration",
+    "extension_declaration",
+];
+
+const MEMBER_KINDS: &[&str] = &[
+    "method_declaration",
+    "constructor_declaration",
+    "destructor_declaration",
+    "operator_declaration",
+    "conversion_operator_declaration",
+    "property_declaration",
+    "indexer_declaration",
+    "event_declaration",
+];
+
+/// Declared return types of the file's methods and local functions, by name,
+/// and the scopes of every other binding (local, parameter, field, property,
+/// event, pattern or query variable) by name. Explicit interface
+/// implementations are left out: no simple name or `this.` access reaches them.
 #[derive(Debug, Default)]
 pub(crate) struct ReturnTypeIndex {
     callables: HashMap<String, Vec<Callable>>,
+    bindings: HashMap<String, Vec<Scope>>,
     file_class: bool,
 }
 
@@ -92,12 +137,18 @@ impl ReturnTypeIndex {
     fn build(base: &BaseExtractor, root: Node, file_class: bool, file_generics: &[String]) -> Self {
         let mut index = Self {
             callables: HashMap::new(),
+            bindings: HashMap::new(),
             file_class,
         };
         let mut stack = vec![root];
         while let Some(node) = stack.pop() {
             if let Some((name, callable)) = index.callable(base, node, file_generics) {
                 index.callables.entry(name).or_default().push(callable);
+            }
+            for (name, declaration) in bindings(base, node) {
+                if let Some(scope) = index.scope(base, declaration) {
+                    index.bindings.entry(name).or_default().push(scope);
+                }
             }
             stack.extend(node.named_children(&mut node.walk()));
         }
@@ -193,12 +244,17 @@ impl ReturnTypeIndex {
                 .filter(|argument| argument.kind() == "argument")
                 .count()
         });
+        let name = match function.kind() {
+            "member_access_expression" => function.child_by_field_name("name")?,
+            _ => function,
+        };
+        let name = simple_name(base, name)?;
+        if INHERITED_NAMES.contains(&name.as_str()) {
+            return None;
+        }
         match function.kind() {
-            "identifier" | "generic_name" => {
-                self.simple_name_call(base, &simple_name(base, function)?, call, arguments)
-            }
+            "identifier" | "generic_name" => self.simple_name_call(base, &name, call, arguments),
             "member_access_expression" => {
-                let name = simple_name(base, function.child_by_field_name("name")?)?;
                 let receiver = function.child_by_field_name("expression")?;
                 match receiver.kind() {
                     "this" => {
@@ -210,6 +266,9 @@ impl ReturnTypeIndex {
                     }
                     "identifier" | "generic_name" => {
                         let type_name = simple_name(base, receiver)?;
+                        if self.visible_binding(base, &type_name, call)? {
+                            return None;
+                        }
                         let candidates: Vec<&Callable> = self
                             .callables
                             .get(&name)
@@ -236,7 +295,8 @@ impl ReturnTypeIndex {
     /// A call by simple name: a local function in scope, or a method of the
     /// innermost enclosing type that declares the name. A type with a base
     /// list or `partial` may inherit or share members from another file, so
-    /// the search stops there.
+    /// the search stops there. A same-named local, parameter, field,
+    /// property, or event hides the methods, so the call records nothing.
     fn simple_name_call(
         &self,
         base: &BaseExtractor,
@@ -246,6 +306,9 @@ impl ReturnTypeIndex {
     ) -> Option<TypeShape> {
         let types = self.enclosing_types(base, call)?;
         let owner = types.first().map(|(owner, _)| owner);
+        if self.bound(name, owner, enclosing_member(call)) {
+            return None;
+        }
         let locals = self.callables.get(name)?.iter().filter(|c| {
             c.owner.as_ref() == owner
                 && c.local_scope
@@ -254,12 +317,51 @@ impl ReturnTypeIndex {
         });
         let mut members = Vec::new();
         for (owner, open) in &types {
+            if self.bound(name, Some(owner), None) {
+                return None;
+            }
             members = self.members(name, owner).collect();
             if !members.is_empty() || *open {
                 break;
             }
         }
         agree(locals.chain(members).filter(|c| c.arity.accepts(arguments)))
+    }
+
+    /// Whether a non-method binding named `name` is visible at `node`, from
+    /// its member body or from any enclosing type. `None` inside an extension
+    /// block.
+    fn visible_binding(&self, base: &BaseExtractor, name: &str, node: Node) -> Option<bool> {
+        let types = self.enclosing_types(base, node)?;
+        let innermost = types.first().map(|(owner, _)| owner);
+        Some(
+            self.bound(name, innermost, enclosing_member(node))
+                || types
+                    .iter()
+                    .any(|(owner, _)| self.bound(name, Some(owner), None)),
+        )
+    }
+
+    /// Whether a binding named `name` belongs to `owner` at type level or to
+    /// `member`'s body.
+    fn bound(&self, name: &str, owner: Option<&TypeKey>, member: Option<usize>) -> bool {
+        self.bindings.get(name).is_some_and(|scopes| {
+            scopes.iter().any(|scope| {
+                scope.owner.as_ref() == owner && (scope.member.is_none() || scope.member == member)
+            })
+        })
+    }
+
+    fn scope(&self, base: &BaseExtractor, declaration: Node) -> Option<Scope> {
+        let owner = self
+            .enclosing_types(base, declaration)?
+            .into_iter()
+            .next()
+            .map(|(key, _)| key);
+        Some(Scope {
+            owner,
+            member: enclosing_member(declaration),
+        })
     }
 
     fn members<'a>(&'a self, name: &str, owner: &'a TypeKey) -> impl Iterator<Item = &'a Callable> {
@@ -303,6 +405,73 @@ impl ReturnTypeIndex {
             types.push((TypeKey::file_class(), true));
         }
         Some(types)
+    }
+}
+
+/// The outermost member (method, constructor, property, ...) around `node`
+/// inside its innermost type, by start byte. `None` at type level, in
+/// top-level code, and in Razor markup.
+fn enclosing_member(node: Node) -> Option<usize> {
+    let mut member = None;
+    let mut current = node.parent();
+    while let Some(ancestor) = current {
+        if TYPE_KINDS.contains(&ancestor.kind()) {
+            break;
+        }
+        if MEMBER_KINDS.contains(&ancestor.kind()) {
+            member = Some(ancestor.start_byte());
+        }
+        current = ancestor.parent();
+    }
+    member
+}
+
+/// The non-method names `node` binds, each with the node whose scope it
+/// takes. A property or event name takes the scope of its declaration, so it
+/// is visible to the whole type. Query and Razor `case` bindings take every
+/// identifier, which can only hide more calls.
+fn bindings<'a>(base: &BaseExtractor, node: Node<'a>) -> Vec<(String, Node<'a>)> {
+    let named = |field: &str| {
+        let mut cursor = node.walk();
+        node.children_by_field_name(field, &mut cursor)
+            .filter(|child| child.kind() == "identifier")
+            .map(|child| (base.get_node_text(&child), node))
+            .collect::<Vec<_>>()
+    };
+    match node.kind() {
+        "implicit_parameter" => vec![(base.get_node_text(&node), node)],
+        "parameter"
+        | "variable_declarator"
+        | "declaration_pattern"
+        | "recursive_pattern"
+        | "catch_declaration"
+        | "declaration_expression"
+        | "tuple_pattern"
+        | "from_clause" => named("name"),
+        "property_declaration" | "event_declaration" => node
+            .parent()
+            .map(|parent| {
+                named("name")
+                    .into_iter()
+                    .map(|(name, _)| (name, parent))
+                    .collect()
+            })
+            .unwrap_or_default(),
+        "foreach_statement" | "razor_foreach" => named("left"),
+        "join_clause" | "join_into_clause" | "let_clause" | "query_continuation" => {
+            let mut cursor = node.walk();
+            node.named_children(&mut cursor)
+                .filter(|child| child.kind() == "identifier")
+                .map(|child| (base.get_node_text(&child), node))
+                .collect()
+        }
+        "razor_case_condition" => base
+            .get_node_text(&node)
+            .split(|c: char| !(c.is_alphanumeric() || c == '_'))
+            .filter(|word| !word.is_empty())
+            .map(|word| (word.to_string(), node))
+            .collect(),
+        _ => Vec::new(),
     }
 }
 

@@ -104,3 +104,45 @@ fn written_type_wins_over_the_call_type() {
     assert_eq!(fact.resolved_type, "IWidget");
     assert!(!fact.is_inferred);
 }
+
+#[test]
+fn code_block_local_named_like_the_method_records_nothing() {
+    let source = r#"
+@code {
+    int Load() => 1;
+    void Shadowed() { Func<string> Load = () => ""; var shadowed = Load(); }
+    void Control() { var control = Load(); }
+}
+"#;
+    assert_eq!(inferred(source, "shadowed"), None);
+    assert_eq!(inferred(source, "control").as_deref(), Some("int"));
+}
+
+#[test]
+fn nested_class_property_named_like_the_method_records_nothing() {
+    let source = r#"
+@code {
+    int Load() => 1;
+    class Inner { Func<string> Load { get; } = null; void M() { var shadowed = Load(); } }
+    class Plain { void M() { var control = Load(); } }
+}
+"#;
+    assert_eq!(inferred(source, "shadowed"), None);
+    assert_eq!(inferred(source, "control").as_deref(), Some("int"));
+}
+
+#[test]
+fn markup_bindings_named_like_the_method_record_nothing() {
+    let shadowed = [
+        r#"@{ Func<string> Load = () => ""; var widget = Load(); }"#,
+        r#"@foreach (var Load in loaders) { var widget = Load(); }"#,
+        r#"@inject Func<string> Load
+@{ var widget = Load(); }"#,
+    ];
+    for markup in shadowed {
+        let source = format!("{markup}\n@code {{ int Load() => 1; }}\n");
+        assert_eq!(inferred(&source, "widget"), None, "{markup}");
+    }
+    let control = "@{ var widget = Load(); }\n@code { int Load() => 1; }\n";
+    assert_eq!(inferred(control, "widget").as_deref(), Some("int"));
+}
