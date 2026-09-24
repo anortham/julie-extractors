@@ -16,6 +16,7 @@ pub(crate) mod di_relationships;
 pub(crate) mod fields;
 mod helpers;
 mod identifiers;
+pub(crate) mod initializer_types;
 mod local_callables;
 mod locals;
 pub(crate) mod member_type_relationships;
@@ -39,6 +40,8 @@ use tree_sitter::Tree;
 /// C# extractor using tree-sitter-c-sharp parser
 pub struct CSharpExtractor {
     pub(crate) base: BaseExtractor,
+    /// Declared return types of the file's callables, for `var` inference.
+    return_types: initializer_types::ReturnTypeIndex,
 }
 
 impl CSharpExtractor {
@@ -99,7 +102,10 @@ impl CSharpExtractor {
     ) -> Self {
         let mut base = BaseExtractor::new(language, file_path, content, workspace_root);
         base.body_span_rule = Some(helpers::body_span);
-        Self { base }
+        Self {
+            base,
+            return_types: initializer_types::ReturnTypeIndex::default(),
+        }
     }
 
     /// Get pending relationships that need cross-file resolution
@@ -138,6 +144,7 @@ impl CSharpExtractor {
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
         let root = tree.root_node();
+        self.return_types = initializer_types::ReturnTypeIndex::for_csharp(&self.base, root);
         self.walk_tree(root, &mut symbols, None, 0);
         self.ensure_file_scope_symbol(root, &mut symbols);
         crate::test_detection::mark_dotnet_test_containers(&mut symbols);
@@ -173,8 +180,12 @@ impl CSharpExtractor {
                 | "catch_declaration"
                 | "declaration_expression"
         ) {
-            let local_symbols =
-                locals::extract_local_declaration(&mut self.base, node, parent_id.clone());
+            let local_symbols = locals::extract_local_declaration(
+                &mut self.base,
+                &self.return_types,
+                node,
+                parent_id.clone(),
+            );
             symbols.extend(local_symbols);
             // Still walk children for nested lambdas / blocks.
             let Some(child_depth) = child_tree_depth(depth) else {

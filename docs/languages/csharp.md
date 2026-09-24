@@ -155,6 +155,74 @@ of any other class publish no role. See the
 - Type facts come only from the syntax tree. Tuple, pointer, and `void`
   types record no fact. Signatures show the written type (`int*`, `ref int`,
   `Bits?`).
+- A `var` local gets an inferred type fact from `new T(..)` or from a call to
+  a same-file method or local function with a declared return type:
+  `Load()`, `this.Load()`, or a static `Factory.Create()` on a same-file type.
+  A simple name finds an in-scope local function, then the innermost enclosing
+  type that declares the name. The search stops at a type with a base list or
+  `partial`, which may get members from another file. Overloads that accept
+  the argument count must agree. A call with explicit type arguments matches
+  only methods with that many type parameters, and a call with no arguments
+  and no type arguments skips generic methods. `await` removes one `Task<T>` or
+  `ValueTask<T>` layer, also through `.ConfigureAwait(..)`. `!` and
+  parentheses keep the type. A type-parameter return, a tuple or `void`
+  return, a call on any other receiver, a chained call, or a callee in another
+  file records no fact. Razor applies the same rule to `@code` and `@{ }`
+  blocks, and `@typeparam` names count as type parameters.
+- The receiver of a static `Type.Create()` binds the way C# name lookup does.
+  A type nested directly in an enclosing type wins, innermost first. Then a
+  top-level type of the call's namespace, of each outer namespace, and of the
+  global namespace. The receiver's type argument count must match. The first
+  scope with a same-named type decides, so a nested type without `Create`
+  records no fact. A type nested in some other type, a type in an unrelated
+  namespace, a type reached only through `using`, and a receiver named like a
+  type parameter record no fact.
+- The receiver search stops with no fact at an enclosing type with a base list
+  or `partial`, after that type's own nested types. A base type or another
+  part, in this file or another one, can declare a nested type, field, or
+  property with the receiver's name. In Razor the file class is such a type.
+- The receiver search also stops with no fact at a namespace block with a
+  `using` that can bind the name, after that namespace's own types. Such a
+  `using` is an alias with the receiver's name, or any `using` of a namespace
+  or a static type.
+- A return type that names a type nested in some same-file type records a
+  fact only for a call from inside the callee's own type. Elsewhere the same
+  name can mean a different type.
+- A `ref` or `ref readonly` return records the referenced type: `var x =
+  Get()` copies the value.
+- A type with a base list or `partial` may get an overload from a base type or
+  another part, in this file or another one. Its methods count only for a call
+  with no arguments to candidates with no parameters. There, a derived-type
+  method removes every base method, and a parameterless method beats one with
+  optional or `params` parameters. Otherwise the call records no fact. This
+  holds for a simple name, a `this.` call, and a static call. In Razor it holds
+  for every method of the file class.
+- A binding with the callee's name hides the method, so the call records no
+  fact. The binding can be a local, a parameter, a lambda parameter, a
+  `foreach`, pattern, catch, or query variable, a Razor `@inject` or
+  `@foreach` name, or a field, property, event, or primary-constructor
+  parameter of an enclosing type. A local counts anywhere in the member body
+  that holds the call. A Razor markup binding counts in the whole file class.
+  A static `Type.Create()` records no fact when a binding has the receiver's
+  name, `Color Color` included.
+- A call to a name that every type inherits or that a record synthesizes
+  (`Equals`, `ReferenceEquals`, `GetHashCode`, `GetType`, `ToString`,
+  `MemberwiseClone`, `Finalize`, `PrintMembers`, `Deconstruct`) records no
+  fact. The inherited member can win the call, and no same-file declaration
+  shows it.
+- The declared text of an inferred fact is the callee's written return type.
+  It can name the callee's type parameters (`List<T>` for `Gen<int>.Empty()`).
+  The resolved base type is exact. The Rust rule does the same.
+- Open gap: bindings in another file. A base type or another `partial` part
+  in a different file can declare a field or property with the callee's
+  name. A type in a closer namespace in another file can also hide a
+  same-file receiver type. The rule cannot see these, and the fact can then
+  be wrong. A spot check of 60 corpus facts found no such case. Closure:
+  record no fact when a type with a base list or `partial` lies on the lookup
+  path of the callee name, or when the call is in a namespace other than the
+  receiver type's. That drops most facts in derived types, so the closure
+  task weighs it against the corpus loss. The closure task belongs to the brief
+  `.memories/briefs/infer-local-types-from-call-initializers-in-every-.md`.
 - The innermost member owns a reference site: a property, indexer, or event
   accessor body owns its calls, identifiers, and complexity metric.
 

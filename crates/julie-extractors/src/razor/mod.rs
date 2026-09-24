@@ -216,6 +216,8 @@ pub struct RazorExtractor {
     /// Names of the file's methods and local functions, so a method group
     /// bound in markup reads as a call.
     callable_names: std::collections::HashSet<String>,
+    /// Declared return types of the file's callables, for `var` inference.
+    return_types: crate::csharp::initializer_types::ReturnTypeIndex,
 }
 
 impl RazorExtractor {
@@ -229,6 +231,7 @@ impl RazorExtractor {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
             callable_names: std::collections::HashSet::new(),
+            return_types: crate::csharp::initializer_types::ReturnTypeIndex::default(),
         }
     }
 
@@ -244,6 +247,11 @@ impl RazorExtractor {
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
+        self.return_types = crate::csharp::initializer_types::ReturnTypeIndex::for_razor(
+            &self.base,
+            tree.root_node(),
+            &self.component_directives(tree.root_node()).type_parameters,
+        );
         if let Some(component_symbol) = self.extract_component_symbol(tree.root_node()) {
             symbols.push(component_symbol);
         }

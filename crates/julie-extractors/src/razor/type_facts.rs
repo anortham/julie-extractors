@@ -32,6 +32,11 @@ pub(super) fn record_new_expression_type(
     record_type_node(base, symbol_id, type_node, true);
 }
 
+/// Record a type inferred from a `var` initializer (`is_inferred=true`).
+pub(super) fn record_inferred_type(base: &mut BaseExtractor, symbol_id: &str, declared: &str) {
+    base.record_declared_type_fact(symbol_id, declared, &RAZOR_TYPE_NAME_RULES, true);
+}
+
 /// Record a callable's declared return type (`is_inferred=false`). `void`
 /// is not a type fact and records nothing.
 pub(super) fn record_return_type(base: &mut BaseExtractor, symbol_id: &str, type_node: Node) {
