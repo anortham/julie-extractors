@@ -64,13 +64,17 @@ const TYPE_BODIES: &[&str] = &[
 
 /// Declared return types of the file's `let` functions and members, by name,
 /// plus what can hide them at a call site: where a pattern binds each name
-/// (parameters, lambda and match variables, loop variables), the same-file
-/// modules and types that can serve as a qualifier, and the `open`
-/// declarations and `[<AutoOpen>]` modules that bring unknown names in.
+/// (parameters, lambda and match variables, loop variables), union cases and
+/// exceptions, the same-file modules and types that can serve as a qualifier,
+/// and the `open` declarations and `[<AutoOpen>]` modules that bring unknown
+/// names in.
 #[derive(Debug)]
 pub(super) struct ReturnTypeIndex<'t> {
     callables: HashMap<String, Vec<Callable<'t>>>,
     shadows: HashMap<String, Vec<usize>>,
+    /// Where each union case (without `[<RequireQualifiedAccess>]`) and
+    /// exception name is visible unqualified.
+    cases: HashMap<String, Vec<Range<usize>>>,
     /// Module and type definition nodes by the name a qualified call uses.
     declarations: HashMap<String, Vec<Node<'t>>>,
     /// From each `open` or `[<AutoOpen>]` module to the end of the module,
@@ -82,6 +86,7 @@ impl<'t> ReturnTypeIndex<'t> {
     pub(super) fn build(base: &BaseExtractor, root: Node<'t>) -> Self {
         let mut callables: HashMap<String, Vec<Callable<'t>>> = HashMap::new();
         let mut shadows: HashMap<String, Vec<usize>> = HashMap::new();
+        let mut cases: HashMap<String, Vec<Range<usize>>> = HashMap::new();
         let mut declarations: HashMap<String, Vec<Node<'t>>> = HashMap::new();
         let mut opens = Vec::new();
         let mut stack = vec![root];
@@ -92,19 +97,22 @@ impl<'t> ReturnTypeIndex<'t> {
             if let Some(name) = declared_name(base, node) {
                 declarations.entry(name).or_default().push(node);
             }
-            let entry = match node.kind() {
-                "function_or_value_defn" => binding_callable(base, node),
-                "member_defn" => member_callable(base, node),
+            if let Some((name, visible)) = case_name(base, node) {
+                cases.entry(name).or_default().push(visible);
+            }
+            let entries = match node.kind() {
+                "function_or_value_defn" => binding_callables(base, node),
+                "member_defn" => member_callable(base, node).into_iter().collect(),
                 "identifier" if is_pattern_binder(node) => {
                     shadows
                         .entry(base.get_node_text(&node).trim().to_string())
                         .or_default()
                         .push(node.start_byte());
-                    None
+                    Vec::new()
                 }
-                _ => None,
+                _ => Vec::new(),
             };
-            if let Some((name, callable)) = entry {
+            for (name, callable) in entries {
                 callables.entry(name).or_default().push(callable);
             }
             stack.extend(node.named_children(&mut node.walk()));
@@ -112,6 +120,7 @@ impl<'t> ReturnTypeIndex<'t> {
         Self {
             callables,
             shadows,
+            cases,
             declarations,
             opens,
         }
@@ -147,12 +156,16 @@ impl<'t> ReturnTypeIndex<'t> {
         let text = base.get_node_text(&head);
         let segments: Vec<&str> = text.split('.').map(str::trim).collect();
         let call = head.start_byte();
+        if in_rec_scope(head) {
+            return None;
+        }
         match segments.as_slice() {
             [name] if !self.shadows.contains_key(*name) => {
                 self.unanimous(base, name, groups, |callable| {
                     matches!(callable.kind, CallableKind::Function | CallableKind::Value)
                         && callable.scope.contains(&call)
                         && !self.opened_between(callable.scope.start, call)
+                        && !self.case_hides(name, callable.scope.start, call)
                 })
             }
             [_, name] if OBJECT_MEMBERS.contains(name) => None,
@@ -169,9 +182,11 @@ impl<'t> ReturnTypeIndex<'t> {
                     if body.kind() == "type_extension" || inherits(body) {
                         return None;
                     }
+                    let type_name = declared_name(base, body)?;
                     return self.unanimous(base, name, groups, |callable| {
                         callable.kind == CallableKind::InstanceMember
-                            && callable.owner == Some(body)
+                            && (callable.owner == Some(body)
+                                || extends(base, callable.owner, &type_name))
                     });
                 }
                 if self.shadows.contains_key(*receiver) {
@@ -181,10 +196,14 @@ impl<'t> ReturnTypeIndex<'t> {
                 if inherits(declaration) || self.opened_between(declaration.start_byte(), call) {
                     return None;
                 }
+                let module_end = is_module(declaration).then(|| declaration.end_byte() - 1);
                 self.unanimous(base, name, groups, |callable| {
                     callable.kind != CallableKind::InstanceMember
-                        && callable.owner == Some(declaration)
-                        && callable.qualified.contains(&call)
+                        && (callable.owner == Some(declaration)
+                            && callable.qualified.contains(&call)
+                            || extends(base, callable.owner, receiver))
+                        && !module_end
+                            .is_some_and(|end| self.case_hides(name, callable.qualified.start, end))
                 })
             }
             _ => None,
@@ -216,6 +235,16 @@ impl<'t> ReturnTypeIndex<'t> {
         self.opens
             .iter()
             .any(|open| definition < open.start && open.contains(&call))
+    }
+
+    /// Whether a union case or exception named `name` that starts after
+    /// `definition` is visible at `at`; it hides the definition there.
+    fn case_hides(&self, name: &str, definition: usize, at: usize) -> bool {
+        self.cases.get(name).is_some_and(|ranges| {
+            ranges
+                .iter()
+                .any(|visible| definition < visible.start && visible.contains(&at))
+        })
     }
 
     /// Whether a pattern inside `range` rebinds `name`, which hides a member's
@@ -251,7 +280,9 @@ impl<'t> ReturnTypeIndex<'t> {
     }
 }
 
-fn binding_callable<'t>(base: &BaseExtractor, node: Node<'t>) -> Option<(String, Callable<'t>)> {
+/// Every binding of a `let` or `let rec ... and ...` group; a `rec` group's
+/// bindings are all visible from the start of the group.
+fn binding_callables<'t>(base: &BaseExtractor, node: Node<'t>) -> Vec<(String, Callable<'t>)> {
     let visible_from = if direct_child(node, "rec").is_some() {
         node.start_byte()
     } else {
@@ -262,7 +293,21 @@ fn binding_callable<'t>(base: &BaseExtractor, node: Node<'t>) -> Option<(String,
         Some(module) => (Some(module), visible_from..container_end(module)),
         None => (None, 0..0),
     };
-    if let Some(left) = direct_child(node, "function_declaration_left") {
+    node.children(&mut node.walk())
+        .filter_map(|left| binding_callable(base, node, left, owner, &scope, &qualified))
+        .collect()
+}
+
+fn binding_callable<'t>(
+    base: &BaseExtractor,
+    node: Node<'t>,
+    left: Node<'t>,
+    owner: Option<Node<'t>>,
+    scope: &Range<usize>,
+    qualified: &Range<usize>,
+) -> Option<(String, Callable<'t>)> {
+    let (scope, qualified) = (scope.clone(), qualified.clone());
+    if left.kind() == "function_declaration_left" {
         let name = base.get_node_text(&direct_child(left, "identifier")?);
         let groups = direct_child(left, "argument_patterns").map_or(0, |patterns| {
             patterns
@@ -280,7 +325,10 @@ fn binding_callable<'t>(base: &BaseExtractor, node: Node<'t>) -> Option<(String,
         };
         return Some((name.trim().to_string(), callable));
     }
-    let name = first_identifier(direct_child(node, "value_declaration_left")?)?;
+    if left.kind() != "value_declaration_left" {
+        return None;
+    }
+    let name = first_identifier(left)?;
     let callable = Callable {
         kind: CallableKind::Value,
         owner,
@@ -394,6 +442,57 @@ fn declaration_range(declaration: Node) -> Range<usize> {
         declaration.parent().unwrap_or(declaration)
     };
     definition.start_byte()..container_end(definition)
+}
+
+/// The name and unqualified visibility of a union case or exception.
+fn case_name(base: &BaseExtractor, node: Node) -> Option<(String, Range<usize>)> {
+    let (name, definition) = match node.kind() {
+        "union_type_case" => {
+            let definition = ancestor(node, "type_definition")?;
+            let qualified_only = direct_child(definition, "attributes").is_some_and(|attributes| {
+                base.get_node_text(&attributes)
+                    .contains("RequireQualifiedAccess")
+            });
+            if qualified_only {
+                return None;
+            }
+            (direct_child(node, "identifier")?, definition)
+        }
+        "exception_definition" => (node.child_by_field_name("exception_name")?, node),
+        _ => return None,
+    };
+    let text = base.get_node_text(&name);
+    let name = text.rsplit('.').next()?.trim().to_string();
+    Some((name, node.start_byte()..container_end(definition)))
+}
+
+/// Whether `owner` is a `type <type_name> with` extension; its members join
+/// the extended type's overloads.
+fn extends(base: &BaseExtractor, owner: Option<Node>, type_name: &str) -> bool {
+    owner
+        .filter(|owner| owner.kind() == "type_extension")
+        .and_then(|extension| direct_child(extension, "type_name"))
+        .and_then(|name| name.child_by_field_name("type_name"))
+        .is_some_and(|name| {
+            base.get_node_text(&name).rsplit('.').next().map(str::trim) == Some(type_name)
+        })
+}
+
+/// Whether `node` sits in a `module rec` or `namespace rec`, where a binding
+/// is visible before its definition.
+fn in_rec_scope(node: Node) -> bool {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if matches!(
+            candidate.kind(),
+            "module_defn" | "named_module" | "namespace"
+        ) && direct_child(candidate, "rec").is_some()
+        {
+            return true;
+        }
+        current = candidate.parent();
+    }
+    false
 }
 
 fn is_module(node: Node) -> bool {

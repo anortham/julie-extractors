@@ -1154,3 +1154,164 @@ let run () =
         "items",
     );
 }
+
+#[test]
+fn union_case_after_a_function_hides_the_function() {
+    assert_no_fact(
+        "module A\nlet Load () : int = 1\ntype U = | Load of unit\nlet x1 = Load ()\n",
+        "x1",
+    );
+}
+
+#[test]
+fn union_case_after_a_module_function_hides_the_qualified_call() {
+    assert_no_fact(
+        r#"
+module Repo =
+    let Load () : int = 1
+    type U = | Load of unit
+let qualifiedCase = Repo.Load ()
+"#,
+        "qualifiedCase",
+    );
+}
+
+#[test]
+fn exception_after_a_module_function_hides_the_qualified_call() {
+    assert_no_fact(
+        r#"
+module Repo =
+    let Boom () : int = 1
+    exception Boom of unit
+let boomed = Repo.Boom ()
+"#,
+        "boomed",
+    );
+}
+
+#[test]
+fn union_case_before_a_function_does_not_hide_it() {
+    assert_inferred(
+        "module A\ntype U = | Load of unit\nlet Load () : int = 1\nlet later = Load ()\n",
+        "later",
+        "int",
+        "int",
+    );
+}
+
+#[test]
+fn require_qualified_access_union_case_does_not_hide_a_function() {
+    assert_inferred(
+        "module A\nlet Load () : int = 1\n[<RequireQualifiedAccess>]\ntype U = | Load of unit\nlet qualifiedOnly = Load ()\n",
+        "qualifiedOnly",
+        "int",
+        "int",
+    );
+}
+
+#[test]
+fn and_binding_of_a_rec_group_hides_an_outer_function_from_the_group_start() {
+    assert_no_fact(
+        r#"
+module B =
+    let helper () : int = 1
+    module Inner =
+        let rec first () =
+            let x2 = helper ()
+            x2
+        and helper () : string = "s"
+"#,
+        "x2",
+    );
+}
+
+#[test]
+fn call_to_an_and_binding_records_its_return_type() {
+    assert_inferred(
+        r#"
+module E
+let rec a () : int = 1
+and b () : string = "s"
+let fromAnd = b ()
+"#,
+        "fromAnd",
+        "string",
+        "string",
+    );
+}
+
+#[test]
+fn and_binding_return_type_is_not_taken_for_the_first_binding() {
+    assert_no_fact(
+        r#"
+module E
+let rec a () = 1
+and b () : string = "s"
+let fromFirst = a ()
+"#,
+        "fromFirst",
+    );
+}
+
+#[test]
+fn call_inside_a_rec_module_records_no_fact() {
+    assert_no_fact(
+        r#"
+module C =
+    let load () : int = 1
+    module rec Inner =
+        let f () =
+            let x3 = load ()
+            x3
+        let load () : string = "s"
+"#,
+        "x3",
+    );
+}
+
+#[test]
+fn call_inside_a_rec_namespace_records_no_fact() {
+    assert_no_fact(
+        r#"
+namespace rec N
+module M =
+    let load () : int = 1
+    let x4 = load ()
+"#,
+        "x4",
+    );
+}
+
+#[test]
+fn static_call_on_a_type_with_an_extension_overload_records_no_fact() {
+    assert_no_fact(
+        r#"
+module D =
+    type Store() =
+        member this.Load(x: int) : int = x
+        static member Create(x: int) : int = x
+    type Store with
+        member this.Load() : string = "s"
+        static member Create() : string = "s"
+    let x5 = Store.Create()
+"#,
+        "x5",
+    );
+}
+
+#[test]
+fn self_call_on_a_type_with_an_extension_overload_records_no_fact() {
+    assert_no_fact(
+        r#"
+module D =
+    type Store() =
+        member this.Load(x: int) : int = x
+        member this.Run() =
+            let x6 = this.Load()
+            x6
+    type Store with
+        member this.Load() : string = "s"
+"#,
+        "x6",
+    );
+}

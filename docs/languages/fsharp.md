@@ -81,7 +81,10 @@ written on the pattern (`let (x: T) = ...`) wins like a type after the pattern.
 
 A plain `let` function is in scope from the end of its definition to the end
 of its module, type, or `let ... in` body, so a call to its own name inside its
-body records no fact. A `let rec` function is in scope from its start. A
+body records no fact. A `let rec` function, and every `and` binding of its
+group, is in scope from the start of the group. A call inside a `module rec`
+or `namespace rec` records no fact, because a later definition there is
+visible before it appears. A
 qualified call (`Repo.load ()`, `Store.Create()`) sees a module function only
 after its definition, and sees a module or type only from its definition to the
 end of the module or namespace that holds it. A call that needs an `open` to
@@ -94,13 +97,19 @@ that names both a visible module and a visible type records no fact. An
 `open`, `open type`, or `[<AutoOpen>]` module that comes after the definition
 and is in scope at the call can bring in a same-named function, module, or type
 from anywhere, so that definition records no fact at that call. An `open`
-before the definition does not hide it. Every candidate with the name must
-agree on the return type.
+before the definition does not hide it. A union case or exception declared
+after the definition with the same name hides it where the case is visible,
+for an unqualified call and for a call qualified by the module that holds both.
+A union case under `[<RequireQualifiedAccess>]` does not hide it. Every
+candidate with the name must agree on the return type.
 
 A self call (`this.Load()`) sees only instance members declared directly in the
 same type definition. A member of a same-named type elsewhere, an explicit
-interface member (`interface ILoader with member this.Load()`), and a member
-in a `type ... with` extension do not count. A self call or static call on a
+interface member (`interface ILoader with member this.Load()`), and a self
+call inside a `type ... with` extension do not count. A same-named member in
+any `type Store with` extension in the file joins the overloads of a self call
+or a static call on `Store`, so the call records a fact only when every
+overload agrees. A self call or static call on a
 type with an `inherit` clause records no fact, because the base type, possibly
 in another file, takes part in overload resolution and can win. A call to a
 member named like an `obj` member (`ToString`, `Equals`, `GetHashCode`,

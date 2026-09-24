@@ -484,6 +484,8 @@ fn symbol_for_name<'a>(
         .min_by_key(|symbol| symbol.end_byte.saturating_sub(symbol.start_byte))
 }
 
+/// The type written after `left` and before its `=`; a `let ... and ...`
+/// group holds several bindings in one node.
 pub(super) fn direct_type_child_after<'a>(node: Node<'a>, left: Node<'a>) -> Option<Node<'a>> {
     let mut cursor = node.walk();
     let children: Vec<_> = node.children(&mut cursor).collect();
@@ -491,6 +493,7 @@ pub(super) fn direct_type_child_after<'a>(node: Node<'a>, left: Node<'a>) -> Opt
         .into_iter()
         .skip_while(|child| child.id() != left.id())
         .skip(1)
+        .take_while(|child| child.kind() != "=" && !child.kind().ends_with("_declaration_left"))
         .find(is_type_node)
 }
 
