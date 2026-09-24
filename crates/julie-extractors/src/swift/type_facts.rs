@@ -726,7 +726,7 @@ impl InitializerScope<'_> {
     /// A call's return type, kept only when the head of its name means the
     /// same declaration at the call as at the callee.
     fn call_shape(&self, call: Node) -> Option<TypeShape> {
-        let callee = call.named_child(0)?;
+        let callee = forced_try_callee(self.base, call, call.named_child(0)?);
         if callee.kind() == "simple_identifier" {
             let name = self.base.get_node_text(&callee);
             if self.same_file_type_names.contains(&name) {
@@ -792,6 +792,42 @@ impl InitializerScope<'_> {
 /// The labels of a call's arguments, trailing closures included. `None`
 /// for a subscript (`Foo[0]` parses as a call whose arguments open with `[`)
 /// or an argument shape this reader does not know.
+/// The callee of `try! f()` when the scanner split `try!` into `try` and a
+/// prefix `!` bound to the callee.
+///
+/// tree-sitter-swift 0.7.3 builds its `try!` suppression mask with
+/// `1UL << FAKE_TRY_BANG`, and `FAKE_TRY_BANG` is token 32. Where `long` is
+/// 32 bits (Windows), the shift is undefined, `!` becomes an operator, and
+/// `try! f()` parses as `try (!f)()`. A `!` that starts at the very end of the
+/// `try` keyword can only be the `try!` spelling, so the prefix is dropped.
+fn forced_try_callee<'tree>(
+    base: &BaseExtractor,
+    call: Node<'tree>,
+    callee: Node<'tree>,
+) -> Node<'tree> {
+    let split_try_bang = callee.kind() == "prefix_expression"
+        && callee
+            .child_by_field_name("operation")
+            .filter(|operation| operation.kind() == "bang")
+            .zip(
+                call.parent()
+                    .filter(|parent| parent.kind() == "try_expression")
+                    .and_then(|parent| {
+                        parent
+                            .named_children(&mut parent.walk())
+                            .find(|child| child.kind() == "try_operator")
+                    }),
+            )
+            .is_some_and(|(bang, operator)| {
+                base.get_node_text(&operator) == "try" && operator.end_byte() == bang.start_byte()
+            });
+    if split_try_bang {
+        callee.child_by_field_name("target").unwrap_or(callee)
+    } else {
+        callee
+    }
+}
+
 fn call_arguments(base: &BaseExtractor, call: Node) -> Option<Vec<Argument>> {
     let suffix = call
         .named_children(&mut call.walk())

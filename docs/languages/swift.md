@@ -231,6 +231,22 @@ classifies each exactly once, so a swift-specific gap cannot live there.
   publishes a test tag or skip channel yet: Ruby records RSpec metadata tags
   as the same kind of gap, so the channel is a cross-language decision.
 
+## Windows grammar defect
+
+tree-sitter-swift 0.7.3 builds the `try!` suppression mask in `scanner.c` with
+`1UL << FAKE_TRY_BANG`, and `FAKE_TRY_BANG` is token 32. `long` is 32 bits on
+Windows, so the shift is undefined there, the scanner emits `!` as an
+operator, and `try! f()` parses as `try (!f)()` with no syntax error. Linux and
+macOS parse it correctly.
+
+- Call-initializer inference undoes the split for a bare call such as
+  `let x = try! load()`, so that case records the same fact on every platform.
+- Other `try!` forms on Windows, such as `try! self.load()` or
+  `try! Type.make()`, record no inferred fact, and other rows under a `try!`
+  can differ from Linux.
+- Closure: an `anortham`-owned fork of tree-sitter-swift that writes `1ULL`,
+  added under the [grammar dependency policy](../architecture/grammar-dependency-policy.md).
+
 ## Evidence
 
 The golden fixture `swift:test_roles` registers two sources:
