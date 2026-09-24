@@ -116,6 +116,8 @@ pub struct TypeScriptExtractor {
     import_binding_sources: Option<HashMap<String, String>>,
     receiver_import_contexts: HashMap<(usize, String), Option<String>>,
     pub(super) test_dsl_active: bool,
+    /// Declared return types of the file's callables, for local inference.
+    return_types: type_facts::ReturnTypeIndex,
 }
 
 impl TypeScriptExtractor {
@@ -135,6 +137,7 @@ impl TypeScriptExtractor {
             import_binding_sources: None,
             receiver_import_contexts: HashMap::new(),
             test_dsl_active: false,
+            return_types: type_facts::ReturnTypeIndex::default(),
         }
     }
 

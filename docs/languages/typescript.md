@@ -122,6 +122,19 @@ Express/Fastify routes on exported and type-annotated receivers.
   (`isCommonJS`, `isSideEffect`, `isDynamic`).
 - Declared return types are type facts; inferred placeholders (`any`,
   `function`, `Promise<any>`) are not published.
+- A `const`, `let`, or `var` with no written type gets an inferred type fact
+  from a call to a same-file callee with a declared return type: a function,
+  an overload set, a function-valued `const` (`const make = (): User => ..`),
+  a class method or arrow field through `this` in that class, or a static
+  method through the class name (`Repo.create()`). Same-named candidates
+  must agree, and any other binding of the name (import, parameter, local)
+  blocks the fact. `await` removes one `Promise`/`PromiseLike` layer; `!`
+  removes `null`/`undefined`; a `T | null` result without `!` records
+  nothing. `: this` resolves to the enclosing class. A generic type
+  parameter result, a getter, an optional call (`?.`), a method after the
+  call, `this` rebound by a `function` or object literal, or a callee in
+  another file records no fact. Other files are out of scope because each
+  file is extracted alone.
 - The `string` type keyword is not a `string_literal` source region.
 
 ## Frontend navigation facts
