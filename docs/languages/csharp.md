@@ -155,6 +155,18 @@ of any other class publish no role. See the
 - Type facts come only from the syntax tree. Tuple, pointer, and `void`
   types record no fact. Signatures show the written type (`int*`, `ref int`,
   `Bits?`).
+- A `var` local gets an inferred type fact from `new T(..)` or from a call to
+  a same-file method or local function with a declared return type:
+  `Load()`, `this.Load()`, or a static `Factory.Create()` on a same-file type.
+  A simple name finds an in-scope local function, then the innermost enclosing
+  type that declares the name. The search stops at a type with a base list or
+  `partial`, which may get members from another file. Overloads that accept
+  the argument count must agree. `await` removes one `Task<T>` or
+  `ValueTask<T>` layer, also through `.ConfigureAwait(..)`. `!` and
+  parentheses keep the type. A type-parameter return, a tuple or `void`
+  return, a call on any other receiver, a chained call, or a callee in another
+  file records no fact. Razor applies the same rule to `@code` and `@{ }`
+  blocks, and `@typeparam` names count as type parameters.
 - The innermost member owns a reference site: a property, indexer, or event
   accessor body owns its calls, identifiers, and complexity metric.
 

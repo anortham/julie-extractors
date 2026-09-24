@@ -1,6 +1,7 @@
 // Local variables and parameters for C# callables.
 
 use super::helpers;
+use super::initializer_types::ReturnTypeIndex;
 use crate::base::{BaseExtractor, NormalizedSpan, Symbol, SymbolKind, SymbolOptions, Visibility};
 use crate::tree_traversal::should_visit_bounded_depth;
 use std::collections::HashMap;
@@ -16,16 +17,18 @@ const LOCAL_BINDING_DEPTH_LIMIT: u32 = 32;
 /// sharing the declared type.
 pub fn extract_local_declaration(
     base: &mut BaseExtractor,
+    return_types: &ReturnTypeIndex,
     node: Node,
     parent_id: Option<String>,
 ) -> Vec<Symbol> {
     let mut symbols = Vec::new();
-    collect_local_bindings(base, node, parent_id, &mut symbols, 0);
+    collect_local_bindings(base, return_types, node, parent_id, &mut symbols, 0);
     symbols
 }
 
 fn collect_local_bindings(
     base: &mut BaseExtractor,
+    return_types: &ReturnTypeIndex,
     node: Node,
     parent_id: Option<String>,
     out: &mut Vec<Symbol>,
@@ -41,7 +44,7 @@ fn collect_local_bindings(
             } else {
                 node
             };
-            emit_declarators(base, declaration, parent_id.clone(), out);
+            emit_declarators(base, return_types, declaration, parent_id.clone(), out);
         }
         "declaration_expression" => {
             // foreach / for headers already emit these bindings via the parent
@@ -70,7 +73,7 @@ fn collect_local_bindings(
             let looks_like_binding = has_var_keyword || has_out_ref;
             if looks_like_binding {
                 if let Some(decl) = find_child(node, "variable_declaration") {
-                    emit_declarators(base, decl, parent_id.clone(), out);
+                    emit_declarators(base, return_types, decl, parent_id.clone(), out);
                 } else if let Some(name) = node
                     .child_by_field_name("name")
                     .or_else(|| find_child(node, "identifier"))
@@ -155,13 +158,27 @@ fn collect_local_bindings(
                         }
                     }
                     "variable_declaration" => {
-                        emit_declarators(base, left, parent_id.clone(), out);
+                        emit_declarators(base, return_types, left, parent_id.clone(), out);
                     }
                     "tuple_pattern" | "tuple_expression" | "declaration_expression" => {
-                        collect_pattern_bindings(base, left, parent_id.clone(), out, depth + 1);
+                        collect_pattern_bindings(
+                            base,
+                            return_types,
+                            left,
+                            parent_id.clone(),
+                            out,
+                            depth + 1,
+                        );
                     }
                     _ => {
-                        collect_pattern_bindings(base, left, parent_id.clone(), out, depth + 1);
+                        collect_pattern_bindings(
+                            base,
+                            return_types,
+                            left,
+                            parent_id.clone(),
+                            out,
+                            depth + 1,
+                        );
                     }
                 }
             } else {
@@ -176,7 +193,14 @@ fn collect_local_bindings(
                             | "declaration_expression"
                             | "variable_declaration"
                     ) {
-                        collect_pattern_bindings(base, child, parent_id.clone(), out, depth + 1);
+                        collect_pattern_bindings(
+                            base,
+                            return_types,
+                            child,
+                            parent_id.clone(),
+                            out,
+                            depth + 1,
+                        );
                     }
                 }
             }
@@ -197,7 +221,14 @@ fn collect_local_bindings(
                         | "block"
                         | "expression_statement"
                 ) {
-                    collect_local_bindings(base, child, parent_id.clone(), out, depth + 1);
+                    collect_local_bindings(
+                        base,
+                        return_types,
+                        child,
+                        parent_id.clone(),
+                        out,
+                        depth + 1,
+                    );
                 }
             }
         }
@@ -207,6 +238,7 @@ fn collect_local_bindings(
 /// Collect binding identifiers from tuple / deconstruction patterns.
 fn collect_pattern_bindings(
     base: &mut BaseExtractor,
+    return_types: &ReturnTypeIndex,
     node: Node,
     parent_id: Option<String>,
     out: &mut Vec<Symbol>,
@@ -248,7 +280,7 @@ fn collect_pattern_bindings(
             }
         }
         "variable_declaration" => {
-            emit_declarators(base, node, parent_id, out);
+            emit_declarators(base, return_types, node, parent_id, out);
         }
         "variable_declarator" => {
             if let Some(symbol) = extract_declarator(base, node, parent_id, None, true, "local") {
@@ -258,7 +290,14 @@ fn collect_pattern_bindings(
         "tuple_pattern" | "tuple_expression" | "argument" | "parenthesized_expression" => {
             let mut cursor = node.walk();
             for child in node.children(&mut cursor) {
-                collect_pattern_bindings(base, child, parent_id.clone(), out, depth + 1);
+                collect_pattern_bindings(
+                    base,
+                    return_types,
+                    child,
+                    parent_id.clone(),
+                    out,
+                    depth + 1,
+                );
             }
         }
         _ => {
@@ -274,7 +313,14 @@ fn collect_pattern_bindings(
                         | "tuple_expression"
                         | "argument"
                 ) {
-                    collect_pattern_bindings(base, child, parent_id.clone(), out, depth + 1);
+                    collect_pattern_bindings(
+                        base,
+                        return_types,
+                        child,
+                        parent_id.clone(),
+                        out,
+                        depth + 1,
+                    );
                 }
             }
         }
@@ -283,6 +329,7 @@ fn collect_pattern_bindings(
 
 fn emit_declarators(
     base: &mut BaseExtractor,
+    return_types: &ReturnTypeIndex,
     declaration: Node,
     parent_id: Option<String>,
     out: &mut Vec<Symbol>,
@@ -313,6 +360,9 @@ fn emit_declarators(
                         &symbol.id,
                         initializer,
                     );
+                    if let Some(declared) = return_types.initializer_type(base, initializer) {
+                        super::type_inference::record_inferred_type(base, &symbol.id, &declared);
+                    }
                 }
             } else if let Some(type_node) = type_node {
                 super::type_inference::record_declared_type(base, &symbol.id, type_node);

@@ -172,7 +172,7 @@ fn constructor_call_imported_records_no_fact() {
 }
 
 #[test]
-fn constructor_call_non_constructor_records_no_fact() {
+fn same_file_method_call_records_inferred_return_type() {
     let (symbols, extractor) = extract(
         r#"
 @page "/"
@@ -188,7 +188,9 @@ fn constructor_call_non_constructor_records_no_fact() {
 "#,
     );
     let built = symbol(&symbols, "built", SymbolKind::Variable);
-    no_fact(&extractor, built);
+    let built_fact = fact(&extractor, built);
+    assert_eq!(built_fact.resolved_type, "Widget");
+    assert!(built_fact.is_inferred);
 }
 
 #[test]

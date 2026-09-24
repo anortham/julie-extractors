@@ -42,23 +42,21 @@ impl super::RazorExtractor {
             {
                 let name = self.base.get_node_text(&identifier);
 
-                // Look for initializer
-                let mut initializer = None;
                 let mut decl_cursor = child.walk();
                 let decl_children: Vec<_> = child.children(&mut decl_cursor).collect();
-                if let Some(equals_pos) = decl_children.iter().position(|c| c.kind() == "=")
-                    && equals_pos + 1 < decl_children.len()
-                {
-                    initializer = Some(self.base.get_node_text(&decl_children[equals_pos + 1]));
-                }
+                let initializer_node = decl_children
+                    .iter()
+                    .position(|c| c.kind() == "=")
+                    .and_then(|pos| decl_children.get(pos + 1).copied());
 
-                declarators.push((name, initializer));
+                declarators.push((name, initializer_node));
             }
         }
 
         // For now, handle the first declarator (most common case)
-        if let Some((name, initializer)) = declarators.first() {
-            let variable_name = name.clone();
+        if let Some((name, initializer_node)) = declarators.into_iter().next() {
+            let variable_name = name;
+            let initializer = initializer_node.map(|init| self.base.get_node_text(&init));
 
             let mut signature_parts = Vec::new();
             if let Some(ref var_type) = variable_type {
@@ -67,11 +65,11 @@ impl super::RazorExtractor {
                 signature_parts.push("var".to_string());
             }
             signature_parts.push(variable_name.clone());
-            if let Some(init) = initializer {
+            if let Some(init) = &initializer {
                 signature_parts.push(format!("= {}", init));
             }
 
-            Some(self.base.create_symbol(
+            let symbol = self.base.create_symbol(
                 &node,
                 variable_name,
                 SymbolKind::Variable,
@@ -92,17 +90,25 @@ impl super::RazorExtractor {
                             );
                         }
                         if let Some(init) = initializer {
-                            metadata.insert(
-                                "initializer".to_string(),
-                                serde_json::Value::String(init.clone()),
-                            );
+                            metadata
+                                .insert("initializer".to_string(), serde_json::Value::String(init));
                         }
                         metadata
                     }),
                     doc_comment: None,
                     annotations: Vec::new(),
                 },
-            ))
+            );
+            let is_var = node
+                .child_by_field_name("type")
+                .is_some_and(|ty| ty.kind() == "implicit_type");
+            if is_var && let Some(init) = initializer_node {
+                super::type_facts::record_new_expression_type(&mut self.base, &symbol.id, init);
+                if let Some(declared) = self.return_types.initializer_type(&self.base, init) {
+                    super::type_facts::record_inferred_type(&mut self.base, &symbol.id, &declared);
+                }
+            }
+            Some(symbol)
         } else {
             None
         }

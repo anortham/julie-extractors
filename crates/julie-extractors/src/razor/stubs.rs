@@ -307,6 +307,9 @@ impl super::RazorExtractor {
         if is_var {
             if let Some(init) = initializer_node {
                 super::type_facts::record_new_expression_type(&mut self.base, &symbol.id, init);
+                if let Some(declared) = self.return_types.initializer_type(&self.base, init) {
+                    super::type_facts::record_inferred_type(&mut self.base, &symbol.id, &declared);
+                }
             }
         } else if let Some(type_node) = type_node {
             super::type_facts::record_declared_type(&mut self.base, &symbol.id, type_node);
