@@ -51,7 +51,11 @@ impl PythonExtractor {
     /// Extract all symbols from Python source code
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         self.same_file_class_names = types::collect_class_names(self, tree.root_node());
-        self.return_types = type_facts::ReturnTypeIndex::build(&self.base, tree.root_node());
+        self.return_types = type_facts::ReturnTypeIndex::build(
+            &self.base,
+            tree.root_node(),
+            &self.same_file_class_names,
+        );
         let mut symbols = Vec::new();
         self.traverse_tree(tree.root_node(), &mut symbols, 0);
         assignments::keep_first_attribute_declaration(&mut symbols, &self.instance_attribute_ids);

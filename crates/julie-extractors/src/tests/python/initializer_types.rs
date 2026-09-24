@@ -533,3 +533,301 @@ class Service:
     assert_eq!(fact.resolved_type, "Workspace");
     assert!(fact.is_inferred);
 }
+
+#[test]
+fn unannotated_implementation_before_overloads_records_nothing() {
+    let source = r#"
+def load(key):
+    ...
+
+@overload
+def load(key: int) -> Workspace:
+    ...
+
+@overload
+def load(key: str) -> Workspace:
+    ...
+
+def run():
+    ws = load(1)
+"#;
+    assert_eq!(inferred_type(source, "ws"), None);
+}
+
+#[test]
+fn imported_type_variable_in_parameter_annotations_records_nothing() {
+    let source = r#"
+from other import T, U
+
+def first(items: list[T]) -> T:
+    ...
+
+def pick(default: Optional[U] = None) -> U:
+    ...
+
+class Box:
+    def first(self, items: list[T]) -> T:
+        ...
+
+    def run(self):
+        value = self.first([1])
+
+item = first([1])
+chosen = pick()
+"#;
+    assert_eq!(inferred_type(source, "item"), None);
+    assert_eq!(inferred_type(source, "chosen"), None);
+    assert_eq!(inferred_type(source, "value"), None);
+}
+
+#[test]
+fn same_file_class_in_parameter_annotations_keeps_the_return_type() {
+    let source = r#"
+class Config:
+    ...
+
+def merge(base: Config, extra: Config) -> Config:
+    ...
+
+merged = merge(a, b)
+"#;
+    assert_eq!(inferred_type(source, "merged").as_deref(), Some("Config"));
+}
+
+#[test]
+fn type_variable_of_enclosing_function_records_nothing() {
+    let source = r#"
+from other import T
+
+def outer(items: list[T]):
+    def inner() -> T:
+        ...
+
+    value = inner()
+"#;
+    assert_eq!(inferred_type(source, "value"), None);
+}
+
+#[test]
+fn parameter_shadowing_a_same_file_function_records_nothing() {
+    let source = r#"
+def load() -> Workspace:
+    ...
+
+def run(load):
+    ws = load()
+
+def run_default(load=None):
+    ws_default = load()
+"#;
+    assert_eq!(inferred_type(source, "ws"), None);
+    assert_eq!(inferred_type(source, "ws_default"), None);
+}
+
+#[test]
+fn local_assignment_shadowing_a_same_file_function_records_nothing() {
+    let source = r#"
+def load() -> Workspace:
+    ...
+
+def run():
+    load = make()
+    ws = load()
+"#;
+    assert_eq!(inferred_type(source, "ws"), None);
+}
+
+#[test]
+fn loop_and_with_targets_shadowing_a_same_file_function_record_nothing() {
+    let source = r#"
+def load() -> Workspace:
+    ...
+
+def run(things):
+    for load in things:
+        ws_loop = load()
+
+def use(ctx):
+    with ctx as load:
+        ws_with = load()
+"#;
+    assert_eq!(inferred_type(source, "ws_loop"), None);
+    assert_eq!(inferred_type(source, "ws_with"), None);
+}
+
+#[test]
+fn module_rebinding_of_a_same_file_function_records_nothing() {
+    let source = r#"
+def load() -> Workspace:
+    ...
+
+load = lambda: 1
+ws = load()
+"#;
+    assert_eq!(inferred_type(source, "ws"), None);
+}
+
+#[test]
+fn module_import_beats_a_nested_def_of_the_same_name() {
+    let source = r#"
+from lib import get
+
+def outer():
+    def get() -> Repo:
+        ...
+
+    inner_repo = get()
+
+module_repo = get()
+"#;
+    assert_eq!(inferred_type(source, "module_repo"), None);
+    assert_eq!(inferred_type(source, "inner_repo").as_deref(), Some("Repo"));
+}
+
+#[test]
+fn nested_def_is_visible_only_inside_its_function() {
+    let source = r#"
+def outer():
+    def build() -> Repo:
+        ...
+
+    def helper():
+        nested_repo = build()
+
+def other():
+    outside_repo = build()
+"#;
+    assert_eq!(
+        inferred_type(source, "nested_repo").as_deref(),
+        Some("Repo")
+    );
+    assert_eq!(inferred_type(source, "outside_repo"), None);
+}
+
+#[test]
+fn parameter_shadowing_a_same_file_class_records_nothing() {
+    let source = r#"
+class Workspace:
+    @classmethod
+    def create(cls) -> Self:
+        ...
+
+def run(Workspace):
+    ws = Workspace()
+    created = Workspace.create()
+"#;
+    assert_eq!(inferred_type(source, "ws"), None);
+    assert_eq!(inferred_type(source, "created"), None);
+}
+
+#[test]
+fn method_under_a_conditional_in_a_class_body_stays_a_method() {
+    let source = r#"
+class Cond:
+    if FLAG:
+        def m(self) -> Workspace:
+            ...
+    else:
+        pass
+
+    def run(self):
+        through_self = self.m()
+
+bare = m()
+"#;
+    assert_eq!(inferred_type(source, "bare"), None);
+    assert_eq!(
+        inferred_type(source, "through_self").as_deref(),
+        Some("Workspace")
+    );
+}
+
+#[test]
+fn bare_call_in_a_class_body_to_its_method_records_nothing() {
+    let source = r#"
+def m() -> Archive:
+    ...
+
+class Service:
+    def m(self) -> Workspace:
+        ...
+
+    default = m()
+"#;
+    assert_eq!(inferred_type(source, "default"), None);
+}
+
+#[test]
+fn imported_class_or_builtin_in_parameter_annotations_keeps_the_return_type() {
+    let source = r#"
+from .wrappers import Response
+
+def prepare(path: str) -> str:
+    ...
+
+def head(parts: list[str]) -> str:
+    ...
+
+def lookup(table: Dict[str, Any]) -> Any:
+    ...
+
+class App:
+    def process(self, response: Response) -> Response:
+        ...
+
+    def run(self, rv):
+        processed = self.process(rv)
+
+name = prepare("app.py")
+first = head(["a"])
+value = lookup({})
+"#;
+    assert_eq!(inferred_type(source, "name").as_deref(), Some("str"));
+    assert_eq!(inferred_type(source, "first").as_deref(), Some("str"));
+    assert_eq!(inferred_type(source, "value").as_deref(), Some("Any"));
+    assert_eq!(
+        inferred_type(source, "processed").as_deref(),
+        Some("Response")
+    );
+}
+
+#[test]
+fn imported_type_variable_as_a_whole_parameter_annotation_records_nothing() {
+    let source = r#"
+from other import T, ModelT, _T_co
+
+def same(x: T) -> T:
+    ...
+
+def save(model: ModelT) -> ModelT:
+    ...
+
+def read(source: _T_co) -> _T_co:
+    ...
+
+a = same(1)
+b = save(m)
+c = read(s)
+"#;
+    assert_eq!(inferred_type(source, "a"), None);
+    assert_eq!(inferred_type(source, "b"), None);
+    assert_eq!(inferred_type(source, "c"), None);
+}
+
+#[test]
+fn imported_name_used_as_a_type_argument_records_nothing() {
+    let source = r#"
+from other import Item
+
+def first(items: Sequence[Item]) -> Item:
+    ...
+
+def fallback(item: Optional[Item]) -> Item:
+    ...
+
+a = first(values)
+b = fallback(None)
+"#;
+    assert_eq!(inferred_type(source, "a"), None);
+    assert_eq!(inferred_type(source, "b").as_deref(), Some("Item"));
+}

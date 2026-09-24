@@ -117,12 +117,32 @@ assignment (`x = ...` or `self.x = ...`):
 - Every same-named candidate with the same owner must declare the same return
   type. An `async def` counts only under `await`; an awaited plain `def`
   records nothing.
+- A bare name follows Python scope rules. A parameter, assignment, `for` or
+  `with` target, import, lambda, or comprehension variable of the same name
+  in the call's function or an enclosing one, or at module level, records
+  nothing. A nested `def` counts only for calls inside its function. A method
+  counts only through `self`, `cls`, or its class, also when it is defined in
+  an `if` or `try` block of the class body. A `from m import *` does not count
+  as a binding, because the names it binds are in another file.
 - A return type that is a `TypeVar`/`ParamSpec`/`TypeVarTuple` of the file, a
   PEP 695 type parameter, or a type argument of the class bases records
-  nothing. So does a callee with a decorator other than `staticmethod`,
-  `classmethod`, `abstractmethod`, `overload`, `override`, `final`, `cache`,
-  or `lru_cache`, and a call to anything in another file, because each file is
-  extracted alone.
+  nothing. The callee's parameter annotations, and those of the functions
+  around it, can also show that an imported name is a type variable. The
+  return name records nothing when it is not a same-file class, a builtin, or
+  a `typing` name such as `Any` or `Dict`, and those annotations use it as a
+  type argument (`def first(items: list[T]) -> T`), or use it at all when
+  the name is spelled like a type variable (`T`, `KT`, `T1`, `_T_co`,
+  `ModelT`, `AnyStr`). So `-> Item` with `items: list[Item]` records nothing
+  even when `Item` is an imported class, and `-> Response` with
+  `response: Response` records `Response`. An imported
+  type variable with another spelling that the callee uses only as a whole
+  annotation, or only in the return type (`def item(self) -> U`), still
+  records its name, because the syntax does not show that the name is not
+  a class.
+- A callee with a decorator other than `staticmethod`, `classmethod`,
+  `abstractmethod`, `overload`, `override`, `final`, `cache`, or `lru_cache`
+  records nothing. So does a call to anything in another file, because each
+  file is extracted alone.
 
 Imports, variables, constants, attributes, and parameters have no body span.
 
