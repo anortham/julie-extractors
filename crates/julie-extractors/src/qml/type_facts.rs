@@ -1,7 +1,7 @@
 use crate::base::types::TypeNameRules;
 use crate::base::{BaseExtractor, ContainingSymbolIndex, Symbol, SymbolKind};
-use crate::javascript::type_facts::{pattern_binding_shadows, var_loop_heads};
-use std::collections::HashMap;
+use crate::javascript::type_facts::{pattern_binding_shadows, reassigned_names, var_loop_heads};
+use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
 
 use super::relationships::{
@@ -96,7 +96,8 @@ pub(super) fn record_named_type(base: &mut BaseExtractor, symbol_id: &str, type_
 /// same-file function with a return annotation, named bare in an enclosing
 /// object's scope or through an id of the call's own component. An id of an
 /// enclosing component is visible from an inline component only under
-/// `pragma ComponentBehavior: Bound`, so it records nothing. Runs after the
+/// `pragma ComponentBehavior: Bound`, so it records nothing. A callee or
+/// receiver name the file assigns anywhere records nothing. Runs after the
 /// symbol walk, so a written local type wins.
 pub(super) fn record_call_initializer_facts(
     base: &mut BaseExtractor,
@@ -114,6 +115,11 @@ pub(super) fn record_call_initializer_facts(
     );
     let object_owners = object_owner_map(symbols);
     let var_loops = var_loop_heads(root);
+    let reassigned = reassigned_names(base, root);
+    let scoped_names: HashSet<(&str, &str)> = symbols
+        .iter()
+        .filter_map(|symbol| Some((symbol.parent_id.as_deref()?, symbol.name.as_str())))
+        .collect();
     let facts: Vec<(String, String, String)> = symbols
         .iter()
         .filter(|local| local.kind == SymbolKind::Variable)
@@ -139,8 +145,10 @@ pub(super) fn record_call_initializer_facts(
                 _ => return None,
             };
             let bound = receiver.as_deref().unwrap_or(&function_name);
-            if pattern_binding_shadows(base, &var_loops, bound, call)
-                || declared_in_enclosing_functions(bound, caller, symbols, &by_id)
+            if reassigned.contains(bound)
+                || reassigned.contains(&function_name)
+                || pattern_binding_shadows(base, &var_loops, bound, call)
+                || declared_in_enclosing_functions(bound, caller, &scoped_names, &by_id)
             {
                 return None;
             }
@@ -218,18 +226,17 @@ fn scope_object_admits_bare_call(
 }
 
 /// Whether the caller or a function enclosing it declares `name` as a
-/// parameter, local, or nested function.
+/// parameter, local, or nested function. `scoped_names` holds the
+/// `(parent id, name)` of every symbol.
 fn declared_in_enclosing_functions(
     name: &str,
     caller: &Symbol,
-    symbols: &[Symbol],
+    scoped_names: &HashSet<(&str, &str)>,
     by_id: &HashMap<&str, &Symbol>,
 ) -> bool {
     let mut scope = Some(caller);
     while let Some(function) = scope.filter(|scope| scope.kind == SymbolKind::Function) {
-        if symbols.iter().any(|symbol| {
-            symbol.name == name && symbol.parent_id.as_deref() == Some(function.id.as_str())
-        }) {
+        if scoped_names.contains(&(function.id.as_str(), name)) {
             return true;
         }
         scope = function

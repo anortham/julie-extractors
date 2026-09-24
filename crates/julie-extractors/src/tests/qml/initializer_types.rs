@@ -3,6 +3,10 @@ use crate::qml::QmlExtractor;
 use std::path::PathBuf;
 
 fn local_type(source: &str, local: &str) -> Option<(String, bool)> {
+    local_types(source, &[local]).remove(0)
+}
+
+fn local_types(source: &str, locals: &[&str]) -> Vec<Option<(String, bool)>> {
     let mut parser = tree_sitter::Parser::new();
     parser
         .set_language(&tree_sitter_qmljs::LANGUAGE.into())
@@ -15,15 +19,20 @@ fn local_type(source: &str, local: &str) -> Option<(String, bool)> {
         &PathBuf::from("/tmp/test"),
     );
     let symbols = extractor.extract_symbols(&tree);
-    let local = symbols
+    locals
         .iter()
-        .find(|s| s.name == local && s.kind == SymbolKind::Variable)
-        .unwrap_or_else(|| panic!("missing local {local}"));
-    extractor
-        .base
-        .type_info
-        .get(&local.id)
-        .map(|fact| (fact.resolved_type.clone(), fact.is_inferred))
+        .map(|local| {
+            let local = symbols
+                .iter()
+                .find(|s| s.name == *local && s.kind == SymbolKind::Variable)
+                .unwrap_or_else(|| panic!("missing local {local}"));
+            extractor
+                .base
+                .type_info
+                .get(&local.id)
+                .map(|fact| (fact.resolved_type.clone(), fact.is_inferred))
+        })
+        .collect()
 }
 
 fn inferred(name: &str) -> Option<(String, bool)> {
@@ -347,4 +356,80 @@ Item {
 }
 "#;
     assert_eq!(local_type(source, "outer"), None);
+}
+
+#[test]
+fn callee_reassigned_through_an_identifier_records_nothing() {
+    assert_eq!(
+        workspace_type("loadWorkspace = untyped; let workspace = loadWorkspace()"),
+        None
+    );
+    assert_eq!(
+        panel_workspace_type("let workspace = panel.panelWorkspace(); panelWorkspace = untyped"),
+        None
+    );
+}
+
+#[test]
+fn callee_changed_by_compound_assignment_or_update_records_nothing() {
+    for body in [
+        "loadWorkspace ||= untyped; let workspace = loadWorkspace()",
+        "loadWorkspace += 1; let workspace = loadWorkspace()",
+        "loadWorkspace++; let workspace = loadWorkspace()",
+    ] {
+        assert_eq!(workspace_type(body), None, "{body}");
+    }
+}
+
+#[test]
+fn callee_reassigned_by_destructuring_or_a_loop_head_records_nothing() {
+    for body in [
+        "[loadWorkspace] = [untyped]; let workspace = loadWorkspace()",
+        "({ loadWorkspace } = { loadWorkspace: untyped }); let workspace = loadWorkspace()",
+        "for (loadWorkspace of [untyped]) {} let workspace = loadWorkspace()",
+    ] {
+        assert_eq!(workspace_type(body), None, "{body}");
+    }
+}
+
+#[test]
+fn assignments_to_other_names_keep_the_callee_type() {
+    assert_eq!(
+        workspace_type(
+            "let other = 0; other = untyped; other += 1; [other] = [untyped]; ({ loadWorkspace: other } = {}); let workspace = loadWorkspace()"
+        ),
+        inferred("Workspace")
+    );
+}
+
+#[test]
+fn many_functions_with_locals_each_resolve_their_own_scope() {
+    let count = 300;
+    let mut source = String::from("Item {\n    function loadWorkspace(): Workspace {}\n");
+    for index in 0..count {
+        source.push_str(&format!(
+            "    function run{index}(param) {{ let a{index} = 0; let b{index} = a{index}; let direct{index} = loadWorkspace() }}\n\
+             \x20   function shadowParam{index}(loadWorkspace) {{ let param{index} = loadWorkspace() }}\n\
+             \x20   function outer{index}() {{ var loadWorkspace = null; function inner{index}() {{ let nested{index} = loadWorkspace() }} }}\n"
+        ));
+    }
+    source.push_str("}\n");
+    let names: Vec<String> = (0..count)
+        .flat_map(|index| {
+            [
+                format!("direct{index}"),
+                format!("param{index}"),
+                format!("nested{index}"),
+            ]
+        })
+        .collect();
+    let locals: Vec<&str> = names.iter().map(String::as_str).collect();
+    let types = local_types(&source, &locals);
+    for (name, found) in names.iter().zip(types) {
+        let expected = name
+            .starts_with("direct")
+            .then(|| inferred("Workspace"))
+            .flatten();
+        assert_eq!(found, expected, "{name}");
+    }
 }

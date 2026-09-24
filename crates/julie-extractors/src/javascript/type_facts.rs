@@ -4,7 +4,7 @@ use crate::base::types::TypeNameRules;
 use crate::base::{BaseExtractor, Symbol, SymbolKind};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use regex::Regex;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 use tree_sitter::Node;
 
@@ -229,8 +229,9 @@ fn is_lexical_binding(kind: &SymbolKind) -> bool {
 
 /// Record an inferred type fact for each variable whose initializer is
 /// `new Name(..)` or a call to a same-file function or class method with a
-/// JSDoc `@returns` type. Runs after the symbol walk, so a written `@type`
-/// wins and functions declared after the call are known.
+/// JSDoc `@returns` type. A callee or class name the file assigns anywhere
+/// records nothing. Runs after the symbol walk, so a written `@type` wins and
+/// functions declared after the call are known.
 pub(crate) fn record_initializer_facts(base: &mut BaseExtractor, root: Node, symbols: &[Symbol]) {
     let scope = InitializerScope::new(base, root, symbols);
     let facts: Vec<(String, TypeShape)> = symbols
@@ -265,7 +266,9 @@ struct InitializerScope<'a> {
     root: Node<'a>,
     by_id: HashMap<&'a str, &'a Symbol>,
     by_name: HashMap<&'a str, Vec<&'a Symbol>>,
+    classes_by_start: HashMap<u32, &'a Symbol>,
     var_loops: Vec<VarLoopHead<'a>>,
+    reassigned: HashSet<String>,
 }
 
 /// The type an expression evaluates to, with the callables whose `@returns`
@@ -285,11 +288,15 @@ struct ClassReceiver<'a> {
 impl<'a> InitializerScope<'a> {
     fn new(base: &'a BaseExtractor, root: Node<'a>, symbols: &'a [Symbol]) -> Self {
         let mut by_name: HashMap<&str, Vec<&Symbol>> = HashMap::new();
+        let mut classes_by_start = HashMap::new();
         for symbol in symbols {
             by_name
                 .entry(symbol.name.as_str())
                 .or_default()
                 .push(symbol);
+            if symbol.kind == SymbolKind::Class {
+                classes_by_start.entry(symbol.start_byte).or_insert(symbol);
+            }
         }
         Self {
             base,
@@ -299,7 +306,9 @@ impl<'a> InitializerScope<'a> {
                 .map(|symbol| (symbol.id.as_str(), symbol))
                 .collect(),
             by_name,
+            classes_by_start,
             var_loops: var_loop_heads(root),
+            reassigned: reassigned_names(base, root),
         }
     }
 
@@ -347,6 +356,9 @@ impl<'a> InitializerScope<'a> {
     }
 
     fn free_call(&self, call: Node, name: &str) -> Option<Typed<'a>> {
+        if self.reassigned.contains(name) {
+            return None;
+        }
         let candidates = self.visible(name, call);
         if candidates.iter().any(|candidate| {
             candidate.kind != SymbolKind::Function || !self.declares_binding(candidate)
@@ -446,12 +458,15 @@ impl<'a> InitializerScope<'a> {
     }
 
     fn class_at(&self, class: Node) -> Option<&'a Symbol> {
-        self.by_id.values().copied().find(|symbol| {
-            symbol.kind == SymbolKind::Class && symbol.start_byte == class.start_byte() as u32
-        })
+        self.classes_by_start
+            .get(&(class.start_byte() as u32))
+            .copied()
     }
 
     fn class_named(&self, name: &str, at: Node) -> Option<&'a Symbol> {
+        if self.reassigned.contains(name) {
+            return None;
+        }
         match self.visible(name, at).as_slice() {
             [class] if class.kind == SymbolKind::Class && self.declares_binding(class) => {
                 Some(*class)
@@ -661,6 +676,62 @@ pub(crate) fn var_loop_heads(root: Node) -> Vec<VarLoopHead> {
         stack.extend(node.named_children(&mut node.walk()));
     }
     heads
+}
+
+/// Objects whose properties are the global bindings of a script.
+const GLOBAL_OBJECTS: &[&str] = &["globalThis", "window", "self", "global"];
+
+/// Every name the tree writes after declaring it: targets of plain and
+/// compound assignment, `++`/`--`, destructuring assignment, and `for .. in/of`
+/// heads without a declaration, plus properties written on a global object.
+/// A callee with such a name may hold another value when called.
+pub(crate) fn reassigned_names(base: &BaseExtractor, root: Node) -> HashSet<String> {
+    let mut names = HashSet::default();
+    let mut stack = vec![root];
+    while let Some(node) = stack.pop() {
+        let target = match node.kind() {
+            "assignment_expression" | "augmented_assignment_expression" => {
+                node.child_by_field_name("left")
+            }
+            "update_expression" => node.child_by_field_name("argument"),
+            "for_in_statement" if node.child_by_field_name("kind").is_none() => {
+                node.child_by_field_name("left")
+            }
+            _ => None,
+        };
+        if let Some(target) = target {
+            collect_target_names(base, target, &mut names);
+        }
+        stack.extend(node.named_children(&mut node.walk()));
+    }
+    names
+}
+
+fn collect_target_names(base: &BaseExtractor, target: Node, names: &mut HashSet<String>) {
+    let mut stack = vec![target];
+    while let Some(node) = stack.pop() {
+        match node.kind() {
+            "identifier" | "shorthand_property_identifier_pattern" => {
+                names.insert(base.get_node_text(&node));
+            }
+            "member_expression" => {
+                if let (Some(object), Some(property)) = (
+                    node.child_by_field_name("object"),
+                    node.child_by_field_name("property"),
+                ) && object.kind() == "identifier"
+                    && GLOBAL_OBJECTS.contains(&base.get_node_text(&object).as_str())
+                {
+                    names.insert(base.get_node_text(&property));
+                }
+            }
+            "subscript_expression" => {}
+            "pair_pattern" => stack.extend(node.child_by_field_name("value")),
+            "assignment_pattern" | "object_assignment_pattern" => {
+                stack.extend(node.child_by_field_name("left"))
+            }
+            _ => stack.extend(node.named_children(&mut node.walk())),
+        }
+    }
 }
 
 /// Whether a parameter, loop, or catch binding of `name`, or the own name of
