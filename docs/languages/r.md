@@ -32,12 +32,23 @@ example:
   `.GlobalEnv$f <- v`.
 - `f` is a Reference Class method or field, which the class's methods see as
   a bare name.
+- The call is inside a Reference Class definition, where a bare name can
+  reach an inherited member or a built-in such as `copy()`.
+- The call is inside `with()` or `within()` and the data is not a
+  `list(...)` literal, for example a variable.
+- The call is at top level before the first `setGeneric` of its name. R runs
+  top-level code in order, so the call reaches another function.
+- `Foo(...)` for a class `Foo` also has a same-file `setGeneric("Foo")`. The
+  call then takes only the generic's `valueClass`, or nothing.
 - The `setGeneric` may not run (under `if`, a loop, `switch()`, `&&`, `||`,
   or in a function body), binds with `where =`, has no `def` function, or
   disagrees with another declaration.
 - `pkg::f(...)`, a chained call such as `f(x)$m()`, and a roxygen `@return`
   tag, which is prose.
 
-Known misses: a name bound with a computed string (`assign(nm, ...)`) and code
-run through `eval()` or `source()`. Each file is extracted alone, so a
+Known limits: a name bound with a computed string (`assign(nm, ...)`) and code
+run through `eval()` or `source()` record nothing. A call inside a function
+body is typed even when the function sits before the `setGeneric`, because
+package code defines all generics before any function runs. A script that
+calls that function at top level before the declaration gets a wrong type. Each file is extracted alone, so a
 generic or class in another file gives no type.

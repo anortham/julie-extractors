@@ -32,6 +32,65 @@ pub(super) fn initializer_class(extractor: &RExtractor, right: Node) -> Option<S
     })
 }
 
+/// Bare names inside a Reference Class definition also resolve to inherited
+/// and built-in members such as `copy()`, and inside `with()` or `within()`
+/// to entries of its data. Only a `list(...)` literal data shows those entries.
+fn bare_name_may_resolve_elsewhere(extractor: &RExtractor, node: Node) -> bool {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        if parent.kind() == "call" {
+            let opaque = match call_name(extractor, parent).as_deref() {
+                Some("setRefClass") => true,
+                Some("with" | "within") => !has_list_literal_data(extractor, parent),
+                _ => is_ref_class_member_call(extractor, parent),
+            };
+            if opaque {
+                return true;
+            }
+        }
+        current = parent;
+    }
+    false
+}
+
+fn has_list_literal_data(extractor: &RExtractor, call: Node) -> bool {
+    if call
+        .parent()
+        .and_then(|parent| native_pipe_call(extractor, parent))
+        == Some(call)
+    {
+        return false;
+    }
+    let Some(data) = call
+        .child_by_field_name("arguments")
+        .and_then(|args| bind_arguments(extractor, args, &["data"]).remove("data"))
+    else {
+        return false;
+    };
+    if data.kind() != "call" || call_name(extractor, data).as_deref() != Some("list") {
+        return false;
+    }
+    let Some(entries) = data.child_by_field_name("arguments") else {
+        return true;
+    };
+    let mut cursor = entries.walk();
+    entries
+        .children_by_field_name("argument", &mut cursor)
+        .filter_map(|entry| entry.child_by_field_name("value"))
+        .all(|value| extractor.base.get_node_text(&value) != "...")
+}
+
+fn inside_function_body(node: Node) -> bool {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        if parent.kind() == "function_definition" {
+            return true;
+        }
+        current = parent;
+    }
+    false
+}
+
 fn without_parentheses(mut node: Node) -> Node {
     while node.kind() == "parenthesized_expression"
         && let Some(body) = node.child_by_field_name("body")
@@ -58,6 +117,15 @@ fn generic_call_value_class(extractor: &RExtractor, right: Node) -> Option<Strin
     }
     let callee = right.child_by_field_name("function")?;
     let name = clean_r_name(&extractor.base.get_node_text(&callee))?;
+    if bare_name_may_resolve_elsewhere(extractor, right) {
+        return None;
+    }
+    let declared_before = extractor
+        .name_bindings
+        .generic_declared_before(&name, right);
+    if !declared_before && !inside_function_body(right) {
+        return None;
+    }
     extractor.name_bindings.generic_value_class(&name)
 }
 
@@ -66,6 +134,7 @@ fn generic_call_value_class(extractor: &RExtractor, right: Node) -> Option<Strin
 #[derive(Default)]
 pub(super) struct NameBindings {
     generics: HashMap<String, Option<String>>,
+    first_generic_end: HashMap<String, usize>,
     generators: HashSet<String>,
     rebound: HashSet<String>,
 }
@@ -82,8 +151,16 @@ impl NameBindings {
         self.generics.get(name)?.clone()
     }
 
+    /// Top-level code runs in source order, so a top-level call made before
+    /// the first `setGeneric` of its name reaches some other function.
+    fn generic_declared_before(&self, name: &str, call: Node) -> bool {
+        self.first_generic_end
+            .get(name)
+            .is_some_and(|end| *end <= call.start_byte())
+    }
+
     fn calls_constructor(&self, name: &str) -> bool {
-        !self.rebound.contains(name)
+        !self.rebound.contains(name) && !self.generics.contains_key(name)
     }
 }
 
@@ -101,6 +178,11 @@ fn collect_bindings(extractor: &RExtractor, node: Node, depth: u32, bindings: &m
         "call" => match call_name(extractor, node).as_deref() {
             Some("setGeneric") if is_methods_call(extractor, node) => {
                 if let Some((name, value_class)) = generic_value_class(extractor, node) {
+                    bindings
+                        .first_generic_end
+                        .entry(name.clone())
+                        .and_modify(|end| *end = (*end).min(node.end_byte()))
+                        .or_insert(node.end_byte());
                     bindings
                         .generics
                         .entry(name)
@@ -406,7 +488,9 @@ fn same_file_constructor_class(extractor: &RExtractor, right: Node) -> Option<St
                 let args = right.child_by_field_name("arguments")?;
                 let class_name = positional_string_argument(extractor, args, 0)?;
                 same_file_class(extractor, &class_name)
-            } else if extractor.name_bindings.calls_constructor(&name) {
+            } else if extractor.name_bindings.calls_constructor(&name)
+                && !bare_name_may_resolve_elsewhere(extractor, right)
+            {
                 same_file_class(extractor, &name)
             } else {
                 None

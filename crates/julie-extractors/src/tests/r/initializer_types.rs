@@ -86,9 +86,23 @@ a <- area(s)
 }
 
 #[test]
-fn call_before_the_generic_declaration_is_typed() {
+fn top_level_call_before_the_generic_declaration_records_nothing() {
     let source = r#"
-acct <- open_account(bank)
+w <- summary(1:10)
+acct <- (bank |> open_account())
+setGeneric("summary", function(object, ...) standardGeneric("summary"), valueClass = "MySummary")
+setGeneric("open_account", function(bank) standardGeneric("open_account"), valueClass = "Account")
+"#;
+    assert_eq!(inferred_type(source, "w"), None);
+    assert_eq!(inferred_type(source, "acct"), None);
+}
+
+#[test]
+fn function_body_before_the_generic_declaration_is_typed() {
+    let source = r#"
+run <- function(bank) {
+  acct <- open_account(bank)
+}
 setGeneric("open_account", function(bank) standardGeneric("open_account"), valueClass = "Account")
 "#;
     assert_eq!(inferred_type(source, "acct").as_deref(), Some("Account"));
@@ -452,4 +466,58 @@ Account <- setClass("Account", representation(n = "numeric"))
 r <- Account(n = 1)
 "#;
     assert_eq!(inferred_type(source, "r").as_deref(), Some("Account"));
+}
+
+#[test]
+fn name_bound_by_with_variable_data_records_nothing() {
+    let source = format!(
+        "{ACCOUNT_GENERIC}fns <- list(open_account = function(x) 42)\nwith(fns, {{\n  s_with <- open_account(1)\n}})\nwithin(fns, {{\n  s_within <- open_account(1)\n}})\nfns |> with({{\n  s_pipe <- open_account(1)\n}})\n"
+    );
+    for name in ["s_with", "s_within", "s_pipe"] {
+        assert_eq!(inferred_type(&source, name), None, "{name}");
+    }
+}
+
+#[test]
+fn with_unrelated_list_data_keeps_the_type() {
+    let source =
+        format!("{ACCOUNT_GENERIC}with(list(rate = 2), {{\n  s_with <- open_account(1)\n}})\n");
+    assert_eq!(inferred_type(&source, "s_with").as_deref(), Some("Account"));
+}
+
+#[test]
+fn class_name_with_a_same_file_generic_takes_only_the_generic_value_class() {
+    let source = r#"
+setClass("Foo", representation(n = "numeric"))
+setClass("Bar", representation(n = "numeric"))
+setGeneric("Foo", function(x) standardGeneric("Foo"), valueClass = "Bar")
+w <- Foo(1)
+"#;
+    assert_eq!(inferred_type(source, "w").as_deref(), Some("Bar"));
+}
+
+#[test]
+fn class_name_with_a_same_file_generic_without_value_class_records_nothing() {
+    let source = r#"
+setClass("Foo", representation(n = "numeric"))
+setGeneric("Foo", function(x) standardGeneric("Foo"))
+setMethod("Foo", "numeric", function(x) 42)
+w <- Foo(1)
+"#;
+    assert_eq!(inferred_type(source, "w"), None);
+}
+
+#[test]
+fn bare_calls_in_ref_class_method_bodies_record_nothing() {
+    let source = r#"
+setGeneric("area", function(shape) standardGeneric("area"), valueClass = "Area")
+setGeneric("copy", function(x) standardGeneric("copy"), valueClass = "Snapshot")
+setClass("Shape", representation(n = "numeric"))
+B <- setRefClass("B", contains = "A", methods = list(run = function() { w_area <- area(1) }))
+Acc <- setRefClass("Acc", methods = list(dup = function() { w_copy <- copy(); w_copy }))
+Acc$methods(build = function() { w_ctor <- Shape(1) })
+"#;
+    for name in ["w_area", "w_copy", "w_ctor"] {
+        assert_eq!(inferred_type(source, name), None, "{name}");
+    }
 }

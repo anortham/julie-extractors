@@ -166,6 +166,22 @@ No fact is recorded for these declarations:
 - Declarations that disagree, and `setGeneric` from a namespace other than
   `methods`.
 
+No fact is recorded for these calls:
+
+- A top-level call that comes before the first `setGeneric` of its name.
+  R runs top-level code in source order, so that call reaches another
+  function or fails. A call inside a function body is typed wherever the
+  function is, because package code defines every generic before any
+  function runs. A script that calls such a function at top level before
+  the declaration is the accepted limit of this rule.
+- A bare call inside a Reference Class definition (`setRefClass(...)`,
+  `Gen$methods(...)`). Method bodies see inherited members from other files
+  and `envRefClass` built-ins such as `copy()` and `callSuper()` as bare
+  names.
+- A bare call inside `with()` or `within()` unless the data is a `list(...)`
+  literal without `...`. Other data, such as a variable, can hold an entry of
+  any name.
+
 No fact is recorded when anything in the file binds `f` another way:
 
 - An assignment by any operator, including a complex target that R rewrites
@@ -175,7 +191,7 @@ No fact is recorded when anything in the file binds `f` another way:
   `env[["f"]] <- v`.
 - A `for` variable, a parameter, `assign()`, `delayedAssign()`,
   `makeActiveBinding()` (positional or named), or a named entry of a `with()`
-  or `within()` data call or of `list2env(list(...))`.
+  or `within()` data list or of `list2env(list(...))`.
 - A Reference Class member: a named entry of `setRefClass(fields =,
   methods =)` or of `Gen$methods(...)` or `Gen$fields(...)`, and a string field
   name such as `setRefClass("X", c("f"))`. Methods of a Reference Class see
@@ -193,8 +209,11 @@ The same-file constructor shapes also apply to `->`, `->>`, and parentheses.
 A bare `Foo(...)` or `Foo$new()` call gets the class only when nothing in the
 file rebinds `Foo` by the rules above, other than the assignment of the class
 generator itself (`Foo <- setClass("Foo")`, `Foo <- setRefClass(...)`,
-`Foo <- R6Class(...)`). For example, `setClass("Account"); Account <-
-function(x) 42` makes `Account(1)` record nothing. `new("Foo")` names the class
+`Foo <- R6Class(...)`). A same-file `setGeneric("Foo")` is such a binding, so
+`Foo(...)` then takes only the generic's `valueClass`, or nothing. A bare
+`Foo(...)` inside a Reference Class definition or an opaque `with()` also
+records nothing, as for generic calls. For example, `setClass("Account");
+Account <- function(x) 42` makes `Account(1)` record nothing. `new("Foo")` names the class
 directly and is not affected. Other files are out of scope because each file
 is extracted alone.
 
