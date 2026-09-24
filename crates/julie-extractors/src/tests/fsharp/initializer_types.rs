@@ -860,3 +860,297 @@ module Core =
     assert_eq!(fact.resolved_type, "HttpHandler");
     assert!(!fact.is_inferred);
 }
+
+#[test]
+fn self_call_to_a_same_named_member_of_another_type_records_no_fact() {
+    assert_no_fact(
+        r#"
+type Base() =
+    member this.Load() : string = "base"
+module A =
+    type Store() =
+        member this.Load() : int = 1
+module B =
+    type Store() =
+        inherit Base()
+        member this.Run() =
+            let inherited = this.Load()
+            inherited
+"#,
+        "inherited",
+    );
+}
+
+#[test]
+fn explicit_interface_member_is_not_a_self_call_target() {
+    assert_no_fact(
+        r#"
+type ILoader =
+    abstract Load : unit -> string
+type Base() =
+    member this.Load() : int = 1
+type Store() =
+    inherit Base()
+    interface ILoader with
+        member this.Load() : string = "iface"
+    member this.Run() =
+        let viaIface = this.Load()
+        viaIface
+"#,
+        "viaIface",
+    );
+}
+
+#[test]
+fn explicit_interface_member_is_skipped_without_inheritance() {
+    assert_no_fact(
+        r#"
+type ILoader =
+    abstract Load : unit -> string
+type Store() =
+    interface ILoader with
+        member this.Load() : string = "iface"
+    member this.Run() =
+        let viaIface = this.Load()
+        viaIface
+"#,
+        "viaIface",
+    );
+}
+
+#[test]
+fn self_call_in_an_inheriting_type_records_no_fact() {
+    assert_no_fact(
+        r#"
+type Base() =
+    member this.Load() : string = "base"
+type Derived() =
+    inherit Base()
+    member this.Load(x: int) : int = x
+    member this.Run() =
+        let overloaded = this.Load()
+        overloaded
+"#,
+        "overloaded",
+    );
+}
+
+#[test]
+fn self_call_to_an_object_member_name_records_no_fact() {
+    assert_no_fact(
+        r#"
+type Named() =
+    member this.ToString(x: int) : int = x
+    member this.Run() =
+        let s = this.ToString()
+        s
+"#,
+        "s",
+    );
+}
+
+#[test]
+fn self_call_inside_a_type_extension_records_no_fact() {
+    assert_no_fact(
+        r#"
+type Store() =
+    member this.Id = 1
+type Store with
+    member this.Load() : int = 1
+    member this.Run() =
+        let extended = this.Load()
+        extended
+"#,
+        "extended",
+    );
+}
+
+#[test]
+fn self_call_is_kept_next_to_an_interface_implementation() {
+    assert_inferred(
+        r#"
+type ILoader =
+    abstract Load : unit -> string
+type Store() =
+    interface ILoader with
+        member this.Load() : string = "iface"
+    member this.Count() : int = 1
+    member this.Run() =
+        let counted = this.Count()
+        counted
+"#,
+        "counted",
+        "int",
+        "int",
+    );
+}
+
+const OPENS_AFTER_DEFINITIONS: &str = r#"
+module Helpers =
+    let load () : string = "helper"
+    type Store() =
+        static member Create() : string = "helper"
+module Main =
+    let load () : int = 1
+    type Store() =
+        static member Create() : int = 1
+    open Helpers
+    let opened = load ()
+    let openedStatic = Store.Create()
+module Top =
+    let load () : int = 1
+    [<AutoOpen>]
+    module Inner =
+        let load () : string = "inner"
+    let auto = load ()
+module Typed =
+    let load () : int = 1
+    open type System.Math
+    let openedType = load ()
+"#;
+
+#[test]
+fn open_after_a_function_definition_records_no_fact() {
+    assert_no_fact(OPENS_AFTER_DEFINITIONS, "opened");
+}
+
+#[test]
+fn open_after_a_type_definition_records_no_fact_for_a_static_call() {
+    assert_no_fact(OPENS_AFTER_DEFINITIONS, "openedStatic");
+}
+
+#[test]
+fn auto_open_module_after_a_function_definition_records_no_fact() {
+    assert_no_fact(OPENS_AFTER_DEFINITIONS, "auto");
+}
+
+#[test]
+fn open_type_after_a_function_definition_records_no_fact() {
+    assert_no_fact(OPENS_AFTER_DEFINITIONS, "openedType");
+}
+
+#[test]
+fn definition_after_an_open_records_the_return_type() {
+    let code = r#"
+module Helpers =
+    let load () : string = "h"
+module Main =
+    open Helpers
+    let load () : int = 1
+    type Store() =
+        static member Create() : int = 1
+    let afterOpen = load ()
+    let afterOpenStatic = Store.Create()
+"#;
+    assert_inferred(code, "afterOpen", "int", "int");
+    assert_inferred(code, "afterOpenStatic", "int", "int");
+}
+
+#[test]
+fn nearer_type_without_the_member_hides_the_outer_type() {
+    assert_no_fact(
+        r#"
+type Base() =
+    static member Create() : string = "base"
+type Store() =
+    static member Create() : int = 1
+module B =
+    type Store() =
+        inherit Base()
+    let inheritedStatic = Store.Create()
+"#,
+        "inheritedStatic",
+    );
+}
+
+#[test]
+fn module_abbreviation_hides_the_outer_module() {
+    assert_no_fact(
+        r#"
+module Helpers =
+    let load () : string = "h"
+module Repo =
+    let load () : int = 1
+module B =
+    module Repo = Helpers
+    let viaAlias = Repo.load ()
+"#,
+        "viaAlias",
+    );
+}
+
+#[test]
+fn nearer_type_that_declares_the_member_records_its_return_type() {
+    assert_inferred(
+        r#"
+module Outer =
+    type Store() =
+        static member Create() : int = 1
+    module Inner =
+        type Store() =
+            static member Create() : string = "inner"
+        let nested = Store.Create()
+"#,
+        "nested",
+        "string",
+        "string",
+    );
+}
+
+#[test]
+fn qualifier_naming_both_a_module_and_a_type_records_no_fact() {
+    assert_no_fact(
+        r#"
+type Store() =
+    static member Create() : int = 1
+module Store =
+    let Create () : string = "m"
+let ambiguous = Store.Create()
+"#,
+        "ambiguous",
+    );
+}
+
+#[test]
+fn static_call_on_an_inheriting_type_records_no_fact() {
+    assert_no_fact(
+        r#"
+type Base() =
+    static member Create() : string = "base"
+type Store() =
+    inherit Base()
+    static member Create(x: int) : int = x
+let inheritedCreate = Store.Create()
+"#,
+        "inheritedCreate",
+    );
+}
+
+#[test]
+fn flexible_return_type_records_no_fact() {
+    assert_no_fact(
+        r#"
+let flexList () : #seq<int> = unbox (box [1;2])
+let run () =
+    let fl = flexList ()
+    let l : int list = fl
+    l
+"#,
+        "fl",
+    );
+}
+
+#[test]
+fn let_bang_of_a_flexible_payload_records_no_fact() {
+    assert_no_fact(
+        r#"
+let loadAll () : Async<#seq<int>> = async { return unbox (box [1]) }
+let run () =
+    async {
+        let! items = loadAll ()
+        return items
+    }
+"#,
+        "items",
+    );
+}

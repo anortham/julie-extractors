@@ -86,12 +86,32 @@ qualified call (`Repo.load ()`, `Store.Create()`) sees a module function only
 after its definition, and sees a module or type only from its definition to the
 end of the module or namespace that holds it. A call that needs an `open` to
 see the module or type, such as a call into a sibling module, records no fact.
-Every candidate with the name must agree on the return type.
+The qualifier must name the nearest same-file module or type with that name
+that is visible at the call. A nearer type, module, or module abbreviation
+(`module Repo = Helpers`) with the same name hides the outer one, so the call
+records no fact when the nearer one does not declare the callee. A qualifier
+that names both a visible module and a visible type records no fact. An
+`open`, `open type`, or `[<AutoOpen>]` module that comes after the definition
+and is in scope at the call can bring in a same-named function, module, or type
+from anywhere, so that definition records no fact at that call. An `open`
+before the definition does not hide it. Every candidate with the name must
+agree on the return type.
+
+A self call (`this.Load()`) sees only instance members declared directly in the
+same type definition. A member of a same-named type elsewhere, an explicit
+interface member (`interface ILoader with member this.Load()`), and a member
+in a `type ... with` extension do not count. A self call or static call on a
+type with an `inherit` clause records no fact, because the base type, possibly
+in another file, takes part in overload resolution and can win. A call to a
+member named like an `obj` member (`ToString`, `Equals`, `GetHashCode`,
+`GetType`, `Finalize`, `MemberwiseClone`, `ReferenceEquals`) records no fact
+for the same reason.
 
 These calls record no fact: a partial application, a name that any pattern in
 the file binds (parameter, lambda, match, or loop variable), a qualifier that
 any pattern in the file binds, a self identifier that a pattern inside the same
 member binds again (`fun this -> this.Load()`), a type parameter return (`'T`),
+a flexible return (`#seq<int>`, a hidden type parameter the caller fixes),
 a call through another receiver, a self call inside an object expression, and a
 callee in another file. `let!` and `use!` remove one `Async` layer inside
 `async { }` and one `Task`, `ValueTask`, or `Async` layer inside `task { }` or

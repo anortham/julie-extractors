@@ -1,7 +1,7 @@
 //! Inferred types for untyped `let` and `use` bindings whose initializer
 //! calls a same-file function or member with a declared return type.
 
-use super::identifiers::{enclosing_type_name, instance_receiver_type};
+use super::identifiers::{enclosing_type_body, instance_receiver_type};
 use super::parameters::member_return_type;
 use super::types::{
     direct_child, direct_type_child, direct_type_child_after, first_identifier,
@@ -24,9 +24,9 @@ enum CallableKind {
 #[derive(Debug)]
 struct Callable<'t> {
     kind: CallableKind,
-    /// The module that qualifies a module-level binding, or the type that
-    /// owns a member. `None` for local and class-level bindings.
-    container: Option<String>,
+    /// The module node that holds a module-level binding, or the type body
+    /// that declares a member. `None` for local and class-level bindings.
+    owner: Option<Node<'t>>,
     /// Curried argument groups: `let f a (b, c)` has two.
     groups: usize,
     return_type: Option<Node<'t>>,
@@ -34,28 +34,64 @@ struct Callable<'t> {
     /// binding (its start for `let rec`) to the end of its enclosing module,
     /// type, or expression.
     scope: Range<usize>,
-    /// Where a call qualified by `container` can see the callable: from the
-    /// binding or the owning type definition to the end of the module or
-    /// namespace that holds the container.
+    /// Where a call qualified by the owner's name can see the callable: from
+    /// the binding or the owning type definition to the end of the module or
+    /// namespace that holds the owner.
     qualified: Range<usize>,
 }
 
+/// Members every .NET type inherits from `obj`; a same-file member with one
+/// of these names may lose overload resolution to the inherited one.
+const OBJECT_MEMBERS: &[&str] = &[
+    "Equals",
+    "Finalize",
+    "GetHashCode",
+    "GetType",
+    "MemberwiseClone",
+    "ReferenceEquals",
+    "ToString",
+];
+
+const TYPE_BODIES: &[&str] = &[
+    "anon_type_defn",
+    "delegate_type_defn",
+    "enum_type_defn",
+    "interface_type_defn",
+    "record_type_defn",
+    "type_abbrev_defn",
+    "union_type_defn",
+];
+
 /// Declared return types of the file's `let` functions and members, by name,
-/// plus where a pattern binds each name in the file (parameters, lambda and
-/// match variables, loop variables), since any of them may shadow a function,
-/// a self identifier, a module, or a type at the call site.
+/// plus what can hide them at a call site: where a pattern binds each name
+/// (parameters, lambda and match variables, loop variables), the same-file
+/// modules and types that can serve as a qualifier, and the `open`
+/// declarations and `[<AutoOpen>]` modules that bring unknown names in.
 #[derive(Debug)]
 pub(super) struct ReturnTypeIndex<'t> {
     callables: HashMap<String, Vec<Callable<'t>>>,
     shadows: HashMap<String, Vec<usize>>,
+    /// Module and type definition nodes by the name a qualified call uses.
+    declarations: HashMap<String, Vec<Node<'t>>>,
+    /// From each `open` or `[<AutoOpen>]` module to the end of the module,
+    /// namespace, or file that holds it.
+    opens: Vec<Range<usize>>,
 }
 
 impl<'t> ReturnTypeIndex<'t> {
     pub(super) fn build(base: &BaseExtractor, root: Node<'t>) -> Self {
         let mut callables: HashMap<String, Vec<Callable<'t>>> = HashMap::new();
         let mut shadows: HashMap<String, Vec<usize>> = HashMap::new();
+        let mut declarations: HashMap<String, Vec<Node<'t>>> = HashMap::new();
+        let mut opens = Vec::new();
         let mut stack = vec![root];
         while let Some(node) = stack.pop() {
+            if node.kind() == "import_decl" || is_auto_open(base, node) {
+                opens.push(node.start_byte()..container_end(node));
+            }
+            if let Some(name) = declared_name(base, node) {
+                declarations.entry(name).or_default().push(node);
+            }
             let entry = match node.kind() {
                 "function_or_value_defn" => binding_callable(base, node),
                 "member_defn" => member_callable(base, node),
@@ -73,7 +109,12 @@ impl<'t> ReturnTypeIndex<'t> {
             }
             stack.extend(node.named_children(&mut node.walk()));
         }
-        Self { callables, shadows }
+        Self {
+            callables,
+            shadows,
+            declarations,
+            opens,
+        }
     }
 
     /// The base name and written type a binding's initializer produces when
@@ -92,6 +133,9 @@ impl<'t> ReturnTypeIndex<'t> {
         if base.get_node_text(&keyword).ends_with('!') {
             type_node = computation_result(base, keyword, type_node)?;
         }
+        if is_flexible(base, type_node) {
+            return None;
+        }
         let name = structural_base_name(base, type_node)?;
         if name == "_" || name.starts_with(['\'', '^']) {
             return None;
@@ -108,32 +152,70 @@ impl<'t> ReturnTypeIndex<'t> {
                 self.unanimous(base, name, groups, |callable| {
                     matches!(callable.kind, CallableKind::Function | CallableKind::Value)
                         && callable.scope.contains(&call)
+                        && !self.opened_between(callable.scope.start, call)
                 })
             }
+            [_, name] if OBJECT_MEMBERS.contains(name) => None,
             [receiver, name] => {
-                if let Some(owner) = terminal_identifier(head)
+                if terminal_identifier(head)
                     .and_then(|method| instance_receiver_type(base, method))
+                    .is_some()
                 {
                     let member = ancestor(head, "member_defn")?;
                     if self.binds_within(receiver, member.byte_range()) {
                         return None;
                     }
+                    let body = enclosing_type_body(head)?;
+                    if body.kind() == "type_extension" || inherits(body) {
+                        return None;
+                    }
                     return self.unanimous(base, name, groups, |callable| {
                         callable.kind == CallableKind::InstanceMember
-                            && callable.container.as_deref() == Some(owner.as_str())
+                            && callable.owner == Some(body)
                     });
                 }
                 if self.shadows.contains_key(*receiver) {
                     return None;
                 }
+                let declaration = self.nearest_declaration(receiver, call)?;
+                if inherits(declaration) || self.opened_between(declaration.start_byte(), call) {
+                    return None;
+                }
                 self.unanimous(base, name, groups, |callable| {
                     callable.kind != CallableKind::InstanceMember
-                        && callable.container.as_deref() == Some(*receiver)
+                        && callable.owner == Some(declaration)
                         && callable.qualified.contains(&call)
                 })
             }
             _ => None,
         }
+    }
+
+    /// The same-file module or type that `qualifier` names at `call`: the
+    /// visible declaration that starts last, since a nearer one hides the
+    /// outer ones. `None` when a module and a type with that name are both
+    /// visible, or when no same-file declaration is.
+    fn nearest_declaration(&self, qualifier: &str, call: usize) -> Option<Node<'t>> {
+        let visible: Vec<Node<'t>> = self
+            .declarations
+            .get(qualifier)?
+            .iter()
+            .copied()
+            .filter(|declaration| declaration_range(*declaration).contains(&call))
+            .collect();
+        let nearest = *visible.iter().max_by_key(|node| node.start_byte())?;
+        visible
+            .iter()
+            .all(|node| is_module(*node) == is_module(nearest))
+            .then_some(nearest)
+    }
+
+    /// Whether an `open` or `[<AutoOpen>]` module after `definition` is in
+    /// scope at `call`; the names it brings in may hide the definition.
+    fn opened_between(&self, definition: usize, call: usize) -> bool {
+        self.opens
+            .iter()
+            .any(|open| definition < open.start && open.contains(&call))
     }
 
     /// Whether a pattern inside `range` rebinds `name`, which hides a member's
@@ -176,8 +258,8 @@ fn binding_callable<'t>(base: &BaseExtractor, node: Node<'t>) -> Option<(String,
         node.end_byte()
     };
     let scope = visible_from..scope_end(node);
-    let (container, qualified) = match module_container(base, node) {
-        Some((name, end)) => (Some(name), visible_from..end),
+    let (owner, qualified) = match module_container(node) {
+        Some(module) => (Some(module), visible_from..container_end(module)),
         None => (None, 0..0),
     };
     if let Some(left) = direct_child(node, "function_declaration_left") {
@@ -190,7 +272,7 @@ fn binding_callable<'t>(base: &BaseExtractor, node: Node<'t>) -> Option<(String,
         });
         let callable = Callable {
             kind: CallableKind::Function,
-            container,
+            owner,
             groups,
             return_type: direct_type_child_after(node, left),
             scope,
@@ -201,7 +283,7 @@ fn binding_callable<'t>(base: &BaseExtractor, node: Node<'t>) -> Option<(String,
     let name = first_identifier(direct_child(node, "value_declaration_left")?)?;
     let callable = Callable {
         kind: CallableKind::Value,
-        container,
+        owner,
         groups: 0,
         return_type: None,
         scope,
@@ -220,10 +302,13 @@ fn member_callable<'t>(base: &BaseExtractor, node: Node<'t>) -> Option<(String, 
     } else {
         return None;
     };
+    if ancestor(node, "interface_implementation").is_some() {
+        return None;
+    }
     let method = base.get_node_text(&terminal_identifier(name)?);
     let callable = Callable {
         kind,
-        container: enclosing_type_name(base, node),
+        owner: enclosing_type_body(node),
         groups: definition
             .children_by_field_name("args", &mut definition.walk())
             .count(),
@@ -275,24 +360,75 @@ fn scope_end(binding: Node) -> usize {
     usize::MAX
 }
 
-/// The module whose name qualifies a module-level binding (`M.load ()`), and
-/// the end of the module or namespace where that name is visible.
-fn module_container(base: &BaseExtractor, binding: Node) -> Option<(String, usize)> {
+/// The module whose name qualifies a module-level binding (`M.load ()`).
+fn module_container(binding: Node) -> Option<Node> {
     let mut current = binding.parent();
     while let Some(ancestor) = current.filter(|node| node.kind() == "declaration_expression") {
         current = ancestor.parent();
     }
-    let module = current?;
-    let name = match module.kind() {
-        "module_defn" => direct_child(module, "identifier")?,
-        "named_module" => direct_child(module, "long_identifier")?,
+    current.filter(|module| is_module(*module))
+}
+
+/// The name a qualified call uses for a module, module abbreviation, or type
+/// definition node.
+fn declared_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let name = match node.kind() {
+        "module_defn" => direct_child(node, "identifier")?,
+        "named_module" => direct_child(node, "long_identifier")?,
+        kind if TYPE_BODIES.contains(&kind) => {
+            direct_child(node, "type_name")?.child_by_field_name("type_name")?
+        }
         _ => return None,
     };
     let text = base.get_node_text(&name);
-    Some((
-        text.rsplit('.').next()?.trim().to_string(),
-        container_end(module),
-    ))
+    Some(text.rsplit('.').next()?.trim().to_string())
+}
+
+/// Where a qualified call can name a module or type: from its definition (the
+/// whole `type ... and ...` group for a type) to the end of the module,
+/// namespace, or file that holds it.
+fn declaration_range(declaration: Node) -> Range<usize> {
+    let definition = if is_module(declaration) {
+        declaration
+    } else {
+        declaration.parent().unwrap_or(declaration)
+    };
+    definition.start_byte()..container_end(definition)
+}
+
+fn is_module(node: Node) -> bool {
+    matches!(node.kind(), "module_defn" | "named_module")
+}
+
+fn is_auto_open(base: &BaseExtractor, node: Node) -> bool {
+    node.kind() == "module_defn"
+        && direct_child(node, "attributes").is_some_and(|attributes| {
+            attributes
+                .named_children(&mut attributes.walk())
+                .any(|attribute| {
+                    let text = base.get_node_text(&attribute);
+                    let name = text.split('(').next().unwrap_or_default();
+                    matches!(
+                        name.rsplit('.').next().map(str::trim),
+                        Some("AutoOpen" | "AutoOpenAttribute")
+                    )
+                })
+        })
+}
+
+/// Whether a type body has an `inherit` clause; members of the base type,
+/// possibly in another file, then take part in overload resolution.
+fn inherits(body: Node) -> bool {
+    direct_child(body, "class_inherits_decl").is_some()
+}
+
+/// A flexible type (`#seq<int>`) is a hidden type parameter the caller fixes.
+fn is_flexible(base: &BaseExtractor, type_node: Node) -> bool {
+    type_node.kind() == "flexible_type"
+        || base
+            .get_node_text(&type_node)
+            .trim_start_matches(['(', ' '])
+            .starts_with('#')
 }
 
 /// The end of the module, namespace, or file that holds a module or type
