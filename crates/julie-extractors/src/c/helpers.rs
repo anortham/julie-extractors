@@ -164,6 +164,85 @@ pub(super) struct DeclaratorTarget<'a> {
     pub derives_function: bool,
 }
 
+/// A C23 `auto name = value;` declaration, which tree-sitter-c 0.24.2 has no
+/// rule for. It reads the variable name as the type, then reads the value as a
+/// function declarator after an `=` error (`auto w = make();`) or as the value
+/// of a missing declarator (`auto w = make(1);`).
+pub(super) struct AutoDeclaration<'tree> {
+    pub name: tree_sitter::Node<'tree>,
+    /// The initializer: an expression, or the `function_declarator` of a call.
+    pub value: tree_sitter::Node<'tree>,
+}
+
+pub(super) fn c23_auto_declaration<'tree>(
+    base: &BaseExtractor,
+    decl: tree_sitter::Node<'tree>,
+) -> Option<AutoDeclaration<'tree>> {
+    let mut cursor = decl.walk();
+    let has_auto = decl.children(&mut cursor).any(|child| {
+        child.kind() == "storage_class_specifier" && base.get_node_text(&child) == "auto"
+    });
+    let name = decl
+        .child_by_field_name("type")
+        .filter(|name| has_auto && name.kind() == "type_identifier")?;
+    let first = decl.child_by_field_name("declarator")?;
+    let value = match first.kind() {
+        "function_declarator" => {
+            let after_equals = name
+                .next_sibling()
+                .is_some_and(|sibling| sibling.is_error() && base.get_node_text(&sibling) == "=");
+            let calls_name = first
+                .child_by_field_name("declarator")
+                .is_some_and(|callee| callee.kind() == "identifier");
+            (after_equals && calls_name).then_some(first)?
+        }
+        "init_declarator" if first.child_by_field_name("declarator")?.is_missing() => {
+            first.child_by_field_name("value")?
+        }
+        _ => return None,
+    };
+    Some(AutoDeclaration { name, value })
+}
+
+/// Whether a `type_identifier` names no type: GNU `__auto_type`, the variable
+/// name tree-sitter-c reads as the type of a C23 `auto` declaration, or an
+/// argument of the call it reads as a function declarator.
+pub(super) fn is_inferred_type_placeholder(base: &BaseExtractor, node: tree_sitter::Node) -> bool {
+    base.get_node_text(&node) == "__auto_type"
+        || node
+            .parent()
+            .filter(|parent| parent.kind() == "declaration")
+            .and_then(|decl| c23_auto_declaration(base, decl))
+            .is_some_and(|auto| auto.name.id() == node.id())
+        || is_misread_auto_argument(base, node)
+}
+
+/// Whether a `type_identifier` is a bare-name argument of a C23
+/// `auto w = f(x);` call that tree-sitter-c reads as the function declarator
+/// `f(x)`, where each argument becomes a parameter type.
+pub(super) fn is_misread_auto_argument(base: &BaseExtractor, node: tree_sitter::Node) -> bool {
+    node.parent()
+        .filter(|parameter| parameter.kind() == "parameter_declaration")
+        .and_then(|parameter| parameter.parent())
+        .and_then(|parameters| parameters.parent())
+        .is_some_and(|call| misread_auto_callee(base, call).is_some())
+}
+
+/// The callee of a C23 `auto w = f();` that tree-sitter-c reads as the
+/// function declarator `f()`.
+pub(super) fn misread_auto_callee<'tree>(
+    base: &BaseExtractor,
+    node: tree_sitter::Node<'tree>,
+) -> Option<tree_sitter::Node<'tree>> {
+    let decl = node
+        .parent()
+        .filter(|parent| parent.kind() == "declaration")?;
+    let auto = c23_auto_declaration(base, decl)?;
+    (auto.value.id() == node.id() && node.kind() == "function_declarator")
+        .then(|| node.child_by_field_name("declarator"))
+        .flatten()
+}
+
 pub(super) fn declarator_target(declarator: tree_sitter::Node) -> Option<DeclaratorTarget> {
     let mut current = declarator;
     let mut innermost = None;
