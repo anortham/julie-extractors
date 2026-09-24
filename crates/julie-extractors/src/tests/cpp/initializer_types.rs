@@ -154,10 +154,9 @@ public:
 };
 }
 "#,
-        "auto x = ns::Factory::create();\n    auto y = Factory::create();",
+        "auto x = ns::Factory::create();",
     );
     assert_eq!(inferred_type(&source, "x"), inferred("Foo"));
-    assert_eq!(inferred_type(&source, "y"), inferred("Foo"));
 }
 
 #[test]
@@ -620,4 +619,155 @@ std::size_t hash(const T& j)
 MACRO_NAMESPACE_END
 "#;
     assert_eq!(inferred_type(source, "total"), inferred("std::size_t"));
+}
+
+#[test]
+fn a_same_named_class_in_another_namespace_does_not_supply_members() {
+    let source = r#"
+struct Foo {};
+struct Bar {};
+Bar load();
+namespace a {
+struct Widget {
+    Foo load();
+    void own() { auto t0 = load(); }
+};
+}
+namespace b {
+struct Base { Bar load(); };
+struct Widget : Base {
+    void run() {
+        auto t1 = load();
+        auto t2 = this->load();
+    }
+};
+}
+"#;
+    assert_eq!(inferred_type(source, "t0"), inferred("Foo"));
+    assert_eq!(inferred_type(source, "t1"), None);
+    assert_eq!(inferred_type(source, "t2"), None);
+}
+
+#[test]
+fn qualified_call_must_name_the_namespace_of_the_class() {
+    let source = r#"
+struct Foo {};
+namespace a { struct Maker { static Foo create(); }; }
+void use() {
+    auto t3 = b::Maker::create();
+    auto t4 = Maker::create();
+    auto t5 = a::Maker::create();
+    auto t6 = ::a::Maker::create();
+}
+namespace a {
+void inside() { auto t7 = Maker::create(); }
+}
+"#;
+    assert_eq!(inferred_type(source, "t3"), None);
+    assert_eq!(inferred_type(source, "t4"), None);
+    assert_eq!(inferred_type(source, "t5"), inferred("Foo"));
+    assert_eq!(inferred_type(source, "t6"), inferred("Foo"));
+    assert_eq!(inferred_type(source, "t7"), inferred("Foo"));
+}
+
+#[test]
+fn members_of_unions_unnamed_classes_and_specializations_are_not_free_functions() {
+    for prelude in [
+        "struct Foo {};\nunion U { Foo load(); int i; };",
+        "struct Foo {};\nstruct { Foo load(); } s;",
+        "struct Foo {};\ntemplate <class T> struct W;\ntemplate <> struct W<int> { Foo load(); };",
+    ] {
+        let source = in_run(prelude, "auto x = load();");
+        assert_eq!(inferred_type(&source, "x"), None, "{prelude}");
+    }
+}
+
+#[test]
+fn union_member_call_through_this_records_its_return_type() {
+    let source = "struct Foo {};\nunion U {\n    Foo load();\n    void run() { auto x = this->load(); }\n};\n";
+    assert_eq!(inferred_type(source, "x"), inferred("Foo"));
+}
+
+#[test]
+fn qualified_call_on_a_specialized_class_template_records_no_fact() {
+    let primary =
+        "struct Foo {};\nstruct Bar {};\ntemplate <class T> struct W { static Foo create(); };";
+    let specialized = format!("{primary}\ntemplate <> struct W<int> {{ static Bar create(); }};");
+    let call = "auto x = W<int>::create();";
+    assert_eq!(inferred_type(&in_run(primary, call), "x"), inferred("Foo"));
+    assert_eq!(inferred_type(&in_run(&specialized, call), "x"), None);
+}
+
+#[test]
+fn using_declaration_of_base_overloads_records_no_fact() {
+    let source = r#"
+struct Foo {};
+struct Bar {};
+struct B { Bar load(); };
+struct D : B {
+    using B::load;
+    Foo load(int);
+    void r() {
+        auto u1 = load();
+        auto u2 = this->load();
+    }
+};
+"#;
+    assert_eq!(inferred_type(source, "u1"), None);
+    assert_eq!(inferred_type(source, "u2"), None);
+}
+
+#[test]
+fn template_parameter_with_the_callee_name_hides_the_free_function() {
+    for template in [
+        "template <Bar (*load)()> void f() { auto x = load(); }",
+        "template <class T> struct S { template <Bar (*load)()> void f() { auto x = load(); } };",
+    ] {
+        let source = format!("{FOO_BAR_LOAD}\n{template}\n");
+        assert_eq!(inferred_type(&source, "x"), None, "{template}");
+    }
+}
+
+#[test]
+fn template_parameter_inside_template_arguments_records_no_fact() {
+    let source = r#"
+#include <vector>
+template <class T> struct Box {};
+template <class T> Box<T> wrap(T v);
+template <class T> auto wrap2(T v) -> Box<T>;
+template <class T> std::vector<T> make();
+void use() {
+    auto u3 = wrap(1);
+    auto u4 = wrap2(1);
+    auto t9 = make<int>();
+}
+"#;
+    for local in ["u3", "u4", "t9"] {
+        assert_eq!(inferred_type(source, local), None, "{local}");
+    }
+}
+
+#[test]
+fn out_of_line_members_of_a_class_defined_elsewhere_answer_for_each_other() {
+    let source = r#"
+#include "widget.h"
+struct Foo {};
+Foo load();
+Foo Widget::make() { return Foo(); }
+void Widget::run() {
+    auto x = make();
+    auto y = this->make();
+    auto z = load();
+}
+namespace other {
+Foo Gadget::make() { return Foo(); }
+}
+void Gadget::run() {
+    auto w = make();
+}
+"#;
+    assert_eq!(inferred_type(source, "x"), inferred("Foo"));
+    assert_eq!(inferred_type(source, "y"), inferred("Foo"));
+    assert_eq!(inferred_type(source, "z"), None);
+    assert_eq!(inferred_type(source, "w"), None);
 }

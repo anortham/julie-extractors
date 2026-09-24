@@ -293,7 +293,7 @@ pub(super) fn enclosing_class_name(base: &BaseExtractor, node: Node) -> Option<S
     enclosing_type_name(base, node).or_else(|| out_of_line_type_name(base, node))
 }
 
-fn is_this_receiver(field_expr: Node) -> bool {
+pub(super) fn is_this_receiver(field_expr: Node) -> bool {
     let Some(argument) = field_expr.child_by_field_name("argument") else {
         return false;
     };

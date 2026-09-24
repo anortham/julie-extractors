@@ -100,7 +100,7 @@ fn specifier_names(base: &BaseExtractor, node: Node, names: &mut Vec<String>) {
 
 /// The name `using ns::name;` brings into scope. A using-directive
 /// (`using namespace ns;`) names no single entity.
-fn using_declaration_name(base: &BaseExtractor, node: Node) -> Option<String> {
+pub(super) fn using_declaration_name(base: &BaseExtractor, node: Node) -> Option<String> {
     if node
         .children(&mut node.walk())
         .any(|child| child.kind() == "namespace")
@@ -129,9 +129,10 @@ fn bound_names(base: &BaseExtractor, declarator: Node) -> Vec<String> {
         .collect()
 }
 
-/// Whether a function, lambda, or block around `node` binds `name` before
-/// namespace scope: a parameter, a lambda capture, a range-for variable, a
-/// condition variable, or a local declaration. Every declaration in an
+/// Whether a function, lambda, template, or block around `node` binds `name`
+/// before namespace scope: a parameter, a template parameter, a lambda
+/// capture, a range-for variable, a condition variable, or a local
+/// declaration. Every declaration in an
 /// enclosing block counts, even one after `node`.
 pub(super) fn binds_locally(base: &BaseExtractor, node: Node, name: &str) -> bool {
     let mut current = node.parent();
@@ -149,6 +150,7 @@ pub(super) fn binds_locally(base: &BaseExtractor, node: Node, name: &str) -> boo
                         .is_some_and(|declarator| parameters_bind(base, declarator, name))
             }
             "catch_clause" => parameters_bind(base, scope, name),
+            "template_declaration" => template_parameters_bind(base, scope, name),
             "for_range_loop" => {
                 scope
                     .child_by_field_name("declarator")
@@ -203,6 +205,41 @@ fn parameters_bind(base: &BaseExtractor, holder: Node, name: &str) -> bool {
             .child_by_field_name("declarator")
             .is_some_and(|declarator| bound_names(base, declarator).iter().any(|n| n == name))
     })
+}
+
+fn template_parameters_bind(base: &BaseExtractor, template: Node, name: &str) -> bool {
+    let Some(parameters) = template.child_by_field_name("parameters") else {
+        return false;
+    };
+    let mut cursor = parameters.walk();
+    parameters.named_children(&mut cursor).any(|parameter| {
+        template_parameter_names(base, parameter)
+            .iter()
+            .any(|n| n == name)
+    })
+}
+
+/// The name a template parameter binds: a non-type parameter's declarator,
+/// a type parameter's name, or a template template parameter's name.
+fn template_parameter_names(base: &BaseExtractor, parameter: Node) -> Vec<String> {
+    if let Some(declarator) = parameter.child_by_field_name("declarator") {
+        return bound_names(base, declarator);
+    }
+    if let Some(name) = parameter.child_by_field_name("name") {
+        return vec![base.get_node_text(&name)];
+    }
+    let mut cursor = parameter.walk();
+    parameter
+        .named_children(&mut cursor)
+        .filter_map(|child| match child.kind() {
+            "type_identifier" => Some(child),
+            "type_parameter_declaration" => child
+                .named_children(&mut child.walk())
+                .find(|inner| inner.kind() == "type_identifier"),
+            _ => None,
+        })
+        .map(|name| base.get_node_text(&name))
+        .collect()
 }
 
 fn captures_bind(base: &BaseExtractor, lambda: Node, name: &str) -> bool {
