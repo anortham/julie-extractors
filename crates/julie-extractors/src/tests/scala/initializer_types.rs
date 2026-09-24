@@ -480,3 +480,159 @@ object M { val inheritedApply = Worker(1); val ownApply = Job() }
     assert_eq!(inferred(source, "inheritedApply"), None);
     assert_eq!(inferred(source, "ownApply"), None);
 }
+
+#[test]
+fn get_unwraps_only_the_scala_wrappers() {
+    let source = r#"
+import fastparse.Parsed
+import fastparse.Parsed.Success
+class Workspace
+object P {
+  def ok(): Parsed.Success[Workspace] = ???
+  def ok2(): Success[Workspace] = ???
+  def myopt(): mylib.Option[Workspace] = ???
+  def std(): scala.Option[Workspace] = ???
+  def rooted(): _root_.scala.util.Try[Workspace] = ???
+  val qualifiedForeign = ok().get
+  val importedForeign = ok2().get
+  val otherPackage = myopt().get
+  val scalaOption = std().get
+  val rootedTry = rooted().get
+}
+"#;
+    assert_eq!(inferred(source, "qualifiedForeign"), None);
+    assert_eq!(inferred(source, "importedForeign"), None);
+    assert_eq!(inferred(source, "otherPackage"), None);
+    assert_eq!(inferred(source, "scalaOption"), workspace());
+    assert_eq!(inferred(source, "rootedTry"), workspace());
+}
+
+#[test]
+fn get_records_nothing_when_an_import_can_bring_another_wrapper() {
+    let wildcard = "import fastparse.Parsed._\nclass Workspace\nobject P { def ok(): Option[Workspace] = ???; val w = ok().get }\n";
+    let renamed = "import mylib.{Maybe => Option}\nclass Workspace\nobject P { def ok(): Option[Workspace] = ???; val w = ok().get }\n";
+    let unimported_try =
+        "class Workspace\nobject P { def ok(): Try[Workspace] = ???; val w = ok().get }\n";
+    let scala_imports = "import scala.util.{Try, Success}\nimport scala.collection.mutable._\nclass Workspace\nobject P { def ok(): Try[Workspace] = ???; def fine(): Option[Workspace] = ???; val w = ok().get; val v = fine().get }\n";
+    assert_eq!(inferred(wildcard, "w"), None);
+    assert_eq!(inferred(renamed, "w"), None);
+    assert_eq!(inferred(unimported_try, "w"), None);
+    assert_eq!(inferred(scala_imports, "w"), workspace());
+    assert_eq!(inferred(scala_imports, "v"), workspace());
+}
+
+#[test]
+fn inner_case_class_hides_an_outer_def_of_the_same_name() {
+    let source = r#"
+class Tree
+object Dsl {
+  def Node(x: Int): Tree = ???
+  def Leaf(x: Int): Tree = ???
+  def Color(): Tree = ???
+  object Inner {
+    case class Node(x: Int)
+    val n = Node(1)
+  }
+  def build = {
+    case class Node(x: Int)
+    val m = Node(2)
+  }
+  def plain = {
+    class Leaf(x: Int)
+    val l = Leaf(3)
+  }
+  def colors = {
+    enum Color { case Red }
+    val c = Color()
+  }
+}
+"#;
+    assert_eq!(inferred(source, "n"), Some(("Node".to_string(), true)));
+    assert_eq!(inferred(source, "m"), Some(("Node".to_string(), true)));
+    assert_eq!(inferred(source, "l"), None);
+    assert_eq!(inferred(source, "c"), None);
+}
+
+#[test]
+fn export_clauses_block_own_and_outer_defs() {
+    let source = r#"
+class Workspace
+class Other
+def load(): Workspace = ???
+object B { def load(): Other = ???; def make(): Other = ??? }
+object A {
+  export B.load
+  val x = load()
+}
+object A2 {
+  export B.*
+  def make(i: Int): Workspace = ???
+  val y = make()
+  val y2 = this.make()
+}
+object U { val z = A2.make() }
+"#;
+    assert_eq!(inferred(source, "x"), None);
+    assert_eq!(inferred(source, "y"), None);
+    assert_eq!(inferred(source, "y2"), None);
+    assert_eq!(inferred(source, "z"), None);
+}
+
+#[test]
+fn synthetic_companion_members_block_object_member_calls() {
+    let source = r#"
+class Other
+case class Port(n: Int)
+object Port {
+  def apply(s: String): Option[Port] = ???
+  def unapply(p: Port): Other = ???
+  val inside = apply(8080)
+  val insideThis = this.apply(8080)
+}
+case class Host(n: String)
+object Host { def apply(i: Int): Host = ??? }
+enum Color { case Red, Green }
+object Color { def valueOf(i: Int): Other = ???; def fromOrdinal(s: String): Other = ???; def named(): Other = ??? }
+object Use {
+  val p2 = Port.apply(8080)
+  val u = Port.unapply(null)
+  val h = Host.apply(1)
+  val c1 = Color.valueOf("Red")
+  val c2 = Color.fromOrdinal(0)
+  val c3 = Color.named()
+}
+"#;
+    assert_eq!(inferred(source, "p2"), None);
+    assert_eq!(inferred(source, "inside"), None);
+    assert_eq!(inferred(source, "insideThis"), None);
+    assert_eq!(inferred(source, "u"), None);
+    assert_eq!(inferred(source, "c1"), None);
+    assert_eq!(inferred(source, "c2"), None);
+    assert_eq!(inferred(source, "h"), Some(("Host".to_string(), true)));
+    assert_eq!(inferred(source, "c3"), Some(("Other".to_string(), true)));
+}
+
+#[test]
+fn inherited_abstract_type_members_record_nothing() {
+    let source = r#"
+class Workspace
+trait Base { type Out }
+class C extends Base {
+  object Helper { def load(): Out = ???; def all(): Option[Out] = ???; def ws(): Workspace = ??? }
+  val x = Helper.load()
+  val o = Helper.all().get
+  val w = Helper.ws()
+  def run = { def load2(): Out = ???; val y = load2() }
+}
+class Out
+class Plain {
+  object Helper { def load(): Out = ??? }
+  val p = Helper.load()
+}
+"#;
+    assert_eq!(inferred(source, "x"), None);
+    assert_eq!(inferred(source, "o"), None);
+    assert_eq!(inferred(source, "y"), None);
+    assert_eq!(inferred(source, "w"), workspace());
+    assert_eq!(inferred(source, "p"), Some(("Out".to_string(), true)));
+}

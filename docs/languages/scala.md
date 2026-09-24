@@ -47,19 +47,43 @@ Scala uses `tree-sitter-scala`. The extractor reads `.scala`, `.sc`, and
   `Repo.current`). The call must supply the def's explicit parameter lists,
   or all of them with its `implicit`/`using` list.
 - `Name(..)` uses the `apply` methods of the same-file object `Name` when it
-  declares any. For a case class the result must be `Name`.
-- Same-named defs in the resolving scope must agree. `.get` removes one
-  `Option`, `Some`, `Try`, or `Success` layer, unless the file declares its
-  own type with that name. Any other trailing method, a type parameter or
-  abstract type member, or a name bound by a parameter, pattern, `for`
-  enumerator, `val`, or named `given` records no fact.
-- A class, object, or trait that can inherit (an `extends` clause, a self
-  type, a case class, an anonymous class, an enum or given body, or an `Any`
-  member such as `toString`) records no fact for that name, even when it
-  declares its own defs of the name: an inherited overload can be the one
-  the call selects. This covers `load()`, `this.load()`, `Repo.create()`,
-  and `Name(..)` through an inheriting companion object. Other files are out
-  of scope because each file is extracted alone.
+  declares any, and `Obj.apply(..)` follows the same rule. For a case class
+  the result must be `Name`, because the synthetic `apply` returns `Name`. A
+  case class declared in a nearer scope than a def or object of the same
+  name makes `Name(..)` construct that class. A plain class or enum there
+  records nothing, because Scala 2 and Scala 3 resolve the name differently.
+- Same-named defs in the resolving scope must agree. A name bound by a
+  parameter, pattern, `for` enumerator, `val`, or named `given` records no
+  fact. Any trailing method other than a parameterless `.get` records no
+  fact.
+- `.get` removes one layer of the Scala `Option`, `Some`, `Try`, or
+  `Success`. A qualified name must be `scala.Option`, `scala.Some`,
+  `scala.util.Try`, or `scala.util.Success`, so `Parsed.Success[T].get`
+  records nothing. An unqualified name records nothing when the file
+  declares a type with that name, imports that name from another package
+  (also by rename), or has a wildcard import from a package outside
+  `scala`, `scala.util`, `scala.collection`, `scala.concurrent`,
+  `scala.jdk`, `scala.annotation`, `scala.math`, and `java`. Unqualified
+  `Try` and `Success` also need an import from `scala.util`.
+- A type parameter or abstract type member records no fact, and neither
+  does a `.get` that unwraps to one. An unqualified return type name inside
+  a template that can inherit or export records no fact, because an
+  inherited abstract type member can have that name. The exception is a
+  name that the file declares as a class, trait, enum, or type alias and
+  never as an abstract type member.
+- A class, object, or trait that can inherit records no fact for that
+  name, even when it declares its own defs of the name: an inherited
+  overload can be the one the call selects. A template can inherit when it
+  has an `extends` clause, a self type, an `export` clause, or a `case`
+  modifier, or when it is an anonymous class or an enum or given body. The
+  rule also applies to `Any` members such as `toString`, to a top-level
+  `export`, and to the synthetic members of a same-file case class
+  companion (`apply`, `unapply`, `fromProduct`, `tupled`, `curried`) or
+  enum companion (`values`, `valueOf`, `fromOrdinal`). This covers
+  `load()`, `this.load()`, `Repo.create()`, `Port.unapply(..)`,
+  `Color.valueOf(..)`, and `Name(..)` through an inheriting companion
+  object. Other files are out of scope because each file is extracted
+  alone.
 
 ## Relationships and identifiers
 
