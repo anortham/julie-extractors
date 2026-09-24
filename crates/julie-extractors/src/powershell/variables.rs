@@ -29,6 +29,7 @@ pub(super) fn extract_variable(
     base: &mut BaseExtractor,
     node: Node,
     parent_id: Option<&str>,
+    return_types: &type_facts::ReturnTypeIndex,
 ) -> Option<Symbol> {
     let name = assignment_target_name(base, node)?;
     let raw = base.get_node_text(&type_facts::assignment_variable_node(node)?);
@@ -55,6 +56,6 @@ pub(super) fn extract_variable(
             annotations: Vec::new(),
         },
     );
-    type_facts::record_assignment_facts(base, &symbol.id, node);
+    type_facts::record_assignment_facts(base, &symbol.id, node, return_types);
     Some(symbol)
 }
