@@ -168,6 +168,100 @@ Item load() => Item();
 }
 
 #[test]
+fn bare_call_matching_an_inherited_member_uses_the_top_level_function() {
+    let source = r#"
+class Workspace {}
+Workspace load() => Workspace();
+class Base {
+  String load() => '';
+}
+mixin Loads {
+  String load() => '';
+}
+abstract class Loader {
+  String load();
+}
+class Child extends Base {
+  void run() {
+    final fromSuperclass = load();
+  }
+}
+class Mixed with Loads {
+  void run() {
+    final fromMixin = load();
+  }
+}
+class Implemented implements Loader {
+  void run() {
+    final fromInterface = load();
+  }
+}
+mixin OnBase on Base {
+  void run() {
+    final fromOnClause = load();
+  }
+}
+enum Mode with Loads {
+  a;
+  void run() {
+    final fromEnumMixin = load();
+  }
+}
+extension type Id(Base base) implements Base {
+  void run() {
+    final fromExtensionType = load();
+  }
+}
+extension BaseTools on Base {
+  void run() {
+    final fromExtension = load();
+  }
+}
+"#;
+    for name in [
+        "fromSuperclass",
+        "fromMixin",
+        "fromInterface",
+        "fromOnClause",
+        "fromEnumMixin",
+        "fromExtensionType",
+        "fromExtension",
+    ] {
+        assert_inferred(source, name, "Workspace", None);
+    }
+}
+
+#[test]
+fn bare_call_matching_a_member_inherited_from_another_file_uses_the_top_level_function() {
+    let source = r#"
+import 'base.dart';
+class Workspace {}
+Workspace load() => Workspace();
+class Remote extends RemoteBase with RemoteMixin implements RemoteLoader {
+  void run() {
+    final value = load();
+  }
+}
+"#;
+    assert_inferred(source, "value", "Workspace", None);
+}
+
+#[test]
+fn bare_call_to_an_inherited_member_without_a_top_level_function_records_nothing() {
+    let source = r#"
+class Base {
+  Item load() => Item();
+}
+class Child extends Base {
+  void run() {
+    final inherited = load();
+  }
+}
+"#;
+    assert_no_fact(source, &["inherited"]);
+}
+
+#[test]
 fn static_calls_on_same_file_types_record_the_declared_return_type() {
     let source = r#"
 class Repo {

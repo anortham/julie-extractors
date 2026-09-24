@@ -22,7 +22,11 @@ its initializer is one of these forms:
 - `load()`: a same-file top-level function with a declared return type. It
   may be declared before or after the use.
 - `m()` inside a class, mixin, enum, named extension, or extension type: the
-  enclosing type's own member first, then the library function.
+  enclosing type's own member first, then the library function. Inherited
+  members are not in Dart's lexical scope, so a same-file library function
+  wins over a member that a superclass, mixin, interface, or `on` type
+  declares. Dart 3.13 confirms this for `extends`, `with`, `implements`,
+  `on`, enums, extension types, and supertypes from other files.
 - `this.m()`: a member of the enclosing class, mixin, enum, or extension
   type.
 - `Type.m()`: a static member of a same-file class, enum, extension, or
@@ -50,8 +54,9 @@ These cases record no fact, because the type would be a guess:
   representation field in that scope. This includes abstract, external,
   `external static`, and `covariant late final` fields.
 - `super.m()`, a call on any other variable, an import prefix, `this` outside
-  a type, an inherited member, or a class member called from outside its
-  class.
+  a type, an inherited member called through `this.m()` or with no
+  same-file library function of that name, or a class member called from
+  outside its class.
 - Any call inside an unnamed extension.
 - `this.m()` inside any extension. Dart looks up `m` on the on-type first,
   and the on-type is usually declared in another file or the SDK.
