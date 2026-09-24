@@ -3,6 +3,7 @@
 mod ast_debug;
 mod complexity;
 mod cross_file_pending;
+mod initializer_types;
 mod literals;
 mod structural_facts;
 mod task14;

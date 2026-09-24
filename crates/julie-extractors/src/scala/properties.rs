@@ -110,6 +110,7 @@ pub(super) fn extract_bindings(
     base: &mut BaseExtractor,
     node: &Node,
     parent_id: Option<&str>,
+    return_types: &type_facts::ReturnTypeIndex,
 ) -> Vec<Symbol> {
     let is_var = matches!(node.kind(), "var_definition" | "var_declaration");
     let keyword = if is_var { "var" } else { "val" };
@@ -197,7 +198,7 @@ pub(super) fn extract_bindings(
             },
         );
         if single {
-            record_binding_type_fact(base, &symbol.id, node);
+            record_binding_type_fact(base, &symbol.id, node, return_types);
         } else if let Some(type_node) = node.child_by_field_name("type") {
             type_facts::record_declared_type(base, &symbol.id, type_node);
         }
@@ -321,10 +322,15 @@ fn extract_constructor_field(
     symbols.push(symbol);
 }
 
-fn record_binding_type_fact(base: &mut BaseExtractor, symbol_id: &str, node: &Node) {
+fn record_binding_type_fact(
+    base: &mut BaseExtractor,
+    symbol_id: &str,
+    node: &Node,
+    return_types: &type_facts::ReturnTypeIndex,
+) {
     if let Some(type_node) = node.child_by_field_name("type") {
         type_facts::record_declared_type(base, symbol_id, type_node);
     } else if let Some(value) = node.child_by_field_name("value") {
-        type_facts::record_initializer_type(base, symbol_id, value);
+        type_facts::record_initializer_type(base, symbol_id, value, return_types);
     }
 }

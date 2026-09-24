@@ -2893,6 +2893,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:built:78:4",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "scala",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/scala/basic/source.scala:constructed:74:4",
       "resolved_type": "Foo",
       "generic_params": null,
