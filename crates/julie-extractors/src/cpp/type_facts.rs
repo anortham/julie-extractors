@@ -1,8 +1,13 @@
 //! Declared-type fact recording for C++.
 
+use super::helpers::is_template_parameter_name;
+use super::identifiers::{
+    enclosing_class_name, enclosing_type_name, scope_segment_name, this_receiver_type,
+};
 use crate::base::BaseExtractor;
 use crate::base::types::TypeNameRules;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
+use std::collections::HashMap;
 use tree_sitter::Node;
 
 pub(super) const TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
@@ -11,11 +16,15 @@ pub(super) const TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
     generic_open: &['<'],
 };
 
+/// Record a variable's written type, or for an `auto` variable the type its
+/// initializer produces (`is_inferred=true`): a same-file class constructed by
+/// `Foo()` or `new Foo()`, or the declared return type of a same-file callee.
 pub(super) fn record_variable_fact(
     base: &mut BaseExtractor,
     symbol_id: &str,
     declaration: Node,
     declarator: Node,
+    return_types: &ReturnTypeIndex,
 ) {
     let Some(type_node) = declaration.child_by_field_name("type") else {
         return;
@@ -25,13 +34,18 @@ pub(super) fn record_variable_fact(
             "init_declarator" => declarator.child_by_field_name("value"),
             _ => None,
         };
-        if let Some(name) =
-            value.and_then(|value| inferred_constructor_name(base, value, declaration))
+        if let Some(shape) =
+            value.and_then(|value| initializer_type(base, value, declaration, return_types))
         {
+            let declared = if shape.declared.contains('&') && !is_decltype_auto(type_node) {
+                &shape.name
+            } else {
+                &shape.declared
+            };
             base.record_declared_type_fact_with_declared(
                 symbol_id,
-                &name,
-                &name,
+                &shape.name,
+                declared,
                 &TYPE_NAME_RULES,
                 true,
             );
@@ -80,9 +94,65 @@ pub(super) fn record_return_fact(
     symbol_id: &str,
     function_declarator: Node,
 ) {
-    if function_declarator.kind() != "function_declarator" {
+    let Some((_, shape)) = stated_return_type(base, function_declarator) else {
         return;
+    };
+    base.record_declared_type_fact_with_declared(
+        symbol_id,
+        &shape.name,
+        &shape.declared,
+        &TYPE_NAME_RULES,
+        false,
+    );
+}
+
+/// A callable's stated return type node, with its structural base name and
+/// written text.
+fn stated_return_type<'a>(
+    base: &BaseExtractor,
+    function_declarator: Node<'a>,
+) -> Option<(Node<'a>, TypeShape)> {
+    if function_declarator.kind() != "function_declarator" {
+        return None;
     }
+    let declarator = decorated_declarator(function_declarator);
+    let owner = declarator.parent()?;
+    let type_node = owner.child_by_field_name("type")?;
+    if has_error_before(owner, declarator) {
+        return None;
+    }
+    if !is_auto_type(type_node) {
+        let shape = TypeShape {
+            name: structural_base_name(base, type_node, 0)?,
+            declared: declared_type_text(base, owner, type_node, Some(declarator)),
+        };
+        return Some((type_node, shape));
+    }
+    let mut cursor = function_declarator.walk();
+    let descriptor = function_declarator
+        .children(&mut cursor)
+        .find(|child| child.kind() == "trailing_return_type")
+        .and_then(|trailing| trailing.named_child(0))
+        .filter(|descriptor| descriptor.kind() == "type_descriptor")?;
+    let stated = descriptor.child_by_field_name("type")?;
+    let shape = TypeShape {
+        name: structural_base_name(base, stated, 0)?,
+        declared: base.get_node_text(&descriptor),
+    };
+    Some((stated, shape))
+}
+
+/// Whether the parser gave up between a declaration's start and its
+/// declarator, as it does for `MACRO static Type f()`: the `type` it reports
+/// is then the macro.
+fn has_error_before(owner: Node, declarator: Node) -> bool {
+    owner
+        .children(&mut owner.walk())
+        .any(|child| child.is_error() && child.start_byte() < declarator.start_byte())
+}
+
+/// The outermost pointer or reference declarator around a function declarator.
+fn decorated_declarator(function_declarator: Node) -> Node {
     let mut declarator = function_declarator;
     while let Some(parent) = declarator
         .parent()
@@ -90,39 +160,7 @@ pub(super) fn record_return_fact(
     {
         declarator = parent;
     }
-    let Some(owner) = declarator.parent() else {
-        return;
-    };
-    let Some(type_node) = owner.child_by_field_name("type") else {
-        return;
-    };
-    if !is_auto_type(type_node) {
-        record_type(base, symbol_id, owner, type_node, Some(declarator));
-        return;
-    }
-    let mut cursor = function_declarator.walk();
-    let Some(descriptor) = function_declarator
-        .children(&mut cursor)
-        .find(|child| child.kind() == "trailing_return_type")
-        .and_then(|trailing| trailing.named_child(0))
-        .filter(|descriptor| descriptor.kind() == "type_descriptor")
-    else {
-        return;
-    };
-    let Some(base_name) = descriptor
-        .child_by_field_name("type")
-        .and_then(|stated| structural_base_name(base, stated, 0))
-    else {
-        return;
-    };
-    let declared = base.get_node_text(&descriptor);
-    base.record_declared_type_fact_with_declared(
-        symbol_id,
-        &base_name,
-        &declared,
-        &TYPE_NAME_RULES,
-        false,
-    );
+    declarator
 }
 
 fn record_stated_type(
@@ -160,6 +198,13 @@ fn record_type(
 
 fn is_auto_type(type_node: Node) -> bool {
     matches!(type_node.kind(), "placeholder_type_specifier" | "auto")
+}
+
+/// `decltype(auto)` keeps the initializer's references; plain `auto` drops them.
+fn is_decltype_auto(type_node: Node) -> bool {
+    type_node
+        .children(&mut type_node.walk())
+        .any(|child| child.kind() == "decltype")
 }
 
 fn structural_base_name(base: &BaseExtractor, node: Node, depth: u32) -> Option<String> {
@@ -298,6 +343,226 @@ fn reference_kind(base: &BaseExtractor, node: Node) -> &'static str {
         }
     }
     "&"
+}
+
+/// A type reduced to what a type fact records: the structural base name and
+/// the written text.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct TypeShape {
+    name: String,
+    declared: String,
+}
+
+/// Declared return types of the file's callables by name, for `auto`
+/// inference. Friend declarations are left out: they are not members.
+#[derive(Debug, Default)]
+pub(super) struct ReturnTypeIndex {
+    entries: HashMap<String, Vec<ReturnEntry>>,
+    /// Same-file class names mapped to whether unqualified lookup from their
+    /// members stops at the class: every definition is top-level with no base.
+    closed_classes: HashMap<String, bool>,
+}
+
+#[derive(Debug)]
+struct ReturnEntry {
+    /// The enclosing or qualifying class (or namespace, for an out-of-line
+    /// `ns::f`); `None` for a free function.
+    owner: Option<String>,
+    /// `None` when the return type is absent, deduced, or a template parameter.
+    shape: Option<TypeShape>,
+}
+
+impl ReturnTypeIndex {
+    pub(super) fn build(base: &BaseExtractor, root: Node) -> Self {
+        let mut index = Self::default();
+        let mut stack = vec![root];
+        while let Some(node) = stack.pop() {
+            match node.kind() {
+                "function_declarator" => {
+                    if let Some((name, entry)) = return_entry(base, node) {
+                        index.entries.entry(name).or_default().push(entry);
+                    }
+                }
+                "class_specifier" | "struct_specifier" => {
+                    if let Some((name, closed)) = class_closure(base, node) {
+                        *index.closed_classes.entry(name).or_insert(true) &= closed;
+                    }
+                }
+                _ => {}
+            }
+            stack.extend(node.named_children(&mut node.walk()));
+        }
+        index
+    }
+
+    /// The base type every same-named callable with this owner agrees on,
+    /// with the written text when that agrees too.
+    fn lookup(&self, name: &str, owner: Option<&str>) -> Option<TypeShape> {
+        let mut shapes = self
+            .entries
+            .get(name)?
+            .iter()
+            .filter(|entry| entry.owner.as_deref() == owner)
+            .map(|entry| entry.shape.as_ref());
+        let mut agreed = shapes.next()??.clone();
+        for shape in shapes {
+            let shape = shape?;
+            if shape.name != agreed.name {
+                return None;
+            }
+            if shape.declared != agreed.declared {
+                agreed.declared = agreed.name.clone();
+            }
+        }
+        Some(agreed)
+    }
+
+    fn declares(&self, name: &str, owner: &str) -> bool {
+        self.entries.get(name).is_some_and(|entries| {
+            entries
+                .iter()
+                .any(|entry| entry.owner.as_deref() == Some(owner))
+        })
+    }
+
+    fn is_closed_class(&self, class: &str) -> bool {
+        self.closed_classes.get(class).copied().unwrap_or(false)
+    }
+}
+
+/// A class definition's name and whether it has no base and no enclosing class.
+fn class_closure(base: &BaseExtractor, class: Node) -> Option<(String, bool)> {
+    class.child_by_field_name("body")?;
+    let name = class.child_by_field_name("name")?;
+    if name.kind() != "type_identifier" {
+        return None;
+    }
+    let has_base = class
+        .children(&mut class.walk())
+        .any(|child| child.kind() == "base_class_clause");
+    Some((
+        base.get_node_text(&name),
+        !has_base && !inside_class_body(class),
+    ))
+}
+
+fn inside_class_body(node: Node) -> bool {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if matches!(
+            candidate.kind(),
+            "class_specifier" | "struct_specifier" | "union_specifier"
+        ) {
+            return true;
+        }
+        current = candidate.parent();
+    }
+    false
+}
+
+fn return_entry(base: &BaseExtractor, function_declarator: Node) -> Option<(String, ReturnEntry)> {
+    let holder = decorated_declarator(function_declarator).parent()?;
+    let is_callable_holder = matches!(
+        holder.kind(),
+        "function_definition" | "declaration" | "field_declaration"
+    );
+    let is_friend = holder
+        .parent()
+        .is_some_and(|parent| parent.kind() == "friend_declaration");
+    if !is_callable_holder || is_friend {
+        return None;
+    }
+    let (name, scope) =
+        callable_name(base, function_declarator.child_by_field_name("declarator")?)?;
+    let owner = match scope {
+        Some(scope) => Some(scope_segment_name(base, scope)?),
+        None => enclosing_type_name(base, function_declarator),
+    };
+    let shape = stated_return_type(base, function_declarator)
+        .filter(|(type_node, _)| !names_template_parameter(base, *type_node))
+        .map(|(_, shape)| shape);
+    Some((name, ReturnEntry { owner, shape }))
+}
+
+/// A callable's plain name and, when written qualified, the scope segment
+/// just before it.
+fn callable_name<'a>(base: &BaseExtractor, node: Node<'a>) -> Option<(String, Option<Node<'a>>)> {
+    let mut node = node;
+    let mut scope = None;
+    while node.kind() == "qualified_identifier" {
+        scope = Some(node.child_by_field_name("scope")?);
+        node = node.child_by_field_name("name")?;
+    }
+    let name = match node.kind() {
+        "identifier" | "field_identifier" => node,
+        "template_function" => node.child_by_field_name("name")?,
+        _ => return None,
+    };
+    Some((base.get_node_text(&name), scope))
+}
+
+/// Whether a type's leftmost name is a template parameter in scope, so the
+/// type depends on the instantiation.
+fn names_template_parameter(base: &BaseExtractor, type_node: Node) -> bool {
+    let mut node = type_node;
+    loop {
+        let next = match node.kind() {
+            "qualified_identifier" => node.child_by_field_name("scope"),
+            "template_type" => node.child_by_field_name("name"),
+            "type_identifier" | "namespace_identifier" => {
+                return is_template_parameter_name(base, &node);
+            }
+            _ => return false,
+        };
+        let Some(next) = next else {
+            return false;
+        };
+        node = next;
+    }
+}
+
+fn initializer_type(
+    base: &BaseExtractor,
+    value: Node,
+    origin: Node,
+    return_types: &ReturnTypeIndex,
+) -> Option<TypeShape> {
+    if let Some(name) = inferred_constructor_name(base, value, origin) {
+        return Some(TypeShape {
+            declared: name.clone(),
+            name,
+        });
+    }
+    if value.kind() != "call_expression" {
+        return None;
+    }
+    let function = value.child_by_field_name("function")?;
+    match function.kind() {
+        "identifier" | "template_function" | "qualified_identifier" => {
+            let (name, scope) = callable_name(base, function)?;
+            match scope {
+                Some(scope) if is_template_parameter_name(base, &scope) => None,
+                Some(scope) => return_types.lookup(&name, Some(&scope_segment_name(base, scope)?)),
+                None => match enclosing_class_name(base, value) {
+                    Some(class) if return_types.declares(&name, &class) => {
+                        return_types.lookup(&name, Some(&class))
+                    }
+                    Some(class) if !return_types.is_closed_class(&class) => None,
+                    None if inside_class_body(value) => None,
+                    _ => return_types.lookup(&name, None),
+                },
+            }
+        }
+        "field_expression" => {
+            let class = this_receiver_type(base, function)?;
+            let field = function.child_by_field_name("field")?;
+            if field.kind() != "field_identifier" {
+                return None;
+            }
+            return_types.lookup(&base.get_node_text(&field), Some(&class))
+        }
+        _ => None,
+    }
 }
 
 fn inferred_constructor_name(base: &BaseExtractor, value: Node, origin: Node) -> Option<String> {

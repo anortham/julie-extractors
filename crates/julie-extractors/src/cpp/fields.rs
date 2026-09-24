@@ -7,7 +7,7 @@ use tree_sitter::Node;
 use super::declarators;
 use super::helpers;
 use super::signatures;
-use super::type_facts;
+use super::type_facts::{self, ReturnTypeIndex};
 use super::visibility;
 
 /// Extract one field (or constant) row per name a field declaration introduces.
@@ -66,12 +66,20 @@ pub(super) fn extract_multi_declarations(
     base: &mut BaseExtractor,
     node: Node,
     parent_id: Option<&str>,
+    return_types: &ReturnTypeIndex,
 ) -> Vec<Symbol> {
     declarators::object_names(node)
         .into_iter()
         .skip(1)
         .map(|(declarator, name_node)| {
-            super::declarations::object_symbol(base, node, declarator, name_node, parent_id)
+            super::declarations::object_symbol(
+                base,
+                node,
+                declarator,
+                name_node,
+                parent_id,
+                return_types,
+            )
         })
         .collect()
 }

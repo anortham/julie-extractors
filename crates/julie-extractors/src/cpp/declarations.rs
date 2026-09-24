@@ -8,7 +8,7 @@ use super::declarators;
 use super::functions;
 use super::helpers;
 use super::signatures;
-use super::type_facts;
+use super::type_facts::{self, ReturnTypeIndex};
 use super::visibility;
 
 // Re-export field/multi-declaration extractors so mod.rs callers don't need to change
@@ -127,6 +127,7 @@ pub(super) fn extract_template(
     node: Node,
     parent_id: Option<&str>,
     symbols: &[Symbol],
+    return_types: &ReturnTypeIndex,
 ) -> Option<Symbol> {
     let mut cursor = node.walk();
     let inner = node
@@ -153,7 +154,7 @@ pub(super) fn extract_template(
             .map(|pl| format!("template{}", base.get_node_text(&pl)))
     };
 
-    let mut symbol = extract_declaration(base, inner, parent_id, symbols)?;
+    let mut symbol = extract_declaration(base, inner, parent_id, symbols, return_types)?;
 
     // Prepend template parameters to the signature
     if let Some(template_prefix) = template_params {
@@ -170,6 +171,7 @@ pub(super) fn extract_declaration(
     node: Node,
     parent_id: Option<&str>,
     symbols: &[Symbol],
+    return_types: &ReturnTypeIndex,
 ) -> Option<Symbol> {
     // Check if this is a friend declaration first
     let node_text = base.get_node_text(&node);
@@ -210,7 +212,14 @@ pub(super) fn extract_declaration(
     }
 
     let (declarator, name_node) = *declarators::object_names(node).first()?;
-    Some(object_symbol(base, node, declarator, name_node, parent_id))
+    Some(object_symbol(
+        base,
+        node,
+        declarator,
+        name_node,
+        parent_id,
+        return_types,
+    ))
 }
 
 /// One variable or constant row for a name a declaration introduces.
@@ -220,6 +229,7 @@ pub(super) fn object_symbol(
     declarator: Node,
     name_node: Node,
     parent_id: Option<&str>,
+    return_types: &ReturnTypeIndex,
 ) -> Symbol {
     let name = base.get_node_text(&name_node);
     let storage_class = helpers::extract_storage_class(base, node);
@@ -256,7 +266,7 @@ pub(super) fn object_symbol(
     if direct_initialization {
         type_facts::record_field_fact(base, &symbol.id, node, None);
     } else if declarators::declared_names(declarator).len() == 1 {
-        type_facts::record_variable_fact(base, &symbol.id, node, declarator);
+        type_facts::record_variable_fact(base, &symbol.id, node, declarator, return_types);
     }
     symbol
 }

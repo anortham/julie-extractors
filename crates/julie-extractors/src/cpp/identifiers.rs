@@ -284,7 +284,13 @@ pub(super) fn this_receiver_type(base: &BaseExtractor, node: Node) -> Option<Str
     if !is_this_receiver(field_expr) {
         return None;
     }
-    enclosing_type_name(base, field_expr).or_else(|| out_of_line_type_name(base, field_expr))
+    enclosing_class_name(base, field_expr)
+}
+
+/// The class a node's `this` names: the nearest enclosing class or struct,
+/// or the scope of the out-of-line member definition around it.
+pub(super) fn enclosing_class_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    enclosing_type_name(base, node).or_else(|| out_of_line_type_name(base, node))
 }
 
 fn is_this_receiver(field_expr: Node) -> bool {
@@ -319,7 +325,7 @@ fn peel_parentheses(mut node: Node) -> Node {
     node
 }
 
-fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
+pub(super) fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
     let mut current = node.parent();
     while let Some(candidate) = current {
         if matches!(candidate.kind(), "class_specifier" | "struct_specifier") {
@@ -366,7 +372,7 @@ fn qualified_declarator_scope(base: &BaseExtractor, node: Node) -> Option<String
     }
 }
 
-fn scope_segment_name(base: &BaseExtractor, scope: Node) -> Option<String> {
+pub(super) fn scope_segment_name(base: &BaseExtractor, scope: Node) -> Option<String> {
     match scope.kind() {
         "namespace_identifier" => Some(base.get_node_text(&scope)),
         "template_type" => scope

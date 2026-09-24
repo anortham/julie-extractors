@@ -46,6 +46,8 @@ pub struct CppExtractor {
     /// Catch2 test bodies the grammar parses as the statement after the test
     /// macro, keyed by block node id, mapped to the test symbol that owns them.
     detached_test_bodies: HashMap<usize, String>,
+    /// Declared return types of the file's callables, for `auto` inference.
+    return_types: type_facts::ReturnTypeIndex,
 }
 
 impl CppExtractor {
@@ -57,6 +59,7 @@ impl CppExtractor {
             processed_nodes: HashSet::new(),
             additional_symbols: Vec::new(),
             detached_test_bodies: HashMap::new(),
+            return_types: type_facts::ReturnTypeIndex::default(),
         }
     }
 
@@ -98,6 +101,7 @@ impl CppExtractor {
         self.processed_nodes.clear();
         self.additional_symbols.clear();
         self.detached_test_bodies.clear();
+        self.return_types = type_facts::ReturnTypeIndex::build(&self.base, tree.root_node());
 
         self.walk_tree(tree.root_node(), &mut symbols, None, 0);
 
@@ -173,6 +177,7 @@ impl CppExtractor {
                 &mut self.base,
                 node,
                 parent_id.as_deref(),
+                &self.return_types,
             );
             if !extra.is_empty() {
                 symbols.extend(extra);
@@ -290,8 +295,13 @@ impl CppExtractor {
                 }
             }
             "declaration" | "field_declaration" => {
-                let result =
-                    declarations::extract_declaration(&mut self.base, node, parent_id, symbols);
+                let result = declarations::extract_declaration(
+                    &mut self.base,
+                    node,
+                    parent_id,
+                    symbols,
+                    &self.return_types,
+                );
                 if result.is_some() {
                     self.own_declarators(node);
                 }
@@ -315,8 +325,13 @@ impl CppExtractor {
             "type_definition" => typedefs::extract_typedef(&mut self.base, node, parent_id),
             "alias_declaration" => typedefs::extract_alias(&mut self.base, node, parent_id),
             "template_declaration" => {
-                let result =
-                    declarations::extract_template(&mut self.base, node, parent_id, symbols);
+                let result = declarations::extract_template(
+                    &mut self.base,
+                    node,
+                    parent_id,
+                    symbols,
+                    &self.return_types,
+                );
                 // When extract_template returns a symbol (template variable case),
                 // mark the inner declaration as processed to prevent walk_children
                 // from extracting it again via extract_declaration.

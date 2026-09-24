@@ -229,6 +229,24 @@ never parsed before, and they apply to every C++ file.
   `X::operator==` an operator, and any other `X::m` a method. When the owner is
   defined in the file, the row is its child and takes the visibility of the
   in-class declaration. `int X::count = 0;` and `X::operator bool() {}` emit rows.
+- An `auto` variable (`auto`, `auto*`, `auto&`, `const auto&`,
+  `decltype(auto)`) gets an inferred type fact from its initializer: a
+  same-file class built by `Foo()` or `new Foo()`, or a call to a same-file
+  callable with a stated or trailing return type. Accepted callees are a free
+  function (`load()`), a member of the enclosing class (`load()`,
+  `this->load()`, `(*this).load()`), and a qualified member (`Type::create()`,
+  `ns::Type::create()`). Same-named candidates must agree on the base type.
+  `std::unique_ptr<Foo>` and `std::optional<Foo>` stay as written. A deduced
+  or template-parameter return type records no fact. A friend declaration, a
+  call on any other receiver, or a chained call also records no fact. Inside a
+  method, an unqualified call falls back to a free function only when the
+  class is defined in the file at top level with no base class. Plain `auto`
+  drops a reference from the declared text; `decltype(auto)` keeps it.
+  Callees in other files are out of scope because each file is extracted alone.
+- An unknown macro before a return type, such as
+  `JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json diff(...)`, makes the
+  parser report the macro as the type. That callable records no return type
+  fact, and `auto` calls to it record none.
 - `namespace a::b::c {}` emits one namespace row named `a::b::c`.
   `class Outer::Inner {}` emits a class row `Inner` under `Outer`, and a
   specialization `struct hash<Point> {}` emits a struct row `hash`.
