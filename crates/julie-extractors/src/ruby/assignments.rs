@@ -1,4 +1,6 @@
 use super::helpers::infer_symbol_kind_from_assignment;
+use super::locals::LocalBindings;
+use super::return_types::ReturnTypeIndex;
 use super::type_facts;
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use std::collections::{HashMap, HashSet};
@@ -7,6 +9,8 @@ use tree_sitter::Node;
 /// Per-file state that assignment extraction reads and updates.
 pub(super) struct AssignmentContext<'a> {
     pub(super) same_file_class_names: &'a HashSet<String>,
+    pub(super) return_types: &'a ReturnTypeIndex,
+    pub(super) locals: &'a mut LocalBindings,
     pub(super) recorded_fields: &'a mut HashSet<(Option<String>, String)>,
     pub(super) recorded_locals: &'a mut HashSet<(Option<String>, String)>,
     pub(super) literal_types: &'a mut HashMap<String, String>,
@@ -68,7 +72,8 @@ pub(super) fn extract_assignment(
     } else {
         parent_id
     };
-    let record_constructor = matches!(kind, SymbolKind::Variable | SymbolKind::Field);
+    let mixed_level_ivar = context.return_types.ivar_has_mixed_levels(base, node);
+    let record_type = matches!(kind, SymbolKind::Variable | SymbolKind::Field) && !mixed_level_ivar;
     let symbol = base.create_symbol(
         &node,
         name,
@@ -82,22 +87,41 @@ pub(super) fn extract_assignment(
             annotations: Vec::new(),
         },
     );
-    if node.kind() == "assignment"
+    if !mixed_level_ivar
+        && node.kind() == "assignment"
+        && !type_facts::has_trailing_written_type(base, node)
         && let Some(literal_type) = right_side.and_then(literal_type)
     {
         context
             .literal_types
             .insert(symbol.id.clone(), literal_type.to_string());
     }
-    if record_constructor && let Some(right) = right_side {
-        type_facts::record_same_file_new_fact(
+    if record_type
+        && assigns_value(base, node)
+        && let Some(right) = right_side
+    {
+        type_facts::record_assignment_type(
             base,
             &symbol.id,
+            node,
             right,
-            context.same_file_class_names,
+            type_facts::InitializerContext {
+                same_file_class_names: context.same_file_class_names,
+                return_types: context.return_types,
+                locals: context.locals,
+            },
         );
     }
     Some(symbol)
+}
+
+/// Whether the target takes the right-hand value itself: `=` or `||=`, not
+/// an arithmetic operator assignment such as `+=`.
+fn assigns_value(base: &BaseExtractor, node: Node) -> bool {
+    node.kind() == "assignment"
+        || node
+            .child_by_field_name("operator")
+            .is_some_and(|operator| base.get_node_text(&operator) == "||=")
 }
 
 /// The core class of a literal right-hand side, read from its node kind.

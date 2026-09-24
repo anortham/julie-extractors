@@ -24,6 +24,7 @@ mod identifiers;
 mod locals;
 mod parameters;
 mod relationships;
+mod return_types;
 mod signatures;
 mod symbols;
 mod type_facts;
@@ -35,6 +36,8 @@ pub struct RubyExtractor {
     /// Inside a `class << self` body, where every `def` is a class method.
     in_singleton_class: bool,
     same_file_class_names: std::collections::HashSet<String>,
+    return_types: return_types::ReturnTypeIndex,
+    local_bindings: locals::LocalBindings,
     recorded_fields: std::collections::HashSet<(Option<String>, String)>,
     /// Locals already declared per scope: a later assignment or `+=` to the
     /// same name writes the existing local and declares nothing.
@@ -53,6 +56,8 @@ impl RubyExtractor {
             current_visibility: Visibility::Public,
             in_singleton_class: false,
             same_file_class_names: std::collections::HashSet::new(),
+            return_types: return_types::ReturnTypeIndex::default(),
+            local_bindings: locals::LocalBindings::default(),
             recorded_fields: std::collections::HashSet::new(),
             recorded_locals: std::collections::HashSet::new(),
             visibility_calls: Vec::new(),
@@ -70,6 +75,8 @@ impl RubyExtractor {
         self.symbol_map.clear();
         self.same_file_class_names =
             type_facts::collect_same_file_class_names(&self.base, tree.root_node());
+        self.return_types = return_types::ReturnTypeIndex::build(&self.base, tree.root_node());
+        self.local_bindings = locals::LocalBindings::default();
         self.recorded_fields.clear();
         self.recorded_locals.clear();
         self.visibility_calls.clear();
@@ -197,6 +204,8 @@ impl RubyExtractor {
                     parent_id.clone(),
                     assignments::AssignmentContext {
                         same_file_class_names: &self.same_file_class_names,
+                        return_types: &self.return_types,
+                        locals: &mut self.local_bindings,
                         recorded_fields: &mut self.recorded_fields,
                         recorded_locals: &mut self.recorded_locals,
                         literal_types: &mut self.literal_types,
