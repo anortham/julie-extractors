@@ -21,7 +21,7 @@ pub(super) fn spec_base_type_name(return_type: &str) -> Option<String> {
 }
 
 /// The return type of one `@spec`, reduced to what type facts need.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub(crate) struct SpecReturn {
     text: String,
     /// The base name of the whole return type.
@@ -29,6 +29,8 @@ pub(crate) struct SpecReturn {
     /// The base name of `T` when `{:ok, x} = call()` can only bind `x` to a
     /// `T` from a `{:ok, T}` alternative.
     pub(crate) ok_payload: Option<String>,
+    /// Start byte of the return type, where its names resolve.
+    pub(crate) at: usize,
 }
 
 impl SpecReturn {
@@ -40,7 +42,12 @@ impl SpecReturn {
                 .flatten(),
             ok_payload: ok_payload(base, return_type),
             text,
+            at: return_type.start_byte(),
         }
+    }
+
+    pub(super) fn same_type(&self, other: &Self) -> bool {
+        self.text == other.text
     }
 }
 

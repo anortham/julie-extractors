@@ -48,6 +48,14 @@ pub(super) fn struct_alias(map_node: Node) -> Option<Node> {
         .filter(|inner| inner.kind() == "alias")
 }
 
+/// The start byte of the innermost `quote` block around `node`. Code inside
+/// a quote belongs to the module that injects it, not the enclosing module.
+pub(super) fn quote_scope(base: &BaseExtractor, node: &Node) -> Option<usize> {
+    std::iter::successors(node.parent(), Node::parent)
+        .find(|ancestor| is_quote_call(base, *ancestor))
+        .map(|quote| quote.start_byte())
+}
+
 fn is_quote_call(base: &BaseExtractor, node: Node) -> bool {
     node.kind() == "call"
         && node.child_by_field_name("target").is_some_and(|target| {

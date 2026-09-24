@@ -239,12 +239,13 @@ fn extract_spec_attribute(extractor: &mut ElixirExtractor, call_node: &Node) {
         return;
     };
     let module = extractor.module_stack.last().cloned();
+    let quote = super::type_facts::quote_scope(&extractor.base, call_node);
     let spec = SpecReturn::from_node(&extractor.base, return_type);
     extractor
         .specs
-        .entry((module, name, arity))
+        .entry((module, quote, name, arity))
         .and_modify(|existing| {
-            if existing.as_ref() != Some(&spec) {
+            if !existing.as_ref().is_some_and(|e| e.same_type(&spec)) {
                 *existing = None;
             }
         })

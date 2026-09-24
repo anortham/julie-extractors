@@ -20,8 +20,23 @@
   full name, an `alias`, a nested module's short name, or `__MODULE__`
   (`ws = Store.load()`). A piped call counts the piped argument
   (`doc = text |> parse()`). A call that omits default arguments reaches the
-  definition with the defaults. Every definition the call can reach must
-  have a spec, and all of them must agree.
+  definition with the defaults. A trailing `do` block counts as one more
+  argument (`with_lock do ... end` reaches `with_lock/1`). Every definition
+  the call can reach must have a spec, and all of them must agree.
+- A call on another module qualifies the spec return name in the callee's
+  scope, so it reads the same in the caller: `@spec new() :: t()` in
+  `Shop.Store` gives `store = Store.new()` the fact `Shop.Store.t`, and a
+  leading alias of the callee expands (`Ws.t()` -> `Shop.Workspace.t`). A
+  bare name that the callee module does not declare with `@type`,
+  `@typep`, or `@opaque` (a built-in type, or a type a macro generates)
+  records nothing. A name that an alias in the caller would read
+  differently records nothing.
+- An `alias` applies from its position to the end of the `do` block, clause,
+  or definition around it, the way Elixir scopes aliases. An alias inside one
+  function does not reach calls in another function.
+- A `@spec` and a definition inside a `quote` block match only each other.
+  A quoted definition belongs to the module that injects it, so a call in
+  the enclosing module never takes its spec type.
 - `{:ok, conn} = open()` binds `conn` as a local and gives it `T` when the
   spec returns `{:ok, T}`. The other alternatives of the union must be atoms,
   `nil`, booleans, or tuples with a different tag or size, because only those

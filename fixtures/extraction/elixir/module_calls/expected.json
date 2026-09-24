@@ -1064,24 +1064,6 @@
     },
     {
       "from_key": "fixtures/extraction/elixir/module_calls/source.ex:start:30:2",
-      "to_key": "fixtures/extraction/elixir/module_calls/source.ex:make:53:4",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/elixir/module_calls/source.ex",
-      "line_number": 36,
-      "span": {
-        "start_line": 36,
-        "start_column": 4,
-        "end_line": 36,
-        "end_column": 16,
-        "start_byte": 832,
-        "end_byte": 844
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": null
-    },
-    {
-      "from_key": "fixtures/extraction/elixir/module_calls/source.ex:start:30:2",
       "to_key": "fixtures/extraction/elixir/module_calls/source.ex:total:25:2",
       "kind": "calls",
       "file_path": "fixtures/extraction/elixir/module_calls/source.ex",
@@ -1176,6 +1158,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/elixir/module_calls/source.ex",
       "line_number": 41,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/elixir/module_calls/source.ex:start:30:2",
+      "callee_name": "Entry.make",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/elixir/module_calls/source.ex",
+      "line_number": 36,
       "confidence": "0.700"
     },
     {
@@ -1298,6 +1288,34 @@
         "end_column": 44,
         "start_byte": 907,
         "end_byte": 920
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/elixir/module_calls/source.ex:start:30:2",
+        "callee_name": "Entry.make",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/elixir/module_calls/source.ex",
+        "line_number": 36,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Entry.make",
+        "terminal_name": "make",
+        "receiver": null,
+        "namespace_path": [
+          "Entry"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/elixir/module_calls/source.ex:start:30:2",
+      "span": {
+        "start_line": 36,
+        "start_column": 4,
+        "end_line": 36,
+        "end_column": 16,
+        "start_byte": 832,
+        "end_byte": 844
       }
     },
     {

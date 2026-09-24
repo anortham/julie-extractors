@@ -462,3 +462,208 @@ end
 
     assert!(x.local_type("job").is_none());
 }
+
+#[test]
+fn do_block_counts_as_one_trailing_argument() {
+    let x = extract(
+        r#"
+defmodule Locky do
+  @spec with_lock() :: Zero.t()
+  def with_lock, do: nil
+
+  @spec with_lock(keyword()) :: One.t()
+  def with_lock(opts), do: opts
+
+  def run do
+    with_block =
+      with_lock do
+        :ok
+      end
+
+    without_block = with_lock()
+    {with_block, without_block}
+  end
+end
+"#,
+    );
+
+    assert_eq!(x.inferred("with_block"), "One.t");
+    assert_eq!(x.inferred("without_block"), "Zero.t");
+}
+
+#[test]
+fn remote_spec_return_is_qualified_in_the_callee_module() {
+    let x = extract(
+        r#"
+defmodule Shop.Store do
+  alias Shop.Workspace, as: Ws
+
+  defstruct []
+  @type t :: %__MODULE__{}
+
+  @spec new() :: t()
+  def new, do: %__MODULE__{}
+
+  @spec load() :: Ws.t()
+  def load, do: nil
+
+  def run do
+    own = new()
+    own
+  end
+end
+
+defmodule Shop.Web do
+  alias Shop.Store
+  alias Other.Ws
+
+  @type t :: %__MODULE__{}
+
+  def run do
+    remote_t = Store.new()
+    remote_alias = Store.load()
+    {remote_t, remote_alias}
+  end
+end
+"#,
+    );
+
+    assert_eq!(x.inferred("own"), "t");
+    assert_eq!(x.inferred("remote_t"), "Shop.Store.t");
+    assert_eq!(x.inferred("remote_alias"), "Shop.Workspace.t");
+}
+
+#[test]
+fn remote_spec_return_that_reads_differently_in_the_caller_records_nothing() {
+    let x = extract(
+        r#"
+defmodule Shop.Store do
+  use TypedStruct
+
+  typedstruct do
+    field :id, integer()
+  end
+
+  @spec new() :: t()
+  def new, do: nil
+
+  @spec load() :: Ws.t()
+  def load, do: nil
+end
+
+defmodule Shop.Web do
+  alias Shop.Store
+  alias Other.Ws
+
+  def run do
+    generated_t = Store.new()
+    shadowed = Store.load()
+    {generated_t, shadowed}
+  end
+end
+"#,
+    );
+
+    assert!(x.local_type("generated_t").is_none());
+    assert!(x.local_type("shadowed").is_none());
+}
+
+#[test]
+fn spec_inside_a_quote_does_not_attach_to_a_real_definition() {
+    let x = extract(
+        r#"
+defmodule Base do
+  def load, do: :real
+
+  defmacro __using__(_) do
+    quote do
+      @spec load() :: Injected.t()
+      def load, do: nil
+
+      @spec only_quoted() :: Injected.t()
+      def only_quoted, do: nil
+    end
+  end
+
+  def run do
+    using = load()
+    quoted = only_quoted()
+    {using, quoted}
+  end
+end
+"#,
+    );
+
+    let loads: Vec<_> = x
+        .symbols
+        .iter()
+        .filter(|s| s.name == "load" && s.kind == SymbolKind::Function)
+        .map(|s| x.types.get(&s.id).map(|fact| fact.resolved_type.as_str()))
+        .collect();
+    assert_eq!(loads, [None, Some("Injected.t")]);
+    assert!(x.local_type("using").is_none());
+    assert!(x.local_type("quoted").is_none());
+}
+
+#[test]
+fn alias_inside_a_function_body_does_not_reach_other_functions() {
+    let x = extract(
+        r#"
+defmodule Shop.Store do
+  @spec load() :: Shop.Ws.t()
+  def load, do: nil
+end
+
+defmodule Web do
+  def early do
+    before_alias = Store.load()
+    before_alias
+  end
+
+  def a do
+    alias Shop.Store
+    inside = Store.load()
+    inside
+  end
+
+  def b do
+    lexical = Store.load()
+    lexical
+  end
+end
+"#,
+    );
+
+    assert_eq!(x.inferred("inside"), "Shop.Ws.t");
+    assert!(x.local_type("lexical").is_none());
+    assert!(x.local_type("before_alias").is_none());
+}
+
+#[test]
+fn module_alias_applies_only_after_its_position() {
+    let x = extract(
+        r#"
+defmodule Shop.Store do
+  @spec load() :: Shop.Ws.t()
+  def load, do: nil
+end
+
+defmodule Web do
+  def early do
+    before_alias = Store.load()
+    before_alias
+  end
+
+  alias Shop.Store
+
+  def late do
+    after_alias = Store.load()
+    after_alias
+  end
+end
+"#,
+    );
+
+    assert!(x.local_type("before_alias").is_none());
+    assert_eq!(x.inferred("after_alias"), "Shop.Ws.t");
+}

@@ -1,4 +1,10 @@
 defmodule Shop.Store do
+  defstruct [:path]
+  @type t :: %__MODULE__{}
+
+  @spec new() :: t()
+  def new, do: %__MODULE__{}
+
   @spec open(String.t()) :: {:ok, Conn.t()} | {:error, term()}
   def open(path), do: {:ok, path}
 
@@ -11,8 +17,9 @@ defmodule Shop.Web do
 
   def run(path) do
     ws = Store.load()
+    store = Store.new()
     {:ok, conn} = path |> Store.open()
     other = External.load()
-    {ws, conn, other}
+    {ws, store, conn, other}
   end
 end
