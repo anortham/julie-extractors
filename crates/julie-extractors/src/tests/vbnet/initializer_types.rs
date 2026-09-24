@@ -1,0 +1,426 @@
+use crate::base::SymbolKind;
+use crate::vbnet::VbNetExtractor;
+use std::path::PathBuf;
+
+fn inferred_type(source: &str, local: &str) -> Option<(String, bool)> {
+    let mut parser = super::init_test_parser();
+    let tree = parser.parse(source, None).unwrap();
+    let mut extractor = VbNetExtractor::new(
+        "vbnet".to_string(),
+        "initializer_types.vb".to_string(),
+        source.to_string(),
+        &PathBuf::from("/tmp/test"),
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let local = symbols
+        .iter()
+        .find(|s| s.name == local && s.kind == SymbolKind::Variable)
+        .unwrap_or_else(|| panic!("missing local {local}"));
+    extractor
+        .base
+        .type_info
+        .get(&local.id)
+        .map(|fact| (fact.resolved_type.clone(), fact.is_inferred))
+}
+
+const LOADERS: &str = r#"
+    Public Function Load() As Workspace
+    End Function
+    Public Async Function LoadAsync() As Task(Of Workspace)
+    End Function
+    Public Function LoadValueAsync() As System.Threading.Tasks.ValueTask(Of Workspace)
+    End Function
+    Public Shared Function Create() As Workspace
+    End Function
+    Public Function LoadAll() As Workspace()
+    End Function
+    Public Function LoadList() As List(Of Workspace)
+    End Function
+    Public Function Count() As Integer?
+    End Function
+    Public Sub Reset()
+    End Sub
+    Public Function Untyped()
+    End Function
+    Public Function Pick(Of T)() As T
+    End Function
+    Public Function PickAsync(Of T)() As Task(Of T)
+    End Function
+    Public Function Start() As Task
+    End Function
+"#;
+
+fn in_loader(statement: &str) -> String {
+    format!(
+        "Class Loader\n{LOADERS}\n    Async Sub Run(input As String)\n        {statement}\n    End Sub\nEnd Class\n"
+    )
+}
+
+fn workspace_type(statement: &str) -> Option<(String, bool)> {
+    inferred_type(&in_loader(statement), "workspace")
+}
+
+fn workspace() -> Option<(String, bool)> {
+    Some(("Workspace".to_string(), true))
+}
+
+#[test]
+fn unqualified_same_class_function_records_return_type_as_inferred() {
+    assert_eq!(workspace_type("Dim workspace = Load()"), workspace());
+    assert_eq!(workspace_type("Static workspace = Load()"), workspace());
+}
+
+#[test]
+fn call_names_match_case_insensitively_and_through_brackets() {
+    assert_eq!(workspace_type("Dim workspace = load()"), workspace());
+    assert_eq!(workspace_type("Dim workspace = [Load]()"), workspace());
+}
+
+#[test]
+fn me_and_myclass_calls_record_the_class_method_type() {
+    assert_eq!(workspace_type("Dim workspace = Me.Load()"), workspace());
+    assert_eq!(
+        workspace_type("Dim workspace = MyClass.Load()"),
+        workspace()
+    );
+}
+
+#[test]
+fn shared_call_on_same_file_type_records_return_type() {
+    assert_eq!(
+        workspace_type("Dim workspace = Loader.Create()"),
+        workspace()
+    );
+}
+
+#[test]
+fn await_removes_one_task_layer() {
+    for statement in [
+        "Dim workspace = Await LoadAsync()",
+        "Dim workspace = Await Me.LoadAsync()",
+        "Dim workspace = Await LoadValueAsync()",
+        "Dim workspace = Await LoadAsync().ConfigureAwait(False)",
+    ] {
+        assert_eq!(workspace_type(statement), workspace(), "{statement}");
+    }
+}
+
+#[test]
+fn unawaited_task_call_records_the_task_type() {
+    assert_eq!(
+        workspace_type("Dim workspace = LoadAsync()"),
+        Some(("Task".to_string(), true))
+    );
+}
+
+#[test]
+fn array_generic_and_nullable_returns_record_their_base_names() {
+    assert_eq!(
+        workspace_type("Dim workspace = LoadAll()"),
+        Some(("Workspace()".to_string(), true))
+    );
+    assert_eq!(
+        workspace_type("Dim workspace = LoadList()"),
+        Some(("List".to_string(), true))
+    );
+    assert_eq!(
+        workspace_type("Dim workspace = Count()"),
+        Some(("Integer".to_string(), true))
+    );
+}
+
+#[test]
+fn every_binding_of_a_dim_statement_is_inferred() {
+    let source = in_loader("Dim first = Load(), workspace = Create()");
+    assert_eq!(inferred_type(&source, "first"), workspace());
+    assert_eq!(inferred_type(&source, "workspace"), workspace());
+}
+
+#[test]
+fn using_assignment_records_call_return_type() {
+    assert_eq!(
+        workspace_type("Using workspace = Load()\n        End Using"),
+        workspace()
+    );
+}
+
+#[test]
+fn written_type_wins_over_call_inference() {
+    assert_eq!(
+        workspace_type("Dim workspace As Object = Load()"),
+        Some(("Object".to_string(), false))
+    );
+}
+
+#[test]
+fn same_file_constructor_inference_still_applies() {
+    let source = "Class Workspace\nEnd Class\nClass Sample\n    Sub Run()\n        Dim workspace = New Workspace()\n    End Sub\nEnd Class\n";
+    assert_eq!(inferred_type(source, "workspace"), workspace());
+}
+
+#[test]
+fn module_function_is_found_from_a_class_and_by_module_name() {
+    let source = r#"
+Module Loaders
+    Function Make() As Workspace
+    End Function
+    Declare Function OpenNative Lib "native" () As Workspace
+End Module
+Class Sample
+    Sub Run()
+        Dim workspace = Make()
+        Dim qualified = Loaders.Make()
+        Dim native = OpenNative()
+    End Sub
+End Class
+"#;
+    assert_eq!(inferred_type(source, "workspace"), workspace());
+    assert_eq!(inferred_type(source, "qualified"), workspace());
+    assert_eq!(inferred_type(source, "native"), workspace());
+}
+
+#[test]
+fn nested_class_finds_outer_shared_function() {
+    let source = r#"
+Class Outer
+    Shared Function Make() As Workspace
+    End Function
+    Class Inner
+        Sub Run()
+            Dim workspace = Make()
+        End Sub
+    End Class
+End Class
+"#;
+    assert_eq!(inferred_type(source, "workspace"), workspace());
+}
+
+#[test]
+fn structure_members_are_indexed() {
+    let source = r#"
+Structure Point
+    Function Load() As Workspace
+    End Function
+    Sub Run()
+        Dim workspace = Me.Load()
+    End Sub
+End Structure
+"#;
+    assert_eq!(inferred_type(source, "workspace"), workspace());
+}
+
+#[test]
+fn generic_returns_record_no_fact() {
+    for statement in [
+        "Dim workspace = Pick(Of Workspace)()",
+        "Dim workspace = Await PickAsync(Of Workspace)()",
+    ] {
+        assert_eq!(workspace_type(statement), None, "{statement}");
+    }
+}
+
+#[test]
+fn class_type_parameter_return_records_no_fact() {
+    let source = r#"
+Class Box(Of T)
+    Function Value() As T
+    End Function
+    Class Inner
+        Function Outer() As T
+        End Function
+        Sub Run()
+            Dim nested = Outer()
+        End Sub
+    End Class
+    Sub Run()
+        Dim workspace = Value()
+    End Sub
+End Class
+"#;
+    assert_eq!(inferred_type(source, "workspace"), None);
+    assert_eq!(inferred_type(source, "nested"), None);
+}
+
+#[test]
+fn members_without_a_return_type_record_no_fact() {
+    for statement in ["Dim workspace = Reset()", "Dim workspace = Untyped()"] {
+        assert_eq!(workspace_type(statement), None, "{statement}");
+    }
+}
+
+#[test]
+fn disagreeing_overloads_record_no_fact() {
+    let source = r#"
+Class Loader
+    Function Load() As Workspace
+    End Function
+    Function Load(path As String) As Project
+    End Function
+    Sub Run()
+        Dim workspace = Load()
+    End Sub
+End Class
+"#;
+    assert_eq!(inferred_type(source, "workspace"), None);
+}
+
+#[test]
+fn agreeing_overloads_record_the_shared_type() {
+    let source = r#"
+Class Loader
+    Function Load() As Workspace
+    End Function
+    Function Load(path As String) As Workspace
+    End Function
+    Sub Run()
+        Dim workspace = Load()
+    End Sub
+End Class
+"#;
+    assert_eq!(inferred_type(source, "workspace"), workspace());
+}
+
+#[test]
+fn chain_ending_in_another_member_records_no_fact() {
+    for statement in [
+        "Dim workspace = Load().Clone()",
+        "Dim workspace = Load().Name",
+        "Dim workspace = Load",
+        "Dim workspace = Not Load()",
+        "Dim workspace = Await Load().ConfigureAwait(False)",
+        "Dim workspace = Load().ConfigureAwait(False)",
+    ] {
+        assert_eq!(workspace_type(statement), None, "{statement}");
+    }
+}
+
+#[test]
+fn await_without_a_generic_task_records_no_fact() {
+    for statement in [
+        "Dim workspace = Await Start()",
+        "Dim workspace = Await Load()",
+        "Dim workspace = Await LoadList()",
+        "Dim workspace = Not LoadAsync()",
+    ] {
+        assert_eq!(workspace_type(statement), None, "{statement}");
+    }
+}
+
+#[test]
+fn mybase_call_records_no_fact() {
+    assert_eq!(workspace_type("Dim workspace = MyBase.Load()"), None);
+}
+
+#[test]
+fn me_call_to_a_member_the_class_does_not_declare_records_no_fact() {
+    let source = r#"
+Module Loaders
+    Function Make() As Workspace
+    End Function
+End Module
+Interface ILoader
+    Function Open() As Workspace
+End Interface
+Class Sample
+    Implements ILoader
+    Sub Run()
+        Dim workspace = Me.Make()
+        Dim opened = Me.Open()
+        Dim viaInterface = ILoader.Open()
+    End Sub
+End Class
+"#;
+    assert_eq!(inferred_type(source, "workspace"), None);
+    assert_eq!(inferred_type(source, "opened"), None);
+    assert_eq!(inferred_type(source, "viaInterface"), None);
+}
+
+#[test]
+fn call_on_a_type_from_another_file_records_no_fact() {
+    assert_eq!(workspace_type("Dim workspace = Other.Create()"), None);
+    assert_eq!(workspace_type("Dim workspace = Missing()"), None);
+}
+
+#[test]
+fn inheriting_class_does_not_fall_back_to_module_functions() {
+    let source = r#"
+Module Loaders
+    Function Make() As Workspace
+    End Function
+End Module
+Class Sample
+    Inherits BaseSample
+    Sub Run()
+        Dim workspace = Make()
+    End Sub
+End Class
+"#;
+    assert_eq!(inferred_type(source, "workspace"), None);
+}
+
+#[test]
+fn local_parameter_or_enclosing_member_name_shadows_the_function() {
+    let source = r#"
+Class Loader
+    Function Load() As Workspace
+        Dim recursive = Load()
+    End Function
+    Function Items() As Workspace
+    End Function
+    Function Create() As Workspace
+    End Function
+    Sub Run(load As Workspace())
+        Dim items = GetItems()
+        Dim workspace = Load(0)
+        Dim first = Items(0)
+        Dim create = Create()
+    End Sub
+End Class
+"#;
+    for local in ["recursive", "workspace", "first", "create"] {
+        assert_eq!(inferred_type(source, local), None, "{local}");
+    }
+}
+
+#[test]
+fn inner_member_with_the_call_name_shadows_the_outer_function() {
+    let source = r#"
+Class Outer
+    Shared Function Load() As Workspace
+    End Function
+    Class Inner
+        Property Load As Workspace()
+        Sub Run()
+            Dim workspace = Load(0)
+        End Sub
+    End Class
+End Class
+"#;
+    assert_eq!(inferred_type(source, "workspace"), None);
+}
+
+#[test]
+fn qualifier_that_names_a_member_or_local_records_no_fact() {
+    let source = r#"
+Class Config
+    Shared Function Create() As Workspace
+    End Function
+End Class
+Class Sample
+    Property Config As Settings
+    Sub Run(settings As Settings)
+        Dim workspace = Config.Create()
+    End Sub
+    Sub Other()
+        Dim loader = GetLoader()
+        Dim local = LOADER.Create()
+    End Sub
+End Class
+Class Loader
+    Shared Function Create() As Workspace
+    End Function
+End Class
+"#;
+    assert_eq!(inferred_type(source, "workspace"), None);
+    assert_eq!(inferred_type(source, "local"), None);
+}

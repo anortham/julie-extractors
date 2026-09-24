@@ -1,4 +1,4 @@
-use super::type_facts;
+use super::type_facts::{self, ReturnTypeIndex};
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashSet;
@@ -42,6 +42,8 @@ pub(super) fn extract_dim_statement(
     node: Node,
     parent_id: Option<String>,
     same_file: &HashSet<String>,
+    return_types: &ReturnTypeIndex,
+    symbols: &[Symbol],
 ) -> Vec<Symbol> {
     let mut bindings: Vec<DimBinding> = Vec::new();
     for i in 0..node.child_count() {
@@ -73,10 +75,56 @@ pub(super) fn extract_dim_statement(
     }
     share_trailing_types(&mut bindings);
 
+    let statement_names: Vec<String> = bindings
+        .iter()
+        .filter_map(|binding| binding.name)
+        .map(|name| type_facts::name_key(&base.get_node_text(&name)))
+        .collect();
+    let is_shadowed = |name: &str| {
+        statement_names.iter().any(|local| local == name)
+            || is_member_scope_name(symbols, parent_id.as_deref(), name)
+    };
+    let initializers = InitializerTypes {
+        same_file,
+        return_types,
+        is_shadowed: &is_shadowed,
+    };
     bindings
         .into_iter()
-        .filter_map(|binding| flush_dim_binding(base, parent_id.clone(), same_file, binding))
+        .filter_map(|binding| flush_dim_binding(base, parent_id.clone(), &initializers, binding))
         .collect()
+}
+
+/// Whether a local or parameter of the member, or the member itself, has
+/// this name: VB then resolves `Name(...)` to that variable, not a method.
+fn is_member_scope_name(symbols: &[Symbol], member_id: Option<&str>, name: &str) -> bool {
+    symbols.iter().any(|symbol| {
+        let in_scope = (symbol.kind == SymbolKind::Variable
+            && symbol.parent_id.as_deref() == member_id)
+            || Some(symbol.id.as_str()) == member_id;
+        in_scope && type_facts::name_key(&symbol.name) == name
+    })
+}
+
+/// What an untyped local's initializer can be typed from: a same-file
+/// constructor or a same-file call with a declared return type.
+struct InitializerTypes<'a> {
+    same_file: &'a HashSet<String>,
+    return_types: &'a ReturnTypeIndex,
+    is_shadowed: &'a dyn Fn(&str) -> bool,
+}
+
+impl InitializerTypes<'_> {
+    fn record(&self, base: &mut BaseExtractor, symbol: &Symbol, initializer: Node) {
+        record_constructed_type(base, symbol, initializer, self.same_file);
+        type_facts::record_call_initializer_type(
+            base,
+            &symbol.id,
+            initializer,
+            self.return_types,
+            self.is_shadowed,
+        );
+    }
 }
 
 fn share_trailing_types(bindings: &mut [DimBinding]) {
@@ -103,7 +151,7 @@ struct DimBinding<'a> {
 fn flush_dim_binding(
     base: &mut BaseExtractor,
     parent_id: Option<String>,
-    same_file: &HashSet<String>,
+    initializers: &InitializerTypes,
     binding: DimBinding,
 ) -> Option<Symbol> {
     let DimBinding {
@@ -117,7 +165,7 @@ fn flush_dim_binding(
     if type_node.is_none()
         && let Some(initializer) = initializer
     {
-        record_constructed_type(base, &symbol, initializer, same_file);
+        initializers.record(base, &symbol, initializer);
     }
     Some(symbol)
 }
@@ -178,6 +226,7 @@ pub(super) fn extract_block_local(
     parent_id: Option<String>,
     symbols: &[Symbol],
     same_file: &HashSet<String>,
+    return_types: &ReturnTypeIndex,
 ) -> Option<Symbol> {
     match node.kind() {
         "for_each_statement" | "for_statement" => {
@@ -204,9 +253,18 @@ pub(super) fn extract_block_local(
             }
             let assignment = using_assignment(node)?;
             let name_node = assignment.child_by_field_name("left")?;
-            let symbol = create_local(base, name_node, parent_id, None, None);
+            let resource = type_facts::name_key(&base.get_node_text(&name_node));
+            let is_shadowed = |name: &str| {
+                name == resource || is_member_scope_name(symbols, parent_id.as_deref(), name)
+            };
+            let initializers = InitializerTypes {
+                same_file,
+                return_types,
+                is_shadowed: &is_shadowed,
+            };
+            let symbol = create_local(base, name_node, parent_id.clone(), None, None);
             if let Some(value) = assignment.child_by_field_name("right") {
-                record_constructed_type(base, &symbol, value, same_file);
+                initializers.record(base, &symbol, value);
             }
             Some(symbol)
         }

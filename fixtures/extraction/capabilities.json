@@ -3561,6 +3561,11 @@
           "name": "framework_and_scopes",
           "source": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
           "expected": "fixtures/extraction/vbnet/framework_and_scopes/expected.json"
+        },
+        {
+          "name": "call_initializers",
+          "source": "fixtures/extraction/vbnet/call_initializers/source.vb",
+          "expected": "fixtures/extraction/vbnet/call_initializers/expected.json"
         }
       ],
       "target_capabilities": {

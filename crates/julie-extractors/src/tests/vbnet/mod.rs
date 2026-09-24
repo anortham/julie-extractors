@@ -48,6 +48,7 @@ pub mod core;
 pub mod cross_file_pending;
 mod gap_closure;
 pub mod identifiers;
+mod initializer_types;
 pub mod literals;
 pub mod members;
 pub mod relationships;
