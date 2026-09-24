@@ -15,6 +15,8 @@ pub(super) fn extract_symbols(extractor: &mut TypeScriptExtractor, tree: &Tree) 
     let mut symbols = Vec::new();
     extractor.test_dsl_active =
         test_symbols::test_dsl_is_active(extractor.base(), tree.root_node());
+    extractor.return_types =
+        super::type_facts::ReturnTypeIndex::build(extractor.base(), tree.root_node());
     visit_node(extractor, tree.root_node(), &mut symbols, None, 0);
     mark_listed_exports_public(extractor, tree.root_node(), &mut symbols);
     symbols

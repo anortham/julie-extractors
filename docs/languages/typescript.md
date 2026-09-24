@@ -122,6 +122,41 @@ Express/Fastify routes on exported and type-annotated receivers.
   (`isCommonJS`, `isSideEffect`, `isDynamic`).
 - Declared return types are type facts; inferred placeholders (`any`,
   `function`, `Promise<any>`) are not published.
+- A `const`, `let`, or `var` with no written type gets an inferred type fact
+  from a call to a same-file callee with a declared return type: a function,
+  an overload set, a function-valued `const` (`const make = (): User => ..`),
+  a class method or arrow field through `this` in that class, or a static
+  method through the class name (`Repo.create()`). Only bindings whose
+  lexical scope contains the call count: a function nested in another
+  function does not reach calls outside it. A `var`, including a `var` in a
+  `for...of` or `for...in` header, is visible in its whole function. A
+  namespace export (and any member of a `declare namespace`) is visible in
+  every same-file block of that namespace and of nested `A.B` blocks. All
+  visible same-named
+  candidates must agree, and any other visible binding of the name (import,
+  `import x = A.b`, parameter, local, namespace, enum, function-expression
+  name) blocks the fact. Class members belong to one class declaration, so
+  two same-named classes never share methods, and `Repo.create()` needs
+  `Repo` to name exactly one visible class. `await` removes one
+  `Promise`/`PromiseLike` layer, unless the file declares or imports its own
+  `Promise` or `PromiseLike` (class, interface, type alias, enum, namespace,
+  or import anywhere in the file), which blocks every `await` fact. `!`
+  removes `null`/`undefined`; a `T | null` result without `!` records
+  nothing. `satisfies` keeps the call
+  type. `: this` resolves to the enclosing class, and `: this[]` to its
+  array (`Repo[]`). A result that is a bare type parameter (`T`, or `T` after
+  `await`) records no fact. A generic result keeps its base type and its
+  declared text as written, so `make<K>(): Map<K, User>` records `Map` with
+  declared `Map<K, User>`. A getter, an optional call (`?.`), a method after
+  the call, `this` rebound by a `function`, an object literal, or a
+  method's `this` parameter (`m(this: Other)`), `this` inside a decorator
+  (it runs in the scope around the class), a
+  namespace-qualified call (`Ns.load()`), a method inherited from a base
+  class through `this`, `super.load()`, or a callee in another file records
+  no fact. Other files are out of scope because each file is extracted
+  alone. The recorded type text comes from the callee's scope: if a local
+  type at the call reuses a name from that text (a local `class User`), the
+  fact still names the outer type. The Rust extractor has the same limit.
 - The `string` type keyword is not a `string_literal` source region.
 
 ## Frontend navigation facts
