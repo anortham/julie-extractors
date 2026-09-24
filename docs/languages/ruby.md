@@ -217,7 +217,8 @@ before they count as a mixin on the enclosing class, which keeps
   comment. A trailing written type with no single class records no fact,
   and a trailing written type also removes the literal type, so
   `@v = nil #: String | Integer | nil` records neither `NilClass` nor a
-  written type.
+  written type. A constant records only a trailing written type
+  (`MAX = 5 #: Integer`); it gets no inferred call type.
 
 ## Rake files
 

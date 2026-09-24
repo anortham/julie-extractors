@@ -1166,3 +1166,39 @@ fn a_trailing_written_type_blocks_the_literal_type() {
     assert_eq!(fact_for(source, "@value"), None);
     assert_eq!(fact_for(source, "items"), None);
 }
+
+#[test]
+fn constant_with_trailing_written_type_records_the_written_type() {
+    let source = r#"
+MAX = 5 #: Integer
+class Foo
+  LIMIT = 10 #: Integer
+  PLAIN = 3
+end
+"#;
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_ruby::LANGUAGE.into())
+        .unwrap();
+    let tree = parser.parse(source, None).unwrap();
+    let mut extractor = RubyExtractor::new(
+        "initializer_types.rb".to_string(),
+        source.to_string(),
+        &PathBuf::from("/tmp/test"),
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let fact = |name: &str| {
+        let symbol = symbols
+            .iter()
+            .find(|s| s.name == name && s.kind == SymbolKind::Constant)
+            .unwrap_or_else(|| panic!("missing constant {name}"));
+        extractor
+            .base
+            .type_info
+            .get(&symbol.id)
+            .map(|fact| (fact.resolved_type.clone(), fact.is_inferred))
+    };
+    assert_eq!(fact("MAX"), written("Integer"));
+    assert_eq!(fact("LIMIT"), written("Integer"));
+    assert_eq!(fact("PLAIN"), None);
+}

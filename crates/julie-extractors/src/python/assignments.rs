@@ -93,7 +93,9 @@ pub(super) fn extract_assignment(extractor: &mut PythonExtractor, node: Node) ->
 
     if let Some(type_node) = type_node {
         type_facts::record_annotation_fact(extractor.base_mut(), &symbol.id, type_node);
-    } else if let Some(right) = right {
+    } else if let Some(right) = right
+        && symbol.kind != SymbolKind::EnumMember
+    {
         type_facts::record_initializer_fact(extractor, &symbol.id, right);
     }
     if is_instance_attribute {

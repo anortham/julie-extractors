@@ -73,7 +73,11 @@ pub(super) fn extract_assignment(
         parent_id
     };
     let mixed_level_ivar = context.return_types.ivar_has_mixed_levels(base, node);
-    let record_type = matches!(kind, SymbolKind::Variable | SymbolKind::Field) && !mixed_level_ivar;
+    let record_type = !mixed_level_ivar
+        && (matches!(kind, SymbolKind::Variable | SymbolKind::Field)
+            || (kind == SymbolKind::Constant
+                && node.kind() == "assignment"
+                && type_facts::has_trailing_written_type(base, node)));
     let symbol = base.create_symbol(
         &node,
         name,

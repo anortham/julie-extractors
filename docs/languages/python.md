@@ -178,7 +178,9 @@ Imports, variables, constants, attributes, and parameters have no body span.
   `TextChoices`, `IntegerChoices`, and `models.Choices`. A base whose name
   merely contains `Protocol` or `Enum` changes nothing.
 - Every plain assignment directly in an enum body is an `enum_member`,
-  whatever its case, except `_sunder_` and `__dunder__` names.
+  whatever its case, except `_sunder_` and `__dunder__` names. An enum member
+  gets no type fact from its value: `RED = compute()` is a member of the enum,
+  not a value of `compute()`'s return type.
 - Class visibility follows the same underscore rule as functions.
 - A docstring is the first statement of the body when it is a plain string.
   `r`/`u` prefixes and the quotes are stripped; f-strings and byte strings are

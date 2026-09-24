@@ -1171,3 +1171,34 @@ good = keep(r)
     assert_eq!(inferred_type(source, "bad_q3"), None);
     assert_eq!(inferred_type(source, "good").as_deref(), Some("Response"));
 }
+
+#[test]
+fn enum_members_record_no_initializer_type() {
+    let source = r#"
+from enum import Enum
+
+class Widget:
+    ...
+
+def compute() -> int:
+    ...
+
+class Color(Enum):
+    RED = compute()
+    BLUE = Widget()
+
+LIMIT = compute()
+"#;
+    let (symbols, extractor) = extract(source);
+    for member in ["RED", "BLUE"] {
+        assert!(
+            fact_of(&extractor, &symbols, member, SymbolKind::EnumMember).is_none(),
+            "{member}"
+        );
+    }
+    assert_eq!(
+        fact_of(&extractor, &symbols, "LIMIT", SymbolKind::Constant)
+            .map(|fact| fact.resolved_type.clone()),
+        Some("int".to_string())
+    );
+}
