@@ -177,6 +177,38 @@ The JavaScript extractor follows the TypeScript contract in
   `@type {T}` on variables, properties, and fields, and `new T()` field and
   constructor-property initializers. `resolved_type` is the base name
   (`Promise`, `Repo`); the JSDoc text is in `metadata.declared`.
+- A `const`, `let`, or `var` with no `@type` gets an inferred type fact from
+  its initializer: `new T()`, or a call whose callee declares
+  `@returns {T}` in the same file. The callee is a function declaration or a
+  function bound by `const`/`let`/`var` (`load()`), a static method of a
+  same-file class (`Workspace.open()`), a method through `this` inside the
+  class body, or a method of the class a chained call returns
+  (`loadWorkspace().child()`). A chained call's class must be the same
+  same-file class at the callee's declaration and at the call. Same-named
+  candidates must agree. `await`
+  unwraps one `Promise<T>`; an `async` callee must declare a `Promise`, and
+  a generator must declare a `Generator`, `Iterator`, `IterableIterator`, or
+  `Iterable` (the `Async` forms for an async generator). The callee's
+  declaration must be in scope at the call: `var` binds in its function,
+  `let`, `const`, and `class` in their block, and a function declaration in
+  its block (a call elsewhere in the same function records nothing, since
+  sloppy code hoists it). A `@template` or `this` return type, a union, a
+  getter, an optional call (`?.`), `this` in a computed member name or a
+  decorator (it runs outside the class), a parameter, loop, or catch binding or
+  the own name of a named function expression that shadows the
+  callee, a chain that ends in any other method, or a callee in another file
+  records no fact. A `for (var x of ..)` or `for (var x in ..)` head binds `x`
+  in its whole function, so a call to `x` anywhere in that function records
+  nothing. An initializer with a JSDoc cast (`/** @type {T} */ (load())`)
+  records nothing, since the cast type, not the callee's type, applies.
+- A doc comment before a `const`, `let`, or `var` with several declarators
+  documents only the first declarator. JSDoc is the only source of return types, so a callee with no
+  `@returns` records nothing.
+- JSDoc tags come from the last `/** */` block before a declaration. A
+  `@callback` or `@typedef` block there documents that type, not the
+  declaration, and a declaration with `@overload` blocks gets its call type
+  from the arguments, so both record no `@returns`, `@type`, or `@param`
+  fact.
 - Visibility: in a module (a file with `import`, `export`, `require`, or
   CommonJS export assignments) a top-level class, function, or variable is
   `public` when the module exports it by any form (`export` wrapper,

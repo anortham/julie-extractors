@@ -1,6 +1,13 @@
-use crate::base::BaseExtractor;
 use crate::base::types::TypeNameRules;
+use crate::base::{BaseExtractor, ContainingSymbolIndex, Symbol, SymbolKind};
+use crate::javascript::type_facts::{pattern_binding_shadows, var_loop_heads};
+use std::collections::HashMap;
 use tree_sitter::Node;
+
+use super::relationships::{
+    LocalCall, component_id_scopes, find_containing_component, object_owner, object_owner_map,
+    resolve_scoped_callee,
+};
 
 pub(super) const TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
     nullable_suffixes: &[],
@@ -83,4 +90,157 @@ pub(super) fn record_named_type(base: &mut BaseExtractor, symbol_id: &str, type_
         &TYPE_NAME_RULES,
         false,
     );
+}
+
+/// Record an inferred type fact for each local whose initializer calls a
+/// same-file function with a return annotation, named bare in an enclosing
+/// object's scope or through an id of the call's own component. An id of an
+/// enclosing component is visible from an inline component only under
+/// `pragma ComponentBehavior: Bound`, so it records nothing. Runs after the
+/// symbol walk, so a written local type wins.
+pub(super) fn record_call_initializer_facts(
+    base: &mut BaseExtractor,
+    root: Node,
+    symbols: &[Symbol],
+) {
+    let by_id: HashMap<&str, &Symbol> = symbols
+        .iter()
+        .map(|symbol| (symbol.id.as_str(), symbol))
+        .collect();
+    let class_symbols = ContainingSymbolIndex::from_iter(
+        symbols
+            .iter()
+            .filter(|symbol| symbol.kind == SymbolKind::Class),
+    );
+    let object_owners = object_owner_map(symbols);
+    let var_loops = var_loop_heads(root);
+    let facts: Vec<(String, String, String)> = symbols
+        .iter()
+        .filter(|local| local.kind == SymbolKind::Variable)
+        .filter_map(|local| {
+            let call = root
+                .descendant_for_byte_range(local.start_byte as usize, local.end_byte as usize)
+                .filter(|node| node.kind() == "variable_declarator")?
+                .child_by_field_name("value")
+                .filter(|value| value.kind() == "call_expression" && !has_optional_chain(*value))?;
+            let caller = by_id.get(local.parent_id.as_deref()?)?;
+            let function = call.child_by_field_name("function")?;
+            let (function_name, receiver) = match function.kind() {
+                "identifier" => (base.get_node_text(&function), None),
+                "member_expression" if !has_optional_chain(function) => {
+                    let object = function
+                        .child_by_field_name("object")
+                        .filter(|object| object.kind() == "identifier")?;
+                    (
+                        base.get_node_text(&function.child_by_field_name("property")?),
+                        Some(base.get_node_text(&object)),
+                    )
+                }
+                _ => return None,
+            };
+            let bound = receiver.as_deref().unwrap_or(&function_name);
+            if pattern_binding_shadows(base, &var_loops, bound, call)
+                || declared_in_enclosing_functions(bound, caller, symbols, &by_id)
+            {
+                return None;
+            }
+            let component = find_containing_component(call, &class_symbols)?;
+            if receiver.as_deref().is_some_and(|receiver| {
+                component_id_scopes(receiver, symbols, component).is_empty()
+            }) {
+                return None;
+            }
+            let callee = resolve_scoped_callee(
+                &LocalCall {
+                    node: call,
+                    function_name: &function_name,
+                    receiver: receiver.as_deref(),
+                    caller,
+                },
+                symbols,
+                component,
+                &object_owners,
+            )
+            .filter(|callee| {
+                receiver.is_some() || scope_object_admits_bare_call(call, callee, &object_owners)
+            })?;
+            let fact = base.type_info.get(&callee.id).filter(|fact| {
+                !matches!(fact.resolved_type.as_str(), "void" | "undefined" | "var")
+            })?;
+            let declared = fact
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("declared"))
+                .and_then(|declared| declared.as_str())
+                .unwrap_or(&fact.resolved_type);
+            Some((
+                local.id.clone(),
+                fact.resolved_type.clone(),
+                declared.to_string(),
+            ))
+        })
+        .collect();
+    for (symbol_id, resolved, declared) in facts {
+        base.record_declared_type_fact_with_declared(
+            &symbol_id,
+            &resolved,
+            &declared,
+            &TYPE_NAME_RULES,
+            true,
+        );
+    }
+}
+
+/// Whether a bare call's scope object (the nearest enclosing object) leaves
+/// no member unknown that could shadow `callee`: it declares the callee, or
+/// it is its component's root, whose own declarations win. Any other object
+/// also carries the members of its type, which may come from another file,
+/// from Qt, or from a same-file inline component, so it resolves nothing.
+fn scope_object_admits_bare_call(
+    call: Node,
+    callee: &Symbol,
+    object_owners: &HashMap<u32, &Symbol>,
+) -> bool {
+    let mut current = call.parent();
+    while let Some(node) = current {
+        if matches!(
+            node.kind(),
+            "ui_object_definition" | "ui_object_definition_binding"
+        ) {
+            return object_owner(node, object_owners).is_some_and(|owner| {
+                owner.kind == SymbolKind::Class
+                    || callee.parent_id.as_deref() == Some(owner.id.as_str())
+            });
+        }
+        current = node.parent();
+    }
+    false
+}
+
+/// Whether the caller or a function enclosing it declares `name` as a
+/// parameter, local, or nested function.
+fn declared_in_enclosing_functions(
+    name: &str,
+    caller: &Symbol,
+    symbols: &[Symbol],
+    by_id: &HashMap<&str, &Symbol>,
+) -> bool {
+    let mut scope = Some(caller);
+    while let Some(function) = scope.filter(|scope| scope.kind == SymbolKind::Function) {
+        if symbols.iter().any(|symbol| {
+            symbol.name == name && symbol.parent_id.as_deref() == Some(function.id.as_str())
+        }) {
+            return true;
+        }
+        scope = function
+            .parent_id
+            .as_deref()
+            .and_then(|parent| by_id.get(parent).copied());
+    }
+    false
+}
+
+fn has_optional_chain(node: Node) -> bool {
+    node.children(&mut node.walk())
+        .any(|child| matches!(child.kind(), "optional_chain" | "?."))
 }

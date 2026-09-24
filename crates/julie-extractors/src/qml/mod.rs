@@ -56,6 +56,7 @@ impl QmlExtractor {
         } else {
             self.connected_handlers = semantics::connected_handlers(&self.base, root_node);
             self.traverse_node(root_node, None, 0);
+            type_facts::record_call_initializer_facts(&mut self.base, root_node, &self.symbols);
             for symbol in &mut self.symbols {
                 if let Some(markers) = self.annotations.get(&symbol.start_byte) {
                     symbol.annotations = markers.clone();
