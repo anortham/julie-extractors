@@ -706,9 +706,10 @@ fn parameterless_call_into_an_open_type_infers_its_return_type() {
     let source = r#"
 class D : Base {
   Widget Load() => null;
-  static Widget Make() => null;
-  void M() { var simple = Load(); var self = this.Load(); var type = D.Make(); }
+  public static Widget Make() => null;
+  void M() { var simple = Load(); var self = this.Load(); }
 }
+class User { void M() { var type = D.Make(); } }
 "#;
     assert_eq!(resolved(source, "simple").as_deref(), Some("Widget"));
     assert_eq!(resolved(source, "self").as_deref(), Some("Widget"));
@@ -741,4 +742,116 @@ class D : Base {
 }
 "#;
     assert_eq!(resolved(source, "widget").as_deref(), Some("Widget"));
+}
+
+#[test]
+fn static_receiver_bound_by_a_using_alias_in_a_namespace_block_records_nothing() {
+    let source = r#"
+namespace Lib { class Other { public static string Create() => ""; } }
+namespace A { using Factory = Lib.Other; class C { void M() { var aliasX = Factory.Create(); } } }
+class Factory { public static int Create() => 1; }
+"#;
+    assert_eq!(inferred(source, "aliasX"), None);
+}
+
+#[test]
+fn static_receiver_past_a_using_namespace_in_a_namespace_block_records_nothing() {
+    let source = r#"
+namespace Lib { static class Tool { public static string Make() => ""; } }
+namespace App { using Lib; class C { void M() { var usingX = Tool.Make(); } } }
+static class Tool { public static int Make() => 1; }
+"#;
+    assert_eq!(inferred(source, "usingX"), None);
+}
+
+#[test]
+fn static_receiver_past_a_using_static_in_a_namespace_block_records_nothing() {
+    let source = r#"
+namespace Lib { static class Holder { public static class Tool { public static string Make() => ""; } } }
+namespace App { using static Lib.Holder; class C { void M() { var staticX = Tool.Make(); } } }
+static class Tool { public static int Make() => 1; }
+"#;
+    assert_eq!(inferred(source, "staticX"), None);
+}
+
+#[test]
+fn static_receiver_in_the_namespace_block_binds_before_its_usings() {
+    let source = r#"
+namespace App {
+  using Lib;
+  using Tool = Lib.Other;
+  static class Tool { public static Widget Make() => null; }
+  class C { void M() { var widget = Tool.Make(); } }
+}
+"#;
+    assert_eq!(resolved(source, "widget").as_deref(), Some("Widget"));
+}
+
+#[test]
+fn static_receiver_inside_a_derived_type_records_nothing() {
+    let source = r#"
+class Base { protected class Maker { public static string Create() => ""; } }
+class Maker { public static int Create() => 1; }
+class Widget { public string Create() => ""; }
+class Base2 { protected Widget Builder = new Widget(); }
+class Builder { public static int Create() => 1; }
+class C : Base { void M() { var inhNested = Maker.Create(); } }
+class D : Base2 { void M() { var inhField = Builder.Create(); } }
+"#;
+    assert_eq!(inferred(source, "inhNested"), None);
+    assert_eq!(inferred(source, "inhField"), None);
+}
+
+#[test]
+fn static_receiver_nested_in_the_open_type_itself_infers_its_return_type() {
+    let source = r#"
+class C : Base {
+  static class Maker { public static Widget Create() => null; }
+  void M() { var widget = Maker.Create(); }
+}
+"#;
+    assert_eq!(resolved(source, "widget").as_deref(), Some("Widget"));
+}
+
+#[test]
+fn return_type_naming_a_nested_type_records_nothing_outside_its_declaring_type() {
+    let source = r#"
+namespace N {
+  class Node { public int A; }
+  static class Factory { public class Node { } public static Node Create() => new Node(); }
+  class Other { void M() { var nestedRet = Factory.Create(); } }
+}
+"#;
+    assert_eq!(inferred(source, "nestedRet"), None);
+}
+
+#[test]
+fn outer_method_returning_a_nested_type_records_nothing_from_an_inner_type() {
+    let source = r#"
+class Outer {
+  class Node { }
+  static Node Make() => null;
+  void Own() { var own = Make(); }
+  class Inner {
+    class Node { }
+    void M() { var innerRet = Make(); }
+  }
+}
+"#;
+    assert_eq!(inferred(source, "innerRet"), None);
+    assert_eq!(resolved(source, "own").as_deref(), Some("Node"));
+}
+
+#[test]
+fn ref_returns_record_the_referenced_type() {
+    let source = r#"
+class R {
+  int _v;
+  ref int Get() => ref _v;
+  ref readonly int GetRo() => ref _v;
+  void M() { var refX = Get(); var refRo = GetRo(); }
+}
+"#;
+    assert_eq!(inferred(source, "refX"), Some(("int".to_string(), None)));
+    assert_eq!(inferred(source, "refRo"), Some(("int".to_string(), None)));
 }

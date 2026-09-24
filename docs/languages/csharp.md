@@ -177,6 +177,19 @@ of any other class publish no role. See the
   records no fact. A type nested in some other type, a type in an unrelated
   namespace, a type reached only through `using`, and a receiver named like a
   type parameter record no fact.
+- The receiver search stops with no fact at an enclosing type with a base list
+  or `partial`, after that type's own nested types. A base type or another
+  part, in this file or another one, can declare a nested type, field, or
+  property with the receiver's name. In Razor the file class is such a type.
+- The receiver search also stops with no fact at a namespace block with a
+  `using` that can bind the name, after that namespace's own types. Such a
+  `using` is an alias with the receiver's name, or any `using` of a namespace
+  or a static type.
+- A return type that names a type nested in some same-file type records a
+  fact only for a call from inside the callee's own type. Elsewhere the same
+  name can mean a different type.
+- A `ref` or `ref readonly` return records the referenced type: `var x =
+  Get()` copies the value.
 - A type with a base list or `partial` may get an overload from a base type or
   another part, in this file or another one. Its methods count only for a call
   with no arguments to candidates with no parameters. There, a derived-type
@@ -201,15 +214,14 @@ of any other class publish no role. See the
   It can name the callee's type parameters (`List<T>` for `Gen<int>.Empty()`).
   The resolved base type is exact. The Rust rule does the same.
 - Open gap: bindings in another file. A base type or another `partial` part
-  in a different file can declare a field or property with the callee's or
-  the receiver's name, or a nested type with the receiver's name. A type in a
-  closer namespace in another file can also hide a same-file receiver type.
-  The rule cannot see these, and the fact can then be wrong. A spot check of
-  60 corpus facts found no such case. Closure: record no fact when a type
-  with a base list or `partial` lies on the lookup path of the callee or
-  receiver name, or when the call is in a namespace other than the receiver
-  type's. That drops most facts in derived types, so the closure task weighs
-  it against the corpus loss. The closure task belongs to the brief
+  in a different file can declare a field or property with the callee's
+  name. A type in a closer namespace in another file can also hide a
+  same-file receiver type. The rule cannot see these, and the fact can then
+  be wrong. A spot check of 60 corpus facts found no such case. Closure:
+  record no fact when a type with a base list or `partial` lies on the lookup
+  path of the callee name, or when the call is in a namespace other than the
+  receiver type's. That drops most facts in derived types, so the closure
+  task weighs it against the corpus loss. The closure task belongs to the brief
   `.memories/briefs/infer-local-types-from-call-initializers-in-every-.md`.
 - The innermost member owns a reference site: a property, indexer, or event
   accessor body owns its calls, identifiers, and complexity metric.

@@ -288,7 +288,9 @@ impl ReturnTypeIndex {
     /// lookup: types nested directly in an enclosing type, innermost first,
     /// then top-level types of the call's namespace and each outer namespace.
     /// Only a type with `type_arguments` type parameters matches. `None` when
-    /// no same-file type matches.
+    /// no same-file type matches, and when the search must pass a scope this
+    /// file cannot see into: an enclosing type with a base list or `partial`,
+    /// or a namespace block with a `using` that can bind the name.
     fn receiver_types(
         &self,
         base: &BaseExtractor,
@@ -309,24 +311,31 @@ impl ReturnTypeIndex {
                 .filter(|declaration| &declaration.container == container)
                 .collect()
         };
-        let mut containers: Vec<Container> = self
-            .enclosing_types(base, call)?
-            .into_iter()
-            .map(|(owner, _)| Container::Type(owner))
-            .collect();
+        for (owner, open) in self.enclosing_types(base, call)? {
+            let found = in_container(&Container::Type(owner));
+            if !found.is_empty() {
+                return Some(found);
+            }
+            if open {
+                return None;
+            }
+        }
+        let using_scopes = using_scopes(base, name, call);
         let mut namespace = namespace_of(base, call);
         loop {
-            containers.push(Container::Namespace(namespace.clone()));
+            let found = in_container(&Container::Namespace(namespace.clone()));
+            if !found.is_empty() {
+                return Some(found);
+            }
+            if using_scopes.contains(&namespace) {
+                return None;
+            }
             match namespace.rfind('.') {
                 Some(dot) => namespace.truncate(dot),
                 None if !namespace.is_empty() => namespace.clear(),
-                None => break,
+                None => return None,
             }
         }
-        containers
-            .iter()
-            .map(in_container)
-            .find(|found| !found.is_empty())
     }
 
     /// The declared text of the type a `var` initializer produces, or `None`
@@ -423,7 +432,7 @@ impl ReturnTypeIndex {
                 if !safe_in_open_type(open, arguments, &candidates) {
                     return None;
                 }
-                agree(candidates.into_iter())
+                self.agree_at(base, call, &candidates)
             }
             _ => None,
         }
@@ -473,11 +482,34 @@ impl ReturnTypeIndex {
         if !members.is_empty() && !safe_in_open_type(members_open, arguments, &members) {
             return None;
         }
-        agree(
-            locals
-                .filter(|c| c.accepts(arguments, type_arguments))
-                .chain(members),
-        )
+        let candidates: Vec<&Callable> = locals
+            .filter(|c| c.accepts(arguments, type_arguments))
+            .chain(members)
+            .collect();
+        self.agree_at(base, call, &candidates)
+    }
+
+    /// The return type every candidate agrees on, when it names the same
+    /// types at `call` as at the candidates. A name that a same-file type
+    /// nests can mean that nested type at the declaration and another type at
+    /// the call, so it counts only when the call is in the candidates' type.
+    fn agree_at(
+        &self,
+        base: &BaseExtractor,
+        call: Node,
+        candidates: &[&Callable],
+    ) -> Option<TypeShape> {
+        let shape = agree(candidates.iter().copied())?;
+        let site = self.enclosing_types(base, call)?.into_iter().next();
+        let site = site.as_ref().map(|(owner, _)| owner);
+        let same_scope = candidates.iter().all(|c| c.owner.as_ref() == site);
+        let names_nested_type = shape
+            .declared
+            .split(|c: char| !(c.is_alphanumeric() || c == '_'))
+            .filter_map(|word| self.types.get(word))
+            .flatten()
+            .any(|declaration| matches!(declaration.container, Container::Type(_)));
+        (same_scope || !names_nested_type).then_some(shape)
     }
 
     /// Whether a non-method binding named `name` is visible at `node`, from
@@ -629,6 +661,58 @@ fn agree<'a>(mut candidates: impl Iterator<Item = &'a Callable>) -> Option<TypeS
     candidates
         .all(|c| c.shape.as_ref() == Some(first))
         .then(|| first.clone())
+}
+
+/// The dotted names of the namespace blocks around `node` whose `using`
+/// directives can bind `name`: an alias named `name`, or any `using` of a
+/// namespace or a static type, whose members this file cannot list.
+fn using_scopes(base: &BaseExtractor, name: &str, node: Node) -> Vec<String> {
+    let mut scopes = Vec::new();
+    let mut current = node.parent();
+    while let Some(ancestor) = current {
+        if ancestor.kind() == "namespace_declaration"
+            && let Some(body) = ancestor.child_by_field_name("body")
+            && has_binding_using(base, name, body, 0)
+            && let Some(own) = ancestor.child_by_field_name("name")
+        {
+            let outer = namespace_of(base, ancestor);
+            let own: String = base
+                .get_node_text(&own)
+                .chars()
+                .filter(|c| !c.is_whitespace())
+                .collect();
+            scopes.push(if outer.is_empty() {
+                own
+            } else {
+                format!("{outer}.{own}")
+            });
+        }
+        current = ancestor.parent();
+    }
+    scopes
+}
+
+/// Whether `block` holds a `using` that can bind `name`. An unreadable
+/// block, too deep to search, counts as holding one.
+fn has_binding_using(base: &BaseExtractor, name: &str, block: Node, depth: u32) -> bool {
+    let Some(child_depth) = should_visit_tree_depth(depth)
+        .then(|| child_tree_depth(depth))
+        .flatten()
+    else {
+        return true;
+    };
+    let mut cursor = block.walk();
+    block
+        .named_children(&mut cursor)
+        .any(|child| match child.kind() {
+            "using_directive" => child
+                .child_by_field_name("name")
+                .is_none_or(|alias| base.get_node_text(&alias) == name),
+            kind if kind.starts_with("preproc") => {
+                has_binding_using(base, name, child, child_depth)
+            }
+            _ => false,
+        })
 }
 
 /// `task.ConfigureAwait(..)` awaits like `task`.
@@ -815,7 +899,8 @@ fn type_shape(
             let inner = inner("name")?;
             (inner.name, inner.args)
         }
-        "nullable_type" | "ref_type" | "scoped_type" => {
+        "ref_type" | "scoped_type" => return inner("type"),
+        "nullable_type" => {
             let inner = inner("type")?;
             (inner.name, inner.args)
         }
