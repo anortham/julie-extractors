@@ -2743,6 +2743,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/swift/declarations/source.swift:tool:70:8",
+      "resolved_type": "Tool",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/swift/declarations/source.swift:useMacro:23:0",
       "resolved_type": "String",
       "generic_params": null,

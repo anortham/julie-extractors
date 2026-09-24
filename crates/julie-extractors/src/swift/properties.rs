@@ -114,12 +114,17 @@ impl SwiftExtractor {
                 }
                 if let Some(type_node) = type_node {
                     type_facts::record_declared_type(&mut self.base, &symbol.id, type_node);
-                } else if let Some(value) = value {
-                    type_facts::record_same_file_constructor(
+                } else if let Some(value) = value
+                    && children[index]
+                        .child_by_field_name("bound_identifier")
+                        .is_some()
+                {
+                    type_facts::record_initializer_type(
                         &mut self.base,
                         &symbol.id,
                         value,
                         &self.same_file_type_names,
+                        &self.return_types,
                     );
                 }
                 symbols.push(symbol);

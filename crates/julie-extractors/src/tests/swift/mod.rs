@@ -6,6 +6,7 @@ mod cross_file_pending;
 mod cross_file_relationships;
 mod current_syntax;
 mod identifiers;
+mod initializer_types;
 mod literals;
 mod structural_facts;
 mod task14;
