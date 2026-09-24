@@ -78,6 +78,8 @@ pub struct DartExtractor {
     pub(crate) base: BaseExtractor,
     same_file_calls: Vec<(String, String, u32, crate::base::NormalizedSpan)>,
     same_file_type_names: HashSet<String>,
+    /// Declared return types of the file's functions and members, for local inference.
+    return_types: type_facts::ReturnTypeIndex,
     consumed_blocks: HashSet<usize>,
     /// Whether test DSL calls (`test`, `group`) are tests in this file.
     is_test_file: bool,
@@ -223,6 +225,7 @@ impl DartExtractor {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
             same_file_calls: Vec::new(),
             same_file_type_names: HashSet::new(),
+            return_types: type_facts::ReturnTypeIndex::default(),
             consumed_blocks: HashSet::new(),
             is_test_file: false,
         }
@@ -233,6 +236,7 @@ impl DartExtractor {
         helpers::set_dart_content_cache(&self.base.content);
 
         self.same_file_type_names = type_facts::collect_type_names(&self.base, tree.root_node());
+        self.return_types = type_facts::ReturnTypeIndex::build(&self.base, tree.root_node());
         self.is_test_file =
             test_calls::is_test_file(&self.base.file_path, &import_uris(tree.root_node()));
         let mut symbols = Vec::new();
