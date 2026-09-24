@@ -149,12 +149,81 @@ enum Owner {
     Type(String),
 }
 
+/// Where a same-file type is declared, which decides where its bare name
+/// is visible.
+#[derive(Debug, PartialEq, Eq)]
+enum TypeParent {
+    TopLevel,
+    Type(String),
+    Local,
+}
+
+#[derive(Debug)]
+struct Parameter {
+    /// The argument label a call must write; `None` for `_`.
+    label: Option<String>,
+    has_default: bool,
+    variadic: bool,
+    function_typed: bool,
+}
+
+/// One call argument: a label (`None` when unlabeled), or the unlabeled
+/// trailing closure, which Swift matches by type instead of by label.
+#[derive(Debug)]
+enum Argument {
+    Label(Option<String>),
+    TrailingClosure,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Fit {
+    No,
+    Maybe,
+    Yes,
+}
+
 #[derive(Debug)]
 struct ReturnEntry {
     owner: Owner,
     is_static: bool,
+    parameters: Vec<Parameter>,
     /// `None` when the function declares no usable return type.
     shape: Option<TypeShape>,
+}
+
+impl ReturnEntry {
+    /// Whether a call with `arguments` can bind to this function by labels
+    /// and argument count. An unlabeled trailing closure that does not land
+    /// on a required function-typed parameter gives `Maybe`: Swift's
+    /// forward-scan rule also looks at parameter types.
+    fn fit(&self, arguments: &[Argument]) -> Fit {
+        let mut arguments = arguments.iter().peekable();
+        for parameter in &self.parameters {
+            match arguments.peek() {
+                Some(Argument::TrailingClosure) => {
+                    if !parameter.function_typed || parameter.has_default || parameter.variadic {
+                        return Fit::Maybe;
+                    }
+                    arguments.next();
+                }
+                Some(Argument::Label(label)) if *label == parameter.label => {
+                    arguments.next();
+                    while parameter.variadic
+                        && matches!(arguments.peek(), Some(Argument::Label(None)))
+                    {
+                        arguments.next();
+                    }
+                }
+                _ if parameter.has_default || parameter.variadic => {}
+                _ => return Fit::No,
+            }
+        }
+        if arguments.next().is_some() {
+            Fit::No
+        } else {
+            Fit::Yes
+        }
+    }
 }
 
 /// Same-file facts that call-initializer inference needs, built once per file.
@@ -173,6 +242,7 @@ pub(super) struct ReturnTypeIndex {
     declared_types: HashSet<String>,
     /// Same-file types with an inheritance clause on a declaration or extension.
     inheriting_types: HashSet<String>,
+    type_parents: HashMap<String, TypeParent>,
 }
 
 impl ReturnTypeIndex {
@@ -182,6 +252,7 @@ impl ReturnTypeIndex {
         let mut declaration_counts: HashMap<String, usize> = HashMap::new();
         let mut functions = Vec::new();
         let mut members = Vec::new();
+        let mut typealiases = Vec::new();
         let mut stack = vec![root];
         while let Some(node) = stack.pop() {
             index.value_names.extend(
@@ -196,10 +267,14 @@ impl ReturnTypeIndex {
                             .entry(name.clone())
                             .or_default()
                             .extend(type_parameter_names(base, node));
+                        index
+                            .type_parents
+                            .insert(name.clone(), type_parent(base, node));
                         *declaration_counts.entry(name).or_default() += 1;
                     }
                 }
                 "function_declaration" => functions.push(node),
+                "typealias_declaration" => typealiases.push(node),
                 "property_declaration" | "enum_entry" => members.push(node),
                 "pattern" | "parameter" | "lambda_parameter" => {
                     index
@@ -216,6 +291,7 @@ impl ReturnTypeIndex {
             .map(|(name, _)| name)
             .collect();
         index.inheriting_types = inheriting_types(base, root, &index.declared_types);
+        index.add_generic_typealiases(base, &typealiases, &mut type_generics);
         for member in members {
             let TypeContext::Type(owner) = index.member_context(base, member) else {
                 continue;
@@ -250,6 +326,61 @@ impl ReturnTypeIndex {
             }
         }
         index
+    }
+
+    /// Treat a member typealias whose right-hand side names a generic
+    /// parameter as a generic itself, repeated so aliases of aliases count.
+    fn add_generic_typealiases(
+        &self,
+        base: &BaseExtractor,
+        typealiases: &[Node],
+        type_generics: &mut HashMap<String, Vec<String>>,
+    ) {
+        let mut changed = true;
+        while changed {
+            changed = false;
+            for alias in typealiases {
+                let TypeContext::Type(owner) = self.member_context(base, *alias) else {
+                    continue;
+                };
+                let Some(name_node) = alias.child_by_field_name("name") else {
+                    continue;
+                };
+                let name = base.get_node_text(&name_node);
+                let generics = self.enclosing_generics(base, *alias, type_generics);
+                if generics.contains(&name) {
+                    continue;
+                }
+                let names_generic = type_identifiers(*alias).into_iter().any(|identifier| {
+                    identifier.id() != name_node.id()
+                        && generics.contains(&base.get_node_text(&identifier))
+                });
+                if names_generic {
+                    type_generics.entry(owner).or_default().push(name);
+                    changed = true;
+                }
+            }
+        }
+    }
+
+    /// The generic parameters of every same-file type that encloses `node`.
+    fn enclosing_generics(
+        &self,
+        base: &BaseExtractor,
+        node: Node,
+        type_generics: &HashMap<String, Vec<String>>,
+    ) -> Vec<String> {
+        let mut generics = Vec::new();
+        let mut current = node.parent();
+        while let Some(parent) = current {
+            if parent.kind() == "class_declaration"
+                && let TypeContext::Type(owner) = self.type_context(base, parent)
+            {
+                generics.extend(type_generics.get(&owner).into_iter().flatten().cloned());
+            }
+            current = parent.parent();
+        }
+        generics
     }
 
     fn return_entry(
@@ -290,7 +421,8 @@ impl ReturnTypeIndex {
             _ => None,
         };
         let shape = return_type_node(function).and_then(|type_node| {
-            let name = base_type_name(base, type_node)?;
+            let (core, optional_layers) = unwrap_optional_spellings(base, type_node);
+            let name = base_type_name(base, core)?;
             let head = name.split('.').next().unwrap_or(&name);
             let name = match head {
                 "Self" if name == "Self" => self_type?.to_string(),
@@ -299,14 +431,25 @@ impl ReturnTypeIndex {
                 }
                 _ => name,
             };
-            Some(TypeShape {
-                name,
-                declared: base.get_node_text(&type_node),
-            })
+            let implicitly_unwrapped = type_node
+                .next_sibling()
+                .is_some_and(|next| next.kind() == "!");
+            let optional_layers = optional_layers + usize::from(implicitly_unwrapped);
+            let declared = if optional_layers == 0 {
+                base.get_node_text(&type_node)
+            } else {
+                format!(
+                    "{}{}",
+                    base.get_node_text(&core),
+                    "?".repeat(optional_layers)
+                )
+            };
+            Some(TypeShape { name, declared })
         });
         let entry = ReturnEntry {
             owner,
             is_static: is_static(base, function),
+            parameters: parameters(base, function),
             shape,
         };
         Some((name, entry))
@@ -320,10 +463,42 @@ impl ReturnTypeIndex {
         }
     }
 
+    /// An extension can only name a top-level type, so an extension whose
+    /// name matches a nested same-file type extends a type from elsewhere.
     fn type_context(&self, base: &BaseExtractor, declaration: Node) -> TypeContext {
         type_declaration_name(base, declaration)
             .filter(|name| self.declared_types.contains(name))
+            .filter(|name| {
+                !is_extension(base, declaration)
+                    || self.type_parents.get(name) == Some(&TypeParent::TopLevel)
+            })
             .map_or(TypeContext::Unknown, TypeContext::Type)
+    }
+
+    /// Whether the bare type name at `call` refers to the same-file type of
+    /// that name: a nested type only inside its parent, a top-level type
+    /// anywhere. Lookup stops at a type context that is unknown or inherits,
+    /// because it may hold an unseen nested type of that name.
+    fn type_visible(&self, base: &BaseExtractor, name: &str, call: Node) -> bool {
+        let Some(parent) = self.type_parents.get(name) else {
+            return false;
+        };
+        let mut current = call.parent();
+        while let Some(node) = current {
+            if node.kind() == "class_declaration" {
+                let TypeContext::Type(owner) = self.type_context(base, node) else {
+                    return false;
+                };
+                if *parent == TypeParent::Type(owner.clone()) {
+                    return true;
+                }
+                if self.inheriting_types.contains(&owner) {
+                    return false;
+                }
+            }
+            current = node.parent();
+        }
+        *parent == TypeParent::TopLevel
     }
 
     /// The type context enclosing `node`, from the nearest type declaration.
@@ -338,19 +513,36 @@ impl ReturnTypeIndex {
         TypeContext::File
     }
 
-    /// The return type all candidates agree on, if there is at least one.
-    fn unanimous<'a>(entries: impl IntoIterator<Item = &'a ReturnEntry>) -> Option<TypeShape> {
-        let mut shapes = entries.into_iter().map(|entry| entry.shape.as_ref());
-        let first = shapes.next()??;
-        shapes
-            .all(|shape| shape == Some(first))
-            .then(|| first.clone())
+    /// The return type that every candidate the call may bind to agrees
+    /// on, when at least one candidate surely fits the call's labels.
+    fn resolve<'a>(
+        entries: impl IntoIterator<Item = &'a ReturnEntry>,
+        arguments: &[Argument],
+    ) -> Option<TypeShape> {
+        let mut any_sure_fit = false;
+        let mut shapes = Vec::new();
+        for entry in entries {
+            match entry.fit(arguments) {
+                Fit::No => continue,
+                Fit::Maybe => {}
+                Fit::Yes => any_sure_fit = true,
+            }
+            shapes.push(entry.shape.as_ref());
+        }
+        let first = (*shapes.first()?)?;
+        (any_sure_fit && shapes.iter().all(|shape| *shape == Some(first))).then(|| first.clone())
     }
 
     /// A member call on a same-file type. A type with an inheritance clause
     /// records nothing: a base class or a protocol extension can add a
     /// same-named overload with other labels that the call picks instead.
-    fn member_call(&self, owner: &str, name: &str, static_only: bool) -> Option<TypeShape> {
+    fn member_call(
+        &self,
+        owner: &str,
+        name: &str,
+        static_only: bool,
+        arguments: &[Argument],
+    ) -> Option<TypeShape> {
         if self.inheriting_types.contains(owner)
             || self
                 .member_values
@@ -367,30 +559,35 @@ impl ReturnTypeIndex {
         if static_only && members.iter().any(|entry| !entry.is_static) {
             return None;
         }
-        Self::unanimous(members)
+        Self::resolve(members, arguments)
     }
 
-    /// An unqualified call: an in-scope local function shadows a member of
-    /// the enclosing type, which shadows a member of each outer type, which
-    /// shadows a free function. Lookup stops at a type context that is
-    /// unknown or inherits, because it may hold unseen members.
-    fn unqualified_call(&self, base: &BaseExtractor, name: &str, call: Node) -> Option<TypeShape> {
+    /// An unqualified call: lookup walks out from the call, and the first
+    /// scope that declares the name wins. A local function counts in the
+    /// body that holds it, a member in its type, and a free function at file
+    /// scope. Lookup stops at a type context that is unknown or inherits,
+    /// because it may hold unseen members.
+    fn unqualified_call(
+        &self,
+        base: &BaseExtractor,
+        name: &str,
+        call: Node,
+        arguments: &[Argument],
+    ) -> Option<TypeShape> {
         if self.value_names.contains(name) {
             return None;
         }
         let entries = self.functions.get(name)?;
-        let locals: Vec<&ReturnEntry> = entries
-            .iter()
-            .filter(|entry| {
-                matches!(&entry.owner, Owner::Local(scope) if scope.contains(&call.start_byte()))
-            })
-            .collect();
-        if !locals.is_empty() {
-            return Self::unanimous(locals);
-        }
         let mut static_only = false;
         let mut current = call.parent();
         while let Some(node) = current {
+            let locals: Vec<&ReturnEntry> = entries
+                .iter()
+                .filter(|entry| matches!(&entry.owner, Owner::Local(scope) if *scope == node.byte_range()))
+                .collect();
+            if !locals.is_empty() {
+                return Self::resolve(locals, arguments);
+            }
             if node.kind() == "class_declaration" {
                 let TypeContext::Type(owner) = self.type_context(base, node) else {
                     return None;
@@ -399,7 +596,7 @@ impl ReturnTypeIndex {
                     .iter()
                     .any(|e| matches!(&e.owner, Owner::Type(o) if *o == owner))
                 {
-                    return self.member_call(&owner, name, static_only);
+                    return self.member_call(&owner, name, static_only, arguments);
                 }
                 if self.inheriting_types.contains(&owner) {
                     return None;
@@ -408,7 +605,10 @@ impl ReturnTypeIndex {
             }
             current = node.parent();
         }
-        Self::unanimous(entries.iter().filter(|e| matches!(e.owner, Owner::Free)))
+        Self::resolve(
+            entries.iter().filter(|e| matches!(e.owner, Owner::Free)),
+            arguments,
+        )
     }
 }
 
@@ -458,9 +658,7 @@ impl InitializerScope<'_> {
     }
 
     fn call_shape(&self, call: Node) -> Option<TypeShape> {
-        if is_subscript(call) {
-            return None;
-        }
+        let arguments = call_arguments(self.base, call)?;
         let callee = call.named_child(0)?;
         let index = self.return_types;
         match callee.kind() {
@@ -472,7 +670,7 @@ impl InitializerScope<'_> {
                         name,
                     });
                 }
-                index.unqualified_call(self.base, &name, call)
+                index.unqualified_call(self.base, &name, call, &arguments)
             }
             "navigation_expression" => {
                 let method = callee
@@ -488,19 +686,20 @@ impl InitializerScope<'_> {
                     _ => None,
                 };
                 match target.kind() {
-                    "self_expression" => index.member_call(&context()?, &method, false),
+                    "self_expression" => index.member_call(&context()?, &method, false, &arguments),
                     "simple_identifier" => {
                         let target = self.base.get_node_text(&target);
                         let owner = if target == "Self" {
                             context()?
                         } else if index.declared_types.contains(&target)
                             && !index.value_names.contains(&target)
+                            && index.type_visible(self.base, &target, call)
                         {
                             target
                         } else {
                             return None;
                         };
-                        index.member_call(&owner, &method, true)
+                        index.member_call(&owner, &method, true, &arguments)
                     }
                     _ => None,
                 }
@@ -510,17 +709,150 @@ impl InitializerScope<'_> {
     }
 }
 
-/// `Foo[0]` parses as a call; its arguments open with `[`.
-fn is_subscript(call: Node) -> bool {
-    call.named_children(&mut call.walk())
-        .find(|child| child.kind() == "call_suffix")
-        .and_then(|suffix| {
-            suffix
-                .named_children(&mut suffix.walk())
-                .find(|child| child.kind() == "value_arguments")
-        })
-        .and_then(|arguments| arguments.child(0))
-        .is_some_and(|open| open.kind() == "[")
+/// The labels of a call's arguments, trailing closures included. `None`
+/// for a subscript (`Foo[0]` parses as a call whose arguments open with `[`)
+/// or an argument shape this reader does not know.
+fn call_arguments(base: &BaseExtractor, call: Node) -> Option<Vec<Argument>> {
+    let suffix = call
+        .named_children(&mut call.walk())
+        .find(|child| child.kind() == "call_suffix")?;
+    let mut arguments = Vec::new();
+    let mut closure_label = None;
+    for part in suffix.named_children(&mut suffix.walk()) {
+        match part.kind() {
+            "value_arguments" => {
+                if part.child(0)?.kind() == "[" {
+                    return None;
+                }
+                arguments.extend(
+                    part.named_children(&mut part.walk())
+                        .filter(|argument| argument.kind() == "value_argument")
+                        .map(|argument| {
+                            Argument::Label(
+                                argument
+                                    .child_by_field_name("name")
+                                    .map(|label| base.get_node_text(&label)),
+                            )
+                        }),
+                );
+            }
+            "simple_identifier" => closure_label = Some(base.get_node_text(&part)),
+            "lambda_literal" => arguments.push(match closure_label.take() {
+                Some(label) => Argument::Label(Some(label)),
+                None => Argument::TrailingClosure,
+            }),
+            "comment" | "multiline_comment" => {}
+            _ => return None,
+        }
+    }
+    Some(arguments)
+}
+
+fn parameters(base: &BaseExtractor, function: Node) -> Vec<Parameter> {
+    let mut parameters: Vec<Parameter> = Vec::new();
+    let mut cursor = function.walk();
+    for (index, child) in function.children(&mut cursor).enumerate() {
+        if child.kind() == "parameter" {
+            parameters.push(parameter(base, child));
+        } else if function.field_name_for_child(index as u32) == Some("default_value")
+            && let Some(last) = parameters.last_mut()
+        {
+            last.has_default = true;
+        }
+    }
+    parameters
+}
+
+fn parameter(base: &BaseExtractor, node: Node) -> Parameter {
+    let label = node
+        .child_by_field_name("external_name")
+        .or_else(|| node.child_by_field_name("name"))
+        .map(|label| base.get_node_text(&label))
+        .filter(|label| label != "_");
+    let mut cursor = node.walk();
+    let function_typed = node
+        .children_by_field_name("name", &mut cursor)
+        .any(|child| child.kind() == "function_type");
+    Parameter {
+        label,
+        has_default: false,
+        variadic: node
+            .children(&mut node.walk())
+            .any(|child| child.kind() == "..."),
+        function_typed,
+    }
+}
+
+/// Where a non-extension type declaration sits: at file scope, directly in
+/// a type body, or in a function or other local body.
+fn type_parent(base: &BaseExtractor, declaration: Node) -> TypeParent {
+    match declaration.parent() {
+        Some(parent) if parent.kind() == "source_file" => TypeParent::TopLevel,
+        Some(body) if matches!(body.kind(), "class_body" | "enum_class_body") => body
+            .parent()
+            .and_then(|owner| type_declaration_name(base, owner))
+            .map_or(TypeParent::Local, TypeParent::Type),
+        _ => TypeParent::Local,
+    }
+}
+
+/// Strip `T?`, `Optional<T>`, and `ImplicitlyUnwrappedOptional<T>` (also
+/// `Swift.`-qualified) from a type node, and count the layers removed.
+fn unwrap_optional_spellings<'a>(base: &BaseExtractor, node: Node<'a>) -> (Node<'a>, usize) {
+    let mut node = node;
+    let mut layers = 0;
+    loop {
+        let wrapped = match node.kind() {
+            "optional_type" => node.child_by_field_name("wrapped"),
+            "user_type" => optional_payload(base, node),
+            _ => None,
+        };
+        let Some(wrapped) = wrapped else {
+            return (node, layers);
+        };
+        node = wrapped;
+        layers += 1;
+    }
+}
+
+fn optional_payload<'a>(base: &BaseExtractor, user_type: Node<'a>) -> Option<Node<'a>> {
+    let mut cursor = user_type.walk();
+    let children: Vec<Node> = user_type.named_children(&mut cursor).collect();
+    let (arguments, segments) = children.split_last()?;
+    let segments: Vec<String> = segments
+        .iter()
+        .map(|segment| (segment.kind() == "type_identifier").then(|| base.get_node_text(segment)))
+        .collect::<Option<_>>()?;
+    let is_optional = matches!(
+        segments
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>()
+            .as_slice(),
+        ["Optional" | "ImplicitlyUnwrappedOptional"]
+            | ["Swift", "Optional" | "ImplicitlyUnwrappedOptional"]
+    );
+    if !is_optional || arguments.kind() != "type_arguments" {
+        return None;
+    }
+    let mut cursor = arguments.walk();
+    let payload: Vec<Node> = arguments.named_children(&mut cursor).collect();
+    match payload.as_slice() {
+        [payload] => Some(*payload),
+        _ => None,
+    }
+}
+
+fn type_identifiers(node: Node) -> Vec<Node> {
+    let mut found = Vec::new();
+    let mut stack = vec![node];
+    while let Some(current) = stack.pop() {
+        if current.kind() == "type_identifier" {
+            found.push(current);
+        }
+        stack.extend(current.named_children(&mut current.walk()));
+    }
+    found
 }
 
 fn is_extension(base: &BaseExtractor, declaration: Node) -> bool {

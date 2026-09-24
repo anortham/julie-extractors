@@ -48,20 +48,35 @@ The golden fixture `swift:structure` holds the evidence for these rules.
   the enclosing same-file type or its same-file extensions (`load()`,
   `self.load()`), a static member of an outer same-file type (`helper()` in a
   nested type), or a static or class member (`Type.make()`, `Self.make()`).
-  An unqualified call looks in the local scope, then in each enclosing type
-  from the inside out, then at free functions. `-> Self` records the
-  enclosing type. Same-named candidates must agree. `try`, `try!`, and
+  An unqualified call walks out from the call, and the first scope that
+  declares the name wins: a local function in the body that holds it, a
+  member in its type, and a free function at file scope. So a method of a
+  local type shadows a local function outside that type. `-> Self` records
+  the enclosing type. A candidate counts only when the call's argument labels
+  and argument count fit its parameters, with default values and variadics
+  taken into account. At least one candidate must surely fit, and all
+  candidates that fit or may fit must agree. An unlabeled trailing closure
+  surely fits only a required parameter with a function type. If no
+  same-file candidate fits, the call goes to an overload in another file, so
+  it records nothing. A return spelled `Optional<T>`, `Swift.Optional<T>`,
+  or `T!` records `T` with the declared text `T?`. `try`, `try!`, and
   `await` keep the type, `try?` makes the declared text optional, and a
-  postfix `!` removes one optional layer. No fact comes from a generic return
-  type, a chain that ends in another call, a subscript (`Foo[0]`), a receiver
-  other than `self` or a same-file type name, a callee name that is also a
-  value (a parameter, a variable, or an `if let` binding), a protocol or
-  other-file extension member, or a type name that the file declares more
-  than once (two nested `Node` types). A type with an inheritance clause
-  records nothing for its own member calls or for unqualified calls inside
-  it, because a base class or a protocol extension can add a same-named
-  overload that the call picks instead. Other files are out of scope because
-  each file is extracted alone.
+  postfix `!` removes one optional layer. A `Type.make()` receiver names a
+  nested type only inside a type that declares it, and names a top-level
+  type anywhere else. An `extension` whose name matches only a nested type
+  extends a type from another file. No fact comes from a generic return type
+  (a typealias for a generic parameter counts as generic), a chain that ends
+  in another call, a call with both parentheses and a trailing closure
+  (`load(x) { }`), a subscript (`Foo[0]`), a receiver other than `self` or a
+  same-file type name, a callee name that is also a value (a parameter, a
+  variable, or an `if let` binding), a protocol or other-file extension
+  member, a local type used as a receiver, or a type name that the file
+  declares more than once (two nested `Node` types). A type with an
+  inheritance clause records nothing for its own member calls, for
+  unqualified calls inside it, or for a `Type.make()` receiver inside it,
+  because a base class or a protocol can add a same-named overload or nested
+  type that the call picks instead. Other files are out of scope because each
+  file is extracted alone.
 - **Access levels.** An explicit modifier wins. Without one, a declaration is
   `internal`, a member of a private type is `fileprivate`, an extension member
   takes the extension's level (`private` there means `fileprivate`), and a

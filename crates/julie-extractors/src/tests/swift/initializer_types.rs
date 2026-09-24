@@ -249,17 +249,33 @@ fn unknown_or_void_callee_records_nothing() {
 }
 
 #[test]
-fn disagreeing_overloads_record_nothing() {
+fn disagreeing_overloads_that_fit_the_labels_record_nothing() {
+    let source = r#"
+class Workspace {}
+class Draft {}
+func load(id: Int) -> Workspace { fatalError() }
+func load(id: String) -> Draft { fatalError() }
+func run() {
+    let item = load(id: 1)
+}
+"#;
+    assert_eq!(type_of(source, "item"), None);
+}
+
+#[test]
+fn argument_labels_pick_among_disagreeing_overloads() {
     let source = r#"
 class Workspace {}
 class Draft {}
 func load(id: Int) -> Workspace { fatalError() }
 func load(name: String) -> Draft { fatalError() }
 func run() {
-    let item = load(id: 1)
+    let byId = load(id: 1)
+    let byName = load(name: "n")
 }
 "#;
-    assert_eq!(type_of(source, "item"), None);
+    assert_eq!(type_of(source, "byId"), inferred("Workspace", None));
+    assert_eq!(type_of(source, "byName"), inferred("Draft", None));
 }
 
 #[test]
@@ -598,4 +614,194 @@ let c11 = try Foo[0]
 "#;
     assert_eq!(type_of(source, "c10"), None);
     assert_eq!(type_of(source, "c11"), None);
+}
+
+#[test]
+fn call_whose_labels_or_argument_count_fit_no_same_file_function_records_nothing() {
+    let source = r#"
+struct Workspace {}
+func load() -> Workspace { Workspace() }
+final class Store {
+    func fetch() -> Workspace { Workspace() }
+    static func make() -> Workspace { Workspace() }
+    func run() {
+        let memberLabel = self.fetch(path: "p")
+        let implicitCount = fetch(1)
+        let staticLabel = Store.make(x: 1)
+    }
+}
+func run() {
+    let labelMismatch = load(path: "p")
+    let argMismatch = load(42)
+}
+"#;
+    for local in [
+        "labelMismatch",
+        "argMismatch",
+        "memberLabel",
+        "implicitCount",
+        "staticLabel",
+    ] {
+        assert_eq!(type_of(source, local), None, "{local}");
+    }
+}
+
+#[test]
+fn call_that_fits_labels_defaults_variadics_and_trailing_closure_records_return_type() {
+    let source = r#"
+struct Workspace {}
+func open(path p: String, mode: Int = 0, _ tags: String..., done: () -> Void) -> Workspace { Workspace() }
+func watch(done: @escaping () -> Void) -> Workspace { Workspace() }
+func run() {
+    let withTags = open(path: "p", "a", "b", done: {})
+    let withMode = open(path: "p", mode: 1, done: {})
+    let trailing = watch { }
+    let parenthesesAndTrailing = open(path: "p") { }
+}
+"#;
+    for local in ["withTags", "withMode", "trailing"] {
+        assert_eq!(
+            type_of(source, local),
+            inferred("Workspace", None),
+            "{local}"
+        );
+    }
+    assert_eq!(type_of(source, "parenthesesAndTrailing"), None);
+}
+
+#[test]
+fn trailing_closure_that_may_skip_a_defaulted_parameter_records_nothing() {
+    let source = r#"
+struct Workspace {}
+func load(retries: Int = 0, done: () -> Void) -> Workspace { Workspace() }
+func run() {
+    let unsure = load { }
+}
+"#;
+    assert_eq!(type_of(source, "unsure"), None);
+}
+
+#[test]
+fn nested_type_name_resolves_only_where_the_nested_type_is_visible() {
+    let source = r#"
+struct Parser {
+    enum Options { static func defaults() -> Int { 1 } }
+    func parse() {
+        let inParser = Options.defaults()
+    }
+}
+func run() {
+    let nestedAtFile = Options.defaults()
+    enum Local { static func make() -> Int { 1 } }
+    let localReceiver = Local.make()
+}
+"#;
+    assert_eq!(type_of(source, "inParser"), inferred("Int", None));
+    assert_eq!(type_of(source, "nestedAtFile"), None);
+    assert_eq!(type_of(source, "localReceiver"), None);
+}
+
+#[test]
+fn extension_named_like_a_nested_type_extends_another_type() {
+    let source = r#"
+struct Parser {
+    enum Options {}
+}
+extension Options {
+    static func defaults() -> Int { 1 }
+    func run() {
+        let viaExtension = defaults()
+        let viaSelf = Self.defaults()
+    }
+}
+"#;
+    assert_eq!(type_of(source, "viaExtension"), None);
+    assert_eq!(type_of(source, "viaSelf"), None);
+}
+
+#[test]
+fn member_of_local_type_shadows_outer_local_function() {
+    let source = r#"
+struct A {}
+struct B {}
+func outer() {
+    func load() -> A { A() }
+    final class C {
+        func load() -> B { B() }
+        func g() { let memberWins = load() }
+    }
+    let localWins = load()
+}
+"#;
+    assert_eq!(type_of(source, "memberWins"), inferred("B", None));
+    assert_eq!(type_of(source, "localWins"), inferred("A", None));
+}
+
+#[test]
+fn optional_generic_spelling_records_the_wrapped_type() {
+    let source = r#"
+struct Workspace {}
+func maybe() -> Optional<Workspace> { nil }
+func qualified() -> Swift.Optional<Workspace> { nil }
+func lenient() -> Workspace! { nil }
+func wrap<T>() -> Optional<T> { nil }
+let forcedOptional = maybe()!
+let plainOptional = maybe()
+let qualifiedOptional = qualified()
+let lenientResult = lenient()
+let wrapped = wrap()
+"#;
+    assert_eq!(
+        type_of(source, "forcedOptional"),
+        inferred("Workspace", None)
+    );
+    for local in ["plainOptional", "qualifiedOptional", "lenientResult"] {
+        assert_eq!(
+            type_of(source, local),
+            inferred("Workspace", Some("Workspace?")),
+            "{local}"
+        );
+    }
+    assert_eq!(type_of(source, "wrapped"), None);
+}
+
+#[test]
+fn typealias_for_a_generic_parameter_counts_as_generic() {
+    let source = r#"
+struct Box<T> {
+    typealias Item = T
+    typealias Items = [Item]
+    typealias Count = Int
+    func get() -> Item { fatalError() }
+    func all() -> Items { fatalError() }
+    func count() -> Count { 0 }
+    func use() {
+        let aliasGeneric = get()
+        let aliasOfAlias = all()
+        let concreteAlias = count()
+    }
+}
+"#;
+    assert_eq!(type_of(source, "aliasGeneric"), None);
+    assert_eq!(type_of(source, "aliasOfAlias"), None);
+    assert_eq!(type_of(source, "concreteAlias"), inferred("Count", None));
+}
+
+#[test]
+fn type_name_receiver_inside_inheriting_or_unknown_type_records_nothing() {
+    let source = r#"
+enum Helper { static func make() -> Int { 1 } }
+class Sub: Base {
+    func f() { let inSub = Helper.make() }
+}
+extension Remote {
+    func f() { let inRemote = Helper.make() }
+}
+struct Plain {
+    func f() { let inPlain = Helper.make() }
+}
+"#;
+    assert_eq!(type_of(source, "inSub"), None);
+    assert_eq!(type_of(source, "inRemote"), None);
+    assert_eq!(type_of(source, "inPlain"), inferred("Int", None));
 }
