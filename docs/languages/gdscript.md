@@ -30,6 +30,9 @@ inner classes with the same name never share functions.
 - `Foo.f()`: records the declared return type of `f` in class `Foo`. `Foo`
   must mean exactly one same-file class at the call site: an inner class of
   the current scope or of a scope around it, or the script's `class_name`.
+  No parameter or local of the function, and no other member (const, var,
+  enum, signal, function) of the current scope or a scope around it, can
+  have the name `Foo`.
 - `await expr` and `(expr)` pass the type of `expr` through.
 
 ## Initializers that record nothing
@@ -45,12 +48,23 @@ inner classes with the same name never share functions.
   not follow `extends`.
 - A bare call from an inner class to a function of an outer class, or from the
   script to a function of an inner class.
+- A bare call `f()` when `f` is a built-in type (`String`, `Vector2`), a
+  GDScript utility function (`load`, `range`, `len`), or a `@GlobalScope`
+  utility function (`str`, `max`, `print`). Godot resolves these names
+  before any method, so `func load()` in the class does not change what
+  `load()` returns. `self.load()` calls the method and records its type.
 - `Foo.f()` when two same-file classes named `Foo` are visible at the call
   site, or when `Foo` does not declare `f`.
-- `Foo.f()` whose return type names a class that means a different class, or
-  no same-file class, at the call site. For example, `A.make() -> Result`
-  where `Result` is `A.Result` records nothing at the script level, because
-  `Result` there means a different class or a class in another file.
+- `Foo.f()` or `Foo.new()` when a parameter, a local, a `for` variable, or a
+  class member other than a class has the name `Foo`. Godot resolves the
+  nearer name first, so `Foo` is not the class there. A local declared
+  anywhere in the function counts, also one in another block.
+- `Foo.f()` whose return type names a class, enum or const that means a
+  different declaration, or no same-file declaration, at the call site. For
+  example, `A.make() -> Result` where `Result` is `A.Result` records nothing
+  at the script level, because `Result` there means a different class or a
+  class in another file. The same holds for `A.kind() -> Kind` where `Kind`
+  is an enum of `A`, and for `const Res = preload(...)` in `A`.
 - Any other receiver: locals, `super`, other files' classes, and qualified
   receivers such as `a.Inner.build()`.
 - A chain that ends in any other call, such as `load_thing().open()`, and

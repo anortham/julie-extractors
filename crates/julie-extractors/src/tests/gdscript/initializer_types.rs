@@ -332,3 +332,164 @@ fn return_type_from_nested_class_visible_at_outer_call_site_records_it() {
         inferred("Local")
     );
 }
+
+const TYPE_MEMBERS: &str = "class_name Sample
+extends Node
+enum Kind { SCRIPT_A }
+class Shape:
+\tpass
+class A:
+\tenum Kind { INNER_X }
+\tenum Shape { ROUND }
+\tconst Res = preload(\"res://other.gd\")
+\tstatic func kind() -> Kind:
+\t\treturn Kind.INNER_X
+\tstatic func res() -> Res:
+\t\treturn null
+\tstatic func shape() -> Shape:
+\t\treturn Shape.ROUND
+class B:
+\tenum Kind { B_ONLY }
+\tfunc g():
+\t\tvar from_script = Sample.script_kind()
+static func script_kind() -> Kind:
+\treturn Kind.SCRIPT_A
+func top():
+\tvar enum_leak = A.kind()
+\tvar const_leak = A.res()
+\tvar shadowed_class = A.shape()
+\tvar own_enum = script_kind()
+";
+
+#[test]
+fn return_type_naming_another_class_enum_records_nothing() {
+    assert_eq!(inferred_type(TYPE_MEMBERS, "enum_leak"), None);
+    assert_eq!(inferred_type(TYPE_MEMBERS, "from_script"), None);
+}
+
+#[test]
+fn return_type_naming_another_class_const_records_nothing() {
+    assert_eq!(inferred_type(TYPE_MEMBERS, "const_leak"), None);
+}
+
+#[test]
+fn return_type_naming_an_enum_that_shadows_an_outer_class_records_nothing() {
+    assert_eq!(inferred_type(TYPE_MEMBERS, "shadowed_class"), None);
+}
+
+#[test]
+fn return_type_naming_an_enum_of_the_same_scope_records_it() {
+    assert_eq!(inferred_type(TYPE_MEMBERS, "own_enum"), inferred("Kind"));
+}
+
+const GLOBAL_NAMED_METHODS: &str = "extends Node
+func str(v) -> int:
+\treturn 1
+func load(p) -> Dictionary:
+\treturn {}
+func max(a, b) -> Node:
+\treturn null
+func range(n) -> String:
+\treturn \"\"
+func Vector2(x) -> Node:
+\treturn null
+func use():
+\tvar s = str(1)
+\tvar l = load(\"x\")
+\tvar m = max(1, 2)
+\tvar r = range(3)
+\tvar v = Vector2(1)
+\tvar own_load = self.load(\"x\")
+";
+
+#[test]
+fn bare_call_to_method_named_like_a_global_function_records_nothing() {
+    for variable in ["s", "l", "m", "r", "v"] {
+        assert_eq!(
+            inferred_type(GLOBAL_NAMED_METHODS, variable),
+            None,
+            "{variable}"
+        );
+    }
+}
+
+#[test]
+fn self_call_to_method_named_like_a_global_function_records_return_type() {
+    assert_eq!(
+        inferred_type(GLOBAL_NAMED_METHODS, "own_load"),
+        inferred("Dictionary")
+    );
+}
+
+const SHADOWED_RECEIVERS: &str = "extends Node
+class Tools:
+\tstatic func build() -> Dictionary:
+\t\treturn {}
+func plain():
+\tvar unshadowed = Tools.build()
+func shadow(Tools):
+\tvar by_parameter = Tools.build()
+\tvar new_by_parameter = Tools.new()
+func typed(Tools: Object = null):
+\tvar by_typed_parameter = Tools.build()
+func local():
+\tvar Tools = null
+\tvar by_local = Tools.build()
+func loop(items):
+\tfor Tools in items:
+\t\tvar by_loop = Tools.build()
+class Inner:
+\tconst Tools = preload(\"res://tools.gd\")
+\tfunc g():
+\t\tvar by_const = Tools.build()
+\t\tvar new_by_const = Tools.new()
+class Holder:
+\tvar Tools
+\tfunc g():
+\t\tvar by_member = Tools.build()
+";
+
+#[test]
+fn static_call_on_unshadowed_class_records_return_type() {
+    assert_eq!(
+        inferred_type(SHADOWED_RECEIVERS, "unshadowed"),
+        inferred("Dictionary")
+    );
+}
+
+#[test]
+fn static_call_on_name_shadowed_by_parameter_or_local_records_nothing() {
+    for variable in [
+        "by_parameter",
+        "new_by_parameter",
+        "by_typed_parameter",
+        "by_local",
+        "by_loop",
+    ] {
+        assert_eq!(
+            inferred_type(SHADOWED_RECEIVERS, variable),
+            None,
+            "{variable}"
+        );
+    }
+}
+
+#[test]
+fn static_call_on_name_shadowed_by_class_member_records_nothing() {
+    for variable in ["by_const", "new_by_const", "by_member"] {
+        assert_eq!(
+            inferred_type(SHADOWED_RECEIVERS, variable),
+            None,
+            "{variable}"
+        );
+    }
+}
+
+#[test]
+fn chain_after_same_file_static_call_records_nothing() {
+    assert_eq!(
+        workspace_type("var workspace = Inner.build().peers()"),
+        None
+    );
+    assert_eq!(workspace_type("var workspace = Inner.build().value"), None);
+}
