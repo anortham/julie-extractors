@@ -146,10 +146,12 @@ fn parameter_pattern_of_args(args: Node<'_>) -> Node<'_> {
     args
 }
 
-/// The written return type of a member, from the `typed_pattern` that wraps
-/// its `args`.
+/// The written return type of a member, from the `typed_pattern` that wraps its
+/// last `args` (`static member Make (a: int) (b: int) : R`).
 pub(super) fn member_return_type(definition: Node<'_>) -> Option<Node<'_>> {
-    let args = definition.child_by_field_name("args")?;
+    let args = definition
+        .children_by_field_name("args", &mut definition.walk())
+        .last()?;
     if args.kind() != "typed_pattern" {
         return None;
     }

@@ -401,10 +401,13 @@ fn enclosing_member_instance(base: &BaseExtractor, node: Node) -> Option<String>
     }
 }
 
-fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
+pub(super) fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
     let mut current = node.parent();
     let body = loop {
         let candidate = current?;
+        if candidate.kind() == "object_expression" {
+            return None;
+        }
         if matches!(
             candidate.kind(),
             "anon_type_defn"
