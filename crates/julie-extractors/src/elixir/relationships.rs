@@ -1,7 +1,7 @@
 /// Relationship extraction for Elixir symbols.
 ///
 /// Handles: use (Uses), @behaviour (Implements), defimpl (Implements), function calls (Calls).
-use super::helpers;
+use super::{helpers, type_facts};
 use crate::base::{
     BaseExtractor, ContainingSymbolIndex, Relationship, RelationshipKind, Symbol, SymbolKind,
     UnresolvedTarget,
@@ -39,6 +39,7 @@ struct CallScope<'a> {
     by_id: HashMap<&'a str, &'a Symbol>,
     callables: HashMap<(Option<&'a str>, &'a str), Vec<Callable<'a>>>,
     aliases: HashMap<Option<String>, HashMap<String, String>>,
+    variables_by_start: HashMap<u32, &'a Symbol>,
 }
 
 struct Callable<'a> {
@@ -81,6 +82,11 @@ impl<'a> CallScope<'a> {
             by_id,
             callables: HashMap::new(),
             aliases: HashMap::new(),
+            variables_by_start: symbols
+                .iter()
+                .filter(|s| s.kind == SymbolKind::Variable)
+                .map(|s| (s.start_byte, s))
+                .collect(),
         };
         for symbol in symbols.iter().filter(|s| is_callable_definition(s)) {
             let (min_arity, max_arity) = root
@@ -212,6 +218,17 @@ impl<'a> CallScope<'a> {
         }
     }
 
+    /// Every definition of `name` in `module` that accepts `arity` arguments.
+    fn definitions(&self, module: Option<&Symbol>, name: &str, arity: usize) -> Vec<&'a Symbol> {
+        self.callables
+            .get(&(module.map(|m| m.id.as_str()), name))
+            .into_iter()
+            .flatten()
+            .filter(|c| (c.min_arity..=c.max_arity).contains(&arity))
+            .map(|c| c.symbol)
+            .collect()
+    }
+
     fn resolve(&self, module: Option<&Symbol>, name: &str, arity: usize) -> Option<&'a Symbol> {
         let candidates = self.callables.get(&(module.map(|m| m.id.as_str()), name))?;
         candidates
@@ -294,6 +311,7 @@ fn walk_for_relationships(
                 }
             }
         }
+        "binary_operator" => record_initializer_type(extractor, node, scope),
         "unary_operator" if is_module_attribute(&extractor.base, &node) => {
             extract_behaviour_relationship(extractor, &node, scope, relationships);
             return;
@@ -321,6 +339,92 @@ fn walk_for_relationships(
     for child in node.children(&mut cursor) {
         walk_for_relationships(extractor, child, symbols, scope, relationships, child_depth);
     }
+}
+
+/// Give the local bound by `x = call()` the `@spec` return type of the
+/// same-file definition the call reaches, and the local bound by
+/// `{:ok, x} = call()` the `T` of its `{:ok, T}` return.
+fn record_initializer_type(
+    extractor: &mut super::ElixirExtractor,
+    node: Node,
+    scope: &CallScope<'_>,
+) {
+    let Some((binder, binds_ok_payload)) = type_facts::match_binder(&extractor.base, node) else {
+        return;
+    };
+    let Some(local) = scope
+        .variables_by_start
+        .get(&(binder.start_byte() as u32))
+        .filter(|local| local.name == extractor.base.get_node_text(&binder))
+    else {
+        return;
+    };
+    let Some(type_name) = node
+        .child_by_field_name("right")
+        .and_then(|value| initializer_type(extractor, value, scope, binds_ok_payload))
+    else {
+        return;
+    };
+    type_facts::record_type_fact(&mut extractor.base, &local.id, &type_name, true);
+}
+
+/// The return type every same-file definition a call can reach agrees on: a
+/// local call in the enclosing module, or `Alias.fun()` / `__MODULE__.fun()`
+/// on a module defined in this file. A piped call counts the piped argument.
+/// A macro expands at compile time, so a macro call records nothing.
+fn initializer_type(
+    extractor: &super::ElixirExtractor,
+    value: Node,
+    scope: &CallScope<'_>,
+    ok_payload: bool,
+) -> Option<String> {
+    let call = if value.kind() == "binary_operator"
+        && value.child_by_field_name("operator")?.kind() == "|>"
+    {
+        value.child_by_field_name("right")?
+    } else {
+        value
+    };
+    if call.kind() != "call" {
+        return None;
+    }
+    let base = &extractor.base;
+    let target = call.child_by_field_name("target")?;
+    let enclosing = scope.enclosing_module(&call);
+    let (module, name) = match target.kind() {
+        "identifier" => (enclosing, base.get_node_text(&target)),
+        "dot" => {
+            let left = target.child_by_field_name("left")?;
+            let reference = base.get_node_text(&left);
+            let module = scope.expand_module(enclosing, &reference);
+            let module = *scope.modules_by_name.get(module.as_str())?;
+            (
+                Some(module),
+                base.get_node_text(&target.child_by_field_name("right")?),
+            )
+        }
+        _ => return None,
+    };
+    let mut types = scope
+        .definitions(module, &name, call_arity(base, &call))
+        .into_iter()
+        .map(|definition| {
+            if definition.metadata.as_ref().and_then(|m| m.get("macro"))
+                == Some(&serde_json::Value::Bool(true))
+            {
+                return None;
+            }
+            let spec = extractor.spec_returns.get(&definition.id)?;
+            if ok_payload {
+                spec.ok_payload.clone()
+            } else {
+                spec.base.clone()
+            }
+        });
+    let first = types.next()??;
+    types
+        .all(|other| other.as_ref() == Some(&first))
+        .then_some(first)
 }
 
 fn is_module_attribute(base: &BaseExtractor, node: &Node) -> bool {

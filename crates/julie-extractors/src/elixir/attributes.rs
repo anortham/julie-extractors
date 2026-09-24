@@ -3,6 +3,7 @@
 /// Handles @type, @typep, @opaque, @callback, @spec, @behaviour, @moduledoc, @doc.
 /// In tree-sitter-elixir, attributes parse as `unary_operator` with `@` operator.
 use super::ElixirExtractor;
+use super::types_inference::SpecReturn;
 use crate::base::{
     BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility, find_child_by_type,
     normalize_annotations,
@@ -221,7 +222,8 @@ fn extract_callback_attribute(
 }
 
 /// Record the return type of a `@spec` under its module, name, and arity, so
-/// only the definition with the matching head takes it.
+/// only the definition with the matching head takes it. Two specs for one
+/// head with different return types record nothing for it.
 fn extract_spec_attribute(extractor: &mut ElixirExtractor, call_node: &Node) {
     let Some(body) = find_child_by_type(call_node, "arguments").and_then(|a| typespec_body(&a))
     else {
@@ -233,15 +235,20 @@ fn extract_spec_attribute(extractor: &mut ElixirExtractor, call_node: &Node) {
     ) else {
         return;
     };
-    if return_type.kind() == "identifier" {
-        return;
-    }
     let Some((name, arity)) = typespec_head(&extractor.base, head) else {
         return;
     };
     let module = extractor.module_stack.last().cloned();
-    let return_type = extractor.base.get_node_text(&return_type);
-    extractor.specs.insert((module, name, arity), return_type);
+    let spec = SpecReturn::from_node(&extractor.base, return_type);
+    extractor
+        .specs
+        .entry((module, name, arity))
+        .and_modify(|existing| {
+            if existing.as_ref() != Some(&spec) {
+                *existing = None;
+            }
+        })
+        .or_insert(Some(spec));
 }
 
 fn extract_behaviour_attribute(
