@@ -1,6 +1,7 @@
 //! Lexical scope helpers: local bindings, table-path owners, and function values.
 
 use crate::base::{BaseExtractor, NormalizedSpan, Symbol, SymbolKind};
+use crate::tree_traversal::child_tree_depth;
 use tree_sitter::Node;
 
 /// Span from the start of `start` to the end of `end`.
@@ -47,6 +48,33 @@ pub(super) fn is_local_binding_in_scope(base: &BaseExtractor, node: Node, name: 
     false
 }
 
+/// The innermost declaration that binds `name` at `node`: a `local`, a
+/// `local function` (also inside its own body), a parameter list, or a loop
+/// clause. `None` means `name` is global at `node`.
+pub(super) fn innermost_local_binding<'tree>(
+    base: &BaseExtractor,
+    node: Node<'tree>,
+    name: &str,
+) -> Option<Node<'tree>> {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        let mut cursor = parent.walk();
+        let declaration = parent
+            .children(&mut cursor)
+            .take_while(|sibling| sibling.start_byte() < current.start_byte())
+            .filter(|sibling| declares_local(base, *sibling, name))
+            .last();
+        if declaration.is_some() {
+            return declaration;
+        }
+        if parent.kind() == "function_declaration" && declares_local(base, parent, name) {
+            return Some(parent);
+        }
+        current = parent;
+    }
+    None
+}
+
 fn declares_local(base: &BaseExtractor, node: Node, name: &str) -> bool {
     match node.kind() {
         "variable_declaration" => {
@@ -82,13 +110,24 @@ pub(super) fn resolve_table_symbol_id(
     table: Node,
     symbols: &[Symbol],
 ) -> Option<String> {
+    resolve_table_symbol_id_at(base, table, symbols, 0)
+}
+
+/// `None` past the traversal depth limit, so a very deep chain has no owner.
+fn resolve_table_symbol_id_at(
+    base: &BaseExtractor,
+    table: Node,
+    symbols: &[Symbol],
+    depth: u32,
+) -> Option<String> {
+    let depth = child_tree_depth(depth)?;
     match table.kind() {
         "identifier" => {
             let name = base.get_node_text(&table);
             if name == "self"
                 && let Some(owner_table) = enclosing_colon_owner_table(table)
             {
-                return resolve_table_symbol_id(base, owner_table, symbols);
+                return resolve_table_symbol_id_at(base, owner_table, symbols, depth);
             }
             let binding = resolve_binding(&name, table.start_byte() as u32, symbols)?;
             let instance_class = binding
@@ -100,8 +139,12 @@ pub(super) fn resolve_table_symbol_id(
             Some(instance_class.unwrap_or(binding).id.clone())
         }
         "dot_index_expression" => {
-            let parent_id =
-                resolve_table_symbol_id(base, table.child_by_field_name("table")?, symbols)?;
+            let parent_id = resolve_table_symbol_id_at(
+                base,
+                table.child_by_field_name("table")?,
+                symbols,
+                depth,
+            )?;
             let field = base.get_node_text(&table.child_by_field_name("field")?);
             symbols
                 .iter()
@@ -113,7 +156,7 @@ pub(super) fn resolve_table_symbol_id(
     }
 }
 
-fn enclosing_colon_owner_table(mut node: Node) -> Option<Node> {
+pub(super) fn enclosing_colon_owner_table(mut node: Node) -> Option<Node> {
     while let Some(parent) = node.parent() {
         if matches!(
             parent.kind(),
@@ -127,6 +170,25 @@ fn enclosing_colon_owner_table(mut node: Node) -> Option<Node> {
         node = parent;
     }
     None
+}
+
+/// The owner table of the nearest enclosing colon method, past any nested
+/// functions that are not colon methods. Callers rule out a `self` local or
+/// parameter first, so `self` here is the method's implicit upvalue.
+pub(super) fn outer_colon_owner_table(node: Node) -> Option<Node> {
+    std::iter::successors(node.parent(), Node::parent)
+        .filter(|ancestor| {
+            matches!(
+                ancestor.kind(),
+                "function_declaration" | "function_definition_statement"
+            )
+        })
+        .find_map(|function| {
+            function
+                .child_by_field_name("name")
+                .filter(|name| name.kind() == "method_index_expression")
+        })?
+        .child_by_field_name("table")
 }
 
 /// The nearest earlier binding named `name` whose scope covers `position`.
