@@ -225,6 +225,7 @@ impl super::GoExtractor {
                         &symbol.id,
                         value,
                         0,
+                        &self.result_types,
                     );
                 } else if let Some(call) = single_call_value {
                     super::type_facts::record_inferred_value_type(
@@ -232,6 +233,7 @@ impl super::GoExtractor {
                         &symbol.id,
                         call,
                         index,
+                        &self.result_types,
                     );
                 }
                 symbol
@@ -308,6 +310,7 @@ impl super::GoExtractor {
                         &symbol.id,
                         value_node,
                         result_index,
+                        &self.result_types,
                     );
                 }
                 Some(symbol)

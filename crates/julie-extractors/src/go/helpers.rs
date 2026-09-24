@@ -348,7 +348,7 @@ pub(super) fn finalize_function_symbol(mut symbol: Symbol, doc_comment: Option<S
     symbol
 }
 
-fn receiver_base_type_node(type_node: Node) -> Option<Node> {
+pub(super) fn receiver_base_type_node(type_node: Node) -> Option<Node> {
     match type_node.kind() {
         "type_identifier" => Some(type_node),
         "pointer_type" => receiver_base_type_node(type_node.named_child(0)?),
