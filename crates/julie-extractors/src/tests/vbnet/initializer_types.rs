@@ -424,3 +424,258 @@ End Class
     assert_eq!(inferred_type(source, "workspace"), None);
     assert_eq!(inferred_type(source, "local"), None);
 }
+
+#[test]
+fn arguments_to_a_parameterless_function_index_the_result_and_record_no_fact() {
+    let source = r#"
+Class Indexer
+    Function Load() As Workspace()
+    End Function
+    Function Items() As List(Of Workspace)
+    End Function
+    Function Name() As String
+    End Function
+    Sub Run()
+        Dim idx = Load(0)
+        Dim item = Items(0)
+        Dim ch = Name(0)
+        Dim meIdx = Me.Load(0)
+        Dim sharedIdx = Indexer.Load(0)
+    End Sub
+End Class
+"#;
+    for local in ["idx", "item", "ch", "meIdx", "sharedIdx"] {
+        assert_eq!(inferred_type(source, local), None, "{local}");
+    }
+}
+
+#[test]
+fn optional_and_param_array_parameters_accept_their_argument_counts() {
+    let source = r#"
+Class Loader
+    Function Load(path As String, Optional retries As Integer = 1) As Workspace
+    End Function
+    Function Merge(ParamArray parts() As Workspace) As Workspace
+    End Function
+    Sub Run()
+        Dim one = Load("a")
+        Dim two = Load("a", 2)
+        Dim skipped = Load("a", )
+        Dim three = Load("a", 2, 3)
+        Dim none = Load()
+        Dim merged = Merge(a, b, c, d)
+        Dim empty = Merge()
+    End Sub
+End Class
+"#;
+    for local in ["one", "two", "skipped", "merged", "empty"] {
+        assert_eq!(inferred_type(source, local), workspace(), "{local}");
+    }
+    for local in ["three", "none"] {
+        assert_eq!(inferred_type(source, local), None, "{local}");
+    }
+}
+
+#[test]
+fn unawaited_configure_await_records_no_fact() {
+    for statement in [
+        "Dim workspace = LoadAsync().ConfigureAwait(False)",
+        "Dim workspace = Me.LoadAsync().ConfigureAwait(False)",
+        "Dim workspace = Await LoadAsync().ConfigureAwait(False).ConfigureAwait(False)",
+    ] {
+        assert_eq!(workspace_type(statement), None, "{statement}");
+    }
+}
+
+#[test]
+fn lambda_parameter_shadows_the_called_name() {
+    let source = r#"
+Module Loaders
+    Function Load() As Workspace
+    End Function
+    Function Create() As Workspace
+    End Function
+End Module
+Class Sample
+    Sub Run()
+        Dim f = Function(Load As Func(Of Other))
+                    Dim viaLambdaParam = Load()
+                    Return viaLambdaParam
+                End Function
+        Dim g = Sub(Loaders)
+                    Dim viaLambdaQualifier = Loaders.Create()
+                End Sub
+        Dim outside = Load()
+    End Sub
+End Class
+"#;
+    assert_eq!(inferred_type(source, "viaLambdaParam"), None);
+    assert_eq!(inferred_type(source, "viaLambdaQualifier"), None);
+    assert_eq!(inferred_type(source, "outside"), workspace());
+}
+
+#[test]
+fn overloads_in_an_inheriting_class_keep_base_overloads_and_record_no_fact() {
+    let source = r#"
+Class Derived
+    Inherits BaseLoader
+    Overloads Function Load(Optional x As Integer = 0) As Workspace
+    End Function
+    Overrides Function Open() As Workspace
+    End Function
+    Shared Overloads Function Create(Optional x As Integer = 0) As Workspace
+    End Function
+    Function Plain() As Workspace
+    End Function
+    Sub Run()
+        Dim viaMe = Me.Load()
+        Dim viaBare = Load()
+        Dim viaOverride = Open()
+        Dim viaShared = Derived.Create()
+        Dim viaPlain = Plain()
+    End Sub
+End Class
+"#;
+    for local in ["viaMe", "viaBare", "viaOverride", "viaShared"] {
+        assert_eq!(inferred_type(source, local), None, "{local}");
+    }
+    assert_eq!(inferred_type(source, "viaPlain"), workspace());
+}
+
+#[test]
+fn types_and_modules_from_a_sibling_namespace_are_out_of_scope() {
+    let source = r#"
+Namespace A
+    Module M
+        Function Load() As Workspace
+        End Function
+    End Module
+    Class Factory
+        Shared Function Create() As Workspace
+        End Function
+    End Class
+    Namespace Inner
+        Class Near
+            Sub Run()
+                Dim fromInner = Load()
+                Dim fromInnerType = Factory.Create()
+            End Sub
+        End Class
+    End Namespace
+End Namespace
+Namespace B
+    Class C
+        Sub Run()
+            Dim viaNs = Load()
+            Dim viaNsType = Factory.Create()
+        End Sub
+    End Class
+End Namespace
+"#;
+    assert_eq!(inferred_type(source, "viaNs"), None);
+    assert_eq!(inferred_type(source, "viaNsType"), None);
+    assert_eq!(inferred_type(source, "fromInner"), workspace());
+    assert_eq!(inferred_type(source, "fromInnerType"), workspace());
+}
+
+#[test]
+fn imports_bring_a_namespace_into_scope() {
+    let source = r#"
+Imports A
+Imports Alias = B
+Namespace A
+    Module M
+        Function Load() As Workspace
+        End Function
+    End Module
+End Namespace
+Namespace B
+    Class Factory
+        Shared Function Create() As Workspace
+        End Function
+    End Class
+End Namespace
+Namespace Global.C
+    Class Caller
+        Sub Run()
+            Dim imported = Load()
+            Dim aliased = Factory.Create()
+        End Sub
+    End Class
+End Namespace
+"#;
+    assert_eq!(inferred_type(source, "imported"), workspace());
+    assert_eq!(inferred_type(source, "aliased"), None);
+}
+
+#[test]
+fn nested_type_qualifier_is_in_scope_only_inside_its_declaring_type() {
+    let source = r#"
+Class Outer
+    Class Factory
+        Shared Function Create() As Workspace
+        End Function
+    End Class
+    Sub Run()
+        Dim inside = Factory.Create()
+    End Sub
+End Class
+Class Other
+    Sub Run()
+        Dim outside = Factory.Create()
+    End Sub
+End Class
+"#;
+    assert_eq!(inferred_type(source, "inside"), workspace());
+    assert_eq!(inferred_type(source, "outside"), None);
+}
+
+#[test]
+fn partial_class_does_not_fall_back_to_module_functions() {
+    let source = r#"
+Module Helpers
+    Function Load() As Workspace
+    End Function
+End Module
+Partial Class Form1
+    Sub Run()
+        Dim viaPartial = Load()
+    End Sub
+End Class
+Class Split
+    Sub Run()
+        Dim viaUnmarkedPart = Load()
+    End Sub
+End Class
+Partial Class Split
+End Class
+Class Whole
+    Sub Run()
+        Dim viaWhole = Load()
+    End Sub
+End Class
+"#;
+    assert_eq!(inferred_type(source, "viaPartial"), None);
+    assert_eq!(inferred_type(source, "viaUnmarkedPart"), None);
+    assert_eq!(inferred_type(source, "viaWhole"), workspace());
+}
+
+#[test]
+fn object_member_name_binds_to_me_before_a_module_function() {
+    let source = r#"
+Module Helpers
+    Function ToString() As Workspace
+    End Function
+    Function GetHashCode() As Workspace
+    End Function
+End Module
+Class C2
+    Sub Run()
+        Dim s = ToString()
+        Dim h = gethashcode()
+    End Sub
+End Class
+"#;
+    assert_eq!(inferred_type(source, "s"), None);
+    assert_eq!(inferred_type(source, "h"), None);
+}

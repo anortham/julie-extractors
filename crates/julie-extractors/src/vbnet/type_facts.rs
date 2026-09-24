@@ -216,9 +216,10 @@ pub(super) fn as_clause_suffix(base: &BaseExtractor, type_node: Node) -> String 
 
 /// Record the declared return type of a call initializer (`is_inferred=true`):
 /// an unqualified call, `Me.F()` / `MyClass.F()`, or `T.F()` on a same-file
-/// class, structure, or module. `Await` removes one `Task(Of T)` /
-/// `ValueTask(Of T)` layer and `ConfigureAwait` keeps it. `is_shadowed` says
-/// whether a local, parameter, or the enclosing member takes over a name.
+/// class, structure, or module that is in scope. `Await` removes one
+/// `Task(Of T)` / `ValueTask(Of T)` layer, also through an awaited
+/// `ConfigureAwait(...)`. `is_shadowed` says whether a local, parameter, or
+/// the enclosing member takes over a name.
 pub(super) fn record_call_initializer_type(
     base: &mut BaseExtractor,
     symbol_id: &str,
@@ -230,6 +231,8 @@ pub(super) fn record_call_initializer_type(
         base,
         return_types,
         enclosing: enclosing_type_ids(initializer),
+        namespace: enclosing_namespace(base, initializer),
+        lambda_parameters: lambda_parameter_names(base, initializer),
         is_shadowed,
     };
     let Some(TypeShape {
@@ -237,7 +240,7 @@ pub(super) fn record_call_initializer_type(
         declared,
         is_array,
         ..
-    }) = scope.shape_of(initializer, 0)
+    }) = scope.shape_of(initializer, false, 0)
     else {
         return;
     };
@@ -255,6 +258,18 @@ pub(super) fn name_key(text: &str) -> String {
         .trim_end_matches(']')
         .to_lowercase()
 }
+
+/// Members every class and structure inherits from `Object`. An unqualified
+/// call to one of them binds to `Me` before any module function.
+const OBJECT_MEMBERS: &[&str] = &[
+    "tostring",
+    "equals",
+    "gethashcode",
+    "gettype",
+    "referenceequals",
+    "memberwiseclone",
+    "finalize",
+];
 
 /// A return type reduced to what initializer inference needs: the bindable
 /// base name (`None` for type parameters), the written text, and the type
@@ -295,30 +310,79 @@ pub(super) struct ReturnTypeIndex {
     types: HashMap<usize, TypeMembers>,
     by_name: HashMap<String, Vec<usize>>,
     modules: Vec<usize>,
+    /// Namespaces named by `Imports` clauses without an alias.
+    imports: Vec<Vec<String>>,
 }
 
 #[derive(Debug, Default)]
 struct TypeMembers {
     is_module: bool,
+    /// An `Inherits` clause or another part of a `Partial` type can declare
+    /// members this block does not show.
+    is_open: bool,
+    is_partial: bool,
     inherits: bool,
-    /// Return shape of each same-named member; `None` for a `Sub`, a
-    /// `Function` without `As`, or a property, event, or field.
-    members: HashMap<String, Vec<Option<TypeShape>>>,
+    /// Namespace path, outermost first, of a type not nested in another type.
+    namespace: Vec<String>,
+    /// The type block that declares this nested type.
+    parent_type: Option<usize>,
+    members: HashMap<String, Vec<Candidate>>,
 }
 
-impl TypeMembers {
-    fn lookup(&self, name: &str) -> Option<Option<TypeShape>> {
-        self.members
-            .get(name)
-            .map(|shapes| unanimous(shapes.iter()))
+/// One same-named member: its return shape (`None` for a `Sub`, a
+/// `Function` without `As`, or a property, event, or field), how many
+/// arguments it accepts, and whether it keeps base overloads visible.
+#[derive(Debug)]
+struct Candidate {
+    shape: Option<TypeShape>,
+    arity: Arity,
+    keeps_base_overloads: bool,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Arity {
+    min: usize,
+    /// `None` for a `ParamArray` parameter or a non-method member.
+    max: Option<usize>,
+}
+
+impl Arity {
+    const ANY: Arity = Arity { min: 0, max: None };
+
+    fn accepts(self, count: usize) -> bool {
+        count >= self.min && self.max.is_none_or(|max| count <= max)
     }
 }
 
-fn unanimous<'a>(mut shapes: impl Iterator<Item = &'a Option<TypeShape>>) -> Option<TypeShape> {
-    let first = shapes.next()?.as_ref()?;
+impl TypeMembers {
+    /// `None` when the type does not declare `name`. `Some(None)` when it
+    /// does but the call has no single known type: the candidates disagree,
+    /// none takes `argument_count` arguments (VB then indexes the result of
+    /// a parameterless function), or `Overloads` keeps base overloads that
+    /// this file cannot see.
+    fn lookup(&self, name: &str, argument_count: usize) -> Option<Option<TypeShape>> {
+        let candidates = self.members.get(name)?;
+        let base_overloads = self.is_open
+            && candidates
+                .iter()
+                .any(|candidate| candidate.keeps_base_overloads);
+        let callable = candidates
+            .iter()
+            .any(|candidate| candidate.arity.accepts(argument_count));
+        if base_overloads || !callable {
+            return Some(None);
+        }
+        Some(unanimous(
+            candidates.iter().map(|candidate| candidate.shape.clone()),
+        ))
+    }
+}
+
+fn unanimous(mut shapes: impl Iterator<Item = Option<TypeShape>>) -> Option<TypeShape> {
+    let first = shapes.next()??;
     shapes
-        .all(|shape| shape.as_ref() == Some(first))
-        .then(|| first.clone())
+        .all(|shape| shape.as_ref() == Some(&first))
+        .then_some(first)
 }
 
 fn is_type_block(node: Node) -> bool {
@@ -328,45 +392,117 @@ fn is_type_block(node: Node) -> bool {
     )
 }
 
+/// Where the index walk is: the type parameters in scope, the namespace
+/// path, the enclosing type block, and its qualified name.
+#[derive(Clone, Default)]
+struct IndexScope {
+    generics: Vec<String>,
+    namespace: Vec<String>,
+    parent_type: Option<usize>,
+    qualified: String,
+}
+
 impl ReturnTypeIndex {
     pub(super) fn build(base: &BaseExtractor, root: Node) -> Self {
         let mut index = Self::default();
-        index.collect(base, root, &[], 0);
+        let mut parts: HashMap<String, Vec<usize>> = HashMap::new();
+        index.collect(base, root, &IndexScope::default(), &mut parts, 0);
+        for ids in parts.values() {
+            let shared = ids.len() > 1
+                || ids
+                    .iter()
+                    .any(|id| index.types.get(id).is_some_and(|entry| entry.is_partial));
+            for id in ids {
+                if let Some(entry) = index.types.get_mut(id) {
+                    entry.is_open = entry.inherits || shared;
+                }
+            }
+        }
         index
     }
 
-    fn collect(&mut self, base: &BaseExtractor, node: Node, generics: &[String], depth: u32) {
+    fn collect(
+        &mut self,
+        base: &BaseExtractor,
+        node: Node,
+        scope: &IndexScope,
+        parts: &mut HashMap<String, Vec<usize>>,
+        depth: u32,
+    ) {
         if !should_visit_tree_depth(depth) {
             return;
         }
-        let scoped;
-        let generics = if is_type_block(node) {
-            scoped = [generics, &type_parameter_names(base, node)].concat();
-            self.add_type(base, node, &scoped);
-            &scoped
-        } else {
-            generics
+        let inner;
+        let scope = match node.kind() {
+            "namespace_block" => {
+                inner = IndexScope {
+                    namespace: nested_namespace(base, &scope.namespace, node),
+                    ..scope.clone()
+                };
+                &inner
+            }
+            "imports_statement" => {
+                self.imports.extend(unaliased_imports(base, node));
+                return;
+            }
+            _ if is_type_block(node) => {
+                let name = node
+                    .child_by_field_name("name")
+                    .map(|name| name_key(&base.get_node_text(&name)))
+                    .unwrap_or_default();
+                let qualified = if scope.parent_type.is_some() {
+                    format!("{}.{name}", scope.qualified)
+                } else {
+                    format!("{}.{name}", scope.namespace.join("."))
+                };
+                inner = IndexScope {
+                    generics: [scope.generics.as_slice(), &type_parameter_names(base, node)]
+                        .concat(),
+                    namespace: scope.namespace.clone(),
+                    parent_type: Some(node.id()),
+                    qualified: qualified.clone(),
+                };
+                self.add_type(base, node, &inner.generics, scope);
+                parts.entry(qualified).or_default().push(node.id());
+                &inner
+            }
+            _ => scope,
         };
         let Some(child_depth) = child_tree_depth(depth) else {
             return;
         };
         for child in node.named_children(&mut node.walk()) {
-            self.collect(base, child, generics, child_depth);
+            self.collect(base, child, scope, parts, child_depth);
         }
     }
 
-    fn add_type(&mut self, base: &BaseExtractor, block: Node, generics: &[String]) {
+    fn add_type(
+        &mut self,
+        base: &BaseExtractor,
+        block: Node,
+        generics: &[String],
+        at: &IndexScope,
+    ) {
         let mut entry = TypeMembers {
             is_module: block.kind() == "module_block",
+            is_open: false,
+            is_partial: has_modifier(base, block, &["partial"]),
             inherits: block.child_by_field_name("inherits").is_some(),
+            namespace: at.namespace.clone(),
+            parent_type: at.parent_type,
             members: HashMap::new(),
         };
-        let mut add = |name: Node, shape: Option<TypeShape>| {
+        let mut add = |name: Node, candidate: Candidate| {
             entry
                 .members
                 .entry(name_key(&base.get_node_text(&name)))
                 .or_default()
-                .push(shape);
+                .push(candidate);
+        };
+        let field = |shape| Candidate {
+            shape,
+            arity: Arity::ANY,
+            keeps_base_overloads: false,
         };
         for member in block.named_children(&mut block.walk()) {
             match member.kind() {
@@ -378,11 +514,22 @@ impl ReturnTypeIndex {
                     let shape = member
                         .child_by_field_name("return_type")
                         .and_then(|return_type| type_shape(base, return_type, &generics, 0));
-                    add(name, shape);
+                    add(
+                        name,
+                        Candidate {
+                            shape,
+                            arity: parameter_arity(base, member),
+                            keeps_base_overloads: has_modifier(
+                                base,
+                                member,
+                                &["overloads", "overrides"],
+                            ),
+                        },
+                    );
                 }
                 "property_declaration" | "event_declaration" => {
                     if let Some(name) = member.child_by_field_name("name") {
-                        add(name, None);
+                        add(name, field(None));
                     }
                 }
                 "field_declaration" => {
@@ -390,7 +537,7 @@ impl ReturnTypeIndex {
                         if declarator.kind() == "variable_declarator"
                             && let Some(name) = declarator.child_by_field_name("name")
                         {
-                            add(name, None);
+                            add(name, field(None));
                         }
                     }
                 }
@@ -411,6 +558,89 @@ impl ReturnTypeIndex {
     }
 }
 
+fn has_modifier(base: &BaseExtractor, node: Node, keywords: &[&str]) -> bool {
+    let Some(modifiers) = node.child_by_field_name("modifiers") else {
+        return false;
+    };
+    modifiers
+        .named_children(&mut modifiers.walk())
+        .any(|modifier| keywords.contains(&name_key(&base.get_node_text(&modifier)).as_str()))
+}
+
+/// How many arguments a method or `Declare` accepts: `Optional` parameters
+/// may be left out and a `ParamArray` takes any number.
+fn parameter_arity(base: &BaseExtractor, member: Node) -> Arity {
+    let Some(parameters) = member.child_by_field_name("parameters") else {
+        return Arity {
+            min: 0,
+            max: Some(0),
+        };
+    };
+    let mut arity = Arity {
+        min: 0,
+        max: Some(0),
+    };
+    for parameter in parameters.named_children(&mut parameters.walk()) {
+        if parameter.kind() != "parameter" {
+            continue;
+        }
+        let prefix = parameter
+            .child_by_field_name("name")
+            .and_then(|name| base.content.get(parameter.start_byte()..name.start_byte()))
+            .unwrap_or_default()
+            .to_lowercase();
+        let words: Vec<&str> = prefix.split_whitespace().collect();
+        if words.contains(&"paramarray") {
+            arity.max = None;
+            continue;
+        }
+        arity.max = arity.max.map(|max| max + 1);
+        if !words.contains(&"optional") && parameter.child_by_field_name("default_value").is_none()
+        {
+            arity.min += 1;
+        }
+    }
+    arity
+}
+
+/// The namespace path inside `block`. `Namespace Global.X` starts again
+/// from the root namespace.
+fn nested_namespace(base: &BaseExtractor, outer: &[String], block: Node) -> Vec<String> {
+    let segments: Vec<String> = block
+        .child_by_field_name("name")
+        .map(|name| {
+            name.named_children(&mut name.walk())
+                .map(|segment| name_key(&base.get_node_text(&segment)))
+                .collect()
+        })
+        .unwrap_or_default();
+    match segments.split_first() {
+        Some((first, rest)) if first == "global" => rest.to_vec(),
+        _ => [outer, segments.as_slice()].concat(),
+    }
+}
+
+/// Namespaces named by an `Imports` clause. An alias (`Imports X = A.B`) does
+/// not bring the namespace's members into scope, so aliased clauses are left
+/// out.
+fn unaliased_imports(base: &BaseExtractor, statement: Node) -> Vec<Vec<String>> {
+    let mut cursor = statement.walk();
+    statement
+        .children_by_field_name("namespace", &mut cursor)
+        .filter(|namespace| {
+            namespace
+                .prev_named_sibling()
+                .is_none_or(|previous| previous.kind() != "identifier")
+        })
+        .map(|namespace| {
+            namespace
+                .named_children(&mut namespace.walk())
+                .map(|segment| name_key(&base.get_node_text(&segment)))
+                .collect()
+        })
+        .collect()
+}
+
 fn type_parameter_names(base: &BaseExtractor, item: Node) -> Vec<String> {
     let Some(parameters) = named_child_of_kind(item, "type_parameters") else {
         return Vec::new();
@@ -421,7 +651,6 @@ fn type_parameter_names(base: &BaseExtractor, item: Node) -> Vec<String> {
         .map(|name| name_key(&base.get_node_text(&name)))
         .collect()
 }
-
 fn type_shape(
     base: &BaseExtractor,
     node: Node,
@@ -495,15 +724,88 @@ fn enclosing_type_ids(node: Node) -> Vec<usize> {
     ids
 }
 
+fn enclosing_namespace(base: &BaseExtractor, node: Node) -> Vec<String> {
+    let mut blocks = Vec::new();
+    let mut current = node.parent();
+    while let Some(ancestor) = current {
+        if ancestor.kind() == "namespace_block" {
+            blocks.push(ancestor);
+        }
+        current = ancestor.parent();
+    }
+    blocks.into_iter().rev().fold(Vec::new(), |outer, block| {
+        nested_namespace(base, &outer, block)
+    })
+}
+
+/// Parameters of the lambdas around `node`, which take over a called name.
+fn lambda_parameter_names(base: &BaseExtractor, node: Node) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut current = node.parent();
+    while let Some(ancestor) = current {
+        if is_type_block(ancestor) {
+            break;
+        }
+        if ancestor.kind() == "lambda_expression" {
+            names.extend(
+                ancestor
+                    .named_children(&mut ancestor.walk())
+                    .filter(|child| child.kind() == "lambda_parameter")
+                    .filter_map(|parameter| parameter.child_by_field_name("name"))
+                    .map(|name| name_key(&base.get_node_text(&name))),
+            );
+        }
+        current = ancestor.parent();
+    }
+    names
+}
+
+/// The number of arguments a call passes; `Load(0, , 2)` passes three. The
+/// grammar keeps no node for the separator, so the commas are counted in the
+/// source text between the argument (and comment) nodes.
+fn argument_count(base: &BaseExtractor, invocation: Node) -> Option<usize> {
+    let arguments = invocation.child_by_field_name("arguments")?;
+    if arguments.has_error() {
+        return None;
+    }
+    let mut commas = 0;
+    let mut gap_start = arguments.start_byte();
+    for child in arguments.named_children(&mut arguments.walk()) {
+        commas += base
+            .content
+            .get(gap_start..child.start_byte())?
+            .matches(',')
+            .count();
+        gap_start = child.end_byte();
+    }
+    commas += base
+        .content
+        .get(gap_start..arguments.end_byte())?
+        .matches(',')
+        .count();
+    let has_argument = arguments
+        .named_children(&mut arguments.walk())
+        .any(|child| child.kind() == "argument");
+    Some(if commas == 0 && !has_argument {
+        0
+    } else {
+        commas + 1
+    })
+}
+
 struct InitializerScope<'a> {
     base: &'a BaseExtractor,
     return_types: &'a ReturnTypeIndex,
     enclosing: Vec<usize>,
+    namespace: Vec<String>,
+    lambda_parameters: Vec<String>,
     is_shadowed: &'a dyn Fn(&str) -> bool,
 }
 
 impl InitializerScope<'_> {
-    fn shape_of(&self, value: Node, depth: u32) -> Option<TypeShape> {
+    /// `in_await` is true only for the direct operand of `Await`, the one
+    /// place where `ConfigureAwait(...)` keeps the awaited type.
+    fn shape_of(&self, value: Node, in_await: bool, depth: u32) -> Option<TypeShape> {
         if !should_visit_tree_depth(depth) {
             return None;
         }
@@ -514,13 +816,16 @@ impl InitializerScope<'_> {
                 if !self.is_await(value, operand) {
                     return None;
                 }
-                self.shape_of(operand, child_depth)?.awaited()
+                self.shape_of(operand, true, child_depth)?.awaited()
             }
             "invocation" => {
                 let target = value.child_by_field_name("target")?;
+                let argument_count = argument_count(self.base, value)?;
                 match target.kind() {
-                    "identifier" => self.unqualified_call(&self.key(target)),
-                    "member_access" => self.member_call(target, child_depth),
+                    "identifier" => self.unqualified_call(&self.key(target), argument_count),
+                    "member_access" => {
+                        self.member_call(target, argument_count, in_await, child_depth)
+                    }
                     _ => None,
                 }
             }
@@ -541,65 +846,101 @@ impl InitializerScope<'_> {
         name_key(&self.base.get_node_text(&node))
     }
 
-    fn member_call(&self, target: Node, object_depth: u32) -> Option<TypeShape> {
+    fn shadowed(&self, name: &str) -> bool {
+        (self.is_shadowed)(name) || self.lambda_parameters.iter().any(|local| local == name)
+    }
+
+    fn member_call(
+        &self,
+        target: Node,
+        argument_count: usize,
+        in_await: bool,
+        object_depth: u32,
+    ) -> Option<TypeShape> {
         let object = target.child_by_field_name("object")?;
         let member = self.key(target.child_by_field_name("member")?);
         match object.kind() {
-            "me_expression" if self.key(object) != "mybase" => self.me_call(&member),
-            "identifier" => self.shared_call(&self.key(object), &member),
-            _ if member == "configureawait" => self
-                .shape_of(object, object_depth)
+            "me_expression" if self.key(object) != "mybase" => {
+                self.me_call(&member, argument_count)
+            }
+            "identifier" => self.shared_call(&self.key(object), &member, argument_count),
+            _ if in_await && member == "configureawait" => self
+                .shape_of(object, false, object_depth)
                 .filter(TypeShape::is_task),
             _ => None,
         }
     }
 
-    fn me_call(&self, member: &str) -> Option<TypeShape> {
+    fn me_call(&self, member: &str, argument_count: usize) -> Option<TypeShape> {
         let own = self.return_types.types.get(self.enclosing.first()?)?;
         if own.is_module {
             return None;
         }
-        own.lookup(member)?
+        own.lookup(member, argument_count)?
     }
 
-    /// `T.F()` where `T` names a same-file type. A local, parameter, or
-    /// member of the enclosing types with that name would take the qualifier.
-    fn shared_call(&self, qualifier: &str, member: &str) -> Option<TypeShape> {
-        if (self.is_shadowed)(qualifier) || self.enclosing_declares(qualifier) {
+    /// `T.F()` where `T` names a same-file type in scope. A local, parameter,
+    /// or member of the enclosing types with that name would take the
+    /// qualifier. Every type in scope with that name must declare `F`.
+    fn shared_call(
+        &self,
+        qualifier: &str,
+        member: &str,
+        argument_count: usize,
+    ) -> Option<TypeShape> {
+        if self.shadowed(qualifier) || self.enclosing_declares(qualifier) {
             return None;
         }
         let types = self.return_types.by_name.get(qualifier)?;
         unanimous(
             types
                 .iter()
-                .filter_map(|id| self.return_types.types.get(id)?.members.get(member))
-                .flatten(),
+                .filter_map(|id| self.return_types.types.get(id))
+                .filter(|entry| self.is_in_scope(entry))
+                .map(|entry| entry.lookup(member, argument_count).flatten()),
         )
     }
 
     /// An unqualified call resolves through the innermost enclosing type that
-    /// declares the name; a type with an `Inherits` clause stops the search
-    /// because its base may declare it. Module functions come last.
-    fn unqualified_call(&self, name: &str) -> Option<TypeShape> {
-        if (self.is_shadowed)(name) {
+    /// declares the name. An open type (`Inherits` or `Partial`) stops the
+    /// search, because its base or other part can declare the name. Module
+    /// functions in scope come last, after the members of `Object`.
+    fn unqualified_call(&self, name: &str, argument_count: usize) -> Option<TypeShape> {
+        if self.shadowed(name) {
             return None;
         }
         for id in &self.enclosing {
             let entry = self.return_types.types.get(id)?;
-            if let Some(shape) = entry.lookup(name) {
+            if let Some(shape) = entry.lookup(name, argument_count) {
                 return shape;
             }
-            if entry.inherits {
+            if entry.is_open {
                 return None;
             }
+        }
+        if OBJECT_MEMBERS.contains(&name) {
+            return None;
         }
         unanimous(
             self.return_types
                 .modules
                 .iter()
-                .filter_map(|id| self.return_types.types.get(id)?.members.get(name))
-                .flatten(),
+                .filter_map(|id| self.return_types.types.get(id))
+                .filter(|entry| self.is_in_scope(entry))
+                .filter_map(|entry| entry.lookup(name, argument_count)),
         )
+    }
+
+    /// A nested type is in scope inside its declaring type. Any other type
+    /// is in scope from its own or an inner namespace, or through `Imports`.
+    fn is_in_scope(&self, entry: &TypeMembers) -> bool {
+        match entry.parent_type {
+            Some(parent) => self.enclosing.contains(&parent),
+            None => {
+                self.namespace.starts_with(&entry.namespace)
+                    || self.return_types.imports.contains(&entry.namespace)
+            }
+        }
     }
 
     fn enclosing_declares(&self, name: &str) -> bool {
