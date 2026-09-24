@@ -2,7 +2,9 @@
 
 use crate::base::types::TypeNameRules;
 use crate::base::{BaseExtractor, Symbol, SymbolKind};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use regex::Regex;
+use std::collections::HashMap;
 use std::sync::LazyLock;
 use tree_sitter::Node;
 
@@ -93,4 +95,461 @@ pub(crate) fn record_jsdoc_param_fact(
         return;
     }
     base.record_declared_type_fact(&parameter.id, &declared, &JSDOC_TYPE_NAME_RULES, false);
+}
+
+static JSDOC_TEMPLATE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"@template\s+(?:\{[^}]*\}\s*)?\[?([A-Za-z_$][\w$]*(?:\s*,\s*[A-Za-z_$][\w$]*)*)")
+        .unwrap()
+});
+static JSDOC_TYPE_NAME_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$").unwrap());
+
+/// A JSDoc type reduced to what initializer inference needs: the bindable
+/// base name (`None` for a `@template` parameter), the written text, and the
+/// type arguments of a generic type.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct TypeShape {
+    name: Option<String>,
+    declared: String,
+    args: Vec<TypeShape>,
+}
+
+impl TypeShape {
+    fn awaited(self) -> Option<TypeShape> {
+        (self.name.as_deref() == Some("Promise"))
+            .then(|| self.args.into_iter().next())
+            .flatten()
+    }
+}
+
+/// Parse a JSDoc type written as `Name`, `?Name`, `!Name`, `ns.Name`,
+/// `Name<Args>`, or `Name.<Args>`. Unions, records, arrays, function types,
+/// and the any/void family yield nothing.
+fn jsdoc_type_shape(text: &str, templates: &[String], depth: u32) -> Option<TypeShape> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+    let declared = text.trim();
+    let core = declared
+        .trim_start_matches(['?', '!'])
+        .trim_end_matches('?')
+        .trim();
+    let (head, args) = match core.split_once('<') {
+        Some((head, rest)) => {
+            let inner = rest.strip_suffix('>')?;
+            let child_depth = child_tree_depth(depth)?;
+            let args = split_type_arguments(inner)
+                .into_iter()
+                .map(|arg| jsdoc_type_shape(arg, templates, child_depth))
+                .collect::<Option<Vec<_>>>()?;
+            (head.trim_end().trim_end_matches('.'), args)
+        }
+        None => (core, Vec::new()),
+    };
+    if !JSDOC_TYPE_NAME_RE.is_match(head)
+        || matches!(
+            head,
+            "any" | "unknown" | "void" | "undefined" | "null" | "never" | "mixed" | "this"
+        )
+    {
+        return None;
+    }
+    Some(TypeShape {
+        name: (!templates.iter().any(|template| template == head)).then(|| head.to_string()),
+        declared: declared.to_string(),
+        args,
+    })
+}
+
+fn split_type_arguments(inner: &str) -> Vec<&str> {
+    let mut parts = Vec::new();
+    let mut nesting = 0i32;
+    let mut start = 0;
+    for (index, ch) in inner.char_indices() {
+        match ch {
+            '<' | '(' | '{' | '[' => nesting += 1,
+            '>' | ')' | '}' | ']' => nesting -= 1,
+            ',' if nesting == 0 => {
+                parts.push(&inner[start..index]);
+                start = index + 1;
+            }
+            _ => {}
+        }
+    }
+    parts.push(&inner[start..]);
+    parts
+}
+
+fn template_names(doc: &str) -> impl Iterator<Item = String> + '_ {
+    JSDOC_TEMPLATE_RE.captures_iter(doc).flat_map(|captures| {
+        captures[1]
+            .split(',')
+            .map(|name| name.trim().to_string())
+            .collect::<Vec<_>>()
+    })
+}
+
+fn metadata_flag(symbol: &Symbol, key: &str) -> bool {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get(key))
+        .and_then(|value| value.as_bool())
+        .unwrap_or(false)
+}
+
+/// Kinds that bind a name in lexical scope. Class members are reached only
+/// through `this` or a class name, never by a bare call.
+fn is_lexical_binding(kind: &SymbolKind) -> bool {
+    matches!(
+        kind,
+        SymbolKind::Function
+            | SymbolKind::Variable
+            | SymbolKind::Constant
+            | SymbolKind::Class
+            | SymbolKind::Import
+    )
+}
+
+/// Record an inferred type fact for each variable whose initializer is
+/// `new Name(..)` or a call to a same-file function or class method with a
+/// JSDoc `@returns` type. Runs after the symbol walk, so a written `@type`
+/// wins and functions declared after the call are known.
+pub(crate) fn record_initializer_facts(base: &mut BaseExtractor, root: Node, symbols: &[Symbol]) {
+    let scope = InitializerScope::new(base, root, symbols);
+    let facts: Vec<(String, TypeShape)> = symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Variable)
+        .filter_map(|symbol| {
+            let declarator = root
+                .descendant_for_byte_range(symbol.start_byte as usize, symbol.end_byte as usize)
+                .filter(|node| node.kind() == "variable_declarator")?;
+            declarator
+                .child_by_field_name("name")
+                .filter(|name| name.kind() == "identifier")?;
+            let value = declarator.child_by_field_name("value")?;
+            let shape = scope.shape_of(value, 0)?;
+            shape.name.is_some().then(|| (symbol.id.clone(), shape))
+        })
+        .collect();
+    for (symbol_id, shape) in facts {
+        let name = shape.name.unwrap_or_default();
+        base.record_declared_type_fact_with_declared(
+            &symbol_id,
+            &name,
+            &shape.declared,
+            &JSDOC_TYPE_NAME_RULES,
+            true,
+        );
+    }
+}
+
+struct InitializerScope<'a> {
+    base: &'a BaseExtractor,
+    root: Node<'a>,
+    by_id: HashMap<&'a str, &'a Symbol>,
+    by_name: HashMap<&'a str, Vec<&'a Symbol>>,
+}
+
+/// A receiver that names a same-file class: its instances, or the class
+/// itself for static members.
+struct ClassReceiver<'a> {
+    class: &'a Symbol,
+    is_static: bool,
+}
+
+impl<'a> InitializerScope<'a> {
+    fn new(base: &'a BaseExtractor, root: Node<'a>, symbols: &'a [Symbol]) -> Self {
+        let mut by_name: HashMap<&str, Vec<&Symbol>> = HashMap::new();
+        for symbol in symbols {
+            by_name
+                .entry(symbol.name.as_str())
+                .or_default()
+                .push(symbol);
+        }
+        Self {
+            base,
+            root,
+            by_id: symbols
+                .iter()
+                .map(|symbol| (symbol.id.as_str(), symbol))
+                .collect(),
+            by_name,
+        }
+    }
+
+    fn shape_of(&self, value: Node, depth: u32) -> Option<TypeShape> {
+        if !should_visit_tree_depth(depth) {
+            return None;
+        }
+        match value.kind() {
+            "parenthesized_expression" => {
+                self.shape_of(value.named_child(0)?, child_tree_depth(depth)?)
+            }
+            "await_expression" => self
+                .shape_of(value.named_child(0)?, child_tree_depth(depth)?)?
+                .awaited(),
+            "new_expression" => {
+                let constructor = value
+                    .child_by_field_name("constructor")
+                    .filter(|constructor| constructor.kind() == "identifier")?;
+                let name = self.base.get_node_text(&constructor);
+                Some(TypeShape {
+                    name: Some(name.clone()),
+                    declared: name,
+                    args: Vec::new(),
+                })
+            }
+            "call_expression" if !has_optional_chain(value) => {
+                let function = value.child_by_field_name("function")?;
+                match function.kind() {
+                    "identifier" => self.free_call(value, &self.base.get_node_text(&function)),
+                    "member_expression" if !has_optional_chain(function) => {
+                        self.member_call(function, child_tree_depth(depth)?)
+                    }
+                    _ => None,
+                }
+            }
+            _ => None,
+        }
+    }
+
+    fn free_call(&self, call: Node, name: &str) -> Option<TypeShape> {
+        let candidates = self.visible(name, call);
+        if candidates.iter().any(|candidate| {
+            candidate.kind != SymbolKind::Function || !self.declares_binding(candidate)
+        }) {
+            return None;
+        }
+        self.unanimous_return(&candidates)
+    }
+
+    fn member_call(&self, function: Node, depth: u32) -> Option<TypeShape> {
+        let object = function.child_by_field_name("object")?;
+        let method = self
+            .base
+            .get_node_text(&function.child_by_field_name("property")?);
+        let receiver = self.receiver(object, depth)?;
+        let candidates: Vec<&Symbol> = self
+            .by_name
+            .get(method.as_str())?
+            .iter()
+            .copied()
+            .filter(|member| member.parent_id.as_deref() == Some(receiver.class.id.as_str()))
+            .collect();
+        if candidates.iter().any(|member| {
+            member.kind != SymbolKind::Method
+                || metadata_flag(member, "isGetter")
+                || metadata_flag(member, "isSetter")
+                || metadata_flag(member, "isStatic") != receiver.is_static
+        }) {
+            return None;
+        }
+        self.unanimous_return(&candidates)
+    }
+
+    fn receiver(&self, object: Node, depth: u32) -> Option<ClassReceiver<'a>> {
+        match object.kind() {
+            "this" => self.this_receiver(object),
+            "identifier" => Some(ClassReceiver {
+                class: self.class_named(&self.base.get_node_text(&object), object)?,
+                is_static: true,
+            }),
+            _ => {
+                let shape = self.shape_of(object, depth)?;
+                Some(ClassReceiver {
+                    class: self.class_named(shape.name.as_deref()?, object)?,
+                    is_static: false,
+                })
+            }
+        }
+    }
+
+    /// The class `this` denotes: the nearest enclosing class method or field,
+    /// seen through arrow functions. Any other function rebinds `this`.
+    fn this_receiver(&self, node: Node) -> Option<ClassReceiver<'a>> {
+        let mut current = node.parent();
+        while let Some(candidate) = current {
+            match candidate.kind() {
+                "method_definition"
+                | "field_definition"
+                | "public_field_definition"
+                | "class_static_block" => {
+                    let class = candidate
+                        .parent()
+                        .filter(|body| body.kind() == "class_body")?
+                        .parent()?;
+                    let class = self.class_at(class)?;
+                    let is_static = candidate.kind() == "class_static_block"
+                        || candidate
+                            .children(&mut candidate.walk())
+                            .any(|child| child.kind() == "static");
+                    return Some(ClassReceiver { class, is_static });
+                }
+                "function_declaration"
+                | "function_expression"
+                | "function"
+                | "generator_function"
+                | "generator_function_declaration"
+                | "class_body"
+                | "program" => return None,
+                _ => {}
+            }
+            current = candidate.parent();
+        }
+        None
+    }
+
+    fn class_at(&self, class: Node) -> Option<&'a Symbol> {
+        self.by_id.values().copied().find(|symbol| {
+            symbol.kind == SymbolKind::Class && symbol.start_byte == class.start_byte() as u32
+        })
+    }
+
+    fn class_named(&self, name: &str, at: Node) -> Option<&'a Symbol> {
+        match self.visible(name, at).as_slice() {
+            [class] if class.kind == SymbolKind::Class && self.declares_binding(class) => {
+                Some(*class)
+            }
+            _ => None,
+        }
+    }
+
+    /// Lexical bindings named `name` whose declaring scope contains `at`, or
+    /// none when a parameter, loop, or catch binding of `name` encloses `at`.
+    fn visible(&self, name: &str, at: Node) -> Vec<&'a Symbol> {
+        if pattern_binding_encloses(self.base, name, at) {
+            return Vec::new();
+        }
+        let position = at.start_byte() as u32;
+        self.by_name
+            .get(name)
+            .into_iter()
+            .flatten()
+            .copied()
+            .filter(|symbol| is_lexical_binding(&symbol.kind))
+            .filter(|symbol| {
+                symbol
+                    .parent_id
+                    .as_deref()
+                    .and_then(|parent| self.by_id.get(parent))
+                    .is_none_or(|parent| {
+                        parent.start_byte <= position && position < parent.end_byte
+                    })
+            })
+            .collect()
+    }
+
+    /// Whether the declaration behind `symbol` binds its name in lexical
+    /// scope. `exports.load = function () {}` and the inner name of a class
+    /// expression bind nothing a bare reference can see.
+    fn declares_binding(&self, symbol: &Symbol) -> bool {
+        let Some(node) = self
+            .root
+            .descendant_for_byte_range(symbol.start_byte as usize, symbol.end_byte as usize)
+        else {
+            return false;
+        };
+        match node.kind() {
+            "function_declaration" | "generator_function_declaration" | "class_declaration" => true,
+            "arrow_function" | "function_expression" | "generator_function" | "class" => node
+                .parent()
+                .filter(|parent| parent.kind() == "variable_declarator")
+                .and_then(|declarator| declarator.child_by_field_name("name"))
+                .is_some_and(|name| {
+                    name.kind() == "identifier" && self.base.get_node_text(&name) == symbol.name
+                }),
+            _ => false,
+        }
+    }
+
+    fn unanimous_return(&self, candidates: &[&Symbol]) -> Option<TypeShape> {
+        let mut shapes = candidates
+            .iter()
+            .map(|candidate| self.declared_return(candidate));
+        let first = shapes.next()??;
+        shapes
+            .all(|shape| shape.as_ref() == Some(&first))
+            .then_some(first)
+    }
+
+    /// The `@returns` type every return tag of `callable` agrees on, with the
+    /// `@template` names of it and its enclosing declarations left unbound.
+    /// An async callable must declare a `Promise`.
+    fn declared_return(&self, callable: &Symbol) -> Option<TypeShape> {
+        let doc = callable.doc_comment.as_deref()?;
+        let mut templates = Vec::new();
+        let mut owner = Some(callable);
+        while let Some(symbol) = owner {
+            if let Some(owner_doc) = symbol.doc_comment.as_deref() {
+                templates.extend(template_names(owner_doc));
+            }
+            owner = symbol
+                .parent_id
+                .as_deref()
+                .and_then(|parent| self.by_id.get(parent).copied());
+        }
+        let mut shapes = JSDOC_RETURNS_RE
+            .captures_iter(doc)
+            .map(|captures| jsdoc_type_shape(&captures[1], &templates, 0));
+        let first = shapes.next()??;
+        if !shapes.all(|shape| shape.as_ref() == Some(&first)) {
+            return None;
+        }
+        if metadata_flag(callable, "isAsync") && first.name.as_deref() != Some("Promise") {
+            return None;
+        }
+        Some(first)
+    }
+}
+
+/// Whether a parameter, loop, or catch binding of `name` encloses `at`, so a
+/// bare `name` there cannot mean a declaration outside it.
+pub(crate) fn pattern_binding_encloses(base: &BaseExtractor, name: &str, at: Node) -> bool {
+    let mut current = at.parent();
+    while let Some(scope) = current {
+        let patterns = match scope.kind() {
+            "for_in_statement" => [scope.child_by_field_name("left"), None],
+            "catch_clause" => [scope.child_by_field_name("parameter"), None],
+            _ => [
+                scope.child_by_field_name("parameters"),
+                scope.child_by_field_name("parameter"),
+            ],
+        };
+        if patterns
+            .into_iter()
+            .flatten()
+            .any(|pattern| pattern_mentions(base, pattern, name, 0))
+        {
+            return true;
+        }
+        current = scope.parent();
+    }
+    false
+}
+
+/// Whether `pattern` names `name` anywhere. A default value that reads
+/// `name` counts too, which only ever withholds a fact.
+fn pattern_mentions(base: &BaseExtractor, pattern: Node, name: &str, depth: u32) -> bool {
+    if !should_visit_tree_depth(depth) {
+        return true;
+    }
+    if matches!(
+        pattern.kind(),
+        "identifier" | "shorthand_property_identifier_pattern"
+    ) && base.get_node_text(&pattern) == name
+    {
+        return true;
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return true;
+    };
+    pattern
+        .named_children(&mut pattern.walk())
+        .any(|child| pattern_mentions(base, child, name, child_depth))
+}
+
+fn has_optional_chain(node: Node) -> bool {
+    node.children(&mut node.walk())
+        .any(|child| child.kind() == "optional_chain")
 }

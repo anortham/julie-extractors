@@ -116,6 +116,7 @@ pub mod cross_file_relationships; // Cross-file relationship resolution (pending
 pub mod functions; // Functions and JavaScript code
 pub mod identifiers; // Identifier extraction (calls, member access, variable refs)
 pub mod imports;
+pub mod initializer_types;
 pub mod layouts; // Anchors, layouts, positioning
 pub mod literals; // String-literal call-argument capture
 pub mod modern; // Qt 5.x/6.x modern features

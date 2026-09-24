@@ -215,6 +215,27 @@ pub(super) fn resolve_local_callee<'a>(
     object_owners: &HashMap<u32, &'a Symbol>,
 ) -> Option<&'a Symbol> {
     let component = find_containing_component(call.node, class_symbols)?;
+    if let Some(callee) = resolve_scoped_callee(call, symbols, component, object_owners) {
+        return Some(callee);
+    }
+    if call.receiver.is_some() {
+        return None;
+    }
+    symbol_map
+        .get(call.function_name)
+        .copied()
+        .filter(|symbol| matches!(symbol.kind, SymbolKind::Function | SymbolKind::Event))
+        .filter(|symbol| symbol_is_visible_from_component(symbol, component, symbols))
+}
+
+/// The same-file function or signal a call names through an id receiver or
+/// an enclosing object's scope, with no fallback to other same-file symbols.
+pub(super) fn resolve_scoped_callee<'a>(
+    call: &LocalCall<'_, '_>,
+    symbols: &'a [Symbol],
+    component: &Symbol,
+    object_owners: &HashMap<u32, &'a Symbol>,
+) -> Option<&'a Symbol> {
     let callable_in = |scope_id: &str| {
         let mut matches = symbols.iter().filter(|symbol| {
             matches!(symbol.kind, SymbolKind::Function | SymbolKind::Event)
@@ -243,12 +264,7 @@ pub(super) fn resolve_local_callee<'a>(
         }
         skip += 1;
     }
-
-    symbol_map
-        .get(call.function_name)
-        .copied()
-        .filter(|symbol| matches!(symbol.kind, SymbolKind::Function | SymbolKind::Event))
-        .filter(|symbol| symbol_is_visible_from_component(symbol, component, symbols))
+    None
 }
 
 fn is_shadowed_by_local(receiver: &str, symbols: &[Symbol], caller: &Symbol) -> bool {

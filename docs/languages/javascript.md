@@ -177,6 +177,19 @@ The JavaScript extractor follows the TypeScript contract in
   `@type {T}` on variables, properties, and fields, and `new T()` field and
   constructor-property initializers. `resolved_type` is the base name
   (`Promise`, `Repo`); the JSDoc text is in `metadata.declared`.
+- A `const`, `let`, or `var` with no `@type` gets an inferred type fact from
+  its initializer: `new T()`, or a call whose callee declares
+  `@returns {T}` in the same file. The callee is a function declaration or a
+  function bound by `const`/`let`/`var` (`load()`), a static method of a
+  same-file class (`Workspace.open()`), a method through `this` inside the
+  class body, or a method of the class a chained call returns
+  (`loadWorkspace().child()`). Same-named candidates must agree. `await`
+  unwraps one `Promise<T>`; an `async` callee must declare a `Promise`. A
+  `@template` or `this` return type, a union, a getter, an optional call
+  (`?.`), a parameter, loop, or catch binding that shadows the callee, a
+  chain that ends in any other method, or a callee in another file records no
+  fact. JSDoc is the only source of return types, so a callee with no
+  `@returns` records nothing.
 - Visibility: in a module (a file with `import`, `export`, `require`, or
   CommonJS export assignments) a top-level class, function, or variable is
   `public` when the module exports it by any form (`export` wrapper,

@@ -69,8 +69,15 @@ directives are `qmldir.static.v1` and `qmldir.system.v1` facts.
 - A function records the type its return annotation states
   (`function build(): Item`). A function with no return annotation records no
   type.
-- A typed parameter (`function save(doc: Backend.DocumentModel)`) records its
-  annotation.
+- A typed parameter (`function save(doc: Backend.DocumentModel)`) or local
+  (`let doc: DocumentModel = pick()`) records its annotation.
+- A function local with no annotation gets an inferred type fact from its
+  initializer: `new T()`, or a call to a same-file function with a return
+  annotation, named bare in the enclosing objects (`load()`) or through a
+  same-file id (`root.load()`). A `void` return, a signal, a callee that only
+  an unrelated object declares, a parameter, local, nested function, loop, or
+  catch binding that shadows the name, an optional call, a chain, or a callee
+  in another file records no fact.
 - A nested object with an `id` records its object type, so `docModel.flush()`
   can resolve through the `docModel` row. The root object's `id` records the
   file's component.
