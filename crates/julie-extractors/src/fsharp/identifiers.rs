@@ -401,25 +401,8 @@ fn enclosing_member_instance(base: &BaseExtractor, node: Node) -> Option<String>
     }
 }
 
-fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
-    let mut current = node.parent();
-    let body = loop {
-        let candidate = current?;
-        if matches!(
-            candidate.kind(),
-            "anon_type_defn"
-                | "type_extension"
-                | "delegate_type_defn"
-                | "enum_type_defn"
-                | "interface_type_defn"
-                | "record_type_defn"
-                | "type_abbrev_defn"
-                | "union_type_defn"
-        ) {
-            break candidate;
-        }
-        current = candidate.parent();
-    };
+pub(super) fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let body = enclosing_type_body(node)?;
     let mut body_cursor = body.walk();
     let type_name = body
         .children(&mut body_cursor)
@@ -431,6 +414,33 @@ fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
         None
     } else {
         Some(text.to_string())
+    }
+}
+
+/// The type definition body (`anon_type_defn`, `record_type_defn`, a
+/// `type ... with` extension, and so on) that encloses `node`, or `None`
+/// inside an object expression.
+pub(super) fn enclosing_type_body(node: Node) -> Option<Node> {
+    let mut current = node.parent();
+    loop {
+        let candidate = current?;
+        if candidate.kind() == "object_expression" {
+            return None;
+        }
+        if matches!(
+            candidate.kind(),
+            "anon_type_defn"
+                | "type_extension"
+                | "delegate_type_defn"
+                | "enum_type_defn"
+                | "interface_type_defn"
+                | "record_type_defn"
+                | "type_abbrev_defn"
+                | "union_type_defn"
+        ) {
+            return Some(candidate);
+        }
+        current = candidate.parent();
     }
 }
 

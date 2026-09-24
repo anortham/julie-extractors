@@ -68,6 +68,65 @@ carries the called function as its carrier and its tuple position. The F#
 policy uses the C# URL and SQL carrier lists and retains every other literal
 as `other`.
 
+A `let` or `use` with no written type gets an inferred type fact from a
+same-file constructor call (`Workspace()`) or from a full application of a
+same-file callable with a declared return type: a `let` function in scope at
+the call (`load ()`, `make 1 2`, `x |> make 1`), a module function
+(`Repo.load ()`), a static member on a same-file type (`Store.Create()`), or an
+instance member through the enclosing member's self identifier
+(`this.Load()`). Only a binding to a single name gets a fact: `let x`, `let (x)`,
+`let mutable x`, or `use x`. Tuple, list, array, cons, union-case, and `as`
+patterns record no fact, because each name binds only part of the value. A type
+written on the pattern (`let (x: T) = ...`) wins like a type after the pattern.
+
+A plain `let` function is in scope from the end of its definition to the end
+of its module, type, or `let ... in` body, so a call to its own name inside its
+body records no fact. A `let rec` function, and every `and` binding of its
+group, is in scope from the start of the group. A call inside a `module rec`
+or `namespace rec` records no fact, because a later definition there is
+visible before it appears. A
+qualified call (`Repo.load ()`, `Store.Create()`) sees a module function only
+after its definition, and sees a module or type only from its definition to the
+end of the module or namespace that holds it. A call that needs an `open` to
+see the module or type, such as a call into a sibling module, records no fact.
+The qualifier must name the nearest same-file module or type with that name
+that is visible at the call. A nearer type, module, or module abbreviation
+(`module Repo = Helpers`) with the same name hides the outer one, so the call
+records no fact when the nearer one does not declare the callee. A qualifier
+that names both a visible module and a visible type records no fact. An
+`open`, `open type`, or `[<AutoOpen>]` module that comes after the definition
+and is in scope at the call can bring in a same-named function, module, or type
+from anywhere, so that definition records no fact at that call. An `open`
+before the definition does not hide it. A union case or exception declared
+after the definition with the same name hides it where the case is visible,
+for an unqualified call and for a call qualified by the module that holds both.
+A union case under `[<RequireQualifiedAccess>]` does not hide it. Every
+candidate with the name must agree on the return type.
+
+A self call (`this.Load()`) sees only instance members declared directly in the
+same type definition. A member of a same-named type elsewhere, an explicit
+interface member (`interface ILoader with member this.Load()`), and a self
+call inside a `type ... with` extension do not count. A same-named member in
+any `type Store with` extension in the file joins the overloads of a self call
+or a static call on `Store`, so the call records a fact only when every
+overload agrees. A self call or static call on a
+type with an `inherit` clause records no fact, because the base type, possibly
+in another file, takes part in overload resolution and can win. A call to a
+member named like an `obj` member (`ToString`, `Equals`, `GetHashCode`,
+`GetType`, `Finalize`, `MemberwiseClone`, `ReferenceEquals`) records no fact
+for the same reason.
+
+These calls record no fact: a partial application, a name that any pattern in
+the file binds (parameter, lambda, match, or loop variable), a qualifier that
+any pattern in the file binds, a self identifier that a pattern inside the same
+member binds again (`fun this -> this.Load()`), a type parameter return (`'T`),
+a flexible return (`#seq<int>`, a hidden type parameter the caller fixes),
+a call through another receiver, a self call inside an object expression, and a
+callee in another file. `let!` and `use!` remove one `Async` layer inside
+`async { }` and one `Task`, `ValueTask`, or `Async` layer inside `task { }` or
+`backgroundTask { }`; any other builder, and any other return type, records no
+fact. Other files are out of scope because each file is extracted alone.
+
 Comments, `///` XML documentation comments, and F# string forms publish exact
 `source_regions` spans. Attribute nodes publish the registered
 `fsharp.attribute.v1` structural fact with `metadata` query-family metadata and

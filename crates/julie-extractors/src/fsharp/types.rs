@@ -1,4 +1,5 @@
 use super::FSharpExtractor;
+use super::call_types::ReturnTypeIndex;
 use super::parameters;
 use crate::base::types::TypeNameRules;
 use crate::base::{BaseExtractor, Symbol, SymbolKind};
@@ -19,36 +20,44 @@ pub(super) fn collect_types(
 ) -> HashMap<String, String> {
     let mut types = HashMap::new();
     extractor.base.type_info.clear();
-    walk(&mut extractor.base, root, symbols, &mut types, 0);
+    let return_types = ReturnTypeIndex::build(&extractor.base, root);
+    let mut scope = TypeScope {
+        symbols,
+        return_types: &return_types,
+        types: &mut types,
+    };
+    walk(&mut extractor.base, root, &mut scope, 0);
     for (symbol_id, type_info) in &extractor.base.type_info {
         types.insert(symbol_id.clone(), type_info.resolved_type.clone());
     }
     types
 }
 
-fn walk(
-    base: &mut BaseExtractor,
-    node: Node,
-    symbols: &[Symbol],
-    types: &mut HashMap<String, String>,
-    depth: u32,
-) {
+struct TypeScope<'s, 't> {
+    symbols: &'s [Symbol],
+    return_types: &'s ReturnTypeIndex<'t>,
+    types: &'s mut HashMap<String, String>,
+}
+
+fn walk<'t>(base: &mut BaseExtractor, node: Node<'t>, scope: &mut TypeScope<'_, 't>, depth: u32) {
     if !should_visit_tree_depth(depth) {
         return;
     }
+    let symbols = scope.symbols;
     match node.kind() {
         "function_or_value_defn" => {
-            collect_definition_type(base, node, symbols, types);
+            collect_definition_type(base, node, scope);
             parameters::record_parameter_facts(base, node, symbols);
         }
-        "record_field" | "union_type_field" => collect_field_type(base, node, symbols, types),
+        "declaration_expression" => collect_use_type(base, node, scope),
+        "record_field" | "union_type_field" => collect_field_type(base, node, symbols, scope.types),
         "member_defn" => {
-            collect_member_type(base, node, symbols, types);
+            collect_member_type(base, node, symbols, scope.types);
             parameters::record_parameter_facts(base, node, symbols);
         }
         "anon_type_defn" => parameters::record_parameter_facts(base, node, symbols),
         "value_definition" | "member_signature" => {
-            collect_signature_type(base, node, symbols, types)
+            collect_signature_type(base, node, symbols, scope.types)
         }
         _ => {}
     }
@@ -57,16 +66,16 @@ fn walk(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk(base, child, symbols, types, child_depth);
+        walk(base, child, scope, child_depth);
     }
 }
 
-fn collect_definition_type(
+fn collect_definition_type<'t>(
     base: &mut BaseExtractor,
-    node: Node,
-    symbols: &[Symbol],
-    types: &mut HashMap<String, String>,
+    node: Node<'t>,
+    scope: &mut TypeScope<'_, 't>,
 ) {
+    let symbols = scope.symbols;
     let Some(left) = direct_child(node, "function_declaration_left")
         .or_else(|| direct_child(node, "value_declaration_left"))
     else {
@@ -78,20 +87,122 @@ fn collect_definition_type(
     let Some(symbol) = symbol_for_name(symbols, base, &name_node) else {
         return;
     };
-    let explicit = direct_type_child_after(node, left);
+    let pattern = if left.kind() == "value_declaration_left" {
+        bound_pattern(left)
+    } else {
+        Some(BoundPattern::Name)
+    };
+    let written_on_pattern = match pattern {
+        Some(BoundPattern::Typed(type_node)) => Some(type_node),
+        _ => None,
+    };
+    let explicit = direct_type_child_after(node, left).or(written_on_pattern);
     if let Some(type_node) = explicit {
-        insert_type(base, types, symbol, type_node);
+        insert_type(base, scope.types, symbol, type_node);
         return;
     }
-    let Some(body) = node.child_by_field_name("body") else {
+    let (Some(_), Some(keyword), Some(body)) =
+        (pattern, node.child(0), node.child_by_field_name("body"))
+    else {
         return;
     };
-    if let Some(literal) = literal_type(body) {
-        record_named_type(base, &symbol.id, literal, literal, true);
+    record_initializer_type(base, &symbol.id, keyword, body, scope);
+}
+
+enum BoundPattern<'t> {
+    Name,
+    Typed(Node<'t>),
+}
+
+/// The value pattern of `let x = ...` or `let (x: T) = ...`, with optional
+/// parentheses. Tuple, list, array, cons, union-case, and `as` patterns bind
+/// parts of the value, so they return `None`.
+fn bound_pattern(left: Node) -> Option<BoundPattern> {
+    let mut cursor = left.walk();
+    let mut patterns = left.named_children(&mut cursor).filter(|child| {
+        !matches!(child.kind(), "mutable" | "access_modifier") && !child.is_extra()
+    });
+    let (pattern, None) = (patterns.next()?, patterns.next()) else {
+        return None;
+    };
+    let pattern = unparenthesized(pattern)?;
+    if pattern.kind() == "typed_pattern" {
+        let (inner, type_node) = parameters::typed_pattern_parts(pattern)?;
+        return is_name_pattern(unparenthesized(inner)?).then_some(BoundPattern::Typed(type_node));
+    }
+    is_name_pattern(pattern).then_some(BoundPattern::Name)
+}
+
+fn unparenthesized(mut pattern: Node) -> Option<Node> {
+    while pattern.kind() == "paren_pattern" {
+        let mut cursor = pattern.walk();
+        let mut inner = pattern
+            .named_children(&mut cursor)
+            .filter(|child| !child.is_extra());
+        let (only, None) = (inner.next()?, inner.next()) else {
+            return None;
+        };
+        pattern = only;
+    }
+    Some(pattern)
+}
+
+fn is_name_pattern(pattern: Node) -> bool {
+    let mut cursor = pattern.walk();
+    let children: Vec<Node> = pattern.named_children(&mut cursor).collect();
+    pattern.kind() == "identifier_pattern"
+        && matches!(children[..], [name] if name.kind() == "long_identifier_or_op"
+            && name.named_child_count() == 1
+            && name.named_child(0).is_some_and(|child| child.kind() == "identifier"))
+}
+
+/// `use name = expr` and `use! name = expr` have no `function_or_value_defn`.
+fn collect_use_type<'t>(base: &mut BaseExtractor, node: Node<'t>, scope: &TypeScope<'_, 't>) {
+    let Some(keyword) = direct_child(node, "use").or_else(|| direct_child(node, "use!")) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    let children: Vec<Node> = node.children(&mut cursor).collect();
+    if children.iter().any(is_type_node) {
         return;
     }
-    if let Some(type_name) = same_file_constructor_type(base, body, symbols) {
-        record_named_type(base, &symbol.id, &type_name, &type_name, true);
+    let Some(value) = children
+        .iter()
+        .position(|child| child.kind() == "=")
+        .and_then(|index| children.get(index + 1))
+    else {
+        return;
+    };
+    let Some(symbol) =
+        direct_identifier(node).and_then(|name| symbol_for_name(scope.symbols, base, &name))
+    else {
+        return;
+    };
+    record_initializer_type(base, &symbol.id, keyword, *value, scope);
+}
+
+/// Literal and same-file constructor initializers, then same-file calls.
+/// A `let!`/`use!` binds the computation's result, so only the call path,
+/// which unwraps the builder's wrapper type, applies to it.
+fn record_initializer_type<'t>(
+    base: &mut BaseExtractor,
+    symbol_id: &str,
+    keyword: Node<'t>,
+    value: Node<'t>,
+    scope: &TypeScope<'_, 't>,
+) {
+    if !base.get_node_text(&keyword).ends_with('!') {
+        if let Some(literal) = literal_type(value) {
+            record_named_type(base, symbol_id, literal, literal, true);
+            return;
+        }
+        if let Some(type_name) = same_file_constructor_type(base, value, scope.symbols) {
+            record_named_type(base, symbol_id, &type_name, &type_name, true);
+            return;
+        }
+    }
+    if let Some((name, declared)) = scope.return_types.initializer_type(base, keyword, value) {
+        record_named_type(base, symbol_id, &name, &declared, true);
     }
 }
 
@@ -206,7 +317,7 @@ fn record_named_type(
     );
 }
 
-fn structural_base_name(base: &BaseExtractor, node: Node) -> Option<String> {
+pub(super) fn structural_base_name(base: &BaseExtractor, node: Node) -> Option<String> {
     let mut node = node;
     loop {
         match node.kind() {
@@ -373,17 +484,20 @@ fn symbol_for_name<'a>(
         .min_by_key(|symbol| symbol.end_byte.saturating_sub(symbol.start_byte))
 }
 
-fn direct_type_child_after<'a>(node: Node<'a>, left: Node<'a>) -> Option<Node<'a>> {
+/// The type written after `left` and before its `=`; a `let ... and ...`
+/// group holds several bindings in one node.
+pub(super) fn direct_type_child_after<'a>(node: Node<'a>, left: Node<'a>) -> Option<Node<'a>> {
     let mut cursor = node.walk();
     let children: Vec<_> = node.children(&mut cursor).collect();
     children
         .into_iter()
         .skip_while(|child| child.id() != left.id())
         .skip(1)
+        .take_while(|child| child.kind() != "=" && !child.kind().ends_with("_declaration_left"))
         .find(is_type_node)
 }
 
-fn direct_type_child(node: Node) -> Option<Node> {
+pub(super) fn direct_type_child(node: Node) -> Option<Node> {
     let mut cursor = node.walk();
     node.named_children(&mut cursor).find(is_type_node)
 }
@@ -398,7 +512,7 @@ fn direct_identifier(node: Node) -> Option<Node> {
         .find(|child| child.kind() == "identifier")
 }
 
-fn first_identifier(node: Node) -> Option<Node> {
+pub(super) fn first_identifier(node: Node) -> Option<Node> {
     if node.kind() == "identifier" {
         return Some(node);
     }
@@ -406,7 +520,7 @@ fn first_identifier(node: Node) -> Option<Node> {
     node.named_children(&mut cursor).find_map(first_identifier)
 }
 
-fn direct_child<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
+pub(super) fn direct_child<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
         .find(|child| child.kind() == kind)
@@ -438,7 +552,7 @@ fn first_named_child(node: Node) -> Option<Node> {
     node.named_children(&mut cursor).next()
 }
 
-fn terminal_identifier(node: Node) -> Option<Node> {
+pub(super) fn terminal_identifier(node: Node) -> Option<Node> {
     if node.kind() == "identifier" {
         return Some(node);
     }
