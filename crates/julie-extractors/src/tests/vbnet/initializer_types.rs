@@ -369,15 +369,18 @@ Class Loader
     End Function
     Function Create() As Workspace
     End Function
-    Sub Run(load As Workspace())
-        Dim items = GetItems()
-        Dim workspace = Load(0)
-        Dim first = Items(0)
+    Shared Function Make() As Workspace
+    End Function
+    Sub Run(load As Func(Of Workspace()), loader As Other)
+        Dim items As Func(Of Other) = GetItems()
+        Dim workspace = Load()
+        Dim first = Items()
         Dim create = Create()
+        Dim made = Loader.Make()
     End Sub
 End Class
 "#;
-    for local in ["recursive", "workspace", "first", "create"] {
+    for local in ["recursive", "workspace", "first", "create", "made"] {
         assert_eq!(inferred_type(source, local), None, "{local}");
     }
 }
@@ -837,4 +840,113 @@ fn parenthesized_await_forms_record_the_awaited_type() {
         workspace()
     );
     assert_eq!(workspace_type("Dim workspace = (Load())"), workspace());
+}
+
+#[test]
+fn namespace_with_the_qualifier_name_records_no_fact() {
+    let source = r#"
+Class Loader
+    Shared Function Create() As Foo
+    End Function
+End Class
+Namespace App
+    Namespace Loader
+        Module Util
+            Function Create() As Bar
+            End Function
+        End Module
+    End Namespace
+    Class C
+        Sub Run()
+            Dim rNamespace = Loader.Create()
+        End Sub
+    End Class
+End Namespace
+Namespace Outer.App2.Loader
+    Module Util2
+        Function Create() As Bar
+        End Function
+    End Module
+End Namespace
+Namespace Outer.App2
+    Module Caller
+        Sub Run()
+            Dim rDotted = Loader.Create()
+        End Sub
+    End Module
+End Namespace
+"#;
+    assert_eq!(inferred_type(source, "rNamespace"), None);
+    assert_eq!(inferred_type(source, "rDotted"), None);
+}
+
+#[test]
+fn imports_alias_with_the_qualifier_name_records_no_fact() {
+    let source = r#"
+Imports Loader = Other.RealLoader
+Imports Lib
+Namespace Other
+    Class RealLoader
+        Shared Function Create() As Bar
+        End Function
+    End Class
+End Namespace
+Namespace Lib
+    Class Loader
+        Shared Function Create() As Foo
+        End Function
+    End Class
+End Namespace
+Namespace App
+    Class C
+        Sub Run()
+            Dim rAlias = Loader.Create()
+        End Sub
+    End Class
+End Namespace
+"#;
+    assert_eq!(inferred_type(source, "rAlias"), None);
+}
+
+#[test]
+fn implicit_value_parameter_of_a_set_accessor_shadows_the_called_name() {
+    let source = r#"
+Module Helpers
+    Function Value() As Foo
+    End Function
+End Module
+Class C
+    Function Value() As Foo
+    End Function
+    Function Value(i As Integer) As Foo
+    End Function
+    Property P As Func(Of Bar)
+        Get
+            Return Nothing
+        End Get
+        Set
+            Dim rImplicitValueMember = Value()
+            Dim rIndexed = Value(0)
+            Dim rViaMe = Me.Value()
+        End Set
+    End Property
+End Class
+Class D
+    Property Q As Func(Of Bar)
+        Get
+            Return Nothing
+        End Get
+        Set
+            Dim rModule = Value()
+        End Set
+    End Property
+End Class
+"#;
+    assert_eq!(inferred_type(source, "rImplicitValueMember"), None);
+    assert_eq!(inferred_type(source, "rIndexed"), None);
+    assert_eq!(inferred_type(source, "rModule"), None);
+    assert_eq!(
+        inferred_type(source, "rViaMe"),
+        Some(("Foo".to_string(), true))
+    );
 }

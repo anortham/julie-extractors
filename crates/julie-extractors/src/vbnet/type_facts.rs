@@ -1,7 +1,7 @@
 use crate::base::BaseExtractor;
 use crate::base::types::TypeNameRules;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
 
 pub(super) const VBNET_TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
@@ -232,7 +232,7 @@ pub(super) fn record_call_initializer_type(
         return_types,
         enclosing: enclosing_type_ids(initializer),
         namespace: enclosing_namespace(base, initializer),
-        lambda_parameters: lambda_parameter_names(base, initializer),
+        bound_names: enclosing_bound_names(base, initializer),
         is_shadowed,
     };
     let Some(TypeShape {
@@ -312,6 +312,9 @@ pub(super) struct ReturnTypeIndex {
     modules: Vec<usize>,
     /// Namespaces named by `Imports` clauses without an alias.
     imports: Vec<Vec<String>>,
+    /// Namespace segments and `Imports` alias names. VB can bind a
+    /// qualifier to one of them before a same-file type.
+    namespace_or_alias_names: HashSet<String>,
 }
 
 #[derive(Debug, Default)]
@@ -442,6 +445,12 @@ impl ReturnTypeIndex {
         let inner;
         let scope = match node.kind() {
             "namespace_block" => {
+                if let Some(name) = node.child_by_field_name("name") {
+                    self.namespace_or_alias_names.extend(
+                        name.named_children(&mut name.walk())
+                            .map(|segment| name_key(&base.get_node_text(&segment))),
+                    );
+                }
                 inner = IndexScope {
                     namespace: nested_namespace(base, &scope.namespace, node),
                     ..scope.clone()
@@ -450,6 +459,11 @@ impl ReturnTypeIndex {
             }
             "imports_statement" => {
                 self.imports.extend(unaliased_imports(base, node));
+                let mut cursor = node.walk();
+                self.namespace_or_alias_names.extend(
+                    node.children_by_field_name("alias", &mut cursor)
+                        .map(|alias| name_key(&base.get_node_text(&alias))),
+                );
                 return;
             }
             _ if is_type_block(node) => {
@@ -753,13 +767,18 @@ fn enclosing_namespace(base: &BaseExtractor, node: Node) -> Vec<String> {
     })
 }
 
-/// Parameters of the lambdas around `node`, which take over a called name.
-fn lambda_parameter_names(base: &BaseExtractor, node: Node) -> Vec<String> {
+/// Names bound around `node` that have no symbol and take over a called
+/// name: lambda parameters, and the implicit `Value` parameter of a `Set`
+/// accessor.
+fn enclosing_bound_names(base: &BaseExtractor, node: Node) -> Vec<String> {
     let mut names = Vec::new();
     let mut current = node.parent();
     while let Some(ancestor) = current {
         if is_type_block(ancestor) {
             break;
+        }
+        if ancestor.kind() == "set_accessor" {
+            names.push("value".to_string());
         }
         if ancestor.kind() == "lambda_expression" {
             names.extend(
@@ -813,7 +832,7 @@ struct InitializerScope<'a> {
     return_types: &'a ReturnTypeIndex,
     enclosing: Vec<usize>,
     namespace: Vec<String>,
-    lambda_parameters: Vec<String>,
+    bound_names: Vec<String>,
     is_shadowed: &'a dyn Fn(&str) -> bool,
 }
 
@@ -868,7 +887,7 @@ impl InitializerScope<'_> {
     }
 
     fn shadowed(&self, name: &str) -> bool {
-        (self.is_shadowed)(name) || self.lambda_parameters.iter().any(|local| local == name)
+        (self.is_shadowed)(name) || self.bound_names.iter().any(|local| local == name)
     }
 
     fn member_call(
@@ -905,14 +924,22 @@ impl InitializerScope<'_> {
     /// with that name would take the qualifier. VB looks in each enclosing
     /// type, inherited members included, before it looks in namespaces, so an
     /// open enclosing type stops the search unless it declares `T` as a
-    /// nested type. Every type in scope with that name must declare `F`.
+    /// nested type. Every type in scope with that name must declare `F`. A
+    /// namespace or an `Imports` alias with the name `T` anywhere in the file
+    /// can take the qualifier first, so it stops the search.
     fn shared_call(
         &self,
         qualifier: &str,
         member: &str,
         argument_count: usize,
     ) -> Option<TypeShape> {
-        if self.shadowed(qualifier) || self.module_declares(qualifier) {
+        if self.shadowed(qualifier)
+            || self.module_declares(qualifier)
+            || self
+                .return_types
+                .namespace_or_alias_names
+                .contains(qualifier)
+        {
             return None;
         }
         let types = self.return_types.by_name.get(qualifier)?;

@@ -59,7 +59,8 @@ with `JULIE_GOLDEN_LANGUAGE=vbnet`.
   - A chain that ends in any other member (`Load().Name`), a bare name without
     parentheses (`Load`), and `MyBase.Load()`.
   - A called name or qualifier that is also a local, a local `Const`, a
-    parameter, a lambda parameter, or the enclosing member, because VB
+    parameter, a lambda parameter, the implicit `Value` parameter of a `Set`
+    accessor, or the enclosing member, because VB
     resolves the name to that variable first. A qualifier or called name that
     is also a field, `Const`, property, or event of an enclosing type is
     skipped for the same reason.
@@ -74,6 +75,10 @@ with `JULIE_GOLDEN_LANGUAGE=vbnet`.
   - A qualifier that is also a member of a module in scope. VB promotes
     module members to the namespace, so `Gizmo.Make()` can call `Make` on the
     module field `Gizmo`.
+  - A qualifier with the name of a namespace (any segment of a dotted
+    namespace name) or of an `Imports` alias anywhere in the file. VB can
+    bind the qualifier to that namespace or alias before a same-file type,
+    so `Loader.Create()` can call a module function in `App.Loader`.
   - An unqualified call to an `Object` member name (`ToString()`,
     `Equals()`, `GetHashCode()`, `GetType()`, `ReferenceEquals()`,
     `MemberwiseClone()`, `Finalize()`). It binds to the inherited member
@@ -91,4 +96,6 @@ with `JULIE_GOLDEN_LANGUAGE=vbnet`.
     the WinForms designer file does.
   - A module in another file can declare a member with the qualifier name
     or the called name. The extractor cannot see it.
+  - A namespace in another file or assembly, or a project-level `Imports`
+    alias, can have the qualifier name. The extractor cannot see it.
 - A written `As` type always wins over inference.
