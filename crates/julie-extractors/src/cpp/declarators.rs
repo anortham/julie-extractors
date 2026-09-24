@@ -55,17 +55,24 @@ fn first_declarator_child(node: Node) -> Option<Node> {
     })
 }
 
+/// The `[a, b]` of a structured binding such as `auto [a, b] = ...` or
+/// `const auto& [a, b] = ...`.
+pub(super) fn structured_binding(declarator: Node) -> Option<Node> {
+    let mut current = declarator;
+    loop {
+        current = match current.kind() {
+            "structured_binding_declarator" => return Some(current),
+            "init_declarator" => current.child_by_field_name("declarator")?,
+            "reference_declarator" => first_declarator_child(current)?,
+            _ => return None,
+        };
+    }
+}
+
 /// The names one declarator introduces: one name, or each name of a structured
 /// binding such as `auto [key, value] = ...`.
 pub(super) fn declared_names(declarator: Node) -> Vec<Node> {
-    let binding = match declarator.kind() {
-        "init_declarator" => declarator
-            .child_by_field_name("declarator")
-            .filter(|inner| inner.kind() == "structured_binding_declarator"),
-        "structured_binding_declarator" => Some(declarator),
-        _ => None,
-    };
-    if let Some(binding) = binding {
+    if let Some(binding) = structured_binding(declarator) {
         let mut cursor = binding.walk();
         return binding
             .named_children(&mut cursor)
