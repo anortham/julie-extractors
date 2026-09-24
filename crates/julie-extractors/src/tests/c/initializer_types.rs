@@ -265,6 +265,32 @@ fn malformed_prototype_that_disagrees_records_no_fact() {
 }
 
 #[test]
+fn parenthesized_attribute_prototype_that_disagrees_records_no_fact() {
+    for (misread, call) in [
+        (
+            "struct gadget *__attribute__((malloc)) make(void);",
+            "make()",
+        ),
+        (
+            "struct gadget *__attribute__((malloc)) make(void) { return 0; }",
+            "make()",
+        ),
+        ("struct gadget *NONNULL(1) make(void *p);", "make(0)"),
+        ("struct gadget *__declspec(dllexport) make(void);", "make()"),
+    ] {
+        let prelude = format!(
+            "struct widget {{ int n; }}; struct gadget {{ int g; }};\n#ifdef USE_GADGET\n{misread}\n#else\nstruct widget *make(void);\n#endif"
+        );
+        let body = format!("__auto_type w = {call};");
+        assert_eq!(
+            fact_of(&in_function(&prelude, &body), "w"),
+            None,
+            "{misread}"
+        );
+    }
+}
+
+#[test]
 fn macro_between_return_type_and_name_records_no_fact() {
     let prelude = "struct node *attr_pure find(void);";
     assert_eq!(

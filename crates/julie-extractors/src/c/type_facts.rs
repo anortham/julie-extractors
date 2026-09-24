@@ -148,8 +148,20 @@ impl ReturnTypeIndex {
 
 /// The names a definition or declaration declares, each with its plain return
 /// type when it names a function. A declaration with parse errors makes each
-/// name it may declare unknown, since its types cannot be trusted.
+/// name it may declare unknown, since its types cannot be trusted. So does a
+/// function name tree-sitter-c misread as a call after a macro, as in
+/// `struct gadget *__declspec(dllexport) make(void);`.
 fn declared_return_types(base: &BaseExtractor, node: Node) -> Vec<(String, Option<DeclaredType>)> {
+    let mut names = declared_names(base, node);
+    names.extend(
+        misread_function_names(base, node)
+            .into_iter()
+            .map(|name| (name, None)),
+    );
+    names
+}
+
+fn declared_names(base: &BaseExtractor, node: Node) -> Vec<(String, Option<DeclaredType>)> {
     let malformed = if node.kind() == "declaration" {
         node.has_error()
     } else {
@@ -197,6 +209,31 @@ fn malformed_declaration_names(base: &BaseExtractor, node: Node) -> Vec<String> 
         .map(|name| base.get_node_text(&name))
         .filter(|name| !name.is_empty())
         .collect()
+}
+
+/// The callee of each call tree-sitter-c reads after a function declarator's
+/// name when a parenthesized macro stands before the real name, as in
+/// `NONNULL(1) make(void *p)` or `__attribute__((malloc)) make(void)`.
+fn misread_function_names(base: &BaseExtractor, node: Node) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut cursor = node.walk();
+    for declarator in node.children_by_field_name("declarator", &mut cursor) {
+        let mut current = Some(declarator);
+        while let Some(declarator) = current {
+            if declarator.kind() == "function_declarator" {
+                names.extend(
+                    declarator
+                        .named_children(&mut declarator.walk())
+                        .filter(|child| child.kind() == "call_expression")
+                        .filter_map(|call| call.child_by_field_name("function"))
+                        .filter(|callee| callee.kind() == "identifier")
+                        .map(|callee| base.get_node_text(&callee)),
+                );
+            }
+            current = nested_declarator(declarator);
+        }
+    }
+    names
 }
 
 /// A function's return type. The declarator must be pointer levels around the

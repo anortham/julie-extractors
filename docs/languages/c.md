@@ -17,6 +17,9 @@
   parse error also blocks the fact, because its type cannot be trusted. This
   includes C23 `auto make = pick();` and a local whose initializer uses a
   macro with a type argument, such as `container_of(p, struct holder, node)`.
+  A local that tree-sitter-c reads as a call does not block the fact. Examples
+  are a parenthesized declarator such as `fp_t (make);` and a variable that a
+  macro declares, such as `LIST_HEAD(make);`.
 - These cases record no inferred fact: a member call (`ctx->make()`), a
   parenthesized call, any non-call initializer, a pointer declarator
   (`__auto_type *w`), a function that returns a function pointer, and a callee
@@ -24,7 +27,10 @@
   extracted alone.
 - A function declared with a macro between the return type and the name
   (`struct node *attr_pure find(void);`) gives no fact, because tree-sitter-c
-  misparses that declaration.
+  misparses that declaration. A macro with arguments in that place
+  (`struct node *NONNULL(1) find(void *p);`, `__attribute__((malloc))`,
+  `__declspec(dllexport)`) makes the name unknown anywhere in the file, so
+  the name gives no fact.
 - A written type always wins: `auto int n = count();` records `int` as a
   declared fact.
 - tree-sitter-c 0.24.2 has no rule for C23 `auto` inference. It reads
