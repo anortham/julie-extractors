@@ -201,6 +201,14 @@ The JavaScript extractor follows the TypeScript contract in
   in its whole function, so a call to `x` anywhere in that function records
   nothing. An initializer with a JSDoc cast (`/** @type {T} */ (load())`)
   records nothing, since the cast type, not the callee's type, applies.
+- A callee or class name that the file writes anywhere records nothing,
+  since the name may hold another value at the call. Writes are plain and
+  compound assignment (`load = other`, `load ||= other`), `++` and `--`,
+  destructuring assignment (`[load] = xs`, `({ load } = obj)`), a
+  `for (load of ..)` or `for (load in ..)` head without a declaration, and a
+  property write on `globalThis`, `window`, `self`, or `global`
+  (`globalThis.load = other`). The check covers the whole file, not only
+  the scope of the callee.
 - A doc comment before a `const`, `let`, or `var` with several declarators
   documents only the first declarator. JSDoc is the only source of return types, so a callee with no
   `@returns` records nothing.

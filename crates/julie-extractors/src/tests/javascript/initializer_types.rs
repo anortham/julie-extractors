@@ -921,3 +921,82 @@ fn jsdoc_cast_on_the_initializer_records_nothing() {
         assert_eq!(workspace_type(body), None, "{body}");
     }
 }
+
+const REASSIGNABLE_LOADER: &str = r#"
+/** @returns {Workspace} */
+function load() {}
+
+/** @returns {Project} */
+function replacement() {}
+
+class Factory {
+    /** @returns {Workspace} */
+    static create() {}
+}
+"#;
+
+fn reassigned_type(body: &str) -> Option<(String, bool)> {
+    inferred_type(&format!("{REASSIGNABLE_LOADER}\n{body}\n"), "value")
+}
+
+#[test]
+fn callee_reassigned_through_an_identifier_records_nothing() {
+    assert_eq!(
+        reassigned_type("load = replacement;\nconst value = load();"),
+        None
+    );
+    assert_eq!(
+        reassigned_type("const value = load();\nfunction swap() { load = replacement; }"),
+        None
+    );
+}
+
+#[test]
+fn callee_changed_by_compound_assignment_or_update_records_nothing() {
+    for body in [
+        "load ||= replacement;\nconst value = load();",
+        "load += \"\";\nconst value = load();",
+        "load++;\nconst value = load();",
+        "--load;\nconst value = load();",
+    ] {
+        assert_eq!(reassigned_type(body), None, "{body}");
+    }
+}
+
+#[test]
+fn callee_reassigned_by_destructuring_or_a_loop_head_records_nothing() {
+    for body in [
+        "[load] = [replacement];\nconst value = load();",
+        "[, ...load] = [1, replacement];\nconst value = load();",
+        "({ load } = { load: replacement });\nconst value = load();",
+        "({ other: load } = { other: replacement });\nconst value = load();",
+        "({ load = replacement } = {});\nconst value = load();",
+        "for (load of [replacement]) {}\nconst value = load();",
+        "for (load in {}) {}\nconst value = load();",
+        "globalThis.load = replacement;\nconst value = load();",
+    ] {
+        assert_eq!(reassigned_type(body), None, "{body}");
+    }
+}
+
+#[test]
+fn class_receiver_reassigned_through_an_identifier_records_nothing() {
+    assert_eq!(
+        reassigned_type("Factory = Other;\nconst value = Factory.create();"),
+        None
+    );
+}
+
+#[test]
+fn assignments_to_other_names_keep_the_callee_type() {
+    assert_eq!(
+        reassigned_type(
+            "let other;\nother = replacement;\nother += 1;\n[other] = [replacement];\n({ load: other } = { load: replacement });\nfor (const load of [replacement]) {}\nconst value = load();"
+        ),
+        inferred("Workspace")
+    );
+    assert_eq!(
+        reassigned_type("const value = Factory.create();"),
+        inferred("Workspace")
+    );
+}

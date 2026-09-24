@@ -87,6 +87,10 @@ directives are `qmldir.static.v1` and `qmldir.system.v1` facts.
   parameter, local, nested function, loop, or catch binding that shadows the
   name (a `for (var x of ..)` head shadows `x` in its whole function), an
   optional call, a chain, or a callee in another file records no fact.
+  A callee or id receiver name that the file writes anywhere records no
+  fact. The JavaScript rules define a write: assignment, compound
+  assignment, `++`/`--`, destructuring assignment, or a `for .. in/of` head
+  without a declaration.
 - A nested object with an `id` records its object type, so `docModel.flush()`
   can resolve through the `docModel` row. The root object's `id` records the
   file's component.
