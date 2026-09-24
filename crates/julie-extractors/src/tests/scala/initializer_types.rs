@@ -155,7 +155,7 @@ class Service {
 }
 
 #[test]
-fn nested_class_trait_and_anonymous_members_record_return_type() {
+fn nested_class_and_trait_members_record_return_type() {
     let source = r#"
 trait Store {
   def load(): Workspace
@@ -167,12 +167,6 @@ class Outer {
     val w = open()
   }
   def run(): Unit = {
-    new Runnable {
-      def make(): Session = ???
-      def run(): Unit = {
-        val s = this.make()
-      }
-    }
     val c = Repo.current
   }
 }
@@ -182,7 +176,6 @@ object Repo {
 "#;
     assert_eq!(inferred(source, "cached"), workspace());
     assert_eq!(inferred(source, "w"), workspace());
-    assert_eq!(inferred(source, "s"), Some(("Session".to_string(), true)));
     assert_eq!(inferred(source, "c"), workspace());
 }
 
@@ -335,10 +328,12 @@ class Plain {
 fn anonymous_class_body_records_nothing_for_outer_methods() {
     let source = in_service(
         "  def load(): Workspace = ???",
-        "new Runnable {\n      def run(): Unit = {\n        val a = this.load()\n        val b = load()\n      }\n    }",
+        "new Runnable {\n      def make(): Session = ???\n      def run(): Unit = {\n        val a = this.load()\n        val b = load()\n        val c = this.make()\n        val d = make()\n      }\n    }",
     );
     assert_eq!(inferred(&source, "a"), None);
     assert_eq!(inferred(&source, "b"), None);
+    assert_eq!(inferred(&source, "c"), None);
+    assert_eq!(inferred(&source, "d"), None);
 }
 
 #[test]
@@ -400,4 +395,88 @@ def run(): Unit = {
 }
 "#;
     assert_eq!(inferred(source, "s"), None);
+}
+
+#[test]
+fn inherited_overloads_block_own_defs_of_inheriting_templates() {
+    let source = r#"
+trait Base { def load(): String = "" }
+class Sub extends Base {
+  def load(x: Int): Int = x
+  def run(): Unit = { val inheritOverload = load(); val thisOverload = this.load() }
+}
+trait RBase { def create(): String = "" }
+object Repo extends RBase { def create(x: Int): Int = x }
+object Use { val objOverload = Repo.create() }
+abstract class B2 { def load(): String = "" }
+class Outer extends B2 { def load(x: Int): Int = x; class Inner { val nestedInherit = load() } }
+"#;
+    assert_eq!(inferred(source, "inheritOverload"), None);
+    assert_eq!(inferred(source, "thisOverload"), None);
+    assert_eq!(inferred(source, "objOverload"), None);
+    assert_eq!(inferred(source, "nestedInherit"), None);
+}
+
+#[test]
+fn for_enumerators_shadow_outer_defs() {
+    let source = r#"
+class Workspace; class Session
+object Repo {
+  def load(): Workspace = ???
+  def a(xs: List[() => Session]): Unit = { for (load <- xs) { val parenFor = load() } }
+  def b(xs: List[() => Session]): Unit = { for { load <- xs } { val braceFor = load() } }
+  def c(xs: List[() => Session]) = for { load <- xs } yield { val yieldFor = load(); yieldFor }
+  def d(xs: List[() => Session]) = for { x <- xs; load = x } yield { val eqFor = load(); eqFor }
+  def e(xs: List[Int]) = for { x <- xs; y = load(); if load() != null } yield { val outer = load(); outer }
+}
+"#;
+    assert_eq!(inferred(source, "parenFor"), None);
+    assert_eq!(inferred(source, "braceFor"), None);
+    assert_eq!(inferred(source, "yieldFor"), None);
+    assert_eq!(inferred(source, "eqFor"), None);
+    assert_eq!(inferred(source, "outer"), workspace());
+}
+
+#[test]
+fn given_alias_shadows_outer_def() {
+    let source = r#"
+object G {
+  def current: Int = 1
+  def load(): Workspace = ???
+  def f(): Unit = {
+    given current: String = ""
+    val givenShadow = current
+  }
+  def g(): Unit = {
+    given load: (() => Session) = ???
+    val gv = load()
+  }
+}
+"#;
+    assert_eq!(inferred(source, "givenShadow"), None);
+    assert_eq!(inferred(source, "gv"), None);
+}
+
+#[test]
+fn get_does_not_unwrap_a_same_file_class_named_like_a_wrapper() {
+    let source = r#"
+class Workspace
+class Try[A] { def get: String = "" }
+object U { def load(): Try[Workspace] = ???; val userTry = load().get }
+"#;
+    assert_eq!(inferred(source, "userTry"), None);
+}
+
+#[test]
+fn companion_object_that_may_inherit_apply_records_nothing() {
+    let source = r#"
+class Worker
+trait Factory { def apply(x: Int): String = "" }
+object Worker extends Factory
+class Job
+object Job extends Factory { def apply(): Job = ??? }
+object M { val inheritedApply = Worker(1); val ownApply = Job() }
+"#;
+    assert_eq!(inferred(source, "inheritedApply"), None);
+    assert_eq!(inferred(source, "ownApply"), None);
 }

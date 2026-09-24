@@ -49,12 +49,17 @@ Scala uses `tree-sitter-scala`. The extractor reads `.scala`, `.sc`, and
 - `Name(..)` uses the `apply` methods of the same-file object `Name` when it
   declares any. For a case class the result must be `Name`.
 - Same-named defs in the resolving scope must agree. `.get` removes one
-  `Option`, `Some`, `Try`, or `Success` layer. Any other trailing method,
-  a type parameter or abstract type member, a name bound by a parameter,
-  pattern, or `val`, or a name an enclosing template can inherit (an
-  `extends` clause, a self type, a case class, an anonymous class, an enum or
-  given body, or an `Any` member such as `toString`) records no fact. Other
-  files are out of scope because each file is extracted alone.
+  `Option`, `Some`, `Try`, or `Success` layer, unless the file declares its
+  own type with that name. Any other trailing method, a type parameter or
+  abstract type member, or a name bound by a parameter, pattern, `for`
+  enumerator, `val`, or named `given` records no fact.
+- A class, object, or trait that can inherit (an `extends` clause, a self
+  type, a case class, an anonymous class, an enum or given body, or an `Any`
+  member such as `toString`) records no fact for that name, even when it
+  declares its own defs of the name: an inherited overload can be the one
+  the call selects. This covers `load()`, `this.load()`, `Repo.create()`,
+  and `Name(..)` through an inheriting companion object. Other files are out
+  of scope because each file is extracted alone.
 
 ## Relationships and identifiers
 

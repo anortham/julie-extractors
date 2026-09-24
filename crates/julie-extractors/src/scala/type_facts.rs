@@ -118,11 +118,13 @@ struct TypeShape {
 }
 
 impl TypeShape {
-    fn got(self) -> Option<TypeShape> {
+    /// The wrapped type `.get` returns, unless the file declares its own
+    /// type with the wrapper's name.
+    fn got(self, file_types: &HashSet<String>) -> Option<TypeShape> {
         let unwraps = self
             .name
             .as_deref()
-            .is_some_and(|name| GET_UNWRAPS.contains(&name));
+            .is_some_and(|name| GET_UNWRAPS.contains(&name) && !file_types.contains(name));
         unwraps.then(|| self.args.into_iter().next()).flatten()
     }
 }
@@ -143,12 +145,14 @@ impl DefEntry {
 }
 
 /// The file's defs keyed by the node that declares them, plus its class
-/// names, built once per file before the symbol walk.
+/// and type names, built once per file before the symbol walk.
 #[derive(Debug, Default)]
 pub(super) struct ReturnTypeIndex {
     defs: HashMap<(usize, String), Vec<DefEntry>>,
     classes: HashSet<String>,
     case_classes: HashSet<String>,
+    /// Classes, traits, enums, and type aliases.
+    types: HashSet<String>,
 }
 
 impl ReturnTypeIndex {
@@ -166,8 +170,13 @@ impl ReturnTypeIndex {
     }
 
     fn add(&mut self, base: &BaseExtractor, node: Node, scope: usize) {
-        let is_def = matches!(node.kind(), "function_definition" | "function_declaration");
-        if !is_def && node.kind() != "class_definition" {
+        let kind = node.kind();
+        let is_def = matches!(kind, "function_definition" | "function_declaration");
+        let is_type = matches!(
+            kind,
+            "class_definition" | "trait_definition" | "enum_definition" | "type_definition"
+        );
+        if !is_def && !is_type {
             return;
         }
         let Some(name_node) = node.child_by_field_name("name") else {
@@ -179,12 +188,15 @@ impl ReturnTypeIndex {
                 .entry((scope, name))
                 .or_default()
                 .push(def_entry(base, node));
-        } else {
+            return;
+        }
+        if kind == "class_definition" {
             if has_token(node, "case") {
                 self.case_classes.insert(name.clone());
             }
-            self.classes.insert(name);
+            self.classes.insert(name.clone());
         }
+        self.types.insert(name);
     }
 
     fn defs(&self, scope: Node, name: &str) -> Option<&[DefEntry]> {
@@ -326,8 +338,8 @@ fn is_template_body(node: Node) -> bool {
 /// What a bare name means at a use site, found by walking its enclosing scopes.
 enum Term<'a, 'tree> {
     Defs(&'a [DefEntry]),
-    /// A same-file object and its body, `None` for a bodiless object.
-    Object(Option<Node<'tree>>),
+    /// A same-file object definition.
+    Object(Node<'tree>),
     /// A parameter, pattern, or `val`/`var` binds the name.
     Value,
     /// An enclosing template may inherit a member of this name.
@@ -374,16 +386,18 @@ impl InitializerScope<'_> {
     /// `name`, `name(..)`, or a companion `Name(..)`.
     fn term_call(&self, callee: Node, applied_lists: usize) -> Option<TypeShape> {
         let name = self.base.get_node_text(&callee);
-        let body = match self.lookup_term(callee, &name) {
+        let object = match self.lookup_term(callee, &name) {
             Term::Defs(entries) => return agreed_return(entries, applied_lists),
             Term::Value => return None,
-            Term::Object(body) => body,
+            Term::Object(object) => Some(object),
             Term::MaybeInherited | Term::Unbound => None,
         };
-        if applied_lists == 0 {
+        if applied_lists == 0 || object.is_some_and(|object| may_inherit(object, "apply")) {
             return None;
         }
-        let applies = body.and_then(|body| self.index.defs(body, "apply"));
+        let applies = object
+            .and_then(|object| object.child_by_field_name("body"))
+            .and_then(|body| self.index.defs(body, "apply"));
         match applies {
             Some(entries) => agreed_return(entries, applied_lists).filter(|shape| {
                 !self.index.case_classes.contains(&name)
@@ -404,21 +418,27 @@ impl InitializerScope<'_> {
         let member = self
             .base
             .get_node_text(&callee.child_by_field_name("field")?);
-        let receiver_body = match receiver.kind() {
+        let receiver_template = match receiver.kind() {
             "identifier" if self.base.get_node_text(&receiver) == "this" => {
-                Some(enclosing_template_body(receiver)?)
+                Some(enclosing_template_body(receiver)?.parent()?)
             }
             "identifier" => match self.lookup_term(receiver, &self.base.get_node_text(&receiver)) {
-                Term::Object(body) => Some(body?),
+                Term::Object(object) => Some(object),
                 _ => None,
             },
             _ => None,
         };
-        if let Some(body) = receiver_body {
+        if let Some(template) = receiver_template {
+            if may_inherit(template, &member) {
+                return None;
+            }
+            let body = template.child_by_field_name("body")?;
             return agreed_return(self.index.defs(body, &member)?, applied_lists);
         }
         if member == "get" && applied_lists == 0 {
-            return self.shape_of(receiver, child_tree_depth(depth)?)?.got();
+            return self
+                .shape_of(receiver, child_tree_depth(depth)?)?
+                .got(&self.index.types);
         }
         None
     }
@@ -433,13 +453,21 @@ impl InitializerScope<'_> {
             if binds_value(self.base, scope, name) {
                 return Term::Value;
             }
+            let inherits = is_template_body(scope)
+                && scope
+                    .parent()
+                    .is_some_and(|template| may_inherit(template, name));
             if let Some(entries) = self.index.defs(scope, name) {
-                return Term::Defs(entries);
+                return if inherits {
+                    Term::MaybeInherited
+                } else {
+                    Term::Defs(entries)
+                };
             }
             if let Some(object) = declared_object(self.base, scope, name) {
-                return Term::Object(object.child_by_field_name("body"));
+                return Term::Object(object);
             }
-            if is_template_body(scope) && may_inherit(scope, name) {
+            if inherits {
                 return Term::MaybeInherited;
             }
             current = scope.parent();
@@ -473,17 +501,18 @@ fn declared_object<'tree>(
     })
 }
 
-fn may_inherit(body: Node, name: &str) -> bool {
-    let Some(owner) = body.parent() else {
-        return false;
-    };
-    match owner.kind() {
+/// Whether `template` (a class, object, trait, anonymous class, or other
+/// template owner) may have a member `name` it does not declare itself, so
+/// its own defs of that name may be only some of the overloads.
+fn may_inherit(template: Node, name: &str) -> bool {
+    match template.kind() {
         "class_definition" | "object_definition" | "trait_definition" | "package_object" => {
-            owner.child_by_field_name("extend").is_some()
-                || has_token(owner, "case")
-                || body
-                    .named_children(&mut body.walk())
-                    .any(|member| member.kind() == "self_type")
+            template.child_by_field_name("extend").is_some()
+                || has_token(template, "case")
+                || template.child_by_field_name("body").is_some_and(|body| {
+                    body.named_children(&mut body.walk())
+                        .any(|member| member.kind() == "self_type")
+                })
                 || UNIVERSAL_MEMBERS.contains(&name)
         }
         _ => true,
@@ -492,28 +521,48 @@ fn may_inherit(body: Node, name: &str) -> bool {
 
 /// Whether `scope` introduces a value named `name` for the code inside it:
 /// a def, lambda, extension, or class parameter, a case pattern, a `for`
-/// enumerator, or a `val`/`var` declared directly in it.
+/// enumerator pattern, or a `val`/`var`/named `given` declared directly in it.
 fn binds_value(base: &BaseExtractor, scope: Node, name: &str) -> bool {
-    let pattern = match scope.kind() {
-        "case_clause" => scope.child_by_field_name("pattern"),
-        "for_expression" => scope.child_by_field_name("enumerators"),
-        _ => None,
-    };
     let binders: Vec<Node> = scope
         .children(&mut scope.walk())
         .filter_map(|child| match child.kind() {
             "val_definition" | "var_definition" | "val_declaration" | "var_declaration" => child
                 .child_by_field_name("pattern")
                 .or_else(|| child.child_by_field_name("name")),
+            "given_definition" => child.child_by_field_name("name"),
             "class_parameters" => Some(child),
             _ => None,
         })
         .chain(scope.children_by_field_name("parameters", &mut scope.walk()))
-        .chain(pattern)
+        .chain(
+            (scope.kind() == "case_clause")
+                .then(|| scope.child_by_field_name("pattern"))
+                .flatten(),
+        )
+        .chain(for_enumerator_patterns(scope))
         .collect();
     binders
         .into_iter()
         .any(|binder| names_identifier(base, binder, name))
+}
+
+/// The pattern of every generator (`p <- xs`) and value definition
+/// (`p = x`) of a `for` expression.
+fn for_enumerator_patterns(scope: Node) -> Vec<Node> {
+    if scope.kind() != "for_expression" {
+        return Vec::new();
+    }
+    scope
+        .named_children(&mut scope.walk())
+        .filter(|child| child.kind() == "enumerators")
+        .flat_map(|enumerators| {
+            enumerators
+                .named_children(&mut enumerators.walk())
+                .collect::<Vec<_>>()
+        })
+        .filter_map(|enumerator| enumerator.named_child(0))
+        .filter(|pattern| pattern.kind() != "guard")
+        .collect()
 }
 
 fn names_identifier(base: &BaseExtractor, root: Node, name: &str) -> bool {
