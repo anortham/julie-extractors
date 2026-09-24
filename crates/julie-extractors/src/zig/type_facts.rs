@@ -1,7 +1,7 @@
 use crate::base::BaseExtractor;
 use crate::base::types::TypeNameRules;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use tree_sitter::Node;
 
 pub(super) const TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
@@ -29,7 +29,7 @@ pub(super) fn record_initializer_type(
 ) {
     if value.kind() == "struct_initializer" {
         if let Some(type_node) = struct_initializer_type(value) {
-            record_inferred_same_file_container(base, symbol_id, type_node, value);
+            record_inferred_same_file_container(base, symbol_id, type_node);
         }
         return;
     }
@@ -80,22 +80,19 @@ impl TypeShape {
 
 /// Declared return types of the file's functions by name, plus every other
 /// container-level declaration name (recorded without a type, so it blocks
-/// inference for a same-named call), and the names of same-file containers.
+/// inference for a same-named call).
 #[derive(Debug, Default)]
 pub(super) struct ReturnTypeIndex {
     declarations: HashMap<String, Vec<ReturnEntry>>,
-    containers: HashSet<String>,
 }
 
 #[derive(Debug)]
 struct ReturnEntry {
     /// Node id of the declaring container (the file root at top level).
     owner: usize,
-    /// The declaring container's name; `None` for an anonymous container.
-    owner_name: Option<String>,
     /// `None` for a non-function, a generic or valueless return, or a
-    /// function of an anonymous container (its types may alias `comptime`
-    /// parameters).
+    /// function of an anonymous container or of a container declared inside a
+    /// generic function (its types may alias `comptime` parameters).
     shape: Option<TypeShape>,
 }
 
@@ -104,12 +101,6 @@ impl ReturnTypeIndex {
         let mut index = Self::default();
         let mut stack = vec![root];
         while let Some(node) = stack.pop() {
-            if node.kind() == "variable_declaration"
-                && let Some(name) = declaration_name(base, node)
-                && node.named_children(&mut node.walk()).any(is_container)
-            {
-                index.containers.insert(name);
-            }
             if node.parent().is_some_and(is_container_or_root)
                 && let Some((name, entry)) = return_entry(base, node)
             {
@@ -139,21 +130,16 @@ impl ReturnTypeIndex {
         )
     }
 
-    fn lookup_member(&self, name: &str, owner: &str) -> Option<TypeShape> {
+    fn lookup_member(&self, name: &str, owner: usize) -> Option<TypeShape> {
         Self::unanimous(self.member_entries(name, owner))
     }
 
-    fn declares_member(&self, name: &str, owner: &str) -> bool {
+    fn declares_member(&self, name: &str, owner: usize) -> bool {
         self.member_entries(name, owner).next().is_some()
     }
 
-    fn member_entries<'a>(
-        &'a self,
-        name: &str,
-        owner: &'a str,
-    ) -> impl Iterator<Item = &'a ReturnEntry> {
-        self.entries(name)
-            .filter(move |entry| entry.owner_name.as_deref() == Some(owner))
+    fn member_entries(&self, name: &str, owner: usize) -> impl Iterator<Item = &ReturnEntry> {
+        self.entries(name).filter(move |entry| entry.owner == owner)
     }
 }
 
@@ -189,11 +175,12 @@ fn return_entry(base: &BaseExtractor, declaration: Node) -> Option<(String, Retu
         _ => return None,
     };
     let owner = nearest_container(declaration);
-    let owner_name = container_type_name(base, owner);
+    let generic_owner = container_type_name(base, owner).is_none()
+        || enclosing_function(owner)
+            .is_some_and(|function| !comptime_type_parameters(base, function).is_empty());
     let entry = ReturnEntry {
         owner: owner.id(),
-        shape: shape.filter(|_| owner_name.is_some()),
-        owner_name,
+        shape: shape.filter(|_| !generic_owner),
     };
     Some((name, entry))
 }
@@ -295,7 +282,7 @@ impl InitializerScope<'_> {
                 if value
                     .children(&mut value.walk())
                     .last()
-                    .is_some_and(is_noreturn) =>
+                    .is_some_and(|fallback| is_noreturn(self.base, fallback)) =>
             {
                 self.shape_of(value.named_child(0)?, child_depth)?
                     .without_error_union()
@@ -304,7 +291,7 @@ impl InitializerScope<'_> {
                 if value
                     .child_by_field_name("operator")
                     .is_some_and(|operator| operator.kind() == "orelse")
-                    && is_noreturn(value.child_by_field_name("right")?) =>
+                    && is_noreturn(self.base, value.child_by_field_name("right")?) =>
             {
                 self.shape_of(value.child_by_field_name("left")?, child_depth)?
                     .without_optional()
@@ -326,8 +313,8 @@ impl InitializerScope<'_> {
                 let member = self
                     .base
                     .get_node_text(&function.child_by_field_name("member")?);
-                if let Some(receiver) = self_receiver_type(self.base, call) {
-                    return self.return_types.lookup_member(&member, &receiver);
+                if let Some(receiver) = self_receiver_container(self.base, call) {
+                    return self.return_types.lookup_member(&member, receiver.id());
                 }
                 self.type_member_call(function.child_by_field_name("object")?, &member)
             }
@@ -336,26 +323,16 @@ impl InitializerScope<'_> {
     }
 
     fn type_member_call(&self, object: Node, member: &str) -> Option<TypeShape> {
-        if !matches!(object.kind(), "identifier" | "builtin_function") {
+        let owner = type_container(self.base, object, 0)?;
+        if self.return_types.declares_member(member, owner.id()) {
+            return self.return_types.lookup_member(member, owner.id());
+        }
+        if member != "init" {
             return None;
         }
-        let owner = match this_type_name(self.base, object) {
-            Some(this_type) => this_type,
-            None if object.kind() == "identifier" => {
-                let name = self.base.get_node_text(&object);
-                self.return_types
-                    .containers
-                    .contains(&name)
-                    .then_some(name)?
-            }
-            None => return None,
-        };
-        if self.return_types.declares_member(member, &owner) {
-            return self.return_types.lookup_member(member, &owner);
-        }
-        (member == "init" && self.return_types.containers.contains(&owner)).then(|| TypeShape {
+        Some(TypeShape {
             declared: self.base.get_node_text(&object),
-            name: owner,
+            name: container_type_name(self.base, owner)?,
             layer: Layer::Plain,
         })
     }
@@ -363,11 +340,17 @@ impl InitializerScope<'_> {
 
 /// A fallback that never yields a value, so `catch`/`orelse` keeps the
 /// unwrapped type.
-fn is_noreturn(fallback: Node) -> bool {
-    matches!(
-        fallback.kind(),
-        "unreachable" | "return_expression" | "break_expression" | "continue_expression" | "block"
-    )
+fn is_noreturn(base: &BaseExtractor, fallback: Node) -> bool {
+    match fallback.kind() {
+        "unreachable"
+        | "return_expression"
+        | "break_expression"
+        | "continue_expression"
+        | "block" => true,
+        "builtin_function" => builtin_identifier(base, fallback)
+            .is_some_and(|name| matches!(name.as_str(), "@panic" | "@trap" | "@compileError")),
+        _ => false,
+    }
 }
 
 /// Node ids of every container enclosing `node`, innermost first, ending with
@@ -397,7 +380,13 @@ pub(super) fn nearest_symbol_ancestor_is_callable(node: Node) -> bool {
     false
 }
 
+/// The same-file container named by the type of the first parameter when the
+/// call's receiver is that parameter (`self.next()`).
 pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<String> {
+    container_type_name(base, self_receiver_container(base, node)?)
+}
+
+fn self_receiver_container<'t>(base: &BaseExtractor, node: Node<'t>) -> Option<Node<'t>> {
     let function = node.child_by_field_name("function")?;
     if function.kind() != "field_expression" {
         return None;
@@ -413,32 +402,15 @@ pub(super) fn self_receiver_type(base: &BaseExtractor, node: Node) -> Option<Str
     if base.get_node_text(&param_name) != receiver_name {
         return None;
     }
-    let type_node = first_param.child_by_field_name("type")?;
-    if let Some(this_type) = this_type_name(base, type_node) {
-        return Some(this_type);
-    }
-    if !super::helpers::is_inside_struct(func_decl) {
-        return None;
-    }
-    let name_node = base_type_name_node(type_node)?;
-    let name = base.get_node_text(&name_node);
-    same_file_container(base, file_root(node), &name).then_some(name)
+    let container = type_container(base, first_param.child_by_field_name("type")?, 0)?;
+    (container == nearest_container(func_decl) || super::helpers::is_inside_struct(func_decl))
+        .then_some(container)
 }
 
-fn record_inferred_same_file_container(
-    base: &mut BaseExtractor,
-    symbol_id: &str,
-    type_node: Node,
-    from: Node,
-) {
-    let Some(name_node) = base_type_name_node(type_node) else {
-        return;
-    };
-    let name = base.get_node_text(&name_node);
-    if !same_file_container(base, file_root(from), &name) {
-        return;
+fn record_inferred_same_file_container(base: &mut BaseExtractor, symbol_id: &str, type_node: Node) {
+    if type_container(base, type_node, 0).is_some() {
+        record_type_node(base, symbol_id, type_node, true);
     }
-    record_type_node(base, symbol_id, type_node, true);
 }
 
 fn record_type_node(base: &mut BaseExtractor, symbol_id: &str, type_node: Node, is_inferred: bool) {
@@ -576,31 +548,108 @@ fn first_parameter(func_decl: Node) -> Option<Node> {
         .find(|child| child.kind() == "parameter")
 }
 
-/// The container a `@This()` type, or a same-container alias of it
+/// The container a `@This()` type, or an in-scope alias of it
 /// (`const Self = @This();`), names at `type_node`. A file is itself a struct,
 /// so at file scope the name is the file stem (`Tokenizer.zig` -> `Tokenizer`).
 fn this_type_name(base: &BaseExtractor, type_node: Node) -> Option<String> {
-    let container = nearest_container(type_node);
     if is_this_type(base, type_node) {
-        return container_type_name(base, container);
+        return container_type_name(base, nearest_container(type_node));
     }
-    let name_node = base_type_name_node(type_node).filter(|name| name.kind() == "identifier")?;
-    let alias = base.get_node_text(&name_node);
-    let is_alias = container
-        .children(&mut container.walk())
-        .filter(|child| child.kind() == "variable_declaration")
-        .any(|declaration| {
-            declaration
-                .children(&mut declaration.walk())
-                .find(|child| child.kind() == "identifier")
-                .is_some_and(|name| base.get_node_text(&name) == alias)
-                && initializer_node(declaration).is_some_and(|value| is_this_type(base, value))
-        });
-    if is_alias {
-        container_type_name(base, container)
-    } else {
-        None
+    let declaration = nearest_declaration(base, bare_type_name_node(type_node)?)?;
+    let is_alias = declaration.kind() == "variable_declaration"
+        && initializer_node(declaration).is_some_and(|value| is_this_type(base, value));
+    is_alias.then(|| container_type_name(base, nearest_container(declaration)))?
+}
+
+/// The base type name of a type-position node when it is a bare identifier,
+/// not the member of a qualified name (`other.Store`).
+fn bare_type_name_node(type_node: Node) -> Option<Node> {
+    base_type_name_node(type_node).filter(|name| {
+        name.kind() == "identifier"
+            && name
+                .parent()
+                .is_none_or(|parent| parent.kind() != "field_expression")
+    })
+}
+
+/// The same-file container a type expression names: `@This()`, or a name
+/// (`Store`, `Outer.Inner`) whose first segment resolves to its nearest
+/// declaration in scope. Each declaration on the path must be a container or
+/// an alias of `@This()` (the container that declares the alias). Any other
+/// declaration, such as an import or an alias of another type, names nothing
+/// this file can resolve.
+fn type_container<'t>(base: &BaseExtractor, type_node: Node<'t>, depth: u32) -> Option<Node<'t>> {
+    let child_depth = child_tree_depth(depth).filter(|_| should_visit_tree_depth(depth))?;
+    let declaration = match type_node.kind() {
+        "pointer_type" | "nullable_type" => {
+            return type_container(base, inner_type_child(type_node)?, child_depth);
+        }
+        "parenthesized_expression" => {
+            return type_container(base, type_node.named_child(0)?, child_depth);
+        }
+        "builtin_function" => {
+            return is_this_type(base, type_node).then(|| nearest_container(type_node));
+        }
+        "identifier" => nearest_declaration(base, type_node)?,
+        "field_expression" => {
+            let owner =
+                type_container(base, type_node.child_by_field_name("object")?, child_depth)?;
+            let member = base.get_node_text(&type_node.child_by_field_name("member")?);
+            owner
+                .named_children(&mut owner.walk())
+                .filter(|child| child.kind() == "variable_declaration")
+                .find(|declaration| {
+                    declaration_name(base, *declaration).as_deref() == Some(&member)
+                })?
+        }
+        _ => return None,
+    };
+    if declaration.kind() != "variable_declaration" {
+        return None;
     }
+    if let Some(container) = declaration
+        .named_children(&mut declaration.walk())
+        .find(|child| is_container(*child))
+    {
+        return Some(container);
+    }
+    initializer_node(declaration)
+        .filter(|value| is_this_type(base, *value))
+        .map(|_| nearest_container(declaration))
+}
+
+/// The declaration (`variable_declaration` or function `parameter`) that the
+/// identifier `name` refers to: the nearest one in an enclosing block,
+/// function, or container, searched outward from `name`.
+fn nearest_declaration<'t>(base: &BaseExtractor, name: Node<'t>) -> Option<Node<'t>> {
+    let text = base.get_node_text(&name);
+    let mut current = name.parent();
+    while let Some(scope) = current {
+        let found = match scope.kind() {
+            "function_declaration" => scope
+                .named_children(&mut scope.walk())
+                .find(|child| child.kind() == "parameters")
+                .and_then(|parameters| {
+                    parameters
+                        .named_children(&mut parameters.walk())
+                        .find(|parameter| {
+                            parameter
+                                .child_by_field_name("name")
+                                .is_some_and(|name| base.get_node_text(&name) == text)
+                        })
+                }),
+            _ if scope.kind() == "block" || is_container_or_root(scope) => scope
+                .named_children(&mut scope.walk())
+                .filter(|child| child.kind() == "variable_declaration")
+                .find(|declaration| declaration_name(base, *declaration).as_deref() == Some(&text)),
+            _ => None,
+        };
+        if found.is_some() {
+            return found;
+        }
+        current = scope.parent();
+    }
+    None
 }
 
 fn nearest_container(node: Node) -> Node {
@@ -637,55 +686,6 @@ pub(super) fn file_struct_name(file_path: &str) -> String {
         .strip_suffix(".zig")
         .unwrap_or(file_name)
         .to_string()
-}
-
-fn file_root(mut node: Node) -> Node {
-    while let Some(parent) = node.parent() {
-        node = parent;
-    }
-    node
-}
-
-fn same_file_container(base: &BaseExtractor, root: Node, name: &str) -> bool {
-    find_container_declaration(root, name, base, 0)
-}
-
-fn find_container_declaration(node: Node, name: &str, base: &BaseExtractor, depth: u32) -> bool {
-    if !should_visit_tree_depth(depth) {
-        return false;
-    }
-    if node.kind() == "variable_declaration" {
-        let mut cursor = node.walk();
-        let ident = node
-            .named_children(&mut cursor)
-            .find(|child| child.kind() == "identifier");
-        if let Some(ident) = ident
-            && base.get_node_text(&ident) == name
-        {
-            let mut kind_cursor = node.walk();
-            if node.named_children(&mut kind_cursor).any(|child| {
-                matches!(
-                    child.kind(),
-                    "struct_declaration"
-                        | "union_declaration"
-                        | "enum_declaration"
-                        | "opaque_declaration"
-                )
-            }) {
-                return true;
-            }
-        }
-    }
-    let Some(child_depth) = child_tree_depth(depth) else {
-        return false;
-    };
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if find_container_declaration(child, name, base, child_depth) {
-            return true;
-        }
-    }
-    false
 }
 
 pub(super) fn initializer_node(node: Node) -> Option<Node> {

@@ -446,3 +446,168 @@ fn run() void {
         assert_eq!(fact(source, local), None, "{local}");
     }
 }
+
+const SCOPED_RECEIVERS: &str = r#"
+const other = @import("other.zig");
+const A = struct {
+    const Store = struct {
+        fn open() u32 {}
+        fn next(self: *Store) u8 {}
+    };
+};
+const B = struct {
+    const Store = other.Store;
+
+    fn f() void {
+        const sibling_alias = Store.open();
+    }
+
+    fn g() void {
+        const Node = other.Node;
+        const local_alias = Node.make();
+    }
+
+    fn h(self: *Store) void {
+        const alias_self = self.next();
+    }
+};
+const C = struct {
+    const Node = struct {
+        fn make() u16 {}
+    };
+
+    fn run() void {
+        const in_scope = Node.make();
+    }
+};
+"#;
+
+#[test]
+fn type_receiver_resolves_to_the_nearest_declaration_in_scope() {
+    assert_eq!(fact(SCOPED_RECEIVERS, "in_scope"), inferred("u16"));
+}
+
+#[test]
+fn type_receiver_that_aliases_an_external_type_records_no_fact() {
+    for local in ["sibling_alias", "local_alias"] {
+        assert_eq!(fact(SCOPED_RECEIVERS, local), None, "{local}");
+    }
+}
+
+#[test]
+fn self_receiver_that_aliases_an_external_type_records_no_fact() {
+    assert_eq!(fact(SCOPED_RECEIVERS, "alias_self"), None);
+}
+
+#[test]
+fn named_container_inside_a_generic_function_records_no_fact() {
+    let source = r#"
+fn Make(comptime T: type) type {
+    const Item = T;
+    const Inner = struct {
+        fn get() Item {}
+        fn getT() T {}
+        fn size() usize {}
+    };
+    const via_alias = Inner.get();
+    const via_t = Inner.getT();
+    const via_size = Inner.size();
+    return Inner;
+}
+"#;
+    for local in ["via_alias", "via_t", "via_size"] {
+        assert_eq!(fact(source, local), None, "{local}");
+    }
+}
+
+#[test]
+fn outer_this_alias_resolves_to_the_declaring_container() {
+    let source = r#"
+const Outer = struct {
+    const Self = @This();
+
+    const Inner = struct {
+        fn make() Self {}
+
+        fn run() void {
+            const outer_self = make();
+        }
+    };
+};
+"#;
+    assert_eq!(fact(source, "outer_self"), inferred_as("Outer", "Self"));
+}
+
+#[test]
+fn noreturn_builtin_fallbacks_unwrap_one_layer() {
+    for chain in [
+        "load() catch @panic(\"x\")",
+        "load() catch |err| @panic(@errorName(err))",
+        "find() orelse @panic(\"x\")",
+        "find() orelse @trap()",
+    ] {
+        assert_eq!(
+            store_type(&format!("const store = {chain};")),
+            inferred("Store"),
+            "{chain}"
+        );
+    }
+}
+
+#[test]
+fn value_builtin_fallbacks_record_no_fact() {
+    for chain in [
+        "find() orelse @as(Store, undefined)",
+        "load() catch @as(Store, undefined)",
+    ] {
+        assert_eq!(
+            store_type(&format!("const store = {chain};")),
+            None,
+            "{chain}"
+        );
+    }
+}
+
+#[test]
+fn struct_literal_type_resolves_in_scope() {
+    let source = r#"
+const other = @import("other.zig");
+const A = struct {
+    const Store = struct {};
+};
+const B = struct {
+    const Self = @This();
+    const Store = other.Store;
+
+    fn run() void {
+        const external = Store{};
+        const own = Self{};
+    }
+};
+"#;
+    assert_eq!(fact(source, "external"), None);
+    assert_eq!(fact(source, "own"), inferred_as("B", "Self"));
+}
+
+#[test]
+fn qualified_same_file_container_paths_resolve_in_scope() {
+    let source = r#"
+const other = @import("other.zig");
+const Client = struct {
+    const Context = struct {
+        fn make() u16 {}
+    };
+};
+fn run() void {
+    const literal = Client.Context{};
+    const call = Client.Context.make();
+    const external_literal = other.Context{};
+}
+"#;
+    assert_eq!(
+        fact(source, "literal"),
+        inferred_as("Context", "Client.Context")
+    );
+    assert_eq!(fact(source, "call"), inferred("u16"));
+    assert_eq!(fact(source, "external_literal"), None);
+}
