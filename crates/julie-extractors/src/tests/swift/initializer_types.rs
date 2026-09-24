@@ -384,6 +384,19 @@ func run(load: () -> Draft) {
 }
 
 #[test]
+fn callee_name_bound_by_if_let_or_if_var_records_nothing() {
+    let source = r#"
+func load() -> Int { 0 }
+func g(handler: (() -> String)?, other: (() -> String)?) {
+    if let load = handler { let e01 = load() }
+    if var load = other { let e02 = load() }
+}
+"#;
+    assert_eq!(type_of(source, "e01"), None);
+    assert_eq!(type_of(source, "e02"), None);
+}
+
+#[test]
 fn member_call_colliding_with_member_property_records_nothing() {
     let source = r#"
 class Workspace {}
@@ -486,4 +499,103 @@ extension Remote {
 }
 "#;
     assert_eq!(type_of(source, "first"), None);
+}
+
+#[test]
+fn member_call_in_inheriting_type_records_nothing() {
+    let source = r#"
+class Base { func load() -> String { "" } }
+class Sub: Base {
+    func load(x: Int) -> Int { 0 }
+    func f() {
+        let c03a = self.load()
+        let c03b = load()
+    }
+}
+"#;
+    assert_eq!(type_of(source, "c03a"), None);
+    assert_eq!(type_of(source, "c03b"), None);
+}
+
+#[test]
+fn member_call_in_type_conforming_to_protocol_records_nothing() {
+    let source = r#"
+protocol P {}
+extension P { func load() -> String { "" } }
+struct Foo: P {
+    func load(x: Int) -> Int { 0 }
+    func f() { let c04 = self.load() }
+}
+"#;
+    assert_eq!(type_of(source, "c04"), None);
+}
+
+#[test]
+fn static_call_on_inheriting_type_records_nothing() {
+    let source = r#"
+class Base { class func make() -> String { "" } }
+class Sub: Base { static func make(x: Int) -> Int { 0 } }
+let c05 = Sub.make()
+"#;
+    assert_eq!(type_of(source, "c05"), None);
+}
+
+#[test]
+fn nested_types_sharing_a_name_record_nothing() {
+    let source = r#"
+func load() -> String { "" }
+struct A { struct Node {
+    func load() -> Int { 0 }
+    static func make() -> Int { 0 }
+} }
+struct B { struct Node {
+    func f() { let c01 = load() }
+} }
+let c06 = Node.make()
+"#;
+    assert_eq!(type_of(source, "c01"), None);
+    assert_eq!(type_of(source, "c06"), None);
+}
+
+#[test]
+fn unqualified_call_in_nested_type_finds_static_member_of_outer_type() {
+    let source = r#"
+func helper() -> String { "" }
+struct Outer {
+    static func helper() -> Int { 0 }
+    func other() -> Int { 0 }
+    struct Inner {
+        func f() {
+            let c02 = helper()
+            let c07 = other()
+        }
+    }
+}
+"#;
+    assert_eq!(type_of(source, "c02"), inferred("Int", None));
+    assert_eq!(type_of(source, "c07"), None);
+}
+
+#[test]
+fn unqualified_call_in_type_nested_in_inheriting_type_records_nothing() {
+    let source = r#"
+func helper() -> String { "" }
+class Outer: Base {
+    struct Inner {
+        func f() { let c08 = helper() }
+    }
+}
+"#;
+    assert_eq!(type_of(source, "c08"), None);
+}
+
+#[test]
+fn static_subscript_on_same_file_type_records_nothing() {
+    let source = r#"
+struct Foo { static subscript(i: Int) -> Int { i } }
+let c10 = Foo[0]
+let c11 = try Foo[0]
+"#;
+    assert_eq!(type_of(source, "c10"), None);
+    assert_eq!(type_of(source, "c11"), None);
 }

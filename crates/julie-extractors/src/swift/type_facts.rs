@@ -167,7 +167,9 @@ pub(super) struct ReturnTypeIndex {
     value_names: HashSet<String>,
     /// `(type, name)` for properties and enum cases a same-file type declares.
     member_values: HashSet<(String, String)>,
-    /// Class, struct, enum, and actor names declared in the file.
+    /// Class, struct, enum, and actor names declared exactly once in the file.
+    /// A name declared twice (two nested `Node` types) is left out, because
+    /// the index keys owners by simple name.
     declared_types: HashSet<String>,
     /// Same-file types with an inheritance clause on a declaration or extension.
     inheriting_types: HashSet<String>,
@@ -177,10 +179,15 @@ impl ReturnTypeIndex {
     pub(super) fn build(base: &BaseExtractor, root: Node) -> Self {
         let mut index = Self::default();
         let mut type_generics: HashMap<String, Vec<String>> = HashMap::new();
+        let mut declaration_counts: HashMap<String, usize> = HashMap::new();
         let mut functions = Vec::new();
         let mut members = Vec::new();
         let mut stack = vec![root];
         while let Some(node) = stack.pop() {
+            index.value_names.extend(
+                node.children_by_field_name("bound_identifier", &mut node.walk())
+                    .map(|name| base.get_node_text(&name)),
+            );
             match node.kind() {
                 "class_declaration" if !is_extension(base, node) => {
                     if let Some(name) = node.child_by_field_name("name") {
@@ -189,20 +196,12 @@ impl ReturnTypeIndex {
                             .entry(name.clone())
                             .or_default()
                             .extend(type_parameter_names(base, node));
-                        index.declared_types.insert(name);
+                        *declaration_counts.entry(name).or_default() += 1;
                     }
                 }
                 "function_declaration" => functions.push(node),
                 "property_declaration" | "enum_entry" => members.push(node),
-                "pattern" => {
-                    index.value_names.extend(
-                        node.child_by_field_name("bound_identifier")
-                            .into_iter()
-                            .chain(named_identifiers(node))
-                            .map(|name| base.get_node_text(&name)),
-                    );
-                }
-                "parameter" | "lambda_parameter" => {
+                "pattern" | "parameter" | "lambda_parameter" => {
                     index
                         .value_names
                         .extend(named_identifiers(node).map(|name| base.get_node_text(&name)));
@@ -211,6 +210,11 @@ impl ReturnTypeIndex {
             }
             stack.extend(node.named_children(&mut node.walk()));
         }
+        index.declared_types = declaration_counts
+            .into_iter()
+            .filter(|(_, count)| *count == 1)
+            .map(|(name, _)| name)
+            .collect();
         index.inheriting_types = inheriting_types(base, root, &index.declared_types);
         for member in members {
             let TypeContext::Type(owner) = index.member_context(base, member) else {
@@ -343,10 +347,14 @@ impl ReturnTypeIndex {
             .then(|| first.clone())
     }
 
+    /// A member call on a same-file type. A type with an inheritance clause
+    /// records nothing: a base class or a protocol extension can add a
+    /// same-named overload with other labels that the call picks instead.
     fn member_call(&self, owner: &str, name: &str, static_only: bool) -> Option<TypeShape> {
-        if self
-            .member_values
-            .contains(&(owner.to_string(), name.to_string()))
+        if self.inheriting_types.contains(owner)
+            || self
+                .member_values
+                .contains(&(owner.to_string(), name.to_string()))
         {
             return None;
         }
@@ -363,10 +371,10 @@ impl ReturnTypeIndex {
     }
 
     /// An unqualified call: an in-scope local function shadows a member of
-    /// the enclosing type, which shadows a free function. A type that
-    /// inherits may hold unseen members, so it never falls back to free
-    /// functions.
-    fn unqualified_call(&self, name: &str, call: Node, context: &TypeContext) -> Option<TypeShape> {
+    /// the enclosing type, which shadows a member of each outer type, which
+    /// shadows a free function. Lookup stops at a type context that is
+    /// unknown or inherits, because it may hold unseen members.
+    fn unqualified_call(&self, base: &BaseExtractor, name: &str, call: Node) -> Option<TypeShape> {
         if self.value_names.contains(name) {
             return None;
         }
@@ -380,23 +388,27 @@ impl ReturnTypeIndex {
         if !locals.is_empty() {
             return Self::unanimous(locals);
         }
-        let free = || entries.iter().filter(|e| matches!(e.owner, Owner::Free));
-        match context {
-            TypeContext::File => Self::unanimous(free()),
-            TypeContext::Type(owner) => {
-                let has_member = entries
+        let mut static_only = false;
+        let mut current = call.parent();
+        while let Some(node) = current {
+            if node.kind() == "class_declaration" {
+                let TypeContext::Type(owner) = self.type_context(base, node) else {
+                    return None;
+                };
+                if entries
                     .iter()
-                    .any(|e| matches!(&e.owner, Owner::Type(o) if o == owner));
-                if has_member {
-                    self.member_call(owner, name, false)
-                } else if self.inheriting_types.contains(owner) {
-                    None
-                } else {
-                    Self::unanimous(free())
+                    .any(|e| matches!(&e.owner, Owner::Type(o) if *o == owner))
+                {
+                    return self.member_call(&owner, name, static_only);
                 }
+                if self.inheriting_types.contains(&owner) {
+                    return None;
+                }
+                static_only = true;
             }
-            TypeContext::Unknown => None,
+            current = node.parent();
         }
+        Self::unanimous(entries.iter().filter(|e| matches!(e.owner, Owner::Free)))
     }
 }
 
@@ -446,6 +458,9 @@ impl InitializerScope<'_> {
     }
 
     fn call_shape(&self, call: Node) -> Option<TypeShape> {
+        if is_subscript(call) {
+            return None;
+        }
         let callee = call.named_child(0)?;
         let index = self.return_types;
         match callee.kind() {
@@ -457,8 +472,7 @@ impl InitializerScope<'_> {
                         name,
                     });
                 }
-                let context = index.enclosing_context(self.base, call);
-                index.unqualified_call(&name, call, &context)
+                index.unqualified_call(self.base, &name, call)
             }
             "navigation_expression" => {
                 let method = callee
@@ -494,6 +508,19 @@ impl InitializerScope<'_> {
             _ => None,
         }
     }
+}
+
+/// `Foo[0]` parses as a call; its arguments open with `[`.
+fn is_subscript(call: Node) -> bool {
+    call.named_children(&mut call.walk())
+        .find(|child| child.kind() == "call_suffix")
+        .and_then(|suffix| {
+            suffix
+                .named_children(&mut suffix.walk())
+                .find(|child| child.kind() == "value_arguments")
+        })
+        .and_then(|arguments| arguments.child(0))
+        .is_some_and(|open| open.kind() == "[")
 }
 
 fn is_extension(base: &BaseExtractor, declaration: Node) -> bool {
