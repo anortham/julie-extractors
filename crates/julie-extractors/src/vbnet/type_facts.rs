@@ -317,9 +317,10 @@ pub(super) struct ReturnTypeIndex {
 #[derive(Debug, Default)]
 struct TypeMembers {
     is_module: bool,
-    /// An `Inherits` clause or another part of a `Partial` type can declare
-    /// members this block does not show.
-    is_open: bool,
+    /// A `Partial` type, or one with more than one part in the file. Another
+    /// part, maybe in another file, can add any overload, so no call to its
+    /// members records a fact.
+    is_split: bool,
     is_partial: bool,
     inherits: bool,
     /// Namespace path, outermost first, of a type not nested in another type.
@@ -355,21 +356,27 @@ impl Arity {
 }
 
 impl TypeMembers {
+    /// An `Inherits` clause or another part can declare members this block
+    /// does not show.
+    fn is_open(&self) -> bool {
+        self.inherits || self.is_split
+    }
+
     /// `None` when the type does not declare `name`. `Some(None)` when it
     /// does but the call has no single known type: the candidates disagree,
     /// none takes `argument_count` arguments (VB then indexes the result of
-    /// a parameterless function), or `Overloads` keeps base overloads that
-    /// this file cannot see.
+    /// a parameterless function), another part can add an overload, or
+    /// `Overloads` keeps base overloads that this file cannot see.
     fn lookup(&self, name: &str, argument_count: usize) -> Option<Option<TypeShape>> {
         let candidates = self.members.get(name)?;
-        let base_overloads = self.is_open
+        let base_overloads = self.inherits
             && candidates
                 .iter()
                 .any(|candidate| candidate.keeps_base_overloads);
         let callable = candidates
             .iter()
             .any(|candidate| candidate.arity.accepts(argument_count));
-        if base_overloads || !callable {
+        if self.is_split || base_overloads || !callable {
             return Some(None);
         }
         Some(unanimous(
@@ -414,7 +421,7 @@ impl ReturnTypeIndex {
                     .any(|id| index.types.get(id).is_some_and(|entry| entry.is_partial));
             for id in ids {
                 if let Some(entry) = index.types.get_mut(id) {
-                    entry.is_open = entry.inherits || shared;
+                    entry.is_split = shared;
                 }
             }
         }
@@ -485,7 +492,7 @@ impl ReturnTypeIndex {
     ) {
         let mut entry = TypeMembers {
             is_module: block.kind() == "module_block",
-            is_open: false,
+            is_split: false,
             is_partial: has_modifier(base, block, &["partial"]),
             inherits: block.child_by_field_name("inherits").is_some(),
             namespace: at.namespace.clone(),
@@ -529,6 +536,14 @@ impl ReturnTypeIndex {
                 }
                 "property_declaration" | "event_declaration" => {
                     if let Some(name) = member.child_by_field_name("name") {
+                        add(name, field(None));
+                    }
+                }
+                "const_declaration" => {
+                    let mut cursor = member.walk();
+                    let names: Vec<Node> =
+                        member.children_by_field_name("name", &mut cursor).collect();
+                    for name in names {
                         add(name, field(None));
                     }
                 }
@@ -818,6 +833,12 @@ impl InitializerScope<'_> {
                 }
                 self.shape_of(operand, true, child_depth)?.awaited()
             }
+            "parenthesized_expression" => {
+                let inner = value
+                    .named_children(&mut value.walk())
+                    .find(|child| child.kind() != "comment")?;
+                self.shape_of(inner, in_await, child_depth)
+            }
             "invocation" => {
                 let target = value.child_by_field_name("target")?;
                 let argument_count = argument_count(self.base, value)?;
@@ -879,19 +900,40 @@ impl InitializerScope<'_> {
         own.lookup(member, argument_count)?
     }
 
-    /// `T.F()` where `T` names a same-file type in scope. A local, parameter,
-    /// or member of the enclosing types with that name would take the
-    /// qualifier. Every type in scope with that name must declare `F`.
+    /// `T.F()` where `T` names a same-file type in scope. A local, a
+    /// parameter, or a member of an enclosing type or of a module in scope
+    /// with that name would take the qualifier. VB looks in each enclosing
+    /// type, inherited members included, before it looks in namespaces, so an
+    /// open enclosing type stops the search unless it declares `T` as a
+    /// nested type. Every type in scope with that name must declare `F`.
     fn shared_call(
         &self,
         qualifier: &str,
         member: &str,
         argument_count: usize,
     ) -> Option<TypeShape> {
-        if self.shadowed(qualifier) || self.enclosing_declares(qualifier) {
+        if self.shadowed(qualifier) || self.module_declares(qualifier) {
             return None;
         }
         let types = self.return_types.by_name.get(qualifier)?;
+        for id in &self.enclosing {
+            let entry = self.return_types.types.get(id)?;
+            if entry.members.contains_key(qualifier) {
+                return None;
+            }
+            let declares_nested = types.iter().any(|nested| {
+                self.return_types
+                    .types
+                    .get(nested)
+                    .is_some_and(|nested| nested.parent_type == Some(*id))
+            });
+            if declares_nested {
+                break;
+            }
+            if entry.is_open() {
+                return None;
+            }
+        }
         unanimous(
             types
                 .iter()
@@ -914,7 +956,7 @@ impl InitializerScope<'_> {
             if let Some(shape) = entry.lookup(name, argument_count) {
                 return shape;
             }
-            if entry.is_open {
+            if entry.is_open() {
                 return None;
             }
         }
@@ -943,12 +985,13 @@ impl InitializerScope<'_> {
         }
     }
 
-    fn enclosing_declares(&self, name: &str) -> bool {
-        self.enclosing.iter().any(|id| {
-            self.return_types
-                .types
-                .get(id)
-                .is_some_and(|entry| entry.members.contains_key(name))
-        })
+    /// Whether a module in scope has a member with this name. VB promotes
+    /// module members to the namespace, so the member can take a qualifier.
+    fn module_declares(&self, name: &str) -> bool {
+        self.return_types
+            .modules
+            .iter()
+            .filter_map(|id| self.return_types.types.get(id))
+            .any(|entry| self.is_in_scope(entry) && entry.members.contains_key(name))
     }
 }

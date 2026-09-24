@@ -41,6 +41,8 @@ with `JULIE_GOLDEN_LANGUAGE=vbnet`.
   - `Await` removes one `Task(Of T)` or `ValueTask(Of T)` layer. In
     `Await LoadAsync().ConfigureAwait(False)`, the awaited result has the
     task's type argument.
+  - Parentheses around the call or the `Await` do not change the type:
+    `(Await LoadAsync())` and `Await (LoadAsync())` are inferred.
 - These initializers record no fact:
   - Same-named candidates with different return types, a `Sub`, a `Function`
     without `As`, or a property, event, or field with the called name.
@@ -56,10 +58,22 @@ with `JULIE_GOLDEN_LANGUAGE=vbnet`.
     awaitable, not a task.
   - A chain that ends in any other member (`Load().Name`), a bare name without
     parentheses (`Load`), and `MyBase.Load()`.
-  - A called name or qualifier that is also a local, a parameter, a lambda
-    parameter, or the enclosing member, because VB resolves the name to that
-    variable first. A qualifier that is also a member of an enclosing type is
+  - A called name or qualifier that is also a local, a local `Const`, a
+    parameter, a lambda parameter, or the enclosing member, because VB
+    resolves the name to that variable first. A qualifier or called name that
+    is also a field, `Const`, property, or event of an enclosing type is
     skipped for the same reason.
+  - A call to a member of a partial type: a type with the `Partial` modifier
+    or a type that has more than one part in the file. Another part, maybe in
+    another file, can add an overload with a different return type. This
+    applies to `Load()`, `Me.Load()`, and `Split.Make()`.
+  - A qualifier inside an open enclosing type (`Inherits`, `Partial`, or
+    more than one part), unless that type declares the qualifier as a nested
+    type. VB looks in inherited members before namespaces, so a base member
+    with the qualifier name can take it.
+  - A qualifier that is also a member of a module in scope. VB promotes
+    module members to the namespace, so `Gizmo.Make()` can call `Make` on the
+    module field `Gizmo`.
   - An unqualified call to an `Object` member name (`ToString()`,
     `Equals()`, `GetHashCode()`, `GetType()`, `ReferenceEquals()`,
     `MemberwiseClone()`, `Finalize()`). It binds to the inherited member
@@ -75,6 +89,6 @@ with `JULIE_GOLDEN_LANGUAGE=vbnet`.
     file holds only that part, the extractor cannot see the other part. That
     part can add an `Inherits` clause or a member with the called name, as
     the WinForms designer file does.
-  - `Me.F()` and `Loader.F()` on a `Partial` type use the members in this
-    file. Another part can add an overload with a different return type.
+  - A module in another file can declare a member with the qualifier name
+    or the called name. The extractor cannot see it.
 - A written `As` type always wins over inference.

@@ -679,3 +679,162 @@ End Class
     assert_eq!(inferred_type(source, "s"), None);
     assert_eq!(inferred_type(source, "h"), None);
 }
+
+#[test]
+fn members_of_a_partial_type_record_no_fact() {
+    let source = r#"
+Partial Class Split
+    Function Load(x As Integer) As Integer
+        Return x
+    End Function
+    Sub Run()
+        Dim s As String = "a"
+        Dim p1 = Load(s)
+        Dim p2 = Me.Load(s)
+        Dim p3 = Split.Make()
+    End Sub
+End Class
+Partial Class Split
+    Function Load(x As String) As String
+        Return x
+    End Function
+    Shared Function Make() As Workspace
+    End Function
+End Class
+Partial Class Lone
+    Function Load() As Workspace
+    End Function
+    Sub Run()
+        Dim lone = Me.Load()
+    End Sub
+End Class
+Class Caller
+    Sub Run()
+        Dim viaType = Split.Make()
+    End Sub
+End Class
+"#;
+    assert_eq!(inferred_type(source, "p1"), None);
+    assert_eq!(inferred_type(source, "p2"), None);
+    assert_eq!(inferred_type(source, "p3"), None);
+    assert_eq!(inferred_type(source, "lone"), None);
+    assert_eq!(inferred_type(source, "viaType"), None);
+}
+
+#[test]
+fn qualifier_inside_an_open_enclosing_type_records_no_fact() {
+    let source = r#"
+Class Widget
+    Public Shared Function Create() As Integer
+        Return 1
+    End Function
+End Class
+Class Host
+    Inherits BaseHost
+    Class Factory
+        Shared Function Create() As Workspace
+        End Function
+    End Class
+    Sub Run()
+        Dim w = Widget.Create()
+        Dim nested = Factory.Create()
+    End Sub
+End Class
+Class Plain
+    Sub Run()
+        Dim plain = Widget.Create()
+    End Sub
+End Class
+"#;
+    assert_eq!(inferred_type(source, "w"), None);
+    assert_eq!(inferred_type(source, "nested"), workspace());
+    assert_eq!(
+        inferred_type(source, "plain"),
+        Some(("Integer".to_string(), true))
+    );
+}
+
+#[test]
+fn module_member_with_the_qualifier_name_records_no_fact() {
+    let source = r#"
+Namespace Outer
+    Class Gizmo
+        Public Shared Function Make() As Integer
+            Return 1
+        End Function
+    End Class
+    Namespace Inner
+        Module Helpers
+            Public Gizmo As Gadget
+        End Module
+        Class User
+            Sub Run()
+                Dim g = Gizmo.Make()
+            End Sub
+        End Class
+    End Namespace
+    Class Other
+        Sub Run()
+            Dim other = Gizmo.Make()
+        End Sub
+    End Class
+End Namespace
+"#;
+    assert_eq!(inferred_type(source, "g"), None);
+    assert_eq!(
+        inferred_type(source, "other"),
+        Some(("Integer".to_string(), true))
+    );
+}
+
+#[test]
+fn member_or_local_const_shadows_the_qualifier_and_the_called_name() {
+    let source = r#"
+Module Helpers
+    Function Load() As Workspace
+    End Function
+End Module
+Class Text
+    Public Shared Function Trim() As Integer
+        Return 1
+    End Function
+End Class
+Class MemberConst
+    Private Const Text As String = " a "
+    Private Const Load As String = "b"
+    Sub Run()
+        Dim t = Text.Trim()
+        Dim l = Load()
+    End Sub
+End Class
+Class LocalConst
+    Sub Run()
+        Const Text As String = " a "
+        Const Load = "b"
+        Dim t2 = Text.Trim()
+        Dim l2 = Load()
+    End Sub
+End Class
+"#;
+    assert_eq!(inferred_type(source, "t"), None);
+    assert_eq!(inferred_type(source, "l"), None);
+    assert_eq!(inferred_type(source, "t2"), None);
+    assert_eq!(inferred_type(source, "l2"), None);
+}
+
+#[test]
+fn parenthesized_await_forms_record_the_awaited_type() {
+    assert_eq!(
+        workspace_type("Dim workspace = (Await LoadAsync())"),
+        workspace()
+    );
+    assert_eq!(
+        workspace_type("Dim workspace = Await (LoadAsync())"),
+        workspace()
+    );
+    assert_eq!(
+        workspace_type("Dim workspace = Await (LoadAsync().ConfigureAwait(False))"),
+        workspace()
+    );
+    assert_eq!(workspace_type("Dim workspace = (Load())"), workspace());
+}

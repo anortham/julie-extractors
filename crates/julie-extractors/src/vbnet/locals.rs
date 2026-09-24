@@ -95,11 +95,12 @@ pub(super) fn extract_dim_statement(
         .collect()
 }
 
-/// Whether a local or parameter of the member, or the member itself, has
-/// this name: VB then resolves `Name(...)` to that variable, not a method.
+/// Whether a local, local `Const`, or parameter of the member, or the member
+/// itself, has this name: VB then resolves `Name(...)` to that variable, not
+/// a method.
 fn is_member_scope_name(symbols: &[Symbol], member_id: Option<&str>, name: &str) -> bool {
     symbols.iter().any(|symbol| {
-        let in_scope = (symbol.kind == SymbolKind::Variable
+        let in_scope = (matches!(symbol.kind, SymbolKind::Variable | SymbolKind::Constant)
             && symbol.parent_id.as_deref() == member_id)
             || Some(symbol.id.as_str()) == member_id;
         in_scope && type_facts::name_key(&symbol.name) == name
