@@ -2331,6 +2331,7 @@ open class BaseService {
 }
 mod cross_file_relationships;
 mod identifiers;
+mod initializer_types;
 mod junit_test_detection;
 mod literals;
 mod structural_facts;

@@ -241,6 +241,11 @@ pub(super) fn extract_return_type(
     base: &super::super::base::BaseExtractor,
     node: &Node,
 ) -> Option<String> {
+    return_type_node(*node).map(|return_type| base.get_node_text(&return_type))
+}
+
+/// The declared return type node of a Kotlin function node.
+pub(super) fn return_type_node(node: Node) -> Option<Node> {
     let mut found_colon = false;
     for child in node.children(&mut node.walk()) {
         if child.kind() == ":" {
@@ -253,7 +258,7 @@ pub(super) fn extract_return_type(
                 "type" | "user_type" | "identifier" | "function_type" | "nullable_type"
             )
         {
-            return Some(base.get_node_text(&child));
+            return Some(child);
         }
     }
     None
