@@ -218,13 +218,31 @@ from its initializer:
   no fact. Java has no language-level unwrap operator, so no wrapper layer is
   removed. Other files are out of scope because each file is extracted alone.
 
-Known limit: a supertype in another file can declare an overload with the
-same argument count, a member type that hides `Type` or the return type name,
-or a field named `Type`. Java then resolves the name to that member, and the
-recorded type can be wrong. The extractor cannot see other files, so it
-cannot detect this case. `java.lang.Object` and, for an enum,
-`java.lang.Enum` are not part of this limit: their methods are fixed by the
-language, and the extractor checks them.
+- A supertype in another file can declare an overload with the same argument
+  count, a member type that hides `Type` or the return type name, or a field
+  named `Type`. The extractor cannot see that file, so it records no fact
+  when such a supertype can take part:
+  - An unqualified or `this.` call records no fact when the resolved type
+    inherits from a type outside the file. This includes the case where a
+    same-file supertype does, at any depth. So in
+    `class Keys extends ArrayList<String>`, `Object remove(String key)` records
+    no fact for `remove(0)`.
+  - A `Type.method(..)` call records no fact when `Type`, or any named type
+    or anonymous class around the call, inherits from a type outside the
+    file.
+  - A supertype counts as same-file only when it is a plain or generic name
+    that exactly one type in the file declares, in scope at the declaration.
+    A dotted name such as `java.util.ArrayList` or `Outer.Inner` counts as
+    outside the file.
+  - A type with a written supertype also counts as inheriting from outside
+    the file when a type around it does. An inherited member type can hide
+    the supertype name.
+  - A type with no written supertype, or whose whole supertype chain is in
+    the file, keeps its facts. A nested class with no written supertype keeps
+    its facts inside an outer class that extends an outside type.
+    `java.lang.Object` and, for an enum, `java.lang.Enum` do not count as
+    outside the file: the language fixes their methods, and the extractor
+    checks them.
 
 ## Frameworks
 

@@ -533,3 +533,71 @@ fn overload_of_the_generic_enum_value_of_records_no_fact() {
     assert_eq!(inferred_type(source, "otherEnum"), None);
     assert_eq!(inferred_type(source, "threeArgs"), inferred("Workspace"));
 }
+
+#[test]
+fn class_with_external_superclass_records_no_fact() {
+    let source = "import java.util.ArrayList;\n\
+                  class Keys extends ArrayList<String> {\n  \
+                  Object remove(String key) { return null; }\n  \
+                  static Workspace make(int size) { return null; }\n  \
+                  void run() { var value = remove(0); var viaThis = this.remove(0); }\n}\n\
+                  class Service { void run() { var made = Keys.make(1); } }\n";
+    assert_eq!(inferred_type(source, "value"), None);
+    assert_eq!(inferred_type(source, "viaThis"), None);
+    assert_eq!(inferred_type(source, "made"), None);
+    let transitive = "class Middle extends java.util.ArrayList<String> {}\n\
+                      class Keys extends Middle {\n  Object remove(String key) { return null; }\n  \
+                      void run() { var value = remove(0); }\n}\n";
+    assert_eq!(inferred_type(transitive, "value"), None);
+}
+
+#[test]
+fn class_with_external_interface_default_method_records_no_fact() {
+    let source = "import java.util.Comparator;\n\
+                  class Rule implements Comparator<String> {\n  \
+                  public int compare(String a, String b) { return 0; }\n  \
+                  Workspace thenComparing(String key) { return null; }\n  \
+                  void run() { var next = thenComparing(this); }\n}\n";
+    assert_eq!(inferred_type(source, "next"), None);
+    let interface = "interface Api extends java.util.function.Supplier<String> {\n  \
+                     Workspace get(int index);\n  \
+                     default void run() { var item = get(1); }\n}\n";
+    assert_eq!(inferred_type(interface, "item"), None);
+}
+
+#[test]
+fn qualifier_that_an_external_supertype_can_hide_records_no_fact() {
+    let enclosing = "class Box { static Workspace make() { return null; } }\n\
+                     class Service extends Base { void run() { var workspace = Box.make(); } }\n";
+    assert_eq!(inferred_type(enclosing, "workspace"), None);
+    let anonymous = "class Box { static Workspace make() { return null; } }\n\
+                     class Service { Object task = new Base() {\n    \
+                     void run() { var workspace = Box.make(); }\n  }; }\n";
+    assert_eq!(inferred_type(anonymous, "workspace"), None);
+}
+
+#[test]
+fn supertype_name_that_an_external_supertype_can_hide_records_no_fact() {
+    let source = "class Model {}\n\
+                  class Outer extends Base {\n  static class Sub extends Model {\n    \
+                  Workspace load(int i) { return null; }\n    \
+                  void run() { var workspace = load(1); }\n  }\n}\n";
+    assert_eq!(inferred_type(source, "workspace"), None);
+}
+
+#[test]
+fn class_whose_supertypes_are_all_in_the_file_keeps_the_fact() {
+    let source = "class Base<T> {}\n\
+                  class Sub extends Base<String> implements Api {\n  \
+                  Workspace load(int i) { return null; }\n  \
+                  static Workspace make() { return null; }\n  \
+                  void run() { var workspace = load(1); }\n}\n\
+                  interface Api {}\n\
+                  class Service { void run() { var made = Sub.make(); } }\n";
+    assert_eq!(inferred_type(source, "workspace"), inferred("Workspace"));
+    assert_eq!(inferred_type(source, "made"), inferred("Workspace"));
+    let nested = "class Outer extends java.util.ArrayList<String> {\n  static class Inner {\n    \
+                  Workspace load() { return null; }\n    \
+                  void run() { var workspace = load(); }\n  }\n}\n";
+    assert_eq!(inferred_type(nested, "workspace"), inferred("Workspace"));
+}
