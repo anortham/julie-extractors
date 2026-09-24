@@ -57,9 +57,19 @@ pub(super) fn record_assignment_facts(
         record_type_literal(base, symbol_id, type_node, false);
     }
 
-    if let Some(value) = node.child_by_field_name("value") {
+    if is_plain_assignment(base, node)
+        && let Some(value) = node.child_by_field_name("value")
+    {
         record_inferred_rhs(base, symbol_id, value, index);
     }
+}
+
+/// A plain `=`. A compound operator (`+=`, `??=`, ...) combines the value with
+/// the variable's current one, so the value's type is not the variable's.
+fn is_plain_assignment(base: &BaseExtractor, node: Node) -> bool {
+    direct_child(node, "ERROR").is_none()
+        && direct_child(node, "assignement_operator")
+            .is_some_and(|operator| base.get_node_text(&operator).trim() == "=")
 }
 
 /// The file's class names and the declared return types of its functions
@@ -337,7 +347,8 @@ fn reduce_type_literal(base: &BaseExtractor, type_literal: Node) -> Option<Reduc
 /// a cast, `[T]::new()` or `New-Object T` for a same-file class `T`, or a call
 /// with a declared return type to a same-file function, a `$this` method of
 /// the enclosing class, or a static method of a same-file class. Parentheses
-/// are looked through; a pipeline or a longer chain records nothing.
+/// are looked through; an operator, a pipeline, a redirection, or a longer
+/// chain records nothing.
 fn record_inferred_rhs(
     base: &mut BaseExtractor,
     symbol_id: &str,
@@ -347,6 +358,9 @@ fn record_inferred_rhs(
     let Some(core) = value_core(value, 0) else {
         return;
     };
+    if has_redirection(core) {
+        return;
+    }
     if core.kind() == "cast_expression" {
         if let Some(type_node) = direct_child(core, "type_literal") {
             record_type_literal(base, symbol_id, type_node, true);
@@ -373,7 +387,7 @@ fn value_core(value: Node, depth: u32) -> Option<Node> {
     if !should_visit_tree_depth(depth) {
         return None;
     }
-    let core = unwrap_expr(value);
+    let core = unwrap_value(value);
     if core.kind() == "parenthesized_expression" {
         return value_core(first_named_child(core)?, child_tree_depth(depth)?);
     }
@@ -387,7 +401,10 @@ fn call_return_type<'a>(
 ) -> Option<&'a ReducedType> {
     match core.kind() {
         "command" => {
-            let (_, name) = invoked_command(base, core)?;
+            let (target, name) = invoked_command(base, core)?;
+            if base.get_node_text(&target).contains(['/', '\\']) {
+                return None;
+            }
             index.lookup(None, &name, false)
         }
         "invokation_expression" | "invocation_expression" => {
@@ -400,6 +417,9 @@ fn call_return_type<'a>(
                 }
                 index.lookup(Some(&owner.base_name), &method, true)
             } else {
+                if in_script_block_within_class(core) {
+                    return None;
+                }
                 let owner = this_receiver_type(base, core)?;
                 index.lookup(Some(&owner), &method, false)
             }
@@ -466,17 +486,39 @@ fn new_object_type_name(
     None
 }
 
-fn unwrap_expr(node: Node) -> Node {
-    let mut current = node;
-    loop {
-        if !EXPR_WRAPPERS.contains(&current.kind()) || current.named_child_count() != 1 {
-            return current;
+/// `$this` in a script block need not be the class instance: an
+/// `Add-Member -MemberType ScriptMethod` or `Register-ObjectEvent -Action`
+/// block binds it to another object when it runs.
+fn in_script_block_within_class(node: Node) -> bool {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        match candidate.kind() {
+            "script_block_expression" => return true,
+            "class_statement" => return false,
+            _ => current = candidate.parent(),
         }
-        let Some(child) = first_named_child(current) else {
+    }
+    false
+}
+
+fn has_redirection(core: Node) -> bool {
+    matches!(core.kind(), "command" | "command_expression")
+        && direct_child(core, "command_elements")
+            .is_some_and(|elements| direct_child(elements, "redirection").is_some())
+}
+
+/// Look through wrappers that hold exactly one child. A wrapper with an
+/// operator token (`-not x`, `,x`, `-join x`) has two children and changes
+/// the value's type, so it stops the unwrap.
+fn unwrap_value(node: Node) -> Node {
+    let mut current = node;
+    while EXPR_WRAPPERS.contains(&current.kind()) && current.child_count() == 1 {
+        let Some(child) = current.child(0) else {
             return current;
         };
         current = child;
     }
+    current
 }
 
 fn direct_child<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {

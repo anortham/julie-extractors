@@ -914,3 +914,107 @@ function Get-Workspace {
     assert_eq!(fact.resolved_type, "Folder");
     assert!(!fact.is_inferred);
 }
+
+const FOO_CALLABLES: &str = r#"
+class Foo {
+    static [Foo] Create() { return [Foo]::new() }
+    [Foo] Load() { return $this }
+}
+function Get-Foo {
+    [OutputType([Foo])]
+    param()
+}
+"#;
+
+fn assert_not_inferred_with_callables(line: &str, name: &str) {
+    assert_not_inferred(&format!("{FOO_CALLABLES}{line}\n"), name);
+}
+
+#[test]
+fn unary_operator_around_call_records_no_fact() {
+    for (line, name) in [
+        ("$negated = -not (Get-Foo)", "negated"),
+        ("$bang = !(Get-Foo)", "bang"),
+        ("$joined = -join (Get-Foo)", "joined"),
+        ("$splitres = -split (Get-Foo)", "splitres"),
+        ("$bnot = -bnot (Get-Foo)", "bnot"),
+        ("$neg2 = -not [Foo]::Create()", "neg2"),
+    ] {
+        assert_not_inferred_with_callables(line, name);
+    }
+}
+
+#[test]
+fn leading_comma_around_call_records_no_fact() {
+    assert_not_inferred_with_callables("$arr = ,(Get-Foo)", "arr");
+    assert_not_inferred_with_callables("$made = ,[Foo]::new()", "made");
+}
+
+#[test]
+fn unary_operator_around_cast_records_no_fact() {
+    assert_not_inferred_with_callables("$e = -not ([Foo]$y)", "e");
+    assert_not_inferred_with_callables("$c = -not [Foo]$y", "c");
+}
+
+#[test]
+fn unary_operator_around_this_call_records_no_fact() {
+    let code = r#"
+class Foo {
+    [Foo] Load() { return $this }
+    [void] Use() {
+        $notted = -not ($this.Load())
+        $comma = ,($this.Load())
+    }
+}
+"#;
+    assert_not_inferred(code, "notted");
+    assert_not_inferred(code, "comma");
+}
+
+#[test]
+fn parenthesized_cast_records_inferred_fact() {
+    assert_inferred("$e = ([Foo]$y)\n", "e", "Foo");
+}
+
+#[test]
+fn script_path_call_records_no_fact() {
+    assert_not_inferred_with_callables("$pathcall = & ./lib/Get-Foo", "pathcall");
+    assert_not_inferred_with_callables(r"$winpath = & .\lib\Get-Foo", "winpath");
+    assert_not_inferred_with_callables("$quoted = & './lib/Get-Foo'", "quoted");
+}
+
+#[test]
+fn quoted_command_name_call_records_inferred_fact() {
+    assert_inferred(&format!("{FOO_CALLABLES}$w = & 'Get-Foo'\n"), "w", "Foo");
+}
+
+#[test]
+fn compound_assignment_records_no_fact() {
+    let code = format!(
+        "{FOO_CALLABLES}function Use {{\n    $script:all += Get-Foo\n    $g += [Foo]::Create()\n    $t += [pscustomobject]@{{ A = 1 }}\n    $n ??= Get-Foo\n}}\n"
+    );
+    for name in ["all", "g", "t", "n"] {
+        assert_not_inferred(&code, name);
+    }
+}
+
+#[test]
+fn this_call_in_script_method_block_records_no_fact() {
+    assert_not_inferred(
+        r#"
+class Foo {
+    [Foo] Load() { return $this }
+    [void] Use($o) {
+        Add-Member -InputObject $o -MemberType ScriptMethod -Name X -Value { $inner = $this.Load() }
+    }
+}
+"#,
+        "inner",
+    );
+}
+
+#[test]
+fn redirected_call_records_no_fact() {
+    assert_not_inferred_with_callables("$redir = Get-Foo > $null", "redir");
+    assert_not_inferred_with_callables("$merged = Get-Foo 2>&1", "merged");
+}

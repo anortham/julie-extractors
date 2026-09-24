@@ -30,9 +30,20 @@ The command runs `tests::powershell::` and the golden extraction test with
 - Names match case-insensitively. Same-named candidates (overloads, repeated
   functions) must agree on the type. `$this.M()` looks only at instance
   methods and `[Foo]::M()` only at static methods.
-- Parentheses around the value are looked through. A pipeline
-  (`Get-Foo | Select-Object`), a longer chain (`$this.Load().Clone()`), a
-  method inherited from a base class, an `OutputType` given as a string, two
-  different output types, or a callee in another file records no fact. Other
-  files are out of scope because each file is extracted alone.
+- Parentheses around the value are looked through. These record no fact:
+  - a pipeline (`Get-Foo | Select-Object`) or a longer chain
+    (`$this.Load().Clone()`);
+  - an operator or a leading comma around the value (`-not (Get-Foo)`,
+    `-join (Get-Foo)`, `,(Get-Foo)`, `-not [Foo]$y`), because it changes the
+    type;
+  - a compound assignment (`$all += Get-Foo`, `$x ??= Get-Foo`), because it
+    combines the value with the current one;
+  - a script path call (`& ./lib/Get-Foo`), because it runs a file, not the
+    same-file function;
+  - a command with a redirection (`Get-Foo > $null`, `Get-Foo 2>&1`);
+  - `$this.M()` inside a script block, because an `Add-Member` script method
+    or an event action binds `$this` to another object;
+  - a method inherited from a base class, an `OutputType` given as a string,
+    two different output types, or a callee in another file. Other files are
+    out of scope because each file is extracted alone.
 - A written type always wins over inference.
