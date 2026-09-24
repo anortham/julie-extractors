@@ -524,3 +524,91 @@ trait Loads {
     assert_eq!(inferred_type(source, "x"), None);
     assert_eq!(inferred_type(source, "y"), None);
 }
+
+#[test]
+fn class_return_from_another_unbraced_block_of_the_same_namespace_records_nothing() {
+    let source = r#"<?php
+namespace X;
+class Foo {}
+namespace A;
+use X\Foo;
+class Svc {
+    public static function make(): Foo { return new Foo(); }
+    public static function count(): int { return 1; }
+    public static function fresh(): static { return new static(); }
+    public static function qualified(): \X\Foo { return new Foo(); }
+}
+function load(): Foo { return new Foo(); }
+function g() {
+    $sameBlock = load();
+}
+namespace A;
+class Foo {}
+$viaStatic = Svc::make();
+$viaFunction = load();
+$primitive = Svc::count();
+$selfType = Svc::fresh();
+$fullyQualified = Svc::qualified();
+"#;
+    assert_eq!(inferred_type(source, "viaStatic"), None);
+    assert_eq!(inferred_type(source, "viaFunction"), None);
+    assert_eq!(inferred_type(source, "sameBlock"), inferred("Foo"));
+    assert_eq!(inferred_type(source, "primitive"), inferred("int"));
+    assert_eq!(
+        inferred_type(source, "selfType"),
+        inferred_from("Svc", "static")
+    );
+    assert_eq!(
+        inferred_type(source, "fullyQualified"),
+        inferred_from("X\\Foo", "\\X\\Foo")
+    );
+}
+
+#[test]
+fn class_return_from_another_braced_block_of_the_same_namespace_records_nothing() {
+    let source = r#"<?php
+namespace X {
+    class Foo {}
+}
+namespace A {
+    use X\Foo;
+    use X\Sub;
+    function load(): Foo { return new Foo(); }
+    function total(): int { return 1; }
+    function sub(): Sub\Foo {}
+}
+namespace A {
+    class Foo {}
+    $reopened = load();
+    $primitive = total();
+    $relative = sub();
+}
+"#;
+    assert_eq!(inferred_type(source, "reopened"), None);
+    assert_eq!(inferred_type(source, "relative"), None);
+    assert_eq!(inferred_type(source, "primitive"), inferred("int"));
+}
+
+#[test]
+fn many_top_level_calls_extract_in_linear_time() {
+    fn extract_seconds(statements: usize) -> f64 {
+        let mut source = String::from("<?php\nfunction load(): int { return 1; }\n");
+        for index in 0..statements {
+            source.push_str(&format!("$a{index} = load();\n"));
+        }
+        (0..3)
+            .map(|_| {
+                let started = std::time::Instant::now();
+                assert_eq!(inferred_type(&source, "a0"), inferred("int"));
+                started.elapsed().as_secs_f64()
+            })
+            .fold(f64::INFINITY, f64::min)
+    }
+    let small = extract_seconds(500);
+    let large = extract_seconds(4000);
+    assert!(
+        large < small * 24.0,
+        "8x the statements took {:.1}x the time ({small:.4}s -> {large:.4}s)",
+        large / small
+    );
+}
