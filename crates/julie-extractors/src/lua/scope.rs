@@ -113,7 +113,7 @@ pub(super) fn resolve_table_symbol_id(
     }
 }
 
-fn enclosing_colon_owner_table(mut node: Node) -> Option<Node> {
+pub(super) fn enclosing_colon_owner_table(mut node: Node) -> Option<Node> {
     while let Some(parent) = node.parent() {
         if matches!(
             parent.kind(),

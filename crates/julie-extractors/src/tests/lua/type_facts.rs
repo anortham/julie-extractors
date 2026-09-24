@@ -201,3 +201,331 @@ fn implicit_self_symbol_spans_method_name_without_parameter_list_signature() {
         "deposit".len() as u32
     );
 }
+
+fn inferred_type(source: &str, name: &str) -> Option<(String, bool)> {
+    let (symbols, extractor) = extract(source);
+    let symbol = symbol(&symbols, name, SymbolKind::Variable);
+    extractor
+        .base
+        .type_info
+        .get(&symbol.id)
+        .map(|fact| (fact.resolved_type.clone(), fact.is_inferred))
+}
+
+fn assert_inferred(source: &str, name: &str, expected: &str) {
+    assert_eq!(
+        inferred_type(source, name),
+        Some((expected.to_string(), true)),
+        "inferred type of {name}"
+    );
+}
+
+fn assert_no_fact(source: &str, name: &str) {
+    assert_eq!(inferred_type(source, name), None, "type fact of {name}");
+}
+
+#[test]
+fn local_function_call_records_annotated_return_type() {
+    let source = r#"
+---@return Config
+local function load() end
+local config = load()
+"#;
+    assert_inferred(source, "config", "Config");
+}
+
+#[test]
+fn call_before_the_annotated_global_function_records_its_return_type() {
+    let source = r#"
+local function run()
+  local config = load()
+end
+---@return Config
+function load() end
+"#;
+    assert_inferred(source, "config", "Config");
+}
+
+#[test]
+fn module_dot_and_colon_calls_record_annotated_return_types() {
+    let source = r#"
+local M = {}
+---@return Config
+function M.load() end
+---@return Session
+function M:open() end
+local config = M.load()
+local session = M:open()
+"#;
+    assert_inferred(source, "config", "Config");
+    assert_inferred(source, "session", "Session");
+}
+
+#[test]
+fn nested_table_owner_matches_the_full_table_path() {
+    let source = r#"
+---@return Config
+function app.config.load() end
+local config = app.config.load()
+"#;
+    assert_inferred(source, "config", "Config");
+}
+
+#[test]
+fn self_calls_inside_colon_method_use_the_owner_methods() {
+    let source = r#"
+local Store = {}
+---@return Cursor
+function Store:cursor() end
+---@return Cursor
+function Store.static_cursor() end
+function Store:scan()
+  local cursor = self:cursor()
+  local other = self.static_cursor()
+end
+"#;
+    assert_inferred(source, "cursor", "Cursor");
+    assert_inferred(source, "other", "Cursor");
+}
+
+#[test]
+fn function_value_assignments_record_annotated_return_types() {
+    let source = r#"
+local M = {}
+---@return Config
+local load = function() end
+---@return Session
+M.open = function() end
+local config = load()
+local session = M.open()
+"#;
+    assert_inferred(source, "config", "Config");
+    assert_inferred(source, "session", "Session");
+}
+
+#[test]
+fn optional_return_records_the_base_type_and_keeps_the_annotation() {
+    let source = r#"
+---@return Config?
+local function find() end
+---@return Config|nil
+local function lookup() end
+local found = find()
+local looked = lookup()
+"#;
+    let (symbols, extractor) = extract(source);
+    let found = fact(&extractor, &symbols, "found", SymbolKind::Variable);
+    assert_eq!(found.resolved_type, "Config");
+    assert!(found.is_inferred);
+    assert_eq!(
+        found.metadata.as_ref().and_then(|m| m.get("declared")),
+        Some(&serde_json::Value::String("Config?".to_string()))
+    );
+    assert_inferred(source, "looked", "Config");
+}
+
+#[test]
+fn self_return_type_resolves_to_the_owner_table() {
+    let source = r#"
+local Builder = {}
+---@return self
+function Builder:clone() end
+local copy = Builder:clone()
+"#;
+    assert_inferred(source, "copy", "Builder");
+}
+
+#[test]
+fn first_return_value_binds_first_variable_only() {
+    let source = r#"
+---@return Config
+---@return string
+local function load() end
+---@return Session, string
+local function open() end
+local config, err = load()
+local session = open()
+"#;
+    assert_inferred(source, "config", "Config");
+    assert_no_fact(source, "err");
+    assert_inferred(source, "session", "Session");
+    let (symbols, extractor) = extract(source);
+    let open = fact(&extractor, &symbols, "open", SymbolKind::Function);
+    assert_eq!(open.resolved_type, "Session");
+    assert!(!open.is_inferred);
+}
+
+#[test]
+fn each_expression_binds_its_own_variable() {
+    let source = r#"
+---@return Config
+local function load() end
+---@return Session
+local function open() end
+local config, session = load(), open()
+"#;
+    assert_inferred(source, "config", "Config");
+    assert_inferred(source, "session", "Session");
+}
+
+#[test]
+fn same_file_class_constructor_wins_over_annotated_return_type() {
+    let source = r#"
+local Account = {}
+Account.__index = Account
+---@return AccountProxy
+function Account.new()
+  return setmetatable({}, Account)
+end
+function Account:deposit() end
+local account = Account.new()
+"#;
+    assert_inferred(source, "account", "Account");
+}
+
+#[test]
+fn written_type_annotation_wins_over_call_inference() {
+    let source = r#"
+---@return Config
+local function load() end
+---@type Settings
+local config = load()
+"#;
+    assert_eq!(
+        inferred_type(source, "config"),
+        Some(("Settings".to_string(), false))
+    );
+}
+
+#[test]
+fn unannotated_function_records_no_fact() {
+    let source = r#"
+local function load() end
+local config = load()
+"#;
+    assert_no_fact(source, "config");
+}
+
+#[test]
+fn disagreeing_same_named_functions_record_no_fact() {
+    let source = r#"
+local M = {}
+---@return Config
+function M.load() end
+---@return Settings
+function M.load() end
+---@return Config
+local function open() end
+local function open() end
+local config = M.load()
+local session = open()
+"#;
+    assert_no_fact(source, "config");
+    assert_no_fact(source, "session");
+}
+
+#[test]
+fn generic_return_types_record_no_fact() {
+    let source = r#"
+---@generic T
+---@param value T
+---@return T
+local function identity(value) end
+---@class Stack<V>
+local Stack = {}
+---@return V
+function Stack:pop() end
+local id = identity(1)
+local top = Stack:pop()
+"#;
+    assert_no_fact(source, "id");
+    assert_no_fact(source, "top");
+}
+
+#[test]
+fn union_any_array_and_overloaded_returns_record_no_fact() {
+    let source = r#"
+---@return Config|Settings
+local function either() end
+---@return any
+local function anything() end
+---@return Config[]
+local function many() end
+---@overload fun(name: string): Settings
+---@return Config
+local function load() end
+local a = either()
+local b = anything()
+local c = many()
+local d = load()
+"#;
+    for name in ["a", "b", "c", "d"] {
+        assert_no_fact(source, name);
+    }
+}
+
+#[test]
+fn owner_and_free_name_must_match_the_declaration() {
+    let source = r#"
+local M = {}
+---@return Config
+function M.load() end
+local by_other_owner = N.load()
+local by_free_name = load()
+local by_unknown_receiver = obj:load()
+"#;
+    assert_no_fact(source, "by_other_owner");
+    assert_no_fact(source, "by_free_name");
+    assert_no_fact(source, "by_unknown_receiver");
+}
+
+#[test]
+fn unknown_method_at_the_end_of_a_chain_records_no_fact() {
+    let source = r#"
+local M = {}
+---@return Config
+function M.load() end
+local value = M.load():get()
+local field = M.load().name
+"#;
+    assert_no_fact(source, "value");
+    assert_no_fact(source, "field");
+}
+
+#[test]
+fn self_outside_a_colon_method_or_redeclared_records_no_fact() {
+    let source = r#"
+local Store = {}
+---@return Cursor
+function Store:cursor() end
+function Store.scan(self)
+  local explicit = self:cursor()
+end
+function Store:walk()
+  local self = other
+  local shadowed = self:cursor()
+end
+"#;
+    assert_no_fact(source, "explicit");
+    assert_no_fact(source, "shadowed");
+}
+
+#[test]
+fn shadowed_free_function_and_rebound_owner_record_no_fact() {
+    let source = r#"
+---@return Config
+local function load() end
+local M = {}
+---@return Session
+function M.open() end
+local function run(load)
+  local config = load()
+end
+local function other()
+  local M = require("other")
+  local session = M.open()
+end
+"#;
+    assert_no_fact(source, "config");
+    assert_no_fact(source, "session");
+}
