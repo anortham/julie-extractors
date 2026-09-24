@@ -58,30 +58,42 @@ fn generic_call_value_class(extractor: &RExtractor, right: Node) -> Option<Strin
     }
     let callee = right.child_by_field_name("function")?;
     let name = clean_r_name(&extractor.base.get_node_text(&callee))?;
-    extractor.generic_value_classes.get(&name)?.clone()
+    extractor.name_bindings.generic_value_class(&name)
 }
 
-/// Declared return classes of same-file S4 generics. `setGeneric(valueClass = "X")`
-/// with a `def` function makes R stop unless the value `is()` an `X`. A name maps
-/// to `None` when a declaration lacks a `def` function or a single class, runs only
-/// under a condition, or disagrees with another, or when an assignment, a `for`
-/// variable, `assign()`, `delayedAssign()`, `makeActiveBinding()`, a `with()` data
-/// list, or a parameter rebinds the name anywhere in the file.
-pub(super) fn collect_generic_value_classes(
-    extractor: &RExtractor,
-    root: Node,
-) -> HashMap<String, Option<String>> {
-    let mut classes = HashMap::new();
-    collect_value_classes(extractor, root, 0, &mut classes);
-    classes
+/// How a file binds names: `setGeneric` return classes, names bound to a
+/// same-file class generator, and names rebound any other way.
+#[derive(Default)]
+pub(super) struct NameBindings {
+    generics: HashMap<String, Option<String>>,
+    generators: HashSet<String>,
+    rebound: HashSet<String>,
 }
 
-fn collect_value_classes(
-    extractor: &RExtractor,
-    node: Node,
-    depth: u32,
-    classes: &mut HashMap<String, Option<String>>,
-) {
+impl NameBindings {
+    /// `setGeneric(valueClass = "X")` with a `def` function makes R stop unless
+    /// the value `is()` an `X`. No class when a declaration lacks a `def`
+    /// function or a single class, may not run, binds elsewhere, or disagrees
+    /// with another, or when anything else in the file binds the name.
+    fn generic_value_class(&self, name: &str) -> Option<String> {
+        if self.generators.contains(name) || self.rebound.contains(name) {
+            return None;
+        }
+        self.generics.get(name)?.clone()
+    }
+
+    fn calls_constructor(&self, name: &str) -> bool {
+        !self.rebound.contains(name)
+    }
+}
+
+pub(super) fn collect_name_bindings(extractor: &RExtractor, root: Node) -> NameBindings {
+    let mut bindings = NameBindings::default();
+    collect_bindings(extractor, root, 0, &mut bindings);
+    bindings
+}
+
+fn collect_bindings(extractor: &RExtractor, node: Node, depth: u32, bindings: &mut NameBindings) {
     if !should_visit_tree_depth(depth) {
         return;
     }
@@ -89,7 +101,8 @@ fn collect_value_classes(
         "call" => match call_name(extractor, node).as_deref() {
             Some("setGeneric") if is_methods_call(extractor, node) => {
                 if let Some((name, value_class)) = generic_value_class(extractor, node) {
-                    classes
+                    bindings
+                        .generics
                         .entry(name)
                         .and_modify(|known| {
                             if *known != value_class {
@@ -99,35 +112,47 @@ fn collect_value_classes(
                         .or_insert(value_class);
                 }
             }
-            Some("assign" | "delayedAssign") => {
-                rebind_string_argument(extractor, node, &["x"], classes);
+            Some("assign" | "delayedAssign" | "list2env") => {
+                rebind_argument_entries(extractor, node, &["x"], &["x"], &mut bindings.rebound);
             }
             Some("makeActiveBinding") => {
-                rebind_string_argument(extractor, node, &["sym"], classes);
+                rebind_argument_entries(extractor, node, &["sym"], &["sym"], &mut bindings.rebound);
             }
-            Some("with" | "within") => rebind_with_data_names(extractor, node, classes),
+            Some("with" | "within") => {
+                rebind_argument_entries(
+                    extractor,
+                    node,
+                    &["data"],
+                    &["data"],
+                    &mut bindings.rebound,
+                );
+            }
+            Some("setRefClass") => rebind_argument_entries(
+                extractor,
+                node,
+                &["Class", "fields", "contains", "methods"],
+                &["fields", "methods"],
+                &mut bindings.rebound,
+            ),
+            _ if is_ref_class_member_call(extractor, node) => {
+                if let Some(args) = node.child_by_field_name("arguments") {
+                    rebind_entries(extractor, args, true, &mut bindings.rebound);
+                }
+            }
             _ => {}
         },
         "for_statement" => {
-            if let Some(name) = node
-                .child_by_field_name("variable")
-                .and_then(|variable| clean_r_name(&extractor.base.get_node_text(&variable)))
-            {
-                classes.insert(name, None);
-            }
+            bindings.rebound.extend(
+                node.child_by_field_name("variable")
+                    .and_then(|variable| clean_r_name(&extractor.base.get_node_text(&variable))),
+            );
         }
-        "binary_operator" => {
-            if let Some(name) = rebound_name(extractor, node) {
-                classes.insert(name, None);
-            }
-        }
+        "binary_operator" => collect_assignment(extractor, node, bindings),
         "parameter" => {
-            if let Some(name) = node
-                .child_by_field_name("name")
-                .and_then(|name| clean_r_name(&extractor.base.get_node_text(&name)))
-            {
-                classes.insert(name, None);
-            }
+            bindings.rebound.extend(
+                node.child_by_field_name("name")
+                    .and_then(|name| clean_r_name(&extractor.base.get_node_text(&name))),
+            );
         }
         _ => {}
     }
@@ -136,23 +161,51 @@ fn collect_value_classes(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_value_classes(extractor, child, child_depth, classes);
+        collect_bindings(extractor, child, child_depth, bindings);
     }
 }
 
+const SET_GENERIC_FORMALS: [&str; 10] = [
+    "name",
+    "def",
+    "group",
+    "valueClass",
+    "where",
+    "package",
+    "signature",
+    "useAsDefault",
+    "genericFunction",
+    "simpleInheritanceOnly",
+];
+
 /// Without a `def` function, R builds the generic from an existing function or
-/// generic of that name, which can drop `valueClass`, and a conditional
-/// declaration may never run, so both map to `None`.
+/// generic of that name, which can drop `valueClass`. A declaration that may not
+/// run, or that `where =` binds into another environment, types nothing. An
+/// argument name that R would partially match (`wh =`) also types nothing.
 fn generic_value_class(extractor: &RExtractor, call: Node) -> Option<(String, Option<String>)> {
     let args = call.child_by_field_name("arguments")?;
-    let bound = bind_arguments(extractor, args, &["name", "def", "group", "valueClass"]);
+    let bound = bind_arguments(extractor, args, &SET_GENERIC_FORMALS[..5]);
     let name = string_literal(extractor, bound.get("name").copied())?;
     let has_def_function = bound
         .get("def")
         .is_some_and(|def| def.kind() == "function_definition");
-    let value_class = string_literal(extractor, bound.get("valueClass").copied())
-        .filter(|_| has_def_function && !runs_conditionally(extractor, call));
+    let value_class = string_literal(extractor, bound.get("valueClass").copied()).filter(|_| {
+        has_def_function
+            && !bound.contains_key("where")
+            && only_exact_formal_names(extractor, args, &SET_GENERIC_FORMALS)
+            && !runs_conditionally(extractor, call)
+    });
     Some((name, value_class))
+}
+
+fn only_exact_formal_names(extractor: &RExtractor, args: Node, formals: &[&str]) -> bool {
+    let mut cursor = args.walk();
+    args.children_by_field_name("argument", &mut cursor)
+        .filter_map(|argument| argument.child_by_field_name("name"))
+        .all(|name| {
+            clean_r_name(&extractor.base.get_node_text(&name))
+                .is_some_and(|name| formals.contains(&name.as_str()))
+        })
 }
 
 fn string_literal(extractor: &RExtractor, value: Option<Node>) -> Option<String> {
@@ -171,11 +224,30 @@ fn is_methods_call(extractor: &RExtractor, call: Node) -> bool {
         })
 }
 
+/// `Gen$methods(...)` and `Gen$fields(...)` add Reference Class members, which
+/// the class's methods see as bare names.
+fn is_ref_class_member_call(extractor: &RExtractor, call: Node) -> bool {
+    call.child_by_field_name("function")
+        .filter(|callee| callee.kind() == "extract_operator")
+        .and_then(|callee| callee.child_by_field_name("rhs"))
+        .is_some_and(|member| {
+            matches!(
+                extractor.base.get_node_text(&member).as_str(),
+                "methods" | "fields"
+            )
+        })
+}
+
 fn runs_conditionally(extractor: &RExtractor, node: Node) -> bool {
     let mut current = node;
     while let Some(parent) = current.parent() {
         let conditional = match parent.kind() {
-            "if_statement" => parent.child_by_field_name("condition") != Some(current),
+            "if_statement" | "while_statement" => {
+                parent.child_by_field_name("condition") != Some(current)
+            }
+            "for_statement" => parent.child_by_field_name("body") == Some(current),
+            "repeat_statement" | "function_definition" => true,
+            "call" => call_name(extractor, parent).as_deref() == Some("switch"),
             "binary_operator" => {
                 parent.child_by_field_name("rhs") == Some(current)
                     && parent
@@ -197,57 +269,129 @@ fn runs_conditionally(extractor: &RExtractor, node: Node) -> bool {
     false
 }
 
-fn rebind_string_argument(
+/// Rebinds the entries of the `rebinding` arguments of `call`, matched against
+/// R's leading `formals`.
+fn rebind_argument_entries(
     extractor: &RExtractor,
     call: Node,
     formals: &[&'static str],
-    classes: &mut HashMap<String, Option<String>>,
+    rebinding: &[&'static str],
+    rebound: &mut HashSet<String>,
 ) {
     let Some(args) = call.child_by_field_name("arguments") else {
         return;
     };
     let bound = bind_arguments(extractor, args, formals);
-    if let Some(name) = string_literal(extractor, bound.get(formals[0]).copied()) {
-        classes.insert(name, None);
-    }
-}
-
-fn rebind_with_data_names(
-    extractor: &RExtractor,
-    call: Node,
-    classes: &mut HashMap<String, Option<String>>,
-) {
-    let Some(data) = call
-        .child_by_field_name("arguments")
-        .and_then(|args| {
-            bind_arguments(extractor, args, &["data"])
-                .get("data")
-                .copied()
-        })
-        .filter(|data| data.kind() == "call")
-        .and_then(|data| data.child_by_field_name("arguments"))
-    else {
-        return;
-    };
-    let mut cursor = data.walk();
-    for argument in data.children_by_field_name("argument", &mut cursor) {
-        if let Some(name) = argument
-            .child_by_field_name("name")
-            .and_then(|name| clean_r_name(&extractor.base.get_node_text(&name)))
-        {
-            classes.insert(name, None);
+    for formal in rebinding {
+        if let Some(value) = bound.get(formal) {
+            rebind_entries(extractor, *value, true, rebound);
         }
     }
 }
 
-fn rebound_name(extractor: &RExtractor, assignment: Node) -> Option<String> {
-    let operator = assignment.child_by_field_name("operator")?;
-    let target = match extractor.base.get_node_text(&operator).as_str() {
-        "<-" | "<<-" | "=" => assignment.child_by_field_name("lhs")?,
-        "->" | "->>" => assignment.child_by_field_name("rhs")?,
-        _ => return None,
+/// Names a value binds: a string, or the named and string entries of a call
+/// such as `list(f = ...)` or `c("f")`, one unnamed list level deep.
+fn rebind_entries(
+    extractor: &RExtractor,
+    value: Node,
+    nested: bool,
+    rebound: &mut HashSet<String>,
+) {
+    let args = match value.kind() {
+        "string" => {
+            rebound.extend(string_literal(extractor, Some(value)));
+            return;
+        }
+        "arguments" => value,
+        "call" => match value.child_by_field_name("arguments") {
+            Some(args) => args,
+            None => return,
+        },
+        _ => return,
     };
-    assignment_name(extractor, target)
+    let mut cursor = args.walk();
+    for argument in args.children_by_field_name("argument", &mut cursor) {
+        match argument
+            .child_by_field_name("name")
+            .and_then(|name| clean_r_name(&extractor.base.get_node_text(&name)))
+        {
+            Some(name) => {
+                rebound.insert(name);
+            }
+            None => {
+                if let Some(entry) = argument.child_by_field_name("value")
+                    && (nested || entry.kind() == "string")
+                {
+                    rebind_entries(extractor, entry, false, rebound);
+                }
+            }
+        }
+    }
+}
+
+fn collect_assignment(extractor: &RExtractor, assignment: Node, bindings: &mut NameBindings) {
+    let Some(operator) = assignment.child_by_field_name("operator") else {
+        return;
+    };
+    let (target, value) = match extractor.base.get_node_text(&operator).as_str() {
+        "<-" | "<<-" | "=" => ("lhs", "rhs"),
+        "->" | "->>" => ("rhs", "lhs"),
+        _ => return,
+    };
+    let (Some(target), Some(value)) = (
+        assignment.child_by_field_name(target),
+        assignment.child_by_field_name(value),
+    ) else {
+        return;
+    };
+    if let Some(name) = assignment_name(extractor, target)
+        && value.kind() == "call"
+        && declared_class_name(extractor, value).as_deref() == Some(name.as_str())
+    {
+        bindings.generators.insert(name);
+        return;
+    }
+    rebind_target(extractor, target, &mut bindings.rebound);
+}
+
+/// Every name an assignment target rebinds. `f(x) <- v` and `x$m <- v` rebind
+/// `x`. When `x` is an environment, `x$m <- v` and `x[["m"]] <- v` also bind
+/// `m` in it.
+fn rebind_target(extractor: &RExtractor, mut target: Node, rebound: &mut HashSet<String>) {
+    loop {
+        let next = match target.kind() {
+            "extract_operator" => {
+                rebound.extend(
+                    target
+                        .child_by_field_name("rhs")
+                        .and_then(|member| assignment_name(extractor, member)),
+                );
+                target.child_by_field_name("lhs")
+            }
+            "subset" | "subset2" => {
+                rebound.extend(
+                    target
+                        .child_by_field_name("arguments")
+                        .and_then(|args| positional_string_argument(extractor, args, 0)),
+                );
+                target.child_by_field_name("function")
+            }
+            "call" => target.child_by_field_name("arguments").and_then(|args| {
+                let mut cursor = args.walk();
+                args.children_by_field_name("argument", &mut cursor)
+                    .next()
+                    .and_then(|argument| argument.child_by_field_name("value"))
+            }),
+            _ => {
+                rebound.extend(assignment_name(extractor, target));
+                None
+            }
+        };
+        match next {
+            Some(next) => target = next,
+            None => return,
+        }
+    }
 }
 
 fn same_file_constructor_class(extractor: &RExtractor, right: Node) -> Option<String> {
@@ -262,8 +406,10 @@ fn same_file_constructor_class(extractor: &RExtractor, right: Node) -> Option<St
                 let args = right.child_by_field_name("arguments")?;
                 let class_name = positional_string_argument(extractor, args, 0)?;
                 same_file_class(extractor, &class_name)
-            } else {
+            } else if extractor.name_bindings.calls_constructor(&name) {
                 same_file_class(extractor, &name)
+            } else {
+                None
             }
         }
         "extract_operator" => {
@@ -276,6 +422,9 @@ fn same_file_constructor_class(extractor: &RExtractor, right: Node) -> Option<St
                 return None;
             }
             let class_name = clean_r_name(&extractor.base.get_node_text(&object))?;
+            if !extractor.name_bindings.calls_constructor(&class_name) {
+                return None;
+            }
             same_file_class(extractor, &class_name)
         }
         _ => None,

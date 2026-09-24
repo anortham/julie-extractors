@@ -149,21 +149,54 @@ a plain call `f(...)` gets an inferred `X` fact when a same-file `setGeneric`
 (bare or `methods::`) names `f`, binds `def` to a function literal, and has one
 string `valueClass`, bound by name or 4th position. Parentheses are unwrapped,
 and `lhs |> f(...)` counts as the call `f(lhs, ...)` that R's parser makes of
-it. No fact is recorded when a declaration has no `valueClass`, a `c(...)`
-union, or no `def` function literal. Without `def`, R builds the generic from
-an existing function or generic of that name (`summary`, `show`), which can
-drop `valueClass`. No fact is recorded when the declaration sits under `if`,
-`&&`, or `||` (for example `if (!isGeneric("f"))`), or when declarations
-disagree. No fact is recorded when anything in the file rebinds `f`: an
-assignment, a `for` variable, `assign()`, `delayedAssign()`,
-`makeActiveBinding()` (positional or named), a named entry of a `with()` or
-`within()` data call, or a parameter. `pkg::f(...)`, `setGeneric` from a
-namespace other than `methods`, `setMethod(valueClass =)` (R ignores it), a
-pipe whose last call is not a typed generic, and a call chained with `$` or
-`@` also record nothing. A name assigned with a computed string, as in
-`assign(nm, ...)`, is not seen. The same-file constructor shapes now apply to
-`->`, `->>`, and parentheses as well. Other files are out of scope because
-each file is extracted alone.
+it. The user-facing summary is in `docs/languages/r.md`.
+
+No fact is recorded for these declarations:
+
+- No `valueClass`, a `c(...)` union, or no `def` function literal. Without
+  `def`, R builds the generic from an existing function or generic of that
+  name (`summary`, `show`), which can drop `valueClass`.
+- A declaration that may not run: under `if`, `while`, `for` (the body),
+  `repeat`, `switch()`, the right side of `&&` or `||`, or inside a function
+  body.
+- A declaration with `where =` (by name or 5th position), because R then
+  assigns the generic into that environment, not the file's scope.
+- A declaration with an argument name that is not an exact `setGeneric`
+  formal, because R partially matches names such as `wh =`.
+- Declarations that disagree, and `setGeneric` from a namespace other than
+  `methods`.
+
+No fact is recorded when anything in the file binds `f` another way:
+
+- An assignment by any operator, including a complex target that R rewrites
+  into a rebinding: `f$x <- v`, `f[["x"]] <- v`, and replacement calls such as
+  `body(f) <- v`, `formals(f) <- v`, and `environment(f) <- v`.
+- An environment member assignment such as `.GlobalEnv$f <- v` or
+  `env[["f"]] <- v`.
+- A `for` variable, a parameter, `assign()`, `delayedAssign()`,
+  `makeActiveBinding()` (positional or named), or a named entry of a `with()`
+  or `within()` data call or of `list2env(list(...))`.
+- A Reference Class member: a named entry of `setRefClass(fields =,
+  methods =)` or of `Gen$methods(...)` or `Gen$fields(...)`, and a string field
+  name such as `setRefClass("X", c("f"))`. Methods of a Reference Class see
+  these members as bare names, so a bare call `f()` inside them does not reach
+  the generic.
+
+`pkg::f(...)`, `setMethod(valueClass =)` (R ignores it), a pipe whose last
+call is not a typed generic, and a call chained with `$` or `@` also record
+nothing. These are known misses, recorded here and not typed wrong on
+purpose: a name bound with a computed string, as in `assign(nm, ...)`, and
+code that `eval()`, `source()`, or `sys.source()` runs. Both need values that
+static extraction cannot know.
+
+The same-file constructor shapes also apply to `->`, `->>`, and parentheses.
+A bare `Foo(...)` or `Foo$new()` call gets the class only when nothing in the
+file rebinds `Foo` by the rules above, other than the assignment of the class
+generator itself (`Foo <- setClass("Foo")`, `Foo <- setRefClass(...)`,
+`Foo <- R6Class(...)`). For example, `setClass("Account"); Account <-
+function(x) 42` makes `Account(1)` record nothing. `new("Foo")` names the class
+directly and is not affected. Other files are out of scope because each file
+is extracted alone.
 
 ### Elixir: `receiver_type`
 

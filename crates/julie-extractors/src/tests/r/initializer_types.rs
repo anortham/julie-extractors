@@ -314,3 +314,142 @@ fn parenthesized_initializers_are_typed() {
     assert_eq!(inferred_type(&source, "a").as_deref(), Some("Account"));
     assert_eq!(inferred_type(&source, "w").as_deref(), Some("Worker"));
 }
+
+#[test]
+fn ref_class_method_with_the_generic_name_records_nothing() {
+    let source = r#"
+setGeneric("describe", function(x) standardGeneric("describe"), valueClass = "character")
+Person <- setRefClass("Person", fields = list(name = "character"), methods = list(describe = function() length(name), show = function() { d <- describe(); cat(d) }))
+"#;
+    assert_eq!(inferred_type(source, "d"), None);
+}
+
+#[test]
+fn ref_class_methods_call_with_the_generic_name_records_nothing() {
+    let source = r#"
+Acc <- setRefClass("Acc")
+setGeneric("mk", function(x) standardGeneric("mk"), valueClass = "Account")
+Acc$methods(mk = function(x) 42, run = function() { r <- mk(1) })
+setGeneric("mk2", function(x) standardGeneric("mk2"), valueClass = "Account")
+Acc$methods(list(mk2 = function(x) 42))
+r2 <- mk2(1)
+"#;
+    assert_eq!(inferred_type(source, "r"), None);
+    assert_eq!(inferred_type(source, "r2"), None);
+}
+
+#[test]
+fn ref_class_field_with_the_generic_name_records_nothing() {
+    let source = r#"
+setGeneric("cb", function(x) standardGeneric("cb"), valueClass = "Account")
+setGeneric("cb2", function(x) standardGeneric("cb2"), valueClass = "Account")
+Job <- setRefClass("Job", fields = list(cb = "function"))
+setGeneric("cb3", function(x) standardGeneric("cb3"), valueClass = "Account")
+Job2 <- setRefClass("Job2", c("cb2"))
+Job2$fields(cb3 = "function")
+r <- cb(1)
+r2 <- cb2(1)
+r3 <- cb3(1)
+"#;
+    assert_eq!(inferred_type(source, "r"), None);
+    assert_eq!(inferred_type(source, "r2"), None);
+    assert_eq!(inferred_type(source, "r3"), None);
+}
+
+#[test]
+fn set_generic_that_may_not_run_records_nothing() {
+    let source = r#"
+switch(mode, a = setGeneric("mk", function(x) standardGeneric("mk"), valueClass = "Account"))
+while (FALSE) setGeneric("mk2", function(x) standardGeneric("mk2"), valueClass = "Account")
+repeat { break; setGeneric("mk3", function(x) standardGeneric("mk3"), valueClass = "Account") }
+for (i in seq_len(0)) setGeneric("mk4", function(x) standardGeneric("mk4"), valueClass = "Account")
+define <- function() setGeneric("mk5", function(x) standardGeneric("mk5"), valueClass = "Account")
+r_switch <- mk(1)
+r_while <- mk2(1)
+r_repeat <- mk3(1)
+r_for <- mk4(1)
+r_fn <- mk5(1)
+"#;
+    for name in ["r_switch", "r_while", "r_repeat", "r_for", "r_fn"] {
+        assert_eq!(inferred_type(source, name), None, "{name}");
+    }
+}
+
+#[test]
+fn set_generic_bound_into_another_environment_records_nothing() {
+    let source = r#"
+e <- new.env()
+setGeneric("mk", function(x) standardGeneric("mk"), valueClass = "Account", where = e)
+setGeneric("mk2", function(x) standardGeneric("mk2"), list(), "Account", e)
+setGeneric("mk3", function(x) standardGeneric("mk3"), valueClass = "Account", wh = e)
+r_where <- mk(1)
+r_positional <- mk2(1)
+r_partial <- mk3(1)
+"#;
+    for name in ["r_where", "r_positional", "r_partial"] {
+        assert_eq!(inferred_type(source, name), None, "{name}");
+    }
+}
+
+#[test]
+fn name_rebound_through_an_environment_member_records_nothing() {
+    let source = format!(
+        "{ACCOUNT_GENERIC}.GlobalEnv$open_account <- function(x) 42\nr <- open_account(1)\n"
+    );
+    assert_eq!(inferred_type(&source, "r"), None);
+    let source = format!(
+        "{ACCOUNT_GENERIC}environment()[[\"open_account\"]] <- function(x) 42\nr <- open_account(1)\n"
+    );
+    assert_eq!(inferred_type(&source, "r"), None);
+}
+
+#[test]
+fn name_rebound_by_a_replacement_call_records_nothing() {
+    for replacement in [
+        "body(open_account) <- quote(42)",
+        "formals(open_account) <- alist(x = )",
+        "environment(open_account) <- e",
+    ] {
+        let source = format!("{ACCOUNT_GENERIC}{replacement}\nr <- open_account(1)\n");
+        assert_eq!(inferred_type(&source, "r"), None, "{replacement}");
+    }
+}
+
+#[test]
+fn name_bound_by_list2env_records_nothing() {
+    let source = format!(
+        "{ACCOUNT_GENERIC}list2env(list(open_account = function(x) 42), envir = environment())\nr <- open_account(1)\n"
+    );
+    assert_eq!(inferred_type(&source, "r"), None);
+}
+
+#[test]
+fn constructor_name_rebound_by_a_function_records_nothing() {
+    let source = r#"
+setClass("Account", representation(n = "numeric"))
+Account <- function(x) 42
+r_ctor <- Account(1)
+Account(1) -> r_ctor_right
+"#;
+    assert_eq!(inferred_type(source, "r_ctor"), None);
+    assert_eq!(inferred_type(source, "r_ctor_right"), None);
+}
+
+#[test]
+fn generator_name_rebound_by_a_list_records_nothing() {
+    let source = r#"
+Worker <- R6::R6Class("Worker")
+Worker <- list(new = function() 42)
+w <- Worker$new()
+"#;
+    assert_eq!(inferred_type(source, "w"), None);
+}
+
+#[test]
+fn constructor_bound_to_its_generator_is_typed() {
+    let source = r#"
+Account <- setClass("Account", representation(n = "numeric"))
+r <- Account(n = 1)
+"#;
+    assert_eq!(inferred_type(source, "r").as_deref(), Some("Account"));
+}

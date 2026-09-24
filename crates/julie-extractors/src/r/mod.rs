@@ -24,7 +24,7 @@ pub struct RExtractor {
     symbols: Vec<Symbol>,
     same_file_class_names: std::collections::HashSet<String>,
     same_file_generics: std::collections::HashSet<String>,
-    generic_value_classes: HashMap<String, Option<String>>,
+    name_bindings: type_facts::NameBindings,
     /// Function values of class-list members, keyed by node id, mapped to the member symbol.
     value_owners: HashMap<usize, String>,
     /// Class inheritance declarations waiting for relationship resolution.
@@ -43,7 +43,7 @@ impl RExtractor {
             symbols: Vec::new(),
             same_file_class_names: std::collections::HashSet::new(),
             same_file_generics: std::collections::HashSet::new(),
-            generic_value_classes: HashMap::new(),
+            name_bindings: type_facts::NameBindings::default(),
             value_owners: HashMap::new(),
             extends_requests: Vec::new(),
         }
@@ -54,7 +54,7 @@ impl RExtractor {
         self.symbols.clear();
         self.same_file_class_names = type_facts::collect_same_file_class_names(self, root_node);
         self.same_file_generics = idioms::collect_same_file_generics(self, root_node);
-        self.generic_value_classes = type_facts::collect_generic_value_classes(self, root_node);
+        self.name_bindings = type_facts::collect_name_bindings(self, root_node);
         self.value_owners.clear();
         self.extends_requests.clear();
 
