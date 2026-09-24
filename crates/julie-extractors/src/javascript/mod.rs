@@ -722,7 +722,7 @@ impl JavaScriptExtractor {
         parent_id: Option<&str>,
     ) -> Option<Symbol> {
         let parent = || parent_id.map(str::to_string);
-        match node.kind() {
+        let mut symbol = match node.kind() {
             "class_declaration" | "class" => self.extract_class(node, parent()),
             "function_declaration"
             | "function"
@@ -796,7 +796,13 @@ impl JavaScriptExtractor {
                 test_symbols::extract_test_call(&mut self.base, node, container)
             }
             _ => None,
+        };
+        if helpers::is_later_declarator(node)
+            && let Some(symbol) = symbol.as_mut()
+        {
+            symbol.doc_comment = None;
         }
+        symbol
     }
 
     /// Main tree traversal - ports visitNode function exactly

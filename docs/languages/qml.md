@@ -73,11 +73,14 @@ directives are `qmldir.static.v1` and `qmldir.system.v1` facts.
   (`let doc: DocumentModel = pick()`) records its annotation.
 - A function local with no annotation gets an inferred type fact from its
   initializer: `new T()`, or a call to a same-file function with a return
-  annotation, named bare in the enclosing objects (`load()`) or through a
-  same-file id (`root.load()`). A `void` return, a signal, a callee that only
-  an unrelated object declares, a parameter, local, nested function, loop, or
-  catch binding that shadows the name, an optional call, a chain, or a callee
-  in another file records no fact.
+  annotation, named bare (`load()`) or through a same-file id
+  (`root.load()`). A bare call resolves by QML scope: the scope object (the
+  nearest enclosing object), then the root object of its component. A
+  `void` return, a signal, a callee that only an unrelated object declares,
+  a name that an object between the scope object and the root declares, a
+  parameter, local, nested function, loop, or catch binding that shadows the
+  name, an optional call, a chain, or a callee in another file records no
+  fact.
 - A nested object with an `id` records its object type, so `docModel.flush()`
   can resolve through the `docModel` row. The root object's `id` records the
   file's component.
@@ -115,9 +118,14 @@ setup, and `cleanup*` is fixture teardown.
 ## Call and property resolution
 
 - A call with an id receiver (`root.refresh()`) resolves to the function the
-  object with that id declares. A bare call resolves in the enclosing objects,
-  from the nearest outward. A same-named function in an unrelated object does
-  not block either rule.
+  object with that id declares. A bare call resolves in the scope object (the
+  nearest enclosing object) and then the root object of its component, as
+  Qt's scope rules say. Objects in between are not in scope. When one of
+  them declares the name, scope resolution stops, because that object may be
+  the root of an implicit component such as a delegate. A same-named
+  function in an unrelated object does not block either rule. A bare name
+  that scope does not resolve falls back to the one visible same-file
+  function or signal of that name.
 - A call inside a signal handler belongs to the handler `function` symbol.
   A call inside a function belongs to that function, also when the function
   is nested. Calls inside property initializers (`readonly property real

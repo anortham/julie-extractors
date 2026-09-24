@@ -203,10 +203,9 @@ pub(super) struct LocalCall<'n, 's> {
 /// The same-file function or signal a call names, resolved by QML scope.
 ///
 /// An id receiver (`root.refresh()`) names the object that declares the
-/// member. A bare call looks in the enclosing objects from the nearest
-/// outward, so a same-named function in an unrelated object does not block
-/// resolution. A bare name no object scope declares falls back to the one
-/// visible same-file symbol of that name.
+/// member. A bare call looks in the scope object and then its component's
+/// root object. A bare name that QML scope does not resolve falls back to
+/// the one visible same-file symbol of that name.
 pub(super) fn resolve_local_callee<'a>(
     call: &LocalCall<'_, '_>,
     symbols: &'a [Symbol],
@@ -229,7 +228,12 @@ pub(super) fn resolve_local_callee<'a>(
 }
 
 /// The same-file function or signal a call names through an id receiver or
-/// an enclosing object's scope, with no fallback to other same-file symbols.
+/// QML scope, with no fallback to other same-file symbols.
+///
+/// A bare name resolves in the scope object (the nearest enclosing object)
+/// and then the root object of its component. Objects in between are not in
+/// scope, and one that declares the name resolves nothing, since it may be
+/// the root of an implicit component such as a delegate.
 pub(super) fn resolve_scoped_callee<'a>(
     call: &LocalCall<'_, '_>,
     symbols: &'a [Symbol],
@@ -257,10 +261,19 @@ pub(super) fn resolve_scoped_callee<'a>(
             .find_map(|symbol| callable_in(id_member_scope(symbol)?));
     }
 
+    let declares_name = |scope_id: &str| {
+        symbols.iter().any(|symbol| {
+            symbol.name == call.function_name && symbol.parent_id.as_deref() == Some(scope_id)
+        })
+    };
     let mut skip = 0;
     while let Some(owner) = enclosing_object_owner(call.node, object_owners, skip) {
-        if let Some(callee) = callable_in(&owner.id) {
-            return Some(callee);
+        let in_scope = skip == 0 || owner.kind == SymbolKind::Class;
+        if declares_name(&owner.id) {
+            return in_scope.then(|| callable_in(&owner.id)).flatten();
+        }
+        if owner.kind == SymbolKind::Class {
+            return None;
         }
         skip += 1;
     }

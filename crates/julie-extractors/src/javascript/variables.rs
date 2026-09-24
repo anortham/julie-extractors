@@ -134,7 +134,9 @@ impl super::JavaScriptExtractor {
             .map(|value| self.base.get_node_text(&value))
             .unwrap_or_default();
         let doc_node = node.parent().unwrap_or(node);
-        let doc_comment = self.base.find_doc_comment(&doc_node);
+        let doc_comment = (!super::helpers::is_later_declarator(node))
+            .then(|| self.base.find_doc_comment(&doc_node))
+            .flatten();
 
         let mut bindings = Vec::new();
         collect_pattern_bindings(pattern, None, &mut bindings);

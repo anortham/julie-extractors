@@ -416,38 +416,44 @@ impl<'a> InitializerScope<'a> {
     }
 
     /// Lexical bindings named `name` whose declaring scope contains `at`, or
-    /// none when a parameter, loop, or catch binding of `name` encloses `at`.
+    /// none when a parameter, loop, catch, or named-expression binding of
+    /// `name` encloses `at`, or when a same-named function declaration is
+    /// block-scoped in strict code but hoisted in sloppy code at `at`.
     fn visible(&self, name: &str, at: Node) -> Vec<&'a Symbol> {
         if pattern_binding_encloses(self.base, name, at) {
             return Vec::new();
         }
-        let position = at.start_byte() as u32;
-        self.by_name
+        let mut visible = Vec::new();
+        for symbol in self
+            .by_name
             .get(name)
             .into_iter()
             .flatten()
             .copied()
             .filter(|symbol| is_lexical_binding(&symbol.kind))
-            .filter(|symbol| {
-                symbol
-                    .parent_id
-                    .as_deref()
-                    .and_then(|parent| self.by_id.get(parent))
-                    .is_none_or(|parent| {
-                        parent.start_byte <= position && position < parent.end_byte
-                    })
-            })
-            .collect()
+        {
+            let Some((block, function)) = self.declaration_node(symbol).map(binding_scopes) else {
+                return Vec::new();
+            };
+            if encloses(block, at) {
+                visible.push(symbol);
+            } else if encloses(function, at) {
+                return Vec::new();
+            }
+        }
+        visible
+    }
+
+    fn declaration_node(&self, symbol: &Symbol) -> Option<Node<'a>> {
+        self.root
+            .descendant_for_byte_range(symbol.start_byte as usize, symbol.end_byte as usize)
     }
 
     /// Whether the declaration behind `symbol` binds its name in lexical
     /// scope. `exports.load = function () {}` and the inner name of a class
     /// expression bind nothing a bare reference can see.
     fn declares_binding(&self, symbol: &Symbol) -> bool {
-        let Some(node) = self
-            .root
-            .descendant_for_byte_range(symbol.start_byte as usize, symbol.end_byte as usize)
-        else {
+        let Some(node) = self.declaration_node(symbol) else {
             return false;
         };
         match node.kind() {
@@ -475,7 +481,8 @@ impl<'a> InitializerScope<'a> {
 
     /// The `@returns` type every return tag of `callable` agrees on, with the
     /// `@template` names of it and its enclosing declarations left unbound.
-    /// An async callable must declare a `Promise`.
+    /// An async callable must declare a `Promise`, and a generator its
+    /// generator or iterator type.
     fn declared_return(&self, callable: &Symbol) -> Option<TypeShape> {
         let doc = callable.doc_comment.as_deref()?;
         let mut templates = Vec::new();
@@ -496,18 +503,101 @@ impl<'a> InitializerScope<'a> {
         if !shapes.all(|shape| shape.as_ref() == Some(&first)) {
             return None;
         }
-        if metadata_flag(callable, "isAsync") && first.name.as_deref() != Some("Promise") {
-            return None;
-        }
-        Some(first)
+        let is_async = metadata_flag(callable, "isAsync");
+        let allowed: &[&str] = match (metadata_flag(callable, "isGenerator"), is_async) {
+            (true, false) => &["Generator", "Iterator", "IterableIterator", "Iterable"],
+            (true, true) => &[
+                "AsyncGenerator",
+                "AsyncIterator",
+                "AsyncIterableIterator",
+                "AsyncIterable",
+            ],
+            (false, true) => &["Promise"],
+            (false, false) => return Some(first),
+        };
+        allowed.contains(&first.name.as_deref()?).then_some(first)
     }
 }
 
-/// Whether a parameter, loop, or catch binding of `name` encloses `at`, so a
-/// bare `name` there cannot mean a declaration outside it.
+/// The block that scopes a declaration and the function that scopes it when
+/// hoisted: `var` binds in the function, `let`, `const`, `class`, and
+/// imports in the block, and a function declaration in the block for strict
+/// code but in the function for sloppy code.
+fn binding_scopes(declaration: Node) -> (Node, Node) {
+    let mut current = Some(declaration);
+    while let Some(node) = current {
+        match node.kind() {
+            "variable_declaration" => {
+                let function = function_scope(node);
+                return (function, function);
+            }
+            "function_declaration" | "generator_function_declaration" => {
+                return (block_scope(node), function_scope(node));
+            }
+            "lexical_declaration" | "class_declaration" | "import_statement" => break,
+            kind if is_block_scope(kind) => break,
+            _ => current = node.parent(),
+        }
+    }
+    let block = block_scope(declaration);
+    (block, block)
+}
+
+fn is_block_scope(kind: &str) -> bool {
+    matches!(
+        kind,
+        "statement_block" | "program" | "switch_body" | "for_statement" | "for_in_statement"
+    )
+}
+
+fn block_scope(declaration: Node) -> Node {
+    enclosing_scope(declaration, is_block_scope)
+}
+
+fn function_scope(declaration: Node) -> Node {
+    enclosing_scope(declaration, |kind| {
+        matches!(
+            kind,
+            "program"
+                | "function_declaration"
+                | "generator_function_declaration"
+                | "function_expression"
+                | "generator_function"
+                | "arrow_function"
+                | "method_definition"
+                | "class_static_block"
+        )
+    })
+}
+
+fn enclosing_scope(declaration: Node, is_scope: impl Fn(&str) -> bool) -> Node {
+    let mut current = declaration;
+    while let Some(parent) = current.parent() {
+        if is_scope(parent.kind()) {
+            return parent;
+        }
+        current = parent;
+    }
+    current
+}
+
+fn encloses(scope: Node, at: Node) -> bool {
+    scope.start_byte() <= at.start_byte() && at.end_byte() <= scope.end_byte()
+}
+
+/// Whether a parameter, loop, or catch binding of `name`, or the own name of
+/// a named function expression, encloses `at`, so a bare `name`
+/// there cannot mean a declaration outside it.
 pub(crate) fn pattern_binding_encloses(base: &BaseExtractor, name: &str, at: Node) -> bool {
     let mut current = at.parent();
     while let Some(scope) = current {
+        if matches!(scope.kind(), "function_expression" | "generator_function")
+            && scope
+                .child_by_field_name("name")
+                .is_some_and(|own_name| base.get_node_text(&own_name) == name)
+        {
+            return true;
+        }
         let patterns = match scope.kind() {
             "for_in_statement" => [scope.child_by_field_name("left"), None],
             "catch_clause" => [scope.child_by_field_name("parameter"), None],

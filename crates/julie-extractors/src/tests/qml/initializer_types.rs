@@ -171,3 +171,47 @@ Item {
 "#;
     assert_eq!(local_type(source, "workspace"), None);
 }
+
+#[test]
+fn bare_call_does_not_resolve_in_objects_between_the_scope_object_and_the_root() {
+    let source = r#"
+Item {
+    id: root
+    function load(): Item {}
+
+    Rectangle {
+        id: mid
+        function load(): Rectangle {}
+
+        Text {
+            id: leaf
+            function run() {
+                let shadowed = load()
+            }
+        }
+    }
+}
+"#;
+    assert_eq!(local_type(source, "shadowed"), None);
+}
+
+#[test]
+fn bare_call_skips_intermediate_objects_that_do_not_declare_the_name() {
+    let source = r#"
+Item {
+    id: root
+    function load(): Item {}
+
+    Rectangle {
+        function other(): Rectangle {}
+
+        Text {
+            function run() {
+                let fromRoot = load()
+            }
+        }
+    }
+}
+"#;
+    assert_eq!(local_type(source, "fromRoot"), inferred("Item"));
+}

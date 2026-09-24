@@ -80,8 +80,9 @@ impl super::JavaScriptExtractor {
             json!(node.kind() == "function_expression"),
         );
 
-        // Extract JSDoc comment
-        let doc_comment = self.base.find_doc_comment(&node);
+        let doc_comment = (!super::helpers::is_later_declarator(node))
+            .then(|| self.base.find_doc_comment(&node))
+            .flatten();
 
         apply_declared_test_metadata(
             "javascript",

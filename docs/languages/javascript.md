@@ -184,11 +184,19 @@ The JavaScript extractor follows the TypeScript contract in
   same-file class (`Workspace.open()`), a method through `this` inside the
   class body, or a method of the class a chained call returns
   (`loadWorkspace().child()`). Same-named candidates must agree. `await`
-  unwraps one `Promise<T>`; an `async` callee must declare a `Promise`. A
-  `@template` or `this` return type, a union, a getter, an optional call
-  (`?.`), a parameter, loop, or catch binding that shadows the callee, a
-  chain that ends in any other method, or a callee in another file records no
-  fact. JSDoc is the only source of return types, so a callee with no
+  unwraps one `Promise<T>`; an `async` callee must declare a `Promise`, and
+  a generator must declare a `Generator`, `Iterator`, `IterableIterator`, or
+  `Iterable` (the `Async` forms for an async generator). The callee's
+  declaration must be in scope at the call: `var` binds in its function,
+  `let`, `const`, and `class` in their block, and a function declaration in
+  its block (a call elsewhere in the same function records nothing, since
+  sloppy code hoists it). A `@template` or `this` return type, a union, a
+  getter, an optional call (`?.`), a parameter, loop, or catch binding or
+  the own name of a named function expression that shadows the
+  callee, a chain that ends in any other method, or a callee in another file
+  records no fact.
+- A doc comment before a `const`, `let`, or `var` with several declarators
+  documents only the first declarator. JSDoc is the only source of return types, so a callee with no
   `@returns` records nothing.
 - Visibility: in a module (a file with `import`, `export`, `require`, or
   CommonJS export assignments) a top-level class, function, or variable is

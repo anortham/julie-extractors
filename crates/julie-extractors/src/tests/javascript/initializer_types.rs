@@ -607,3 +607,163 @@ const workspace = Builder.create();
 "#;
     assert_eq!(inferred_type(source, "workspace"), None);
 }
+
+#[test]
+fn named_function_expression_own_name_shadows_a_same_file_function() {
+    let source = r#"
+/** @returns {Foo} */
+function load() {}
+
+const outer = function load(n) {
+    if (n) {
+        const inner = load(0);
+        return inner;
+    }
+    return 42;
+};
+"#;
+    assert_eq!(inferred_type(source, "inner"), None);
+}
+
+#[test]
+fn named_class_expression_own_name_shadows_a_same_file_class() {
+    let source = r#"
+class Loader {
+    /** @returns {Foo} */
+    static open() {}
+}
+
+const Other = class Loader {
+    static open() {}
+
+    run() {
+        const inner = Loader.open();
+    }
+};
+"#;
+    assert_eq!(inferred_type(source, "inner"), None);
+}
+
+#[test]
+fn generator_call_with_an_element_return_type_records_nothing() {
+    let source = r#"
+/** @returns {Foo} */
+function* gen() {}
+
+/** @returns {Promise<Foo>} */
+async function* asyncGen() {}
+
+class G {
+    /** @returns {Foo} */
+    *items() {}
+
+    run() {
+        const method = this.items();
+    }
+}
+
+const plain = gen();
+const awaited = asyncGen();
+"#;
+    for local in ["plain", "awaited", "method"] {
+        assert_eq!(inferred_type(source, local), None, "{local}");
+    }
+}
+
+#[test]
+fn generator_call_with_a_generator_return_type_records_it() {
+    let source = r#"
+/** @returns {Generator<Foo>} */
+function* gen() {}
+
+/** @returns {AsyncGenerator<Foo>} */
+async function* asyncGen() {}
+
+const plain = gen();
+const later = asyncGen();
+"#;
+    assert_eq!(inferred_type(source, "plain"), inferred("Generator"));
+    assert_eq!(inferred_type(source, "later"), inferred("AsyncGenerator"));
+}
+
+#[test]
+fn declaration_doc_does_not_type_later_declarators() {
+    let source = r#"
+/** @returns {Foo} */
+const mkFoo = () => new Foo(), mkBar = () => new Bar();
+
+function main() {
+    const first = mkFoo();
+    const second = mkBar();
+}
+"#;
+    assert_eq!(inferred_type(source, "first"), inferred("Foo"));
+    assert_eq!(inferred_type(source, "second"), None);
+}
+
+#[test]
+fn declarations_in_callbacks_iifes_and_blocks_are_not_visible_outside() {
+    let source = r#"
+[1].forEach(() => {
+    /** @returns {Foo} */
+    function load() {}
+});
+(function () {
+    /** @returns {Foo} */
+    function load2() {}
+})();
+if (true) {
+    /** @returns {Foo} */
+    const load3 = () => new Foo();
+}
+describe("x", function () {
+    class Workspace {
+        /** @returns {Foo} */
+        static open() {}
+    }
+});
+
+const m1 = load();
+const m2 = load2();
+const m3 = load3();
+const n1 = Workspace.open();
+"#;
+    for local in ["m1", "m2", "m3", "n1"] {
+        assert_eq!(inferred_type(source, local), None, "{local}");
+    }
+}
+
+#[test]
+fn block_function_called_outside_its_block_in_the_same_function_records_nothing() {
+    let source = r#"
+/** @returns {Bar} */
+function load() {}
+
+function main() {
+    if (ready) {
+        /** @returns {Foo} */
+        function load() {}
+    }
+    const outside = load();
+}
+"#;
+    assert_eq!(inferred_type(source, "outside"), None);
+}
+
+#[test]
+fn declarations_in_the_calling_scope_record_their_type() {
+    let source = r#"
+function main() {
+    if (ready) {
+        /** @returns {Foo} */
+        function load() {}
+        const inBlock = load();
+        /** @returns {Bar} */
+        var loadBar = function () {};
+    }
+    const hoisted = loadBar();
+}
+"#;
+    assert_eq!(inferred_type(source, "inBlock"), inferred("Foo"));
+    assert_eq!(inferred_type(source, "hoisted"), inferred("Bar"));
+}
