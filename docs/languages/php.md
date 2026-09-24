@@ -132,6 +132,17 @@ control.
   (`is_inferred=false`) and from a `new Foo()` initializer
   (`is_inferred=true`). A declaration kind, a namespace, an import, or an
   untyped assignment has no type fact.
+- `$x = call()` gets an inferred type fact from the declared return type of a
+  same-file callee in the same namespace: a function (`load()`), a method of
+  the enclosing class or enum (`$this->load()`, `self::load()`,
+  `static::load()`), or a static method of a same-file class
+  (`Type::create()`). Names match without regard to case. Same-named
+  callees must agree. `?T` records `T`; `self` and `static` record the
+  declaring class. A union, intersection, `void`, or `parent` return type, a
+  missing return type, a trait or anonymous-class method, `$this` or `self`
+  inside a closure, `parent::`, any other receiver, a chained call, and a
+  callee in another file record no fact. Other files are out of scope
+  because each file is extracted alone.
 - A trait `use` in a class, trait, or enum body gives a `uses` relationship:
   resolved to a same-file trait, pending otherwise. It is not an import. The
   names in its conflict list (`A::m as protected alias`) give no identifiers.

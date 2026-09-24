@@ -19,10 +19,11 @@ pub(super) fn extract_assignment(
                 return Vec::new();
             };
             if let Some(value_node) = assignment_value_node(node) {
-                type_facts::record_new_expression_type(
-                    extractor.get_base_mut(),
+                type_facts::record_initializer_type(
+                    &mut extractor.base,
                     &symbol.id,
                     value_node,
+                    &extractor.return_types,
                 );
             }
             vec![symbol]

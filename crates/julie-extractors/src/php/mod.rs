@@ -54,6 +54,8 @@ fn single_or_extend(symbols: &mut Vec<Symbol>, mut extracted: Vec<Symbol>) -> Op
 pub struct PhpExtractor {
     pub(crate) base: BaseExtractor,
     pub(crate) constructor_parent_ids: HashMap<String, Option<String>>,
+    /// Declared return types of the file's functions and methods, for local inference.
+    return_types: type_facts::ReturnTypeIndex,
 }
 
 impl PhpExtractor {
@@ -66,6 +68,7 @@ impl PhpExtractor {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
             constructor_parent_ids: HashMap::new(),
+            return_types: type_facts::ReturnTypeIndex::default(),
         }
     }
 
@@ -73,6 +76,7 @@ impl PhpExtractor {
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
         self.constructor_parent_ids.clear();
+        self.return_types = type_facts::ReturnTypeIndex::build(&self.base, tree.root_node());
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
         mark_php_test_containers(&mut symbols, &self.base.file_path);
         symbols
@@ -86,8 +90,9 @@ impl PhpExtractor {
     }
 
     /// PHP records every type fact on the base extractor during symbol
-    /// extraction, from declared parameter, property, and return types and
-    /// same-file `new` expressions; nothing is inferred from metadata labels.
+    /// extraction, from declared parameter, property, and return types, same-file
+    /// `new` expressions, and calls to same-file callees with a declared return
+    /// type; nothing is inferred from metadata labels.
     pub fn infer_types(&self, _symbols: &[Symbol]) -> HashMap<String, String> {
         HashMap::new()
     }

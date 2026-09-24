@@ -10,6 +10,7 @@ pub mod cross_file_pending;
 pub mod cross_file_relationships;
 pub mod edge_cases;
 pub mod identifiers;
+mod initializer_types;
 pub mod literals;
 pub mod phpdoc_comments;
 pub mod structural_facts;
