@@ -754,10 +754,13 @@ fn out_of_line_members_of_a_class_defined_elsewhere_answer_for_each_other() {
 struct Foo {};
 Foo load();
 Foo Widget::make() { return Foo(); }
+int Widget::count() { return 0; }
 void Widget::run() {
     auto x = make();
     auto y = this->make();
     auto z = load();
+    auto c = count();
+    auto d = this->count();
 }
 namespace other {
 Foo Gadget::make() { return Foo(); }
@@ -766,8 +769,116 @@ void Gadget::run() {
     auto w = make();
 }
 "#;
-    assert_eq!(inferred_type(source, "x"), inferred("Foo"));
-    assert_eq!(inferred_type(source, "y"), inferred("Foo"));
+    assert_eq!(inferred_type(source, "c"), inferred("int"));
+    assert_eq!(inferred_type(source, "d"), inferred("int"));
+    assert_eq!(inferred_type(source, "x"), None);
+    assert_eq!(inferred_type(source, "y"), None);
     assert_eq!(inferred_type(source, "z"), None);
     assert_eq!(inferred_type(source, "w"), None);
+}
+
+#[test]
+fn a_same_file_friend_of_the_callee_name_records_no_fact() {
+    for source in [
+        "struct Foo {};\nstruct Bar {};\nstruct W { friend Bar load(W) { return {}; } };\nFoo load(int) { return {}; }\nvoid f() { W w; auto x = load(w); }\n",
+        "struct Foo {};\nstruct Bar {};\nnamespace n {\nstruct W { friend Bar load(W); };\nFoo load(int);\nvoid f() { W w; auto x = load(w); }\n}\n",
+        "struct Foo {};\nstruct Bar {};\nstruct W { template <class T> friend Bar load(W, T); };\nFoo load(int);\nvoid f() { W w; auto x = load(w); }\n",
+    ] {
+        assert_eq!(inferred_type(source, "x"), None, "{source}");
+    }
+}
+
+#[test]
+fn return_type_names_that_mean_another_type_at_the_call_record_no_fact() {
+    for source in [
+        "struct A { struct Node {}; static Node make() { return {}; } };\nstruct B { struct Node {}; void f() { auto x = A::make(); } };\n",
+        "struct A { struct Node {}; static Node make() { return {}; } };\nvoid f() { auto x = A::make(); }\n",
+        "#include <memory>\nstruct Widget { using Ptr = std::shared_ptr<Widget>; static Ptr create(); };\nstruct Gadget { using Ptr = std::shared_ptr<Gadget>; void f() { auto x = Widget::create(); } };\n",
+        "namespace a { struct Foo {}; Foo load() { return {}; } namespace inner { struct Foo {}; void f() { auto x = load(); } } }\n",
+        "template <class T> struct W { using R = T; static R create(); };\nvoid f() { auto x = W<int>::create(); }\n",
+        "struct Foo {};\nFoo load();\nvoid f() { struct Foo {}; auto x = load(); }\n",
+        "struct Foo {};\nstruct Box {};\nBox<Foo> load();\nvoid f() { using Foo = int; auto x = load(); }\n",
+        "#include \"foo.h\"\nnamespace p { struct A { static Foo make(); }; }\nnamespace q { void f() { auto x = p::A::make(); } }\n",
+        "struct Base { struct Node {}; };\nstruct D : Base { static Node make(); };\nvoid f() { auto x = D::make(); }\n",
+        "struct Node {};\nstruct A { struct Node {}; void f() { Node helper(); } };\nvoid g() { auto x = helper(); }\n",
+    ] {
+        assert_eq!(inferred_type(source, "x"), None, "{source}");
+    }
+}
+
+#[test]
+fn return_type_names_that_mean_the_same_type_at_the_call_record_it() {
+    let source = r#"
+struct Foo {};
+struct Base {};
+struct A {
+    struct Node {};
+    A();
+    static A::Node make();
+    static A self();
+    Node own();
+    void run() { auto t1 = own(); }
+};
+struct D : Base {
+    struct Node {};
+    Node build();
+    void run() { auto t2 = build(); }
+};
+namespace a {
+struct Bar {};
+Bar load();
+namespace inner { void f() { auto t3 = load(); } }
+}
+struct E : Base {
+    Foo make();
+    void run();
+};
+Foo E::make() { return {}; }
+void E::run() { auto t6 = make(); }
+void f() {
+    auto t4 = A::make();
+    auto t5 = A::self();
+}
+"#;
+    assert_eq!(inferred_type(source, "t1"), inferred("Node"));
+    assert_eq!(inferred_type(source, "t2"), inferred("Node"));
+    assert_eq!(inferred_type(source, "t3"), inferred("Bar"));
+    assert_eq!(inferred_type(source, "t4"), inferred("A::Node"));
+    assert_eq!(inferred_type(source, "t5"), inferred("A"));
+    assert_eq!(inferred_type(source, "t6"), inferred("Foo"));
+}
+
+#[test]
+fn namespace_alias_with_the_qualifier_name_records_no_fact() {
+    for source in [
+        "struct Foo {};\nstruct Bar {};\nnamespace a { struct Maker { static Foo create() { return {}; } }; }\nnamespace b { struct Maker { static Bar create() { return {}; } };\nnamespace a = ::b;\nvoid f() { auto x = a::Maker::create(); } }\n",
+        "struct Foo {};\nstruct Bar {};\nnamespace a { struct Maker { static Foo create(); }; }\nnamespace b { struct Maker { static Bar create(); }; }\nvoid f() { namespace a = ::b; auto x = a::Maker::create(); }\n",
+    ] {
+        assert_eq!(inferred_type(source, "x"), None, "{source}");
+    }
+}
+
+#[test]
+fn macro_with_the_callee_or_qualifier_name_records_no_fact() {
+    for (prelude, body) in [
+        (
+            "struct Foo {};\nstruct Bar {};\nBar make_bar();\nFoo load() { return {}; }\n#define load() make_bar()",
+            "auto x = load();",
+        ),
+        (
+            "struct Foo {};\nstruct Bar {};\nFoo load();\n#define load other_load",
+            "auto x = load();",
+        ),
+        (
+            "struct Foo {};\nstruct Maker { static Foo create(); };\n#define Maker Other",
+            "auto x = Maker::create();",
+        ),
+        (
+            "struct Foo {};\nstruct Maker { static Foo create(); };\n#define create() make()",
+            "auto x = Maker::create();",
+        ),
+    ] {
+        let source = in_run(prelude, body);
+        assert_eq!(inferred_type(&source, "x"), None, "{prelude}");
+    }
 }

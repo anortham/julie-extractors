@@ -362,8 +362,8 @@ struct TypeShape {
 /// inference, with the names each class and namespace declares so that a
 /// call hidden by a non-function name records nothing. Classes are keyed by
 /// their full identity (`ns::Outer::Inner`), so a same-named class in another
-/// namespace never answers. Friend declarations are left out: they are not
-/// members.
+/// namespace never answers. A friend function is not a member: it enters as
+/// a free function that no namespace reaches, so its name records nothing.
 #[derive(Debug, Default)]
 pub(super) struct ReturnTypeIndex {
     entries: HashMap<String, Vec<ReturnEntry>>,
@@ -375,7 +375,13 @@ pub(super) struct ReturnTypeIndex {
     scopes: HashSet<String>,
     /// Names declared at namespace scope that are not functions, by namespace path.
     namespace_names: HashMap<String, HashSet<String>>,
+    /// Every name a `#define` in the file defines.
+    macros: HashSet<String>,
 }
+
+/// The namespace of a friend function: never a real namespace path, so no
+/// free call reaches it.
+const FRIEND_NAMESPACE: &str = "?friend";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Owner {
@@ -394,6 +400,39 @@ struct ReturnEntry {
     namespace: String,
     /// `None` when the return type is absent, deduced, or uses a template parameter.
     shape: Option<TypeShape>,
+    /// The first name of each name the return type writes (`a` in `a::B<C>`,
+    /// and `C`), which must mean the same entity at the call.
+    type_names: Vec<String>,
+    /// Where the return type's names are looked up.
+    lookup: Lookup,
+}
+
+#[derive(Debug)]
+enum Lookup {
+    /// The owner class, then its namespaces: an in-class declaration or a
+    /// trailing return type.
+    Owner,
+    Namespace(String),
+    Unknown,
+}
+
+/// A scope a name lookup starts from.
+enum Scope {
+    Class(String),
+    Namespace(String),
+}
+
+/// Where a name lookup ends.
+#[derive(Debug, PartialEq, Eq)]
+enum Found {
+    /// The class or namespace that declares the name.
+    Declared(String),
+    /// The class with an unseen base or a second definition that stops the
+    /// lookup undecided.
+    Undecided(String),
+    /// No same-file scope declares the name; the lookup ran through the
+    /// namespaces around this one.
+    NotInFile(String),
 }
 
 /// Every same-file definition of one class identity, merged.
@@ -446,6 +485,11 @@ impl ReturnTypeIndex {
                 "class_specifier" | "struct_specifier" | "union_specifier" => {
                     index.add_class(base, node);
                 }
+                "preproc_def" | "preproc_function_def" => {
+                    if let Some(name) = node.child_by_field_name("name") {
+                        index.macros.insert(base.get_node_text(&name));
+                    }
+                }
                 "namespace_definition" => {
                     if let Some(body) = node.child_by_field_name("body") {
                         index.add_scope(&namespace_path(base, body));
@@ -489,6 +533,8 @@ impl ReturnTypeIndex {
             {
                 members.members.insert(name.clone());
                 entry.owner = Owner::Class(class);
+            } else {
+                entry.lookup = Lookup::Unknown;
             }
             index.entries.entry(name).or_default().push(entry);
         }
@@ -554,17 +600,18 @@ impl ReturnTypeIndex {
     /// The base type every same-named member of `class` agrees on. A class
     /// defined more than once, or a using-declaration that adds base-class
     /// overloads of the name, records nothing.
-    fn member_lookup(&self, name: &str, class: &str) -> Option<TypeShape> {
+    fn member_lookup(&self, name: &str, class: &str) -> Option<Vec<&ReturnEntry>> {
         let scope = self.classes.get(class)?;
         if scope.definitions != 1 || scope.using_names.contains(name) {
             return None;
         }
-        agreed_shape(
-            self.entries
-                .get(name)?
-                .iter()
-                .filter(|entry| matches!(&entry.owner, Owner::Class(owner) if owner == class)),
-        )
+        let members: Vec<&ReturnEntry> = self
+            .entries
+            .get(name)?
+            .iter()
+            .filter(|entry| matches!(&entry.owner, Owner::Class(owner) if owner == class))
+            .collect();
+        (!members.is_empty()).then_some(members)
     }
 
     /// The free function an unqualified call in `namespace` reaches: the
@@ -572,7 +619,7 @@ impl ReturnTypeIndex {
     /// same-file candidate in any other namespace (reachable by a
     /// using-directive or argument-dependent lookup), or a non-function name
     /// in the deciding namespace, records nothing.
-    fn free_lookup(&self, name: &str, namespace: &str) -> Option<TypeShape> {
+    fn free_lookup(&self, name: &str, namespace: &str) -> Option<Vec<&ReturnEntry>> {
         let free: Vec<&ReturnEntry> = self
             .entries
             .get(name)?
@@ -594,13 +641,13 @@ impl ReturnTypeIndex {
             {
                 return None;
             }
-            let mut here = free
+            let here: Vec<&ReturnEntry> = free
                 .iter()
                 .copied()
                 .filter(|entry| entry.namespace == scope)
-                .peekable();
-            if here.peek().is_some() {
-                return agreed_shape(here);
+                .collect();
+            if !here.is_empty() {
+                return Some(here);
             }
         }
         None
@@ -615,7 +662,7 @@ impl ReturnTypeIndex {
         base: &BaseExtractor,
         call: Node,
         name: &str,
-    ) -> Option<TypeShape> {
+    ) -> Option<Vec<&ReturnEntry>> {
         match self.calling_class(base, call) {
             Caller::Free => self.free_lookup(name, &namespace_path(base, call)),
             Caller::Unknown => None,
@@ -643,7 +690,7 @@ impl ReturnTypeIndex {
         call: Node,
         scope: &WrittenScope,
         name: &str,
-    ) -> Option<TypeShape> {
+    ) -> Option<Vec<&ReturnEntry>> {
         let class = match self.calling_class(base, call) {
             Caller::Free => self.resolve_scope(scope, &[], &namespace_path(base, call)),
             Caller::Unknown => None,
@@ -659,11 +706,116 @@ impl ReturnTypeIndex {
         self.member_lookup(name, &class)
     }
 
-    fn this_lookup(&self, base: &BaseExtractor, call: Node, name: &str) -> Option<TypeShape> {
+    fn this_lookup(
+        &self,
+        base: &BaseExtractor,
+        call: Node,
+        name: &str,
+    ) -> Option<Vec<&ReturnEntry>> {
         match self.calling_class(base, call) {
             Caller::Class(class) => self.member_lookup(name, &class),
             Caller::Free | Caller::Unknown => None,
         }
+    }
+
+    /// The base type every candidate agrees on, when each name its return
+    /// type writes means the same entity at `call` as at the callee. A name
+    /// a macro, a local, or a scope between the two redefines records nothing.
+    /// An out-of-line definition redeclares an in-class member, so the
+    /// in-class declaration answers for it.
+    fn agreed_at(
+        &self,
+        base: &BaseExtractor,
+        call: Node,
+        candidates: &[&ReturnEntry],
+    ) -> Option<TypeShape> {
+        let caller = match self.calling_class(base, call) {
+            Caller::Free => Scope::Namespace(namespace_path(base, call)),
+            Caller::Class(class) => Scope::Class(class),
+            Caller::Unknown => return None,
+        };
+        for entry in candidates {
+            let callee = match (&entry.lookup, &entry.owner) {
+                (Lookup::Owner, Owner::Class(class)) => Scope::Class(class.clone()),
+                (Lookup::Namespace(_), Owner::Class(_))
+                    if candidates.iter().any(|other| {
+                        matches!(other.lookup, Lookup::Owner) && other.owner == entry.owner
+                    }) =>
+                {
+                    continue;
+                }
+                (Lookup::Namespace(namespace), _) => Scope::Namespace(namespace.clone()),
+                _ => return None,
+            };
+            for name in &entry.type_names {
+                if self.macros.contains(name) || binds_locally(base, call, name) {
+                    return None;
+                }
+                let at_callee = self.find_name(&callee, name);
+                let at_call = self.find_name(&caller, name);
+                let same = match (&at_callee, &at_call) {
+                    (Found::NotInFile(outer), Found::NotInFile(inner)) => {
+                        enclosing_namespaces(inner).contains(&outer.as_str())
+                    }
+                    _ => at_callee == at_call,
+                };
+                if !same {
+                    return None;
+                }
+            }
+        }
+        agreed_shape(candidates.iter().copied())
+    }
+
+    /// Where an unqualified name looked up from `scope` is declared: the
+    /// classes around it innermost first (a class's own name is declared in
+    /// its outer scope), then its namespaces outward.
+    fn find_name(&self, scope: &Scope, name: &str) -> Found {
+        let namespace = match scope {
+            Scope::Namespace(namespace) => namespace.clone(),
+            Scope::Class(class) => {
+                let chain = self.class_chain(class);
+                for class in &chain {
+                    let Some(class_scope) = self
+                        .classes
+                        .get(*class)
+                        .filter(|class_scope| class_scope.definitions == 1)
+                    else {
+                        return Found::Undecided(class.to_string());
+                    };
+                    let (outer, own_name) = class.rsplit_once("::").unwrap_or(("", class));
+                    if own_name == name {
+                        return Found::Declared(outer.to_string());
+                    }
+                    if class_scope.members.contains(name)
+                        || self.scopes.contains(&join_scope(class, name))
+                    {
+                        return Found::Declared(class.to_string());
+                    }
+                    if class_scope.has_base {
+                        return Found::Undecided(class.to_string());
+                    }
+                }
+                chain
+                    .last()
+                    .and_then(|outermost| self.classes.get(*outermost))
+                    .map(|outermost| outermost.namespace.clone())
+                    .unwrap_or_default()
+            }
+        };
+        enclosing_namespaces(&namespace)
+            .into_iter()
+            .find(|candidate| {
+                self.scopes.contains(&join_scope(candidate, name))
+                    || self
+                        .namespace_names
+                        .get(*candidate)
+                        .is_some_and(|names| names.contains(name))
+            })
+            .map_or_else(
+                || Found::NotInFile(namespace.clone()),
+                |found| Found::Declared(found.to_string()),
+            )
     }
 
     /// The class whose scope `node` sees first: the class whose body holds
@@ -859,21 +1011,36 @@ fn out_of_line_scope(base: &BaseExtractor, definition: Node) -> Option<Option<Wr
     Some(written_scope(base, global, &scopes))
 }
 
-/// Where a callable's declarator places it: a member of the class whose body
-/// declares it, or a free function. A declaration in a block declares a free
-/// function even inside a method.
-fn declaring_owner(base: &BaseExtractor, function_declarator: Node) -> Owner {
+/// Where a callable's declarator places it, and where its return type's names
+/// are looked up: a member of the class whose body declares it, or a free
+/// function. A declaration in a block declares a free function even inside a
+/// method, and its return type sees the block, which the index does not model,
+/// so its lookup is unknown.
+fn declaring_owner(base: &BaseExtractor, function_declarator: Node) -> (Owner, Lookup) {
     let mut current = function_declarator.parent();
     while let Some(scope) = current {
         if is_class_node(scope) {
-            return class_key(base, scope).map_or(Owner::Unknown, Owner::Class);
+            return class_key(base, scope).map_or((Owner::Unknown, Lookup::Unknown), |class| {
+                (Owner::Class(class), Lookup::Owner)
+            });
         }
         if scope.kind() == "compound_statement" {
-            return Owner::Free;
+            return (Owner::Free, Lookup::Unknown);
         }
         current = scope.parent();
     }
-    Owner::Free
+    (
+        Owner::Free,
+        Lookup::Namespace(namespace_path(base, function_declarator)),
+    )
+}
+
+fn is_friend(holder: Node) -> bool {
+    let mut current = holder.parent();
+    while let Some(parent) = current.filter(|parent| parent.kind() == "template_declaration") {
+        current = parent.parent();
+    }
+    current.is_some_and(|parent| parent.kind() == "friend_declaration")
 }
 
 /// A callable's name, its written qualifier when the declarator is
@@ -887,27 +1054,61 @@ fn return_entry(
         holder.kind(),
         "function_definition" | "declaration" | "field_declaration"
     );
-    let is_friend = holder
-        .parent()
-        .is_some_and(|parent| parent.kind() == "friend_declaration");
-    if !is_callable_holder || is_friend {
+    if !is_callable_holder {
         return None;
     }
     let (name, global, scopes) =
         split_qualified(function_declarator.child_by_field_name("declarator")?)?;
     let name = callee_name(base, name)?;
-    let shape = stated_return_type(base, function_declarator)
-        .filter(|(type_node, _)| !uses_template_parameter(base, *type_node, 0))
-        .map(|(_, shape)| shape);
+    let qualified = !scopes.is_empty() || global;
+    let friend = is_friend(holder);
+    if friend && qualified {
+        return None;
+    }
+    let stated = stated_return_type(base, function_declarator)
+        .filter(|(type_node, _)| !uses_template_parameter(base, *type_node, 0));
+    let mut type_names = Vec::new();
+    let mut trailing = false;
+    if let Some((type_node, _)) = stated {
+        first_names(base, type_node, true, &mut type_names, 0);
+        trailing = type_node
+            .parent()
+            .is_some_and(|parent| parent.kind() == "type_descriptor");
+    }
+    let namespace = namespace_path(base, function_declarator);
     let mut entry = ReturnEntry {
-        owner: Owner::Unknown,
-        namespace: namespace_path(base, function_declarator),
-        shape,
+        owner: Owner::Free,
+        lookup: if trailing {
+            Lookup::Owner
+        } else {
+            Lookup::Namespace(namespace.clone())
+        },
+        namespace,
+        shape: stated.map(|(_, shape)| shape),
+        type_names,
     };
-    if scopes.is_empty() && !global {
-        entry.owner = declaring_owner(base, function_declarator);
+    if friend {
+        entry.namespace = FRIEND_NAMESPACE.to_string();
+        entry.lookup = Lookup::Unknown;
         return Some((name, None, entry));
     }
+    if !qualified {
+        (entry.owner, entry.lookup) = declaring_owner(base, function_declarator);
+        // A block cannot hold a definition: a macro such as
+        // `NS_BEGIN namespace x {` misparsed a namespace-scope one into it.
+        if holder.kind() == "function_definition"
+            && entry.owner == Owner::Free
+            && matches!(entry.lookup, Lookup::Unknown)
+            && !entry
+                .type_names
+                .iter()
+                .any(|name| binds_locally(base, function_declarator, name))
+        {
+            entry.lookup = Lookup::Namespace(entry.namespace.clone());
+        }
+        return Some((name, None, entry));
+    }
+    entry.owner = Owner::Unknown;
     let written = written_scope(base, global, &scopes);
     Some((name, written, entry))
 }
@@ -936,6 +1137,46 @@ fn callee_name(base: &BaseExtractor, node: Node) -> Option<String> {
         _ => return None,
     };
     Some(base.get_node_text(&name))
+}
+
+/// The first name of each name a type writes: `a` and `c` in `a::B<c::D>`.
+fn first_names(
+    base: &BaseExtractor,
+    node: Node,
+    leading: bool,
+    names: &mut Vec<String>,
+    depth: u32,
+) {
+    let Some(child_depth) = child_tree_depth(depth).filter(|_| should_visit_tree_depth(depth))
+    else {
+        return;
+    };
+    match node.kind() {
+        "type_identifier" | "namespace_identifier" | "identifier" => {
+            if leading {
+                names.push(base.get_node_text(&node));
+            }
+        }
+        "qualified_identifier" | "template_type" | "template_function" => {
+            let (lead, rest) = match node.kind() {
+                "qualified_identifier" => ("scope", "name"),
+                _ => ("name", "arguments"),
+            };
+            if let Some(child) = node.child_by_field_name(lead) {
+                first_names(base, child, leading, names, child_depth);
+            }
+            if let Some(child) = node.child_by_field_name(rest) {
+                let rest_leads = node.kind() != "qualified_identifier";
+                first_names(base, child, rest_leads, names, child_depth);
+            }
+        }
+        _ => {
+            let mut cursor = node.walk();
+            for child in node.named_children(&mut cursor) {
+                first_names(base, child, true, names, child_depth);
+            }
+        }
+    }
 }
 
 /// A qualifier of plain namespace or class names, some with template
@@ -997,11 +1238,15 @@ fn initializer_type(
         "identifier" | "template_function" | "qualified_identifier" => {
             let (name, global, scopes) = split_qualified(function)?;
             let name = callee_name(base, name)?;
+            if return_types.macros.contains(&name) {
+                return None;
+            }
             if scopes.is_empty() && !global {
                 if binds_locally(base, value, &name) {
                     return None;
                 }
-                return return_types.unqualified_lookup(base, value, &name);
+                let candidates = return_types.unqualified_lookup(base, value, &name)?;
+                return return_types.agreed_at(base, value, &candidates);
             }
             if scopes.first().is_some_and(|first| {
                 is_template_parameter_name(base, first)
@@ -1010,7 +1255,15 @@ fn initializer_type(
                 return None;
             }
             let scope = written_scope(base, global, &scopes)?;
-            return_types.qualified_lookup(base, value, &scope, &name)
+            if scope
+                .segments
+                .iter()
+                .any(|segment| return_types.macros.contains(&segment.name))
+            {
+                return None;
+            }
+            let candidates = return_types.qualified_lookup(base, value, &scope, &name)?;
+            return_types.agreed_at(base, value, &candidates)
         }
         "field_expression" => {
             if !is_this_receiver(function) {
@@ -1020,7 +1273,12 @@ fn initializer_type(
             if field.kind() != "field_identifier" {
                 return None;
             }
-            return_types.this_lookup(base, function, &base.get_node_text(&field))
+            let name = base.get_node_text(&field);
+            if return_types.macros.contains(&name) {
+                return None;
+            }
+            let candidates = return_types.this_lookup(base, function, &name)?;
+            return_types.agreed_at(base, function, &candidates)
         }
         _ => None,
     }

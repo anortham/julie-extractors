@@ -248,8 +248,23 @@ never parsed before, and they apply to every C++ file.
   qualifier in the same namespace; any other unqualified call there records no
   fact. `std::unique_ptr<Foo>` and `std::optional<Foo>` stay as written. A
   deduced return type, or one that names a template parameter anywhere (`T`,
-  `Box<T>`, `-> std::vector<T>`), records no fact. A friend declaration, a
-  call on any other receiver, or a chained call also records no fact. An
+  `Box<T>`, `-> std::vector<T>`), records no fact. A call on any other
+  receiver or a chained call also records no fact. A same-file friend
+  function of the callee's name (a hidden friend or a friend declaration)
+  records no fact, since argument-dependent lookup may pick it. A `#define`
+  anywhere in the file of the callee name, a qualifier name, or a return type
+  name records no fact. A namespace alias counts as a declared name, so
+  `a::Maker::create()` where `namespace a = ::b;` is in scope records no
+  fact. Each first name the return type writes (`A` and `C` in
+  `A::Node<C>`) must mean the same entity at the call as at the callee:
+  a nested type or alias of the callee's class (`Node`, `Ptr`), a name a
+  nearer namespace or a local declaration at the call redeclares, or a name
+  that a class with an unseen base stops, records no fact. A name no
+  same-file scope declares passes only when the callee's namespace encloses
+  the call. Inside an out-of-line method of a class defined in another file,
+  a member's return type name therefore records no fact, and a primitive
+  return type (`int`) still does. A function declared in a block records no
+  fact. An
   unqualified call records no fact when a parameter, template parameter,
   lambda capture, or local declaration of an enclosing function or block binds
   the same name. Inside a method, an unqualified call falls back to a free

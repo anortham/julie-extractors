@@ -8,7 +8,7 @@ use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
 /// Names a declaration-like node introduces into its scope: objects, types,
-/// aliases, using-declarations, and enumerators. Function names are included
+/// aliases, namespace aliases, using-declarations, and enumerators. Function names are included
 /// only when `functions` is set.
 pub(super) fn declaration_names(
     base: &BaseExtractor,
@@ -51,6 +51,12 @@ fn declaration_names_at(
             );
         }
         "using_declaration" => names.extend(using_declaration_name(base, node)),
+        "namespace_alias_definition" => {
+            names.extend(
+                node.child_by_field_name("name")
+                    .map(|name| base.get_node_text(&name)),
+            );
+        }
         "class_specifier" | "struct_specifier" | "union_specifier" | "enum_specifier" => {
             specifier_names(base, node, names);
         }
