@@ -141,6 +141,19 @@ only. Wave 2 records inferred facts only from same-file constructor
 shapes, and the closeout claims the r `types` capability on that
 evidence.
 
+Extended later: R functions declare no return type, and roxygen `@return`
+is prose. The one return class R enforces is `setGeneric(valueClass = "X")`:
+the generic stops with an error unless its value `is()` an `X`. A variable
+assigned with `<-`, `=`, `<<-`, `->`, or `->>` from a plain call `f(...)`
+gets an inferred `X` fact when a same-file `setGeneric` (bare or `methods::`)
+names `f` with one string `valueClass`, bound by name or 4th position. No
+fact is recorded when a declaration has no `valueClass` or a `c(...)` union,
+when declarations disagree, or when an assignment, `assign()`, or parameter
+anywhere in the file rebinds `f`. `pkg::f(...)`, `setMethod(valueClass =)`
+(R ignores it), and a call chained with `$` or `@` also record nothing. The
+same-file constructor shapes now apply to `->` and `->>` as well. Other files
+are out of scope because each file is extracted alone.
+
 ### Elixir: `receiver_type`
 
 Elixir has no self receiver keyword. Calls are module and function calls,

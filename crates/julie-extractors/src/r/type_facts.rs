@@ -1,11 +1,11 @@
 use crate::base::BaseExtractor;
 use crate::base::types::TypeNameRules;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
 
 use super::RExtractor;
-use super::idioms::{assignment_name, call_name, positional_string_argument};
+use super::idioms::{assignment_name, bind_arguments, call_name, positional_string_argument};
 use super::text_args::clean_r_name;
 
 pub(super) const R_TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
@@ -14,11 +14,121 @@ pub(super) const R_TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
     generic_open: &[],
 };
 
-pub(super) fn record_constructor_fact(base: &mut BaseExtractor, symbol_id: &str, class_name: &str) {
+pub(super) fn record_inferred_fact(base: &mut BaseExtractor, symbol_id: &str, class_name: &str) {
     base.record_declared_type_fact(symbol_id, class_name, &R_TYPE_NAME_RULES, true);
 }
 
-pub(super) fn same_file_constructor_class(extractor: &RExtractor, right: Node) -> Option<String> {
+/// The class of a variable initializer: a same-file constructor, or a call to a
+/// same-file S4 generic that declares one `valueClass`.
+pub(super) fn initializer_class(extractor: &RExtractor, right: Node) -> Option<String> {
+    same_file_constructor_class(extractor, right)
+        .or_else(|| generic_call_value_class(extractor, right))
+}
+
+fn generic_call_value_class(extractor: &RExtractor, right: Node) -> Option<String> {
+    if right.kind() != "call" {
+        return None;
+    }
+    let callee = right.child_by_field_name("function")?;
+    let name = clean_r_name(&extractor.base.get_node_text(&callee))?;
+    extractor.generic_value_classes.get(&name)?.clone()
+}
+
+/// Declared return classes of same-file S4 generics. `setGeneric(valueClass = "X")`
+/// makes R stop unless the value `is()` an `X`. A name maps to `None` when a
+/// declaration lacks a single class, declarations disagree, or an assignment,
+/// `assign()`, or parameter rebinds the name anywhere in the file.
+pub(super) fn collect_generic_value_classes(
+    extractor: &RExtractor,
+    root: Node,
+) -> HashMap<String, Option<String>> {
+    let mut classes = HashMap::new();
+    collect_value_classes(extractor, root, 0, &mut classes);
+    classes
+}
+
+fn collect_value_classes(
+    extractor: &RExtractor,
+    node: Node,
+    depth: u32,
+    classes: &mut HashMap<String, Option<String>>,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    match node.kind() {
+        "call" => match call_name(extractor, node).as_deref() {
+            Some("setGeneric") => {
+                if let Some((name, value_class)) = generic_value_class(extractor, node) {
+                    classes
+                        .entry(name)
+                        .and_modify(|known| {
+                            if *known != value_class {
+                                *known = None;
+                            }
+                        })
+                        .or_insert(value_class);
+                }
+            }
+            Some("assign") => {
+                if let Some(name) = node
+                    .child_by_field_name("arguments")
+                    .and_then(|args| positional_string_argument(extractor, args, 0))
+                {
+                    classes.insert(name, None);
+                }
+            }
+            _ => {}
+        },
+        "binary_operator" => {
+            if let Some(name) = rebound_name(extractor, node) {
+                classes.insert(name, None);
+            }
+        }
+        "parameter" => {
+            if let Some(name) = node
+                .child_by_field_name("name")
+                .and_then(|name| clean_r_name(&extractor.base.get_node_text(&name)))
+            {
+                classes.insert(name, None);
+            }
+        }
+        _ => {}
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_value_classes(extractor, child, child_depth, classes);
+    }
+}
+
+fn generic_value_class(extractor: &RExtractor, call: Node) -> Option<(String, Option<String>)> {
+    let args = call.child_by_field_name("arguments")?;
+    let bound = bind_arguments(extractor, args, &["name", "def", "group", "valueClass"]);
+    let name = bound
+        .get("name")
+        .filter(|value| value.kind() == "string")
+        .and_then(|value| clean_r_name(&extractor.base.get_node_text(value)))?;
+    let value_class = bound
+        .get("valueClass")
+        .filter(|value| value.kind() == "string")
+        .and_then(|value| clean_r_name(&extractor.base.get_node_text(value)));
+    Some((name, value_class))
+}
+
+fn rebound_name(extractor: &RExtractor, assignment: Node) -> Option<String> {
+    let operator = assignment.child_by_field_name("operator")?;
+    let target = match extractor.base.get_node_text(&operator).as_str() {
+        "<-" | "<<-" | "=" => assignment.child_by_field_name("lhs")?,
+        "->" | "->>" => assignment.child_by_field_name("rhs")?,
+        _ => return None,
+    };
+    assignment_name(extractor, target)
+}
+
+fn same_file_constructor_class(extractor: &RExtractor, right: Node) -> Option<String> {
     if right.kind() != "call" {
         return None;
     }

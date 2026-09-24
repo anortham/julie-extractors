@@ -24,6 +24,7 @@ pub struct RExtractor {
     symbols: Vec<Symbol>,
     same_file_class_names: std::collections::HashSet<String>,
     same_file_generics: std::collections::HashSet<String>,
+    generic_value_classes: HashMap<String, Option<String>>,
     /// Function values of class-list members, keyed by node id, mapped to the member symbol.
     value_owners: HashMap<usize, String>,
     /// Class inheritance declarations waiting for relationship resolution.
@@ -42,6 +43,7 @@ impl RExtractor {
             symbols: Vec::new(),
             same_file_class_names: std::collections::HashSet::new(),
             same_file_generics: std::collections::HashSet::new(),
+            generic_value_classes: HashMap::new(),
             value_owners: HashMap::new(),
             extends_requests: Vec::new(),
         }
@@ -52,6 +54,7 @@ impl RExtractor {
         self.symbols.clear();
         self.same_file_class_names = type_facts::collect_same_file_class_names(self, root_node);
         self.same_file_generics = idioms::collect_same_file_generics(self, root_node);
+        self.generic_value_classes = type_facts::collect_generic_value_classes(self, root_node);
         self.value_owners.clear();
         self.extends_requests.clear();
 
@@ -172,14 +175,9 @@ impl RExtractor {
                     let symbol = self.base.create_symbol(&node, name, kind, options);
                     self.symbols.push(symbol.clone());
                     if symbol.kind == SymbolKind::Variable
-                        && let Some(class_name) =
-                            type_facts::same_file_constructor_class(self, right)
+                        && let Some(class_name) = type_facts::initializer_class(self, right)
                     {
-                        type_facts::record_constructor_fact(
-                            &mut self.base,
-                            &symbol.id,
-                            &class_name,
-                        );
+                        type_facts::record_inferred_fact(&mut self.base, &symbol.id, &class_name);
                     }
                     Some(symbol)
                 }
@@ -200,6 +198,12 @@ impl RExtractor {
                     .base
                     .create_symbol(&node, name, SymbolKind::Variable, options);
                 self.symbols.push(symbol.clone());
+                if let Some(class_name) = node
+                    .child(0)
+                    .and_then(|value| type_facts::initializer_class(self, value))
+                {
+                    type_facts::record_inferred_fact(&mut self.base, &symbol.id, &class_name);
+                }
                 Some(symbol)
             }
             _ => None,
