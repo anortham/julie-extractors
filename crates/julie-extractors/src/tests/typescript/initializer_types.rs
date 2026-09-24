@@ -674,3 +674,118 @@ const made = make<string>();
         Some(("Map".to_string(), true, Some("Map<K, User>".to_string())))
     );
 }
+
+const OUTER_AND_NAMESPACE_LOADERS: &str = r#"
+class User {}
+class Admin {}
+function load(): User { return null!; }
+class Repo { static create(): User { return null!; } }
+namespace A {
+    export function load(): Admin { return null!; }
+    export class Repo { static create(): Admin { return null!; } }
+}
+"#;
+
+#[test]
+fn a_namespace_export_blocks_the_outer_binding_in_a_merged_namespace_block() {
+    let source = format!(
+        "{OUTER_AND_NAMESPACE_LOADERS}namespace A {{ export const nsMerged = load(); export const nsClass = Repo.create(); }}\n"
+    );
+    assert_eq!(inferred_type(&source, "nsMerged"), None);
+    assert_eq!(inferred_type(&source, "nsClass"), None);
+}
+
+#[test]
+fn a_namespace_export_blocks_the_outer_binding_in_a_nested_namespace_block() {
+    let source = format!(
+        "{OUTER_AND_NAMESPACE_LOADERS}namespace A.B {{ export const nestedNs = load(); }}\nnamespace A {{ namespace C {{ const deepNs = load(); }} }}\n"
+    );
+    assert_eq!(inferred_type(&source, "nestedNs"), None);
+    assert_eq!(inferred_type(&source, "deepNs"), None);
+}
+
+#[test]
+fn an_ambient_namespace_member_blocks_the_outer_binding_in_a_merged_block() {
+    let source = r#"
+function load(): User { return null!; }
+declare namespace A { function load(): Admin; }
+namespace A { const ambientMerged = load(); }
+"#;
+    assert_eq!(inferred_type(source, "ambientMerged"), None);
+}
+
+#[test]
+fn a_namespace_export_types_calls_in_every_block_of_its_namespace() {
+    let source = r#"
+namespace A { export function load(): Admin { return null!; } }
+namespace A { const merged = load(); }
+namespace A.B { const nested = load(); }
+const outside = load();
+"#;
+    assert_eq!(inferred_type(source, "merged"), inferred("Admin"));
+    assert_eq!(inferred_type(source, "nested"), inferred("Admin"));
+    assert_eq!(inferred_type(source, "outside"), None);
+}
+
+#[test]
+fn a_namespace_member_without_export_stays_in_its_own_block() {
+    let source = r#"
+function load(): User { return null!; }
+namespace A { function load(): Admin { return null!; } }
+namespace A { const merged = load(); }
+"#;
+    assert_eq!(inferred_type(source, "merged"), inferred("User"));
+}
+
+#[test]
+fn a_var_in_a_for_of_header_shadows_the_function_in_the_whole_function() {
+    let source = r#"
+function load(): User { return null!; }
+export function f(fns: Array<() => Admin>) {
+    for (var load of fns) {}
+    const forOfVar = load();
+}
+"#;
+    assert_eq!(inferred_type(source, "forOfVar"), None);
+}
+
+#[test]
+fn a_const_in_a_for_of_header_shadows_only_the_loop() {
+    let source = r#"
+function load(): User { return null!; }
+export function f(fns: Array<() => Admin>) {
+    for (const load of fns) {}
+    const afterLoop = load();
+}
+"#;
+    assert_eq!(inferred_type(source, "afterLoop"), inferred("User"));
+}
+
+#[test]
+fn a_this_array_return_type_records_the_enclosing_class_array() {
+    assert_eq!(
+        in_repo(
+            "all(): this[] { return [this]; }\nm() { const thisArr = this.all(); }",
+            "thisArr"
+        ),
+        inferred("Repo[]")
+    );
+}
+
+#[test]
+fn a_parenthesized_array_element_records_the_plain_array_type() {
+    let source = r#"
+function list(): (User)[] { return []; }
+const users = list();
+"#;
+    assert_eq!(inferred_type(source, "users"), inferred("User[]"));
+}
+
+#[test]
+fn a_satisfies_initializer_keeps_the_call_type() {
+    let source = r#"
+function load(): User { return null!; }
+export const sat = load() satisfies User;
+"#;
+    assert_eq!(inferred_type(source, "sat"), inferred("User"));
+}

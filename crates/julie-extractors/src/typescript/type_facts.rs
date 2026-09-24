@@ -248,11 +248,15 @@ pub(super) struct ReturnTypeIndex {
     values: HashMap<String, Vec<ValueEntry>>,
     /// Class members by the class node's start byte and the member name.
     members: HashMap<(usize, String), Vec<MemberEntry>>,
+    /// Every namespace or module block by its qualified name path.
+    namespaces: Vec<(Vec<String>, Range<usize>)>,
 }
 
 #[derive(Debug)]
 struct ValueEntry {
-    scope: Range<usize>,
+    /// The byte ranges where the binding is visible. A namespace export has
+    /// one range for each block of its namespace and of nested namespaces.
+    scopes: Vec<Range<usize>>,
     /// The class node's start byte when the binding names a class.
     class: Option<usize>,
     /// `None` when the binding is not a function or declares no return type.
@@ -269,6 +273,15 @@ impl ReturnTypeIndex {
     pub(super) fn build(base: &BaseExtractor, root: Node) -> Self {
         let mut index = Self::default();
         let mut stack = vec![root];
+        while let Some(node) = stack.pop() {
+            if matches!(node.kind(), "internal_module" | "module") {
+                index
+                    .namespaces
+                    .push((namespace_path(base, node), node.byte_range()));
+            }
+            stack.extend(node.named_children(&mut node.walk()));
+        }
+        stack.push(root);
         while let Some(node) = stack.pop() {
             index.add_node(base, node);
             stack.extend(node.named_children(&mut node.walk()));
@@ -308,7 +321,13 @@ impl ReturnTypeIndex {
             "arrow_function" | "catch_clause" => {
                 self.shadow_field(base, node, "parameter", node.byte_range());
             }
-            "for_in_statement" => self.shadow_field(base, node, "left", node.byte_range()),
+            "for_in_statement" => {
+                let scope = match node.child_by_field_name("kind").map(|kind| kind.kind()) {
+                    Some("let" | "const") => node.byte_range(),
+                    _ => function_scope(node),
+                };
+                self.shadow_field(base, node, "left", scope);
+            }
             "import_specifier" => {
                 let field = if node.child_by_field_name("alias").is_some() {
                     "alias"
@@ -434,11 +453,22 @@ impl ReturnTypeIndex {
         class: Option<usize>,
         shape: Option<TypeShape>,
     ) {
+        let scopes = match exporting_namespace(name) {
+            Some(namespace) => {
+                let path = namespace_path(base, namespace);
+                self.namespaces
+                    .iter()
+                    .filter(|(block_path, _)| block_path.starts_with(&path))
+                    .map(|(_, range)| range.clone())
+                    .collect()
+            }
+            None => vec![scope],
+        };
         self.values
             .entry(base.get_node_text(&name))
             .or_default()
             .push(ValueEntry {
-                scope,
+                scopes,
                 class,
                 shape,
             });
@@ -453,7 +483,7 @@ impl ReturnTypeIndex {
             .get(name)
             .into_iter()
             .flatten()
-            .filter(move |entry| entry.scope.contains(&at))
+            .filter(move |entry| entry.scopes.iter().any(|scope| scope.contains(&at)))
     }
 
     /// The return type every binding of `name` visible at `at` agrees on.
@@ -535,6 +565,72 @@ fn enclosing_scope(node: Node, kinds: &[&str]) -> Range<usize> {
         current = scope.parent();
     }
     node.byte_range()
+}
+
+/// The namespace or module whose members include the binding `name`
+/// declares: an `export` in a namespace body, or any declaration in an
+/// ambient (`declare`) namespace, where members are exported implicitly.
+fn exporting_namespace(name: Node) -> Option<Node> {
+    let mut declaration = name;
+    while let Some(parent) = declaration.parent() {
+        if !matches!(
+            parent.kind(),
+            "nested_identifier"
+                | "object_pattern"
+                | "array_pattern"
+                | "pair_pattern"
+                | "object_assignment_pattern"
+                | "assignment_pattern"
+                | "rest_pattern"
+                | "variable_declarator"
+                | "lexical_declaration"
+                | "variable_declaration"
+                | "function_declaration"
+                | "generator_function_declaration"
+                | "function_signature"
+                | "class_declaration"
+                | "abstract_class_declaration"
+                | "enum_declaration"
+                | "internal_module"
+                | "module"
+                | "import_alias"
+                | "ambient_declaration"
+        ) {
+            break;
+        }
+        declaration = parent;
+    }
+    let exported = declaration
+        .parent()
+        .filter(|parent| parent.kind() == "export_statement");
+    let body = exported
+        .unwrap_or(declaration)
+        .parent()
+        .filter(|parent| parent.kind() == "statement_block")?;
+    let namespace = body
+        .parent()
+        .filter(|parent| matches!(parent.kind(), "internal_module" | "module"))?;
+    let ambient = std::iter::successors(namespace.parent(), Node::parent)
+        .any(|ancestor| ancestor.kind() == "ambient_declaration");
+    (exported.is_some() || ambient).then_some(namespace)
+}
+
+/// The qualified name of a namespace block: `namespace A.B` nested in
+/// `namespace X` is `["X", "A", "B"]`.
+fn namespace_path(base: &BaseExtractor, namespace: Node) -> Vec<String> {
+    let mut path = Vec::new();
+    let mut current = Some(namespace);
+    while let Some(node) = current {
+        if matches!(node.kind(), "internal_module" | "module")
+            && let Some(name) = node.child_by_field_name("name")
+        {
+            let text = base.get_node_text(&name);
+            let segments = text.split('.').map(|segment| segment.trim().to_string());
+            path.splice(0..0, segments);
+        }
+        current = node.parent();
+    }
+    path
 }
 
 fn has_child_kind(node: Node, kind: &str) -> bool {
@@ -651,7 +747,10 @@ fn type_shape(
                     type_shape(base, element, generics, this_type, child_depth)
                 });
             TypeShape {
-                declared: (element.declared.is_some() && !element.nullable).then_some(text),
+                declared: element
+                    .declared
+                    .filter(|_| !element.nullable)
+                    .map(|element| format!("{element}[]")),
                 ..TypeShape::opaque()
             }
         }
@@ -707,6 +806,9 @@ impl InitializerScope<'_> {
         }
         match value.kind() {
             "parenthesized_expression" if value.named_child_count() == 1 => {
+                self.shape_of(value.named_child(0)?, child_tree_depth(depth)?)
+            }
+            "satisfies_expression" => {
                 self.shape_of(value.named_child(0)?, child_tree_depth(depth)?)
             }
             "await_expression" => self

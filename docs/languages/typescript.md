@@ -128,15 +128,20 @@ Express/Fastify routes on exported and type-annotated receivers.
   a class method or arrow field through `this` in that class, or a static
   method through the class name (`Repo.create()`). Only bindings whose
   lexical scope contains the call count: a function nested in another
-  function does not reach calls outside it. All visible same-named
+  function does not reach calls outside it. A `var`, including a `var` in a
+  `for...of` or `for...in` header, is visible in its whole function. A
+  namespace export (and any member of a `declare namespace`) is visible in
+  every same-file block of that namespace and of nested `A.B` blocks. All
+  visible same-named
   candidates must agree, and any other visible binding of the name (import,
   `import x = A.b`, parameter, local, namespace, enum, function-expression
   name) blocks the fact. Class members belong to one class declaration, so
   two same-named classes never share methods, and `Repo.create()` needs
   `Repo` to name exactly one visible class. `await` removes one
   `Promise`/`PromiseLike` layer; `!` removes `null`/`undefined`; a
-  `T | null` result without `!` records nothing. `: this` resolves to the
-  enclosing class. A result that is a bare type parameter (`T`, or `T` after
+  `T | null` result without `!` records nothing. `satisfies` keeps the call
+  type. `: this` resolves to the enclosing class, and `: this[]` to its
+  array (`Repo[]`). A result that is a bare type parameter (`T`, or `T` after
   `await`) records no fact. A generic result keeps its base type and its
   declared text as written, so `make<K>(): Map<K, User>` records `Map` with
   declared `Map<K, User>`. A getter, an optional call (`?.`), a method after
@@ -144,7 +149,9 @@ Express/Fastify routes on exported and type-annotated receivers.
   namespace-qualified call (`Ns.load()`), a method inherited from a base
   class through `this`, `super.load()`, or a callee in another file records
   no fact. Other files are out of scope because each file is extracted
-  alone.
+  alone. The recorded type text comes from the callee's scope: if a local
+  type at the call reuses a name from that text (a local `class User`), the
+  fact still names the outer type. The Rust extractor has the same limit.
 - The `string` type keyword is not a `string_literal` source region.
 
 ## Frontend navigation facts
