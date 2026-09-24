@@ -95,16 +95,39 @@ pub(super) struct DeclaredType {
 /// `__auto_type` inference. A same-named macro, variable, parameter, function
 /// with no plain return type, or name in a malformed declaration makes the
 /// name unknown anywhere in the file, since a call through a variable does not
-/// reach the function.
+/// reach the function. So does the target of an assignment, since a function
+/// cannot be assigned, and any name in an ERROR node, in an expression
+/// statement with parse errors, or in a file-scope expression statement,
+/// since C has none and tree-sitter-c makes one from a misparsed declaration.
 #[derive(Debug, Default)]
 pub(super) struct ReturnTypeIndex(HashMap<String, Vec<Option<DeclaredType>>>);
 
 impl ReturnTypeIndex {
     pub(super) fn build(base: &BaseExtractor, root: Node) -> Self {
         let mut entries: HashMap<String, Vec<Option<DeclaredType>>> = HashMap::new();
-        let mut stack = vec![root];
-        while let Some(node) = stack.pop() {
+        let mut stack = vec![(root, false, false)];
+        while let Some((node, in_function, misparsed)) = stack.pop() {
+            let misparsed = misparsed
+                || node.is_error()
+                || (node.kind() == "expression_statement" && (node.has_error() || !in_function));
             match node.kind() {
+                "identifier" | "type_identifier" if misparsed => {
+                    entries
+                        .entry(base.get_node_text(&node))
+                        .or_default()
+                        .push(None);
+                }
+                "assignment_expression" => {
+                    if let Some(left) = node
+                        .child_by_field_name("left")
+                        .filter(|left| left.kind() == "identifier")
+                    {
+                        entries
+                            .entry(base.get_node_text(&left))
+                            .or_default()
+                            .push(None);
+                    }
+                }
                 "function_definition" | "declaration" => {
                     for (name, return_type) in declared_return_types(base, node) {
                         entries.entry(name).or_default().push(return_type);
@@ -131,7 +154,11 @@ impl ReturnTypeIndex {
                 }
                 _ => {}
             }
-            stack.extend(node.named_children(&mut node.walk()));
+            let in_function = in_function || node.kind() == "function_definition";
+            stack.extend(
+                node.named_children(&mut node.walk())
+                    .map(|child| (child, in_function, misparsed)),
+            );
         }
         Self(entries)
     }
@@ -147,8 +174,9 @@ impl ReturnTypeIndex {
 }
 
 /// The names a definition or declaration declares, each with its plain return
-/// type when it names a function. A declaration with parse errors makes each
-/// name it may declare unknown, since its types cannot be trusted. So does a
+/// type when it names a function. A declaration with parse errors, or a
+/// definition with no function declarator, makes each name it may declare
+/// unknown, since its types cannot be trusted. So does a
 /// function name tree-sitter-c misread as a call after a macro, as in
 /// `struct gadget *__declspec(dllexport) make(void);`.
 fn declared_return_types(base: &BaseExtractor, node: Node) -> Vec<(String, Option<DeclaredType>)> {
@@ -169,6 +197,9 @@ fn declared_names(base: &BaseExtractor, node: Node) -> Vec<(String, Option<Decla
             .iter()
             .filter_map(|field| node.child_by_field_name(field))
             .any(|child| child.has_error())
+            || !node
+                .child_by_field_name("declarator")
+                .is_some_and(contains_function_declarator)
     };
     if malformed {
         return malformed_declaration_names(base, node)

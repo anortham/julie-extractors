@@ -291,6 +291,60 @@ fn parenthesized_attribute_prototype_that_disagrees_records_no_fact() {
 }
 
 #[test]
+fn object_like_macro_prototype_that_disagrees_records_no_fact() {
+    for misread in [
+        "struct gadget *restrict_ptr make(void) { return 0; }",
+        "static struct gadget *restrict_ptr make(void) { return 0; }",
+        "LIBAPI struct gadget *API make(void);",
+        "LIBAPI struct gadget * LIBCALL make(void);",
+        "LIBAPI struct gadget *__wur make(void);",
+        "const struct gadget *restrict_ptr make(void);",
+        "struct gadget restrict_ptr *make(void);",
+    ] {
+        let prelude = format!(
+            "struct widget {{ int n; }}; struct gadget {{ int g; }};\n#ifdef USE_GADGET\n{misread}\n#else\nstruct widget *make(void);\n#endif"
+        );
+        assert_eq!(
+            fact_of(&in_function(&prelude, "__auto_type w = make();"), "w"),
+            None,
+            "{misread}"
+        );
+    }
+}
+
+const GADGET_MAKERS: &str = "struct widget { int n; }; struct gadget { int g; }; typedef struct gadget *gadget_fn(void); struct gadget *pick(void);\nstruct widget *make(void);";
+
+#[test]
+fn misparsed_local_shadowing_the_callee_records_no_fact() {
+    for local in [
+        "gadget_fn * __attribute__((unused)) make = pick;",
+        "_Atomic(gadget_fn *) make = pick;",
+        "gadget_fn *API make = pick;",
+        "struct gadget *(*my_attr make)(void) = pick;",
+        "static gadget_fn *restrict_ptr make = pick;",
+    ] {
+        let body = format!("{local}\n    __auto_type w = make();");
+        assert_eq!(
+            fact_of(&in_function(GADGET_MAKERS, &body), "w"),
+            None,
+            "{local}"
+        );
+    }
+}
+
+#[test]
+fn unshadowed_callee_next_to_the_misparse_shapes_records_a_fact() {
+    assert_eq!(
+        fact_of(&in_function(GADGET_MAKERS, "__auto_type w = make();"), "w"),
+        Some((
+            "widget".to_string(),
+            true,
+            Some("struct widget *".to_string())
+        ))
+    );
+}
+
+#[test]
 fn macro_between_return_type_and_name_records_no_fact() {
     let prelude = "struct node *attr_pure find(void);";
     assert_eq!(
