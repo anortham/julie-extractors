@@ -126,6 +126,11 @@ const SAFE_WILDCARD_PACKAGES: [&str; 8] = [
     "java",
 ];
 
+/// Package roots a qualified type path can start with. Any other lowercase
+/// first segment can be a value, so the path can name a path-dependent
+/// abstract type member.
+const PACKAGE_ROOTS: [&str; 4] = ["_root_", "scala", "java", "javax"];
+
 /// Synthetic companion members of a case class and of an enum.
 const CASE_COMPANION_MEMBERS: [&str; 5] = ["apply", "unapply", "fromProduct", "tupled", "curried"];
 const ENUM_COMPANION_MEMBERS: [&str; 3] = ["values", "valueOf", "fromOrdinal"];
@@ -168,18 +173,43 @@ impl TypeShape {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ParamList {
+    Explicit,
+    /// A Scala 2 `implicit` list: a plain or `using` argument list fills it.
+    Implicit,
+    /// A Scala 3 `using` list: only a `using` argument list fills it.
+    Using,
+}
+
 #[derive(Debug)]
 struct DefEntry {
-    /// Parameter lists a caller must write; `implicit`/`using` lists excluded.
-    explicit_lists: usize,
-    total_lists: usize,
+    lists: Vec<ParamList>,
     /// `None` when the def declares no return type.
     shape: Option<TypeShape>,
 }
 
 impl DefEntry {
-    fn accepts(&self, applied_lists: usize) -> bool {
-        applied_lists == self.explicit_lists || applied_lists == self.total_lists
+    /// Whether argument lists (`true` for a `using` list), in call order,
+    /// apply exactly the def's parameter lists and nothing to its result.
+    fn accepts(&self, applied: &[bool]) -> bool {
+        let mut args = applied.iter().copied().peekable();
+        for list in &self.lists {
+            let fills = match list {
+                ParamList::Explicit => {
+                    if args.next() != Some(false) {
+                        return false;
+                    }
+                    continue;
+                }
+                ParamList::Implicit => args.peek().is_some(),
+                ParamList::Using => args.peek() == Some(&true),
+            };
+            if fills {
+                args.next();
+            }
+        }
+        args.next().is_none()
     }
 }
 
@@ -194,6 +224,8 @@ pub(super) struct ReturnTypeIndex {
     types: HashSet<String>,
     /// Type members declared with no definition.
     abstract_types: HashSet<String>,
+    /// `(object, type)` for each concrete type an object declares directly.
+    object_types: HashSet<(String, String)>,
     imports: Vec<Imported>,
     /// `GET_UNWRAPS` names that mean the Scala type when written unqualified.
     bare_wrappers: HashSet<String>,
@@ -276,6 +308,10 @@ impl ReturnTypeIndex {
             self.imports.extend(imported_names(base, node));
             return;
         }
+        if kind == "object_definition" {
+            self.add_object_types(base, node);
+            return;
+        }
         let is_type = matches!(
             kind,
             "class_definition" | "trait_definition" | "enum_definition" | "type_definition"
@@ -299,6 +335,41 @@ impl ReturnTypeIndex {
         self.types.insert(name);
     }
 
+    fn add_object_types(&mut self, base: &BaseExtractor, object: Node) {
+        let (Some(name), Some(body)) = (
+            object.child_by_field_name("name"),
+            object.child_by_field_name("body"),
+        ) else {
+            return;
+        };
+        let object_name = base.get_node_text(&name);
+        for member in body.named_children(&mut body.walk()) {
+            let concrete = match member.kind() {
+                "class_definition" | "trait_definition" | "enum_definition" => true,
+                "type_definition" => member.child_by_field_name("type").is_some(),
+                _ => false,
+            };
+            if let Some(type_name) = member.child_by_field_name("name").filter(|_| concrete) {
+                self.object_types
+                    .insert((object_name.clone(), base.get_node_text(&type_name)));
+            }
+        }
+    }
+
+    /// Whether the qualified type `path` names the concrete type `name`: it
+    /// starts at a package root, or it is `Object.Type` for a concrete type
+    /// a same-file object declares.
+    fn names_stable_type(&self, path: &str, name: &str) -> bool {
+        let mut segments = path.split('.');
+        let first = segments.next().unwrap_or_default();
+        PACKAGE_ROOTS.contains(&first)
+            || (segments.next() == Some(name)
+                && segments.next().is_none()
+                && self
+                    .object_types
+                    .contains(&(first.to_string(), name.to_string())))
+    }
+
     fn defs(&self, scope: Node, name: &str) -> Option<&[DefEntry]> {
         self.defs
             .get(&(scope.id(), name.to_string()))
@@ -307,34 +378,35 @@ impl ReturnTypeIndex {
 }
 
 /// The return type every def in `entries` agrees on, when one of them
-/// accepts `applied_lists` argument lists.
-fn agreed_return(entries: &[DefEntry], applied_lists: usize) -> Option<TypeShape> {
+/// accepts the `applied` argument lists.
+fn agreed_return(entries: &[DefEntry], applied: &[bool]) -> Option<TypeShape> {
     let first = entries.first()?.shape.as_ref()?;
     let agreed = entries
         .iter()
         .all(|entry| entry.shape.as_ref() == Some(first))
-        && entries.iter().any(|entry| entry.accepts(applied_lists));
+        && entries.iter().any(|entry| entry.accepts(applied));
     agreed.then(|| first.clone())
 }
 
 impl ReturnTypeIndex {
     fn def_entry(&self, base: &BaseExtractor, def: Node) -> DefEntry {
-        let lists: Vec<Node> = def
+        let lists = def
             .children(&mut def.walk())
             .filter(|child| child.kind() == "parameters")
+            .map(|list| {
+                if has_token(list, "using") {
+                    ParamList::Using
+                } else if has_token(list, "implicit") {
+                    ParamList::Implicit
+                } else {
+                    ParamList::Explicit
+                }
+            })
             .collect();
-        let explicit_lists = lists
-            .iter()
-            .filter(|list| !has_token(**list, "implicit") && !has_token(**list, "using"))
-            .count();
         let shape = def
             .child_by_field_name("return_type")
             .and_then(|return_type| self.type_shape(base, def, return_type, 0));
-        DefEntry {
-            explicit_lists,
-            total_lists: lists.len(),
-            shape,
-        }
+        DefEntry { lists, shape }
     }
 
     /// Whether the unqualified type `name` written in `def` names a concrete
@@ -404,7 +476,13 @@ impl ReturnTypeIndex {
         let path: String = base.get_node_text(&path_node).split_whitespace().collect();
         let name = base_type_name_node(node)
             .map(|name| base.get_node_text(&name))
-            .filter(|name| *name != path || self.names_concrete_type(base, def, name));
+            .filter(|name| {
+                if *name == path {
+                    self.names_concrete_type(base, def, name)
+                } else {
+                    self.names_stable_type(&path, name)
+                }
+            });
         let arguments = node
             .child_by_field_name("type_arguments")
             .filter(|_| is_generic);
@@ -476,6 +554,9 @@ enum Term<'a, 'tree> {
     Value,
     /// An enclosing template may inherit a member of this name.
     MaybeInherited,
+    /// A template that may inherit more overloads declares its own defs of
+    /// this name, which hide any outer class of the name.
+    InheritableDefs,
     Unbound,
 }
 
@@ -493,21 +574,26 @@ impl InitializerScope<'_> {
             "parenthesized_expression" => {
                 self.shape_of(value.named_child(0)?, child_tree_depth(depth)?)
             }
-            "identifier" => self.term_call(value, 0),
-            "field_expression" => self.member_call(value, 0, depth),
+            "identifier" => self.term_call(value, &[]),
+            "field_expression" => self.member_call(value, &[], depth),
             "call_expression" | "generic_function" => {
                 let mut callee = value;
-                let mut applied_lists = 0;
+                let mut applied = Vec::new();
                 while callee.kind() == "call_expression" {
-                    applied_lists += 1;
+                    applied.push(
+                        callee
+                            .child_by_field_name("arguments")
+                            .is_some_and(|arguments| has_token(arguments, "using")),
+                    );
                     callee = callee.child_by_field_name("function")?;
                 }
+                applied.reverse();
                 if callee.kind() == "generic_function" {
                     callee = callee.child_by_field_name("function")?;
                 }
                 match callee.kind() {
-                    "identifier" => self.term_call(callee, applied_lists),
-                    "field_expression" => self.member_call(callee, applied_lists, depth),
+                    "identifier" => self.term_call(callee, &applied),
+                    "field_expression" => self.member_call(callee, &applied, depth),
                     _ => None,
                 }
             }
@@ -516,31 +602,31 @@ impl InitializerScope<'_> {
     }
 
     /// `name`, `name(..)`, or a companion `Name(..)`.
-    fn term_call(&self, callee: Node, applied_lists: usize) -> Option<TypeShape> {
+    fn term_call(&self, callee: Node, applied: &[bool]) -> Option<TypeShape> {
         let name = self.base.get_node_text(&callee);
         let term = self.lookup_term(callee, &name);
         if let Term::Defs(entries) = term {
-            return agreed_return(entries, applied_lists);
+            return agreed_return(entries, applied);
         }
-        if applied_lists == 0 {
+        if applied.is_empty() {
             return None;
         }
         match term {
-            Term::Object(object) => self.object_member(object, "apply", applied_lists),
+            Term::Object(object) => self.object_member(object, "apply", applied),
             Term::CaseClass => Some(TypeShape::of_class(&name)),
             Term::MaybeInherited | Term::Unbound => self
                 .index
                 .classes
                 .contains(&name)
                 .then(|| TypeShape::of_class(&name)),
-            Term::Defs(_) | Term::Value => None,
+            Term::Defs(_) | Term::Value | Term::InheritableDefs => None,
         }
     }
 
-    /// `Object.member` with `applied_lists` argument lists. `apply` of a
+    /// `Object.member` with the `applied` argument lists. `apply` of a
     /// companion falls back to the class constructor, and a case class
     /// companion's `apply` must return the class, as its synthetic one does.
-    fn object_member(&self, object: Node, member: &str, applied_lists: usize) -> Option<TypeShape> {
+    fn object_member(&self, object: Node, member: &str, applied: &[bool]) -> Option<TypeShape> {
         let synthetic = member != "apply" && companion_synthesizes(self.base, object, member);
         if synthetic || inherits_structurally(object, member) {
             return None;
@@ -549,24 +635,24 @@ impl InitializerScope<'_> {
             .child_by_field_name("body")
             .and_then(|body| self.index.defs(body, member));
         if member != "apply" {
-            return agreed_return(own?, applied_lists);
+            return agreed_return(own?, applied);
         }
         let name = self
             .base
             .get_node_text(&object.child_by_field_name("name")?);
         match own {
-            Some(entries) => agreed_return(entries, applied_lists).filter(|shape| {
+            Some(entries) => agreed_return(entries, applied).filter(|shape| {
                 !self.index.case_classes.contains(&name)
                     || shape.name.as_deref() == Some(name.as_str())
             }),
-            None => (applied_lists > 0 && self.index.classes.contains(&name))
+            None => (!applied.is_empty() && self.index.classes.contains(&name))
                 .then(|| TypeShape::of_class(&name)),
         }
     }
 
-    /// `this.m`, `Object.m`, or `<expr>.get`, each with `applied_lists`
+    /// `this.m`, `Object.m`, or `<expr>.get`, each with the `applied`
     /// argument lists.
-    fn member_call(&self, callee: Node, applied_lists: usize, depth: u32) -> Option<TypeShape> {
+    fn member_call(&self, callee: Node, applied: &[bool], depth: u32) -> Option<TypeShape> {
         let receiver = callee.child_by_field_name("value")?;
         let member = self
             .base
@@ -583,15 +669,15 @@ impl InitializerScope<'_> {
         };
         if let Some(template) = receiver_template {
             if template.kind() == "object_definition" {
-                return self.object_member(template, &member, applied_lists);
+                return self.object_member(template, &member, applied);
             }
             if may_inherit(self.base, template, &member) {
                 return None;
             }
             let body = template.child_by_field_name("body")?;
-            return agreed_return(self.index.defs(body, &member)?, applied_lists);
+            return agreed_return(self.index.defs(body, &member)?, applied);
         }
-        if member == "get" && applied_lists == 0 {
+        if member == "get" && applied.is_empty() {
             return self
                 .shape_of(receiver, child_tree_depth(depth)?)?
                 .got(self.index);
@@ -620,7 +706,7 @@ impl InitializerScope<'_> {
                         .is_some_and(|template| may_inherit(self.base, template, name)));
             let found = if let Some(entries) = self.index.defs(scope, name) {
                 Some(if inherits {
-                    Term::MaybeInherited
+                    Term::InheritableDefs
                 } else {
                     Term::Defs(entries)
                 })

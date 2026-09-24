@@ -44,8 +44,12 @@ Scala uses `tree-sitter-scala`. The extractor reads `.scala`, `.sc`, and
   reference of a same-file `def` with a declared return type. The `def` can
   be local, top-level, a member of an enclosing class, object, or trait
   (`load()`, `this.load()`), or an object member (`Repo.create()`,
-  `Repo.current`). The call must supply the def's explicit parameter lists,
-  or all of them with its `implicit`/`using` list.
+  `Repo.current`). The call must supply each explicit parameter list, in
+  order, and nothing more. A Scala 2 `implicit` list takes a plain argument
+  list or none. A Scala 3 `using` list takes only a `(using ..)` argument
+  list or none, because a plain list skips it: `load()(c)` for
+  `def load()(using c: Ctx): Out` applies `c` to the `Out` result and
+  records nothing.
 - `Name(..)` uses the `apply` methods of the same-file object `Name` when it
   declares any, and `Obj.apply(..)` follows the same rule. For a case class
   the result must be `Name`, because the synthetic `apply` returns `Name`. A
@@ -71,9 +75,17 @@ Scala uses `tree-sitter-scala`. The extractor reads `.scala`, `.sc`, and
   inherited abstract type member can have that name. The exception is a
   name that the file declares as a class, trait, enum, or type alias and
   never as an abstract type member.
+- A qualified return type records a fact only when its path starts with
+  `_root_`, `scala`, `java`, or `javax`, or when it is `Obj.T` for a class,
+  trait, enum, or type alias `T` that a same-file object `Obj` declares.
+  Any other prefix can be a value, so `r.Out` or `this.Out` can name an
+  abstract type member and records nothing. A return type qualified by
+  another package, such as `com.acme.Workspace`, also records nothing,
+  because one file cannot tell a package prefix from a value prefix.
 - A class, object, or trait that can inherit records no fact for that
   name, even when it declares its own defs of the name: an inherited
-  overload can be the one the call selects. A template can inherit when it
+  overload can be the one the call selects. Those own defs also hide an
+  outer class of the name, so `Node(1)` there records nothing. A template can inherit when it
   has an `extends` clause, a self type, an `export` clause, or a `case`
   modifier, or when it is an anonymous class or an enum or given body. The
   rule also applies to `Any` members such as `toString`, to a top-level

@@ -636,3 +636,107 @@ class Plain {
     assert_eq!(inferred(source, "w"), workspace());
     assert_eq!(inferred(source, "p"), Some(("Out".to_string(), true)));
 }
+
+#[test]
+fn plain_argument_lists_do_not_fill_a_using_list() {
+    let source = r#"
+class Ctx
+class Out { def apply(c: Ctx): Int = 1 }
+object A {
+  def load()(using c: Ctx): Out = new Out
+  def cur(using c: Ctx): Out = new Out
+  def first(using c: Ctx)(id: Int): Out = new Out
+  def run(c: Ctx) = {
+    val plainAfterEmpty = load()(c)
+    val plainForUsing = cur(c)
+    val explicitUsing = load()(using c)
+    val summoned = load()
+    val bareUsing = cur
+    val usingThenPlain = first(1)
+    val bothLists = first(using c)(1)
+    val usingForExplicit = first(using c)(using c)
+  }
+}
+object Repo2 {
+  def create()(using c: Ctx): Out = ???
+  val objUsing = Repo2.create()(ctx)
+  val objExplicitUsing = Repo2.create()(using ctx)
+}
+"#;
+    let out = Some(("Out".to_string(), true));
+    assert_eq!(inferred(source, "plainAfterEmpty"), None);
+    assert_eq!(inferred(source, "plainForUsing"), None);
+    assert_eq!(inferred(source, "objUsing"), None);
+    assert_eq!(inferred(source, "usingForExplicit"), None);
+    assert_eq!(inferred(source, "explicitUsing"), out);
+    assert_eq!(inferred(source, "summoned"), out);
+    assert_eq!(inferred(source, "bareUsing"), out);
+    assert_eq!(inferred(source, "usingThenPlain"), out);
+    assert_eq!(inferred(source, "bothLists"), out);
+    assert_eq!(inferred(source, "objExplicitUsing"), out);
+}
+
+#[test]
+fn path_dependent_return_types_record_nothing() {
+    let source = r#"
+class Out
+trait Repo { type Out }
+object U {
+  def open(r: Repo): r.Out = ???
+  def run(repo: Repo) = { val depPath = open(repo) }
+}
+class C2 {
+  type Out
+  def load(): this.Out = ???
+  val thisAbstract = load()
+}
+object Store { class Out; type Alias }
+object Use {
+  def fromObject(): Store.Out = ???
+  def fromAlias(): Store.Alias = ???
+  def fromJava(): java.util.UUID = ???
+  val objectType = fromObject()
+  val abstractAlias = fromAlias()
+  val javaType = fromJava()
+}
+"#;
+    assert_eq!(inferred(source, "depPath"), None);
+    assert_eq!(inferred(source, "thisAbstract"), None);
+    assert_eq!(inferred(source, "abstractAlias"), None);
+    assert_eq!(
+        inferred(source, "objectType"),
+        Some(("Out".to_string(), true))
+    );
+    assert_eq!(
+        inferred(source, "javaType"),
+        Some(("UUID".to_string(), true))
+    );
+}
+
+#[test]
+fn own_def_of_an_inheriting_template_hides_a_same_named_class() {
+    let source = r#"
+class Tree
+class Session
+class Base
+case class Node(x: Int)
+class Leaf(x: Int)
+object CaseDsl extends Base {
+  def Node(x: Int): Session = ???
+  val caseDsl = Node(1)
+}
+object PlainDsl extends Base {
+  def Leaf(x: Int): Tree = ???
+  val dslLeaf = Leaf(1)
+}
+object Inheriting extends Base {
+  val inheritedClass = Leaf(2)
+}
+"#;
+    assert_eq!(inferred(source, "caseDsl"), None);
+    assert_eq!(inferred(source, "dslLeaf"), None);
+    assert_eq!(
+        inferred(source, "inheritedClass"),
+        Some(("Leaf".to_string(), true))
+    );
+}
