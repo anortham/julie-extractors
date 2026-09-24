@@ -34,10 +34,22 @@ types.
   annotation. No fact is recorded for a generic parameter (`---@generic`,
   `---@class Name<T>`), `any`, `unknown`, a non-name type such as `Foo[]`,
   or a function with `---@overload`.
+- Lexical scope must match. The free name, or the root name of the owner
+  (`M` in `M.load()`, `a` in `a.b.load()`), must resolve at the call to the
+  same declaration as at the function definition: the same `local`, local
+  function, parameter, or loop variable, or the global name on both sides. A
+  `local function` is visible only inside its block and after its
+  declaration, so a call outside that range records no fact.
 - A free name that the file also binds as a variable, parameter, or import,
-  an owner name bound more than once, an explicit `self` parameter or local,
-  a call on any other receiver, and a chain that ends in another call or field
-  record no fact. Only the first return value is bound: in
+  an owner name bound more than once, an owner path that the file assigns
+  a second time (`M = require("other")` after `local M = {}`), a member that
+  the file also assigns a value that is not a function
+  (`M.get = memoize(M.get)`), an explicit `self` parameter or local, a call
+  on any other receiver, and a chain that ends in another call or field
+  record no fact.
+- Spaces around `|` do not end a type: `---@return Foo | Bar` records nothing
+  and `---@return Foo | nil` records `Foo`. The literal types `true` and
+  `false` record no inferred fact. Only the first return value is bound: in
   `local a, b = load()`, `b` gets no fact.
 - Callees in other files record no fact, because each file is extracted
   alone.

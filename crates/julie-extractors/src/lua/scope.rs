@@ -47,6 +47,33 @@ pub(super) fn is_local_binding_in_scope(base: &BaseExtractor, node: Node, name: 
     false
 }
 
+/// The innermost declaration that binds `name` at `node`: a `local`, a
+/// `local function` (also inside its own body), a parameter list, or a loop
+/// clause. `None` means `name` is global at `node`.
+pub(super) fn innermost_local_binding<'tree>(
+    base: &BaseExtractor,
+    node: Node<'tree>,
+    name: &str,
+) -> Option<Node<'tree>> {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        let mut cursor = parent.walk();
+        let declaration = parent
+            .children(&mut cursor)
+            .take_while(|sibling| sibling.start_byte() < current.start_byte())
+            .filter(|sibling| declares_local(base, *sibling, name))
+            .last();
+        if declaration.is_some() {
+            return declaration;
+        }
+        if parent.kind() == "function_declaration" && declares_local(base, parent, name) {
+            return Some(parent);
+        }
+        current = parent;
+    }
+    None
+}
+
 fn declares_local(base: &BaseExtractor, node: Node, name: &str) -> bool {
     match node.kind() {
         "variable_declaration" => {

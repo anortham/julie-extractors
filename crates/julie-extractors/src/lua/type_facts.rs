@@ -178,8 +178,10 @@ struct InitializerScope {
 
 impl InitializerScope {
     /// The annotated return type of a call to a same-file function: `load()`,
-    /// `M.load()`, `M:load()`, or `self:load()` / `self.load()` inside a colon
-    /// method of `M` where `self` is not a declared parameter or local. A free
+    /// `M.load()`, `M:load()`, `a.b.load()`, or `self:load()` / `self.load()`
+    /// inside a colon method of `M` where `self` is not a declared parameter or
+    /// local. The free name or the owner's root name must resolve to the same
+    /// declaration (or to the global) as at the function's definition. A free
     /// name that the file also binds as a variable, parameter, or import records
     /// nothing, as does an owner bound more than once.
     fn call_return_type(&self, base: &BaseExtractor, expression: Node) -> Option<&ReturnType> {
@@ -187,39 +189,64 @@ impl InitializerScope {
             return None;
         }
         let callee = expression.child_by_field_name("name")?;
-        let member_field = match callee.kind() {
+        let (name, owner, root) = match callee.kind() {
             "identifier" => {
                 let name = base.get_node_text(&callee);
                 if self.bindings.contains_key(&name) {
                     return None;
                 }
-                return self.return_types.lookup(&name, None);
+                (name, None, callee)
             }
-            "dot_index_expression" => "field",
-            "method_index_expression" => "method",
-            _ => return None,
-        };
-        let member = base.get_node_text(&callee.child_by_field_name(member_field)?);
-        let table = callee.child_by_field_name("table")?;
-        let owner = match table.kind() {
-            "identifier" if base.get_node_text(&table) == "self" => {
-                if scope::is_local_binding_in_scope(base, table, "self") {
+            "dot_index_expression" | "method_index_expression" => {
+                let member_field = if callee.kind() == "dot_index_expression" {
+                    "field"
+                } else {
+                    "method"
+                };
+                let member = base.get_node_text(&callee.child_by_field_name(member_field)?);
+                let table = callee.child_by_field_name("table")?;
+                let owner_table =
+                    if table.kind() == "identifier" && base.get_node_text(&table) == "self" {
+                        if scope::is_local_binding_in_scope(base, table, "self") {
+                            return None;
+                        }
+                        scope::enclosing_colon_owner_table(table)?
+                    } else {
+                        table
+                    };
+                let root = owner_root(owner_table)?;
+                let root_name = base.get_node_text(&root);
+                if root_name == "self"
+                    || self
+                        .bindings
+                        .get(&root_name)
+                        .is_some_and(|count| *count > 1)
+                {
                     return None;
                 }
-                base.get_node_text(&scope::enclosing_colon_owner_table(table)?)
+                (member, Some(base.get_node_text(&owner_table)), root)
             }
-            "identifier" => {
-                let owner = base.get_node_text(&table);
-                if self.bindings.get(&owner).is_some_and(|count| *count > 1) {
-                    return None;
-                }
-                owner
-            }
-            "dot_index_expression" => base.get_node_text(&table),
             _ => return None,
         };
-        self.return_types.lookup(&member, Some(&owner))
+        let binding = root_binding(base, root);
+        self.return_types.lookup(&name, owner.as_deref(), binding)
     }
+}
+
+/// The identifier at the root of an `a.b.c` owner table.
+fn owner_root(table: Node) -> Option<Node> {
+    match table.kind() {
+        "identifier" => Some(table),
+        "dot_index_expression" => owner_root(table.child_by_field_name("table")?),
+        _ => None,
+    }
+}
+
+/// Start byte of the declaration that binds the identifier `root` where it
+/// appears; `None` when it is global there.
+fn root_binding(base: &BaseExtractor, root: Node) -> Option<usize> {
+    scope::innermost_local_binding(base, root, &base.get_node_text(&root))
+        .map(|declaration| declaration.start_byte())
 }
 
 /// How many variable, parameter, import, and class symbols bind each name.
@@ -273,15 +300,23 @@ struct ReturnType {
     declared: String,
 }
 
-/// Annotated return types of the file's functions, keyed by name.
+/// Annotated return types of the file's functions, keyed by name, and the
+/// assignment sites that give a name a value that is not a function.
 #[derive(Debug, Default)]
-struct ReturnTypeIndex(HashMap<String, Vec<ReturnEntry>>);
+struct ReturnTypeIndex {
+    entries: HashMap<String, Vec<ReturnEntry>>,
+    /// Keyed by target text: `M`, `M.get`.
+    value_sites: HashMap<String, usize>,
+}
 
 #[derive(Debug)]
 struct ReturnEntry {
     /// The table text of `function M.name` / `function M:name` / `M.name = function`;
     /// `None` for a free function.
     owner: Option<String>,
+    /// Start byte of the declaration that binds the free name, or the owner's
+    /// root name, at the definition; `None` when that name is global.
+    binding: Option<usize>,
     /// `None` when the function has no usable `---@return` annotation.
     returns: Option<ReturnType>,
 }
@@ -307,10 +342,21 @@ impl ReturnTypeIndex {
             "function_declaration" | "function_definition_statement" => {
                 if let Some(target) = node.child_by_field_name("name") {
                     let doc = helpers::doc_comment(base, &node);
-                    self.insert(base, target, doc.as_deref(), generics);
+                    self.insert(base, target, None, doc.as_deref(), generics);
                 }
             }
-            "assignment_statement" => self.collect_function_values(base, node, generics),
+            "variable_declaration"
+                if helpers::find_child_by_type(&node, "assignment_statement").is_none() =>
+            {
+                if let Some(variable_list) = helpers::find_child_by_type(&node, "variable_list") {
+                    for target in
+                        variable_list.children_by_field_name("name", &mut variable_list.walk())
+                    {
+                        self.add_value_site(base, target);
+                    }
+                }
+            }
+            "assignment_statement" => self.collect_assignment(base, node, generics),
             _ => {}
         }
         let Some(child_depth) = child_tree_depth(depth) else {
@@ -322,9 +368,10 @@ impl ReturnTypeIndex {
         }
     }
 
-    /// Index `name = function ... end` targets; the doc comment applies only
-    /// when the statement binds exactly one name.
-    fn collect_function_values(
+    /// Index `name = function ... end` targets and count every other target
+    /// as a value site; the doc comment applies only when the statement binds
+    /// exactly one name.
+    fn collect_assignment(
         &mut self,
         base: &BaseExtractor,
         assignment: Node,
@@ -339,29 +386,42 @@ impl ReturnTypeIndex {
         let expressions: Vec<Node> = helpers::find_child_by_type(&assignment, "expression_list")
             .map(super::variables::collect_expression_nodes)
             .unwrap_or_default();
-        let statement = assignment
+        let declaration = assignment
             .parent()
-            .filter(|parent| parent.kind() == "variable_declaration")
-            .unwrap_or(assignment);
+            .filter(|parent| parent.kind() == "variable_declaration");
         let doc = (targets.len() == 1)
-            .then(|| helpers::doc_comment(base, &statement))
+            .then(|| helpers::doc_comment(base, &declaration.unwrap_or(assignment)))
             .flatten();
-        for (target, expression) in targets.into_iter().zip(expressions) {
-            if expression.kind() == "function_definition" {
-                self.insert(base, target, doc.as_deref(), generics);
+        for (index, target) in targets.into_iter().enumerate() {
+            if expressions
+                .get(index)
+                .is_some_and(|expression| expression.kind() == "function_definition")
+            {
+                self.insert(base, target, declaration, doc.as_deref(), generics);
+            } else {
+                self.add_value_site(base, target);
             }
         }
     }
 
+    fn add_value_site(&mut self, base: &BaseExtractor, target: Node) {
+        *self
+            .value_sites
+            .entry(base.get_node_text(&target))
+            .or_insert(0) += 1;
+    }
+
+    /// `declaration` is the `local` statement that declares an identifier target.
     fn insert(
         &mut self,
         base: &BaseExtractor,
         target: Node,
+        declaration: Option<Node>,
         doc: Option<&str>,
         generics: &HashSet<String>,
     ) {
-        let (name, owner) = match target.kind() {
-            "identifier" => (base.get_node_text(&target), None),
+        let (name, owner, root) = match target.kind() {
+            "identifier" => (base.get_node_text(&target), None, target),
             "dot_index_expression" | "method_index_expression" => {
                 let member_field = if target.kind() == "dot_index_expression" {
                     "field"
@@ -374,27 +434,56 @@ impl ReturnTypeIndex {
                 let Some(table) = target.child_by_field_name("table") else {
                     return;
                 };
+                let Some(root) = owner_root(table) else {
+                    return;
+                };
                 (
                     base.get_node_text(&member),
                     Some(base.get_node_text(&table)),
+                    root,
                 )
             }
             _ => return,
         };
+        let binding = match declaration {
+            Some(declaration) if owner.is_none() => Some(declaration.start_byte()),
+            _ => root_binding(base, root),
+        };
         let returns = doc.and_then(|doc| declared_return(doc, owner.as_deref(), generics));
-        self.0
-            .entry(name)
-            .or_default()
-            .push(ReturnEntry { owner, returns });
+        self.entries.entry(name).or_default().push(ReturnEntry {
+            owner,
+            binding,
+            returns,
+        });
     }
 
-    /// The return type every same-named function with this owner agrees on.
-    fn lookup(&self, name: &str, owner: Option<&str>) -> Option<&ReturnType> {
+    /// The return type every same-named function with this owner and root
+    /// binding agrees on. A target or owner path that the file also assigns
+    /// a non-function value (more than the one owner table) records nothing.
+    fn lookup(
+        &self,
+        name: &str,
+        owner: Option<&str>,
+        binding: Option<usize>,
+    ) -> Option<&ReturnType> {
+        let target = owner.map_or_else(|| name.to_string(), |owner| format!("{owner}.{name}"));
+        if self.value_sites.contains_key(&target) {
+            return None;
+        }
+        if let Some(owner) = owner {
+            let mut paths = owner
+                .match_indices('.')
+                .map(|(end, _)| &owner[..end])
+                .chain(std::iter::once(owner));
+            if paths.any(|path| self.value_sites.get(path).is_some_and(|count| *count > 1)) {
+                return None;
+            }
+        }
         let mut returns = self
-            .0
+            .entries
             .get(name)?
             .iter()
-            .filter(|entry| entry.owner.as_deref() == owner)
+            .filter(|entry| entry.owner.as_deref() == owner && entry.binding == binding)
             .map(|entry| entry.returns.as_ref());
         let first = returns.next()??;
         returns.all(|other| other == Some(first)).then_some(first)
@@ -422,7 +511,7 @@ fn declared_return(
     let name = strip_type_decorations(base_text, &ANNOTATION_TYPE_RULES);
     let name = match name.as_str() {
         "self" => owner?.rsplit('.').next()?.to_string(),
-        "any" | "unknown" => return None,
+        "any" | "unknown" | "true" | "false" => return None,
         _ if generics.contains(&name) => return None,
         _ => name,
     };
@@ -553,7 +642,8 @@ fn annotation_tags(doc: &str) -> impl Iterator<Item = (&str, &str)> {
 }
 
 /// The type expression at the start of `text`: brackets and parentheses nest,
-/// and the first top-level whitespace (or `#` comment marker) ends it.
+/// whitespace around a top-level `|`, `,`, or `:` stays inside it, and the
+/// first other top-level whitespace (or `#` comment marker) ends it.
 fn leading_type(text: &str) -> Option<&str> {
     let mut depth = 0i32;
     for (index, ch) in text.char_indices() {
@@ -562,7 +652,9 @@ fn leading_type(text: &str) -> Option<&str> {
             ')' | '>' | ']' | '}' => depth -= 1,
             '#' if depth == 0 => return non_empty(&text[..index]),
             c if c.is_whitespace() && depth == 0 => {
-                if text[..index].ends_with(',') || text[..index].ends_with(':') {
+                if text[..index].trim_end().ends_with([',', ':', '|'])
+                    || text[index..].trim_start().starts_with('|')
+                {
                     continue;
                 }
                 return non_empty(&text[..index]);

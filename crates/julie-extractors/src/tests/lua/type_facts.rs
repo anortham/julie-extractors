@@ -529,3 +529,131 @@ end
     assert_no_fact(source, "config");
     assert_no_fact(source, "session");
 }
+
+#[test]
+fn local_function_outside_its_scope_at_the_call_site_records_no_fact() {
+    let source = r#"
+local function outer()
+  ---@return Foo
+  local function helper() end
+  local inner = helper()
+  return helper()
+end
+local function other()
+  local h1 = helper()
+end
+local function run()
+  local k1 = load()
+end
+---@return Config
+local function load() end
+if ready then
+  ---@return Session
+  local function open() end
+end
+local k3 = open()
+"#;
+    assert_inferred(source, "inner", "Foo");
+    for name in ["h1", "k1", "k3"] {
+        assert_no_fact(source, name);
+    }
+}
+
+#[test]
+fn recursive_call_inside_a_local_function_uses_the_local_function() {
+    let source = r#"
+---@return Config
+function walk() end
+---@return Node
+local function walk()
+  local next = walk()
+end
+"#;
+    assert_inferred(source, "next", "Node");
+}
+
+#[test]
+fn loop_variables_and_parameters_that_shadow_the_callee_record_no_fact() {
+    let source = r#"
+local M = {}
+---@return Config
+function M.load() end
+for _, M in ipairs(mods) do local h2 = M.load() end
+---@return Config
+local function make() end
+for _, make in ipairs(fns) do local h3 = make() end
+for make = 1, 3 do local h10 = make() end
+local app = { config = {} }
+---@return Config
+function app.config.load() end
+for k, app in pairs(apps) do local h9 = app.config.load() end
+local nested = app.config.load()
+local counted = make()
+"#;
+    for name in ["h2", "h3", "h10", "h9"] {
+        assert_no_fact(source, name);
+    }
+    assert_inferred(source, "nested", "Config");
+    assert_inferred(source, "counted", "Config");
+}
+
+#[test]
+fn parameter_that_shadows_a_nested_owner_root_records_no_fact() {
+    let source = r#"
+local app = { config = {} }
+---@return Config
+function app.config.load() end
+local function f(app) local h8 = app.config.load() end
+"#;
+    assert_no_fact(source, "h8");
+}
+
+#[test]
+fn owner_reassigned_by_a_plain_assignment_records_no_fact() {
+    let source = r#"
+local M = {}
+---@return Config
+function M.open() end
+local function reset()
+  M = require("other")
+  local k2 = M.open()
+end
+"#;
+    assert_no_fact(source, "k2");
+}
+
+#[test]
+fn spaced_union_returns_keep_the_whole_union() {
+    let source = r#"
+---@return Foo | Bar
+local function either() end
+---@return Foo | nil
+local function maybe() end
+local h4 = either()
+local found = maybe()
+"#;
+    assert_no_fact(source, "h4");
+    assert_inferred(source, "found", "Foo");
+    let (symbols, extractor) = extract(source);
+    no_fact(&extractor, &symbols, "either", SymbolKind::Function);
+}
+
+#[test]
+fn reassigned_member_and_literal_returns_record_no_fact() {
+    let source = r#"
+local M = {}
+---@return Config
+function M.get() end
+M.get = memoize(M.get)
+local h6 = M.get()
+---@return true
+local function yes() end
+---@return false
+local function no() end
+local h7 = yes()
+local h11 = no()
+"#;
+    for name in ["h6", "h7", "h11"] {
+        assert_no_fact(source, name);
+    }
+}
