@@ -367,7 +367,12 @@ pub(super) fn extract_variable(
             ..Default::default()
         },
     );
-    super::type_facts::record_variable_type_facts(extractor.base_mut(), &symbol.id, node);
+    super::type_facts::record_variable_type_facts(
+        &mut extractor.base,
+        &symbol.id,
+        node,
+        &extractor.return_types,
+    );
     Some(symbol)
 }
 

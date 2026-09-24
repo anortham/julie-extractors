@@ -36,9 +36,18 @@ pub(super) fn unquote_atom(text: &str) -> String {
     text.trim().trim_matches('\'').to_string()
 }
 
+/// The arguments an `expr_args` or `var_args` node carries. The grammar
+/// emits a comment inside the parentheses as a named child too.
+pub(super) fn arguments<'a>(args: &Node<'a>) -> Vec<Node<'a>> {
+    let mut cursor = args.walk();
+    args.named_children(&mut cursor)
+        .filter(|child| child.kind() != "comment")
+        .collect()
+}
+
 /// Number of arguments carried by an `expr_args` or `var_args` node.
 pub(super) fn arg_count(args: &Node) -> u32 {
-    named_children(args).len() as u32
+    arguments(args).len() as u32
 }
 
 /// `fa` nodes (`open/1`) appear inside `-export` and `-export_type` lists.

@@ -2405,6 +2405,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:title:23:6",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "vue",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/vue/basic/source.vue:total:40:8",
       "resolved_type": "number",
       "generic_params": null,

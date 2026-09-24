@@ -29,7 +29,7 @@ use crate::base::{
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use regex::Regex;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::LazyLock;
 use tree_sitter::{Node, Tree};
 
@@ -48,7 +48,7 @@ struct Scope {
 
 pub struct GDScriptExtractor {
     pub(crate) base: BaseExtractor,
-    same_file_class_names: HashSet<String>,
+    same_file_types: type_facts::SameFileTypes,
 }
 
 impl GDScriptExtractor {
@@ -60,14 +60,14 @@ impl GDScriptExtractor {
     ) -> Self {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
-            same_file_class_names: HashSet::new(),
+            same_file_types: type_facts::SameFileTypes::default(),
         }
     }
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
         let root_node = tree.root_node();
-        self.same_file_class_names = type_facts::collect_class_names(&self.base, root_node);
+        self.same_file_types = type_facts::SameFileTypes::build(&self.base, root_node);
 
         let script_classes = classes::extract_script_classes(&mut self.base, root_node);
         let class_starts: Vec<(u32, String)> = script_classes
@@ -195,12 +195,9 @@ impl GDScriptExtractor {
             "variable_statement"
             | "export_variable_statement"
             | "onready_variable_statement"
-            | "const_statement" => variables::extract_variable(
-                &mut self.base,
-                node,
-                parent_id,
-                &self.same_file_class_names,
-            ),
+            | "const_statement" => {
+                variables::extract_variable(&mut self.base, node, parent_id, &self.same_file_types)
+            }
             "enum_definition" => {
                 symbols.extend(enums::extract_enum(&mut self.base, node, parent_id));
                 return;

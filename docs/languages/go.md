@@ -123,9 +123,32 @@ an enclosing test symbol remain unclassified.
   declaration, with no blank line between. `//go:` directives are removed from
   the doc and become annotations. A single-spec `var`, `const`, or `type`
   takes the comment above its keyword.
-- Declared return types are declared type facts. A `var`/`:=` binding from a
-  composite literal, `new(T)`, or a same-file call records an inferred type
-  fact, per result position for multi-value calls.
+- Declared return types are declared type facts. A `var`/`:=` binding with no
+  written type records an inferred type fact from its initializer: a composite
+  literal (`T{}`, `&T{}`), `new(T)`, or a call with a declared named result
+  type to a same-file function (`load()`, `NewSet[string]()`), to a same-file
+  method on the enclosing method's receiver (`s.config()` inside
+  `func (s *Server) ...`), or to a same-file method on a same-file composite
+  literal (`(&Parser{}).parse()`). Multi-value calls record per result
+  position (`store, err := s.Load()` types `store` only). Same-named
+  candidates must agree. A result whose type arguments name a type parameter
+  (`*Stack[T]`, `Box[[]T]`) records only its base name (`Stack`, `Box`) with
+  no declared text, because the call site binds `T` (`(&Stack[int]{}).Clone()`
+  is a `*Stack[int]`). These record no fact:
+  - a predeclared or unnamed result, or a result that is a type parameter
+    (`T`, `*T`);
+  - a receiver name that the method body declares again, as a variable,
+    parameter, or local type (`type s = Other`);
+  - a function name (including the `new` builtin) or composite literal type
+    name that the enclosing top-level declaration declares again (a local
+    `load := func() ...` or `load := []func() ...` called as `load[0]()`, a
+    `load` parameter, a local `type Server struct{...}`, or a type parameter such as `load` in
+    `func Conv[load ~int]` or `func (n *Num[load]) ...`);
+  - a method that the receiver type gets from an embedded field
+    (`w.cfg()` where `cfg` is declared on the embedded `Base`);
+  - a method expression (`Server.config(s)`, `(*Server).Load(srv)`), a method
+    call on any other value or on a call result, and a callee in another
+    file. Other files are out of scope because each file is extracted alone.
 - `for k, v := range x` and `switch v := x.(type)` bindings are local
   variables. A range binding over a typed parameter or local records the key or
   element type as an inferred fact.

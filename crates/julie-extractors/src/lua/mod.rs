@@ -68,7 +68,7 @@ impl LuaExtractor {
         classes::detect_lua_classes(&mut self.symbols);
         test_calls::mark_luaunit_test_containers(&self.base, &mut self.symbols);
         type_facts::record_annotation_facts(&mut self.base, &self.symbols);
-        type_facts::record_inferred_constructor_facts(
+        type_facts::record_inferred_initializer_facts(
             &mut self.base,
             tree.root_node(),
             &self.symbols,

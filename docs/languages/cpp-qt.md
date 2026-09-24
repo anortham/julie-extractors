@@ -229,6 +229,60 @@ never parsed before, and they apply to every C++ file.
   `X::operator==` an operator, and any other `X::m` a method. When the owner is
   defined in the file, the row is its child and takes the visibility of the
   in-class declaration. `int X::count = 0;` and `X::operator bool() {}` emit rows.
+- An `auto` variable (`auto`, `auto*`, `auto&`, `const auto&`,
+  `decltype(auto)`) gets an inferred type fact from its initializer: a
+  same-file class built by `Foo()` or `new Foo()`, or a call to a same-file
+  callable with a stated or trailing return type. Accepted callees are a free
+  function (`load()`), a member of the enclosing class (`load()`,
+  `this->load()`, `(*this).load()`), and a qualified member (`Type::create()`,
+  `ns::Type::create()`). Same-named candidates must agree on the base type.
+  Classes are matched by full identity (namespace path and enclosing classes),
+  so a same-named class in another namespace never answers. A qualifier
+  resolves from the call's scope outward and must name that exact same-file
+  class. A member of a union, of an unnamed class, or of a template
+  specialization is never taken for a free function. A class defined twice, or
+  `W<int>::create()` when the file specializes `W`, records no fact. A
+  using-declaration that brings a base-class overload of the name into the
+  class records no fact. An out-of-line method of a class defined in another
+  file sees only the members this file defines out of line with the same
+  qualifier in the same namespace; any other unqualified call there records no
+  fact. `std::unique_ptr<Foo>` and `std::optional<Foo>` stay as written. A
+  deduced return type, or one that names a template parameter anywhere (`T`,
+  `Box<T>`, `-> std::vector<T>`), records no fact. A call on any other
+  receiver or a chained call also records no fact. A same-file friend
+  function of the callee's name (a hidden friend or a friend declaration)
+  records no fact, since argument-dependent lookup may pick it. A `#define`
+  anywhere in the file of the callee name, a qualifier name, or a return type
+  name records no fact. A namespace alias counts as a declared name, so
+  `a::Maker::create()` where `namespace a = ::b;` is in scope records no
+  fact. Each first name the return type writes (`A` and `C` in
+  `A::Node<C>`) must mean the same entity at the call as at the callee:
+  a nested type or alias of the callee's class (`Node`, `Ptr`), a name a
+  nearer namespace or a local declaration at the call redeclares, or a name
+  that a class with an unseen base stops, records no fact. A name no
+  same-file scope declares passes only when the callee's namespace encloses
+  the call. Inside an out-of-line method of a class defined in another file,
+  a member's return type name therefore records no fact, and a primitive
+  return type (`int`) still does. A function declared in a block records no
+  fact. An
+  unqualified call records no fact when a parameter, template parameter,
+  lambda capture, or local declaration of an enclosing function or block binds
+  the same name. Inside a method, an unqualified call falls back to a free
+  function only when the class is defined once in the file at top level with
+  no base class and declares no member of that name (a field, a function
+  pointer, a type alias, a nested type, or an enumerator). A free function
+  must be declared in the call's namespace or an enclosing one, and the
+  innermost such namespace that declares the name decides; a non-function name
+  there, or a same-file function of that name in any other namespace, records
+  no fact. Anonymous and inline namespaces count as their enclosing namespace.
+  A structured binding (`auto [x] = f();`) records no type fact; each of its
+  names, also in `const auto& [a, b]`, gets a variable row. Plain `auto` drops
+  a reference from the declared text; `decltype(auto)` keeps it. Callees in
+  other files are out of scope because each file is extracted alone.
+- An unknown macro before a return type, such as
+  `JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json diff(...)`, makes the
+  parser report the macro as the type. That callable records no return type
+  fact, and `auto` calls to it record none.
 - `namespace a::b::c {}` emits one namespace row named `a::b::c`.
   `class Outer::Inner {}` emits a class row `Inner` under `Outer`, and a
   specialization `struct hash<Point> {}` emits a struct row `hash`.

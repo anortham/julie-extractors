@@ -7,7 +7,7 @@ use super::helpers;
 use super::type_facts;
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
 use serde_json::Value;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use tree_sitter::Node;
 
 /// Extract a Kotlin property declaration
@@ -16,7 +16,7 @@ pub(super) fn extract_property(
     node: &Node,
     parent_id: Option<&str>,
     parent_kind: Option<SymbolKind>,
-    type_names: &HashSet<String>,
+    initializer_index: &type_facts::InitializerIndex,
 ) -> Option<Symbol> {
     // Look for name in variable_declaration first (the proper place for property names)
     let mut name_node = None;
@@ -138,7 +138,7 @@ pub(super) fn extract_property(
             annotations,
         },
     );
-    type_facts::record_property_facts(base, &symbol.id, *node, type_names);
+    type_facts::record_property_facts(base, &symbol.id, *node, initializer_index);
     Some(symbol)
 }
 

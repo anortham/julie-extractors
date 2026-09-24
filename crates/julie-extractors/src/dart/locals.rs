@@ -75,14 +75,14 @@ fn extract_local(
     );
     if let Some(type_node) = type_node {
         type_facts::record_declared_type(&mut extractor.base, &symbol.id, type_node);
-    } else if let Some(value) = value
-        && let Some(class_name) = type_facts::inferred_constructor_name(
-            &extractor.base,
+    } else if let Some(value) = value {
+        type_facts::record_initializer_type(
+            &mut extractor.base,
+            &symbol.id,
             value,
+            &extractor.return_types,
             &extractor.same_file_type_names,
-        )
-    {
-        type_facts::record_constructor_fact(&mut extractor.base, &symbol.id, &class_name);
+        );
     }
     Some(symbol)
 }

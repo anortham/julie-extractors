@@ -171,6 +171,79 @@ enums, records, annotation types and record components, carries its
 annotations. Bodies come only from the grammar's `body` field, so abstract
 methods, annotation elements and locals have no body span.
 
+A `var` local or `var` try-with-resources binding gets an inferred type fact
+from its initializer:
+
+- `new Foo<..>(..)` records the constructed type `Foo`.
+- A call to a same-file method with a declared return type records that type.
+  An unqualified `load(..)` or `this.load(..)` resolves only in the innermost
+  named class, interface, enum, or record around the call. That type is
+  identified by its declaration, so a same-named nested or local class
+  elsewhere in the file never supplies the type.
+- `Type.create(..)` resolves only to `static` methods, and only when exactly
+  one type in the file is named `Type`, that type is in scope at the call
+  (top-level, a member of an enclosing type, or a local class declared
+  earlier in an enclosing block), and no variable, parameter, field, pattern
+  binding, enum constant, or single static import in the file has the name
+  `Type`. A file with an on-demand static import (`import static pkg.C.*;`)
+  records no fact for any `Type.create(..)`, because that import can bring
+  in a field named `Type`, and a field hides a type of the same name.
+- Implicit members count: a record component accessor records the component
+  type, `Color.values()` records `Color[]`, and `Color.valueOf(s)` records
+  `Color`.
+- The candidates that accept the call's argument count must all declare the
+  same return type text. A varargs method accepts one fewer argument and more.
+  The candidates include the same-named methods of every same-file supertype,
+  so a same-arity overload in a same-file superclass or interface that
+  disagrees records no fact. The candidates also include the
+  `java.lang.Object` methods that a same-file method can overload:
+  `equals(Object)` (`boolean`) and `wait(long)` and `wait(long, int)`
+  (`void`). So `Workspace equals(String s)` records no fact for `equals(o)`.
+  In an enum, the candidates also include the `java.lang.Enum` methods that
+  a same-file method can overload: `compareTo(E)` (`int`) and the generic
+  static `<T> T valueOf(Class<T>, String)`, which records no fact. So
+  `Workspace compareTo(String s)` records no fact for `compareTo(RED)`, and
+  no two-argument `valueOf(..)` call records a fact.
+  At least one candidate must be declared in the resolved type itself.
+- The return type text is written in the callee's scope but recorded in the
+  caller's scope. If its first name is a type declared in the file, exactly
+  one type in the file must have that name, and that type must be in scope
+  both at the callee and at the call. The name also must not be a type
+  parameter at the call. Otherwise no fact is recorded.
+- `void`, a return type that is a method or enclosing type parameter
+  (`<T> T get()`, `T[] all()`, a generic record component), an old-style
+  `Foo load()[]` return, any other receiver (`super`, a variable, a field, a
+  call chain), a method that the type only inherits, a call inside an
+  anonymous class or enum constant body, and a callee in another file record
+  no fact. Java has no language-level unwrap operator, so no wrapper layer is
+  removed. Other files are out of scope because each file is extracted alone.
+
+- A supertype in another file can declare an overload with the same argument
+  count, a member type that hides `Type` or the return type name, or a field
+  named `Type`. The extractor cannot see that file, so it records no fact
+  when such a supertype can take part:
+  - An unqualified or `this.` call records no fact when the resolved type
+    inherits from a type outside the file. This includes the case where a
+    same-file supertype does, at any depth. So in
+    `class Keys extends ArrayList<String>`, `Object remove(String key)` records
+    no fact for `remove(0)`.
+  - A `Type.method(..)` call records no fact when `Type`, or any named type
+    or anonymous class around the call, inherits from a type outside the
+    file.
+  - A supertype counts as same-file only when it is a plain or generic name
+    that exactly one type in the file declares, in scope at the declaration.
+    A dotted name such as `java.util.ArrayList` or `Outer.Inner` counts as
+    outside the file.
+  - A type with a written supertype also counts as inheriting from outside
+    the file when a type around it does. An inherited member type can hide
+    the supertype name.
+  - A type with no written supertype, or whose whole supertype chain is in
+    the file, keeps its facts. A nested class with no written supertype keeps
+    its facts inside an outer class that extends an outside type.
+    `java.lang.Object` and, for an enum, `java.lang.Enum` do not count as
+    outside the file: the language fixes their methods, and the extractor
+    checks them.
+
 ## Frameworks
 
 - Spring MVC routes (`spring.request_mapping.v1`) are read from the tree.

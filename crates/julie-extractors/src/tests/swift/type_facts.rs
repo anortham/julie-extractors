@@ -162,7 +162,9 @@ func run() {
     let (symbols, extractor) = extract(source);
     no_fact(&extractor, &symbols, "a", SymbolKind::Variable);
     no_fact(&extractor, &symbols, "b", SymbolKind::Variable);
-    no_fact(&extractor, &symbols, "c", SymbolKind::Variable);
+    let call_fact = fact(&extractor, &symbols, "c", SymbolKind::Variable);
+    assert_eq!(call_fact.resolved_type, "Foo");
+    assert!(call_fact.is_inferred);
 }
 
 #[test]

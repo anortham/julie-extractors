@@ -47,12 +47,51 @@ belongs to that type, not to the declaration.
 
 ## Types and receivers
 
-- `@This()` and a same-container alias of it (`const Self = @This();`) resolve
-  to the container name in type facts and in `receiver_type`. At file scope the
-  container is the file itself, named by its file stem (`Tokenizer.zig` ->
-  `Tokenizer`).
+- `@This()` and an in-scope alias of it (`const Self = @This();`) resolve to
+  the container that declares the alias, in type facts and in
+  `receiver_type`. A `Self` declared in an outer container names that outer
+  container inside a nested one. A qualified name (`other.Self`) never
+  resolves to a same-file container. At file scope the container is the file
+  itself, named by its file stem (`Tokenizer.zig` -> `Tokenizer`).
 - In a file-as-struct, `self.peek()` from a top-level function resolves to the
   file's own top-level `peek`.
+- A `const` or `var` with no written type and a single name gets an inferred
+  type fact from its initializer: a same-file container literal
+  (`Store{ .. }`), or a call to a same-file function with a declared return
+  type. A return type of `@This()` (also `!@This()`, `?*@This()`) names the
+  container that declares the function. The callee is a bare function in an enclosing container (`load()`), a
+  function of a same-file container named directly (`Store.open()`,
+  `Self.open()`, `@This().open()`, `Outer.Inner.open()`), or a method through
+  the typed receiver parameter (`self.next()`). The receiver is the first
+  parameter of a function inside a container, or of a top-level function in a
+  file-as-struct.
+- A type name (`Store`, `Self`) resolves to its nearest declaration in scope.
+  Each later segment of a qualified name (`Outer.Inner`) resolves to a
+  declaration of the container before it. Each declaration must be a
+  container or an alias of `@This()`. So an alias of another type
+  (`const Store = other.Store;`) records no fact, even when a same-named
+  container exists elsewhere in the file.
+- Same-named candidates must agree, and a same-named non-function declaration
+  blocks inference. `try` and a `catch` with a noreturn fallback
+  (`unreachable`, `return`, `break`, `continue`, an unlabeled block, `@panic`,
+  `@trap`, `@compileError`) remove one error-union layer. `.?` and an `orelse`
+  with a noreturn fallback remove one optional layer. `Type.init(..)` on a
+  same-file container with no `init` and no `usingnamespace` records `Type`.
+- A return type counts only when its leading name resolves to a
+  container-level declaration or to a function-local container. A parameter
+  (`comptime T: type`, or `comptime cfg: struct { T: type }` in `cfg.T`), a loop capture (`|T|`), a function-local alias
+  (`const V = @TypeOf(value);`), or an unresolved name can stand for another
+  type on each instantiation, so it records no fact.
+- These record no fact: a value fallback, a chain that ends in any other
+  member, a `void` return, a function or a literal (`Self{ .. }`,
+  `@This(){ .. }`) of an anonymous container, a function of
+  a container declared inside a function with a `comptime`, `type`, or
+  `anytype` parameter or inside an `inline for`/`inline while` body,
+  `Type.init(..)` on a container with `usingnamespace` (the mixin may supply
+  `init`), a local receiver, a receiver that is not the first parameter, a
+  receiver qualified by an import (`other.Store.open()`), and a callee in
+  another file. Other files are out of scope because each file is extracted
+  alone.
 - Types inside `?T`, `[]T`, `[N]T`, pointer types, generic type arguments in
   type position, and struct literals (`Node{ .. }`) are `type_usage`
   identifiers.

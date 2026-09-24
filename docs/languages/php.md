@@ -132,6 +132,27 @@ control.
   (`is_inferred=false`) and from a `new Foo()` initializer
   (`is_inferred=true`). A declaration kind, a namespace, an import, or an
   untyped assignment has no type fact.
+- `$x = call()` gets an inferred type fact from the declared return type of a
+  same-file callee in the same namespace: a function (`load()`), a method of
+  the enclosing class or enum (`$this->load()`, `self::load()`,
+  `static::load()`), or a static method of a same-file class
+  (`Type::create()`). Names match without regard to case. Same-named
+  callees must agree. `?T` records `T`; `self` and `static` record the
+  declaring class. A union, intersection, `void`, or `parent` return type, a
+  missing return type, a trait or anonymous-class method, `$this` or `self`
+  inside a closure or a nested named function, `parent::`, any other
+  receiver, a chained call, and a callee in another file record no fact.
+  First-class callable syntax (`load(...)`, `$this->m(...)`, `self::m(...)`,
+  `Type::m(...)`) records no fact, because it makes a `Closure` and does not
+  call the callee. A class or function name that a `use` declaration in the
+  caller's namespace block imports (by last segment or `as` alias) records
+  no fact, because the import names another namespace. A return type that
+  is a class name, not fully qualified, records a fact only when the caller
+  is in the callee's namespace block. PHP resets imports at each namespace
+  declaration, so the same name can mean another class in a second block of
+  the same namespace. Primitive, `self`, `static`, and fully qualified
+  (`\App\T`) return types mean the same type in every block. Other files are
+  out of scope because each file is extracted alone.
 - A trait `use` in a class, trait, or enum body gives a `uses` relationship:
   resolved to a same-file trait, pending otherwise. It is not an import. The
   names in its conflict list (`A::m as protected alias`) give no identifiers.

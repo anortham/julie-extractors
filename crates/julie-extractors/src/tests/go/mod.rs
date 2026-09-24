@@ -8,6 +8,7 @@ mod edge_cases;
 mod error_handling;
 mod generics;
 mod identifiers;
+mod initializer_types;
 mod integration;
 mod literals;
 mod test_detection;

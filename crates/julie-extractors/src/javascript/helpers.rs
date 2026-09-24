@@ -6,6 +6,29 @@
 
 use tree_sitter::Node;
 
+/// Whether `node` is a later declarator of a multi-declarator
+/// `const`/`let`/`var`, or its value. A doc before the declaration documents
+/// only the first declarator.
+pub(super) fn is_later_declarator(node: Node) -> bool {
+    let declarator = if node.kind() == "variable_declarator" {
+        Some(node)
+    } else {
+        node.parent()
+            .filter(|parent| parent.kind() == "variable_declarator")
+    };
+    let Some(declarator) = declarator else {
+        return false;
+    };
+    let Some(declaration) = declarator.parent() else {
+        return false;
+    };
+    let mut cursor = declaration.walk();
+    declaration
+        .named_children(&mut cursor)
+        .take_while(|sibling| *sibling != declarator)
+        .any(|sibling| sibling.kind() == "variable_declarator")
+}
+
 impl super::JavaScriptExtractor {
     /// Check if function is async - direct Implementation of isAsync
     pub(super) fn is_async(&self, node: &Node) -> bool {

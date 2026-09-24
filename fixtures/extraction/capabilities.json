@@ -3561,6 +3561,11 @@
           "name": "framework_and_scopes",
           "source": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
           "expected": "fixtures/extraction/vbnet/framework_and_scopes/expected.json"
+        },
+        {
+          "name": "call_initializers",
+          "source": "fixtures/extraction/vbnet/call_initializers/source.vb",
+          "expected": "fixtures/extraction/vbnet/call_initializers/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5060,6 +5065,11 @@
           "name": "language_forms",
           "source": "fixtures/extraction/elixir/language_forms/source.ex",
           "expected": "fixtures/extraction/elixir/language_forms/expected.json"
+        },
+        {
+          "name": "call_initializers",
+          "source": "fixtures/extraction/elixir/call_initializers/source.ex",
+          "expected": "fixtures/extraction/elixir/call_initializers/expected.json"
         }
       ],
       "target_capabilities": {

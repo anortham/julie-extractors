@@ -61,6 +61,7 @@ pub mod di_registration_relationships;
 pub mod field_property_relationships;
 mod gap_closure;
 pub mod identifier_extraction;
+mod initializer_types;
 pub mod language_features;
 pub mod literals;
 mod locals;

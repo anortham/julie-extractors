@@ -76,6 +76,7 @@ fn extract_declaration(
                 ..Default::default()
             },
         );
+        type_facts::record_annotation_type(base, &symbol.id, child, "type");
         if let Some(value) = child.child_by_field_name("value") {
             type_facts::record_new_expression_fact(base, &symbol.id, value);
         }

@@ -60,7 +60,10 @@ pub(super) fn extract_relationships(
     relationships
 }
 
-fn object_owner<'a>(node: Node, owners: &HashMap<u32, &'a Symbol>) -> Option<&'a Symbol> {
+pub(super) fn object_owner<'a>(
+    node: Node,
+    owners: &HashMap<u32, &'a Symbol>,
+) -> Option<&'a Symbol> {
     let anchor = node
         .parent()
         .filter(|parent| parent.kind() == "ui_inline_component")
@@ -203,10 +206,11 @@ pub(super) struct LocalCall<'n, 's> {
 /// The same-file function or signal a call names, resolved by QML scope.
 ///
 /// An id receiver (`root.refresh()`) names the object that declares the
-/// member. A bare call looks in the enclosing objects from the nearest
-/// outward, so a same-named function in an unrelated object does not block
-/// resolution. A bare name no object scope declares falls back to the one
-/// visible same-file symbol of that name.
+/// member. The call's own component is searched first, then each component
+/// around it, and an id that two objects of one component declare resolves
+/// nothing. A bare call looks in the scope object and then its component's
+/// root object. A bare name that QML scope does not resolve falls back to
+/// the one visible same-file symbol of that name.
 pub(super) fn resolve_local_callee<'a>(
     call: &LocalCall<'_, '_>,
     symbols: &'a [Symbol],
@@ -215,6 +219,32 @@ pub(super) fn resolve_local_callee<'a>(
     object_owners: &HashMap<u32, &'a Symbol>,
 ) -> Option<&'a Symbol> {
     let component = find_containing_component(call.node, class_symbols)?;
+    if let Some(callee) = resolve_scoped_callee(call, symbols, component, object_owners) {
+        return Some(callee);
+    }
+    if call.receiver.is_some() {
+        return None;
+    }
+    symbol_map
+        .get(call.function_name)
+        .copied()
+        .filter(|symbol| matches!(symbol.kind, SymbolKind::Function | SymbolKind::Event))
+        .filter(|symbol| symbol_is_visible_from_component(symbol, component, symbols))
+}
+
+/// The same-file function or signal a call names through an id receiver or
+/// QML scope, with no fallback to other same-file symbols.
+///
+/// A bare name resolves in the scope object (the nearest enclosing object)
+/// and then the root object of its component. Objects in between are not in
+/// scope, and one that declares the name resolves nothing, since it may be
+/// the root of an implicit component such as a delegate.
+pub(super) fn resolve_scoped_callee<'a>(
+    call: &LocalCall<'_, '_>,
+    symbols: &'a [Symbol],
+    component: &Symbol,
+    object_owners: &HashMap<u32, &'a Symbol>,
+) -> Option<&'a Symbol> {
     let callable_in = |scope_id: &str| {
         let mut matches = symbols.iter().filter(|symbol| {
             matches!(symbol.kind, SymbolKind::Function | SymbolKind::Event)
@@ -229,26 +259,54 @@ pub(super) fn resolve_local_callee<'a>(
         if is_shadowed_by_local(receiver, symbols, call.caller) {
             return None;
         }
-        return symbols
-            .iter()
-            .filter(|symbol| declares_id(symbol, receiver))
-            .filter(|symbol| symbol_is_visible_from_component(symbol, component, symbols))
-            .find_map(|symbol| callable_in(id_member_scope(symbol)?));
+        let mut current = Some(component);
+        while let Some(scope_component) = current {
+            match component_id_scopes(receiver, symbols, scope_component).as_slice() {
+                [] => current = containing_component(scope_component, symbols),
+                [scope] => return callable_in(scope),
+                _ => return None,
+            }
+        }
+        return None;
     }
 
+    let declares_name = |scope_id: &str| {
+        symbols.iter().any(|symbol| {
+            symbol.name == call.function_name && symbol.parent_id.as_deref() == Some(scope_id)
+        })
+    };
     let mut skip = 0;
     while let Some(owner) = enclosing_object_owner(call.node, object_owners, skip) {
-        if let Some(callee) = callable_in(&owner.id) {
-            return Some(callee);
+        let in_scope = skip == 0 || owner.kind == SymbolKind::Class;
+        if declares_name(&owner.id) {
+            return in_scope.then(|| callable_in(&owner.id)).flatten();
+        }
+        if owner.kind == SymbolKind::Class {
+            return None;
         }
         skip += 1;
     }
+    None
+}
 
-    symbol_map
-        .get(call.function_name)
-        .copied()
-        .filter(|symbol| matches!(symbol.kind, SymbolKind::Function | SymbolKind::Event))
-        .filter(|symbol| symbol_is_visible_from_component(symbol, component, symbols))
+/// The member scopes of the objects in `component` itself (not in a nested
+/// inline component) that declare the id `receiver`.
+pub(super) fn component_id_scopes<'a>(
+    receiver: &str,
+    symbols: &'a [Symbol],
+    component: &Symbol,
+) -> Vec<&'a str> {
+    let mut scopes: Vec<&str> = symbols
+        .iter()
+        .filter(|symbol| declares_id(symbol, receiver))
+        .filter(|symbol| {
+            containing_component(symbol, symbols).is_some_and(|owner| owner.id == component.id)
+        })
+        .filter_map(id_member_scope)
+        .collect();
+    scopes.sort_unstable();
+    scopes.dedup();
+    scopes
 }
 
 fn is_shadowed_by_local(receiver: &str, symbols: &[Symbol], caller: &Symbol) -> bool {

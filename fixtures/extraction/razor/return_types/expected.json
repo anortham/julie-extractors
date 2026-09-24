@@ -186,6 +186,99 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/razor/return_types/source.razor:Use:7:1",
+      "name": "Use",
+      "kind": "method",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/return_types/source.razor",
+      "start_line": 7,
+      "start_column": 1,
+      "end_line": 7,
+      "end_column": 69,
+      "start_byte": 200,
+      "end_byte": 268,
+      "body_span": {
+        "start_line": 7,
+        "start_column": 19,
+        "end_line": 7,
+        "end_column": 69,
+        "start_byte": 218,
+        "end_byte": 268
+      },
+      "body_hash": "c6ff188967c81e2e48d9b7ef9b99a807",
+      "signature": "public void Use()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/razor/return_types/source.razor:source:1:0",
+      "metadata": {
+        "attributes": "",
+        "modifiers": "public",
+        "parameters": "()",
+        "returnType": "void",
+        "type": "method"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/return_types/source.razor:bare:7:21",
+      "name": "bare",
+      "kind": "variable",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/return_types/source.razor",
+      "start_line": 7,
+      "start_column": 21,
+      "end_line": 7,
+      "end_column": 39,
+      "start_byte": 220,
+      "end_byte": 238,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "var bare = Bare()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/razor/return_types/source.razor:Use:7:1",
+      "metadata": {
+        "initializer": "Bare()",
+        "modifiers": "",
+        "type": "local-variable"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/return_types/source.razor:boxed:7:40",
+      "name": "boxed",
+      "kind": "variable",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/return_types/source.razor",
+      "start_line": 7,
+      "start_column": 40,
+      "end_line": 7,
+      "end_column": 67,
+      "start_byte": 239,
+      "end_byte": 266,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "var boxed = this.Generic()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/razor/return_types/source.razor:Use:7:1",
+      "metadata": {
+        "initializer": "this.Generic()",
+        "modifiers": "",
+        "type": "local-variable"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/razor/return_types/source.razor:source:1:0",
       "name": "source",
       "kind": "class",
@@ -193,19 +286,19 @@
       "file_path": "fixtures/extraction/razor/return_types/source.razor",
       "start_line": 1,
       "start_column": 0,
-      "end_line": 8,
+      "end_line": 9,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 201,
+      "end_byte": 271,
       "body_span": {
         "start_line": 1,
         "start_column": 0,
-        "end_line": 8,
+        "end_line": 9,
         "end_column": 0,
         "start_byte": 0,
-        "end_byte": 201
+        "end_byte": 271
       },
-      "body_hash": "2d34e07a4888a5fbbc3e3bf10e26258d",
+      "body_hash": "fbd6253f45f055aa33616a956558a243",
       "signature": "component source",
       "doc_comment": null,
       "visibility": "Public",
@@ -220,10 +313,67 @@
       "content_type": null
     }
   ],
-  "relationships": [],
+  "relationships": [
+    {
+      "from_key": "fixtures/extraction/razor/return_types/source.razor:Use:7:1",
+      "to_key": "fixtures/extraction/razor/return_types/source.razor:Bare:2:1",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/razor/return_types/source.razor",
+      "line_number": 7,
+      "span": {
+        "start_line": 7,
+        "start_column": 32,
+        "end_line": 7,
+        "end_column": 38,
+        "start_byte": 231,
+        "end_byte": 237
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": {
+        "method": "Bare"
+      }
+    },
+    {
+      "from_key": "fixtures/extraction/razor/return_types/source.razor:Use:7:1",
+      "to_key": "fixtures/extraction/razor/return_types/source.razor:Generic:5:1",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/razor/return_types/source.razor",
+      "line_number": 7,
+      "span": {
+        "start_line": 7,
+        "start_column": 52,
+        "end_line": 7,
+        "end_column": 66,
+        "start_byte": 251,
+        "end_byte": 265
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": {
+        "method": "this.Generic"
+      }
+    }
+  ],
   "pending_relationships": [],
   "structured_pending_relationships": [],
   "identifiers": [
+    {
+      "key": "fixtures/extraction/razor/return_types/source.razor:Bare:call:7:32",
+      "name": "Bare",
+      "kind": "call",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/return_types/source.razor",
+      "start_line": 7,
+      "start_column": 32,
+      "end_line": 7,
+      "end_column": 36,
+      "start_byte": 231,
+      "end_byte": 235,
+      "containing_key": "fixtures/extraction/razor/return_types/source.razor:Use:7:1",
+      "target_key": null,
+      "confidence": "1.000"
+    },
     {
       "key": "fixtures/extraction/razor/return_types/source.razor:Box:type_usage:5:8",
       "name": "Box",
@@ -239,6 +389,23 @@
       "containing_key": "fixtures/extraction/razor/return_types/source.razor:Generic:5:1",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/return_types/source.razor:Generic:call:7:57",
+      "name": "Generic",
+      "kind": "call",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/return_types/source.razor",
+      "start_line": 7,
+      "start_column": 57,
+      "end_line": 7,
+      "end_column": 64,
+      "start_byte": 256,
+      "end_byte": 263,
+      "containing_key": "fixtures/extraction/razor/return_types/source.razor:Use:7:1",
+      "target_key": null,
+      "confidence": "1.000",
+      "receiver_type": "source"
     },
     {
       "key": "fixtures/extraction/razor/return_types/source.razor:Models:type_usage:6:8",
@@ -402,6 +569,26 @@
       "is_inferred": false,
       "language": "razor",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/razor/return_types/source.razor:bare:7:21",
+      "resolved_type": "Result",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "razor",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/razor/return_types/source.razor:boxed:7:40",
+      "resolved_type": "Box",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "razor",
+      "metadata": {
+        "declared": "Box<Result>"
+      }
     }
   ],
   "parse_diagnostics": [],
@@ -415,10 +602,10 @@
       "containing_key": "fixtures/extraction/razor/return_types/source.razor:source:1:0",
       "start_line": 1,
       "start_column": 0,
-      "end_line": 7,
+      "end_line": 8,
       "end_column": 1,
       "start_byte": 0,
-      "end_byte": 200,
+      "end_byte": 270,
       "confidence": "1.000",
       "metadata": {
         "block_type": "code",
@@ -435,18 +622,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/return_types/source.razor",
-      "covered_lines": 8,
-      "covered_bytes": 201,
+      "covered_lines": 9,
+      "covered_bytes": 271,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 8,
+      "end_line": 9,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 201,
+      "end_byte": 271,
       "metadata": {
         "metric_version": 1
       }
@@ -560,6 +747,28 @@
       "metadata": {
         "metric_version": 1
       }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/razor/return_types/source.razor:Use:7:1",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/return_types/source.razor",
+      "covered_lines": 1,
+      "covered_bytes": 50,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 7,
+      "start_column": 19,
+      "end_line": 7,
+      "end_column": 69,
+      "start_byte": 218,
+      "end_byte": 268,
+      "metadata": {
+        "metric_version": 1
+      }
     }
   ],
   "literals": [],
@@ -571,10 +780,10 @@
       "containing_key": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 7,
+      "end_line": 8,
       "end_column": 1,
       "start_byte": 0,
-      "end_byte": 200,
+      "end_byte": 270,
       "metadata": {
         "block_type": "code",
         "embedded_language": "csharp",

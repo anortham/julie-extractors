@@ -41,6 +41,8 @@ pub struct RustExtractor {
     impl_nesting: u32,
     /// The implemented type while phase 2 walks an impl block.
     current_impl_type: Option<String>,
+    /// Declared return types of the file's functions, for `let` inference.
+    return_types: type_facts::ReturnTypeIndex,
     /// Item-macro bodies re-parsed as Rust items (`lazy_static!`, `cfg_if!`).
     macro_trees: Vec<Tree>,
     /// The re-parsed macro tree the walk is in, if any.
@@ -60,6 +62,7 @@ impl RustExtractor {
             is_processing_impl_blocks: false,
             impl_nesting: 0,
             current_impl_type: None,
+            return_types: type_facts::ReturnTypeIndex::default(),
             macro_trees: Vec::new(),
             current_macro_tree: None,
         }
@@ -101,6 +104,7 @@ impl RustExtractor {
         // Phase 1: Extract symbols (skip impl block methods)
         self.impl_blocks.clear();
         self.is_processing_impl_blocks = false;
+        self.return_types = type_facts::ReturnTypeIndex::build(&self.base, tree.root_node());
         self.walk_tree(tree.root_node(), &mut symbols, None, 0);
 
         // Phase 2: Process impl blocks after all symbols are extracted

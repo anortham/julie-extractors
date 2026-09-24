@@ -1,13 +1,13 @@
 /// Relationship extraction for Elixir symbols.
 ///
 /// Handles: use (Uses), @behaviour (Implements), defimpl (Implements), function calls (Calls).
-use super::helpers;
+use super::{helpers, type_facts};
 use crate::base::{
     BaseExtractor, ContainingSymbolIndex, Relationship, RelationshipKind, Symbol, SymbolKind,
     UnresolvedTarget,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
 
 /// Extract all relationships from a parsed tree
@@ -36,15 +36,32 @@ struct CallScope<'a> {
     callers: ContainingSymbolIndex<'a>,
     modules: ContainingSymbolIndex<'a>,
     modules_by_name: HashMap<&'a str, &'a Symbol>,
+    /// Names that more than one module in the file declares, such as the
+    /// branches of `if Code.ensure_loaded?(...)`.
+    shared_module_names: HashSet<&'a str>,
     by_id: HashMap<&'a str, &'a Symbol>,
     callables: HashMap<(Option<&'a str>, &'a str), Vec<Callable<'a>>>,
-    aliases: HashMap<Option<String>, HashMap<String, String>>,
+    /// `alias` directives and nested module names, in source order.
+    aliases: Vec<LexicalAlias>,
+    /// `@type`, `@typep`, and `@opaque` names keyed by module symbol id.
+    types: HashSet<(&'a str, &'a str)>,
+    variables_by_start: HashMap<u32, &'a Symbol>,
 }
 
 struct Callable<'a> {
     symbol: &'a Symbol,
     min_arity: usize,
     max_arity: usize,
+    /// A definition inside a `quote` block belongs to the module that
+    /// injects it.
+    quoted: bool,
+}
+
+/// An alias applies from its directive to the end of the block around it.
+struct LexicalAlias {
+    local: String,
+    full: String,
+    scope: std::ops::Range<usize>,
 }
 
 fn is_module_kind(symbol: &Symbol) -> bool {
@@ -78,15 +95,30 @@ impl<'a> CallScope<'a> {
             })),
             modules: ContainingSymbolIndex::from_iter(module_symbols()),
             modules_by_name: module_symbols().map(|s| (s.name.as_str(), s)).collect(),
+            shared_module_names: {
+                let mut seen = HashSet::new();
+                module_symbols()
+                    .filter(|s| !seen.insert(s.name.as_str()))
+                    .map(|s| s.name.as_str())
+                    .collect()
+            },
             by_id,
             callables: HashMap::new(),
-            aliases: HashMap::new(),
+            aliases: Vec::new(),
+            types: HashSet::new(),
+            variables_by_start: symbols
+                .iter()
+                .filter(|s| s.kind == SymbolKind::Variable)
+                .map(|s| (s.start_byte, s))
+                .collect(),
         };
         for symbol in symbols.iter().filter(|s| is_callable_definition(s)) {
-            let (min_arity, max_arity) = root
-                .descendant_for_byte_range(symbol.start_byte as usize, symbol.end_byte as usize)
+            let node = root
+                .descendant_for_byte_range(symbol.start_byte as usize, symbol.end_byte as usize);
+            let (min_arity, max_arity) = node
                 .map(|node| helpers::definition_arity(base, &node))
                 .unwrap_or((0, usize::MAX));
+            let quoted = node.is_some_and(|node| type_facts::quote_scope(base, &node).is_some());
             let module = scope.module_of(symbol).map(|m| m.id.as_str());
             scope
                 .callables
@@ -96,8 +128,15 @@ impl<'a> CallScope<'a> {
                     symbol,
                     min_arity,
                     max_arity,
+                    quoted,
                 });
         }
+        let types = symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::Type)
+            .filter_map(|s| Some((scope.module_of(s)?.id.as_str(), s.name.as_str())))
+            .collect();
+        scope.types = types;
         scope.collect_aliases(base, root, 0);
         scope
     }
@@ -146,15 +185,16 @@ impl<'a> CallScope<'a> {
         }
         let module = self.enclosing_module(node);
         for target in helpers::directive_modules(base, node) {
-            let full = self.expand_module(module, &target);
+            let full = self.expand_module(module, &target, node.start_byte());
             let local = explicit
                 .clone()
                 .or_else(|| target.rsplit('.').next().map(str::to_string));
             if let Some(local) = local {
-                self.aliases
-                    .entry(module.map(|m| m.id.clone()))
-                    .or_default()
-                    .insert(local, full);
+                self.aliases.push(LexicalAlias {
+                    local,
+                    full,
+                    scope: node.start_byte()..lexical_end(base, node),
+                });
             }
         }
     }
@@ -177,17 +217,17 @@ impl<'a> CallScope<'a> {
         let Some(first) = declared.split('.').next().map(str::to_string) else {
             return;
         };
-        let full = format!("{}.{first}", parent.name);
-        self.aliases
-            .entry(Some(parent.id.clone()))
-            .or_default()
-            .entry(first)
-            .or_insert(full);
+        self.aliases.push(LexicalAlias {
+            full: format!("{}.{first}", parent.name),
+            local: first,
+            scope: node.start_byte()..lexical_end(base, node),
+        });
     }
 
     /// Expand `__MODULE__` and the leading alias segment of a module reference
-    /// to the full module name, searching the enclosing modules outward.
-    fn expand_module(&self, module: Option<&'a Symbol>, reference: &str) -> String {
+    /// at byte `at` to the full module name. The latest alias whose block
+    /// holds `at` wins.
+    fn expand_module(&self, module: Option<&'a Symbol>, reference: &str, at: usize) -> String {
         let (head, rest) = match reference.split_once('.') {
             Some((head, rest)) => (head, Some(rest)),
             None => (reference, None),
@@ -199,17 +239,43 @@ impl<'a> CallScope<'a> {
         if head == "__MODULE__" {
             return module.map_or_else(|| reference.to_string(), |m| join(&m.name));
         }
-        let mut current = module;
-        loop {
-            let key = current.map(|m| m.id.clone());
-            if let Some(full) = self.aliases.get(&key).and_then(|map| map.get(head)) {
-                return join(full);
-            }
-            match current {
-                Some(m) => current = self.module_of(m),
-                None => return reference.to_string(),
-            }
-        }
+        self.aliases
+            .iter()
+            .rev()
+            .find(|alias| alias.local == head && alias.scope.contains(&at))
+            .map_or_else(|| reference.to_string(), |alias| join(&alias.full))
+    }
+
+    /// Every definition of `name` in `module` that accepts `arity` arguments.
+    fn definitions(&self, module: Option<&Symbol>, name: &str, arity: usize) -> Vec<&'a Symbol> {
+        self.callables
+            .get(&(module.map(|m| m.id.as_str()), name))
+            .into_iter()
+            .flatten()
+            .filter(|c| !c.quoted && (c.min_arity..=c.max_arity).contains(&arity))
+            .map(|c| c.symbol)
+            .collect()
+    }
+
+    /// A spec return name of `callee` rewritten to read the same at byte `at`
+    /// in `caller`: a bare local type becomes `Callee.t` and a leading alias
+    /// expands in the callee's scope. `None` when no rewrite reads the same.
+    fn qualify_spec_name(
+        &self,
+        callee: &'a Symbol,
+        spec_at: usize,
+        name: &str,
+        caller: Option<&'a Symbol>,
+        at: usize,
+    ) -> Option<String> {
+        let qualified = if name.contains('.') {
+            self.expand_module(Some(callee), name, spec_at)
+        } else if self.types.contains(&(callee.id.as_str(), name)) {
+            format!("{}.{name}", callee.name)
+        } else {
+            return None;
+        };
+        (self.expand_module(caller, &qualified, at) == qualified).then_some(qualified)
     }
 
     fn resolve(&self, module: Option<&Symbol>, name: &str, arity: usize) -> Option<&'a Symbol> {
@@ -227,7 +293,7 @@ fn call_arity(base: &BaseExtractor, node: &Node) -> usize {
         return arity;
     }
     let explicit = helpers::find_child_by_type(node, "arguments")
-        .map(|args| args.named_child_count())
+        .map(|args| helpers::argument_nodes(&args).len())
         .unwrap_or(0);
     let piped = node.parent().is_some_and(|parent| {
         parent.kind() == "binary_operator"
@@ -236,7 +302,23 @@ fn call_arity(base: &BaseExtractor, node: &Node) -> usize {
                 .child_by_field_name("operator")
                 .is_some_and(|op| op.kind() == "|>")
     });
-    explicit + usize::from(piped)
+    let do_block = helpers::find_child_by_type(node, "do_block").is_some();
+    explicit + usize::from(piped) + usize::from(do_block)
+}
+
+/// The end of the block an `alias` or nested `defmodule` at `node` is
+/// visible in: the innermost `do` block, clause, or keyword-form definition.
+fn lexical_end(base: &BaseExtractor, node: &Node) -> usize {
+    std::iter::successors(node.parent(), Node::parent)
+        .find(|ancestor| {
+            matches!(ancestor.kind(), "do_block" | "stab_clause")
+                || (ancestor.kind() == "call"
+                    && matches!(
+                        helpers::extract_call_target_name(base, ancestor).as_deref(),
+                        Some("def" | "defp" | "defmacro" | "defmacrop")
+                    ))
+        })
+        .map_or(usize::MAX, |block| block.end_byte())
 }
 
 fn walk_for_relationships(
@@ -294,6 +376,7 @@ fn walk_for_relationships(
                 }
             }
         }
+        "binary_operator" => record_initializer_type(extractor, node, scope),
         "unary_operator" if is_module_attribute(&extractor.base, &node) => {
             extract_behaviour_relationship(extractor, &node, scope, relationships);
             return;
@@ -323,13 +406,115 @@ fn walk_for_relationships(
     }
 }
 
+/// Give the local bound by `x = call()` the `@spec` return type of the
+/// same-file definition the call reaches, and the local bound by
+/// `{:ok, x} = call()` the `T` of its `{:ok, T}` return.
+fn record_initializer_type(
+    extractor: &mut super::ElixirExtractor,
+    node: Node,
+    scope: &CallScope<'_>,
+) {
+    let Some((binder, binds_ok_payload)) = type_facts::match_binder(&extractor.base, node) else {
+        return;
+    };
+    let Some(local) = scope
+        .variables_by_start
+        .get(&(binder.start_byte() as u32))
+        .filter(|local| local.name == extractor.base.get_node_text(&binder))
+    else {
+        return;
+    };
+    let Some(type_name) = node
+        .child_by_field_name("right")
+        .and_then(|value| initializer_type(extractor, value, scope, binds_ok_payload))
+    else {
+        return;
+    };
+    type_facts::record_type_fact(&mut extractor.base, &local.id, &type_name, true);
+}
+
+/// The return type every same-file definition a call can reach agrees on: a
+/// local call in the enclosing module, or `Alias.fun()` / `__MODULE__.fun()`
+/// on a module defined once in this file. A piped call counts the piped argument.
+/// A macro expands at compile time, so a macro call records nothing. Quoted
+/// code runs in the module that injects it, so a call in a quote records
+/// nothing.
+fn initializer_type(
+    extractor: &super::ElixirExtractor,
+    value: Node,
+    scope: &CallScope<'_>,
+    ok_payload: bool,
+) -> Option<String> {
+    let call = if value.kind() == "binary_operator"
+        && value.child_by_field_name("operator")?.kind() == "|>"
+    {
+        value.child_by_field_name("right")?
+    } else {
+        value
+    };
+    let base = &extractor.base;
+    if call.kind() != "call" || type_facts::quote_scope(base, &call).is_some() {
+        return None;
+    }
+    let target = call.child_by_field_name("target")?;
+    let enclosing = scope.enclosing_module(&call);
+    let (module, name) = match target.kind() {
+        "identifier" => (enclosing, base.get_node_text(&target)),
+        "dot" => {
+            let left = target.child_by_field_name("left")?;
+            let reference = base.get_node_text(&left);
+            let module = scope.expand_module(enclosing, &reference, left.start_byte());
+            if scope.shared_module_names.contains(module.as_str()) {
+                return None;
+            }
+            let module = *scope.modules_by_name.get(module.as_str())?;
+            (
+                Some(module),
+                base.get_node_text(&target.child_by_field_name("right")?),
+            )
+        }
+        _ => return None,
+    };
+    let mut types = scope
+        .definitions(module, &name, call_arity(base, &call))
+        .into_iter()
+        .map(|definition| {
+            if definition.metadata.as_ref().and_then(|m| m.get("macro"))
+                == Some(&serde_json::Value::Bool(true))
+            {
+                return None;
+            }
+            let spec = extractor.spec_returns.get(&definition.id)?;
+            let name = if ok_payload {
+                spec.ok_payload.as_deref()
+            } else {
+                spec.base.as_deref()
+            }?;
+            match module {
+                Some(callee) if Some(callee.id.as_str()) != enclosing.map(|m| m.id.as_str()) => {
+                    scope.qualify_spec_name(callee, spec.at, name, enclosing, call.start_byte())
+                }
+                _ if name.contains('.') => {
+                    let at_spec = scope.expand_module(enclosing, name, spec.at);
+                    (at_spec == scope.expand_module(enclosing, name, call.start_byte()))
+                        .then(|| name.to_string())
+                }
+                _ => Some(name.to_string()),
+            }
+        });
+    let first = types.next()??;
+    types
+        .all(|other| other.as_ref() == Some(&first))
+        .then_some(first)
+}
+
 fn is_module_attribute(base: &BaseExtractor, node: &Node) -> bool {
     node.child_by_field_name("operator")
         .is_some_and(|operator| base.get_node_text(&operator) == "@")
 }
 
 fn module_target(scope: &CallScope<'_>, node: &Node, name: &str) -> UnresolvedTarget {
-    let full = scope.expand_module(scope.enclosing_module(node), name);
+    let full = scope.expand_module(scope.enclosing_module(node), name, node.start_byte());
     UnresolvedTarget {
         display_name: full.clone(),
         terminal_name: full,
@@ -461,7 +646,11 @@ fn extract_delegate_relationship(
         .map(|renamed| renamed.trim_start_matches(':').to_string())
         .unwrap_or_else(|| delegate.name.clone());
     let arity = helpers::definition_arity(&extractor.base, node).1;
-    let module = scope.expand_module(scope.enclosing_module(node), &target_module);
+    let module = scope.expand_module(
+        scope.enclosing_module(node),
+        &target_module,
+        node.start_byte(),
+    );
     let callee = scope
         .modules_by_name
         .get(module.as_str())
@@ -644,7 +833,7 @@ fn extract_call_relationship(
                     },
                 )
             } else if is_module {
-                let module = scope.expand_module(enclosing, &module_text);
+                let module = scope.expand_module(enclosing, &module_text, left.start_byte());
                 let callee = scope
                     .modules_by_name
                     .get(module.as_str())

@@ -41,6 +41,8 @@ pub struct CExtractor {
     /// Criterion test bodies the grammar parses as the statement after the test
     /// macro, keyed by block node id, mapped to the test symbol that owns them.
     detached_test_bodies: HashMap<usize, String>,
+    /// Declared return types of the file's functions, for `auto` inference.
+    return_types: type_facts::ReturnTypeIndex,
 }
 
 impl CExtractor {
@@ -56,6 +58,7 @@ impl CExtractor {
         Self {
             base,
             detached_test_bodies: HashMap::new(),
+            return_types: type_facts::ReturnTypeIndex::default(),
         }
     }
 
@@ -94,6 +97,7 @@ impl CExtractor {
     /// Extract all symbols from the syntax tree
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
+        self.return_types = type_facts::ReturnTypeIndex::build(&self.base, tree.root_node());
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
 
         typedefs::fix_struct_alignment_attributes(&mut symbols);
@@ -144,11 +148,22 @@ impl CExtractor {
     ) -> Option<String> {
         use crate::base::SymbolKind;
 
-        if !matches!(kind, SymbolKind::Variable | SymbolKind::Property) {
+        if name.is_empty() || !matches!(kind, SymbolKind::Variable | SymbolKind::Property) {
             return None;
         }
-        let type_part = signature[..signature.find(name)?].trim();
-        is_type_text(type_part).then(|| type_part.to_string())
+        let is_identifier_char = |c: char| c == '_' || c.is_ascii_alphanumeric();
+        let name_start = signature
+            .match_indices(name)
+            .map(|(start, _)| start)
+            .find(|&start| {
+                !signature[..start].ends_with(is_identifier_char)
+                    && !signature[start + name.len()..].starts_with(is_identifier_char)
+            })?;
+        let type_part = signature[..name_start].trim();
+        let inferred_by_compiler = type_part
+            .split_whitespace()
+            .any(|word| matches!(word, "auto" | "__auto_type"));
+        (is_type_text(type_part) && !inferred_by_compiler).then(|| type_part.to_string())
     }
 
     /// Recursively visit nodes in the tree, extracting symbols

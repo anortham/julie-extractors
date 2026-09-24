@@ -188,6 +188,7 @@ impl JavaScriptExtractor {
         let mut symbols = qml_directives::import_symbols(&self.base);
         self.test_dsl_active = test_symbols::test_dsl_is_active(&self.base, tree.root_node());
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
+        type_facts::record_initializer_facts(&mut self.base, tree.root_node(), &symbols);
         visibility::apply_module_visibility(&self.base, tree.root_node(), &mut symbols);
         symbols
     }
@@ -721,7 +722,7 @@ impl JavaScriptExtractor {
         parent_id: Option<&str>,
     ) -> Option<Symbol> {
         let parent = || parent_id.map(str::to_string);
-        match node.kind() {
+        let mut symbol = match node.kind() {
             "class_declaration" | "class" => self.extract_class(node, parent()),
             "function_declaration"
             | "function"
@@ -795,7 +796,13 @@ impl JavaScriptExtractor {
                 test_symbols::extract_test_call(&mut self.base, node, container)
             }
             _ => None,
+        };
+        if let Some(symbol) = symbol.as_mut()
+            && helpers::is_later_declarator(node)
+        {
+            symbol.doc_comment = None;
         }
+        symbol
     }
 
     /// Main tree traversal - ports visitNode function exactly

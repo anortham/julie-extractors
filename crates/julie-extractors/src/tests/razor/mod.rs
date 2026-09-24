@@ -2216,6 +2216,7 @@ mod razor_identifier_extraction_tests {
     }
 }
 mod complexity;
+mod initializer_types;
 mod literals; // Phase 3: String-literal call-argument capture
 mod semantic_gate;
 mod structural_facts;

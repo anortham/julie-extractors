@@ -10,6 +10,7 @@ use crate::base::{BaseExtractor, Identifier, Relationship, Symbol};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
+use types_inference::SpecReturn;
 
 mod attributes;
 mod calls;
@@ -31,11 +32,18 @@ pub struct ElixirExtractor {
     pub(crate) base: BaseExtractor,
     /// Stack of module names for building qualified names
     pub(crate) module_stack: Vec<String>,
-    /// `@spec` return types keyed by enclosing module, function name, and arity.
-    pub(crate) specs: HashMap<(Option<String>, String, usize), String>,
-    /// Spec return types already matched to their definition symbols.
-    pub(crate) spec_types: HashMap<String, String>,
+    /// `@spec` return types keyed by enclosing module, function name, and
+    /// arity; `None` when two specs for one head disagree.
+    pub(crate) specs: HashMap<SpecKey, Option<SpecReturn>>,
+    /// Definition symbol ids with the spec key each one takes its type from.
+    pub(crate) spec_definitions: Vec<(String, SpecKey)>,
+    /// Spec return types matched to their definition symbols.
+    pub(crate) spec_returns: HashMap<String, SpecReturn>,
 }
+
+/// Start bytes of the enclosing module and `quote` block, function name, and
+/// arity of a `@spec` or definition.
+pub(crate) type SpecKey = (Option<usize>, Option<usize>, String, usize);
 
 impl ElixirExtractor {
     pub fn new(
@@ -48,7 +56,8 @@ impl ElixirExtractor {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
             module_stack: Vec::new(),
             specs: HashMap::new(),
-            spec_types: HashMap::new(),
+            spec_definitions: Vec::new(),
+            spec_returns: HashMap::new(),
         }
     }
 
@@ -57,9 +66,13 @@ impl ElixirExtractor {
         let mut symbols = Vec::new();
         self.module_stack.clear();
         self.specs.clear();
-        self.spec_types.clear();
+        self.spec_definitions.clear();
 
         self.traverse_node(&tree.root_node(), &mut symbols, None, 0);
+        self.spec_returns = std::mem::take(&mut self.spec_definitions)
+            .into_iter()
+            .filter_map(|(id, key)| Some((id, self.specs.get(&key)?.clone()?)))
+            .collect();
         symbols
     }
 
@@ -75,7 +88,10 @@ impl ElixirExtractor {
 
     /// Infer types from @spec annotations and other type hints
     pub fn infer_types(&self, _symbols: &[Symbol]) -> HashMap<String, String> {
-        self.spec_types.clone()
+        self.spec_returns
+            .iter()
+            .filter_map(|(id, spec)| Some((id.clone(), spec.base.clone()?)))
+            .collect()
     }
 
     // ========================================================================

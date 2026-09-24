@@ -21,6 +21,8 @@ use tree_sitter::Tree;
 pub struct VbNetExtractor {
     pub(crate) base: BaseExtractor,
     same_file_type_names: HashSet<String>,
+    /// Declared return types of the file's members, for untyped locals.
+    return_types: type_facts::ReturnTypeIndex,
 }
 
 impl VbNetExtractor {
@@ -35,6 +37,7 @@ impl VbNetExtractor {
         Self {
             base,
             same_file_type_names: HashSet::new(),
+            return_types: type_facts::ReturnTypeIndex::default(),
         }
     }
 
@@ -71,6 +74,7 @@ impl VbNetExtractor {
         let mut symbols = Vec::new();
         let root = tree.root_node();
         self.same_file_type_names = locals::collect_type_names(&self.base, root);
+        self.return_types = type_facts::ReturnTypeIndex::build(&self.base, root);
         self.walk_tree(root, &mut symbols, None, 0);
         crate::test_detection::mark_dotnet_test_containers(&mut symbols);
         symbols
@@ -111,6 +115,8 @@ impl VbNetExtractor {
                 node,
                 parent_id.clone(),
                 &self.same_file_type_names,
+                &self.return_types,
+                symbols,
             );
             symbols.extend(dim_symbols);
             let Some(child_depth) = child_tree_depth(depth) else {
@@ -132,6 +138,7 @@ impl VbNetExtractor {
             parent_id.clone(),
             symbols,
             &self.same_file_type_names,
+            &self.return_types,
         ) {
             symbols.push(local);
         }

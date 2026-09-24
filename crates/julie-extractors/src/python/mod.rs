@@ -34,6 +34,8 @@ pub struct PythonExtractor {
     pub(crate) same_file_class_names: HashSet<String>,
     /// Ids of `self.x` attribute symbols, so a class keeps one row per attribute.
     pub(crate) instance_attribute_ids: HashSet<String>,
+    /// Declared return types of the file's functions, for assignment inference.
+    pub(crate) return_types: type_facts::ReturnTypeIndex,
 }
 
 impl PythonExtractor {
@@ -42,12 +44,18 @@ impl PythonExtractor {
             base: BaseExtractor::new("python".to_string(), file_path, content, workspace_root),
             same_file_class_names: HashSet::new(),
             instance_attribute_ids: HashSet::new(),
+            return_types: type_facts::ReturnTypeIndex::default(),
         }
     }
 
     /// Extract all symbols from Python source code
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         self.same_file_class_names = types::collect_class_names(self, tree.root_node());
+        self.return_types = type_facts::ReturnTypeIndex::build(
+            &self.base,
+            tree.root_node(),
+            &self.same_file_class_names,
+        );
         let mut symbols = Vec::new();
         self.traverse_tree(tree.root_node(), &mut symbols, 0);
         assignments::keep_first_attribute_declaration(&mut symbols, &self.instance_attribute_ids);

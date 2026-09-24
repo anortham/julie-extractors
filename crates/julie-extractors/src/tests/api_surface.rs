@@ -45,6 +45,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "qt-reference-corrections-v1",
         "language-gap-closure-v1",
         "step-definition-role-v1",
+        "call-initializer-type-facts-v1",
         "go-module-manifest-v1",
         "go-sum-checksums-v1",
     ] {

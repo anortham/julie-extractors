@@ -82,7 +82,7 @@ pub(super) fn extract_let_local(
     node: Node,
     parent_id: Option<String>,
 ) -> Option<Symbol> {
-    let base = extractor.get_base_mut();
+    let base = &mut extractor.base;
     let pattern = node.child_by_field_name("pattern")?;
     let name_node = binding_identifier(pattern)?;
     let name = base.get_node_text(&name_node);
@@ -118,7 +118,13 @@ pub(super) fn extract_let_local(
     if let Some(type_node) = type_node {
         type_facts::record_declared_type(base, &symbol.id, type_node);
     } else if let Some(value) = node.child_by_field_name("value") {
-        type_facts::record_initializer_type(base, &symbol.id, value);
+        type_facts::record_initializer_type(
+            base,
+            &symbol.id,
+            value,
+            &extractor.return_types,
+            extractor.current_impl_type.as_deref(),
+        );
     }
     Some(symbol)
 }

@@ -146,10 +146,12 @@ fn parameter_pattern_of_args(args: Node<'_>) -> Node<'_> {
     args
 }
 
-/// The written return type of a member, from the `typed_pattern` that wraps
-/// its `args`.
+/// The written return type of a member, from the `typed_pattern` that wraps its
+/// last `args` (`static member Make (a: int) (b: int) : R`).
 pub(super) fn member_return_type(definition: Node<'_>) -> Option<Node<'_>> {
-    let args = definition.child_by_field_name("args")?;
+    let args = definition
+        .children_by_field_name("args", &mut definition.walk())
+        .last()?;
     if args.kind() != "typed_pattern" {
         return None;
     }
@@ -224,7 +226,7 @@ fn collect_bindings<'a>(
     }
 }
 
-fn typed_pattern_parts(node: Node<'_>) -> Option<(Node<'_>, Node<'_>)> {
+pub(super) fn typed_pattern_parts(node: Node<'_>) -> Option<(Node<'_>, Node<'_>)> {
     let mut cursor = node.walk();
     let children: Vec<_> = node.named_children(&mut cursor).collect();
     let type_node = children.iter().copied().rev().find(is_type_node)?;

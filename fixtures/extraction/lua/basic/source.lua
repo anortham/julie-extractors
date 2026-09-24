@@ -124,4 +124,11 @@ local function render(canvas, list, db)
     return acc, rex, weak
 end
 
+---@return Shape
+local function default_shape()
+    return Shape.new("unit")
+end
+
+local fallback = default_shape()
+
 return Worker

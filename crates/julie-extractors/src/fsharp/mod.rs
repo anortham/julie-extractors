@@ -1,3 +1,4 @@
+mod call_types;
 mod calls;
 mod declarations;
 pub(crate) mod facts;

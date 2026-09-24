@@ -41,6 +41,47 @@ The golden fixture `swift:structure` holds the evidence for these rules.
   the declared return type as a non-inferred type fact. `some P` and `any P`
   record `P`. No declaration keyword (`class`, `extension`, `initializer`)
   and no placeholder (`Any`, `Void`) is ever a type fact.
+- **Initializer inference.** A `let` or `var` with one name and no written
+  type gets an inferred type fact from its initializer. `Type(...)` records a
+  same-file type. A call records the declared return type of a same-file
+  callee: a free function (`load()`), an in-scope local function, a member of
+  the enclosing same-file type or its same-file extensions (`load()`,
+  `self.load()`), a static member of an outer same-file type (`helper()` in a
+  nested type), or a static or class member (`Type.make()`, `Self.make()`).
+  An unqualified call walks out from the call, and the first scope that
+  declares the name wins: a local function in the body that holds it, a
+  member in its type, and a free function at file scope. So a method of a
+  local type shadows a local function outside that type. `-> Self` records
+  the enclosing type. A candidate counts only when the call's argument labels
+  and argument count fit its parameters, with default values and variadics
+  taken into account. At least one candidate must surely fit, and all
+  candidates that fit or may fit must agree. An unlabeled trailing closure
+  surely fits only a required parameter with a function type. If no
+  same-file candidate fits, the call goes to an overload in another file, so
+  it records nothing. A return spelled `Optional<T>`, `Swift.Optional<T>`,
+  or `T!` records `T` with the declared text `T?`. `try`, `try!`, and
+  `await` keep the type, `try?` makes the declared text optional, and a
+  postfix `!` removes one optional layer. A `Type.make()` receiver names a
+  nested type only inside a type that declares it, and names a top-level
+  type anywhere else, unless a generic parameter, typealias, or other type
+  of that name shadows it at the call. The first name of the return type
+  must mean the same declaration at the binding as at the callee: a
+  callee's nested `Item` read at file scope, a top-level `Item` read inside
+  a type that nests its own `Item`, or a name that a generic parameter or
+  typealias shadows at the binding records nothing. An `extension` whose name matches only a nested type
+  extends a type from another file. No fact comes from a generic return type
+  (a typealias for a generic parameter counts as generic), a chain that ends
+  in another call, a call with both parentheses and a trailing closure
+  (`load(x) { }`), a subscript (`Foo[0]`), a receiver other than `self` or a
+  same-file type name, a callee name that is also a value (a parameter, a
+  variable, an `if let` binding, or a capture-list name), a protocol or other-file extension
+  member, a local type used as a receiver, or a type name that the file
+  declares more than once (two nested `Node` types). A type with an
+  inheritance clause records nothing for its own member calls, for
+  unqualified calls inside it, or for a `Type.make()` receiver inside it,
+  because a base class or a protocol can add a same-named overload or nested
+  type that the call picks instead. Other files are out of scope because each
+  file is extracted alone.
 - **Access levels.** An explicit modifier wins. Without one, a declaration is
   `internal`, a member of a private type is `fileprivate`, an extension member
   takes the extension's level (`private` there means `fileprivate`), and a
@@ -189,6 +230,22 @@ classifies each exactly once, so a swift-specific gap cannot live there.
   skip, a tag, and a serialization constraint reach no channel. No language
   publishes a test tag or skip channel yet: Ruby records RSpec metadata tags
   as the same kind of gap, so the channel is a cross-language decision.
+
+## Windows grammar defect
+
+tree-sitter-swift 0.7.3 builds the `try!` suppression mask in `scanner.c` with
+`1UL << FAKE_TRY_BANG`, and `FAKE_TRY_BANG` is token 32. `long` is 32 bits on
+Windows, so the shift is undefined there, the scanner emits `!` as an
+operator, and `try! f()` parses as `try (!f)()` with no syntax error. Linux and
+macOS parse it correctly.
+
+- Call-initializer inference undoes the split for a bare call such as
+  `let x = try! load()`, so that case records the same fact on every platform.
+- Other `try!` forms on Windows, such as `try! self.load()` or
+  `try! Type.make()`, record no inferred fact, and other rows under a `try!`
+  can differ from Linux.
+- Closure: an `anortham`-owned fork of tree-sitter-swift that writes `1ULL`,
+  added under the [grammar dependency policy](../architecture/grammar-dependency-policy.md).
 
 ## Evidence
 

@@ -38,7 +38,7 @@ pub(super) fn extract_parameter_symbols(
                 },
             );
             if let Some(struct_name) = bind.declared_struct {
-                type_facts::record_struct_fact(base, &symbol.id, &struct_name, false);
+                type_facts::record_type_fact(base, &symbol.id, &struct_name, false);
             }
             symbol
         })

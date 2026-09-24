@@ -2824,6 +2824,15 @@
       }
     },
     {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:next:18:8",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:optional:80:8",
       "resolved_type": "Foo",
       "generic_params": null,

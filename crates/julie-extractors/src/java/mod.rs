@@ -11,7 +11,7 @@
 /// - annotations: Annotation extraction
 /// - imports_packages: Import and package declaration extraction
 /// - relationships: Inheritance and implementation relationship extraction
-/// - type_facts: Declared-type fact recording
+/// - type_facts: Declared and initializer-inferred type fact recording
 /// - identifiers: LSP identifier tracking for references
 mod annotations;
 mod classes;
@@ -36,6 +36,8 @@ use tree_sitter::{Node, Tree};
 /// Java extractor for extracting symbols and relationships from Java source code
 pub struct JavaExtractor {
     pub(crate) base: BaseExtractor,
+    /// Declared return types of the file's methods, for `var` inference.
+    return_types: type_facts::ReturnTypeIndex,
 }
 
 impl JavaExtractor {
@@ -47,6 +49,7 @@ impl JavaExtractor {
     ) -> Self {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
+            return_types: type_facts::ReturnTypeIndex::default(),
         }
     }
 
@@ -80,6 +83,7 @@ impl JavaExtractor {
     /// Extract all symbols from Java source code
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
+        self.return_types = type_facts::ReturnTypeIndex::build(&self.base, tree.root_node());
         self.walk_tree(tree.root_node(), &mut symbols, None, 0);
         crate::test_detection::mark_java_test_containers(&mut symbols);
         symbols

@@ -504,3 +504,852 @@ function Use {
     assert_eq!(foo_rows.len(), 1);
     assert_eq!(foo_rows[0].resolved_type, "Foo");
 }
+
+fn inferred(code: &str, name: &str) -> Option<TypeInfo> {
+    let (symbols, extractor) = extract(code);
+    let variable = variable(&symbols, name);
+    extractor.base.type_info.get(&variable.id).cloned()
+}
+
+fn assert_inferred(code: &str, name: &str, expected: &str) {
+    let fact = inferred(code, name).unwrap_or_else(|| panic!("missing type fact for `{name}`"));
+    assert_eq!(fact.resolved_type, expected);
+    assert!(fact.is_inferred);
+}
+
+fn assert_not_inferred(code: &str, name: &str) {
+    assert!(
+        inferred(code, name).is_none(),
+        "expected no type fact for `{name}`"
+    );
+}
+
+#[test]
+fn output_type_function_call_records_inferred_fact() {
+    assert_inferred(
+        r#"
+class Workspace {}
+function Get-Workspace {
+    [CmdletBinding()]
+    [OutputType([Workspace])]
+    param([string]$Name)
+    return [Workspace]::new()
+}
+function Use {
+    $w = get-workspace -Name x
+}
+"#,
+        "w",
+        "Workspace",
+    );
+}
+
+#[test]
+fn output_type_function_call_through_call_operator_records_inferred_fact() {
+    assert_inferred(
+        r#"
+class Workspace {}
+function Get-Workspace {
+    [OutputType([Workspace])]
+    param()
+    return [Workspace]::new()
+}
+$w = & Get-Workspace
+"#,
+        "w",
+        "Workspace",
+    );
+}
+
+#[test]
+fn parenthesized_call_records_inferred_fact() {
+    assert_inferred(
+        r#"
+class Workspace {}
+function Get-Workspace {
+    [OutputType([Workspace])]
+    param()
+    return [Workspace]::new()
+}
+$w = (Get-Workspace)
+"#,
+        "w",
+        "Workspace",
+    );
+}
+
+#[test]
+fn scope_qualified_function_call_records_inferred_fact() {
+    assert_inferred(
+        r#"
+class Workspace {}
+function script:Get-Workspace {
+    [OutputType([Workspace])]
+    param()
+    return [Workspace]::new()
+}
+$w = Get-Workspace
+"#,
+        "w",
+        "Workspace",
+    );
+}
+
+#[test]
+fn output_type_with_named_argument_records_inferred_fact() {
+    assert_inferred(
+        r#"
+class Workspace {}
+function Get-Workspace {
+    [OutputType([Workspace], ParameterSetName = 'ById')]
+    param()
+    return [Workspace]::new()
+}
+$w = Get-Workspace
+"#,
+        "w",
+        "Workspace",
+    );
+}
+
+#[test]
+fn repeated_output_type_with_one_type_records_inferred_fact() {
+    assert_inferred(
+        r#"
+class Workspace {}
+function Get-Workspace {
+    [OutputType([Workspace])]
+    [OutputType([Workspace])]
+    param()
+    return [Workspace]::new()
+}
+$w = Get-Workspace
+"#,
+        "w",
+        "Workspace",
+    );
+}
+
+#[test]
+fn output_type_collection_records_no_fact() {
+    for output_type in [
+        "[string[]]",
+        "[System.Collections.Generic.List[string]]",
+        "[System.Collections.ArrayList]",
+        "[System.Collections.Queue]",
+        "[System.Collections.Stack]",
+        "[Bag]",
+    ] {
+        assert_not_inferred(
+            &format!(
+                "class Bag : System.Collections.Generic.List[string] {{ }}\nfunction Get-Items {{\n    [OutputType({output_type})]\n    param()\n    return [Bag]::new()\n}}\n$items = Get-Items\n"
+            ),
+            "items",
+        );
+    }
+}
+
+#[test]
+fn output_type_hashtable_records_inferred_fact() {
+    assert_inferred(
+        r#"
+function Get-Table {
+    [OutputType([hashtable])]
+    param()
+    return [hashtable]::new()
+}
+$table = Get-Table
+"#,
+        "table",
+        "hashtable",
+    );
+}
+
+#[test]
+fn method_returning_array_records_inferred_fact() {
+    let code = r#"
+class Foo {
+    static [string[]] Names() { return @('a', 'b') }
+    [string[]] Keys() { return @('a', 'b') }
+    [void] Use() {
+        $keys = $this.Keys()
+    }
+}
+$names = [Foo]::Names()
+"#;
+    assert_inferred(code, "names", "string[]");
+    assert_inferred(code, "keys", "string[]");
+}
+
+#[test]
+fn this_method_call_records_inferred_fact() {
+    assert_inferred(
+        r#"
+class Workspace {
+    [Workspace] Load() { return $this }
+    [void] Use() {
+        $loaded = $this.Load()
+    }
+}
+"#,
+        "loaded",
+        "Workspace",
+    );
+}
+
+#[test]
+fn static_method_call_on_same_file_class_records_inferred_fact() {
+    assert_inferred(
+        r#"
+class Workspace {
+    static [Workspace] Create() { return [Workspace]::new() }
+}
+function Use {
+    $created = [Workspace]::Create()
+}
+"#,
+        "created",
+        "Workspace",
+    );
+}
+
+#[test]
+fn function_without_output_type_records_no_fact() {
+    assert_not_inferred(
+        r#"
+function Get-Workspace {
+    param()
+}
+$w = Get-Workspace
+"#,
+        "w",
+    );
+}
+
+#[test]
+fn same_named_functions_that_disagree_record_no_fact() {
+    assert_not_inferred(
+        r#"
+class Workspace {}
+class Folder {}
+function Get-Workspace {
+    [OutputType([Workspace])]
+    param()
+    return [Workspace]::new()
+}
+function Get-Workspace {
+    [OutputType([Folder])]
+    param()
+    return [Folder]::new()
+}
+$w = Get-Workspace
+"#,
+        "w",
+    );
+}
+
+#[test]
+fn output_type_with_two_types_records_no_fact() {
+    assert_not_inferred(
+        r#"
+class Workspace {}
+function Get-Workspace {
+    [OutputType([Workspace], [Folder])]
+    param()
+    return [Workspace]::new()
+}
+$w = Get-Workspace
+"#,
+        "w",
+    );
+}
+
+#[test]
+fn output_type_attributes_that_disagree_record_no_fact() {
+    assert_not_inferred(
+        r#"
+class Workspace {}
+function Get-Workspace {
+    [OutputType([Workspace])]
+    [OutputType([Folder])]
+    param()
+    return [Workspace]::new()
+}
+$w = Get-Workspace
+"#,
+        "w",
+    );
+}
+
+#[test]
+fn output_type_string_records_no_fact() {
+    assert_not_inferred(
+        r#"
+class Workspace {}
+function Get-Workspace {
+    [OutputType('Folder')]
+    [OutputType([Workspace])]
+    param()
+    return [Workspace]::new()
+}
+$w = Get-Workspace
+"#,
+        "w",
+    );
+}
+
+#[test]
+fn piped_call_records_no_fact() {
+    assert_not_inferred(
+        r#"
+class Workspace {}
+function Get-Workspace {
+    [OutputType([Workspace])]
+    param()
+    return [Workspace]::new()
+}
+$w = Get-Workspace | Select-Object -First 1
+"#,
+        "w",
+    );
+}
+
+#[test]
+fn method_chain_after_this_call_records_no_fact() {
+    assert_not_inferred(
+        r#"
+class Workspace {
+    [Workspace] Load() { return $this }
+    [void] Use() {
+        $copy = $this.Load().Clone()
+    }
+}
+"#,
+        "copy",
+    );
+}
+
+#[test]
+fn this_call_outside_class_records_no_fact() {
+    assert_not_inferred(
+        r#"
+class Workspace {
+    [Workspace] Load() { return $this }
+}
+function Use {
+    $loaded = $this.Load()
+}
+"#,
+        "loaded",
+    );
+}
+
+#[test]
+fn this_call_to_static_method_records_no_fact() {
+    assert_not_inferred(
+        r#"
+class Workspace {
+    static [Workspace] Load() { return $null }
+    [void] Use() {
+        $loaded = $this.Load()
+    }
+}
+"#,
+        "loaded",
+    );
+}
+
+#[test]
+fn static_call_to_instance_method_records_no_fact() {
+    assert_not_inferred(
+        r#"
+class Workspace {
+    [Workspace] Load() { return $this }
+}
+$loaded = [Workspace]::Load()
+"#,
+        "loaded",
+    );
+}
+
+#[test]
+fn this_static_access_records_no_fact() {
+    assert_not_inferred(
+        r#"
+class Workspace {
+    [Workspace] Load() { return $this }
+    [void] Use() {
+        $loaded = $this::Load()
+    }
+}
+"#,
+        "loaded",
+    );
+}
+
+#[test]
+fn overloads_that_disagree_record_no_fact() {
+    assert_not_inferred(
+        r#"
+class Workspace {
+    [Workspace] Load() { return $this }
+    [string] Load([string]$path) { return $path }
+    [void] Use() {
+        $loaded = $this.Load()
+    }
+}
+"#,
+        "loaded",
+    );
+}
+
+#[test]
+fn void_and_untyped_methods_record_no_fact() {
+    let code = r#"
+class Workspace {
+    [void] Reset() {}
+    Refresh() {}
+    [void] Use() {
+        $reset = $this.Reset()
+        $refreshed = $this.Refresh()
+    }
+}
+"#;
+    assert_not_inferred(code, "reset");
+    assert_not_inferred(code, "refreshed");
+}
+
+#[test]
+fn static_call_on_class_from_another_file_records_no_fact() {
+    assert_not_inferred(
+        r#"
+class Folder {
+    static [Folder] Create() { return [Folder]::new() }
+}
+$created = [Workspace]::Create()
+"#,
+        "created",
+    );
+}
+
+#[test]
+fn written_type_wins_over_call_inference() {
+    let fact = inferred(
+        r#"
+class Workspace {}
+function Get-Workspace {
+    [OutputType([Workspace])]
+    param()
+    return [Workspace]::new()
+}
+[Folder]$w = Get-Workspace
+"#,
+        "w",
+    )
+    .expect("missing type fact for `w`");
+    assert_eq!(fact.resolved_type, "Folder");
+    assert!(!fact.is_inferred);
+}
+
+const FOO_CALLABLES: &str = r#"
+class Foo {
+    static [Foo] Create() { return [Foo]::new() }
+    [Foo] Load() { return $this }
+}
+function Get-Foo {
+    [OutputType([Foo])]
+    param()
+    return [Foo]::new()
+}
+"#;
+
+fn assert_not_inferred_with_callables(line: &str, name: &str) {
+    assert_not_inferred(&format!("{FOO_CALLABLES}{line}\n"), name);
+}
+
+#[test]
+fn unary_operator_around_call_records_no_fact() {
+    for (line, name) in [
+        ("$negated = -not (Get-Foo)", "negated"),
+        ("$bang = !(Get-Foo)", "bang"),
+        ("$joined = -join (Get-Foo)", "joined"),
+        ("$splitres = -split (Get-Foo)", "splitres"),
+        ("$bnot = -bnot (Get-Foo)", "bnot"),
+        ("$neg2 = -not [Foo]::Create()", "neg2"),
+    ] {
+        assert_not_inferred_with_callables(line, name);
+    }
+}
+
+#[test]
+fn leading_comma_around_call_records_no_fact() {
+    assert_not_inferred_with_callables("$arr = ,(Get-Foo)", "arr");
+    assert_not_inferred_with_callables("$made = ,[Foo]::new()", "made");
+}
+
+#[test]
+fn unary_operator_around_cast_records_no_fact() {
+    assert_not_inferred_with_callables("$e = -not ([Foo]$y)", "e");
+    assert_not_inferred_with_callables("$c = -not [Foo]$y", "c");
+}
+
+#[test]
+fn unary_operator_around_this_call_records_no_fact() {
+    let code = r#"
+class Foo {
+    [Foo] Load() { return $this }
+    [void] Use() {
+        $notted = -not ($this.Load())
+        $comma = ,($this.Load())
+    }
+}
+"#;
+    assert_not_inferred(code, "notted");
+    assert_not_inferred(code, "comma");
+}
+
+#[test]
+fn parenthesized_cast_records_inferred_fact() {
+    assert_inferred("$e = ([Foo]$y)\n", "e", "Foo");
+}
+
+#[test]
+fn script_path_call_records_no_fact() {
+    assert_not_inferred_with_callables("$pathcall = & ./lib/Get-Foo", "pathcall");
+    assert_not_inferred_with_callables(r"$winpath = & .\lib\Get-Foo", "winpath");
+    assert_not_inferred_with_callables("$quoted = & './lib/Get-Foo'", "quoted");
+}
+
+#[test]
+fn quoted_command_name_call_records_inferred_fact() {
+    assert_inferred(&format!("{FOO_CALLABLES}$w = & 'Get-Foo'\n"), "w", "Foo");
+}
+
+#[test]
+fn compound_assignment_records_no_fact() {
+    let code = format!(
+        "{FOO_CALLABLES}function Use {{\n    $script:all += Get-Foo\n    $g += [Foo]::Create()\n    $t += [pscustomobject]@{{ A = 1 }}\n    $n ??= Get-Foo\n}}\n"
+    );
+    for name in ["all", "g", "t", "n"] {
+        assert_not_inferred(&code, name);
+    }
+}
+
+#[test]
+fn this_call_in_script_method_block_records_no_fact() {
+    assert_not_inferred(
+        r#"
+class Foo {
+    [Foo] Load() { return $this }
+    [void] Use($o) {
+        Add-Member -InputObject $o -MemberType ScriptMethod -Name X -Value { $inner = $this.Load() }
+    }
+}
+"#,
+        "inner",
+    );
+}
+
+#[test]
+fn redirected_call_records_no_fact() {
+    assert_not_inferred_with_callables("$redir = Get-Foo > $null", "redir");
+    assert_not_inferred_with_callables("$merged = Get-Foo 2>&1", "merged");
+}
+
+#[test]
+fn generic_owner_static_call_records_no_fact() {
+    assert_not_inferred_with_callables("$made = [Foo[int]]::Create()", "made");
+    assert_not_inferred_with_callables("$built = [Foo[int]]::new()", "built");
+    assert_not_inferred(
+        r#"
+using namespace System.Collections.Generic
+class Comparer {
+    static [string] Create([object]$c) { return '' }
+}
+$cmp = [Comparer[int]]::Create({ param($a, $b) $a - $b })
+"#,
+        "cmp",
+    );
+}
+
+#[test]
+fn alias_with_function_name_records_no_fact() {
+    for alias in [
+        "Set-Alias -Name Get-Foo -Value Get-Date",
+        "New-Alias Get-Foo Get-Date",
+        "Set-Alias -Value Get-Date -Name 'Get-Foo' -Force",
+        "Set-Alias -Name:Get-Foo -Value Get-Date",
+        "sal get-foo Get-Date",
+        "Set-Alias -Name $aliasName -Value Get-Date",
+        "Set-Alias @aliasArgs",
+        "function Get-Date2 {\n    [Alias('Get-Foo')]\n    param()\n}",
+    ] {
+        assert_not_inferred_with_callables(&format!("{alias}\n$aliased = Get-Foo"), "aliased");
+    }
+}
+
+#[test]
+fn alias_to_function_keeps_inferred_fact() {
+    assert_inferred(
+        &format!("{FOO_CALLABLES}Set-Alias -Name gf -Value Get-Foo\n$w = Get-Foo\n"),
+        "w",
+        "Foo",
+    );
+}
+
+#[test]
+fn nested_function_records_fact_only_inside_its_scope() {
+    let code = r#"
+function Get-Nested {
+    function Get-Inner {
+        [OutputType([int])]
+        param()
+        1
+    }
+    $inside = Get-Inner
+}
+class Holder {
+    [void] Run() {
+        function Get-MethodInner {
+            [OutputType([int])]
+            param()
+            1
+        }
+    }
+}
+$outside = Get-Inner
+$fromMethod = Get-MethodInner
+"#;
+    assert_inferred(code, "inside", "int");
+    assert_not_inferred(code, "outside");
+    assert_not_inferred(code, "fromMethod");
+}
+
+#[test]
+fn comparison_around_call_records_no_fact() {
+    assert_not_inferred_with_callables("$same = [Foo]::Create() -eq $null", "same");
+    assert_not_inferred_with_callables("$equal = (Get-Foo) -eq $null", "equal");
+}
+
+#[test]
+fn function_in_script_block_records_fact_for_the_whole_file() {
+    assert_inferred(
+        r#"
+BeforeAll {
+    function New-Settings {
+        [OutputType([hashtable])]
+        param()
+        @{}
+    }
+}
+It 'uses settings' {
+    $settings = New-Settings
+}
+"#,
+        "settings",
+        "hashtable",
+    );
+}
+
+#[test]
+fn function_nested_by_parse_error_recovery_records_fact() {
+    assert_inferred(
+        r#"
+class Workspace {}
+function Use {
+    $w = Get-Workspace
+}
+function Broken {
+    if ($x) {
+    }
+function Get-Workspace {
+    [OutputType([Workspace])]
+    param()
+    return [Workspace]::new()
+}
+"#,
+        "w",
+        "Workspace",
+    );
+}
+
+#[test]
+fn this_call_with_base_overload_that_disagrees_records_no_fact() {
+    let code = r#"
+class Base {
+    [Base] Load() { return $this }
+    static [Base] Create() { return [Base]::new() }
+}
+class Derived : Base {
+    [Derived] Load([int]$n) { return $this }
+    static [Derived] Create([int]$n) { return [Derived]::new() }
+    [string] Run() {
+        $inst = $this.Load()
+        return ''
+    }
+}
+$stat = [Derived]::Create()
+"#;
+    assert_not_inferred(code, "inst");
+    assert_not_inferred(code, "stat");
+}
+
+#[test]
+fn this_call_overridden_in_subclass_with_other_type_records_no_fact() {
+    assert_not_inferred(
+        r#"
+class Base {
+    [Base] Load() { return $this }
+    [string] Run() {
+        $x = $this.Load()
+        return ''
+    }
+}
+class Middle : Base {}
+class Derived : Middle {
+    [string] Load() { return 's' }
+}
+"#,
+        "x",
+    );
+}
+
+#[test]
+fn this_call_overridden_in_subclass_with_same_type_records_inferred_fact() {
+    assert_inferred(
+        r#"
+class Base {
+    [Base] Load() { return $this }
+    [void] Run() {
+        $x = $this.Load()
+    }
+}
+class Derived : Base {
+    [Base] Load() { return $this }
+}
+"#,
+        "x",
+        "Base",
+    );
+}
+
+#[test]
+fn this_call_to_same_file_base_class_method_records_inferred_fact() {
+    let code = r#"
+class Base {
+    [Base] Load() { return $this }
+    static [Base] Create() { return [Base]::new() }
+}
+class Workspace : Base {
+    [void] Use() {
+        $loaded = $this.Load()
+    }
+}
+$created = [Workspace]::Create()
+"#;
+    assert_inferred(code, "loaded", "Base");
+    assert_inferred(code, "created", "Base");
+}
+
+#[test]
+fn method_call_on_class_with_external_base_records_no_fact() {
+    let code = r#"
+class Base : System.Collections.ArrayList {}
+class Workspace : Base {
+    [Workspace] Clone() { return $this }
+    static [Workspace] Create() { return [Workspace]::new() }
+    [void] Use() {
+        $copy = $this.Clone()
+    }
+}
+$created = [Workspace]::Create()
+"#;
+    assert_not_inferred(code, "copy");
+    assert_not_inferred(code, "created");
+}
+
+#[test]
+fn output_type_of_type_not_known_to_be_single_records_no_fact() {
+    for output_type in [
+        "[Bag]",
+        "[System.Data.DataView]",
+        "[System.Collections.Specialized.StringDictionary]",
+        "[Widget]",
+        "[Derived]",
+    ] {
+        assert_not_inferred(
+            &format!(
+                "class Bag : System.Collections.Generic.HashSet[string] {{ }}\nclass Base : Bag {{ }}\nclass Derived : Base {{ }}\nfunction Get-Items {{\n    [OutputType({output_type})]\n    param()\n    return [Bag]::new()\n}}\n$items = Get-Items\n"
+            ),
+            "items",
+        );
+    }
+}
+
+#[test]
+fn output_type_of_single_item_type_records_inferred_fact() {
+    for (output_type, expected) in [
+        ("[int]", "int"),
+        ("[System.String]", "System.String"),
+        ("[Derived]", "Derived"),
+        ("[Color]", "Color"),
+    ] {
+        assert_inferred(
+            &format!(
+                "enum Color {{ Red }}\nclass Base {{ }}\nclass Derived : Base {{ }}\nfunction Get-Item2 {{\n    [OutputType({output_type})]\n    param()\n    return [Derived]::new()\n}}\n$item = Get-Item2\n"
+            ),
+            "item",
+            expected,
+        );
+    }
+}
+
+fn single_output_code(body: &str) -> String {
+    format!(
+        "class Item {{ [string]$Name }}\nfunction Get-Item2 {{\n    [OutputType([Item])]\n    param($x)\n{body}\n}}\n$items = Get-Item2\n"
+    )
+}
+
+#[test]
+fn function_with_more_than_one_output_records_no_fact() {
+    for body in [
+        "    [Item]::new(); [Item]::new()",
+        "    [Item]::new()\n    return [Item]::new()",
+        "    foreach ($b in $x) { [Item]::new() }",
+        "    for ($i = 0; $i -lt 2; $i++) { [Item]::new() }",
+        "    while ($x) { [Item]::new() }",
+        "    switch ($x) { 1 { [Item]::new() } }",
+        "    begin { [Item]::new() }\n    end { [Item]::new() }",
+        "    Import-Module Foo\n    return [Item]::new()",
+        "    $list.Add(1)\n    return [Item]::new()",
+        "    $x | ForEach-Object { [Item]::new() }",
+        "    return Get-Thing",
+        "    return $x",
+        "    return $this.Items",
+        "    return @([Item]::new())",
+        "    return ,[Item]::new()",
+        "    return $([Item]::new())",
+        "    [Item]::new(), [Item]::new()",
+        "",
+        "    Write-Verbose 'none'",
+    ] {
+        assert_not_inferred(&single_output_code(body), "items");
+    }
+}
+
+#[test]
+fn function_with_one_output_records_inferred_fact() {
+    for body in [
+        "    [Item]::new()",
+        "    $made = 1\n    Write-Verbose 'x'\n    $null = Get-Thing\n    [void]$x.Add(1)\n    Get-Thing | Out-Null\n    return [Item]::new()",
+        "    if ($x) { return [Item]::new() }\n    elseif ($x -eq 2) { throw 'bad' }\n    return [Item]::new()",
+        "    try { return [Item]::new() } catch { return [Item]::new() }",
+        "    foreach ($b in $x) { $made = $b }\n    return [Item]::new()",
+        "    process { return [Item]::new() }",
+        "    return [Item]$x",
+        "    return New-Object Item",
+        "    function Get-Inner { [Item]::new(); [Item]::new() }\n    [Item]::new()",
+    ] {
+        assert_inferred(&single_output_code(body), "items", "Item");
+    }
+}

@@ -161,7 +161,7 @@ def run(): Unit = {
 #[test]
 fn unknown_qualified_and_non_constructor_calls_record_no_fact() {
     let source = r#"
-def build(): Int = 1
+def build() = 1
 def run(): Unit = {
   val a = Unknown()
   val b = scala.collection.mutable.ListBuffer()

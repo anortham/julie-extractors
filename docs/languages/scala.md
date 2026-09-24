@@ -37,6 +37,66 @@ Scala uses `tree-sitter-scala`. The extractor reads `.scala`, `.sc`, and
   type (`Shape`) with `extendedType` metadata, as Swift names
   `extension Shape`. Its methods are its members.
 
+## Type facts
+
+- A `val` or `var` with no written type gets an inferred type fact from its
+  initializer: `new T(..)`, `T(..)` for a same-file class `T`, or a call to or
+  reference of a same-file `def` with a declared return type. The `def` can
+  be local, top-level, a member of an enclosing class, object, or trait
+  (`load()`, `this.load()`), or an object member (`Repo.create()`,
+  `Repo.current`). The call must supply each explicit parameter list, in
+  order, and nothing more. A Scala 2 `implicit` list takes a plain argument
+  list or none. A Scala 3 `using` list takes only a `(using ..)` argument
+  list or none, because a plain list skips it: `load()(c)` for
+  `def load()(using c: Ctx): Out` applies `c` to the `Out` result and
+  records nothing.
+- `Name(..)` uses the `apply` methods of the same-file object `Name` when it
+  declares any, and `Obj.apply(..)` follows the same rule. For a case class
+  the result must be `Name`, because the synthetic `apply` returns `Name`. A
+  case class declared in a nearer scope than a def or object of the same
+  name makes `Name(..)` construct that class. A plain class or enum there
+  records nothing, because Scala 2 and Scala 3 resolve the name differently.
+- Same-named defs in the resolving scope must agree. A name bound by a
+  parameter, pattern, `for` enumerator, `val`, or named `given` records no
+  fact. Any trailing method other than a parameterless `.get` records no
+  fact.
+- `.get` removes one layer of the Scala `Option`, `Some`, `Try`, or
+  `Success`. A qualified name must be `scala.Option`, `scala.Some`,
+  `scala.util.Try`, or `scala.util.Success`, so `Parsed.Success[T].get`
+  records nothing. An unqualified name records nothing when the file
+  declares a type with that name, imports that name from another package
+  (also by rename), or has a wildcard import from a package outside
+  `scala`, `scala.util`, `scala.collection`, `scala.concurrent`,
+  `scala.jdk`, `scala.annotation`, `scala.math`, and `java`. Unqualified
+  `Try` and `Success` also need an import from `scala.util`.
+- A type parameter or abstract type member records no fact, and neither
+  does a `.get` that unwraps to one. An unqualified return type name inside
+  a template that can inherit or export records no fact, because an
+  inherited abstract type member can have that name. The exception is a
+  name that the file declares as a class, trait, enum, or type alias and
+  never as an abstract type member.
+- A qualified return type records a fact only when its path starts with
+  `_root_`, `scala`, `java`, or `javax`, or when it is `Obj.T` for a class,
+  trait, enum, or type alias `T` that a same-file object `Obj` declares.
+  Any other prefix can be a value, so `r.Out` or `this.Out` can name an
+  abstract type member and records nothing. A return type qualified by
+  another package, such as `com.acme.Workspace`, also records nothing,
+  because one file cannot tell a package prefix from a value prefix.
+- A class, object, or trait that can inherit records no fact for that
+  name, even when it declares its own defs of the name: an inherited
+  overload can be the one the call selects. Those own defs also hide an
+  outer class of the name, so `Node(1)` there records nothing. A template can inherit when it
+  has an `extends` clause, a self type, an `export` clause, or a `case`
+  modifier, or when it is an anonymous class or an enum or given body. The
+  rule also applies to `Any` members such as `toString`, to a top-level
+  `export`, and to the synthetic members of a same-file case class
+  companion (`apply`, `unapply`, `fromProduct`, `tupled`, `curried`) or
+  enum companion (`values`, `valueOf`, `fromOrdinal`). This covers
+  `load()`, `this.load()`, `Repo.create()`, `Port.unapply(..)`,
+  `Color.valueOf(..)`, and `Name(..)` through an inheriting companion
+  object. Other files are out of scope because each file is extracted
+  alone.
+
 ## Relationships and identifiers
 
 - Inheritance edges come from the definition at the same span, so a

@@ -83,6 +83,7 @@ pub mod data_structures; // data.frame, tibble, vector, list, matrix
 pub mod file_integration_bug; // BUG HUNT: Reproduction test for file extraction failure
 pub mod functions; // Function definitions, parameters, closures
 pub mod identifiers; // Identifier extraction (calls, member access, variable refs)
+pub mod initializer_types;
 pub mod literals; // String-literal call-argument capture
 pub mod modern; // Modern R patterns (tidyverse, data.table)
 pub mod packages; // library(), require(), package::function syntax

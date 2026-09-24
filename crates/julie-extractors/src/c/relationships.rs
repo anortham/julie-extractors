@@ -41,13 +41,28 @@ fn walk_relationships(
             if !super::test_calls::is_criterion_macro_call(&extractor.base, &node)
                 && !helpers::is_static_assertion(&extractor.base, node) =>
         {
-            extract_function_call_relationships(
-                extractor,
-                node,
-                symbols,
-                scoped_index,
-                relationships,
-            );
+            if let Some(function_node) = node.child_by_field_name("function") {
+                extract_function_call_relationships(
+                    extractor,
+                    node,
+                    function_node,
+                    symbols,
+                    scoped_index,
+                    relationships,
+                );
+            }
+        }
+        "function_declarator" => {
+            if let Some(callee) = helpers::misread_auto_callee(&extractor.base, node) {
+                extract_function_call_relationships(
+                    extractor,
+                    node,
+                    callee,
+                    symbols,
+                    scoped_index,
+                    relationships,
+                );
+            }
         }
         "preproc_include" => {
             relationships.extend(include_relationship(&extractor.base, node));
@@ -78,13 +93,11 @@ fn walk_relationships(
 fn extract_function_call_relationships(
     extractor: &mut CExtractor,
     node: tree_sitter::Node,
+    function_node: tree_sitter::Node,
     symbols: &[Symbol],
     scoped_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
-    let Some(function_node) = node.child_by_field_name("function") else {
-        return;
-    };
     let target_token = helpers::callee_token(function_node);
 
     let Some((unresolved_target, is_indirect)) =
@@ -220,6 +233,7 @@ fn extract_type_use_relationship(
 ) {
     if helpers::is_type_declaration_name(node)
         || helpers::is_generic_default_label(&extractor.base, node)
+        || helpers::is_inferred_type_placeholder(&extractor.base, node)
     {
         return;
     }

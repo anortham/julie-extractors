@@ -11,7 +11,7 @@ pub(super) const TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
     generic_open: &[],
 };
 
-pub(super) fn record_struct_fact(
+pub(super) fn record_type_fact(
     base: &mut BaseExtractor,
     symbol_id: &str,
     struct_name: &str,
@@ -48,6 +48,29 @@ pub(super) fn struct_alias(map_node: Node) -> Option<Node> {
         .filter(|inner| inner.kind() == "alias")
 }
 
+/// The start byte of the innermost `quote` block around `node`. Code inside
+/// a quote belongs to the module that injects it, not the enclosing module.
+pub(super) fn quote_scope(base: &BaseExtractor, node: &Node) -> Option<usize> {
+    std::iter::successors(node.parent(), Node::parent)
+        .find(|ancestor| is_quote_call(base, *ancestor))
+        .map(|quote| quote.start_byte())
+}
+
+/// The start byte of the innermost `defmodule`, `defprotocol`, or `defimpl`
+/// around `node`. Two modules with one name (the branches of an `if`) are
+/// different modules.
+pub(super) fn module_scope(base: &BaseExtractor, node: &Node) -> Option<usize> {
+    std::iter::successors(node.parent(), Node::parent)
+        .find(|ancestor| {
+            ancestor.kind() == "call"
+                && matches!(
+                    helpers::extract_call_target_name(base, ancestor).as_deref(),
+                    Some("defmodule" | "defprotocol" | "defimpl")
+                )
+        })
+        .map(|module| module.start_byte())
+}
+
 fn is_quote_call(base: &BaseExtractor, node: Node) -> bool {
     node.kind() == "call"
         && node.child_by_field_name("target").is_some_and(|target| {
@@ -75,6 +98,28 @@ pub(super) fn extract_body_locals(
     }
 }
 
+/// The variable a `x = value` or `{:ok, x} = value` match binds, and whether
+/// it binds the `{:ok, _}` payload.
+pub(super) fn match_binder<'a>(base: &BaseExtractor, node: Node<'a>) -> Option<(Node<'a>, bool)> {
+    if node.kind() != "binary_operator" || node.child_by_field_name("operator")?.kind() != "=" {
+        return None;
+    }
+    let left = node.child_by_field_name("left")?;
+    if left.kind() == "identifier" {
+        return Some((left, false));
+    }
+    if left.kind() != "tuple" {
+        return None;
+    }
+    let elements: Vec<Node> = left.named_children(&mut left.walk()).collect();
+    match elements.as_slice() {
+        [tag, value] if base.get_node_text(tag) == ":ok" && value.kind() == "identifier" => {
+            Some((*value, true))
+        }
+        _ => None,
+    }
+}
+
 fn walk_assignments(
     base: &mut BaseExtractor,
     node: Node,
@@ -86,13 +131,7 @@ fn walk_assignments(
         return;
     }
 
-    if node.kind() == "binary_operator"
-        && node
-            .child_by_field_name("operator")
-            .is_some_and(|op| op.kind() == "=")
-        && let Some(left) = node.child_by_field_name("left")
-        && left.kind() == "identifier"
-    {
+    if let Some((left, binds_ok_payload)) = match_binder(base, node) {
         let name = base.get_node_text(&left);
         if name != "_" && !(name.starts_with("__") && name.ends_with("__")) {
             let signature = base.get_node_text(&node);
@@ -106,10 +145,11 @@ fn walk_assignments(
                     ..Default::default()
                 },
             );
-            if let Some(right) = node.child_by_field_name("right")
+            if !binds_ok_payload
+                && let Some(right) = node.child_by_field_name("right")
                 && let Some(struct_name) = unqualified_struct_name(base, right)
             {
-                record_struct_fact(base, &symbol.id, &struct_name, true);
+                record_type_fact(base, &symbol.id, &struct_name, true);
             }
             symbols.push(symbol);
         }
