@@ -130,7 +130,7 @@ pub(super) struct ResultTypeIndex {
     /// for methods whose body never declares another binding with that name.
     receivers: HashMap<usize, (String, String)>,
     /// Names each top-level declaration binds inside itself (parameters,
-    /// results, locals, local types), by declaration node id. A call to one
+    /// type parameters, results, locals, local types), by declaration node id. A call to one
     /// of these names may not reach the package-level declaration.
     local_names: HashMap<usize, HashSet<String>>,
 }
@@ -151,9 +151,11 @@ impl ResultTypeIndex {
     pub(super) fn build(base: &BaseExtractor, root: Node) -> Self {
         let mut index = Self::default();
         for declaration in root.named_children(&mut root.walk()) {
-            index
-                .local_names
-                .insert(declaration.id(), declared_names(base, declaration));
+            let mut local_names = declared_names(base, declaration);
+            if declaration.kind() == "method_declaration" {
+                local_names.extend(method_receiver_type_parameter_names(base, declaration));
+            }
+            index.local_names.insert(declaration.id(), local_names);
             match declaration.kind() {
                 "function_declaration" => {
                     let Some(name) = declaration.child_by_field_name("name") else {
@@ -181,10 +183,7 @@ impl ResultTypeIndex {
     }
 
     fn add_method(&mut self, base: &BaseExtractor, method: Node) {
-        let Some(receiver) = method.child_by_field_name("receiver").and_then(|list| {
-            list.named_children(&mut list.walk())
-                .find(|child| child.kind() == "parameter_declaration")
-        }) else {
+        let Some(receiver) = method_receiver(method) else {
             return;
         };
         let Some(receiver_type) = receiver.child_by_field_name("type") else {
@@ -284,6 +283,19 @@ fn type_parameter_names(base: &BaseExtractor, function: Node) -> Vec<String> {
         .collect()
 }
 
+fn method_receiver(method: Node) -> Option<Node> {
+    let list = method.child_by_field_name("receiver")?;
+    list.named_children(&mut list.walk())
+        .find(|child| child.kind() == "parameter_declaration")
+}
+
+fn method_receiver_type_parameter_names(base: &BaseExtractor, method: Node) -> Vec<String> {
+    method_receiver(method)
+        .and_then(|receiver| receiver.child_by_field_name("type"))
+        .map(|receiver_type| receiver_type_parameter_names(base, receiver_type))
+        .unwrap_or_default()
+}
+
 /// The type parameter names a generic receiver binds: `T` in `*Stack[T]`.
 fn receiver_type_parameter_names(base: &BaseExtractor, receiver_type: Node) -> Vec<String> {
     let named = match receiver_type.kind() {
@@ -345,9 +357,11 @@ fn is_declared_name(name: Node) -> bool {
         _ => return false,
     }
     match parent.kind() {
-        "var_spec" | "const_spec" | "parameter_declaration" | "variadic_parameter_declaration" => {
-            true
-        }
+        "var_spec"
+        | "const_spec"
+        | "parameter_declaration"
+        | "variadic_parameter_declaration"
+        | "type_parameter_declaration" => true,
         "expression_list" => parent.parent().is_some_and(|holder| {
             matches!(
                 holder.kind(),

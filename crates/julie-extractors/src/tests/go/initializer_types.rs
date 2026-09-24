@@ -403,3 +403,66 @@ fn shadowed_new_builtin_records_nothing() {
     assert_eq!(inferred_type(&source, "hidden"), None);
     assert_eq!(inferred_type(&source, "plain"), typed("Config", ""));
 }
+
+const TYPE_PARAMETER_SHADOWING: &str = r#"
+package p
+
+type Config struct{}
+type Other struct{}
+type Server struct{}
+type Num[T ~int] struct{}
+
+func load() *Config { return nil }
+func (s *Server) store() *Config { return nil }
+
+func Conv[load ~int](v int) { tpconv := load(v); var _ load = tpconv }
+func PlainConv() { plainconv := load() }
+func Lit[Server interface{ ~struct{}; store() *Other }]() { tplit := Server{}.store(); var _ *Other = tplit }
+func PlainLit() { plainlit := Server{}.store() }
+func (n *Num[load]) Push(v int) { rtpconv := load(v); var _ load = rtpconv }
+func (n *Num[T]) Plain() { rplain := load() }
+"#;
+
+#[test]
+fn function_type_parameter_hiding_a_function_records_nothing() {
+    assert_eq!(inferred_type(TYPE_PARAMETER_SHADOWING, "tpconv"), None);
+    assert_eq!(
+        inferred_type(TYPE_PARAMETER_SHADOWING, "plainconv"),
+        typed("Config", "*Config")
+    );
+}
+
+#[test]
+fn function_type_parameter_hiding_a_literal_type_records_nothing() {
+    assert_eq!(inferred_type(TYPE_PARAMETER_SHADOWING, "tplit"), None);
+    assert_eq!(
+        inferred_type(TYPE_PARAMETER_SHADOWING, "plainlit"),
+        typed("Config", "*Config")
+    );
+}
+
+#[test]
+fn receiver_type_parameter_hiding_a_function_records_nothing() {
+    assert_eq!(inferred_type(TYPE_PARAMETER_SHADOWING, "rtpconv"), None);
+    assert_eq!(
+        inferred_type(TYPE_PARAMETER_SHADOWING, "rplain"),
+        typed("Config", "*Config")
+    );
+}
+
+#[test]
+fn method_promoted_through_an_embedded_field_records_nothing() {
+    let source = r#"
+package p
+
+type Other struct{}
+type Base struct{}
+type Wrap struct{ Base }
+
+func (b Base) cfg() *Other { return nil }
+func (w Wrap) Run() { promoted := w.cfg() }
+func (b Base) Run() { direct := b.cfg() }
+"#;
+    assert_eq!(inferred_type(source, "promoted"), None);
+    assert_eq!(inferred_type(source, "direct"), typed("Other", "*Other"));
+}
