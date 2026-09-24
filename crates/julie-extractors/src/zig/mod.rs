@@ -20,6 +20,8 @@ mod variables;
 
 pub struct ZigExtractor {
     pub(crate) base: BaseExtractor,
+    /// Declared return types of the file's functions, for local inference.
+    return_types: type_facts::ReturnTypeIndex,
 }
 
 impl ZigExtractor {
@@ -31,6 +33,7 @@ impl ZigExtractor {
     ) -> Self {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
+            return_types: type_facts::ReturnTypeIndex::default(),
         }
     }
 
@@ -69,6 +72,7 @@ impl ZigExtractor {
     /// Main entry point for symbol extraction
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
+        self.return_types = type_facts::ReturnTypeIndex::build(&self.base, tree.root_node());
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
         symbols
     }
@@ -104,6 +108,7 @@ impl ZigExtractor {
                 node,
                 parent_id.as_ref(),
                 helpers::is_public_declaration,
+                &self.return_types,
             ));
         }
 
@@ -158,6 +163,7 @@ impl ZigExtractor {
                 node,
                 parent_id,
                 helpers::is_public_declaration,
+                &self.return_types,
             ),
             "using_namespace_declaration" => imports::extract_usingnamespace(
                 &mut self.base,

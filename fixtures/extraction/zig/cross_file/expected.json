@@ -301,6 +301,15 @@
       "is_inferred": false,
       "language": "zig",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/zig/cross_file/source.zig:total:13:4",
+      "resolved_type": "i32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "zig",
+      "metadata": null
     }
   ],
   "parse_diagnostics": [],

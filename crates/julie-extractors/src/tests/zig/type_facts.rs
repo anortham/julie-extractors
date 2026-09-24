@@ -158,8 +158,13 @@ fn demo() void {
         for name in ["a", "b", "c"] {
             let local = variable(&symbols, name);
             assert_eq!(local.parent_id.as_deref(), Some(demo.id.as_str()));
-            no_fact(&extractor, local);
         }
+        for name in ["a", "b"] {
+            no_fact(&extractor, variable(&symbols, name));
+        }
+        let c_fact = fact(&extractor, variable(&symbols, "c"));
+        assert_eq!(c_fact.resolved_type, "u32");
+        assert!(c_fact.is_inferred);
     }
 
     #[test]

@@ -519,6 +519,15 @@
       }
     },
     {
+      "symbol_key": "fixtures/extraction/zig/file_struct/Tokenizer.zig:byte:9:4",
+      "resolved_type": "u8",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "zig",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/zig/file_struct/Tokenizer.zig:index:5:0",
       "resolved_type": "usize",
       "generic_params": null,
