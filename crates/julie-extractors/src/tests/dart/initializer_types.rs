@@ -209,7 +209,46 @@ extension RepoTools on Repo {
 }
 "#;
     assert_inferred(source, "bare", "Item", None);
-    assert_inferred(source, "viaThis", "Item", None);
+    assert_no_fact(source, &["viaThis"]);
+}
+
+#[test]
+fn this_call_in_an_extension_on_an_sdk_type_records_nothing() {
+    let source = r#"
+class Item {}
+extension OnString on String {
+  Item trim() => Item();
+  void run() {
+    final viaThisTrim = this.trim();
+  }
+}
+extension OnDyn on dynamic {
+  Item pick() => Item();
+  void run() {
+    final viaThisDyn = this.pick();
+  }
+}
+"#;
+    assert_no_fact(source, &["viaThisTrim", "viaThisDyn"]);
+}
+
+#[test]
+fn this_call_in_an_extension_does_not_shadow_the_on_type_member() {
+    let source = r#"
+class Other {}
+class Item2 {
+  Other load() => Other();
+}
+extension X on Item2 {
+  Item2 load() => Item2();
+  void f() {
+    var extThis = this.load();
+    var extBare = load();
+  }
+}
+"#;
+    assert_no_fact(source, &["extThis"]);
+    assert_inferred(source, "extBare", "Item2", None);
 }
 
 #[test]

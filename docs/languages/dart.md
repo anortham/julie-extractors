@@ -19,8 +19,8 @@ its initializer is one of these forms:
   may be declared before or after the use.
 - `m()` inside a class, mixin, enum, named extension, or extension type: the
   enclosing type's own member first, then the library function.
-- `this.m()`: a member of the enclosing class, mixin, enum, named extension,
-  or extension type.
+- `this.m()`: a member of the enclosing class, mixin, enum, or extension
+  type.
 - `Type.m()`: a static member of a same-file class, enum, extension, or
   extension type.
 
@@ -49,5 +49,7 @@ These cases record no fact, because the type would be a guess:
   a type, an inherited member, or a class member called from outside its
   class.
 - Any call inside an unnamed extension.
+- `this.m()` inside any extension. Dart looks up `m` on the on-type first,
+  and the on-type is usually declared in another file or the SDK.
 - A chain that ends in any other method (`Type.create().load()`, `then()`),
   a `?.` call, or a property access.

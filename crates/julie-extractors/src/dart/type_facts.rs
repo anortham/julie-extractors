@@ -129,7 +129,8 @@ fn constructor_type_name(base: &BaseExtractor, type_node: Node) -> Option<String
 /// same-file constructor call, or a call to a same-file function or method
 /// with a declared return type. Unqualified calls follow Dart's lexical
 /// scope (enclosing type member, then library function); `this.m()` resolves
-/// in the enclosing type and `Type.m()` in the named same-file type. `await`
+/// in the enclosing type, except in an extension, and `Type.m()` in the named
+/// same-file type. `await`
 /// removes one `Future`/`FutureOr` layer and `!` removes nullability; any
 /// other receiver, method, or operator records nothing.
 pub(super) fn record_initializer_type(
@@ -139,11 +140,16 @@ pub(super) fn record_initializer_type(
     return_types: &ReturnTypeIndex,
     same_file_types: &HashSet<String>,
 ) {
+    let declaration = enclosing_type_declaration(value);
     let scope = InitializerScope {
         base,
         return_types,
         same_file_types,
-        owner: enclosing_owner(base, value),
+        owner: declaration.map_or(Owner::Library, |declaration| {
+            declaration_owner(base, declaration)
+        }),
+        this_is_owner: declaration
+            .is_some_and(|declaration| declaration.kind() != "extension_declaration"),
     };
     let Some(TypeShape {
         name: Some(name),
@@ -249,15 +255,15 @@ fn declaration_generics(base: &BaseExtractor, declaration: Node) -> Vec<String> 
     generics
 }
 
-fn enclosing_owner(base: &BaseExtractor, node: Node) -> Owner {
+fn enclosing_type_declaration(node: Node) -> Option<Node> {
     let mut current = node;
     while let Some(parent) = current.parent() {
         if is_type_declaration(parent.kind()) {
-            return declaration_owner(base, parent);
+            return Some(parent);
         }
         current = parent;
     }
-    Owner::Library
+    None
 }
 
 /// Declared return types of the file's functions and type members, keyed by
@@ -463,6 +469,10 @@ struct InitializerScope<'a> {
     return_types: &'a ReturnTypeIndex,
     same_file_types: &'a HashSet<String>,
     owner: Owner,
+    /// False inside an extension: `this.m()` there uses normal member lookup
+    /// on the on-type, which usually lives in another file or the SDK, and
+    /// the extension member applies only when the on-type lacks `m`.
+    this_is_owner: bool,
 }
 
 impl InitializerScope<'_> {
@@ -517,10 +527,12 @@ impl InitializerScope<'_> {
                     .base
                     .get_node_text(&function.child_by_field_name("property")?);
                 match object.kind() {
-                    "this" if function.kind() == "member_expression" => match &self.owner {
-                        Owner::Type(owner) => self.return_types.lookup(Some(owner), &member),
-                        _ => None,
-                    },
+                    "this" if function.kind() == "member_expression" && self.this_is_owner => {
+                        match &self.owner {
+                            Owner::Type(owner) => self.return_types.lookup(Some(owner), &member),
+                            _ => None,
+                        }
+                    }
                     "identifier" => self.static_call(self.base.get_node_text(&object), &member),
                     _ => None,
                 }
