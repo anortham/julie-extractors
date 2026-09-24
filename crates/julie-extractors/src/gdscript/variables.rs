@@ -5,7 +5,7 @@ use super::type_facts;
 use super::types::extract_variable_type;
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, normalize_annotations};
 use serde_json::Value;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use tree_sitter::Node;
 
 /// Extract a `var` or `const` statement over its whole span, so its
@@ -14,7 +14,7 @@ pub(super) fn extract_variable(
     base: &mut BaseExtractor,
     statement: Node,
     parent_id: Option<&String>,
-    same_file_class_names: &HashSet<String>,
+    same_file_types: &type_facts::SameFileTypes,
 ) -> Option<Symbol> {
     let is_const = statement.kind() == "const_statement";
     let name_node = statement.child_by_field_name("name")?;
@@ -76,6 +76,6 @@ pub(super) fn extract_variable(
     symbol.doc_comment = doc;
     symbol.body_span = None;
     symbol.body_hash = None;
-    type_facts::record_statement_type_facts(base, &symbol.id, statement, same_file_class_names);
+    type_facts::record_statement_type_facts(base, &symbol.id, statement, same_file_types);
     Some(symbol)
 }
