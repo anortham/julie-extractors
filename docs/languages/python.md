@@ -181,6 +181,11 @@ Imports, variables, constants, attributes, and parameters have no body span.
   whatever its case, except `_sunder_` and `__dunder__` names. An enum member
   gets no type fact from its value: `RED = compute()` is a member of the enum,
   not a value of `compute()`'s return type.
+- A `self.x = ...` assignment in a method is a `property` of the enclosing
+  class. Its signature keeps the receiver (`self.x = make()`), so it reads
+  apart from a class-level `x = ...`. A class-level declaration of the same
+  name wins; otherwise the first `self.x` assignment in source order is the
+  only row.
 - Class visibility follows the same underscore rule as functions.
 - A docstring is the first statement of the body when it is a plain string.
   `r`/`u` prefixes and the quotes are stripped; f-strings and byte strings are

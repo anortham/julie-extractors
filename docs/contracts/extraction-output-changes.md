@@ -88,6 +88,20 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 3.6.1
+
+classification: compatible
+
+The signature of a Python `self.x = ...` member row keeps the `self.`
+receiver: `self.cli = cli.AppGroup()`, not `cli = cli.AppGroup()`. This
+covers annotated targets (`self.debug: bool = False`) and tuple targets
+(`self.a, self.b = pair`). The name, kind (`property`), parent, span, and id
+do not change. No other table changes. SQLite schema remains 7, report schema
+remains 3, and extraction identity epoch remains 10.
+`EXTRACTION_CONTRACT_VERSION` adds `python-instance-attribute-signature-v1`
+because canonical output changes. A reader that parses the signature text
+must accept the receiver prefix.
+
 ## 3.6.0
 
 classification: compatible

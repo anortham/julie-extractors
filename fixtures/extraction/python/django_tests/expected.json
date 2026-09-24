@@ -653,7 +653,7 @@
       "end_byte": 320,
       "body_span": null,
       "body_hash": null,
-      "signature": "value = 1",
+      "signature": "self.value = 1",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/python/django_tests/tests.py:AsyncTests:13:0",

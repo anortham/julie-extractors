@@ -58,7 +58,12 @@ pub(super) fn extract_assignment(extractor: &mut PythonExtractor, node: Node) ->
         String::new()
     };
 
-    let signature = format!("{}{} = {}", name, type_annotation, value);
+    let target = if is_instance_attribute {
+        format!("self.{name}")
+    } else {
+        name.clone()
+    };
+    let signature = format!("{}{} = {}", target, type_annotation, value);
 
     // Infer visibility from name
     let visibility = signatures::infer_visibility(&name);
@@ -248,7 +253,11 @@ fn extract_multiple_assignment_targets(
             },
             _ => continue,
         };
-        let signature = format!("{} = {}", name, value);
+        let signature = if symbol_kind == SymbolKind::Property {
+            format!("self.{name} = {value}")
+        } else {
+            format!("{name} = {value}")
+        };
 
         let visibility = signatures::infer_visibility(&name);
 

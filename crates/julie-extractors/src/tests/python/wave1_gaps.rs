@@ -245,6 +245,23 @@ class Counter:
 }
 
 #[test]
+fn instance_attribute_signature_keeps_the_self_receiver() {
+    let source = r#"
+class App:
+    def __init__(self, blueprint):
+        self.cli = make_group()
+        self.debug: bool = False
+        self.left, self.right = blueprint
+"#;
+    let result = extract("app.py", source);
+    let signature = |name: &str| one(&result, name).signature.clone().unwrap();
+    assert_eq!(signature("cli"), "self.cli = make_group()");
+    assert_eq!(signature("debug"), "self.debug: bool = False");
+    assert_eq!(signature("left"), "self.left = blueprint");
+    assert_eq!(signature("right"), "self.right = blueprint");
+}
+
+#[test]
 fn import_rows_carry_structured_metadata_and_pending_calls_carry_import_context() {
     let source = r#"from app.models import Order as O
 import app.services.billing as billing
