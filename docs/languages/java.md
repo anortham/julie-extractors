@@ -182,9 +182,12 @@ from its initializer:
   elsewhere in the file never supplies the type.
 - `Type.create(..)` resolves only to `static` methods, and only when exactly
   one type in the file is named `Type`, that type is in scope at the call
-  (top-level, a member of an enclosing type, or a local class of an enclosing
-  block), and no variable, parameter, field, pattern binding, or enum constant
-  in the file has the name `Type`.
+  (top-level, a member of an enclosing type, or a local class declared
+  earlier in an enclosing block), and no variable, parameter, field, pattern
+  binding, enum constant, or single static import in the file has the name
+  `Type`. A file with an on-demand static import (`import static pkg.C.*;`)
+  records no fact for any `Type.create(..)`, because that import can bring
+  in a field named `Type`, and a field hides a type of the same name.
 - Implicit members count: a record component accessor records the component
   type, `Color.values()` records `Color[]`, and `Color.valueOf(s)` records
   `Color`.
@@ -192,8 +195,16 @@ from its initializer:
   same return type text. A varargs method accepts one fewer argument and more.
   The candidates include the same-named methods of every same-file supertype,
   so a same-arity overload in a same-file superclass or interface that
-  disagrees records no fact. At least one candidate must be declared in the
-  resolved type itself.
+  disagrees records no fact. The candidates also include the
+  `java.lang.Object` methods that a same-file method can overload:
+  `equals(Object)` (`boolean`) and `wait(long)` and `wait(long, int)`
+  (`void`). So `Workspace equals(String s)` records no fact for `equals(o)`.
+  At least one candidate must be declared in the resolved type itself.
+- The return type text is written in the callee's scope but recorded in the
+  caller's scope. If its first name is a type declared in the file, exactly
+  one type in the file must have that name, and that type must be in scope
+  both at the callee and at the call. The name also must not be a type
+  parameter at the call. Otherwise no fact is recorded.
 - `void`, a return type that is a method or enclosing type parameter
   (`<T> T get()`, `T[] all()`, a generic record component), an old-style
   `Foo load()[]` return, any other receiver (`super`, a variable, a field, a
@@ -202,11 +213,12 @@ from its initializer:
   no fact. Java has no language-level unwrap operator, so no wrapper layer is
   removed. Other files are out of scope because each file is extracted alone.
 
-Known limit: a supertype in another file (including `java.lang.Object`) can
-declare an overload with the same argument count, a member type that hides
-`Type`, or a field named `Type`. Java then resolves the call to that member,
-and the recorded type can be wrong. The extractor cannot see other files, so
-it cannot detect this case.
+Known limit: a supertype in another file can declare an overload with the
+same argument count, a member type that hides `Type` or the return type name,
+or a field named `Type`. Java then resolves the name to that member, and the
+recorded type can be wrong. The extractor cannot see other files, so it
+cannot detect this case. `java.lang.Object` is not part of this limit: its
+methods are fixed by the language, and the extractor checks them.
 
 ## Frameworks
 

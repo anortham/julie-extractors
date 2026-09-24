@@ -421,3 +421,89 @@ fn inherited_member_type_that_hides_top_level_type_records_no_fact() {
                   class Sub extends Base { void run() { var workspace = Box.make(); } }\n";
     assert_eq!(inferred_type(source, "workspace"), None);
 }
+
+#[test]
+fn local_class_declared_after_the_call_records_no_fact() {
+    let after = "class Workspace {}\npublic class Main {\n  static void f() {\n    \
+                 var wrongLocalAfter = String.valueOf(1);\n    \
+                 java.lang.String check = wrongLocalAfter;\n    \
+                 class String { static Workspace valueOf(int x) { return null; } }\n  }\n}\n";
+    assert_eq!(inferred_type(after, "wrongLocalAfter"), None);
+    let record_after = "class Workspace {}\npublic class Main {\n  static void f() {\n    \
+                        var wrongRecordAfter = Helper.make();\n    \
+                        record Helper() { static Workspace make() { return null; } }\n  }\n}\n";
+    assert_eq!(inferred_type(record_after, "wrongRecordAfter"), None);
+    let before = "class Workspace {}\npublic class Main {\n  static void f() {\n    \
+                  class Helper { static Workspace make() { return null; } }\n    \
+                  var localBefore = Helper.make();\n  }\n}\n";
+    assert_eq!(inferred_type(before, "localBefore"), inferred("Workspace"));
+}
+
+#[test]
+fn statically_imported_field_named_like_the_qualifier_records_no_fact() {
+    let single = "import static java.lang.System.out;\nclass Workspace {}\n\
+                  class out { static Workspace checkError() { return null; } }\n\
+                  public class Main { static void f() { var wrongStaticImport = out.checkError(); } }\n";
+    assert_eq!(inferred_type(single, "wrongStaticImport"), None);
+    let on_demand = "import static java.util.Locale.*;\nclass Workspace {}\n\
+                     class US { static Workspace getLanguage() { return null; } }\n\
+                     public class Main { static void f() { var wrongOnDemand = US.getLanguage(); } }\n";
+    assert_eq!(inferred_type(on_demand, "wrongOnDemand"), None);
+    let unrelated = "import static java.lang.System.err;\nimport java.util.*;\nclass Workspace {}\n\
+                     class US { static Workspace getLanguage() { return null; } }\n\
+                     public class Main { static void f() { var unrelatedImport = US.getLanguage(); } }\n";
+    assert_eq!(
+        inferred_type(unrelated, "unrelatedImport"),
+        inferred("Workspace")
+    );
+}
+
+#[test]
+fn on_demand_static_import_keeps_unqualified_calls() {
+    let source = "import static java.util.Locale.*;\n\
+                  class Service {\n  Workspace load() { return null; }\n  \
+                  void run() { var workspace = load(); }\n}\n";
+    assert_eq!(inferred_type(source, "workspace"), inferred("Workspace"));
+}
+
+#[test]
+fn return_type_name_that_means_another_type_at_the_call_records_no_fact() {
+    let source = "public class Main {\n  static class Inner { int outerMarker; }\n  \
+                  static class Nested {\n    static class Inner { int nestedMarker; }\n    \
+                  static Inner make() { return new Inner(); }\n  }\n  \
+                  static void f() { var scopeShift = Nested.make(); }\n}\n";
+    assert_eq!(inferred_type(source, "scopeShift"), None);
+    let member_out_of_scope = "public class Main {\n  static class Nested {\n    \
+                               static class Inner {}\n    static Inner make() { return null; }\n  }\n  \
+                               static void f() { var memberOutOfScope = Nested.make(); }\n}\n";
+    assert_eq!(inferred_type(member_out_of_scope, "memberOutOfScope"), None);
+    let local_shadow = "public class Main {\n  static Workspace load() { return null; }\n  \
+                        static void f() {\n    class Workspace {}\n    \
+                        var localShadow = load();\n  }\n}\n";
+    assert_eq!(inferred_type(local_shadow, "localShadow"), None);
+    let type_parameter = "public class Main {\n  static Workspace load() { return null; }\n  \
+                          static <Workspace> void f() { var typeParameter = load(); }\n}\n";
+    assert_eq!(inferred_type(type_parameter, "typeParameter"), None);
+    let shared = "public class Main {\n  static class Inner {}\n  \
+                  static class Nested { static Inner make() { return null; } }\n  \
+                  static void f() { var sharedScope = Nested.make(); }\n}\n";
+    assert_eq!(inferred_type(shared, "sharedScope"), inferred("Inner"));
+}
+
+#[test]
+fn overload_of_an_object_method_records_no_fact() {
+    let equals = "class Workspace {}\npublic class Main {\n  \
+                  static Workspace equals(String s) { return null; }\n  \
+                  void f(Object o) { var objectOverload = equals(o); }\n}\n";
+    assert_eq!(inferred_type(equals, "objectOverload"), None);
+    let wait = "class Workspace {}\npublic class Main {\n  \
+                static Workspace wait(int x) { return null; }\n  \
+                void f() { var waitOverload = wait(1L); }\n}\n";
+    assert_eq!(inferred_type(wait, "waitOverload"), None);
+    let agrees = "public class Main {\n  boolean equals(String s) { return false; }\n  \
+                  void f(Object o) { var sameAnswer = equals(o); }\n}\n";
+    assert_eq!(inferred_type(agrees, "sameAnswer"), inferred("boolean"));
+    let override_ = "public class Main {\n  public String toString() { return \"\"; }\n  \
+                     void f() { var text = toString(); }\n}\n";
+    assert_eq!(inferred_type(override_, "text"), inferred("String"));
+}

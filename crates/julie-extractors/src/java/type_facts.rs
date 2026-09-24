@@ -21,9 +21,10 @@ pub(super) fn record_declared_type(base: &mut BaseExtractor, symbol_id: &str, ty
 /// to a same-file method. An unqualified or `this.` call resolves only in the
 /// innermost named enclosing type; `Type.method(..)` resolves in the one
 /// same-file type named `Type` in scope at the call, to `static` methods
-/// only. The arity-compatible candidates of that type and its same-file
-/// supertypes must agree. `void`, type-parameter returns, and any other
-/// initializer record nothing.
+/// only. The arity-compatible candidates of that type, its same-file
+/// supertypes, and `java.lang.Object` must agree, and the return type text
+/// must name the same type at the call as at the callee. `void`,
+/// type-parameter returns, and any other initializer record nothing.
 pub(super) fn record_initializer_type(
     base: &mut BaseExtractor,
     symbol_id: &str,
@@ -56,15 +57,30 @@ pub(super) struct ReturnTypeIndex {
     /// type declaration, keyed by the declaration's node id.
     supertype_names: HashMap<usize, Vec<String>>,
     /// Names bound anywhere in the file by a variable, parameter, field,
-    /// pattern, or enum constant. Such a name used as a call qualifier may
-    /// denote the variable, not the type.
+    /// pattern, enum constant, or single static import. Such a name used as
+    /// a call qualifier may denote the variable, not the type.
     bound_names: HashSet<String>,
+    /// An `import static pkg.Type.*;` can bring in a field with any name,
+    /// and a field obscures a same-named type used as a call qualifier.
+    has_static_on_demand_import: bool,
 }
 
 #[derive(Debug)]
 struct TypeDeclaration {
     id: usize,
     parent_id: usize,
+    start_byte: usize,
+    /// A local class is in scope only from its declaration to the end of
+    /// its block; a member or top-level type is in scope in its whole body.
+    block_local: bool,
+}
+
+impl TypeDeclaration {
+    fn in_scope(&self, site: Node) -> bool {
+        (!self.block_local || self.start_byte <= site.start_byte())
+            && std::iter::successors(site.parent(), Node::parent)
+                .any(|ancestor| ancestor.id() == self.parent_id)
+    }
 }
 
 #[derive(Debug)]
@@ -90,10 +106,23 @@ impl ReturnEntry {
 impl ReturnTypeIndex {
     pub(super) fn build(base: &BaseExtractor, root: Node) -> Self {
         let mut index = Self::default();
+        let mut members = Vec::new();
         let mut stack = vec![root];
         while let Some(node) = stack.pop() {
+            if node.kind() == "method_declaration" || is_named_type_declaration(node.kind()) {
+                members.push(node);
+            }
             index.visit(base, node);
             stack.extend(node.named_children(&mut node.walk()));
+        }
+        for node in members {
+            if node.kind() == "method_declaration" {
+                if let Some((name, entry)) = method_entry(base, node) {
+                    index.add_method(name, entry, node);
+                }
+            } else {
+                index.add_implicit_methods(base, node);
+            }
         }
         index
     }
@@ -103,11 +132,7 @@ impl ReturnTypeIndex {
             self.bound_names.insert(base.get_node_text(&name));
         }
         match node.kind() {
-            "method_declaration" => {
-                if let Some((name, entry)) = method_entry(base, node) {
-                    self.add_method(name, entry);
-                }
-            }
+            "import_declaration" => self.add_import(base, node),
             "inferred_parameters" | "type_pattern" | "record_pattern_component" => {
                 for identifier in node
                     .named_children(&mut node.walk())
@@ -121,8 +146,45 @@ impl ReturnTypeIndex {
         }
     }
 
-    fn add_method(&mut self, name: String, entry: ReturnEntry) {
+    fn add_import(&mut self, base: &BaseExtractor, import: Node) {
+        let mut cursor = import.walk();
+        let children: Vec<Node> = import.children(&mut cursor).collect();
+        if !children.iter().any(|child| child.kind() == "static") {
+            return;
+        }
+        if children.iter().any(|child| child.kind() == "asterisk") {
+            self.has_static_on_demand_import = true;
+        } else if let Some(name) = children
+            .iter()
+            .find(|child| matches!(child.kind(), "identifier" | "scoped_identifier"))
+        {
+            let name = name.child_by_field_name("name").unwrap_or(*name);
+            self.bound_names.insert(base.get_node_text(&name));
+        }
+    }
+
+    /// Index a method whose return type text is written at `site`. The text
+    /// is recorded at call sites elsewhere, so a same-file type it names
+    /// must be the one declaration of that name, in scope at `site`.
+    fn add_method(&mut self, name: String, mut entry: ReturnEntry, site: Node) {
+        if entry
+            .declared
+            .as_deref()
+            .is_some_and(|declared| !self.names_one_type_or_none(leading_type_name(declared), site))
+        {
+            entry.declared = None;
+        }
         self.methods.entry(name).or_default().push(entry);
+    }
+
+    /// True when `name` is declared by no type in the file, or by exactly
+    /// one that is in scope at `site`.
+    fn names_one_type_or_none(&self, name: &str, site: Node) -> bool {
+        match self.types.get(name).map(Vec::as_slice) {
+            None => true,
+            Some([declaration]) => declaration.in_scope(site),
+            Some(_) => false,
+        }
     }
 
     fn add_type(&mut self, base: &BaseExtractor, declaration: Node) {
@@ -132,25 +194,42 @@ impl ReturnTypeIndex {
         ) else {
             return;
         };
-        let name = base.get_node_text(&name);
         let id = declaration.id();
         self.types
-            .entry(name.clone())
+            .entry(base.get_node_text(&name))
             .or_default()
             .push(TypeDeclaration {
                 id,
                 parent_id: parent.id(),
+                start_byte: declaration.start_byte(),
+                block_local: !matches!(
+                    parent.kind(),
+                    "program"
+                        | "class_body"
+                        | "interface_body"
+                        | "enum_body_declarations"
+                        | "annotation_type_body"
+                ),
             });
         self.supertype_names
             .insert(id, written_supertype_names(base, declaration));
+    }
+
+    fn add_implicit_methods(&mut self, base: &BaseExtractor, declaration: Node) {
         match declaration.kind() {
             "record_declaration" => self.add_record_accessors(base, declaration),
             "enum_declaration" => {
+                let Some(name) = declaration.child_by_field_name("name") else {
+                    return;
+                };
+                let name = base.get_node_text(&name);
+                let id = declaration.id();
                 self.add_method(
                     "values".to_string(),
                     enum_method(id, 0, format!("{name}[]")),
+                    declaration,
                 );
-                self.add_method("valueOf".to_string(), enum_method(id, 1, name));
+                self.add_method("valueOf".to_string(), enum_method(id, 1, name), declaration);
             }
             _ => {}
         }
@@ -179,6 +258,7 @@ impl ReturnTypeIndex {
                     variadic: false,
                     is_static: false,
                 },
+                component,
             );
         }
     }
@@ -197,31 +277,34 @@ impl ReturnTypeIndex {
         };
         let name = base.get_node_text(&call.child_by_field_name("name")?);
         let argument_count = non_comment_count(call.child_by_field_name("arguments")?);
-        self.lookup(&name, owner, argument_count, type_qualified)
+        let declared = self.lookup(&name, owner, argument_count, type_qualified)?;
+        let type_name = leading_type_name(declared);
+        (self.names_one_type_or_none(type_name, call)
+            && !type_parameter_in_scope(base, type_name, call))
+        .then_some(declared)
     }
 
     /// The same-file type that the qualifier `name` denotes at `site`. The
     /// name must be declared by exactly one type in the file, that type must
     /// be in scope at `site` (top-level, a member of an enclosing type, or a
-    /// local class of an enclosing block), and no variable in the file may
-    /// bind the name.
+    /// local class declared earlier in an enclosing block), and no variable
+    /// in the file or static import may bind the name.
     fn visible_type(&self, name: &str, site: Node) -> Option<usize> {
-        if self.bound_names.contains(name) {
+        if self.has_static_on_demand_import || self.bound_names.contains(name) {
             return None;
         }
         let [declaration] = self.types.get(name)?.as_slice() else {
             return None;
         };
-        std::iter::successors(site.parent(), Node::parent)
-            .any(|ancestor| ancestor.id() == declaration.parent_id)
-            .then_some(declaration.id)
+        declaration.in_scope(site).then_some(declaration.id)
     }
 
-    /// The return type that every arity-compatible `name` method of `owner`
-    /// and of its same-file supertypes agrees on. `owner` itself must declare
-    /// one: an inherited-only method records nothing. A type-qualified call
-    /// needs every candidate to be `static`: an instance method there means
-    /// the qualifier is a variable, not the type.
+    /// The return type that every arity-compatible `name` method of `owner`,
+    /// of its same-file supertypes, and of `java.lang.Object` agrees on.
+    /// `owner` itself must declare one: an inherited-only method records
+    /// nothing. A type-qualified call needs every candidate to be `static`:
+    /// an instance method there means the qualifier is a variable, not the
+    /// type.
     fn lookup(
         &self,
         name: &str,
@@ -239,12 +322,17 @@ impl ReturnTypeIndex {
         if !candidates.iter().any(|entry| entry.owner == owner) {
             return None;
         }
-        let mut declared = candidates.iter().map(|entry| {
-            entry
-                .declared
-                .as_deref()
-                .filter(|_| !type_qualified || entry.is_static)
-        });
+        let object_overload = object_method_overload(name, argument_count)
+            .map(|declared| declared.filter(|_| !type_qualified));
+        let mut declared = candidates
+            .iter()
+            .map(|entry| {
+                entry
+                    .declared
+                    .as_deref()
+                    .filter(|_| !type_qualified || entry.is_static)
+            })
+            .chain(object_overload);
         let first = declared.next()??;
         declared.all(|other| other == Some(first)).then_some(first)
     }
@@ -265,6 +353,26 @@ impl ReturnTypeIndex {
         }
         seen
     }
+}
+
+/// The return type of the `java.lang.Object` instance method that a
+/// same-file method named `name` with `argument_count` parameters can
+/// overload without overriding, so that overload resolution picks by the
+/// argument types. `Some(None)` is a `void` method.
+fn object_method_overload(name: &str, argument_count: usize) -> Option<Option<&'static str>> {
+    match (name, argument_count) {
+        ("equals", 1) => Some(Some("boolean")),
+        ("wait", 1 | 2) => Some(None),
+        _ => None,
+    }
+}
+
+/// The first name of a type text: `Map` in `Map.Entry<K, V>`, `Foo` in
+/// `Foo[]`. It is the name that the scope where the text is written resolves.
+fn leading_type_name(text: &str) -> &str {
+    text.split(|c: char| !(c.is_alphanumeric() || c == '_' || c == '$'))
+        .next()
+        .unwrap_or(text)
 }
 
 fn is_named_type_declaration(kind: &str) -> bool {
@@ -380,40 +488,27 @@ fn declaring_type(node: Node) -> Option<Node> {
 /// True when the base name of `type_node` is a type parameter of the method
 /// or of any enclosing declaration.
 fn names_type_parameter(base: &BaseExtractor, type_node: Node, method: Node) -> bool {
-    let mut element = type_node;
-    while element.kind() == "array_type" {
-        let Some(inner) = element.child_by_field_name("element") else {
-            return false;
-        };
-        element = inner;
-    }
-    let base_name = match element.kind() {
-        "type_identifier" => Some(element),
-        "generic_type" => element
-            .named_children(&mut element.walk())
-            .find(|child| child.kind() == "type_identifier"),
-        _ => None,
-    };
-    let Some(base_name) = base_name.map(|name| base.get_node_text(&name)) else {
-        return false;
-    };
-    let mut scope = Some(method);
-    while let Some(declaration) = scope {
-        if let Some(parameters) = declaration.child_by_field_name("type_parameters")
-            && parameters
-                .named_children(&mut parameters.walk())
-                .filter_map(|parameter| {
-                    parameter
-                        .named_children(&mut parameter.walk())
-                        .find(|child| child.kind() == "type_identifier")
-                })
-                .any(|name| base.get_node_text(&name) == base_name)
-        {
-            return true;
-        }
-        scope = declaration.parent();
-    }
-    false
+    let text = base.get_node_text(&type_node);
+    type_parameter_in_scope(base, leading_type_name(&text), method)
+}
+
+/// True when `name` is a type parameter of `scope` or of any declaration
+/// around it.
+fn type_parameter_in_scope(base: &BaseExtractor, name: &str, scope: Node) -> bool {
+    std::iter::successors(Some(scope), Node::parent).any(|declaration| {
+        declaration
+            .child_by_field_name("type_parameters")
+            .is_some_and(|parameters| {
+                parameters
+                    .named_children(&mut parameters.walk())
+                    .filter_map(|parameter| {
+                        parameter
+                            .named_children(&mut parameter.walk())
+                            .find(|child| child.kind() == "type_identifier")
+                    })
+                    .any(|parameter| base.get_node_text(&parameter) == name)
+            })
+    })
 }
 
 fn non_comment_count(node: Node) -> usize {
