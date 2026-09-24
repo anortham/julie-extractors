@@ -226,7 +226,7 @@ fn collect_bindings<'a>(
     }
 }
 
-fn typed_pattern_parts(node: Node<'_>) -> Option<(Node<'_>, Node<'_>)> {
+pub(super) fn typed_pattern_parts(node: Node<'_>) -> Option<(Node<'_>, Node<'_>)> {
     let mut cursor = node.walk();
     let children: Vec<_> = node.named_children(&mut cursor).collect();
     let type_node = children.iter().copied().rev().find(is_type_node)?;

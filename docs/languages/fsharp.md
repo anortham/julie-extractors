@@ -74,16 +74,29 @@ same-file callable with a declared return type: a `let` function in scope at
 the call (`load ()`, `make 1 2`, `x |> make 1`), a module function
 (`Repo.load ()`), a static member on a same-file type (`Store.Create()`), or an
 instance member through the enclosing member's self identifier
-(`this.Load()`). A function is in scope from its definition to the end of its
-module, type, or `let ... in` body. Every candidate with the name must agree
-on the return type. A partial application, a name that any pattern in the
-file binds (parameter, lambda, match, or loop variable), a type parameter
-return (`'T`), a call through another receiver, a self call inside an object
-expression, or a callee in another file records no fact. `let!` and `use!`
-remove one `Async` layer inside `async { }` and one `Task`, `ValueTask`, or
-`Async` layer inside `task { }` or `backgroundTask { }`; any other builder, and
-any other return type, records no fact. Other files are out of scope because
-each file is extracted alone.
+(`this.Load()`). Only a binding to a single name gets a fact: `let x`, `let (x)`,
+`let mutable x`, or `use x`. Tuple, list, array, cons, union-case, and `as`
+patterns record no fact, because each name binds only part of the value. A type
+written on the pattern (`let (x: T) = ...`) wins like a type after the pattern.
+
+A plain `let` function is in scope from the end of its definition to the end
+of its module, type, or `let ... in` body, so a call to its own name inside its
+body records no fact. A `let rec` function is in scope from its start. A
+qualified call (`Repo.load ()`, `Store.Create()`) sees a module function only
+after its definition, and sees a module or type only from its definition to the
+end of the module or namespace that holds it. A call that needs an `open` to
+see the module or type, such as a call into a sibling module, records no fact.
+Every candidate with the name must agree on the return type.
+
+These calls record no fact: a partial application, a name that any pattern in
+the file binds (parameter, lambda, match, or loop variable), a qualifier that
+any pattern in the file binds, a self identifier that a pattern inside the same
+member binds again (`fun this -> this.Load()`), a type parameter return (`'T`),
+a call through another receiver, a self call inside an object expression, and a
+callee in another file. `let!` and `use!` remove one `Async` layer inside
+`async { }` and one `Task`, `ValueTask`, or `Async` layer inside `task { }` or
+`backgroundTask { }`; any other builder, and any other return type, records no
+fact. Other files are out of scope because each file is extracted alone.
 
 Comments, `///` XML documentation comments, and F# string forms publish exact
 `source_regions` spans. Attribute nodes publish the registered

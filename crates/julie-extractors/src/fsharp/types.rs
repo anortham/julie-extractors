@@ -87,15 +87,73 @@ fn collect_definition_type<'t>(
     let Some(symbol) = symbol_for_name(symbols, base, &name_node) else {
         return;
     };
-    let explicit = direct_type_child_after(node, left);
+    let pattern = if left.kind() == "value_declaration_left" {
+        bound_pattern(left)
+    } else {
+        Some(BoundPattern::Name)
+    };
+    let written_on_pattern = match pattern {
+        Some(BoundPattern::Typed(type_node)) => Some(type_node),
+        _ => None,
+    };
+    let explicit = direct_type_child_after(node, left).or(written_on_pattern);
     if let Some(type_node) = explicit {
         insert_type(base, scope.types, symbol, type_node);
         return;
     }
-    let (Some(keyword), Some(body)) = (node.child(0), node.child_by_field_name("body")) else {
+    let (Some(_), Some(keyword), Some(body)) =
+        (pattern, node.child(0), node.child_by_field_name("body"))
+    else {
         return;
     };
     record_initializer_type(base, &symbol.id, keyword, body, scope);
+}
+
+enum BoundPattern<'t> {
+    Name,
+    Typed(Node<'t>),
+}
+
+/// The value pattern of `let x = ...` or `let (x: T) = ...`, with optional
+/// parentheses. Tuple, list, array, cons, union-case, and `as` patterns bind
+/// parts of the value, so they return `None`.
+fn bound_pattern(left: Node) -> Option<BoundPattern> {
+    let mut cursor = left.walk();
+    let mut patterns = left.named_children(&mut cursor).filter(|child| {
+        !matches!(child.kind(), "mutable" | "access_modifier") && !child.is_extra()
+    });
+    let (pattern, None) = (patterns.next()?, patterns.next()) else {
+        return None;
+    };
+    let pattern = unparenthesized(pattern)?;
+    if pattern.kind() == "typed_pattern" {
+        let (inner, type_node) = parameters::typed_pattern_parts(pattern)?;
+        return is_name_pattern(unparenthesized(inner)?).then_some(BoundPattern::Typed(type_node));
+    }
+    is_name_pattern(pattern).then_some(BoundPattern::Name)
+}
+
+fn unparenthesized(mut pattern: Node) -> Option<Node> {
+    while pattern.kind() == "paren_pattern" {
+        let mut cursor = pattern.walk();
+        let mut inner = pattern
+            .named_children(&mut cursor)
+            .filter(|child| !child.is_extra());
+        let (only, None) = (inner.next()?, inner.next()) else {
+            return None;
+        };
+        pattern = only;
+    }
+    Some(pattern)
+}
+
+fn is_name_pattern(pattern: Node) -> bool {
+    let mut cursor = pattern.walk();
+    let children: Vec<Node> = pattern.named_children(&mut cursor).collect();
+    pattern.kind() == "identifier_pattern"
+        && matches!(children[..], [name] if name.kind() == "long_identifier_or_op"
+            && name.named_child_count() == 1
+            && name.named_child(0).is_some_and(|child| child.kind() == "identifier"))
 }
 
 /// `use name = expr` and `use! name = expr` have no `function_or_value_defn`.

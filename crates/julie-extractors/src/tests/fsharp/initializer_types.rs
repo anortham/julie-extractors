@@ -640,3 +640,223 @@ module Domain =
         "Workspace",
     );
 }
+
+const SELF_REBINDING: &str = r#"
+type Item() =
+    member this.Load() : string = ""
+    member this.Create() : string = ""
+type Store() =
+    member this.Load() : int = 1
+    member x.Run(items: Item list) =
+        items |> List.map (fun x -> let lam = x.Load() in lam)
+    member this.Run2(other: Item) =
+        let f (this: Item) =
+            let inner = this.Load()
+            inner
+        f other
+    member this.Run3(o: Item) =
+        match o with
+        | this -> let m = this.Load() in m
+    member me.Run4(o: Item) =
+        for me in [o] do
+            let loopv = me.Load()
+            ignore loopv
+    static member Create() : Store = Store()
+let useStore (Store: Item) =
+    let rcv = Store.Create()
+    rcv
+"#;
+
+#[test]
+fn lambda_rebinding_the_self_identifier_records_no_fact() {
+    assert_no_fact(SELF_REBINDING, "lam");
+}
+
+#[test]
+fn inner_function_parameter_named_like_the_self_identifier_records_no_fact() {
+    assert_no_fact(SELF_REBINDING, "inner");
+}
+
+#[test]
+fn match_rebinding_the_self_identifier_records_no_fact() {
+    assert_no_fact(SELF_REBINDING, "m");
+}
+
+#[test]
+fn for_loop_rebinding_the_self_identifier_records_no_fact() {
+    assert_no_fact(SELF_REBINDING, "loopv");
+}
+
+#[test]
+fn parameter_named_like_a_type_records_no_fact_for_a_static_call() {
+    assert_no_fact(SELF_REBINDING, "rcv");
+}
+
+#[test]
+fn self_call_is_kept_when_another_member_rebinds_the_name() {
+    assert_inferred(
+        r#"
+type Store() =
+    member this.Load() : int = 1
+    member x.Map(items: int list) = items |> List.map (fun x -> x + 1)
+    member x.Run() =
+        let loaded = x.Load()
+        loaded
+"#,
+        "loaded",
+        "int",
+        "int",
+    );
+}
+
+#[test]
+fn non_recursive_self_name_call_records_no_fact() {
+    assert_no_fact(
+        r#"
+let readLines (path: string) : int =
+    let lines = readLines path
+    Seq.length lines
+"#,
+        "lines",
+    );
+}
+
+#[test]
+fn recursive_self_name_call_records_the_return_type() {
+    assert_inferred(
+        r#"
+let rec countDown (n: int) : int =
+    let next = countDown (n - 1)
+    next
+"#,
+        "next",
+        "int",
+        "int",
+    );
+}
+
+#[test]
+fn qualified_call_to_a_sibling_nested_module_records_no_fact() {
+    assert_no_fact(
+        r#"
+module Internal =
+    module Repo =
+        let load () : int = 1
+module Public =
+    let viaSibling = Repo.load ()
+"#,
+        "viaSibling",
+    );
+}
+
+#[test]
+fn static_call_to_a_type_in_a_sibling_module_records_no_fact() {
+    assert_no_fact(
+        r#"
+module A =
+    type Store() =
+        static member Create() : int = 1
+module B =
+    let viaStatic = Store.Create()
+"#,
+        "viaStatic",
+    );
+}
+
+#[test]
+fn qualified_call_before_the_function_definition_records_no_fact() {
+    assert_no_fact(
+        r#"
+module Repo =
+    let early = Repo.late ()
+    let late () : int = 1
+"#,
+        "early",
+    );
+}
+
+const DESTRUCTURING: &str = r#"
+type Pair = int * string
+let pair () : Pair = (1, "a")
+let a, b = pair ()
+let arr () : string[] = [| "a" |]
+let [| e1; e2 |] = arr ()
+let pairs () : (int * string) list = []
+let first :: rest = pairs ()
+let tryPair () : (int * string) option = None
+let (Some (n, s)) = tryPair ()
+let (plain) = pair ()
+"#;
+
+#[test]
+fn tuple_destructuring_records_no_fact() {
+    assert_no_fact(DESTRUCTURING, "a");
+}
+
+#[test]
+fn array_destructuring_records_no_fact() {
+    assert_no_fact(DESTRUCTURING, "e1");
+}
+
+#[test]
+fn cons_destructuring_records_no_fact() {
+    assert_no_fact(DESTRUCTURING, "first");
+}
+
+#[test]
+fn union_case_destructuring_records_no_fact() {
+    assert_no_fact(DESTRUCTURING, "Some");
+}
+
+#[test]
+fn parenthesized_identifier_pattern_records_the_return_type() {
+    assert_inferred(DESTRUCTURING, "plain", "Pair", "Pair");
+}
+
+#[test]
+fn type_written_on_the_pattern_wins_over_the_call_return_type() {
+    let (symbols, extractor) = extract(
+        r#"
+type Base() = class end
+type Derived() = inherit Base()
+let makeD () : Derived = Derived()
+let (typedPat: Base) = makeD ()
+let ((nested: Base)) = Derived()
+"#,
+    );
+    for name in ["typedPat", "nested"] {
+        let fact = fact_for(&symbols, &extractor, name).expect("typed pattern should have a fact");
+        assert_eq!(fact.resolved_type, "Base", "resolved type of `{name}`");
+        assert!(!fact.is_inferred, "`{name}` should be declared");
+    }
+}
+
+#[test]
+fn written_type_after_a_function_parsed_as_a_value_pattern_is_kept() {
+    let (symbols, extractor) = extract(
+        r#"
+module Core =
+    type HttpHandler = int -> int
+    let markdown (markdown: string) : HttpHandler =
+        let bytes = markdown.Length
+
+#if NET8_0_OR_GREATER
+        let contentType = "text/markdown"
+#else
+        let contentType = "text/markdown"
+#endif
+        fun x -> x + bytes
+"#,
+    );
+    let symbol = symbols
+        .iter()
+        .find(|symbol| symbol.name == "markdown" && symbol.start_line == 4)
+        .expect("markdown binding should be a symbol");
+    let fact = extractor
+        .base
+        .type_info
+        .get(&symbol.id)
+        .expect("markdown should keep its written type");
+    assert_eq!(fact.resolved_type, "HttpHandler");
+    assert!(!fact.is_inferred);
+}

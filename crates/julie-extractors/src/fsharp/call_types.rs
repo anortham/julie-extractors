@@ -9,7 +9,7 @@ use super::types::{
 };
 use crate::base::BaseExtractor;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::ops::Range;
 use tree_sitter::Node;
 
@@ -30,32 +30,40 @@ struct Callable<'t> {
     /// Curried argument groups: `let f a (b, c)` has two.
     groups: usize,
     return_type: Option<Node<'t>>,
-    /// Where an unqualified call can see a `let` binding: from the binding to
-    /// the end of its enclosing module, type, or expression.
+    /// Where an unqualified call can see a `let` binding: from the end of the
+    /// binding (its start for `let rec`) to the end of its enclosing module,
+    /// type, or expression.
     scope: Range<usize>,
+    /// Where a call qualified by `container` can see the callable: from the
+    /// binding or the owning type definition to the end of the module or
+    /// namespace that holds the container.
+    qualified: Range<usize>,
 }
 
 /// Declared return types of the file's `let` functions and members, by name,
-/// plus every name a pattern binds anywhere in the file (parameters, lambda
-/// and match variables, loop variables), since any of them may shadow a
-/// function at the call site.
+/// plus where a pattern binds each name in the file (parameters, lambda and
+/// match variables, loop variables), since any of them may shadow a function,
+/// a self identifier, a module, or a type at the call site.
 #[derive(Debug)]
 pub(super) struct ReturnTypeIndex<'t> {
     callables: HashMap<String, Vec<Callable<'t>>>,
-    shadows: HashSet<String>,
+    shadows: HashMap<String, Vec<usize>>,
 }
 
 impl<'t> ReturnTypeIndex<'t> {
     pub(super) fn build(base: &BaseExtractor, root: Node<'t>) -> Self {
         let mut callables: HashMap<String, Vec<Callable<'t>>> = HashMap::new();
-        let mut shadows = HashSet::new();
+        let mut shadows: HashMap<String, Vec<usize>> = HashMap::new();
         let mut stack = vec![root];
         while let Some(node) = stack.pop() {
             let entry = match node.kind() {
                 "function_or_value_defn" => binding_callable(base, node),
                 "member_defn" => member_callable(base, node),
                 "identifier" if is_pattern_binder(node) => {
-                    shadows.insert(base.get_node_text(&node).trim().to_string());
+                    shadows
+                        .entry(base.get_node_text(&node).trim().to_string())
+                        .or_default()
+                        .push(node.start_byte());
                     None
                 }
                 _ => None,
@@ -94,29 +102,46 @@ impl<'t> ReturnTypeIndex<'t> {
     fn return_type(&self, base: &BaseExtractor, head: Node<'t>, groups: usize) -> Option<Node<'t>> {
         let text = base.get_node_text(&head);
         let segments: Vec<&str> = text.split('.').map(str::trim).collect();
+        let call = head.start_byte();
         match segments.as_slice() {
-            [name] if !self.shadows.contains(*name) => {
+            [name] if !self.shadows.contains_key(*name) => {
                 self.unanimous(base, name, groups, |callable| {
                     matches!(callable.kind, CallableKind::Function | CallableKind::Value)
-                        && callable.scope.contains(&head.start_byte())
+                        && callable.scope.contains(&call)
                 })
             }
             [receiver, name] => {
                 if let Some(owner) = terminal_identifier(head)
                     .and_then(|method| instance_receiver_type(base, method))
                 {
+                    let member = ancestor(head, "member_defn")?;
+                    if self.binds_within(receiver, member.byte_range()) {
+                        return None;
+                    }
                     return self.unanimous(base, name, groups, |callable| {
                         callable.kind == CallableKind::InstanceMember
                             && callable.container.as_deref() == Some(owner.as_str())
                     });
                 }
+                if self.shadows.contains_key(*receiver) {
+                    return None;
+                }
                 self.unanimous(base, name, groups, |callable| {
                     callable.kind != CallableKind::InstanceMember
                         && callable.container.as_deref() == Some(*receiver)
+                        && callable.qualified.contains(&call)
                 })
             }
             _ => None,
         }
+    }
+
+    /// Whether a pattern inside `range` rebinds `name`, which hides a member's
+    /// self identifier from that point on.
+    fn binds_within(&self, name: &str, range: Range<usize>) -> bool {
+        self.shadows
+            .get(name)
+            .is_some_and(|starts| starts.iter().any(|start| range.contains(start)))
     }
 
     /// The return type every accepted same-named callable agrees on; each
@@ -145,8 +170,16 @@ impl<'t> ReturnTypeIndex<'t> {
 }
 
 fn binding_callable<'t>(base: &BaseExtractor, node: Node<'t>) -> Option<(String, Callable<'t>)> {
-    let container = module_container(base, node);
-    let scope = node.start_byte()..scope_end(node);
+    let visible_from = if direct_child(node, "rec").is_some() {
+        node.start_byte()
+    } else {
+        node.end_byte()
+    };
+    let scope = visible_from..scope_end(node);
+    let (container, qualified) = match module_container(base, node) {
+        Some((name, end)) => (Some(name), visible_from..end),
+        None => (None, 0..0),
+    };
     if let Some(left) = direct_child(node, "function_declaration_left") {
         let name = base.get_node_text(&direct_child(left, "identifier")?);
         let groups = direct_child(left, "argument_patterns").map_or(0, |patterns| {
@@ -161,6 +194,7 @@ fn binding_callable<'t>(base: &BaseExtractor, node: Node<'t>) -> Option<(String,
             groups,
             return_type: direct_type_child_after(node, left),
             scope,
+            qualified,
         };
         return Some((name.trim().to_string(), callable));
     }
@@ -171,6 +205,7 @@ fn binding_callable<'t>(base: &BaseExtractor, node: Node<'t>) -> Option<(String,
         groups: 0,
         return_type: None,
         scope,
+        qualified,
     };
     Some((base.get_node_text(&name).trim().to_string(), callable))
 }
@@ -193,7 +228,10 @@ fn member_callable<'t>(base: &BaseExtractor, node: Node<'t>) -> Option<(String, 
             .children_by_field_name("args", &mut definition.walk())
             .count(),
         return_type: member_return_type(definition).or_else(|| direct_type_child(definition)),
-        scope: 0..usize::MAX,
+        scope: 0..0,
+        qualified: ancestor(node, "type_definition").map_or(0..0, |type_definition| {
+            type_definition.start_byte()..container_end(type_definition)
+        }),
     };
     Some((method.trim().to_string(), callable))
 }
@@ -237,8 +275,9 @@ fn scope_end(binding: Node) -> usize {
     usize::MAX
 }
 
-/// The module whose name qualifies a module-level binding (`M.load ()`).
-fn module_container(base: &BaseExtractor, binding: Node) -> Option<String> {
+/// The module whose name qualifies a module-level binding (`M.load ()`), and
+/// the end of the module or namespace where that name is visible.
+fn module_container(base: &BaseExtractor, binding: Node) -> Option<(String, usize)> {
     let mut current = binding.parent();
     while let Some(ancestor) = current.filter(|node| node.kind() == "declaration_expression") {
         current = ancestor.parent();
@@ -250,7 +289,29 @@ fn module_container(base: &BaseExtractor, binding: Node) -> Option<String> {
         _ => return None,
     };
     let text = base.get_node_text(&name);
-    Some(text.rsplit('.').next()?.trim().to_string())
+    Some((
+        text.rsplit('.').next()?.trim().to_string(),
+        container_end(module),
+    ))
+}
+
+/// The end of the module, namespace, or file that holds a module or type
+/// definition; its name is not visible past that point without an `open`.
+fn container_end(definition: Node) -> usize {
+    definition
+        .parent()
+        .map_or(definition.end_byte(), |parent| parent.end_byte())
+}
+
+fn ancestor<'t>(node: Node<'t>, kind: &str) -> Option<Node<'t>> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        if candidate.kind() == kind {
+            return Some(candidate);
+        }
+        current = candidate.parent();
+    }
+    None
 }
 
 /// The callee of an application and how many curried arguments it receives.
