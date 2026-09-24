@@ -162,8 +162,9 @@ fn record_declaration_initializer_facts(
                 &ANNOTATION_TYPE_RULES,
                 true,
             );
-        } else if let Some(type_name) = constructor_type_name(base, expression)
-            .filter(|type_name| scope.class_names.contains(type_name))
+        } else if !scope.callee_has_return_annotation(base, expression)
+            && let Some(type_name) = constructor_type_name(base, expression)
+                .filter(|type_name| scope.class_names.contains(type_name))
         {
             base.record_declared_type_fact(&symbol.id, &type_name, &TYPE_NAME_RULES, true);
         }
@@ -195,7 +196,7 @@ impl InitializerScope {
         {
             return None;
         }
-        let path = TargetPath::of(base, callee)?;
+        let path = TargetPath::of(base, callee, 0)?;
         let rejected = match &path.owner {
             None => self.bindings.contains_key(&path.name),
             Some(_) => {
@@ -214,16 +215,37 @@ impl InitializerScope {
         self.return_types
             .lookup(&path.name, path.owner.as_deref(), binding)
     }
+
+    /// True when a same-file function with the callee's name and owner has a
+    /// `---@return` or `---@overload` tag, usable or not, so the class
+    /// constructor rule must not guess instead.
+    fn callee_has_return_annotation(&self, base: &BaseExtractor, expression: Node) -> bool {
+        expression
+            .child_by_field_name("name")
+            .and_then(|callee| TargetPath::of(base, callee, 0))
+            .is_some_and(|path| {
+                self.return_types
+                    .entries
+                    .get(&path.name)
+                    .is_some_and(|entries| {
+                        entries.iter().any(|entry| {
+                            entry.annotated && entry.owner.as_deref() == path.owner.as_deref()
+                        })
+                    })
+            })
+    }
 }
 
 /// The identifier at the root of an `a.b["c"]` chain, as written.
-fn written_root(table: Node) -> Option<Node> {
-    match table.kind() {
-        "identifier" => Some(table),
-        "dot_index_expression" | "bracket_index_expression" => {
-            written_root(table.child_by_field_name("table")?)
+fn written_root(mut table: Node) -> Option<Node> {
+    loop {
+        match table.kind() {
+            "identifier" => return Some(table),
+            "dot_index_expression" | "bracket_index_expression" => {
+                table = table.child_by_field_name("table")?;
+            }
+            _ => return None,
         }
-        _ => None,
     }
 }
 
@@ -238,7 +260,11 @@ struct TargetPath<'tree> {
 }
 
 impl<'tree> TargetPath<'tree> {
-    fn of(base: &BaseExtractor, target: Node<'tree>) -> Option<Self> {
+    /// `None` past the traversal depth limit, so a very deep chain records nothing.
+    fn of(base: &BaseExtractor, target: Node<'tree>, depth: u32) -> Option<Self> {
+        if !should_visit_tree_depth(depth) {
+            return None;
+        }
         let member = match target.kind() {
             "identifier" => {
                 return Some(Self {
@@ -252,7 +278,7 @@ impl<'tree> TargetPath<'tree> {
             "bracket_index_expression" => string_key(base, target.child_by_field_name("field")?)?,
             _ => return None,
         };
-        let (owner, root) = table_path(base, target.child_by_field_name("table")?)?;
+        let (owner, root) = table_path(base, target.child_by_field_name("table")?, depth)?;
         let owner = (owner != "_G" || root_binding(base, root).is_some()).then_some(owner);
         Some(Self {
             owner,
@@ -270,19 +296,24 @@ fn joined_path(owner: Option<&str>, name: &str) -> String {
     owner.map_or_else(|| name.to_string(), |owner| format!("{owner}.{name}"))
 }
 
-fn table_path<'tree>(base: &BaseExtractor, table: Node<'tree>) -> Option<(String, Node<'tree>)> {
+fn table_path<'tree>(
+    base: &BaseExtractor,
+    table: Node<'tree>,
+    depth: u32,
+) -> Option<(String, Node<'tree>)> {
+    let depth = child_tree_depth(depth)?;
     if table.kind() != "identifier" {
-        let path = TargetPath::of(base, table)?;
+        let path = TargetPath::of(base, table, depth)?;
         return Some((path.text(), path.root));
     }
     let text = base.get_node_text(&table);
     if text == "self"
         && !scope::is_local_binding_in_scope(base, table, "self")
-        && let Some(owner) = scope::enclosing_colon_owner_table(table).filter(|owner| {
+        && let Some(owner) = scope::outer_colon_owner_table(table).filter(|owner| {
             written_root(*owner).is_none_or(|root| base.get_node_text(&root) != "self")
         })
     {
-        return table_path(base, owner);
+        return table_path(base, owner, depth);
     }
     Some((text, table))
 }
@@ -375,6 +406,8 @@ struct ReturnEntry {
     start: usize,
     /// `None` when the function has no usable `---@return` annotation.
     returns: Option<ReturnType>,
+    /// True when the doc has a `---@return` or `---@overload` tag.
+    annotated: bool,
 }
 
 #[derive(Debug)]
@@ -417,7 +450,7 @@ impl ReturnTypeIndex {
             "function_declaration" | "function_definition_statement" => {
                 if let Some(path) = node
                     .child_by_field_name("name")
-                    .and_then(|target| TargetPath::of(base, target))
+                    .and_then(|target| TargetPath::of(base, target, 0))
                 {
                     let doc = helpers::doc_comment(base, &node);
                     let binding = root_binding(base, path.root);
@@ -472,7 +505,7 @@ impl ReturnTypeIndex {
             .then(|| helpers::doc_comment(base, &declaration.unwrap_or(assignment)))
             .flatten();
         for (index, target) in targets.into_iter().enumerate() {
-            let Some(path) = TargetPath::of(base, target) else {
+            let Some(path) = TargetPath::of(base, target, 0) else {
                 continue;
             };
             let binding = match declaration {
@@ -576,12 +609,16 @@ impl ReturnTypeIndex {
         doc: Option<String>,
         generics: &HashSet<String>,
     ) {
+        let annotated = doc.as_deref().is_some_and(|doc| {
+            annotation_tags(doc).any(|(tag, _)| matches!(tag, "return" | "overload"))
+        });
         let returns = doc.and_then(|doc| declared_return(&doc, owner.as_deref(), generics));
         self.entries.entry(name).or_default().push(ReturnEntry {
             owner,
             binding,
             start: definition.start_byte(),
             returns,
+            annotated,
         });
     }
 

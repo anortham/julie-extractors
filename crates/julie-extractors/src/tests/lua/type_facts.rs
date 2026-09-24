@@ -791,3 +791,82 @@ local p4 = M.make()
     assert_inferred(source, "p3", "Bar");
     assert_inferred(source, "p4", "Baz");
 }
+
+#[test]
+fn unusable_return_annotation_on_a_class_constructor_records_no_fact() {
+    let source = r#"
+---@class Shape
+local Shape = {}
+---@class Circle
+local Circle = {}
+---@class Box
+local Box = {}
+---@class Pair
+local Pair = {}
+---@return Shape[]
+function Shape.new() return {} end
+---@return integer|string
+function Box:new() end
+---@generic T
+---@param v T
+---@return T
+function Pair.new(v) return v end
+---@overload fun(kind: "circle"): Circle
+---@return Circle
+function Circle.new(kind) end
+local arr = Shape.new()
+local u = Box:new()
+local g = Pair.new(5)
+local s = Circle.new("circle")
+"#;
+    for name in ["arr", "u", "g", "s"] {
+        assert_no_fact(source, name);
+    }
+}
+
+#[test]
+fn self_member_writes_inside_nested_functions_of_a_colon_method_block_inference() {
+    let source = r#"
+local View = {}
+---@return Foo
+function View:update() end
+---@return Foo
+function View:load() end
+---@return Foo
+function View:render() end
+function View:init()
+  local function reset()
+    self.update = 5
+  end
+  function helper()
+    self.load = throttle(self.load)
+  end
+  reset()
+end
+function View:run()
+  local a = self:update()
+  local b = self:load()
+  local c = self:render()
+end
+local d = View.update()
+"#;
+    for name in ["a", "b", "d"] {
+        assert_no_fact(source, name);
+    }
+    assert_inferred(source, "c", "Foo");
+}
+
+#[test]
+fn very_deep_member_chains_record_no_fact_without_overflowing_the_stack() {
+    let chain = ".b".repeat(16 * 1024);
+    let source = format!(
+        "local a = {{}}\n---@return Foo\nfunction a.load() end\nlocal x = a{chain}.load()\na{chain}.c = 1\nlocal y = a.load()\n"
+    );
+    let facts = std::thread::Builder::new()
+        .stack_size(8 * 1024 * 1024)
+        .spawn(move || (inferred_type(&source, "x"), inferred_type(&source, "y")))
+        .expect("spawn deep chain thread")
+        .join()
+        .expect("deep chain extraction must not overflow the stack");
+    assert_eq!(facts, (None, Some(("Foo".to_string(), true))));
+}

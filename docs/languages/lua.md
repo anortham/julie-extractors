@@ -30,10 +30,13 @@ types.
   `name = function ... end` assignment, or a table-constructor field
   `local M = { name = function ... end }`. `---@return self` names the
   owner table.
-- If no annotated callee matches, `Foo.new(..)`, `Foo:new(..)`, `Foo(..)`, and
+- If no same-file callee with that name and owner has a `---@return` or
+  `---@overload` tag, `Foo.new(..)`, `Foo:new(..)`, `Foo(..)`, and
   `setmetatable({..}, Foo)` record `Foo` for a same-file class `Foo`. An
   explicit `---@return` on the callee wins over this rule, so
-  `---@return Circle` on `Shape.new` records `Circle`.
+  `---@return Circle` on `Shape.new` records `Circle`. A tag that records no
+  fact, such as `---@return Shape[]`, a union, a generic `T`, or an
+  `---@overload`, also turns off this rule, so the call records nothing.
 - Same-named candidates with the same owner must all carry the same
   annotation. No fact is recorded for a generic parameter (`---@generic`,
   `---@class Name<T>`), `any`, `unknown`, a non-name type such as `Foo[]`,
@@ -53,10 +56,13 @@ types.
 - A member that the file also assigns a value that is not a function
   records no fact: `M.get = memoize(M.get)`, `M["get"] = 5`, `_G.load = 5`
   for a global `load`, and `self.update = throttle(..)` inside a colon
-  method of `View` for `View:update()`. A second function value with no
+  method of `View` for `View:update()`. The same holds for such a write
+  inside a nested function of the colon method, where `self` is still the
+  method's `self`. A second function value with no
   annotation, such as `self.open = function() end`, also records no fact.
 - An explicit `self` parameter or local, a call on any other receiver, and
-  a chain that ends in another call or field record no fact.
+  a chain that ends in another call or field record no fact. A table path
+  deeper than the traversal depth limit (1024 levels) records no fact.
 - Spaces around `|` do not end a type: `---@return Foo | Bar` records nothing
   and `---@return Foo | nil` records `Foo`. The literal types `true` and
   `false` record no inferred fact.
