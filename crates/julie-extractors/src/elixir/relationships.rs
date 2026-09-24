@@ -426,7 +426,9 @@ fn record_initializer_type(
 /// The return type every same-file definition a call can reach agrees on: a
 /// local call in the enclosing module, or `Alias.fun()` / `__MODULE__.fun()`
 /// on a module defined in this file. A piped call counts the piped argument.
-/// A macro expands at compile time, so a macro call records nothing.
+/// A macro expands at compile time, so a macro call records nothing. Quoted
+/// code runs in the module that injects it, so a call in a quote records
+/// nothing.
 fn initializer_type(
     extractor: &super::ElixirExtractor,
     value: Node,
@@ -440,10 +442,10 @@ fn initializer_type(
     } else {
         value
     };
-    if call.kind() != "call" {
+    let base = &extractor.base;
+    if call.kind() != "call" || type_facts::quote_scope(base, &call).is_some() {
         return None;
     }
-    let base = &extractor.base;
     let target = call.child_by_field_name("target")?;
     let enclosing = scope.enclosing_module(&call);
     let (module, name) = match target.kind() {
@@ -478,6 +480,11 @@ fn initializer_type(
             match module {
                 Some(callee) if Some(callee.id.as_str()) != enclosing.map(|m| m.id.as_str()) => {
                     scope.qualify_spec_name(callee, spec.at, name, enclosing, call.start_byte())
+                }
+                _ if name.contains('.') => {
+                    let at_spec = scope.expand_module(enclosing, name, spec.at);
+                    (at_spec == scope.expand_module(enclosing, name, call.start_byte()))
+                        .then(|| name.to_string())
                 }
                 _ => Some(name.to_string()),
             }

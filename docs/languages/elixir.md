@@ -31,12 +31,18 @@
   `@typep`, or `@opaque` (a built-in type, or a type a macro generates)
   records nothing. A name that an alias in the caller would read
   differently records nothing.
+- A local call in the same module copies the spec return name as written.
+  When an alias at the call reads the leading segment differently than at
+  the spec (`@spec load() :: Ws.t()`, then `alias X.Ws` before the call),
+  the call records nothing.
 - An `alias` applies from its position to the end of the `do` block, clause,
   or definition around it, the way Elixir scopes aliases. An alias inside one
   function does not reach calls in another function.
 - A `@spec` and a definition inside a `quote` block match only each other.
   A quoted definition belongs to the module that injects it, so a call in
-  the enclosing module never takes its spec type.
+  the enclosing module never takes its spec type. For the same reason, a
+  call inside a `quote` block (`x = load()`, `x = __MODULE__.load()`)
+  records nothing.
 - `{:ok, conn} = open()` binds `conn` as a local and gives it `T` when the
   spec returns `{:ok, T}`. The other alternatives of the union must be atoms,
   `nil`, booleans, or tuples with a different tag or size, because only those

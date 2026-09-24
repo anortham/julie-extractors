@@ -667,3 +667,68 @@ end
     assert!(x.local_type("before_alias").is_none());
     assert_eq!(x.inferred("after_alias"), "Shop.Ws.t");
 }
+
+#[test]
+fn call_inside_a_quote_records_nothing() {
+    let x = extract(
+        r#"
+defmodule Base do
+  @spec load() :: Base.Thing.t()
+  def load, do: nil
+
+  def run do
+    outside = load()
+    outside
+  end
+
+  defmacro __using__(_) do
+    quote do
+      def go do
+        plain = load()
+        self_call = __MODULE__.load()
+        {plain, self_call}
+      end
+    end
+  end
+end
+"#,
+    );
+
+    assert_eq!(x.inferred("outside"), "Base.Thing.t");
+    assert!(x.local_type("plain").is_none());
+    assert!(x.local_type("self_call").is_none());
+}
+
+#[test]
+fn same_module_spec_name_that_an_alias_reads_differently_records_nothing() {
+    let x = extract(
+        r#"
+defmodule A do
+  @spec load() :: Ws.t()
+  def load, do: nil
+
+  def before do
+    before_alias = load()
+    before_alias
+  end
+
+  alias X.Ws
+
+  def run do
+    after_alias = load()
+    after_alias
+  end
+
+  def run2 do
+    alias Y.Ws
+    fn_alias = load()
+    fn_alias
+  end
+end
+"#,
+    );
+
+    assert_eq!(x.inferred("before_alias"), "Ws.t");
+    assert!(x.local_type("after_alias").is_none());
+    assert!(x.local_type("fn_alias").is_none());
+}
