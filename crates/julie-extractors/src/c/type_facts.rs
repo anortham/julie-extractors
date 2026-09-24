@@ -1,7 +1,7 @@
 use super::helpers;
 use crate::base::BaseExtractor;
 use crate::base::types::TypeNameRules;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
 
 pub(super) const C_TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
@@ -92,65 +92,57 @@ pub(super) struct DeclaredType {
 }
 
 /// Declared return types of the file's functions, by name, for `auto` and
-/// `__auto_type` inference. A same-named macro, variable, parameter, function
-/// with no plain return type, or name in a malformed declaration makes the
-/// name unknown anywhere in the file, since a call through a variable does not
-/// reach the function. So does the target of an assignment, since a function
-/// cannot be assigned, and any name in an ERROR node, in an expression
-/// statement with parse errors, or in a file-scope expression statement,
-/// since C has none and tree-sitter-c makes one from a misparsed declaration.
+/// `__auto_type` inference. A name is unknown anywhere in the file when it
+/// also appears in any other role: a macro, variable, parameter, typedef,
+/// assignment target, cast operand, or function with no plain return type,
+/// since a call through a variable does not reach the function. Only the name
+/// of a well-formed declaration, the callee of a call (also the call
+/// tree-sitter-c reads as the declarator of a C23 `auto w = f();`), and a
+/// struct, union, or enum tag count as expected uses. Any name in an ERROR node, in a malformed
+/// declaration, in an expression statement with parse errors, or in a
+/// file-scope expression statement is unknown, since tree-sitter-c makes
+/// these from misparsed declarations and the name may be a shadowing local or
+/// a disagreeing prototype.
 #[derive(Debug, Default)]
 pub(super) struct ReturnTypeIndex(HashMap<String, Vec<Option<DeclaredType>>>);
 
 impl ReturnTypeIndex {
     pub(super) fn build(base: &BaseExtractor, root: Node) -> Self {
         let mut entries: HashMap<String, Vec<Option<DeclaredType>>> = HashMap::new();
+        let mut expected_uses = HashSet::new();
+        let mut unknown = HashSet::new();
         let mut stack = vec![(root, false, false)];
         while let Some((node, in_function, misparsed)) = stack.pop() {
             let misparsed = misparsed
                 || node.is_error()
                 || (node.kind() == "expression_statement" && (node.has_error() || !in_function));
             match node.kind() {
-                "identifier" | "type_identifier" if misparsed => {
-                    entries
-                        .entry(base.get_node_text(&node))
-                        .or_default()
-                        .push(None);
+                "identifier" | "type_identifier"
+                    if misparsed || !expected_uses.contains(&node.id()) =>
+                {
+                    unknown.insert(base.get_node_text(&node));
                 }
-                "assignment_expression" => {
-                    if let Some(left) = node
-                        .child_by_field_name("left")
-                        .filter(|left| left.kind() == "identifier")
-                    {
-                        entries
-                            .entry(base.get_node_text(&left))
-                            .or_default()
-                            .push(None);
-                    }
+                "call_expression" => {
+                    expected_uses.extend(node.child_by_field_name("function").map(|f| f.id()));
+                }
+                "struct_specifier" | "union_specifier" | "enum_specifier" => {
+                    expected_uses.extend(node.child_by_field_name("name").map(|n| n.id()));
                 }
                 "function_definition" | "declaration" => {
-                    for (name, return_type) in declared_return_types(base, node) {
-                        entries.entry(name).or_default().push(return_type);
-                    }
-                }
-                "parameter_declaration" => {
-                    if let Some(target) = node
-                        .child_by_field_name("declarator")
-                        .and_then(helpers::declarator_target)
-                    {
-                        entries
-                            .entry(base.get_node_text(&target.name))
-                            .or_default()
-                            .push(None);
-                    }
-                }
-                "preproc_def" | "preproc_function_def" => {
-                    if let Some(name) = node.child_by_field_name("name") {
+                    for (name, return_type) in declared_names(base, node) {
+                        expected_uses.insert(name.id());
                         entries
                             .entry(base.get_node_text(&name))
                             .or_default()
-                            .push(None);
+                            .push(return_type);
                     }
+                    expected_uses.extend(
+                        helpers::c23_auto_declaration(base, node)
+                            .filter(|auto| auto.value.kind() == "function_declarator")
+                            .and_then(|auto| auto.value.child_by_field_name("declarator"))
+                            .map(|callee| callee.id()),
+                    );
+                    unknown.extend(misread_function_names(base, node));
                 }
                 _ => {}
             }
@@ -159,6 +151,9 @@ impl ReturnTypeIndex {
                 node.named_children(&mut node.walk())
                     .map(|child| (child, in_function, misparsed)),
             );
+        }
+        for name in unknown {
+            entries.entry(name).or_default().push(None);
         }
         Self(entries)
     }
@@ -173,23 +168,14 @@ impl ReturnTypeIndex {
     }
 }
 
-/// The names a definition or declaration declares, each with its plain return
-/// type when it names a function. A declaration with parse errors, or a
-/// definition with no function declarator, makes each name it may declare
-/// unknown, since its types cannot be trusted. So does a
-/// function name tree-sitter-c misread as a call after a macro, as in
-/// `struct gadget *__declspec(dllexport) make(void);`.
-fn declared_return_types(base: &BaseExtractor, node: Node) -> Vec<(String, Option<DeclaredType>)> {
-    let mut names = declared_names(base, node);
-    names.extend(
-        misread_function_names(base, node)
-            .into_iter()
-            .map(|name| (name, None)),
-    );
-    names
-}
-
-fn declared_names(base: &BaseExtractor, node: Node) -> Vec<(String, Option<DeclaredType>)> {
+/// The name nodes a well-formed definition or declaration declares, each with
+/// its plain return type when it names a function. A declaration with parse
+/// errors, or a definition with no function declarator, declares no trusted
+/// name, so each name in it is unknown.
+fn declared_names<'tree>(
+    base: &BaseExtractor,
+    node: Node<'tree>,
+) -> Vec<(Node<'tree>, Option<DeclaredType>)> {
     let malformed = if node.kind() == "declaration" {
         node.has_error()
     } else {
@@ -202,43 +188,14 @@ fn declared_names(base: &BaseExtractor, node: Node) -> Vec<(String, Option<Decla
                 .is_some_and(contains_function_declarator)
     };
     if malformed {
-        return malformed_declaration_names(base, node)
-            .into_iter()
-            .map(|name| (name, None))
-            .collect();
+        return Vec::new();
     }
     let mut cursor = node.walk();
     node.children_by_field_name("declarator", &mut cursor)
         .filter_map(|declarator| {
             let target = helpers::declarator_target(declarator)?;
-            Some((
-                base.get_node_text(&target.name),
-                return_type(base, node, declarator),
-            ))
+            Some((target.name, return_type(base, node, declarator)))
         })
-        .collect()
-}
-
-/// Every name a malformed declaration may declare: each declarator's name and
-/// a name tree-sitter-c misread as the type, as in C23 `auto make = pick();`
-/// or `auto make = (factory)pick();`. The call tree-sitter-c reads as the
-/// declarator of a C23 `auto` declaration declares nothing.
-fn malformed_declaration_names(base: &BaseExtractor, node: Node) -> Vec<String> {
-    let misread_call = helpers::c23_auto_declaration(base, node).map(|auto| auto.value.id());
-    let misread_type =
-        node.child_by_field_name("type")
-            .and_then(|type_node| match type_node.kind() {
-                "type_identifier" => Some(type_node),
-                "macro_type_specifier" => type_node.child_by_field_name("name"),
-                _ => None,
-            });
-    let mut cursor = node.walk();
-    node.children_by_field_name("declarator", &mut cursor)
-        .filter(|declarator| Some(declarator.id()) != misread_call)
-        .filter_map(|declarator| helpers::declarator_target(declarator).map(|target| target.name))
-        .chain(misread_type)
-        .map(|name| base.get_node_text(&name))
-        .filter(|name| !name.is_empty())
         .collect()
 }
 

@@ -333,6 +333,48 @@ fn misparsed_local_shadowing_the_callee_records_no_fact() {
 }
 
 #[test]
+fn attribute_or_atomic_local_shadowing_the_callee_records_no_fact() {
+    for local in [
+        "gadget_fn *const __attribute__((unused)) make = pick;",
+        "struct gadget *(* __attribute__((unused)) make)(void) = pick;",
+        "_Atomic(gadget_fn *) make;\n    atomic_init(&make, pick);",
+        "_Atomic(gadget_fn *) make;",
+    ] {
+        let prelude = format!("#include <stdatomic.h>\n{GADGET_MAKERS}");
+        let body = format!("{local}\n    __auto_type w = make();");
+        assert_eq!(fact_of(&in_function(&prelude, &body), "w"), None, "{local}");
+    }
+}
+
+#[test]
+fn local_read_as_a_call_shadowing_the_callee_records_no_fact() {
+    for local in ["fp_t (make);", "LIST_HEAD(make);"] {
+        let prelude = format!("{GADGET_MAKERS}\ntypedef gadget_fn *fp_t;");
+        let body = format!("{local}\n    __auto_type w = make();");
+        assert_eq!(fact_of(&in_function(&prelude, &body), "w"), None, "{local}");
+    }
+}
+
+#[test]
+fn parenthesized_name_after_a_macro_that_disagrees_records_no_fact() {
+    for misread in [
+        "struct gadget *API (make)(void);",
+        "struct gadget *API (make) (void) { return 0; }",
+        "struct gadget *(API make)(void);",
+        "struct gadget *(API make(void));",
+    ] {
+        let prelude = format!(
+            "struct widget {{ int n; }}; struct gadget {{ int g; }};\n#ifdef USE_GADGET\n{misread}\n#else\nstruct widget *make(void);\n#endif"
+        );
+        assert_eq!(
+            fact_of(&in_function(&prelude, "__auto_type w = make();"), "w"),
+            None,
+            "{misread}"
+        );
+    }
+}
+
+#[test]
 fn unshadowed_callee_next_to_the_misparse_shapes_records_a_fact() {
     assert_eq!(
         fact_of(&in_function(GADGET_MAKERS, "__auto_type w = make();"), "w"),
