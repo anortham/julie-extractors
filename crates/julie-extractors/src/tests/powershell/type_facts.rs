@@ -533,6 +533,7 @@ function Get-Workspace {
     [CmdletBinding()]
     [OutputType([Workspace])]
     param([string]$Name)
+    return [Workspace]::new()
 }
 function Use {
     $w = get-workspace -Name x
@@ -547,9 +548,11 @@ function Use {
 fn output_type_function_call_through_call_operator_records_inferred_fact() {
     assert_inferred(
         r#"
+class Workspace {}
 function Get-Workspace {
     [OutputType([Workspace])]
     param()
+    return [Workspace]::new()
 }
 $w = & Get-Workspace
 "#,
@@ -562,9 +565,11 @@ $w = & Get-Workspace
 fn parenthesized_call_records_inferred_fact() {
     assert_inferred(
         r#"
+class Workspace {}
 function Get-Workspace {
     [OutputType([Workspace])]
     param()
+    return [Workspace]::new()
 }
 $w = (Get-Workspace)
 "#,
@@ -577,9 +582,11 @@ $w = (Get-Workspace)
 fn scope_qualified_function_call_records_inferred_fact() {
     assert_inferred(
         r#"
+class Workspace {}
 function script:Get-Workspace {
     [OutputType([Workspace])]
     param()
+    return [Workspace]::new()
 }
 $w = Get-Workspace
 "#,
@@ -592,9 +599,11 @@ $w = Get-Workspace
 fn output_type_with_named_argument_records_inferred_fact() {
     assert_inferred(
         r#"
+class Workspace {}
 function Get-Workspace {
     [OutputType([Workspace], ParameterSetName = 'ById')]
     param()
+    return [Workspace]::new()
 }
 $w = Get-Workspace
 "#,
@@ -607,10 +616,12 @@ $w = Get-Workspace
 fn repeated_output_type_with_one_type_records_inferred_fact() {
     assert_inferred(
         r#"
+class Workspace {}
 function Get-Workspace {
     [OutputType([Workspace])]
     [OutputType([Workspace])]
     param()
+    return [Workspace]::new()
 }
 $w = Get-Workspace
 "#,
@@ -631,7 +642,7 @@ fn output_type_collection_records_no_fact() {
     ] {
         assert_not_inferred(
             &format!(
-                "class Bag : System.Collections.Generic.List[string] {{ }}\nfunction Get-Items {{\n    [OutputType({output_type})]\n    param()\n    return @('a', 'b')\n}}\n$items = Get-Items\n"
+                "class Bag : System.Collections.Generic.List[string] {{ }}\nfunction Get-Items {{\n    [OutputType({output_type})]\n    param()\n    return [Bag]::new()\n}}\n$items = Get-Items\n"
             ),
             "items",
         );
@@ -645,6 +656,7 @@ fn output_type_hashtable_records_inferred_fact() {
 function Get-Table {
     [OutputType([hashtable])]
     param()
+    return [hashtable]::new()
 }
 $table = Get-Table
 "#,
@@ -718,13 +730,17 @@ $w = Get-Workspace
 fn same_named_functions_that_disagree_record_no_fact() {
     assert_not_inferred(
         r#"
+class Workspace {}
+class Folder {}
 function Get-Workspace {
     [OutputType([Workspace])]
     param()
+    return [Workspace]::new()
 }
 function Get-Workspace {
     [OutputType([Folder])]
     param()
+    return [Folder]::new()
 }
 $w = Get-Workspace
 "#,
@@ -736,9 +752,11 @@ $w = Get-Workspace
 fn output_type_with_two_types_records_no_fact() {
     assert_not_inferred(
         r#"
+class Workspace {}
 function Get-Workspace {
     [OutputType([Workspace], [Folder])]
     param()
+    return [Workspace]::new()
 }
 $w = Get-Workspace
 "#,
@@ -750,10 +768,12 @@ $w = Get-Workspace
 fn output_type_attributes_that_disagree_record_no_fact() {
     assert_not_inferred(
         r#"
+class Workspace {}
 function Get-Workspace {
     [OutputType([Workspace])]
     [OutputType([Folder])]
     param()
+    return [Workspace]::new()
 }
 $w = Get-Workspace
 "#,
@@ -765,10 +785,12 @@ $w = Get-Workspace
 fn output_type_string_records_no_fact() {
     assert_not_inferred(
         r#"
+class Workspace {}
 function Get-Workspace {
     [OutputType('Folder')]
     [OutputType([Workspace])]
     param()
+    return [Workspace]::new()
 }
 $w = Get-Workspace
 "#,
@@ -780,9 +802,11 @@ $w = Get-Workspace
 fn piped_call_records_no_fact() {
     assert_not_inferred(
         r#"
+class Workspace {}
 function Get-Workspace {
     [OutputType([Workspace])]
     param()
+    return [Workspace]::new()
 }
 $w = Get-Workspace | Select-Object -First 1
 "#,
@@ -880,23 +904,6 @@ class Workspace {
 }
 
 #[test]
-fn this_call_to_base_class_method_records_no_fact() {
-    assert_not_inferred(
-        r#"
-class Base {
-    [Base] Load() { return $this }
-}
-class Workspace : Base {
-    [void] Use() {
-        $loaded = $this.Load()
-    }
-}
-"#,
-        "loaded",
-    );
-}
-
-#[test]
 fn void_and_untyped_methods_record_no_fact() {
     let code = r#"
 class Workspace {
@@ -929,9 +936,11 @@ $created = [Workspace]::Create()
 fn written_type_wins_over_call_inference() {
     let fact = inferred(
         r#"
+class Workspace {}
 function Get-Workspace {
     [OutputType([Workspace])]
     param()
+    return [Workspace]::new()
 }
 [Folder]$w = Get-Workspace
 "#,
@@ -950,6 +959,7 @@ class Foo {
 function Get-Foo {
     [OutputType([Foo])]
     param()
+    return [Foo]::new()
 }
 "#;
 
@@ -1145,6 +1155,7 @@ It 'uses settings' {
 fn function_nested_by_parse_error_recovery_records_fact() {
     assert_inferred(
         r#"
+class Workspace {}
 function Use {
     $w = Get-Workspace
 }
@@ -1154,9 +1165,191 @@ function Broken {
 function Get-Workspace {
     [OutputType([Workspace])]
     param()
+    return [Workspace]::new()
 }
 "#,
         "w",
         "Workspace",
     );
+}
+
+#[test]
+fn this_call_with_base_overload_that_disagrees_records_no_fact() {
+    let code = r#"
+class Base {
+    [Base] Load() { return $this }
+    static [Base] Create() { return [Base]::new() }
+}
+class Derived : Base {
+    [Derived] Load([int]$n) { return $this }
+    static [Derived] Create([int]$n) { return [Derived]::new() }
+    [string] Run() {
+        $inst = $this.Load()
+        return ''
+    }
+}
+$stat = [Derived]::Create()
+"#;
+    assert_not_inferred(code, "inst");
+    assert_not_inferred(code, "stat");
+}
+
+#[test]
+fn this_call_overridden_in_subclass_with_other_type_records_no_fact() {
+    assert_not_inferred(
+        r#"
+class Base {
+    [Base] Load() { return $this }
+    [string] Run() {
+        $x = $this.Load()
+        return ''
+    }
+}
+class Middle : Base {}
+class Derived : Middle {
+    [string] Load() { return 's' }
+}
+"#,
+        "x",
+    );
+}
+
+#[test]
+fn this_call_overridden_in_subclass_with_same_type_records_inferred_fact() {
+    assert_inferred(
+        r#"
+class Base {
+    [Base] Load() { return $this }
+    [void] Run() {
+        $x = $this.Load()
+    }
+}
+class Derived : Base {
+    [Base] Load() { return $this }
+}
+"#,
+        "x",
+        "Base",
+    );
+}
+
+#[test]
+fn this_call_to_same_file_base_class_method_records_inferred_fact() {
+    let code = r#"
+class Base {
+    [Base] Load() { return $this }
+    static [Base] Create() { return [Base]::new() }
+}
+class Workspace : Base {
+    [void] Use() {
+        $loaded = $this.Load()
+    }
+}
+$created = [Workspace]::Create()
+"#;
+    assert_inferred(code, "loaded", "Base");
+    assert_inferred(code, "created", "Base");
+}
+
+#[test]
+fn method_call_on_class_with_external_base_records_no_fact() {
+    let code = r#"
+class Base : System.Collections.ArrayList {}
+class Workspace : Base {
+    [Workspace] Clone() { return $this }
+    static [Workspace] Create() { return [Workspace]::new() }
+    [void] Use() {
+        $copy = $this.Clone()
+    }
+}
+$created = [Workspace]::Create()
+"#;
+    assert_not_inferred(code, "copy");
+    assert_not_inferred(code, "created");
+}
+
+#[test]
+fn output_type_of_type_not_known_to_be_single_records_no_fact() {
+    for output_type in [
+        "[Bag]",
+        "[System.Data.DataView]",
+        "[System.Collections.Specialized.StringDictionary]",
+        "[Widget]",
+        "[Derived]",
+    ] {
+        assert_not_inferred(
+            &format!(
+                "class Bag : System.Collections.Generic.HashSet[string] {{ }}\nclass Base : Bag {{ }}\nclass Derived : Base {{ }}\nfunction Get-Items {{\n    [OutputType({output_type})]\n    param()\n    return [Bag]::new()\n}}\n$items = Get-Items\n"
+            ),
+            "items",
+        );
+    }
+}
+
+#[test]
+fn output_type_of_single_item_type_records_inferred_fact() {
+    for (output_type, expected) in [
+        ("[int]", "int"),
+        ("[System.String]", "System.String"),
+        ("[Derived]", "Derived"),
+        ("[Color]", "Color"),
+    ] {
+        assert_inferred(
+            &format!(
+                "enum Color {{ Red }}\nclass Base {{ }}\nclass Derived : Base {{ }}\nfunction Get-Item2 {{\n    [OutputType({output_type})]\n    param()\n    return [Derived]::new()\n}}\n$item = Get-Item2\n"
+            ),
+            "item",
+            expected,
+        );
+    }
+}
+
+fn single_output_code(body: &str) -> String {
+    format!(
+        "class Item {{ [string]$Name }}\nfunction Get-Item2 {{\n    [OutputType([Item])]\n    param($x)\n{body}\n}}\n$items = Get-Item2\n"
+    )
+}
+
+#[test]
+fn function_with_more_than_one_output_records_no_fact() {
+    for body in [
+        "    [Item]::new(); [Item]::new()",
+        "    [Item]::new()\n    return [Item]::new()",
+        "    foreach ($b in $x) { [Item]::new() }",
+        "    for ($i = 0; $i -lt 2; $i++) { [Item]::new() }",
+        "    while ($x) { [Item]::new() }",
+        "    switch ($x) { 1 { [Item]::new() } }",
+        "    begin { [Item]::new() }\n    end { [Item]::new() }",
+        "    Import-Module Foo\n    return [Item]::new()",
+        "    $list.Add(1)\n    return [Item]::new()",
+        "    $x | ForEach-Object { [Item]::new() }",
+        "    return Get-Thing",
+        "    return $x",
+        "    return $this.Items",
+        "    return @([Item]::new())",
+        "    return ,[Item]::new()",
+        "    return $([Item]::new())",
+        "    [Item]::new(), [Item]::new()",
+        "",
+        "    Write-Verbose 'none'",
+    ] {
+        assert_not_inferred(&single_output_code(body), "items");
+    }
+}
+
+#[test]
+fn function_with_one_output_records_inferred_fact() {
+    for body in [
+        "    [Item]::new()",
+        "    $made = 1\n    Write-Verbose 'x'\n    $null = Get-Thing\n    [void]$x.Add(1)\n    Get-Thing | Out-Null\n    return [Item]::new()",
+        "    if ($x) { return [Item]::new() }\n    elseif ($x -eq 2) { throw 'bad' }\n    return [Item]::new()",
+        "    try { return [Item]::new() } catch { return [Item]::new() }",
+        "    foreach ($b in $x) { $made = $b }\n    return [Item]::new()",
+        "    process { return [Item]::new() }",
+        "    return [Item]$x",
+        "    return New-Object Item",
+        "    function Get-Inner { [Item]::new(); [Item]::new() }\n    [Item]::new()",
+    ] {
+        assert_inferred(&single_output_code(body), "items", "Item");
+    }
 }

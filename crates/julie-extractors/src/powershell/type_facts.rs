@@ -73,17 +73,79 @@ fn is_plain_assignment(base: &BaseExtractor, node: Node) -> bool {
             .is_some_and(|operator| base.get_node_text(&operator).trim() == "=")
 }
 
-/// Type name endings of collections that PowerShell unrolls into the
-/// pipeline when a function outputs them.
-const UNROLLED_NAME_SUFFIXES: &[&str] = &[
-    "collection",
-    "list",
-    "array",
-    "enumerable",
-    "enumerator",
-    "queue",
-    "stack",
-    "datatable",
+/// External types that PowerShell does not unroll when a function outputs
+/// them, without the optional `System.` prefix. A string, an `IDictionary`,
+/// and an `XmlNode` are enumerable but not unrolled.
+const SINGLE_ITEM_TYPES: &[&str] = &[
+    "string",
+    "char",
+    "bool",
+    "boolean",
+    "byte",
+    "sbyte",
+    "int",
+    "int16",
+    "int32",
+    "int64",
+    "long",
+    "short",
+    "uint16",
+    "uint32",
+    "uint64",
+    "ulong",
+    "ushort",
+    "single",
+    "float",
+    "double",
+    "decimal",
+    "bigint",
+    "numerics.biginteger",
+    "datetime",
+    "datetimeoffset",
+    "timespan",
+    "guid",
+    "version",
+    "semver",
+    "management.automation.semanticversion",
+    "uri",
+    "pscustomobject",
+    "psobject",
+    "management.automation.pscustomobject",
+    "management.automation.psobject",
+    "hashtable",
+    "collections.hashtable",
+    "scriptblock",
+    "management.automation.scriptblock",
+    "regex",
+    "text.regularexpressions.regex",
+    "securestring",
+    "security.securestring",
+    "pscredential",
+    "management.automation.pscredential",
+    "io.fileinfo",
+    "io.directoryinfo",
+    "xml",
+    "xml.xmldocument",
+];
+
+/// Commands that write nothing to the output stream.
+const SILENT_COMMANDS: &[&str] = &[
+    "out-null",
+    "write-verbose",
+    "write-debug",
+    "write-warning",
+    "write-host",
+    "write-information",
+    "write-error",
+    "write-progress",
+];
+
+const LOOP_STATEMENTS: &[&str] = &[
+    "foreach_statement",
+    "for_statement",
+    "while_statement",
+    "do_statement",
+    "switch_statement",
 ];
 
 const ALIAS_COMMANDS: &[&str] = &["set-alias", "new-alias", "sal", "nal"];
@@ -101,12 +163,13 @@ const ALIAS_PARAMETERS: &[(&str, bool)] = &[
     ("confirm", false),
 ];
 
-/// The file's class names and the declared return types of its functions
-/// (`[OutputType([T])]`) and class methods, keyed case-insensitively.
+/// The file's classes with their base names, its enum names, and the
+/// declared return types of its functions (`[OutputType([T])]`) and class
+/// methods, keyed case-insensitively.
 #[derive(Debug, Default)]
 pub(super) struct ReturnTypeIndex {
-    classes: HashSet<String>,
     class_bases: HashMap<String, Vec<String>>,
+    enums: HashSet<String>,
     callables: HashMap<(Option<String>, String), Vec<ReturnEntry>>,
     /// Names that `Set-Alias` or `New-Alias` define. An alias wins over a
     /// function of the same name.
@@ -133,18 +196,25 @@ impl ReturnTypeIndex {
             match node.kind() {
                 "class_statement" => {
                     if let Some(name) = find_class_name_node(node) {
-                        let name_text = base.get_node_text(&name).to_ascii_lowercase();
+                        index.class_bases.insert(
+                            base.get_node_text(&name).to_ascii_lowercase(),
+                            class_base_names(base, node, name),
+                        );
+                    }
+                }
+                "enum_statement" => {
+                    if let Some(name) = direct_child(node, "simple_name") {
                         index
-                            .class_bases
-                            .insert(name_text.clone(), class_base_names(base, node, name));
-                        index.classes.insert(name_text);
+                            .enums
+                            .insert(base.get_node_text(&name).to_ascii_lowercase());
                     }
                 }
                 "function_statement" => {
                     if let Some(name) = find_function_name_node(node) {
                         let raw = base.get_node_text(&name);
                         let key = (None, split_function_scope(&raw).1.to_ascii_lowercase());
-                        let returns = output_type(base, node);
+                        let returns =
+                            output_type(base, node).filter(|_| has_single_output(base, node));
                         let scope = enclosing_scope(node).map(|scope| scope.byte_range());
                         index.add(key, false, returns, scope);
                         for attribute in function_attributes(base, node, "Alias") {
@@ -228,25 +298,64 @@ impl ReturnTypeIndex {
     }
 
     fn has_class(&self, name: &str) -> bool {
-        self.classes.contains(&name.to_ascii_lowercase())
+        self.class_bases.contains_key(&name.to_ascii_lowercase())
     }
 
-    /// The return type every same-named method of `owner` with this
-    /// staticness agrees on.
+    /// The return type that every same-named method with this staticness
+    /// agrees on, across `owner` and its base classes. An instance call also
+    /// looks at the subclasses, because `$this` can be a subclass instance.
     fn lookup_method(&self, owner: &str, name: &str, is_static: bool) -> Option<&ReducedType> {
-        let key = (Some(owner.to_ascii_lowercase()), name.to_ascii_lowercase());
+        let mut classes = self.same_file_chain(owner)?;
+        if !is_static {
+            classes.extend(self.subclasses(owner));
+        }
+        let name = name.to_ascii_lowercase();
         agreed_return(
-            self.callables
-                .get(&key)?
-                .iter()
+            classes
+                .into_iter()
+                .filter_map(|class| self.callables.get(&(Some(class), name.clone())))
+                .flatten()
                 .filter(|entry| entry.is_static == is_static),
         )
     }
 
+    /// `class` and all its base classes. `None` when a base is not a class in
+    /// this file, because an external base can add same-named members or
+    /// make the class enumerable.
+    fn same_file_chain(&self, class: &str) -> Option<Vec<String>> {
+        let mut chain = Vec::new();
+        let mut pending = vec![(class.to_ascii_lowercase(), 0)];
+        while let Some((name, depth)) = pending.pop() {
+            if !should_visit_tree_depth(depth) {
+                return None;
+            }
+            let bases = self.class_bases.get(&name)?;
+            pending.extend(bases.iter().map(|base_name| (base_name.clone(), depth + 1)));
+            chain.push(name);
+        }
+        Some(chain)
+    }
+
+    /// The same-file classes that derive from `class`, directly or not.
+    fn subclasses(&self, class: &str) -> Vec<String> {
+        let class = class.to_ascii_lowercase();
+        let mut found: Vec<String> = Vec::new();
+        let mut pending = vec![class.clone()];
+        while let Some(parent) = pending.pop() {
+            for (child, bases) in &self.class_bases {
+                if bases.contains(&parent) && *child != class && !found.contains(child) {
+                    found.push(child.clone());
+                    pending.push(child.clone());
+                }
+            }
+        }
+        found
+    }
+
     /// The output type every same-named function agrees on, when `call` can
-    /// see one of them and no alias hides the name. A collection output type
-    /// records nothing: PowerShell unrolls it, so the variable holds one item,
-    /// an `object[]`, or `$null`.
+    /// see one of them and no alias hides the name. An output type that is
+    /// not known to be a single item records nothing: PowerShell unrolls an
+    /// enumerable, so the variable holds one item, an `object[]`, or `$null`.
     fn lookup_function(&self, name: &str, call: Node) -> Option<&ReducedType> {
         let name = name.to_ascii_lowercase();
         if self.has_unknown_alias || self.aliases.contains(&name) {
@@ -262,28 +371,20 @@ impl ReturnTypeIndex {
         if !visible {
             return None;
         }
-        agreed_return(entries.iter()).filter(|returns| !self.is_unrolled(returns))
+        agreed_return(entries.iter()).filter(|returns| self.is_single_item_type(returns))
     }
 
-    fn is_unrolled(&self, returns: &ReducedType) -> bool {
-        returns.is_array || returns.is_generic || self.is_collection_name(&returns.base_name, 0)
-    }
-
-    /// A known collection name, or a same-file class that derives from one.
-    fn is_collection_name(&self, name: &str, depth: u32) -> bool {
-        if !should_visit_tree_depth(depth) {
-            return true;
+    /// A listed external type, a same-file enum, or a same-file class whose
+    /// base classes are all in this file.
+    fn is_single_item_type(&self, returns: &ReducedType) -> bool {
+        if returns.is_array || returns.is_generic {
+            return false;
         }
-        let name = name.to_ascii_lowercase();
-        let last = name.rsplit('.').next().unwrap_or_default();
-        UNROLLED_NAME_SUFFIXES
-            .iter()
-            .any(|suffix| last.ends_with(suffix))
-            || self.class_bases.get(&name).is_some_and(|bases| {
-                bases
-                    .iter()
-                    .any(|base_name| self.is_collection_name(base_name, depth + 1))
-            })
+        let name = returns.base_name.to_ascii_lowercase();
+        let unprefixed = name.strip_prefix("system.").unwrap_or(&name);
+        SINGLE_ITEM_TYPES.contains(&unprefixed)
+            || self.enums.contains(&name)
+            || self.same_file_chain(&name).is_some()
     }
 }
 
@@ -415,6 +516,132 @@ fn output_type(base: &BaseExtractor, function: Node) -> Option<ReducedType> {
         .iter()
         .all(|other| other == first)
         .then(|| first.clone())
+}
+
+/// Whether each run of the function outputs at most one value, built in
+/// place, and at least one run can output it. PowerShell sends every
+/// statement's output to the caller, so a second output statement or an
+/// output in a loop makes the call result an `object[]`.
+fn has_single_output(base: &BaseExtractor, function: Node) -> bool {
+    let Some(body) = direct_child(function, "script_block")
+        .and_then(|block| direct_child(block, "script_block_body"))
+    else {
+        return false;
+    };
+    let mut outputs = Vec::new();
+    collect_outputs(base, body, false, &mut outputs, 0).is_some()
+        && !outputs.is_empty()
+        && (outputs.len() == 1 || outputs.iter().all(|is_return| *is_return))
+}
+
+/// Push `true` for each `return <value>` and `false` for each other output
+/// statement under `node`. `None` when an output is not a single value, or
+/// an output other than `return` is in a loop.
+fn collect_outputs(
+    base: &BaseExtractor,
+    node: Node,
+    in_loop: bool,
+    outputs: &mut Vec<bool>,
+    depth: u32,
+) -> Option<()> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+    let child_depth = child_tree_depth(depth)?;
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        match child.kind() {
+            "pipeline" if node.kind() == "statement_list" => {
+                if !is_silent_statement(base, child) {
+                    if in_loop || !is_single_value(base, child) {
+                        return None;
+                    }
+                    outputs.push(false);
+                }
+            }
+            "flow_control_statement" => {
+                let is_return = child
+                    .child(0)
+                    .is_some_and(|keyword| keyword.kind() == "return");
+                if let (true, Some(value)) = (is_return, direct_child(child, "pipeline")) {
+                    if !is_single_value(base, value) {
+                        return None;
+                    }
+                    outputs.push(true);
+                }
+            }
+            "pipeline" | "function_statement" | "class_statement" | "enum_statement" => {}
+            kind => {
+                let in_loop = in_loop || LOOP_STATEMENTS.contains(&kind);
+                collect_outputs(base, child, in_loop, outputs, child_depth)?;
+            }
+        }
+    }
+    Some(())
+}
+
+/// An assignment, a `[void]` cast, or a pipeline whose last command writes
+/// nothing to the output stream.
+fn is_silent_statement(base: &BaseExtractor, pipeline: Node) -> bool {
+    let Some(first) = first_named_child(pipeline) else {
+        return true;
+    };
+    if first.kind() == "assignment_expression" {
+        return true;
+    }
+    let core = unwrap_value(pipeline);
+    if core.kind() == "cast_expression" {
+        return direct_child(core, "type_literal")
+            .and_then(|type_node| reduce_type_literal(base, type_node))
+            .is_some_and(|reduced| reduced.base_name.eq_ignore_ascii_case("void"));
+    }
+    let mut chain = pipeline.walk();
+    if pipeline.named_children(&mut chain).count() != 1 || first.kind() != "pipeline_chain" {
+        return false;
+    }
+    let mut commands = first.walk();
+    first
+        .named_children(&mut commands)
+        .last()
+        .filter(|last| last.kind() == "command")
+        .and_then(find_command_name_node)
+        .is_some_and(|name| {
+            let name = base.get_node_text(&name).to_ascii_lowercase();
+            SILENT_COMMANDS.contains(&name.rsplit('\\').next().unwrap_or_default())
+        })
+}
+
+/// A value that is always one object: a constructor, `New-Object`, a cast, a
+/// hashtable literal, a string or number literal, or `$this`. A variable, a
+/// member, a method call, or a command can hold or emit a collection.
+fn is_single_value(base: &BaseExtractor, value: Node) -> bool {
+    let Some(core) = value_core(value, 0) else {
+        return false;
+    };
+    match core.kind() {
+        "cast_expression"
+        | "hash_literal_expression"
+        | "string_literal"
+        | "expandable_string_literal"
+        | "integer_literal"
+        | "real_literal" => true,
+        "invokation_expression" | "invocation_expression" => {
+            direct_child(core, "::").is_some()
+                && direct_child(core, "type_literal").is_some()
+                && invocation_member_name(base, core)
+                    .is_some_and(|(_, member)| member.eq_ignore_ascii_case("new"))
+        }
+        "variable" => {
+            super::helpers::variable_name(&base.get_node_text(&core)).eq_ignore_ascii_case("this")
+        }
+        "command" => {
+            !has_redirection(core)
+                && find_command_name_node(core).is_some_and(|name| {
+                    base.get_node_text(&name).eq_ignore_ascii_case("New-Object")
+                })
+        }
+        _ => false,
+    }
 }
 
 /// The function's own attributes (on its `param` block) with this name.

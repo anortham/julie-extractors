@@ -24,12 +24,46 @@ The command runs `tests::powershell::` and the golden extraction test with
   same-file class `Foo`, or a call with a declared return type to one of these
   same-file callees:
   - a function (`Get-Foo`, `& Get-Foo`) whose `[OutputType(...)]` attributes
-    name exactly one type literal;
-  - an instance method of the enclosing class (`$this.Load()`);
-  - a static method of a same-file class (`[Foo]::Create()`).
+    name exactly one type literal and whose body outputs one value (see
+    below);
+  - an instance method of the enclosing class or its base classes
+    (`$this.Load()`);
+  - a static method of a same-file class or its base classes
+    (`[Foo]::Create()`).
 - Names match case-insensitively. Same-named candidates (overloads, repeated
   functions) must agree on the type. `$this.M()` looks only at instance
   methods and `[Foo]::M()` only at static methods.
+- A method call looks at every same-named method of the class and of its base
+  classes, because PowerShell overload resolution sees inherited methods.
+  `$this.M()` also looks at every same-file subclass, because `$this` can be
+  a subclass instance that overrides `M`. The class and all its base classes
+  must be in the file. A class with an external base (`class Foo : Bar` with
+  no `Bar` in the file, or a .NET type or interface) records nothing, because
+  the external base can add same-named methods.
+- `[OutputType([T])]` names the type of each output item, not the call
+  result. PowerShell sends every output statement to the caller and unrolls
+  enumerable values, so a function call records a type only when:
+  - `T` is not an array or a generic type, and is a listed .NET type that
+    PowerShell does not unroll (string, the number types, `bool`, `char`,
+    `datetime`, `timespan`, `guid`, `version`, `uri`, `hashtable`,
+    `pscustomobject`, `psobject`, `scriptblock`, `regex`, `securestring`,
+    `pscredential`, `FileInfo`, `DirectoryInfo`, `xml`), a same-file enum,
+    or a same-file class whose base classes are all in the file. Any other
+    external type records nothing, because it can be enumerable
+    (`HashSet`, `DataView`, `StringDictionary`, a type from another file);
+  - the body has at least one output, and either exactly one output
+    statement or only `return <value>` outputs. An output statement other
+    than `return` in a loop (`foreach`, `for`, `while`, `do`, `switch`)
+    records nothing. Assignments, `[void]` casts, and pipelines that end in
+    `Out-Null`, `Write-Verbose`, `Write-Debug`, `Write-Warning`,
+    `Write-Host`, `Write-Information`, `Write-Error`, or `Write-Progress` are
+    not outputs. Any other command or bare expression is an output;
+  - each output value is one object built in place: `[T]::new(..)`,
+    `New-Object`, a cast, a hashtable literal, a string or number literal, or
+    `$this`. A variable, a member, a method call, a command, a subexpression,
+    or an array (`return $items`, `return Get-Thing`, `return @(..)`,
+    `return ,$x`) records nothing, because it can hold or emit a
+    collection.
 - Parentheses around the value are looked through. These record no fact:
   - a pipeline (`Get-Foo | Select-Object`) or a longer chain
     (`$this.Load().Clone()`);
@@ -43,13 +77,10 @@ The command runs `tests::powershell::` and the golden extraction test with
   - a command with a redirection (`Get-Foo > $null`, `Get-Foo 2>&1`);
   - `$this.M()` inside a script block, because an `Add-Member` script method
     or an event action binds `$this` to another object;
-  - a function whose output type is an array, a generic type, a collection
-    (a name that ends in `List`, `Collection`, `Array`, `Queue`, `Stack`,
-    `Enumerable`, `Enumerator`, or `DataTable`), or a same-file class
-    that derives from one. PowerShell unrolls function output into the
-    pipeline, so the variable holds one item, an `object[]`, or `$null`.
-    Method calls do not unroll, so `[string[]] M()` still records `string[]`.
-    A hashtable is not unrolled and still records;
+  - a function whose output type or body fails the rules above. PowerShell
+    unrolls function output into the pipeline, so the variable holds one
+    item, an `object[]`, or `$null`. Method calls do not unroll, so
+    `[string[]] M()` still records `string[]`;
   - a static call or constructor on a generic type literal
     (`[Foo[int]]::Create()`), because PowerShell classes cannot be generic, so
     the name is never the same-file class;
@@ -64,10 +95,11 @@ The command runs `tests::powershell::` and the golden extraction test with
     and dot-sourced blocks define it in the caller's scope. A function nested
     in a function with a parse error also counts as top level, because error
     recovery often nests the following top-level functions there;
-  - a method inherited from a base class, an `OutputType` given as a string,
+  - an `OutputType` given as a string,
     two different output types, or a callee in another file. Other files are
     out of scope because each file is extracted alone.
 - PowerShell does not check `[OutputType(...)]` at runtime. A function whose
   `OutputType` does not match what it outputs gives a wrong inferred fact.
-  The extractor reads the declaration and does not check the function body.
+  The extractor checks the shape of the body (how many outputs, and how each
+  value is built) but not the type of each output value.
 - A written type always wins over inference.
