@@ -103,8 +103,26 @@ Type facts come only from annotation nodes: parameters, assignments, and
 return types. `Optional[X]`, `X | None`, `Union[X, None]`, `Annotated[X, ...]`,
 `ClassVar[X]`, `Final[X]`, `Mapped[X]`, and the forward reference `"X"` record
 `X`; the full annotation stays in `metadata.declared`. A union of two real
-types records nothing. Unannotated returns and values record nothing, except
-the same-file constructor fact `x = Foo()`.
+types records nothing, also inside a wrapper (`Optional[A | B]`,
+`Union[A, B, None]`). Unannotated returns and values record nothing, except
+the inferred facts (`is_inferred=true`) of an unannotated single-target
+assignment (`x = ...` or `self.x = ...`):
+
+- `Foo()` records `Foo` when `Foo` is a same-file class.
+- A call to a same-file function (`load()`), a method through `self` or `cls`
+  inside its class, a method through a same-file class name
+  (`Workspace.create()`), or a method on such a call's result
+  (`Workspace.open().root()`) records the callee's declared return type,
+  reduced by the annotation rules above. `-> Self` records the owning class.
+- Every same-named candidate with the same owner must declare the same return
+  type. An `async def` counts only under `await`; an awaited plain `def`
+  records nothing.
+- A return type that is a `TypeVar`/`ParamSpec`/`TypeVarTuple` of the file, a
+  PEP 695 type parameter, or a type argument of the class bases records
+  nothing. So does a callee with a decorator other than `staticmethod`,
+  `classmethod`, `abstractmethod`, `overload`, `override`, `final`, `cache`,
+  or `lru_cache`, and a call to anything in another file, because each file is
+  extracted alone.
 
 Imports, variables, constants, attributes, and parameters have no body span.
 

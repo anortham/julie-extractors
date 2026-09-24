@@ -93,8 +93,8 @@ pub(super) fn extract_assignment(extractor: &mut PythonExtractor, node: Node) ->
 
     if let Some(type_node) = type_node {
         type_facts::record_annotation_fact(extractor.base_mut(), &symbol.id, type_node);
-    } else if let Some(class_name) = same_file_constructor_class(extractor, right) {
-        type_facts::record_constructor_fact(extractor.base_mut(), &symbol.id, &class_name);
+    } else if let Some(right) = right {
+        type_facts::record_initializer_fact(extractor, &symbol.id, right);
     }
     if is_instance_attribute {
         extractor.instance_attribute_ids.insert(symbol.id.clone());
@@ -204,22 +204,6 @@ pub(super) fn keep_first_attribute_declaration(
         };
         declared.insert((parent_id, symbol.name.clone()))
     });
-}
-
-fn same_file_constructor_class(extractor: &PythonExtractor, right: Option<Node>) -> Option<String> {
-    let right = right?;
-    if right.kind() != "call" {
-        return None;
-    }
-    let function = right.child_by_field_name("function")?;
-    if function.kind() != "identifier" {
-        return None;
-    }
-    let name = extractor.base().get_node_text(&function);
-    extractor
-        .same_file_class_names
-        .contains(&name)
-        .then_some(name)
 }
 
 /// Extract multiple assignment targets from pattern_list or tuple_pattern
