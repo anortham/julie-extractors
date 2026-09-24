@@ -767,3 +767,121 @@ function main() {
     assert_eq!(inferred_type(source, "inBlock"), inferred("Foo"));
     assert_eq!(inferred_type(source, "hoisted"), inferred("Bar"));
 }
+
+#[test]
+fn callback_or_typedef_block_before_a_function_does_not_type_its_calls() {
+    for detached in [
+        "@callback Loader\n * @param {string} p\n * @returns {Bar}",
+        "@typedef {Object} Options\n * @returns {Bar}",
+    ] {
+        for own_doc in ["/**\n * Loads it.\n */\n", ""] {
+            let source = format!(
+                "class Foo {{}} class Bar {{}}\n/**\n * {detached}\n */\n\n{own_doc}function load() {{ return new Foo(); }}\nconst loaded = load();\n"
+            );
+            assert_eq!(inferred_type(&source, "loaded"), None, "{source}");
+        }
+    }
+}
+
+#[test]
+fn own_jsdoc_block_after_a_callback_block_types_the_call() {
+    let source = r#"
+class Foo {} class Bar {}
+/**
+ * @callback Loader
+ * @returns {Bar}
+ */
+
+/** @returns {Foo} */
+function load() { return new Foo(); }
+const loaded = load();
+"#;
+    assert_eq!(inferred_type(source, "loaded"), inferred("Foo"));
+}
+
+#[test]
+fn overloaded_function_records_nothing() {
+    let source = r#"
+class Foo {} class Bar {}
+/**
+ * @overload
+ * @param {string} x
+ * @returns {Bar}
+ */
+/**
+ * @param {string | number} x
+ * @returns {Foo}
+ */
+function load(x) { return new Foo(); }
+const loaded = load("a");
+"#;
+    assert_eq!(inferred_type(source, "loaded"), None);
+}
+
+#[test]
+fn chained_call_resolves_the_returned_class_where_the_callee_is_declared() {
+    let source = r#"
+/** @returns {Node} */
+function makeNode() { return document.createElement("div"); }
+function build() {
+  class Node { /** @returns {Leaf} */ child() { return null; } }
+  const chained = makeNode().child();
+}
+"#;
+    assert_eq!(inferred_type(source, "chained"), None);
+}
+
+#[test]
+fn this_in_a_computed_member_name_records_nothing() {
+    let source = r#"
+class Foo {} class Bar {}
+class Outer {
+  /** @returns {Foo} */ make() { return new Foo(); }
+  go() {
+    class Inner {
+      /** @returns {Bar} */ make() { return new Bar(); }
+      [(() => { const computedKey = this.make(); return "k"; })()]() {}
+    }
+  }
+}
+"#;
+    assert_eq!(inferred_type(source, "computedKey"), None);
+}
+
+#[test]
+fn same_named_rest_parameter_does_not_block_a_top_level_call() {
+    let source = r#"
+class Foo {}
+/** @returns {Foo} */
+function load() { return new Foo(); }
+function f6(...load) { return load; }
+const loaded = load();
+"#;
+    assert_eq!(inferred_type(source, "loaded"), inferred("Foo"));
+}
+
+#[test]
+fn callback_block_before_a_function_does_not_type_the_function() {
+    let source =
+        "class Bar {}\n/**\n * @callback Loader\n * @returns {Bar}\n */\n\nfunction load() {}\n";
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_javascript::LANGUAGE.into())
+        .unwrap();
+    let tree = parser.parse(source, None).unwrap();
+    let mut extractor = JavaScriptExtractor::new(
+        "javascript".to_string(),
+        "initializer_types.js".to_string(),
+        source.to_string(),
+        &PathBuf::from("/tmp/test"),
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let load = symbols.iter().find(|s| s.name == "load").unwrap();
+    assert!(
+        load.doc_comment
+            .as_deref()
+            .unwrap_or("")
+            .contains("@callback")
+    );
+    assert_eq!(extractor.base.type_info.get(&load.id), None);
+}

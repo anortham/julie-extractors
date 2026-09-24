@@ -51,11 +51,27 @@ static JSDOC_TYPE_RE: LazyLock<Regex> =
 static JSDOC_PARAM_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"@(?:param|arg|argument)\s*\{([^}]+)\}\s*\[?([A-Za-z_$][\w$]*)").unwrap()
 });
+static JSDOC_DETACHED_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"@(?:callback|typedef)\b").unwrap());
+static JSDOC_OVERLOAD_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"@overload\b").unwrap());
+
+/// The JSDoc block that documents a declaration: the last `/** */` block of
+/// its joined doc text. A block that defines a `@callback` or `@typedef`
+/// documents that type instead, and `@overload` blocks make the call's type
+/// depend on its arguments, so both yield nothing.
+fn own_jsdoc(doc: &str) -> Option<&str> {
+    if JSDOC_OVERLOAD_RE.is_match(doc) {
+        return None;
+    }
+    let block = &doc[doc.rfind("/**")?..];
+    let block = block.find("*/").map_or(block, |end| &block[..end + 2]);
+    (!JSDOC_DETACHED_RE.is_match(block)).then_some(block)
+}
 
 /// Record the JSDoc-declared type of a symbol: `@returns {T}` for callables,
 /// `@type {T}` for variables, properties, and fields.
 pub(crate) fn record_jsdoc_symbol_fact(base: &mut BaseExtractor, symbol: &Symbol) {
-    let Some(doc) = symbol.doc_comment.as_deref() else {
+    let Some(doc) = symbol.doc_comment.as_deref().and_then(own_jsdoc) else {
         return;
     };
     let pattern = match symbol.kind {
@@ -81,7 +97,7 @@ pub(crate) fn record_jsdoc_param_fact(
     parameter: &Symbol,
     callable_doc: Option<&str>,
 ) {
-    let Some(doc) = callable_doc else {
+    let Some(doc) = callable_doc.and_then(own_jsdoc) else {
         return;
     };
     let Some(declared) = JSDOC_PARAM_RE
@@ -228,7 +244,7 @@ pub(crate) fn record_initializer_facts(base: &mut BaseExtractor, root: Node, sym
                 .child_by_field_name("name")
                 .filter(|name| name.kind() == "identifier")?;
             let value = declarator.child_by_field_name("value")?;
-            let shape = scope.shape_of(value, 0)?;
+            let shape = scope.shape_of(value, 0)?.shape;
             shape.name.is_some().then(|| (symbol.id.clone(), shape))
         })
         .collect();
@@ -249,6 +265,13 @@ struct InitializerScope<'a> {
     root: Node<'a>,
     by_id: HashMap<&'a str, &'a Symbol>,
     by_name: HashMap<&'a str, Vec<&'a Symbol>>,
+}
+
+/// The type an expression evaluates to, with the callables whose `@returns`
+/// declared it (none for `new Name()`).
+struct Typed<'a> {
+    shape: TypeShape,
+    sources: Vec<&'a Symbol>,
 }
 
 /// A receiver that names a same-file class: its instances, or the class
@@ -278,7 +301,7 @@ impl<'a> InitializerScope<'a> {
         }
     }
 
-    fn shape_of(&self, value: Node, depth: u32) -> Option<TypeShape> {
+    fn shape_of(&self, value: Node, depth: u32) -> Option<Typed<'a>> {
         if !should_visit_tree_depth(depth) {
             return None;
         }
@@ -286,18 +309,25 @@ impl<'a> InitializerScope<'a> {
             "parenthesized_expression" => {
                 self.shape_of(value.named_child(0)?, child_tree_depth(depth)?)
             }
-            "await_expression" => self
-                .shape_of(value.named_child(0)?, child_tree_depth(depth)?)?
-                .awaited(),
+            "await_expression" => {
+                let typed = self.shape_of(value.named_child(0)?, child_tree_depth(depth)?)?;
+                Some(Typed {
+                    shape: typed.shape.awaited()?,
+                    sources: typed.sources,
+                })
+            }
             "new_expression" => {
                 let constructor = value
                     .child_by_field_name("constructor")
                     .filter(|constructor| constructor.kind() == "identifier")?;
                 let name = self.base.get_node_text(&constructor);
-                Some(TypeShape {
-                    name: Some(name.clone()),
-                    declared: name,
-                    args: Vec::new(),
+                Some(Typed {
+                    shape: TypeShape {
+                        name: Some(name.clone()),
+                        declared: name,
+                        args: Vec::new(),
+                    },
+                    sources: Vec::new(),
                 })
             }
             "call_expression" if !has_optional_chain(value) => {
@@ -314,23 +344,23 @@ impl<'a> InitializerScope<'a> {
         }
     }
 
-    fn free_call(&self, call: Node, name: &str) -> Option<TypeShape> {
+    fn free_call(&self, call: Node, name: &str) -> Option<Typed<'a>> {
         let candidates = self.visible(name, call);
         if candidates.iter().any(|candidate| {
             candidate.kind != SymbolKind::Function || !self.declares_binding(candidate)
         }) {
             return None;
         }
-        self.unanimous_return(&candidates)
+        self.unanimous_return(candidates)
     }
 
-    fn member_call(&self, function: Node, depth: u32) -> Option<TypeShape> {
+    fn member_call(&self, function: Node, depth: u32) -> Option<Typed<'a>> {
         let object = function.child_by_field_name("object")?;
         let method = self
             .base
             .get_node_text(&function.child_by_field_name("property")?);
         let receiver = self.receiver(object, depth)?;
-        let candidates: Vec<&Symbol> = self
+        let candidates: Vec<&'a Symbol> = self
             .by_name
             .get(method.as_str())?
             .iter()
@@ -345,7 +375,7 @@ impl<'a> InitializerScope<'a> {
         }) {
             return None;
         }
-        self.unanimous_return(&candidates)
+        self.unanimous_return(candidates)
     }
 
     fn receiver(&self, object: Node, depth: u32) -> Option<ClassReceiver<'a>> {
@@ -356,17 +386,28 @@ impl<'a> InitializerScope<'a> {
                 is_static: true,
             }),
             _ => {
-                let shape = self.shape_of(object, depth)?;
-                Some(ClassReceiver {
-                    class: self.class_named(shape.name.as_deref()?, object)?,
-                    is_static: false,
-                })
+                let typed = self.shape_of(object, depth)?;
+                let name = typed.shape.name.as_deref()?;
+                let class = self.class_named(name, object)?;
+                typed
+                    .sources
+                    .iter()
+                    .all(|source| {
+                        self.declaration_node(source)
+                            .and_then(|declaration| self.class_named(name, declaration))
+                            .is_some_and(|declared| declared.id == class.id)
+                    })
+                    .then_some(ClassReceiver {
+                        class,
+                        is_static: false,
+                    })
             }
         }
     }
 
     /// The class `this` denotes: the nearest enclosing class method or field,
-    /// seen through arrow functions. Any other function rebinds `this`.
+    /// seen through arrow functions. Any other function rebinds `this`, and a
+    /// computed member name or a decorator runs in the scope around the class.
     fn this_receiver(&self, node: Node) -> Option<ClassReceiver<'a>> {
         let mut current = node.parent();
         while let Some(candidate) = current {
@@ -392,6 +433,8 @@ impl<'a> InitializerScope<'a> {
                 | "generator_function"
                 | "generator_function_declaration"
                 | "class_body"
+                | "computed_property_name"
+                | "decorator"
                 | "program" => return None,
                 _ => {}
             }
@@ -469,14 +512,15 @@ impl<'a> InitializerScope<'a> {
         }
     }
 
-    fn unanimous_return(&self, candidates: &[&Symbol]) -> Option<TypeShape> {
-        let mut shapes = candidates
+    fn unanimous_return(&self, candidates: Vec<&'a Symbol>) -> Option<Typed<'a>> {
+        let first = self.declared_return(candidates.first()?)?;
+        candidates[1..]
             .iter()
-            .map(|candidate| self.declared_return(candidate));
-        let first = shapes.next()??;
-        shapes
-            .all(|shape| shape.as_ref() == Some(&first))
-            .then_some(first)
+            .all(|candidate| self.declared_return(candidate).as_ref() == Some(&first))
+            .then_some(Typed {
+                shape: first,
+                sources: candidates,
+            })
     }
 
     /// The `@returns` type every return tag of `callable` agrees on, with the
@@ -484,7 +528,7 @@ impl<'a> InitializerScope<'a> {
     /// An async callable must declare a `Promise`, and a generator its
     /// generator or iterator type.
     fn declared_return(&self, callable: &Symbol) -> Option<TypeShape> {
-        let doc = callable.doc_comment.as_deref()?;
+        let doc = callable.doc_comment.as_deref().and_then(own_jsdoc)?;
         let mut templates = Vec::new();
         let mut owner = Some(callable);
         while let Some(symbol) = owner {
@@ -521,8 +565,8 @@ impl<'a> InitializerScope<'a> {
 
 /// The block that scopes a declaration and the function that scopes it when
 /// hoisted: `var` binds in the function, `let`, `const`, `class`, and
-/// imports in the block, and a function declaration in the block for strict
-/// code but in the function for sloppy code.
+/// imports in the block, a function declaration in the block for strict
+/// code but in the function for sloppy code, and a parameter in its function.
 fn binding_scopes(declaration: Node) -> (Node, Node) {
     let mut current = Some(declaration);
     while let Some(node) = current {
@@ -533,6 +577,10 @@ fn binding_scopes(declaration: Node) -> (Node, Node) {
             }
             "function_declaration" | "generator_function_declaration" => {
                 return (block_scope(node), function_scope(node));
+            }
+            "formal_parameters" => {
+                let function = node.parent().unwrap_or(node);
+                return (function, function);
             }
             "lexical_declaration" | "class_declaration" | "import_statement" => break,
             kind if is_block_scope(kind) => break,

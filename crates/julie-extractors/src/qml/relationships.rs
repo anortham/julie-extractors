@@ -60,7 +60,10 @@ pub(super) fn extract_relationships(
     relationships
 }
 
-fn object_owner<'a>(node: Node, owners: &HashMap<u32, &'a Symbol>) -> Option<&'a Symbol> {
+pub(super) fn object_owner<'a>(
+    node: Node,
+    owners: &HashMap<u32, &'a Symbol>,
+) -> Option<&'a Symbol> {
     let anchor = node
         .parent()
         .filter(|parent| parent.kind() == "ui_inline_component")

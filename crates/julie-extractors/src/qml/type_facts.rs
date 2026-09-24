@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use tree_sitter::Node;
 
 use super::relationships::{
-    LocalCall, find_containing_component, object_owner_map, resolve_scoped_callee,
+    LocalCall, find_containing_component, object_owner, object_owner_map, resolve_scoped_callee,
 };
 
 pub(super) const TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
@@ -151,7 +151,10 @@ pub(super) fn record_call_initializer_facts(
                 symbols,
                 component,
                 &object_owners,
-            )?;
+            )
+            .filter(|callee| {
+                receiver.is_some() || scope_object_admits_bare_call(call, callee, &object_owners)
+            })?;
             let fact = base.type_info.get(&callee.id).filter(|fact| {
                 !matches!(fact.resolved_type.as_str(), "void" | "undefined" | "var")
             })?;
@@ -177,6 +180,32 @@ pub(super) fn record_call_initializer_facts(
             true,
         );
     }
+}
+
+/// Whether a bare call's scope object (the nearest enclosing object) leaves
+/// no member unknown that could shadow `callee`: it declares the callee, or
+/// it is its component's root, whose own declarations win. Any other object
+/// also carries the members of its type, which may come from another file,
+/// from Qt, or from a same-file inline component, so it resolves nothing.
+fn scope_object_admits_bare_call(
+    call: Node,
+    callee: &Symbol,
+    object_owners: &HashMap<u32, &Symbol>,
+) -> bool {
+    let mut current = call.parent();
+    while let Some(node) = current {
+        if matches!(
+            node.kind(),
+            "ui_object_definition" | "ui_object_definition_binding"
+        ) {
+            return object_owner(node, object_owners).is_some_and(|owner| {
+                owner.kind == SymbolKind::Class
+                    || callee.parent_id.as_deref() == Some(owner.id.as_str())
+            });
+        }
+        current = node.parent();
+    }
+    false
 }
 
 /// Whether the caller or a function enclosing it declares `name` as a

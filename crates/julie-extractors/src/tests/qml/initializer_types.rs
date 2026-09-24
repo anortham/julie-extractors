@@ -31,6 +31,14 @@ fn inferred(name: &str) -> Option<(String, bool)> {
 }
 
 fn workspace_type(body: &str) -> Option<(String, bool)> {
+    scoped_workspace_type(body, "")
+}
+
+fn panel_workspace_type(body: &str) -> Option<(String, bool)> {
+    scoped_workspace_type("", body)
+}
+
+fn scoped_workspace_type(root_body: &str, panel_body: &str) -> Option<(String, bool)> {
     local_type(
         &format!(
             r#"
@@ -43,13 +51,17 @@ Item {{
     function untyped() {{}}
     signal loaded()
 
+    function run(param) {{
+        {root_body}
+    }}
+
     Item {{
         id: panel
 
         function panelWorkspace(): Folder {{}}
 
-        function run(param) {{
-            {body}
+        function panelRun(param) {{
+            {panel_body}
         }}
     }}
 
@@ -64,14 +76,22 @@ Item {{
 }
 
 #[test]
-fn bare_call_to_an_enclosing_object_function_records_its_return_type() {
+fn bare_call_to_a_function_of_the_scope_object_records_its_return_type() {
     assert_eq!(
         workspace_type("let workspace = loadWorkspace()"),
         inferred("Workspace")
     );
     assert_eq!(
-        workspace_type("var workspace = panelWorkspace()"),
+        panel_workspace_type("var workspace = panelWorkspace()"),
         inferred("Folder")
+    );
+}
+
+#[test]
+fn bare_call_from_a_non_root_object_to_a_root_function_records_nothing() {
+    assert_eq!(
+        panel_workspace_type("let workspace = loadWorkspace()"),
+        None
     );
 }
 
@@ -84,6 +104,10 @@ fn call_through_a_same_file_id_records_its_return_type() {
     assert_eq!(
         workspace_type("const workspace = panel.panelWorkspace()"),
         inferred("Folder")
+    );
+    assert_eq!(
+        panel_workspace_type("const workspace = root.loadWorkspace()"),
+        inferred("Workspace")
     );
 }
 
@@ -125,6 +149,7 @@ fn calls_without_a_usable_return_type_record_nothing() {
 #[test]
 fn bare_call_to_a_function_of_an_unrelated_object_records_nothing() {
     assert_eq!(workspace_type("let workspace = siblingWorkspace()"), None);
+    assert_eq!(workspace_type("let workspace = panelWorkspace()"), None);
 }
 
 #[test]
@@ -161,6 +186,7 @@ fn local_bindings_shadowing_the_callee_record_nothing() {
 #[test]
 fn parameter_shadowing_the_callee_records_nothing() {
     assert_eq!(workspace_type("let workspace = param()"), None);
+    assert_eq!(panel_workspace_type("let workspace = param()"), None);
     let source = r#"
 Item {
     function loadWorkspace(): Workspace {}
@@ -196,7 +222,7 @@ Item {
 }
 
 #[test]
-fn bare_call_skips_intermediate_objects_that_do_not_declare_the_name() {
+fn bare_call_from_an_object_of_a_qt_type_records_nothing() {
     let source = r#"
 Item {
     id: root
@@ -213,5 +239,35 @@ Item {
     }
 }
 "#;
-    assert_eq!(local_type(source, "fromRoot"), inferred("Item"));
+    assert_eq!(local_type(source, "fromRoot"), None);
+}
+
+#[test]
+fn bare_call_from_an_inline_component_instance_records_nothing() {
+    let source = r#"
+Item {
+    id: root
+    component Fancy: Item { function load(): Bar { return null } }
+    function load(): Foo { return null }
+    function contains(): Foo { return null }
+    Fancy { function run() { let inlineInstance = load() } }
+    Rectangle { function run() { let builtin = contains() } }
+}
+"#;
+    assert_eq!(local_type(source, "inlineInstance"), None);
+    assert_eq!(local_type(source, "builtin"), None);
+}
+
+#[test]
+fn bare_call_inside_an_inline_component_resolves_in_its_root() {
+    let source = r#"
+Item {
+    function load(): Foo { return null }
+    component Fancy: Item {
+        function load(): Bar { return null }
+        function run() { let inComponent = load() }
+    }
+}
+"#;
+    assert_eq!(local_type(source, "inComponent"), inferred("Bar"));
 }

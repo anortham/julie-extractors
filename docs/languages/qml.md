@@ -74,8 +74,12 @@ directives are `qmldir.static.v1` and `qmldir.system.v1` facts.
 - A function local with no annotation gets an inferred type fact from its
   initializer: `new T()`, or a call to a same-file function with a return
   annotation, named bare (`load()`) or through a same-file id
-  (`root.load()`). A bare call resolves by QML scope: the scope object (the
-  nearest enclosing object), then the root object of its component. A
+  (`root.load()`). A bare call records a type only when the scope object (the
+  nearest enclosing object) declares the callee or is the root object of its
+  component. Any other scope object also has the members of its type (a Qt
+  type, a type from another file, or a same-file inline component), and one
+  of them can shadow the name at runtime, so such a call records nothing.
+  Use an id (`root.load()`) for a typed call from a nested object. A
   `void` return, a signal, a callee that only an unrelated object declares,
   a name that an object between the scope object and the root declares, a
   parameter, local, nested function, loop, or catch binding that shadows the
@@ -125,7 +129,10 @@ setup, and `cleanup*` is fixture teardown.
   the root of an implicit component such as a delegate. A same-named
   function in an unrelated object does not block either rule. A bare name
   that scope does not resolve falls back to the one visible same-file
-  function or signal of that name.
+  function or signal of that name. These edges do not check the members of
+  the scope object's type, so a Qt, other-file, or inline-component member
+  with the same name can shadow the target at runtime. Local type inference
+  does not use a bare call from such an object.
 - A call inside a signal handler belongs to the handler `function` symbol.
   A call inside a function belongs to that function, also when the function
   is nested. Calls inside property initializers (`readonly property real
