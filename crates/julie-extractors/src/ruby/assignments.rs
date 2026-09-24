@@ -89,6 +89,7 @@ pub(super) fn extract_assignment(
     );
     if !mixed_level_ivar
         && node.kind() == "assignment"
+        && !type_facts::has_trailing_written_type(base, node)
         && let Some(literal_type) = right_side.and_then(literal_type)
     {
         context

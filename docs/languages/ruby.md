@@ -116,8 +116,9 @@ before they count as a mixin on the enclosing class, which keeps
 - A bare identifier with no earlier binding in its scope is a receiverless
   method call, which is Ruby's own parse rule. It gives a `call` identifier
   and a `calls` relationship to a same-class method, or a pending call. A
-  local, parameter, block parameter, or rescue variable stays a
-  `variable_ref`. `def`, `class`, `module`, and the program start a scope; a
+  local, parameter, block parameter, rescue variable, pattern variable
+  (`in {name:}`, `in [X => name]`, `expr => {name:}`), or named group of a
+  regex literal matched with `=~` stays a `variable_ref`. `def`, `class`, `module`, and the program start a scope; a
   block sees the enclosing scope.
 - `send(:m)`, `public_send(:m)`, `__send__(:m)`, `method(:m)`, and `&:m` call
   `m`. `super` gives a pending call to the enclosing method's name with
@@ -158,7 +159,9 @@ before they count as a mixin on the enclosing class, which keeps
 - A method's declared return type comes from the annotations a Ruby type
   checker enforces: a Sorbet `sig { ... returns(T) }` or an RBS inline
   `#: (..) -> T` (with `#|` continuation lines), `# @rbs (..) -> T`, or
-  `# @rbs return: T` comment directly above the `def`. Several overloads must
+  `# @rbs return: T` comment directly above the `def`. The comment must
+  start its own line: a trailing comment on the statement above, such as
+  `attr_accessor :cb #: ^() -> String`, types that statement. Several overloads must
   agree; the `# @rbs ... | (..) -> U` overload form records no fact. YARD
   `@return` tags are unchecked documentation and are not read.
 - A local or instance variable assigned with `=` or `||=` gets an inferred
@@ -191,9 +194,12 @@ before they count as a mixin on the enclosing class, which keeps
   rebinds `self` (`instance_eval`, `class_eval`, `define_method`, ...), any
   block or lambda directly in a class or module body (`before_action`,
   `scope`, `included`, ...) or at the top level (RSpec `describe`, `it`,
-  `let`, ...), `void`, a union, `T.untyped`, `T::Boolean`, a
+  `let`, ...), a `self` that `T.bind(self, X)` or a Steep `# @type self:`
+  comment rebinds earlier in the method or block (or a Steep
+  `# @type instance:` or `module:` comment earlier in the class), `void`, a
+  union, `T.untyped`, `T::Boolean`, a
   `T::` generic, a type parameter, a Sorbet `type_member`, or a
-  `T.type_alias`. Other files are out of scope because each file is
+  `T.type_alias`, also when written qualified (`Mod::Alias`, `Box::Elem`). Other files are out of scope because each file is
   extracted alone.
 - An instance variable field gets no type fact, literal, inferred, or
   written, when its class uses that `@x` at more than one `self` level: in
@@ -208,7 +214,10 @@ before they count as a mixin on the enclosing class, which keeps
   `included` hook, are not tracked.
 - A written type wins over inference and is not inferred: Sorbet
   `T.let(x, T)` / `T.cast(x, T)`, or a trailing RBS `#: T` / `#: as T`
-  comment. A trailing written type with no single class records no fact.
+  comment. A trailing written type with no single class records no fact,
+  and a trailing written type also removes the literal type, so
+  `@v = nil #: String | Integer | nil` records neither `NilClass` nor a
+  written type.
 
 ## Rake files
 

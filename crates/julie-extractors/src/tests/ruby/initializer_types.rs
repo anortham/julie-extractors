@@ -988,3 +988,181 @@ fn a_method_redefined_without_def_records_no_fact() {
     let other_owner = "class A\n  #: -> String\n  def label; end\n  def f\n    v = label\n  end\nend\nclass B\n  attr_reader :label\nend\n";
     assert_eq!(fact_for(other_owner, "v"), inferred("String"));
 }
+
+#[test]
+fn locals_bound_by_patterns_and_regex_captures_record_no_fact() {
+    let source = r#"class Parser
+  #: () -> Parser
+  def token = self
+  #: () -> Parser
+  def word = self
+  def shorthand(input)
+    case input
+    in {token:} then pa = token
+    end
+  end
+  def as_pattern(input)
+    case input
+    in [Integer => token] then pb = token
+    end
+  end
+  def rightward(input)
+    input => {token:}
+    pc = token
+  end
+  def array_element(input)
+    case input
+    in [token, *] then pd = token
+    end
+  end
+  def keyword_value(input)
+    case input
+    in {key: token} then pk = token
+    end
+  end
+  def boolean_test(input)
+    if input in [token]
+      pe = token
+    end
+  end
+  def capture(input)
+    /(?<word>\w+)/ =~ input
+    rw = word
+  end
+  def pinned(input)
+    case input
+    in ^(token) then kept_pin = token
+    end
+  end
+  def unbound
+    kept = token
+  end
+end
+"#;
+    for name in ["pa", "pb", "pc", "pd", "pk", "pe", "rw"] {
+        assert_eq!(fact_for(source, name), None, "{name}");
+    }
+    assert_eq!(fact_for(source, "kept_pin"), inferred("Parser"));
+    assert_eq!(fact_for(source, "kept"), inferred("Parser"));
+}
+
+#[test]
+fn a_trailing_comment_on_the_statement_above_a_def_is_not_its_type() {
+    let source = r#"class Foo
+  attr_accessor :callback #: ^() -> String
+  def label = 1
+  HANDLER = ->(x) { x.to_s } #: ^(Integer) -> String
+  def other = 1
+  #: -> String
+  def named = 1
+  def run
+    ta = label
+    tc = other
+    kept = named
+  end
+end
+"#;
+    assert_eq!(fact_for(source, "ta"), None);
+    assert_eq!(fact_for(source, "tc"), None);
+    assert_eq!(fact_for(source, "kept"), inferred("String"));
+}
+
+#[test]
+fn a_rebound_self_records_no_fact() {
+    let source = r#"class Config
+end
+class Foo
+  extend T::Sig
+  sig { returns(String) }
+  def name; end
+  def in_block
+    thing.configure do
+      T.bind(self, Config)
+      bound = name
+    end
+  end
+  def in_def
+    T.bind(self, Config)
+    tb = name
+  end
+  def steep_self
+    thing.configure do
+      # @type self: Config
+      steep_v = name
+    end
+  end
+  def unbound
+    kept = name
+  end
+end
+class Bar
+  extend T::Sig
+  # @type instance: Config
+  sig { returns(String) }
+  def name; end
+  def run
+    steep_instance = name
+  end
+end
+"#;
+    for name in ["bound", "tb", "steep_v", "steep_instance"] {
+        assert_eq!(fact_for(source, name), None, "{name}");
+    }
+    assert_eq!(fact_for(source, "kept"), inferred("String"));
+}
+
+#[test]
+fn a_qualified_type_alias_or_type_member_records_no_fact() {
+    let alias = r#"module Mod
+  Result = T.type_alias { T.any(String, Integer) }
+end
+class Foo
+  extend T::Sig
+  sig { returns(Mod::Result) }
+  def self.get; end
+  sig { returns(T.nilable(::Mod::Result)) }
+  def self.maybe; end
+end
+alias_x = Foo.get
+alias_y = Foo.maybe
+"#;
+    assert_eq!(fact_for(alias, "alias_x"), None);
+    assert_eq!(fact_for(alias, "alias_y"), None);
+    let member = r#"class Box
+  extend T::Generic
+  Elem = type_member
+  sig { returns(Box::Elem) }
+  def get; end
+  def run
+    elem_x = get
+  end
+end
+"#;
+    assert_eq!(fact_for(member, "elem_x"), None);
+}
+
+#[test]
+fn a_trailing_written_type_blocks_the_literal_type() {
+    let source = "class Foo\n  def initialize\n    @value = nil #: String | Integer | nil\n    items = [] #: untyped\n    count = 1\n  end\nend\n";
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_ruby::LANGUAGE.into())
+        .unwrap();
+    let tree = parser.parse(source, None).unwrap();
+    let mut extractor = RubyExtractor::new(
+        "initializer_types.rb".to_string(),
+        source.to_string(),
+        &PathBuf::from("/tmp/test"),
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let literal_types = extractor.infer_types(&symbols);
+    let literal_type_of = |name: &str| {
+        let symbol = symbols.iter().find(|s| s.name == name).unwrap();
+        literal_types.get(&symbol.id).cloned()
+    };
+    assert_eq!(literal_type_of("@value"), None);
+    assert_eq!(literal_type_of("items"), None);
+    assert_eq!(literal_type_of("count"), Some("Integer".to_string()));
+    assert_eq!(fact_for(source, "@value"), None);
+    assert_eq!(fact_for(source, "items"), None);
+}

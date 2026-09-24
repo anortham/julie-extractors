@@ -95,9 +95,9 @@ fn visit(
     if !should_visit_tree_depth(depth) || is_scope_root(node.kind()) {
         return;
     }
-    if node.kind() == "identifier" && binds(node) {
+    for name in bound_names(content, node) {
         bindings.push(Binding {
-            name: content[node.byte_range()].to_string(),
+            name,
             start_byte: node.start_byte(),
             block_ranges: blocks.clone(),
         });
@@ -117,8 +117,53 @@ fn visit(
     }
 }
 
+/// The locals `node` introduces: an identifier that `binds`, the key of a
+/// `{name:}` pattern, or a named group of a regex literal matched with `=~`.
+fn bound_names(content: &str, node: Node) -> Vec<String> {
+    match node.kind() {
+        "identifier" if binds(node) => vec![content[node.byte_range()].to_string()],
+        "keyword_pattern" if node.child_by_field_name("value").is_none() => node
+            .child_by_field_name("key")
+            .map(|key| {
+                content[key.byte_range()]
+                    .trim_matches(|c| matches!(c, '"' | '\'' | ':'))
+                    .to_string()
+            })
+            .into_iter()
+            .collect(),
+        "binary" => node
+            .child_by_field_name("left")
+            .filter(|left| left.kind() == "regex")
+            .filter(|_| {
+                node.child_by_field_name("operator")
+                    .is_some_and(|operator| &content[operator.byte_range()] == "=~")
+            })
+            .map(|regex| regex_group_names(&content[regex.byte_range()]))
+            .unwrap_or_default(),
+        _ => Vec::new(),
+    }
+}
+
+/// The names of `(?<name>..)` and `(?'name'..)` groups in a regex literal.
+fn regex_group_names(regex: &str) -> Vec<String> {
+    regex
+        .split("(?")
+        .skip(1)
+        .filter_map(|group| {
+            let (close, rest) = match group.chars().next()? {
+                '<' => ('>', &group[1..]),
+                '\'' => ('\'', &group[1..]),
+                _ => return None,
+            };
+            let name = &rest[..rest.find(close)?];
+            (!name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || c == '_'))
+                .then(|| name.to_string())
+        })
+        .collect()
+}
+
 /// Whether an `identifier` introduces a local: an assignment target, a
-/// parameter, a rescue variable, or a `for` loop variable.
+/// parameter, a rescue variable, a `for` loop variable, or a pattern variable.
 fn binds(node: Node) -> bool {
     let Some(parent) = node.parent() else {
         return false;
@@ -142,7 +187,10 @@ fn binds(node: Node) -> bool {
         | "exception_variable"
         | "destructured_parameter" => true,
         "optional_parameter" | "keyword_parameter" => is_field("name"),
-        "for" => is_field("pattern"),
+        "for" | "in_clause" | "match_pattern" | "test_pattern" => is_field("pattern"),
+        "array_pattern" | "find_pattern" | "parenthesized_pattern" | "alternative_pattern" => true,
+        "as_pattern" => is_field("name"),
+        "keyword_pattern" => is_field("value"),
         _ => false,
     }
 }

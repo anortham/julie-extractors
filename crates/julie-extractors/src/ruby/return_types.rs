@@ -59,6 +59,8 @@ pub(super) struct DeclaredType {
 #[derive(Debug, Default)]
 pub(super) struct ReturnTypeIndex {
     entries: HashMap<String, Vec<ReturnEntry>>,
+    /// Names of type parameters and of Sorbet type aliases and members. A
+    /// written path whose last segment is one of them names no class.
     generics: HashSet<String>,
     /// Full paths of the file's classes and modules; `true` for a class.
     owners: HashMap<String, bool>,
@@ -85,6 +87,11 @@ pub(super) struct ReturnTypeIndex {
     /// Methods that `alias`, `attr_reader`, `define_method` and similar
     /// statements define, with the `self` they define them on.
     redefinitions: Vec<(String, Option<SelfKey>)>,
+    /// Start bytes of `T.bind(self, ..)` calls and Steep `# @type self:`
+    /// comments, which rebind `self` for the rest of their method or block,
+    /// and whether each is a Steep `instance:` or `module:` comment, which
+    /// rebinds it for the rest of its class or module.
+    self_rebinds: Vec<(usize, bool)>,
     /// The `self` levels at which each class uses each `@ivar`.
     ivar_levels: HashMap<(Option<String>, String), HashSet<Option<bool>>>,
 }
@@ -198,6 +205,35 @@ impl ReturnTypeIndex {
         })
     }
 
+    /// Whether a `T.bind(self, ..)` or a Steep `@type` annotation of `self`
+    /// before `node` can change what `self` is at `node`.
+    pub(super) fn self_rebound(&self, node: Node) -> bool {
+        let start = node.start_byte();
+        let reach = |stops: &[&str]| {
+            let mut current = node.parent();
+            while let Some(ancestor) = current {
+                if stops.contains(&ancestor.kind()) {
+                    return Some(ancestor.start_byte()..start);
+                }
+                current = ancestor.parent();
+            }
+            None
+        };
+        let body = reach(&[
+            "method",
+            "singleton_method",
+            "class",
+            "module",
+            "singleton_class",
+            "program",
+        ]);
+        let owner = reach(&["class", "module", "program"]);
+        self.self_rebinds.iter().any(|(position, reaches_owner)| {
+            let range = if *reaches_owner { &owner } else { &body };
+            range.as_ref().is_some_and(|range| range.contains(position))
+        })
+    }
+
     /// The return type every same-named method on this `self` agrees on.
     pub(super) fn lookup(&self, name: &str, scope: &SelfScope) -> Option<DeclaredType> {
         let key = scope.key();
@@ -283,9 +319,11 @@ impl ReturnTypeIndex {
         let mut comments = Vec::new();
         let mut next_row = anchor.start_position().row;
         let mut previous = previous_named(anchor);
-        while let Some(comment) = previous
-            .filter(|node| node.kind() == "comment" && node.end_position().row + 1 == next_row)
-        {
+        while let Some(comment) = previous.filter(|node| {
+            node.kind() == "comment"
+                && node.end_position().row + 1 == next_row
+                && starts_its_line(base, *node)
+        }) {
             comments.push(base.get_node_text(&comment));
             next_row = comment.start_position().row;
             previous = previous_named(comment);
@@ -440,7 +478,7 @@ impl ReturnTypeIndex {
                     .chars()
                     .all(|c| c.is_ascii_alphanumeric() || c == '_')
         });
-        (is_constant_path && !self.generics.contains(path)).then(|| path.to_string())
+        (is_constant_path && !self.generics.contains(last_segment(path))).then(|| path.to_string())
     }
 }
 
@@ -636,6 +674,15 @@ fn previous_named(node: Node) -> Option<Node> {
     })
 }
 
+/// Whether only whitespace comes before `node` on its first line. A trailing
+/// comment, such as `attr_accessor :cb #: ^() -> String`, types its own line.
+fn starts_its_line(base: &BaseExtractor, node: Node) -> bool {
+    let before = &base.content[..node.start_byte()];
+    before[before.rfind('\n').map_or(0, |newline| newline + 1)..]
+        .trim()
+        .is_empty()
+}
+
 /// The `private def x` style call a `def` is the argument of.
 fn visibility_call_around(definition: Node) -> Option<Node> {
     let arguments = definition
@@ -719,7 +766,12 @@ fn collect<'tree>(
                     .push((name.trim_start_matches(':').to_string(), key));
             }
         }
-        "call" => collect_call(base, node, index),
+        "call" => {
+            if is_self_bind(base, node) {
+                index.self_rebinds.push((node.start_byte(), false));
+            }
+            collect_call(base, node, index);
+        }
         "instance_variable" => {
             let level = self_scope(base, node).map(|scope| scope.singleton);
             index
@@ -728,9 +780,13 @@ fn collect<'tree>(
                 .or_default()
                 .insert(level);
         }
-        "comment" => index
-            .generics
-            .extend(comment_generics(&base.get_node_text(&node))),
+        "comment" => {
+            let comment = base.get_node_text(&node);
+            if let Some(reaches_owner) = steep_self_annotation(&comment) {
+                index.self_rebinds.push((node.start_byte(), reaches_owner));
+            }
+            index.generics.extend(comment_generics(&comment));
+        }
         "assignment" => {
             index.generics.extend(sorbet_type_constant(base, node));
             index.constants.extend(constant_target(base, node));
@@ -742,6 +798,31 @@ fn collect<'tree>(
     };
     for child in node.named_children(&mut node.walk()) {
         collect(base, child, child_depth, definitions, index);
+    }
+}
+
+/// Whether a call is Sorbet `T.bind(self, ..)`.
+fn is_self_bind(base: &BaseExtractor, call: Node) -> bool {
+    call.child_by_field_name("receiver")
+        .is_some_and(|receiver| base.get_node_text(&receiver) == "T")
+        && call
+            .child_by_field_name("method")
+            .is_some_and(|method| base.get_node_text(&method) == "bind")
+        && call
+            .child_by_field_name("arguments")
+            .and_then(|arguments| arguments.named_child(0))
+            .is_some_and(|first| first.kind() == "self")
+}
+
+/// For a Steep `# @type self:`, `instance:` or `module:` comment, whether it
+/// reaches the whole class or module (`instance:` and `module:`).
+fn steep_self_annotation(comment: &str) -> Option<bool> {
+    let text = comment.trim().strip_prefix('#')?.trim_start();
+    let target = text.strip_prefix("@type")?.trim_start();
+    if target.starts_with("self:") {
+        Some(false)
+    } else {
+        (target.starts_with("instance:") || target.starts_with("module:")).then_some(true)
     }
 }
 
@@ -796,7 +877,8 @@ fn sorbet_type_constant(base: &BaseExtractor, assignment: Node) -> Option<String
         (receiver.as_deref(), base.get_node_text(&method).as_str()),
         (None, "type_member" | "type_template") | (Some("T"), "type_alias")
     );
-    (left.kind() == "constant" && is_type_constant).then(|| base.get_node_text(&left))
+    (matches!(left.kind(), "constant" | "scope_resolution") && is_type_constant)
+        .then(|| last_segment(&base.get_node_text(&left)).to_string())
 }
 
 /// The full path of the constant an assignment such as `Widget = Other`

@@ -33,7 +33,8 @@ pub(super) fn record_assignment_type(
     value: Node,
     context: InitializerContext<'_>,
 ) {
-    let scope = self_scope(base, assignment);
+    let scope =
+        self_scope(base, assignment).filter(|_| !context.return_types.self_rebound(assignment));
     let written = match trailing_annotation(base, assignment) {
         TrailingAnnotation::Type(text) => Some(
             context
@@ -72,6 +73,15 @@ enum TrailingAnnotation {
     Type(String),
     NotNil,
     Unreadable,
+}
+
+/// Whether a trailing RBS comment writes a type for the assignment, so its
+/// literal right-hand side does not state the type.
+pub(super) fn has_trailing_written_type(base: &BaseExtractor, assignment: Node) -> bool {
+    matches!(
+        trailing_annotation(base, assignment),
+        TrailingAnnotation::Type(_) | TrailingAnnotation::Unreadable
+    )
 }
 
 /// The RBS comment after an assignment on its last line.
