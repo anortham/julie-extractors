@@ -33,11 +33,28 @@ pub(crate) struct DeclaredTypes {
     spec_args: HashMap<NameArity, Vec<Option<String>>>,
     callbacks: HashMap<NameArity, String>,
     aliases: HashMap<NameArity, String>,
+    /// The return type every clause of every `-spec` for a function agrees
+    /// on; `None` when a clause states no single base name or two disagree.
+    spec_returns: HashMap<NameArity, Option<DeclaredType>>,
+}
+
+/// A declared type as its base name and the text written for it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct DeclaredType {
+    pub(super) name: String,
+    pub(super) declared: String,
 }
 
 impl DeclaredTypes {
     pub(super) fn spec_args(&self, identity: &NameArity) -> &[Option<String>] {
         self.spec_args.get(identity).map_or(&[], Vec::as_slice)
+    }
+
+    /// Functions whose `-spec` clauses all agree on one base return type.
+    pub(super) fn agreed_spec_returns(&self) -> impl Iterator<Item = (&NameArity, &DeclaredType)> {
+        self.spec_returns
+            .iter()
+            .filter_map(|(identity, agreed)| Some((identity, agreed.as_ref()?)))
     }
 }
 
@@ -51,6 +68,17 @@ pub(super) fn collect(base: &BaseExtractor, declarations: &[Node]) -> DeclaredTy
                 insert(base, declaration, signature_form, &mut declared.specs);
                 if let Some((identity, args)) = spec_argument_types(base, declaration) {
                     declared.spec_args.entry(identity).or_insert(args);
+                }
+                if let Some((identity, returned)) = spec_return(base, declaration) {
+                    declared
+                        .spec_returns
+                        .entry(identity)
+                        .and_modify(|agreed| {
+                            if *agreed != returned {
+                                *agreed = None;
+                            }
+                        })
+                        .or_insert(returned);
                 }
             }
             "callback" => insert(base, declaration, signature_form, &mut declared.callbacks),
@@ -128,6 +156,38 @@ fn spec_argument_types(
         .map(|argument| base_type_name(base, &argument))
         .collect();
     Some(((name, types.len() as u32), types))
+}
+
+/// The return type all clauses of `-spec` agree on:
+/// `-spec load(a) -> state(); (b) -> state().` gives `state`, and clauses
+/// with different or shapeless returns give `None`.
+fn spec_return(
+    base: &BaseExtractor,
+    declaration: &Node,
+) -> Option<(NameArity, Option<DeclaredType>)> {
+    let name = first_atom_text(base, declaration)?;
+    let mut cursor = declaration.walk();
+    let signatures: Vec<Node> = declaration
+        .children_by_field_name("sigs", &mut cursor)
+        .collect();
+    let first = signatures.first()?;
+    let arity = arg_count(&first.child_by_field_name("args")?);
+    let first_return = first.child_by_field_name("ty")?;
+    let returned = base_type_name(base, &first_return)
+        .filter(|name| {
+            signatures[1..].iter().all(|signature| {
+                signature
+                    .child_by_field_name("ty")
+                    .and_then(|ty| base_type_name(base, &ty))
+                    .as_ref()
+                    == Some(name)
+            })
+        })
+        .map(|name| DeclaredType {
+            name,
+            declared: base.get_node_text(&first_return),
+        });
+    Some(((name, arity), returned))
 }
 
 /// `-type account() :: #account{}.` names the alias in a `type_name` child and
