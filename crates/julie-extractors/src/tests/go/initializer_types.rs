@@ -142,12 +142,41 @@ package main
 type Stack[T any] struct{}
 
 func (s *Stack[T]) Clone() *Stack[T] { return s }
+func (s *Stack[T]) Ints() *Stack[int] { return nil }
 
 func (s *Stack[T]) Run() {
-    dup := s.Clone()
+    ints := s.Ints()
 }
 "#;
-    assert_eq!(inferred_type(source, "dup"), typed("Stack", "*Stack[T]"));
+    assert_eq!(inferred_type(source, "ints"), typed("Stack", "*Stack[int]"));
+}
+
+#[test]
+fn result_with_a_type_parameter_argument_records_only_the_base_name() {
+    let source = r#"
+package main
+
+type Box[T any] struct{}
+type Stack[T any] struct{}
+
+func Wrap[T any](v T) Box[T] { return Box[T]{} }
+func (s *Stack[T]) Clone() *Stack[T] { return s }
+func (s *Stack[T]) Nested() Box[[]T] { return Box[[]T]{} }
+
+func (s *Stack[U]) Run() {
+    dup := s.Clone()
+    nested := s.Nested()
+}
+
+func Use() {
+    wrapped := Wrap(1)
+    cloned := (&Stack[int]{}).Clone()
+}
+"#;
+    assert_eq!(inferred_type(source, "dup"), typed("Stack", ""));
+    assert_eq!(inferred_type(source, "nested"), typed("Box", ""));
+    assert_eq!(inferred_type(source, "wrapped"), typed("Box", ""));
+    assert_eq!(inferred_type(source, "cloned"), typed("Stack", ""));
 }
 
 #[test]
@@ -313,4 +342,64 @@ func Use() {
 }
 "#;
     assert_eq!(inferred_type(source, "opened"), typed("Config", "*Config"));
+}
+
+const SHADOWING: &str = r#"
+package main
+
+type Config struct{}
+type Other struct{}
+type Base struct{}
+type Server struct{ Base }
+
+func load() *Config { return nil }
+func (s *Server) config() *Config { return nil }
+func (b Base) config() *Other { return nil }
+func (o Other) config() *Other { return &o }
+"#;
+
+#[test]
+fn composite_literal_method_call_on_a_local_type_records_nothing() {
+    let source = format!(
+        "{SHADOWING}\nfunc LocalType() {{\n    type Server struct{{ Base }}\n    local := Server{{}}.config()\n}}\n\nfunc PackageType() {{\n    pkg := Server{{}}.config()\n}}\n"
+    );
+    assert_eq!(inferred_type(&source, "local"), None);
+    assert_eq!(inferred_type(&source, "pkg"), typed("Config", "*Config"));
+}
+
+#[test]
+fn receiver_name_rebound_by_a_local_type_records_nothing() {
+    let source = format!(
+        "{SHADOWING}\nfunc (s *Server) Alias() {{\n    {{\n        type s = Other\n        aliased := s.config(Other{{}})\n    }}\n}}\n\nfunc (s *Server) Defined() {{\n    {{\n        type s struct{{ Other }}\n        defined := s.config(s{{}})\n    }}\n}}\n\nfunc (s *Server) Plain() {{\n    plain := s.config()\n}}\n"
+    );
+    assert_eq!(inferred_type(&source, "aliased"), None);
+    assert_eq!(inferred_type(&source, "defined"), None);
+    assert_eq!(inferred_type(&source, "plain"), typed("Config", "*Config"));
+}
+
+#[test]
+fn free_function_hidden_by_a_local_func_variable_records_nothing() {
+    let source = format!(
+        "{SHADOWING}\nfunc (s *Server) Hidden() {{\n    load := func() *Other {{ return nil }}\n    hidden := load()\n}}\n\nfunc Plain() {{\n    plain := load()\n}}\n"
+    );
+    assert_eq!(inferred_type(&source, "hidden"), None);
+    assert_eq!(inferred_type(&source, "plain"), typed("Config", "*Config"));
+}
+
+#[test]
+fn free_function_hidden_by_a_parameter_records_nothing() {
+    let source = format!(
+        "{SHADOWING}\nfunc Hidden(load func() *Other) {{\n    hidden := load()\n}}\n\nfunc Closure() {{\n    run := func(load func() *Other) {{\n        inner := load()\n        _ = inner\n    }}\n    _ = run\n}}\n"
+    );
+    assert_eq!(inferred_type(&source, "hidden"), None);
+    assert_eq!(inferred_type(&source, "inner"), None);
+}
+
+#[test]
+fn shadowed_new_builtin_records_nothing() {
+    let source = format!(
+        "{SHADOWING}\nfunc Hidden(new func(any) *Other) {{\n    hidden := new(Config)\n}}\n\nfunc Plain() {{\n    plain := new(Config)\n}}\n"
+    );
+    assert_eq!(inferred_type(&source, "hidden"), None);
+    assert_eq!(inferred_type(&source, "plain"), typed("Config", ""));
 }

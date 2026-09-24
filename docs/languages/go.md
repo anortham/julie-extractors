@@ -131,10 +131,21 @@ an enclosing test symbol remain unclassified.
   `func (s *Server) ...`), or to a same-file method on a same-file composite
   literal (`(&Parser{}).parse()`). Multi-value calls record per result
   position (`store, err := s.Load()` types `store` only). Same-named
-  candidates must agree. Predeclared, unnamed, and type-parameter results, a
-  receiver name that the method body declares again, a method call on any
-  other value or on a call result, and a callee in another file record no
-  fact. Other files are out of scope because each file is extracted alone.
+  candidates must agree. A result whose type arguments name a type parameter
+  (`*Stack[T]`, `Box[[]T]`) records only its base name (`Stack`, `Box`) with
+  no declared text, because the call site binds `T` (`(&Stack[int]{}).Clone()`
+  is a `*Stack[int]`). These record no fact:
+  - a predeclared or unnamed result, or a result that is a type parameter
+    (`T`, `*T`);
+  - a receiver name that the method body declares again, as a variable,
+    parameter, or local type (`type s = Other`);
+  - a function name (including the `new` builtin) or composite literal type
+    name that the enclosing top-level declaration declares again (a local
+    `load := func() ...`, a `load` parameter, or a local
+    `type Server struct{...}`);
+  - a method expression (`Server.config(s)`, `(*Server).Load(srv)`), a method
+    call on any other value or on a call result, and a callee in another
+    file. Other files are out of scope because each file is extracted alone.
 - `for k, v := range x` and `switch v := x.(type)` bindings are local
   variables. A range binding over a typed parameter or local records the key or
   element type as an inferred fact.

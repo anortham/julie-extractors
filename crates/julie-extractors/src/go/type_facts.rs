@@ -3,7 +3,7 @@
 use super::helpers::receiver_base_type_node;
 use crate::base::BaseExtractor;
 use crate::base::types::TypeNameRules;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
 
 const TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
@@ -90,19 +90,24 @@ pub(super) fn record_inferred_value_type(
     let Some(function) = function else {
         return;
     };
-    if result_index == 0
-        && function.kind() == "identifier"
-        && base.get_node_text(&function) == "new"
+    let callee_name = match function.kind() {
+        "identifier" => Some(function),
+        "generic_type" => function
+            .child_by_field_name("type")
+            .filter(|name| name.kind() == "type_identifier"),
+        _ => None,
+    }
+    .map(|name| base.get_node_text(&name))
+    .filter(|name| !result_types.binds_locally(value, name));
+    if result_index == 0 && function.kind() == "identifier" && callee_name.as_deref() == Some("new")
     {
         record_new_argument_type(base, symbol_id, value);
         return;
     }
     let candidates = match function.kind() {
-        "identifier" => result_types.functions.get(&base.get_node_text(&function)),
-        "generic_type" => function
-            .child_by_field_name("type")
-            .filter(|name| name.kind() == "type_identifier")
-            .and_then(|name| result_types.functions.get(&base.get_node_text(&name))),
+        "identifier" | "generic_type" => {
+            callee_name.and_then(|name| result_types.functions.get(&name))
+        }
         "selector_expression" => method_owner(base, function, result_types).and_then(|owner| {
             let method = base.get_node_text(&function.child_by_field_name("field")?);
             result_types.methods.get(&(owner, method))
@@ -124,10 +129,16 @@ pub(super) struct ResultTypeIndex {
     /// Receiver name and receiver base type name by method node id, kept only
     /// for methods whose body never declares another binding with that name.
     receivers: HashMap<usize, (String, String)>,
+    /// Names each top-level declaration binds inside itself (parameters,
+    /// results, locals, local types), by declaration node id. A call to one
+    /// of these names may not reach the package-level declaration.
+    local_names: HashMap<usize, HashSet<String>>,
 }
 
 /// The bindable type at each result position; `None` where the result is
-/// unnamed, predeclared, or a type parameter.
+/// unnamed, predeclared, or a type parameter. A result whose type arguments
+/// name a type parameter (`*Stack[T]`) keeps only its base name (`Stack`),
+/// because the call site binds `T` to a type this index does not know.
 type Results = Vec<Option<ResultType>>;
 
 #[derive(Debug)]
@@ -140,6 +151,9 @@ impl ResultTypeIndex {
     pub(super) fn build(base: &BaseExtractor, root: Node) -> Self {
         let mut index = Self::default();
         for declaration in root.named_children(&mut root.walk()) {
+            index
+                .local_names
+                .insert(declaration.id(), declared_names(base, declaration));
             match declaration.kind() {
                 "function_declaration" => {
                     let Some(name) = declaration.child_by_field_name("name") else {
@@ -157,6 +171,13 @@ impl ResultTypeIndex {
             }
         }
         index
+    }
+
+    /// Whether the top-level declaration holding `node` binds `name` itself.
+    fn binds_locally(&self, node: Node, name: &str) -> bool {
+        self.local_names
+            .get(&top_level_declaration(node).id())
+            .is_some_and(|names| names.contains(name))
     }
 
     fn add_method(&mut self, base: &BaseExtractor, method: Node) {
@@ -190,7 +211,7 @@ impl ResultTypeIndex {
         };
         let rebound = method
             .child_by_field_name("body")
-            .is_some_and(|body| declares_name(base, body, &receiver_name));
+            .is_some_and(|body| declared_names(base, body).contains(&receiver_name));
         if !rebound {
             self.receivers.insert(method.id(), (receiver_name, owner));
         }
@@ -215,16 +236,24 @@ fn bindable_result(
     if !names_declared_type(base, type_node) {
         return None;
     }
+    if !mentions_type_parameter(base, type_node, generics) {
+        return Some(ResultType {
+            declared: base.get_node_text(&type_node),
+            rules: binding_rules(type_node)?,
+        });
+    }
     let named = match type_node.kind() {
         "pointer_type" => type_node.named_child(0)?,
         _ => type_node,
     };
-    if named.kind() == "type_identifier" && generics.contains(&base.get_node_text(&named)) {
-        return None;
-    }
-    Some(ResultType {
-        declared: base.get_node_text(&type_node),
-        rules: binding_rules(type_node)?,
+    let name = match named.kind() {
+        "generic_type" => named.child_by_field_name("type")?,
+        _ => named,
+    };
+    let name = base.get_node_text(&name);
+    (!generics.contains(&name)).then_some(ResultType {
+        declared: name,
+        rules: &TYPE_NAME_RULES,
     })
 }
 
@@ -278,14 +307,11 @@ fn receiver_type_parameter_names(base: &BaseExtractor, receiver_type: Node) -> V
         .collect()
 }
 
-/// Whether anything under `body` declares a binding named `name`.
-fn declares_name(base: &BaseExtractor, body: Node, name: &str) -> bool {
-    let mut stack = vec![body];
+/// Whether `T` in `T`, `*Stack[T]`, or `Box[[]T]` is one of `generics`.
+fn mentions_type_parameter(base: &BaseExtractor, type_node: Node, generics: &[String]) -> bool {
+    let mut stack = vec![type_node];
     while let Some(node) = stack.pop() {
-        if node.kind() == "identifier"
-            && is_declared_name(node)
-            && base.get_node_text(&node) == name
-        {
+        if node.kind() == "type_identifier" && generics.contains(&base.get_node_text(&node)) {
             return true;
         }
         stack.extend(node.named_children(&mut node.walk()));
@@ -293,10 +319,31 @@ fn declares_name(base: &BaseExtractor, body: Node, name: &str) -> bool {
     false
 }
 
-fn is_declared_name(identifier: Node) -> bool {
-    let Some(parent) = identifier.parent() else {
+/// The names of every binding declared under `node`.
+fn declared_names(base: &BaseExtractor, node: Node) -> HashSet<String> {
+    let mut names = HashSet::new();
+    let mut stack = vec![node];
+    while let Some(node) = stack.pop() {
+        if is_declared_name(node) {
+            names.insert(base.get_node_text(&node));
+        }
+        stack.extend(node.named_children(&mut node.walk()));
+    }
+    names
+}
+
+fn is_declared_name(name: Node) -> bool {
+    let Some(parent) = name.parent() else {
         return false;
     };
+    match name.kind() {
+        "identifier" => {}
+        "type_identifier" => {
+            return matches!(parent.kind(), "type_spec" | "type_alias")
+                && parent.child_by_field_name("name") == Some(name);
+        }
+        _ => return false,
+    }
     match parent.kind() {
         "var_spec" | "const_spec" | "parameter_declaration" | "variadic_parameter_declaration" => {
             true
@@ -331,7 +378,8 @@ fn method_owner(
             "generic_type" => literal_type.child_by_field_name("type")?,
             _ => literal_type,
         };
-        return (name.kind() == "type_identifier").then(|| base.get_node_text(&name));
+        let name = (name.kind() == "type_identifier").then(|| base.get_node_text(&name))?;
+        return (!result_types.binds_locally(selector, &name)).then_some(name);
     }
     if operand.kind() != "identifier" {
         return None;
@@ -481,6 +529,16 @@ fn same_file_type_declaration(node: Node, name: &str, base: &BaseExtractor) -> b
                         .is_some_and(|spec_name| base.get_node_text(&spec_name) == name)
                 })
         })
+}
+
+fn top_level_declaration(mut node: Node) -> Node {
+    while let Some(parent) = node.parent() {
+        if parent.parent().is_none() {
+            break;
+        }
+        node = parent;
+    }
+    node
 }
 
 fn file_root(mut node: Node) -> Node {
