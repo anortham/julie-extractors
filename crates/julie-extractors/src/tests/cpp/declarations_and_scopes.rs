@@ -90,6 +90,8 @@ void run(Widget* other) {
     Widget& alias = *other;
     auto* p = new Widget();
     auto [key, value] = pair();
+    const auto& [first, second] = pair();
+    auto&& [left, right] = pair();
 }
 class Holder {
     Repo& repo_;
@@ -112,6 +114,10 @@ class Holder {
         "p",
         "key",
         "value",
+        "first",
+        "second",
+        "left",
+        "right",
     ] {
         let symbol = only(&result, name);
         assert!(
@@ -121,7 +127,9 @@ class Holder {
         );
     }
     assert_eq!(rows(&result, "other").len(), 1, "only the parameter");
-    for name in ["target", "alias", "p", "key", "value"] {
+    for name in [
+        "target", "alias", "p", "key", "value", "first", "second", "left", "right",
+    ] {
         assert_eq!(
             parent_name(&result, only(&result, name)).as_deref(),
             Some("run"),

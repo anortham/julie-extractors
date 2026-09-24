@@ -1,13 +1,17 @@
 //! Declared-type fact recording for C++.
 
+use super::declarators::structured_binding;
 use super::helpers::is_template_parameter_name;
 use super::identifiers::{
     enclosing_class_name, enclosing_type_name, scope_segment_name, this_receiver_type,
 };
+use super::name_bindings::{
+    binds_locally, declaration_names, enclosing_namespaces, namespace_path,
+};
 use crate::base::BaseExtractor;
 use crate::base::types::TypeNameRules;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
 
 pub(super) const TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
@@ -29,6 +33,9 @@ pub(super) fn record_variable_fact(
     let Some(type_node) = declaration.child_by_field_name("type") else {
         return;
     };
+    if structured_binding(declarator).is_some() {
+        return;
+    }
     if is_auto_type(type_node) {
         let value = match declarator.kind() {
             "init_declarator" => declarator.child_by_field_name("value"),
@@ -354,13 +361,15 @@ struct TypeShape {
 }
 
 /// Declared return types of the file's callables by name, for `auto`
-/// inference. Friend declarations are left out: they are not members.
+/// inference, with the names each class and namespace declares so that a
+/// call hidden by a non-function name records nothing. Friend declarations
+/// are left out: they are not members.
 #[derive(Debug, Default)]
 pub(super) struct ReturnTypeIndex {
     entries: HashMap<String, Vec<ReturnEntry>>,
-    /// Same-file class names mapped to whether unqualified lookup from their
-    /// members stops at the class: every definition is top-level with no base.
-    closed_classes: HashMap<String, bool>,
+    classes: HashMap<String, ClassScope>,
+    /// Names declared at namespace scope that are not functions, by namespace path.
+    namespace_names: HashMap<String, HashSet<String>>,
 }
 
 #[derive(Debug)]
@@ -368,8 +377,21 @@ struct ReturnEntry {
     /// The enclosing or qualifying class (or namespace, for an out-of-line
     /// `ns::f`); `None` for a free function.
     owner: Option<String>,
+    /// The namespace path that declares a free function.
+    namespace: String,
     /// `None` when the return type is absent, deduced, or a template parameter.
     shape: Option<TypeShape>,
+}
+
+/// Every same-file definition of one class name, merged.
+#[derive(Debug)]
+struct ClassScope {
+    /// Whether unqualified lookup from its members stops at the class and its
+    /// namespaces: every definition is top-level with no base.
+    closed: bool,
+    namespaces: HashSet<String>,
+    /// Every name the class body declares, functions included.
+    members: HashSet<String>,
 }
 
 impl ReturnTypeIndex {
@@ -383,38 +405,105 @@ impl ReturnTypeIndex {
                         index.entries.entry(name).or_default().push(entry);
                     }
                 }
-                "class_specifier" | "struct_specifier" => {
-                    if let Some((name, closed)) = class_closure(base, node) {
-                        *index.closed_classes.entry(name).or_insert(true) &= closed;
-                    }
-                }
+                "class_specifier" | "struct_specifier" => index.add_class(base, node),
                 _ => {}
+            }
+            if node.parent().is_some_and(|parent| {
+                matches!(parent.kind(), "translation_unit" | "declaration_list")
+            }) {
+                let mut names = Vec::new();
+                declaration_names(base, node, false, &mut names);
+                if !names.is_empty() {
+                    index
+                        .namespace_names
+                        .entry(namespace_path(base, node))
+                        .or_default()
+                        .extend(names);
+                }
             }
             stack.extend(node.named_children(&mut node.walk()));
         }
         index
     }
 
-    /// The base type every same-named callable with this owner agrees on,
-    /// with the written text when that agrees too.
-    fn lookup(&self, name: &str, owner: Option<&str>) -> Option<TypeShape> {
-        let mut shapes = self
+    fn add_class(&mut self, base: &BaseExtractor, class: Node) {
+        let Some(body) = class.child_by_field_name("body") else {
+            return;
+        };
+        let Some(name) = class
+            .child_by_field_name("name")
+            .filter(|name| name.kind() == "type_identifier")
+        else {
+            return;
+        };
+        let has_base = class
+            .children(&mut class.walk())
+            .any(|child| child.kind() == "base_class_clause");
+        let mut members = Vec::new();
+        let mut cursor = body.walk();
+        for member in body.named_children(&mut cursor) {
+            declaration_names(base, member, true, &mut members);
+        }
+        let scope = self
+            .classes
+            .entry(base.get_node_text(&name))
+            .or_insert_with(|| ClassScope {
+                closed: true,
+                namespaces: HashSet::new(),
+                members: HashSet::new(),
+            });
+        scope.closed &= !has_base && !inside_class_body(class);
+        scope.namespaces.insert(namespace_path(base, class));
+        scope.members.extend(members);
+    }
+
+    /// The base type every same-named member of `owner` agrees on.
+    fn lookup(&self, name: &str, owner: &str) -> Option<TypeShape> {
+        agreed_shape(
+            self.entries
+                .get(name)?
+                .iter()
+                .filter(|entry| entry.owner.as_deref() == Some(owner)),
+        )
+    }
+
+    /// The free function an unqualified call in `namespace` reaches: the
+    /// innermost enclosing namespace that declares the name decides. A
+    /// same-file candidate in any other namespace (reachable by a
+    /// using-directive or argument-dependent lookup), or a non-function name
+    /// in the deciding namespace, records nothing.
+    fn free_lookup(&self, name: &str, namespace: &str) -> Option<TypeShape> {
+        let free: Vec<&ReturnEntry> = self
             .entries
             .get(name)?
             .iter()
-            .filter(|entry| entry.owner.as_deref() == owner)
-            .map(|entry| entry.shape.as_ref());
-        let mut agreed = shapes.next()??.clone();
-        for shape in shapes {
-            let shape = shape?;
-            if shape.name != agreed.name {
+            .filter(|entry| entry.owner.is_none())
+            .collect();
+        let chain = enclosing_namespaces(namespace);
+        if free
+            .iter()
+            .any(|entry| !chain.contains(&entry.namespace.as_str()))
+        {
+            return None;
+        }
+        for scope in chain {
+            if self
+                .namespace_names
+                .get(scope)
+                .is_some_and(|names| names.contains(name))
+            {
                 return None;
             }
-            if shape.declared != agreed.declared {
-                agreed.declared = agreed.name.clone();
+            let mut here = free
+                .iter()
+                .copied()
+                .filter(|entry| entry.namespace == scope)
+                .peekable();
+            if here.peek().is_some() {
+                return agreed_shape(here);
             }
         }
-        Some(agreed)
+        None
     }
 
     fn declares(&self, name: &str, owner: &str) -> bool {
@@ -425,25 +514,32 @@ impl ReturnTypeIndex {
         })
     }
 
-    fn is_closed_class(&self, class: &str) -> bool {
-        self.closed_classes.get(class).copied().unwrap_or(false)
+    /// The namespace an unqualified call inside a member of `class` falls
+    /// back to when the class declares nothing named `name`: only for a
+    /// closed class defined in one namespace.
+    fn fallback_namespace(&self, class: &str, name: &str) -> Option<&str> {
+        let scope = self.classes.get(class)?;
+        if !scope.closed || scope.members.contains(name) || scope.namespaces.len() != 1 {
+            return None;
+        }
+        scope.namespaces.iter().next().map(String::as_str)
     }
 }
 
-/// A class definition's name and whether it has no base and no enclosing class.
-fn class_closure(base: &BaseExtractor, class: Node) -> Option<(String, bool)> {
-    class.child_by_field_name("body")?;
-    let name = class.child_by_field_name("name")?;
-    if name.kind() != "type_identifier" {
-        return None;
+/// The base type every entry agrees on, with the written text when that
+/// agrees too.
+fn agreed_shape<'a>(mut entries: impl Iterator<Item = &'a ReturnEntry>) -> Option<TypeShape> {
+    let mut agreed = entries.next()?.shape.clone()?;
+    for entry in entries {
+        let shape = entry.shape.as_ref()?;
+        if shape.name != agreed.name {
+            return None;
+        }
+        if shape.declared != agreed.declared {
+            agreed.declared = agreed.name.clone();
+        }
     }
-    let has_base = class
-        .children(&mut class.walk())
-        .any(|child| child.kind() == "base_class_clause");
-    Some((
-        base.get_node_text(&name),
-        !has_base && !inside_class_body(class),
-    ))
+    Some(agreed)
 }
 
 fn inside_class_body(node: Node) -> bool {
@@ -481,7 +577,15 @@ fn return_entry(base: &BaseExtractor, function_declarator: Node) -> Option<(Stri
     let shape = stated_return_type(base, function_declarator)
         .filter(|(type_node, _)| !names_template_parameter(base, *type_node))
         .map(|(_, shape)| shape);
-    Some((name, ReturnEntry { owner, shape }))
+    let namespace = namespace_path(base, function_declarator);
+    Some((
+        name,
+        ReturnEntry {
+            owner,
+            namespace,
+            shape,
+        },
+    ))
 }
 
 /// A callable's plain name and, when written qualified, the scope segment
@@ -542,14 +646,17 @@ fn initializer_type(
             let (name, scope) = callable_name(base, function)?;
             match scope {
                 Some(scope) if is_template_parameter_name(base, &scope) => None,
-                Some(scope) => return_types.lookup(&name, Some(&scope_segment_name(base, scope)?)),
+                Some(scope) => return_types.lookup(&name, &scope_segment_name(base, scope)?),
+                None if binds_locally(base, value, &name) => None,
                 None => match enclosing_class_name(base, value) {
                     Some(class) if return_types.declares(&name, &class) => {
-                        return_types.lookup(&name, Some(&class))
+                        return_types.lookup(&name, &class)
                     }
-                    Some(class) if !return_types.is_closed_class(&class) => None,
+                    Some(class) => return_types
+                        .fallback_namespace(&class, &name)
+                        .and_then(|namespace| return_types.free_lookup(&name, namespace)),
                     None if inside_class_body(value) => None,
-                    _ => return_types.lookup(&name, None),
+                    None => return_types.free_lookup(&name, &namespace_path(base, value)),
                 },
             }
         }
@@ -559,7 +666,7 @@ fn initializer_type(
             if field.kind() != "field_identifier" {
                 return None;
             }
-            return_types.lookup(&base.get_node_text(&field), Some(&class))
+            return_types.lookup(&base.get_node_text(&field), &class)
         }
         _ => None,
     }

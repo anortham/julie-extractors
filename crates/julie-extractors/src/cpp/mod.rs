@@ -16,6 +16,7 @@ mod function_signature_parts;
 mod functions;
 mod helpers;
 mod identifiers;
+mod name_bindings;
 mod parameters;
 pub(crate) mod qt;
 pub(crate) mod qt_macros;

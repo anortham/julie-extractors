@@ -459,3 +459,165 @@ void run() {
     );
     assert_eq!(inferred_type(source, "x"), None);
 }
+
+const FOO_BAR_LOAD: &str = "struct Foo {};\nstruct Bar {};\nFoo load();\nFoo make();";
+
+#[test]
+fn class_member_that_is_not_a_function_hides_the_free_function() {
+    for member in [
+        "std::function<Bar()> load;",
+        "Bar (*load)();",
+        "using load = Bar;",
+        "typedef Bar load;",
+        "enum Kind { load };",
+        "static constexpr auto load = [] { return Bar{}; };",
+    ] {
+        let source = format!(
+            "{FOO_BAR_LOAD}\nstruct Service {{\n    {member}\n    void run() {{\n        auto w = load();\n    }}\n    void later();\n}};\nvoid Service::later() {{\n    auto v = load();\n}}\n"
+        );
+        assert_eq!(inferred_type(&source, "w"), None, "{member}");
+        assert_eq!(inferred_type(&source, "v"), None, "{member}");
+    }
+}
+
+#[test]
+fn local_or_parameter_with_the_callee_name_records_no_fact() {
+    for function in [
+        "void f() { auto load = [] { return Bar{}; }; auto x = load(); }",
+        "void f(Bar (*load)()) { auto x = load(); }",
+        "void f(std::function<Bar()> load) { auto x = load(); }",
+        "template <class F> void each(F load) { auto x = load(); }",
+        "auto g = [](auto load) { auto x = load(); return 0; };",
+        "void f() { auto h = [load = [] { return Bar{}; }] { auto x = load(); return 0; }; }",
+        "void f() { if (auto load = pick(); true) { auto x = load(); } }",
+        "void f() { for (auto& load : loaders) { auto x = load(); } }",
+        "void f() { try {} catch (Bar (*load)()) { auto x = load(); } }",
+        "void f() { using load = Bar; auto x = load(); }",
+        "void f() { Bar load(); auto x = load(); }",
+    ] {
+        let source = format!("{FOO_BAR_LOAD}\n{function}\n");
+        assert_eq!(inferred_type(&source, "x"), None, "{function}");
+    }
+}
+
+#[test]
+fn local_with_the_callee_name_in_an_out_of_line_method_records_no_fact() {
+    let source = format!(
+        "{FOO_BAR_LOAD}\nstruct Plain {{\n    void run();\n}};\nvoid Plain::run() {{\n    auto make = [] {{ return Bar{{}}; }};\n    auto x = make();\n    auto y = load();\n}}\n"
+    );
+    assert_eq!(inferred_type(&source, "x"), None);
+    assert_eq!(inferred_type(&source, "y"), inferred("Foo"));
+}
+
+#[test]
+fn a_local_in_another_function_does_not_hide_the_callee() {
+    let source = format!(
+        "{FOO_BAR_LOAD}\nvoid other(int load) {{}}\nvoid f() {{\n    {{ auto load = 1; }}\n    auto x = load();\n}}\n"
+    );
+    assert_eq!(inferred_type(&source, "x"), inferred("Foo"));
+}
+
+#[test]
+fn free_function_in_a_namespace_that_does_not_enclose_the_call_records_no_fact() {
+    for source in [
+        "#include \"other.h\"\nstruct Foo {};\nnamespace detail { Foo helper(); }\nvoid use() { auto x = helper(); }\n",
+        "struct Foo {};\nnamespace n1 { Foo helper(); }\nnamespace n2 { void f() { auto x = helper(); } }\n",
+        "struct Foo {};\nstruct Bar {};\nFoo helper();\nnamespace n1 { struct S {}; Bar helper(S); }\nvoid f() { auto x = helper(n1::S{}); }\n",
+    ] {
+        assert_eq!(inferred_type(source, "x"), None, "{source}");
+    }
+}
+
+#[test]
+fn free_function_in_an_enclosing_namespace_records_its_return_type() {
+    let source = r#"
+struct Foo {};
+struct Bar {};
+Bar helper();
+namespace a {
+Foo load();
+namespace b {
+void f() {
+    auto x = load();
+}
+}
+namespace {
+Foo tool();
+}
+inline namespace v1 {
+Foo util();
+}
+void g() {
+    auto y = tool();
+    auto z = util();
+}
+}
+"#;
+    assert_eq!(inferred_type(source, "x"), inferred("Foo"));
+    assert_eq!(inferred_type(source, "y"), inferred("Foo"));
+    assert_eq!(inferred_type(source, "z"), inferred("Foo"));
+}
+
+#[test]
+fn inner_namespace_name_hides_an_outer_free_function() {
+    for inner in [
+        "std::function<Bar()> load;",
+        "Bar load();",
+        "using other::load;",
+    ] {
+        let source = format!(
+            "struct Foo {{}};\nstruct Bar {{}};\nFoo load();\nnamespace n {{\n{inner}\nvoid f() {{ auto x = load(); }}\n}}\n"
+        );
+        let expected = (inner == "Bar load();").then(|| ("Bar".to_string(), true));
+        assert_eq!(inferred_type(&source, "x"), expected, "{inner}");
+    }
+}
+
+#[test]
+fn method_of_a_namespaced_class_uses_the_class_namespace() {
+    let source = r#"
+struct Foo {};
+struct Bar {};
+Bar load();
+namespace ns {
+Foo load();
+struct Widget {
+    void run();
+};
+}
+void ns::Widget::run() {
+    auto x = load();
+}
+"#;
+    assert_eq!(inferred_type(source, "x"), inferred("Foo"));
+}
+
+#[test]
+fn single_name_structured_binding_records_no_fact() {
+    let source = in_run(
+        "struct Bar {};\nstruct One { Bar b; };\nOne one();",
+        "auto [x] = one();\n    auto [y] = One();\n    const auto& [z] = one();",
+    );
+    for local in ["x", "y", "z"] {
+        assert_eq!(inferred_type(&source, local), None, "{local}");
+    }
+}
+
+#[test]
+fn function_misparsed_into_a_block_by_a_namespace_macro_is_not_a_local() {
+    let source = r#"
+MACRO_NAMESPACE_BEGIN
+namespace detail
+{
+inline std::size_t combine(std::size_t seed, std::size_t h) noexcept { return seed ^ h; }
+template<typename T>
+std::size_t hash(const T& j)
+{
+    auto total = combine(1, 2);
+    return total;
+}
+}
+MACRO_NAMESPACE_END
+"#;
+    assert_eq!(inferred_type(source, "total"), inferred("std::size_t"));
+}

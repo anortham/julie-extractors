@@ -238,10 +238,20 @@ never parsed before, and they apply to every C++ file.
   `ns::Type::create()`). Same-named candidates must agree on the base type.
   `std::unique_ptr<Foo>` and `std::optional<Foo>` stay as written. A deduced
   or template-parameter return type records no fact. A friend declaration, a
-  call on any other receiver, or a chained call also records no fact. Inside a
+  call on any other receiver, or a chained call also records no fact. An
+  unqualified call records no fact when a parameter, lambda capture, or local
+  declaration of an enclosing function or block binds the same name. Inside a
   method, an unqualified call falls back to a free function only when the
-  class is defined in the file at top level with no base class. Plain `auto`
-  drops a reference from the declared text; `decltype(auto)` keeps it.
+  class is defined in the file at top level with no base class, in one
+  namespace, and declares no member of that name (a field, a function
+  pointer, a type alias, a nested type, or an enumerator). A free function
+  must be declared in the call's namespace or an enclosing one, and the
+  innermost such namespace that declares the name decides; a non-function
+  name there, or a same-file function of that name in any other namespace,
+  records no fact. Anonymous and inline namespaces count as their enclosing
+  namespace. A structured binding (`auto [x] = f();`) records no type fact;
+  each of its names, also in `const auto& [a, b]`, gets a variable row. Plain
+  `auto` drops a reference from the declared text; `decltype(auto)` keeps it.
   Callees in other files are out of scope because each file is extracted alone.
 - An unknown macro before a return type, such as
   `JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json diff(...)`, makes the
