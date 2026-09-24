@@ -17,7 +17,9 @@ use std::collections::HashMap;
 
 use tree_sitter::Node;
 
-use super::helpers::{NameArity, arg_count, find_child_by_type, first_atom_text, unquote_atom};
+use super::helpers::{
+    NameArity, arg_count, arguments, find_child_by_type, first_atom_text, unquote_atom,
+};
 use crate::base::{BaseExtractor, Symbol, SymbolKind};
 
 const ARITY_METADATA_KEY: &str = "arity";
@@ -160,11 +162,10 @@ fn spec_argument_types(
     declaration: &Node,
 ) -> Option<(NameArity, Vec<Option<String>>)> {
     let name = first_atom_text(base, declaration)?;
-    let arguments = find_child_by_type(declaration, "type_sig")?.child_by_field_name("args")?;
-    let mut cursor = arguments.walk();
-    let types: Vec<Option<String>> = arguments
-        .named_children(&mut cursor)
-        .map(|argument| base_type_name(base, &argument))
+    let args = find_child_by_type(declaration, "type_sig")?.child_by_field_name("args")?;
+    let types: Vec<Option<String>> = arguments(&args)
+        .iter()
+        .map(|argument| base_type_name(base, argument))
         .collect();
     Some(((name, types.len() as u32), types))
 }
@@ -179,7 +180,14 @@ fn spec_return(base: &BaseExtractor, declaration: &Node) -> Option<(NameArity, S
     let signatures: Vec<Node> = declaration
         .children_by_field_name("sigs", &mut cursor)
         .collect();
-    let arity = arg_count(&signatures.first()?.child_by_field_name("args")?);
+    let args = arguments(&signatures.first()?.child_by_field_name("args")?);
+    if args
+        .iter()
+        .any(|argument| argument.kind() == "macro_call_expr")
+    {
+        return None;
+    }
+    let arity = args.len() as u32;
     let returns = signatures
         .iter()
         .map(|signature| signature.child_by_field_name("ty"))
@@ -191,11 +199,12 @@ fn spec_return(base: &BaseExtractor, declaration: &Node) -> Option<(NameArity, S
     Some(((name, arity), returned))
 }
 
-/// The first type when every item names the same base type.
+/// The first type when every item declares the same type. The same base
+/// name is not enough: `#state{}` and `state()` both name `state`.
 fn agreed(mut types: impl Iterator<Item = Option<DeclaredType>>) -> Option<DeclaredType> {
     let first = types.next()??;
     types
-        .all(|other| other.is_some_and(|other| other.name == first.name))
+        .all(|other| other.as_ref() == Some(&first))
         .then_some(first)
 }
 
@@ -248,7 +257,7 @@ fn ok_payload(base: &BaseExtractor, returns: Vec<Node>) -> Option<DeclaredType> 
                     [tag, value] if is_ok_atom(base, tag) => {
                         let found = value_type(base, *value)?;
                         match &payload {
-                            Some(agreed) if agreed.name != found.name => return None,
+                            Some(agreed) if *agreed != found => return None,
                             Some(_) => {}
                             None => payload = Some(found),
                         }

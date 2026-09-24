@@ -20,7 +20,8 @@
     `-record` in the same file.
   - a call to a function defined in the same file with a `-spec` of the same
     arity: `load()`, `?MODULE:load()`, or `this_module:load()`. Every spec
-    clause must return the same base type. The fact is that type.
+    clause must declare the same type. The fact is its base type. Comments
+    inside the parentheses do not count as arguments.
   - one of these values in parentheses (`(load())`) or as the last
     expression of `begin .. end`.
 - `X = Y = load()` gives both variables the type.
@@ -52,7 +53,14 @@
     a type, so it must not join to a user type named `ok()`.
   - a spec that returns `no_return()` or `none()`. The call never returns a
     value.
-  - spec clauses or duplicate specs that disagree on the return type.
+  - spec clauses or duplicate specs that disagree on the return type. The
+    same base name is not enough: `#state{}` and `state()`, or
+    `list(integer())` and `list(atom())`, disagree.
+  - a call or a `-spec` with a macro argument (`load(?ARGS)`). A macro can
+    expand to several arguments, so the arity is unknown.
+  - a function with clauses on both sides of a preprocessor conditional
+    (`-ifdef`, `-ifndef`, `-if`, `-elif`, `-else`, `-endif`). Which
+    definition a build compiles is unknown.
   - for `{ok, X} = load()`: two different `{ok, T}` payloads, a payload that
     is not a named type (`{ok, [t()]}`, `{ok, done}`, `{ok, T}`), a named type
     or type variable among the alternatives, and a return through an alias

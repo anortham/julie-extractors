@@ -982,3 +982,172 @@ wrap(y) -> {ok, #state{} = W} = other:get(), W.
     assert_eq!(inferred_type(&extractor, &symbols, "S"), "state");
     assert_eq!(inferred_type(&extractor, &symbols, "W"), "state");
 }
+
+#[test]
+fn comments_inside_call_arguments_do_not_change_the_arity() {
+    let source = r#"
+-module(bank).
+-record(a, {x}).
+-record(b, {x}).
+
+-spec load(term()) -> #a{}.
+load(_) -> #a{}.
+
+-spec load(term(), term()) -> #b{}.
+load(_, _) -> #b{}.
+
+run() ->
+    C1 = load(1 %% note
+    ),
+    C2 = load(1, %% note
+              2),
+    {C1, C2}.
+"#;
+    let (symbols, extractor) = extract(source);
+    assert_eq!(inferred_type(&extractor, &symbols, "C1"), "a");
+    assert_eq!(inferred_type(&extractor, &symbols, "C2"), "b");
+}
+
+#[test]
+fn comments_inside_spec_arguments_do_not_change_the_arity() {
+    let source = r#"
+-module(bank).
+-record(a, {x}).
+-record(b, {x}).
+
+-spec get(Key :: atom() %% the lookup key
+    ) -> #a{}.
+get(_) -> #a{}.
+
+get(_, _) -> #b{}.
+
+run() ->
+    D1 = get(k, v),
+    D2 = get(k),
+    {D1, D2}.
+"#;
+    let (symbols, extractor) = extract(source);
+    no_fact(&extractor, &symbols, "D1", SymbolKind::Variable);
+    assert_eq!(inferred_type(&extractor, &symbols, "D2"), "a");
+}
+
+#[test]
+fn comments_inside_definition_arguments_do_not_change_the_arity() {
+    let source = r#"
+-module(bank).
+
+load(_ %% only one
+    ) -> ok.
+"#;
+    let (symbols, _) = extract(source);
+    let load = symbol(&symbols, "load", SymbolKind::Function);
+    assert_eq!(
+        load.metadata.as_ref().and_then(|m| m.get("arity")),
+        Some(&serde_json::json!(1))
+    );
+}
+
+#[test]
+fn spec_clauses_with_the_same_base_name_but_other_declared_types_record_nothing() {
+    let source = r#"
+-module(bank).
+-record(state, {x}).
+-type state() :: #{atom() => term()}.
+
+-spec pick(a) -> #state{}; (b) -> state().
+pick(a) -> #state{};
+pick(b) -> #{}.
+
+-spec open(a) -> {ok, #state{}} | error; (b) -> {ok, state()} | error.
+open(a) -> {ok, #state{}};
+open(b) -> {ok, #{}}.
+
+-spec li(a) -> list(integer()); (b) -> list(atom()).
+li(a) -> [1];
+li(b) -> [b].
+
+-spec same(a) -> state(); (b) -> state().
+same(_) -> #{}.
+
+run() ->
+    G1 = pick(b),
+    {ok, G2} = open(a),
+    L = li(a),
+    S = same(a),
+    {G1, G2, L, S}.
+"#;
+    let (symbols, extractor) = extract(source);
+    no_fact(&extractor, &symbols, "G1", SymbolKind::Variable);
+    no_fact(&extractor, &symbols, "G2", SymbolKind::Variable);
+    no_fact(&extractor, &symbols, "L", SymbolKind::Variable);
+    assert_eq!(inferred_type(&extractor, &symbols, "S"), "state");
+}
+
+#[test]
+fn definitions_split_by_a_preprocessor_conditional_record_nothing() {
+    let source = r#"
+-module(bank).
+-record(a, {x}).
+-record(b, {x}).
+
+-ifdef(TEST).
+-spec load() -> #a{}.
+load() -> #a{}.
+-else.
+load() -> #b{}.
+-endif.
+
+-if(?OTP_RELEASE >= 27).
+-spec open() -> #a{}.
+open() -> #a{}.
+-elif(?OTP_RELEASE >= 26).
+-spec open() -> #a{}.
+open() -> #a{}.
+-endif.
+
+-ifdef(TEST).
+-spec only() -> #a{}.
+only() -> #a{}.
+-endif.
+
+run() ->
+    E1 = load(),
+    E2 = open(),
+    E3 = only(),
+    {E1, E2, E3}.
+"#;
+    let (symbols, extractor) = extract(source);
+    no_fact(&extractor, &symbols, "E1", SymbolKind::Variable);
+    no_fact(&extractor, &symbols, "E2", SymbolKind::Variable);
+    assert_eq!(inferred_type(&extractor, &symbols, "E3"), "a");
+}
+
+#[test]
+fn macro_arguments_hide_the_arity_and_record_nothing() {
+    let source = r#"
+-module(bank).
+-define(TWO, 1, 2).
+-define(ONE, 1).
+-record(a, {x}).
+-record(b, {x}).
+
+-spec load(term()) -> #a{}.
+load(_) -> #a{}.
+
+-spec load(term(), term()) -> #b{}.
+load(_, _) -> #b{}.
+
+-spec open(?ONE) -> #a{}.
+open(_) -> #a{}.
+
+run() ->
+    C2 = load(?TWO),
+    C1 = load(1),
+    O = open(1),
+    {C1, C2, O}.
+"#;
+    let (symbols, extractor) = extract(source);
+    no_fact(&extractor, &symbols, "C2", SymbolKind::Variable);
+    no_fact(&extractor, &symbols, "O", SymbolKind::Variable);
+    assert_eq!(inferred_type(&extractor, &symbols, "C1"), "a");
+}

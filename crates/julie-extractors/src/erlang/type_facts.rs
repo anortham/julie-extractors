@@ -13,16 +13,18 @@
 //! every match gives it the same type, and no other pattern in the function
 //! (a match of another shape, a `case`, `receive`, `try`, or `catch` clause, a
 //! generator, or a fun head) binds it, unless a record match inside that
-//! pattern types it. Calls to other modules, funs, macros,
-//! `catch`, atom literals, `no_return()`, and type-variable, union, tuple,
-//! `[t()]`, or `#{..}` returns record nothing.
+//! pattern types it. Calls to other modules, funs, macros, calls or specs
+//! with a macro argument (it can expand to several arguments), functions
+//! defined on both sides of a preprocessor conditional, spec clauses that
+//! declare different types, `catch`, atom literals, `no_return()`, and
+//! type-variable, union, tuple, `[t()]`, or `#{..}` returns record nothing.
 
 use std::collections::{HashMap, HashSet};
 
 use tree_sitter::Node;
 
 use super::ErlangExtractor;
-use super::helpers::{NameArity, arg_count, first_atom_text, named_children, unquote_atom};
+use super::helpers::{NameArity, arguments, first_atom_text, named_children, unquote_atom};
 use super::types::{DeclaredType, DeclaredTypes, SpecReturn, is_ok_atom};
 use crate::base::types::TypeNameRules;
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
@@ -151,9 +153,13 @@ impl InitializerScope {
         let callee = call
             .child_by_field_name("expr")
             .filter(|callee| callee.kind() == "atom")?;
+        let args = arguments(&call.child_by_field_name("args")?);
+        if args.iter().any(|arg| arg.kind() == "macro_call_expr") {
+            return None;
+        }
         let identity = (
             unquote_atom(&extractor.base.get_node_text(&callee)),
-            arg_count(&call.child_by_field_name("args")?),
+            args.len() as u32,
         );
         self.returns.get(&identity)
     }
