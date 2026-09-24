@@ -186,12 +186,20 @@ attributes on parameters at all, so those files also raise parse diagnostics
   initializer: `Type { .. }`, `Self { .. }`, or a call to a same-file function
   (`load()`), associated function (`Type::open()`, `Self::open()`), or impl
   method (`self.load()`) with a declared return type. Same-named candidates
-  must agree. `Type::new(..)` with no same-file `new` records `Type`.
-  `?`, `unwrap`, `expect`, `unwrap_or`, `unwrap_or_else`, and
-  `unwrap_or_default` remove one `Result`/`Option` layer; `map_err`, `ok_or`,
-  `ok_or_else`, `context`, and `with_context` keep it. A chain that ends in any
-  other method, a generic return type, or a callee in another file records no
-  fact. Other files are out of scope because each file is extracted alone.
+  must agree. `Type::new(..)` with no same-file `new` records `Type`, unless
+  `Type` is a type parameter in scope.
+  - `?`, `unwrap`, `expect`, `unwrap_or`, `unwrap_or_else`, and
+    `unwrap_or_default` remove one `Result`/`Option` layer. `map_err` keeps it.
+    `ok_or`, `ok_or_else`, `context`, and `with_context` turn it into `Result`.
+  - A call to an `async fn` records nothing until `.await` gives its output.
+  - A bare call `load()` records nothing when the name may bind to something
+    else: a parameter, local, closure parameter, or pattern anywhere in the
+    outermost enclosing function, or a `use`, `static`, or `const` of that
+    name anywhere in the file.
+  - A chain that ends in any other method, a generic return type, an
+    associated type of a type parameter or `Self` (`T::Item`, `Self::Item`,
+    `<T as Trait>::Item`), or a callee in another file records no fact. Other
+    files are out of scope because each file is extracted alone.
 - A macro invocation is a `call` identifier. A call to a same-file
   `macro_rules!` macro is a resolved `calls` edge; another macro is a pending
   call that keeps its path. Standard-library macros (`println!`, `vec!`,

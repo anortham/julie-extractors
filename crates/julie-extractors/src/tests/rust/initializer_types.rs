@@ -336,3 +336,185 @@ fn written_type_wins_over_initializer() {
         Some(("Project".to_string(), false))
     );
 }
+
+#[test]
+fn unawaited_async_call_records_no_fact_and_await_records_the_output() {
+    let source = r#"
+async fn load() -> Result<Workspace, Error> { todo!() }
+fn later() -> impl Future<Output = Workspace> { todo!() }
+fn maybe() -> Option<Workspace> { todo!() }
+async fn run() -> Result<(), Error> {
+    let not_future = maybe().await;
+    let pending = load();
+    let workspace = load().await?;
+    let raw = load().await;
+    let other = later().await;
+    Ok(())
+}
+"#;
+    assert_eq!(inferred_type(source, "pending"), None);
+    assert_eq!(
+        inferred_type(source, "workspace"),
+        Some(("Workspace".to_string(), true))
+    );
+    assert_eq!(
+        inferred_type(source, "raw"),
+        Some(("Result".to_string(), true))
+    );
+    assert_eq!(inferred_type(source, "other"), None);
+    assert_eq!(inferred_type(source, "not_future"), None);
+}
+
+#[test]
+fn async_self_method_needs_await() {
+    let source = r#"
+impl Server {
+    async fn handle(&self) -> Result<(), Error> {
+        let pending = self.workspace_for(path);
+        let workspace = self.workspace_for(path).await?;
+        Ok(())
+    }
+    async fn workspace_for(&self, path: &str) -> Result<Workspace, Error> { todo!() }
+}
+"#;
+    assert_eq!(inferred_type(source, "pending"), None);
+    assert_eq!(
+        inferred_type(source, "workspace"),
+        Some(("Workspace".to_string(), true))
+    );
+}
+
+#[test]
+fn a_binding_named_like_the_callee_blocks_the_function_type() {
+    let source = r#"
+fn load() -> Workspace { todo!() }
+fn with_param(load: fn() -> Project) {
+    let from_param = load();
+}
+fn with_local() {
+    let load = || Project;
+    let from_local = load();
+}
+fn with_closure_param() {
+    let f = |load: fn() -> Project| {
+        let from_closure = load();
+    };
+}
+fn with_pattern(pair: (fn() -> Project, u8)) {
+    let (load, _) = pair;
+    let from_pattern = load();
+}
+fn recursive() -> Workspace {
+    let from_function = load();
+    from_function
+}
+"#;
+    for local in ["from_param", "from_local", "from_closure", "from_pattern"] {
+        assert_eq!(inferred_type(source, local), None, "{local}");
+    }
+    assert_eq!(
+        inferred_type(source, "from_function"),
+        Some(("Workspace".to_string(), true))
+    );
+}
+
+#[test]
+fn an_import_or_static_named_like_the_callee_blocks_the_function_type() {
+    let imported = r#"
+fn load() -> Workspace { todo!() }
+mod inner {
+    use crate::other::load;
+    fn run() {
+        let workspace = load();
+    }
+}
+"#;
+    assert_eq!(inferred_type(imported, "workspace"), None);
+    let aliased = r#"
+fn load() -> Workspace { todo!() }
+mod inner {
+    use crate::other::fetch as load;
+    fn run() {
+        let workspace = load();
+    }
+}
+"#;
+    assert_eq!(inferred_type(aliased, "workspace"), None);
+    let static_value = r#"
+fn load() -> Workspace { todo!() }
+mod inner {
+    static load: fn() -> Project = make;
+    fn run() {
+        let workspace = load();
+    }
+}
+"#;
+    assert_eq!(inferred_type(static_value, "workspace"), None);
+}
+
+#[test]
+fn option_to_result_conversions_record_result() {
+    for chain in [
+        "find_root(input).ok_or(Error::Missing)",
+        "find_root(input).ok_or_else(|| Error::Missing)",
+        "find_root(input).context(\"root\")",
+        "resolve_root(input).with_context(|| \"root\")",
+        "resolve_root(input).map_err(wrap)",
+    ] {
+        assert_eq!(
+            workspace_type(&format!("let workspace = {chain};")),
+            Some(("Result".to_string(), true)),
+            "{chain}"
+        );
+    }
+}
+
+#[test]
+fn associated_types_of_generic_or_self_roots_record_no_fact() {
+    let source = r#"
+fn item<T: Provider>() -> T::Item { todo!() }
+fn maybe_item<T: Provider>() -> Option<T::Item> { todo!() }
+fn qualified() -> <Workspace as Provider>::Item { todo!() }
+fn module_path() -> model::Workspace { todo!() }
+impl Workspace {
+    fn own(&self) -> Self::Item { todo!() }
+    fn run(&self) {
+        let own_item = self.own();
+    }
+}
+fn run() {
+    let direct = item::<Registry>();
+    let wrapped = maybe_item::<Registry>().unwrap();
+    let qualified_item = qualified();
+    let workspace = module_path();
+}
+"#;
+    for local in ["direct", "wrapped", "qualified_item", "own_item"] {
+        assert_eq!(inferred_type(source, local), None, "{local}");
+    }
+    assert_eq!(
+        inferred_type(source, "workspace"),
+        Some(("Workspace".to_string(), true))
+    );
+}
+
+#[test]
+fn new_on_a_type_parameter_records_no_fact() {
+    let source = r#"
+fn build<T: Default>() {
+    let from_function = T::new();
+}
+impl<T> Holder<T> {
+    fn fill(&self) {
+        let from_impl = T::new();
+        let holder = Holder::new();
+    }
+}
+"#;
+    assert_eq!(inferred_type(source, "from_function"), None);
+    assert_eq!(inferred_type(source, "from_impl"), None);
+    assert_eq!(
+        inferred_type(source, "holder"),
+        Some(("Holder".to_string(), true))
+    );
+}
