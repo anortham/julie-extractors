@@ -211,9 +211,16 @@ impl ErlangExtractor {
         self.common_test_cases = self.common_test_cases(declarations);
         self.eunit_fixture_roles = test_fixtures::eunit_fixture_roles(self, declarations);
         self.declared_types = types::collect(&self.base, declarations);
-        let same_file_records = type_facts::same_file_record_names(&self.base, declarations);
-
         let clause_counts = self.clause_counts(declarations);
+        let conditionally_defined = self.conditionally_defined(declarations);
+        let mut unconditionally_defined = clause_counts.clone();
+        unconditionally_defined.retain(|identity, _| !conditionally_defined.contains(identity));
+        let initializer_scope = type_facts::InitializerScope::build(
+            &self.base,
+            declarations,
+            &self.declared_types,
+            &unconditionally_defined,
+        );
         let module_doc = self.module_doc(declarations);
 
         let mut symbols = Vec::new();
@@ -259,7 +266,7 @@ impl ErlangExtractor {
                                 clause_count,
                                 parent_id,
                                 &clauses,
-                                &same_file_records,
+                                &initializer_scope,
                             ));
                         }
                     }
@@ -559,6 +566,33 @@ impl ErlangExtractor {
             }
         }
         counts
+    }
+
+    /// Functions with clauses on both sides of a preprocessor conditional
+    /// directive. Which definition a build compiles, and so what a call
+    /// returns, is unknown here.
+    fn conditionally_defined(&self, declarations: &[Node]) -> HashSet<NameArity> {
+        let mut directives = 0usize;
+        let mut last_seen: HashMap<NameArity, usize> = HashMap::new();
+        let mut split = HashSet::new();
+        for declaration in declarations {
+            match declaration.kind() {
+                "pp_ifdef" | "pp_ifndef" | "pp_if" | "pp_elif" | "pp_else" | "pp_endif" => {
+                    directives += 1;
+                }
+                "fun_decl" => {
+                    if let Some(clause) = definition_forms::function_clause(self, declaration)
+                        && last_seen
+                            .insert(clause.identity.clone(), directives)
+                            .is_some_and(|seen| seen != directives)
+                    {
+                        split.insert(clause.identity);
+                    }
+                }
+                _ => {}
+            }
+        }
+        split
     }
 
     fn module_doc(&self, declarations: &[Node]) -> Option<String> {

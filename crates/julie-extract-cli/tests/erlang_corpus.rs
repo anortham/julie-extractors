@@ -50,9 +50,12 @@ use tempfile::TempDir;
 /// A comment between two clauses of one function no longer splits its clause run
 /// (3.4.0), so the `gc_1` clauses after `%% Handle control` in
 /// `unicode_util_compat.erl` add their parameters `CP` and `R1`: 206 rows became 208.
+///
+/// `{ok, X} = Value` binds `X` as a body local, so `certifi_pt.erl` adds `Binary`
+/// from `{ok, Binary} = file:read_file(cert_file())`: 14 rows became 15.
 const BASELINE: &[FileBaseline] = &[
     FileBaseline::new("certifi-2.15.0/src/certifi.erl", 5, 0),
-    FileBaseline::new("certifi-2.15.0/src/certifi_pt.erl", 14, 0),
+    FileBaseline::new("certifi-2.15.0/src/certifi_pt.erl", 15, 0),
     FileBaseline::new("telemetry-1.3.0/src/telemetry.erl", 52, 45),
     FileBaseline::new("telemetry-1.3.0/src/telemetry.hrl", 13, 2),
     FileBaseline::new("telemetry-1.3.0/src/telemetry_app.erl", 6, 0),

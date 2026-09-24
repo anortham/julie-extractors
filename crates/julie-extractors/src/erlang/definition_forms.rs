@@ -47,7 +47,7 @@ pub(super) fn extract_function(
     clause_count: usize,
     parent_id: Option<&str>,
     clauses: &[Node],
-    same_file_records: &HashSet<String>,
+    initializer_scope: &super::type_facts::InitializerScope,
 ) -> Vec<Symbol> {
     let (name, arity) = clause.identity.clone();
     let signature = format!("{}/{}{}", name, arity, clause.params);
@@ -113,7 +113,7 @@ pub(super) fn extract_function(
         extractor,
         clauses,
         &callable_id,
-        same_file_records,
+        initializer_scope,
         &mut seen,
     ));
     symbols
