@@ -20,9 +20,36 @@ pub(super) fn record_inferred_fact(base: &mut BaseExtractor, symbol_id: &str, cl
 
 /// The class of a variable initializer: a same-file constructor, or a call to a
 /// same-file S4 generic that declares one `valueClass`.
+/// Parentheses are unwrapped, and `lhs |> f(...)` reads as the call `f(lhs, ...)`
+/// that R's parser rewrites it to.
 pub(super) fn initializer_class(extractor: &RExtractor, right: Node) -> Option<String> {
-    same_file_constructor_class(extractor, right)
-        .or_else(|| generic_call_value_class(extractor, right))
+    let right = without_parentheses(right);
+    same_file_constructor_class(extractor, right).or_else(|| {
+        generic_call_value_class(
+            extractor,
+            native_pipe_call(extractor, right).unwrap_or(right),
+        )
+    })
+}
+
+fn without_parentheses(mut node: Node) -> Node {
+    while node.kind() == "parenthesized_expression"
+        && let Some(body) = node.child_by_field_name("body")
+    {
+        node = body;
+    }
+    node
+}
+
+fn native_pipe_call<'a>(extractor: &RExtractor, node: Node<'a>) -> Option<Node<'a>> {
+    if node.kind() != "binary_operator" {
+        return None;
+    }
+    let operator = node.child_by_field_name("operator")?;
+    if extractor.base.get_node_text(&operator) != "|>" {
+        return None;
+    }
+    node.child_by_field_name("rhs")
 }
 
 fn generic_call_value_class(extractor: &RExtractor, right: Node) -> Option<String> {
@@ -35,9 +62,11 @@ fn generic_call_value_class(extractor: &RExtractor, right: Node) -> Option<Strin
 }
 
 /// Declared return classes of same-file S4 generics. `setGeneric(valueClass = "X")`
-/// makes R stop unless the value `is()` an `X`. A name maps to `None` when a
-/// declaration lacks a single class, declarations disagree, or an assignment,
-/// `assign()`, or parameter rebinds the name anywhere in the file.
+/// with a `def` function makes R stop unless the value `is()` an `X`. A name maps
+/// to `None` when a declaration lacks a `def` function or a single class, runs only
+/// under a condition, or disagrees with another, or when an assignment, a `for`
+/// variable, `assign()`, `delayedAssign()`, `makeActiveBinding()`, a `with()` data
+/// list, or a parameter rebinds the name anywhere in the file.
 pub(super) fn collect_generic_value_classes(
     extractor: &RExtractor,
     root: Node,
@@ -58,7 +87,7 @@ fn collect_value_classes(
     }
     match node.kind() {
         "call" => match call_name(extractor, node).as_deref() {
-            Some("setGeneric") => {
+            Some("setGeneric") if is_methods_call(extractor, node) => {
                 if let Some((name, value_class)) = generic_value_class(extractor, node) {
                     classes
                         .entry(name)
@@ -70,16 +99,23 @@ fn collect_value_classes(
                         .or_insert(value_class);
                 }
             }
-            Some("assign") => {
-                if let Some(name) = node
-                    .child_by_field_name("arguments")
-                    .and_then(|args| positional_string_argument(extractor, args, 0))
-                {
-                    classes.insert(name, None);
-                }
+            Some("assign" | "delayedAssign") => {
+                rebind_string_argument(extractor, node, &["x"], classes);
             }
+            Some("makeActiveBinding") => {
+                rebind_string_argument(extractor, node, &["sym"], classes);
+            }
+            Some("with" | "within") => rebind_with_data_names(extractor, node, classes),
             _ => {}
         },
+        "for_statement" => {
+            if let Some(name) = node
+                .child_by_field_name("variable")
+                .and_then(|variable| clean_r_name(&extractor.base.get_node_text(&variable)))
+            {
+                classes.insert(name, None);
+            }
+        }
         "binary_operator" => {
             if let Some(name) = rebound_name(extractor, node) {
                 classes.insert(name, None);
@@ -104,18 +140,104 @@ fn collect_value_classes(
     }
 }
 
+/// Without a `def` function, R builds the generic from an existing function or
+/// generic of that name, which can drop `valueClass`, and a conditional
+/// declaration may never run, so both map to `None`.
 fn generic_value_class(extractor: &RExtractor, call: Node) -> Option<(String, Option<String>)> {
     let args = call.child_by_field_name("arguments")?;
     let bound = bind_arguments(extractor, args, &["name", "def", "group", "valueClass"]);
-    let name = bound
-        .get("name")
-        .filter(|value| value.kind() == "string")
-        .and_then(|value| clean_r_name(&extractor.base.get_node_text(value)))?;
-    let value_class = bound
-        .get("valueClass")
-        .filter(|value| value.kind() == "string")
-        .and_then(|value| clean_r_name(&extractor.base.get_node_text(value)));
+    let name = string_literal(extractor, bound.get("name").copied())?;
+    let has_def_function = bound
+        .get("def")
+        .is_some_and(|def| def.kind() == "function_definition");
+    let value_class = string_literal(extractor, bound.get("valueClass").copied())
+        .filter(|_| has_def_function && !runs_conditionally(extractor, call));
     Some((name, value_class))
+}
+
+fn string_literal(extractor: &RExtractor, value: Option<Node>) -> Option<String> {
+    value
+        .filter(|value| value.kind() == "string")
+        .and_then(|value| clean_r_name(&extractor.base.get_node_text(&value)))
+}
+
+fn is_methods_call(extractor: &RExtractor, call: Node) -> bool {
+    call.child_by_field_name("function")
+        .is_some_and(|callee| match callee.kind() {
+            "namespace_operator" => callee
+                .child_by_field_name("lhs")
+                .is_some_and(|package| extractor.base.get_node_text(&package) == "methods"),
+            _ => true,
+        })
+}
+
+fn runs_conditionally(extractor: &RExtractor, node: Node) -> bool {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        let conditional = match parent.kind() {
+            "if_statement" => parent.child_by_field_name("condition") != Some(current),
+            "binary_operator" => {
+                parent.child_by_field_name("rhs") == Some(current)
+                    && parent
+                        .child_by_field_name("operator")
+                        .is_some_and(|operator| {
+                            matches!(
+                                extractor.base.get_node_text(&operator).as_str(),
+                                "&&" | "||"
+                            )
+                        })
+            }
+            _ => false,
+        };
+        if conditional {
+            return true;
+        }
+        current = parent;
+    }
+    false
+}
+
+fn rebind_string_argument(
+    extractor: &RExtractor,
+    call: Node,
+    formals: &[&'static str],
+    classes: &mut HashMap<String, Option<String>>,
+) {
+    let Some(args) = call.child_by_field_name("arguments") else {
+        return;
+    };
+    let bound = bind_arguments(extractor, args, formals);
+    if let Some(name) = string_literal(extractor, bound.get(formals[0]).copied()) {
+        classes.insert(name, None);
+    }
+}
+
+fn rebind_with_data_names(
+    extractor: &RExtractor,
+    call: Node,
+    classes: &mut HashMap<String, Option<String>>,
+) {
+    let Some(data) = call
+        .child_by_field_name("arguments")
+        .and_then(|args| {
+            bind_arguments(extractor, args, &["data"])
+                .get("data")
+                .copied()
+        })
+        .filter(|data| data.kind() == "call")
+        .and_then(|data| data.child_by_field_name("arguments"))
+    else {
+        return;
+    };
+    let mut cursor = data.walk();
+    for argument in data.children_by_field_name("argument", &mut cursor) {
+        if let Some(name) = argument
+            .child_by_field_name("name")
+            .and_then(|name| clean_r_name(&extractor.base.get_node_text(&name)))
+        {
+            classes.insert(name, None);
+        }
+    }
 }
 
 fn rebound_name(extractor: &RExtractor, assignment: Node) -> Option<String> {

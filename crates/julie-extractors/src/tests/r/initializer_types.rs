@@ -194,3 +194,123 @@ fn name_rebound_by_assign_records_nothing() {
     );
     assert_eq!(inferred_type(&source, "acct"), None);
 }
+
+#[test]
+fn set_generic_without_def_records_nothing() {
+    let source = r#"
+setGeneric("summary", valueClass = "Account")
+setGeneric("show", valueClass = "Account")
+s_summary <- summary(obj)
+s_show <- show(obj)
+"#;
+    assert_eq!(inferred_type(source, "s_summary"), None);
+    assert_eq!(inferred_type(source, "s_show"), None);
+}
+
+#[test]
+fn set_generic_with_a_non_function_def_records_nothing() {
+    let source = r#"
+setGeneric("mk", def = mk_def, valueClass = "Account")
+s <- mk(1)
+"#;
+    assert_eq!(inferred_type(source, "s"), None);
+}
+
+#[test]
+fn redeclaration_without_def_records_nothing() {
+    let source = format!(
+        "{ACCOUNT_GENERIC}setGeneric(\"open_account\", valueClass = \"Account\")\nacct <- open_account(bank)\n"
+    );
+    assert_eq!(inferred_type(&source, "acct"), None);
+}
+
+#[test]
+fn conditional_set_generic_records_nothing() {
+    let source = r#"
+if (!isGeneric("mk")) setGeneric("mk", function(x) standardGeneric("mk"), valueClass = "Account")
+isGeneric("mk2") || setGeneric("mk2", function(x) standardGeneric("mk2"), valueClass = "Account")
+s_isgen <- mk(1)
+s_or <- mk2(1)
+"#;
+    assert_eq!(inferred_type(source, "s_isgen"), None);
+    assert_eq!(inferred_type(source, "s_or"), None);
+}
+
+#[test]
+fn set_generic_from_another_namespace_records_nothing() {
+    let source = r#"
+foo::setGeneric("ng", function(x) standardGeneric("ng"), valueClass = "Account")
+s_ns <- ng(1)
+"#;
+    assert_eq!(inferred_type(source, "s_ns"), None);
+}
+
+#[test]
+fn name_rebound_by_a_for_loop_variable_records_nothing() {
+    let source = format!(
+        "{ACCOUNT_GENERIC}for (open_account in list(function(x) 1)) {{\n  s_for <- open_account(1)\n}}\n"
+    );
+    assert_eq!(inferred_type(&source, "s_for"), None);
+}
+
+#[test]
+fn name_rebound_by_delayed_assign_records_nothing() {
+    let source = format!(
+        "{ACCOUNT_GENERIC}delayedAssign(\"open_account\", function(x) 1)\ns_delayed <- open_account(1)\n"
+    );
+    assert_eq!(inferred_type(&source, "s_delayed"), None);
+}
+
+#[test]
+fn name_rebound_by_make_active_binding_records_nothing() {
+    let source = format!(
+        "{ACCOUNT_GENERIC}makeActiveBinding(fun = function() function(x) 1, sym = \"open_account\", env = e)\ns_active <- open_account(1)\n"
+    );
+    assert_eq!(inferred_type(&source, "s_active"), None);
+}
+
+#[test]
+fn name_rebound_by_named_assign_records_nothing() {
+    let source = format!(
+        "{ACCOUNT_GENERIC}assign(value = function(x) 1, x = \"open_account\")\ns_named <- open_account(1)\n"
+    );
+    assert_eq!(inferred_type(&source, "s_named"), None);
+}
+
+#[test]
+fn name_bound_by_with_data_records_nothing() {
+    let source = format!(
+        "{ACCOUNT_GENERIC}with(list(open_account = function(x) 1), {{\n  s_with <- open_account(1)\n}})\n"
+    );
+    assert_eq!(inferred_type(&source, "s_with"), None);
+}
+
+#[test]
+fn native_pipe_into_a_generic_is_typed() {
+    let source = format!(
+        "{ACCOUNT_GENERIC}s_pipe <- bank |> open_account()\nbank |> open_account() -> s_right\n"
+    );
+    assert_eq!(inferred_type(&source, "s_pipe").as_deref(), Some("Account"));
+    assert_eq!(
+        inferred_type(&source, "s_right").as_deref(),
+        Some("Account")
+    );
+}
+
+#[test]
+fn native_pipe_ending_in_another_call_records_nothing() {
+    let source = format!(
+        "{ACCOUNT_GENERIC}a <- bank |> open_account() |> summary()\nb <- bank |> bankpkg::open_account()\n"
+    );
+    assert_eq!(inferred_type(&source, "a"), None);
+    assert_eq!(inferred_type(&source, "b"), None);
+}
+
+#[test]
+fn parenthesized_initializers_are_typed() {
+    let source = format!(
+        "{ACCOUNT_GENERIC}a <- (open_account(bank))\nWorker <- R6::R6Class(\"Worker\")\nw <- ((Worker$new()))\n"
+    );
+    assert_eq!(inferred_type(&source, "a").as_deref(), Some("Account"));
+    assert_eq!(inferred_type(&source, "w").as_deref(), Some("Worker"));
+}
