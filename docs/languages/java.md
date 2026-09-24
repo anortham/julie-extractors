@@ -175,19 +175,38 @@ A `var` local or `var` try-with-resources binding gets an inferred type fact
 from its initializer:
 
 - `new Foo<..>(..)` records the constructed type `Foo`.
-- A call to a same-file method with a declared return type records that type:
-  an unqualified `load(..)` or `this.load(..)` resolves only in the innermost
-  named class, interface, enum, or record around the call, and
-  `Type.create(..)` resolves in the same-file types named `Type` and only to
-  `static` methods.
+- A call to a same-file method with a declared return type records that type.
+  An unqualified `load(..)` or `this.load(..)` resolves only in the innermost
+  named class, interface, enum, or record around the call. That type is
+  identified by its declaration, so a same-named nested or local class
+  elsewhere in the file never supplies the type.
+- `Type.create(..)` resolves only to `static` methods, and only when exactly
+  one type in the file is named `Type`, that type is in scope at the call
+  (top-level, a member of an enclosing type, or a local class of an enclosing
+  block), and no variable, parameter, field, pattern binding, or enum constant
+  in the file has the name `Type`.
+- Implicit members count: a record component accessor records the component
+  type, `Color.values()` records `Color[]`, and `Color.valueOf(s)` records
+  `Color`.
 - The candidates that accept the call's argument count must all declare the
   same return type text. A varargs method accepts one fewer argument and more.
+  The candidates include the same-named methods of every same-file supertype,
+  so a same-arity overload in a same-file superclass or interface that
+  disagrees records no fact. At least one candidate must be declared in the
+  resolved type itself.
 - `void`, a return type that is a method or enclosing type parameter
-  (`<T> T get()`, `T[] all()`), an old-style `Foo load()[]` return, any other
-  receiver (`super`, a variable, a field, a call chain), a call inside an
-  anonymous class, and a callee in another file record no fact. Java has no
-  language-level unwrap operator, so no wrapper layer is removed. Other files
-  are out of scope because each file is extracted alone.
+  (`<T> T get()`, `T[] all()`, a generic record component), an old-style
+  `Foo load()[]` return, any other receiver (`super`, a variable, a field, a
+  call chain), a method that the type only inherits, a call inside an
+  anonymous class or enum constant body, and a callee in another file record
+  no fact. Java has no language-level unwrap operator, so no wrapper layer is
+  removed. Other files are out of scope because each file is extracted alone.
+
+Known limit: a supertype in another file (including `java.lang.Object`) can
+declare an overload with the same argument count, a member type that hides
+`Type`, or a field named `Type`. Java then resolves the call to that member,
+and the recorded type can be wrong. The extractor cannot see other files, so
+it cannot detect this case.
 
 ## Frameworks
 
