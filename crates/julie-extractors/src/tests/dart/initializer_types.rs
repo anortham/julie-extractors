@@ -470,3 +470,49 @@ extension type const Id<T>._(T value) {
 "#;
     assert_no_fact(source, &["viaThis", "bare", "representation"]);
 }
+
+#[test]
+fn abstract_external_and_covariant_callable_fields_record_nothing() {
+    let source = r#"
+class Item {}
+class Other {}
+Item a1() => Item();
+Item a2() => Item();
+Item c1() => Item();
+abstract class R {
+  abstract final Other Function() a1;
+  external Other Function() a2;
+  covariant late final Other Function() c1;
+  external static Other Function() e1;
+  void go() {
+    var abs = a1();
+    var ext = a2();
+    var cov = c1();
+  }
+}
+void outside() {
+  var extStatic = R.e1();
+}
+"#;
+    assert_no_fact(source, &["abs", "ext", "cov", "extStatic"]);
+}
+
+#[test]
+fn callable_enum_constants_record_nothing() {
+    let source = r#"
+class Item {}
+class Other {}
+Item fetch() => Item();
+enum E {
+  a, fetch;
+  Other call() => Other();
+  void go() {
+    var enumConstBare = fetch();
+  }
+}
+void outside() {
+  var enumConstQualified = E.fetch();
+}
+"#;
+    assert_no_fact(source, &["enumConstBare", "enumConstQualified"]);
+}

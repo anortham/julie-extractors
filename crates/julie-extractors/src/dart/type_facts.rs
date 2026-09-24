@@ -262,8 +262,9 @@ fn enclosing_owner(base: &BaseExtractor, node: Node) -> Owner {
 
 /// Declared return types of the file's functions and type members, keyed by
 /// owner (`None` for the library) and name, plus every name a parameter,
-/// local variable, local function, or pattern binds. Getters, setters, and
-/// fields are members with no return type, so they block inference.
+/// local variable, local function, or pattern binds. Getters, setters,
+/// fields, and enum constants are members with no return type, so they
+/// block inference.
 #[derive(Debug, Default)]
 pub(super) struct ReturnTypeIndex {
     members: HashMap<(Option<String>, String), Vec<Option<TypeShape>>>,
@@ -346,6 +347,16 @@ impl ReturnTypeIndex {
                     } else {
                         self.add_member(scope, name, None);
                     }
+                }
+            }
+            "enum_constant" => {
+                if let Some(name) = name_of("name") {
+                    self.add_member(scope, name, None);
+                }
+            }
+            "identifier_list" if !scope.in_function => {
+                for field in node.named_children(&mut node.walk()) {
+                    self.add_member(scope, base.get_node_text(&field), None);
                 }
             }
             "for_statement" | "variable_pattern" => {
