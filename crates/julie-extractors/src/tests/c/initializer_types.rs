@@ -218,6 +218,61 @@ fn variable_or_parameter_shadowing_the_callee_records_no_fact() {
     }
 }
 
+const PICKER: &str = r#"
+struct widget *make(void);
+typedef long (*factory)(void);
+factory pick(void);
+"#;
+
+#[test]
+fn c23_auto_local_shadowing_the_callee_records_no_fact() {
+    for source in [
+        in_function(PICKER, "auto make = pick();\n    auto w = make();"),
+        in_function(PICKER, "auto make = pick(1);\n    auto w = make(2);"),
+        in_function(PICKER, "auto make = (factory)pick();\n    auto w = make();"),
+        in_function(
+            PICKER,
+            "for (auto make = pick(); make; ) {\n        auto w = make();\n    }",
+        ),
+        in_function(
+            &format!("{PICKER}static auto make = pick();"),
+            "__auto_type w = make();",
+        ),
+    ] {
+        assert_eq!(fact_of(&source, "w"), None, "{source}");
+    }
+}
+
+#[test]
+fn malformed_declaration_shadowing_the_callee_records_no_fact() {
+    let prelude = "struct widget *make(void);\nstruct holder { long (*make)(void); int node; };";
+    for body in [
+        "long (*make)(void) = container_of(p, struct holder, node)->make;\n    __auto_type w = make();",
+        "factory make = OFFSET(struct widget, x);\n    __auto_type w = make();",
+    ] {
+        let source = in_function(prelude, body);
+        assert_eq!(fact_of(&source, "w"), None, "{source}");
+    }
+}
+
+#[test]
+fn malformed_prototype_that_disagrees_records_no_fact() {
+    let prelude = "#ifdef GADGET\nstruct gadget *make(void) DEPRECATED(\"use other\" 2);\n#else\nstruct widget *make(void);\n#endif";
+    assert_eq!(
+        fact_of(&in_function(prelude, "__auto_type w = make();"), "w"),
+        None
+    );
+}
+
+#[test]
+fn macro_between_return_type_and_name_records_no_fact() {
+    let prelude = "struct node *attr_pure find(void);";
+    assert_eq!(
+        fact_of(&in_function(prelude, "__auto_type n = find();"), "n"),
+        None
+    );
+}
+
 #[test]
 fn function_returning_function_pointer_records_no_fact() {
     let prelude = "struct widget *(*factory(void))(void);";

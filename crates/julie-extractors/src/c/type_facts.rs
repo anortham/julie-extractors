@@ -92,9 +92,10 @@ pub(super) struct DeclaredType {
 }
 
 /// Declared return types of the file's functions, by name, for `auto` and
-/// `__auto_type` inference. A same-named macro, variable, parameter, or
-/// function with no plain return type makes the name unknown anywhere in the
-/// file, since a call through a variable does not reach the function.
+/// `__auto_type` inference. A same-named macro, variable, parameter, function
+/// with no plain return type, or name in a malformed declaration makes the
+/// name unknown anywhere in the file, since a call through a variable does not
+/// reach the function.
 #[derive(Debug, Default)]
 pub(super) struct ReturnTypeIndex(HashMap<String, Vec<Option<DeclaredType>>>);
 
@@ -146,8 +147,8 @@ impl ReturnTypeIndex {
 }
 
 /// The names a definition or declaration declares, each with its plain return
-/// type when it names a function. Declarations with parse errors name none:
-/// tree-sitter-c reads a C23 `auto x = f();` as a prototype of `f`.
+/// type when it names a function. A declaration with parse errors makes each
+/// name it may declare unknown, since its types cannot be trusted.
 fn declared_return_types(base: &BaseExtractor, node: Node) -> Vec<(String, Option<DeclaredType>)> {
     let malformed = if node.kind() == "declaration" {
         node.has_error()
@@ -158,7 +159,10 @@ fn declared_return_types(base: &BaseExtractor, node: Node) -> Vec<(String, Optio
             .any(|child| child.has_error())
     };
     if malformed {
-        return Vec::new();
+        return malformed_declaration_names(base, node)
+            .into_iter()
+            .map(|name| (name, None))
+            .collect();
     }
     let mut cursor = node.walk();
     node.children_by_field_name("declarator", &mut cursor)
@@ -169,6 +173,29 @@ fn declared_return_types(base: &BaseExtractor, node: Node) -> Vec<(String, Optio
                 return_type(base, node, declarator),
             ))
         })
+        .collect()
+}
+
+/// Every name a malformed declaration may declare: each declarator's name and
+/// a name tree-sitter-c misread as the type, as in C23 `auto make = pick();`
+/// or `auto make = (factory)pick();`. The call tree-sitter-c reads as the
+/// declarator of a C23 `auto` declaration declares nothing.
+fn malformed_declaration_names(base: &BaseExtractor, node: Node) -> Vec<String> {
+    let misread_call = helpers::c23_auto_declaration(base, node).map(|auto| auto.value.id());
+    let misread_type =
+        node.child_by_field_name("type")
+            .and_then(|type_node| match type_node.kind() {
+                "type_identifier" => Some(type_node),
+                "macro_type_specifier" => type_node.child_by_field_name("name"),
+                _ => None,
+            });
+    let mut cursor = node.walk();
+    node.children_by_field_name("declarator", &mut cursor)
+        .filter(|declarator| Some(declarator.id()) != misread_call)
+        .filter_map(|declarator| helpers::declarator_target(declarator).map(|target| target.name))
+        .chain(misread_type)
+        .map(|name| base.get_node_text(&name))
+        .filter(|name| !name.is_empty())
         .collect()
 }
 

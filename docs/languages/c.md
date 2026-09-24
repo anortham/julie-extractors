@@ -13,12 +13,18 @@
   The fact is the declared return type of that function. All same-file
   declarations of the name must agree. A same-named macro, variable, or
   parameter anywhere in the file blocks the fact, because the call can then
-  reach something other than the function.
+  reach something other than the function. A name in a declaration with a
+  parse error also blocks the fact, because its type cannot be trusted. This
+  includes C23 `auto make = pick();` and a local whose initializer uses a
+  macro with a type argument, such as `container_of(p, struct holder, node)`.
 - These cases record no inferred fact: a member call (`ctx->make()`), a
   parenthesized call, any non-call initializer, a pointer declarator
   (`__auto_type *w`), a function that returns a function pointer, and a callee
   in another file. Other files are out of scope because each file is
   extracted alone.
+- A function declared with a macro between the return type and the name
+  (`struct node *attr_pure find(void);`) gives no fact, because tree-sitter-c
+  misparses that declaration.
 - A written type always wins: `auto int n = count();` records `int` as a
   declared fact.
 - tree-sitter-c 0.24.2 has no rule for C23 `auto` inference. It reads
