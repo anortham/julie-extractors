@@ -1042,3 +1042,132 @@ f3 = mode()
     assert_eq!(inferred_type(source, "f2"), None);
     assert_eq!(inferred_type(source, "f3"), None);
 }
+
+#[test]
+fn self_or_cls_that_is_not_the_method_receiver_records_nothing() {
+    let source = r#"
+class Registry:
+    def create(self) -> "Registry":
+        ...
+
+    def add(self, cls):
+        bad_c1 = cls.create()
+
+    @staticmethod
+    def build(cls):
+        bad_c3 = cls.create()
+
+    @staticmethod
+    def build2(x, self):
+        bad_s1 = self.create()
+
+    @classmethod
+    def make(cls):
+        cls = other()
+        bad_c4 = cls.create()
+
+    def run(self, other):
+        self = other
+        bad_s2 = self.create()
+
+    def keep(self):
+        good = self.create()
+"#;
+    assert_eq!(inferred_type(source, "bad_c1"), None);
+    assert_eq!(inferred_type(source, "bad_c3"), None);
+    assert_eq!(inferred_type(source, "bad_s1"), None);
+    assert_eq!(inferred_type(source, "bad_c4"), None);
+    assert_eq!(inferred_type(source, "bad_s2"), None);
+    assert_eq!(inferred_type(source, "good").as_deref(), Some("Registry"));
+}
+
+#[test]
+fn nested_match_captures_shadowing_a_same_file_function_record_nothing() {
+    let source = r#"
+def load() -> int:
+    ...
+
+def f1(v):
+    match v:
+        case Point(x=load):
+            bad_m1 = load()
+
+def f2(v):
+    match v:
+        case [*load]:
+            bad_m2 = load()
+
+def f3(v):
+    match v:
+        case {**load}:
+            bad_m3 = load()
+
+def f4(v):
+    match v:
+        case Point() as load:
+            bad_m4 = load()
+
+def f5(v):
+    match v:
+        case load:
+            bad_m5 = load()
+
+def f6(v):
+    match v:
+        case load.Kind.A:
+            good_m1 = load()
+"#;
+    assert_eq!(inferred_type(source, "bad_m1"), None);
+    assert_eq!(inferred_type(source, "bad_m2"), None);
+    assert_eq!(inferred_type(source, "bad_m3"), None);
+    assert_eq!(inferred_type(source, "bad_m4"), None);
+    assert_eq!(inferred_type(source, "bad_m5"), None);
+    assert_eq!(inferred_type(source, "good_m1").as_deref(), Some("int"));
+}
+
+#[test]
+fn class_pattern_head_does_not_shadow_a_same_file_class() {
+    let source = r#"
+class Point:
+    ...
+
+def f(v):
+    match v:
+        case Point(x=0):
+            made = Point()
+"#;
+    assert_eq!(inferred_type(source, "made").as_deref(), Some("Point"));
+}
+
+#[test]
+fn quoted_type_variable_in_parameter_annotations_records_nothing() {
+    let source = r#"
+from mytypes import T, ModelT
+
+def pick(default: "T") -> T:
+    ...
+
+def gen(x: "T") -> "T":
+    ...
+
+def pick2(default: "list[T]") -> T:
+    ...
+
+def pick3(default: "ModelT") -> ModelT:
+    ...
+
+def keep(response: "Response") -> Response:
+    ...
+
+bad_q1 = pick(1)
+bad_g = gen(1)
+bad_q2 = pick2([1])
+bad_q3 = pick3(m)
+good = keep(r)
+"#;
+    assert_eq!(inferred_type(source, "bad_q1"), None);
+    assert_eq!(inferred_type(source, "bad_g"), None);
+    assert_eq!(inferred_type(source, "bad_q2"), None);
+    assert_eq!(inferred_type(source, "bad_q3"), None);
+    assert_eq!(inferred_type(source, "good").as_deref(), Some("Response"));
+}

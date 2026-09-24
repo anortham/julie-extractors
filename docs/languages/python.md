@@ -120,17 +120,20 @@ assignment (`x = ...` or `self.x = ...`):
   type. An `async def` counts only under `await`; an awaited plain `def`
   records nothing.
 - A bare name follows Python scope rules. A parameter, assignment, `for` or
-  `with` target, import, lambda, or comprehension variable of the same name
-  in the call's function or an enclosing one, or at module level, records
-  nothing. A walrus (`:=`) inside a comprehension binds in the enclosing
+  `with` target, `match` capture (also inside a class, keyword, star,
+  mapping, or `as` pattern), import, lambda, or comprehension variable of the
+  same name in the call's function or an enclosing one, or at module level,
+  records nothing. A walrus (`:=`) inside a comprehension binds in the enclosing
   function, as in Python. A nested `def` counts only for calls inside its
   function. A method counts only through `self`, `cls`, or its class, also
   when it is defined in an `if` or `try` block of the class body. A
   `from m import *` does not count as a binding, because the names it binds
   are in another file.
 - A class is identified by its definition, not by its name. `self` and `cls`
-  are the class of the method whose parameter they are, so two same-named
-  classes in different functions or classes keep their own methods. A class
+  are the class of the method whose first plain parameter they are, so two
+  same-named classes in different functions or classes keep their own
+  methods. A `self` or `cls` in another parameter position, in a
+  `@staticmethod`, or rebound in the method records nothing. A class
   name that has two definitions in one scope records no method type. A
   method name that the class body also binds another way
   (`load = contextmanager(load)`) records nothing. Inherited methods record
@@ -142,7 +145,8 @@ assignment (`x = ...` or `self.x = ...`):
   around it, can also show that an imported name is a type variable. The
   return name records nothing when it is not a same-file class, a builtin, or
   a `typing` name such as `Any` or `Dict`, and those annotations use it as a
-  type argument (`def first(items: list[T]) -> T`), or use it at all when
+  type argument (`def first(items: list[T]) -> T`, also quoted as
+  `"list[T]"`), or use it at all (also quoted as `"T"`) when
   the name is spelled like a type variable (`T`, `KT`, `T1`, `_T_co`,
   `ModelT`, `AnyStr`). So `-> Item` with `items: list[Item]` records nothing
   even when `Item` is an imported class, and `-> Response` with

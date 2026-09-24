@@ -121,13 +121,15 @@ enum Scope {
 }
 
 /// How one scope binds a name: only by `def`s, only by `class`es (their node
-/// ids), only by one import (its qualified name, `functools.cache`), or by
-/// anything else (a parameter, assignment, loop or `with` target, ...).
+/// ids), only by one import (its qualified name, `functools.cache`), only as
+/// a parameter, or by anything else (an assignment, loop or `with` target,
+/// match capture, ...).
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Binding {
     Functions,
     Classes(Vec<usize>),
     Import(String),
+    Parameter,
     Other,
 }
 
@@ -452,19 +454,27 @@ fn record_bindings(
                 Binding::Other
             }
             "as_pattern" | "except_clause" => {
-                targets.extend(node.child_by_field_name("alias"));
+                targets.extend(node.child_by_field_name("alias").or_else(|| {
+                    node.named_children(&mut node.walk())
+                        .last()
+                        .filter(|child| child.kind() == "identifier")
+                }));
                 Binding::Other
             }
             "import_statement" | "import_from_statement" => {
                 record_import_bindings(base, node, scope, bindings);
                 return;
             }
-            "parameters" | "lambda_parameters" | "global_statement" | "nonlocal_statement" => {
+            "parameters" | "lambda_parameters" => {
+                targets.push(node);
+                Binding::Parameter
+            }
+            "global_statement" | "nonlocal_statement" | "splat_pattern" => {
                 targets.push(node);
                 Binding::Other
             }
-            "case_pattern" => {
-                targets.extend(node.named_child(0).filter(|child| {
+            "case_pattern" | "keyword_pattern" | "union_pattern" => {
+                targets.extend(node.named_children(&mut node.walk()).filter(|child| {
                     child.kind() == "dotted_name" && child.named_child_count() == 1
                 }));
                 Binding::Other
@@ -665,6 +675,16 @@ fn parameter_annotation_use(base: &BaseExtractor, function: Node, name: &str) ->
         if node.kind() == "identifier" && base.get_node_text(&node) == name {
             found = Some(found.unwrap_or(false) || as_type_argument);
         }
+        if node.kind() == "string" {
+            let text = base.get_node_text(&node);
+            if text
+                .split(|c: char| !(c.is_alphanumeric() || c == '_'))
+                .any(|word| word == name)
+            {
+                found = Some(found.unwrap_or(false) || as_type_argument || text.contains('['));
+            }
+            continue;
+        }
         let head = match node.kind() {
             "generic_type" => node.named_child(0),
             "subscript" => node.child_by_field_name("value"),
@@ -797,7 +817,7 @@ fn call_result(
             let owner = if object.kind() == "identifier" {
                 let receiver = base.get_node_text(&object);
                 match receiver.as_str() {
-                    "self" | "cls" => receiver_class(index, &receiver, object)?,
+                    "self" | "cls" => receiver_class(base, index, &receiver, object)?,
                     _ => match index.resolve(&receiver, object) {
                         Some(Resolved::Class(Some(class))) => class,
                         _ => return None,
@@ -817,16 +837,46 @@ fn call_result(
     index.lookup(&name, scope)?.result(awaited)
 }
 
-/// The class whose method binds `self`/`cls` as a parameter at `receiver`.
-fn receiver_class(index: &ReturnTypeIndex, name: &str, receiver: Node) -> Option<usize> {
-    let (scope, _) = index.binding(name, receiver)?;
-    if scope.kind() != "function_definition" {
+/// The class of the method whose receiver `self`/`cls` is at `receiver`:
+/// the name is the method's first plain parameter, the method is not a
+/// `@staticmethod`, and nothing else in the method rebinds the name.
+fn receiver_class(
+    base: &BaseExtractor,
+    index: &ReturnTypeIndex,
+    name: &str,
+    receiver: Node,
+) -> Option<usize> {
+    let (method, binding) = index.binding(name, receiver)?;
+    if method.kind() != "function_definition" || *binding != Binding::Parameter {
         return None;
     }
-    match defining_scope(scope) {
+    let first = method
+        .child_by_field_name("parameters")?
+        .named_child(0)
+        .filter(|first| first.kind() == "identifier")?;
+    if base.get_node_text(&first) != name || is_static_method(base, method) {
+        return None;
+    }
+    match defining_scope(method) {
         DefiningScope::Class(class) => Some(class.id()),
         _ => None,
     }
+}
+
+fn is_static_method(base: &BaseExtractor, function: Node) -> bool {
+    function
+        .parent()
+        .filter(|parent| parent.kind() == "decorated_definition")
+        .is_some_and(|decorated| {
+            decorated
+                .named_children(&mut decorated.walk())
+                .filter(|child| child.kind() == "decorator")
+                .any(|decorator| {
+                    let text = base.get_node_text(&decorator);
+                    text.rsplit(|c: char| !(c.is_alphanumeric() || c == '_'))
+                        .any(|word| word == "staticmethod")
+                })
+        })
 }
 
 fn plainly_named_annotation(base: &BaseExtractor, node: Node) -> Option<String> {
