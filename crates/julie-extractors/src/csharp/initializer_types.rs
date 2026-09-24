@@ -5,6 +5,7 @@ use crate::base::BaseExtractor;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use std::ops::Range;
+use std::rc::Rc;
 use tree_sitter::Node;
 
 /// A declaring type: its simple name and the start byte of its declaration.
@@ -120,6 +121,58 @@ struct Scope {
     member: Option<usize>,
 }
 
+/// What `enclosing_types` and `enclosing_member` give for the children of a
+/// node, carried down the index walk so it never climbs the tree.
+#[derive(Debug, Clone, Default)]
+struct Surroundings {
+    /// The innermost enclosing type. `None` inside an extension block or a
+    /// type with no name, where `enclosing_types` has no answer.
+    owner: Option<Option<TypeKey>>,
+    member: Option<usize>,
+}
+
+impl Surroundings {
+    fn root() -> Self {
+        Self {
+            owner: Some(None),
+            member: None,
+        }
+    }
+
+    fn inside(&self, base: &BaseExtractor, node: Node) -> Option<Self> {
+        let kind = node.kind();
+        let owner = match kind {
+            "class_declaration"
+            | "struct_declaration"
+            | "record_declaration"
+            | "interface_declaration" => Some(
+                node.child_by_field_name("name")
+                    .filter(|_| self.owner.is_some())
+                    .map(|name| TypeKey {
+                        name: base.get_node_text(&name),
+                        start: node.start_byte(),
+                    }),
+            ),
+            "extension_declaration" => Some(None),
+            _ => None,
+        };
+        let member = if TYPE_KINDS.contains(&kind) {
+            None
+        } else if self.member.is_none() && MEMBER_KINDS.contains(&kind) {
+            Some(node.start_byte())
+        } else {
+            self.member
+        };
+        if owner.is_none() && member == self.member {
+            return None;
+        }
+        Some(Self {
+            owner: owner.map_or_else(|| self.owner.clone(), |key| key.map(Some)),
+            member,
+        })
+    }
+}
+
 /// Names that every class, struct, and record inherits from `object` or
 /// `ValueType`, or that a record synthesizes. A call by one of these names can
 /// bind to an inherited member that no same-file declaration shows.
@@ -196,28 +249,49 @@ impl ReturnTypeIndex {
             types: HashMap::new(),
             file_class,
         };
-        let mut stack = vec![root];
-        while let Some(node) = stack.pop() {
-            if let Some((name, callable)) = index.callable(base, node, file_generics) {
+        let mut stack = vec![(root, Rc::new(Surroundings::root()))];
+        while let Some((node, around)) = stack.pop() {
+            let owner = index.owner(&around);
+            if let Some((name, callable)) = index.callable(base, node, owner.clone(), file_generics)
+            {
                 index.callables.entry(name).or_default().push(callable);
             }
-            if let Some((name, declaration)) = index.type_decl(base, node) {
+            if let Some((name, declaration)) = index.type_decl(base, node, owner.clone()) {
                 index.types.entry(name).or_default().push(declaration);
             }
             for (name, declaration) in bindings(base, node) {
-                if let Some(scope) = index.scope(base, declaration) {
+                let scope = if declaration == node {
+                    owner.clone().map(|owner| Scope {
+                        owner,
+                        member: around.member,
+                    })
+                } else {
+                    index.scope(base, declaration)
+                };
+                if let Some(scope) = scope {
                     index.bindings.entry(name).or_default().push(scope);
                 }
             }
-            stack.extend(node.named_children(&mut node.walk()));
+            let inner = around.inside(base, node).map_or(around, Rc::new);
+            stack.extend(
+                node.named_children(&mut node.walk())
+                    .map(|child| (child, Rc::clone(&inner))),
+            );
         }
         index
+    }
+
+    /// The innermost type around a node, as `enclosing_types` gives it.
+    fn owner(&self, around: &Surroundings) -> Option<Option<TypeKey>> {
+        let owner = around.owner.clone()?;
+        Some(owner.or_else(|| self.file_class.then(TypeKey::file_class)))
     }
 
     fn callable(
         &self,
         base: &BaseExtractor,
         node: Node,
+        owner: Option<Option<TypeKey>>,
         file_generics: &[String],
     ) -> Option<(String, Callable)> {
         let (returns, local_scope) = match node.kind() {
@@ -236,11 +310,7 @@ impl ReturnTypeIndex {
             }
             _ => return None,
         };
-        let owner = self
-            .enclosing_types(base, node)?
-            .into_iter()
-            .next()
-            .map(|(key, _)| key);
+        let owner = owner?;
         if owner.is_none() && local_scope.is_none() {
             return None;
         }
@@ -263,13 +333,18 @@ impl ReturnTypeIndex {
         ))
     }
 
-    fn type_decl(&self, base: &BaseExtractor, node: Node) -> Option<(String, TypeDecl)> {
+    fn type_decl(
+        &self,
+        base: &BaseExtractor,
+        node: Node,
+        owner: Option<Option<TypeKey>>,
+    ) -> Option<(String, TypeDecl)> {
         if !NAMED_TYPE_KINDS.contains(&node.kind()) {
             return None;
         }
         let name = base.get_node_text(&node.child_by_field_name("name")?);
-        let container = match self.enclosing_types(base, node)?.into_iter().next() {
-            Some((owner, _)) => Container::Type(owner),
+        let container = match owner? {
+            Some(owner) => Container::Type(owner),
             None => Container::Namespace(namespace_of(base, node)),
         };
         let declaration = TypeDecl {

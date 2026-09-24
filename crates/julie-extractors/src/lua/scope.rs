@@ -2,6 +2,8 @@
 
 use crate::base::{BaseExtractor, NormalizedSpan, Symbol, SymbolKind};
 use crate::tree_traversal::child_tree_depth;
+use std::cell::RefCell;
+use std::collections::HashMap;
 use tree_sitter::Node;
 
 /// Span from the start of `start` to the end of `end`.
@@ -48,60 +50,107 @@ pub(super) fn is_local_binding_in_scope(base: &BaseExtractor, node: Node, name: 
     false
 }
 
-/// The innermost declaration that binds `name` at `node`: a `local`, a
-/// `local function` (also inside its own body), a parameter list, or a loop
-/// clause. `None` means `name` is global at `node`.
-pub(super) fn innermost_local_binding<'tree>(
-    base: &BaseExtractor,
-    node: Node<'tree>,
-    name: &str,
-) -> Option<Node<'tree>> {
-    let mut current = node;
-    while let Some(parent) = current.parent() {
-        let mut cursor = parent.walk();
-        let declaration = parent
-            .children(&mut cursor)
-            .take_while(|sibling| sibling.start_byte() < current.start_byte())
-            .filter(|sibling| declares_local(base, *sibling, name))
-            .last();
-        if declaration.is_some() {
-            return declaration;
+/// The local declarations of one file, by the scope node that holds them.
+/// Each scope's children are read once, so a lookup costs the scope depth,
+/// not the number of statements before it.
+#[derive(Debug, Default)]
+pub(super) struct LocalBindings {
+    /// Scope node id, then bound name, then the start byte of each child that
+    /// declares it, in source order.
+    by_scope: RefCell<HashMap<usize, HashMap<String, Vec<usize>>>>,
+}
+
+impl LocalBindings {
+    /// Start byte of the innermost declaration that binds `name` at `node`: a
+    /// `local`, a `local function` (also inside its own body), a parameter
+    /// list, or a loop clause. `None` means `name` is global at `node`.
+    pub(super) fn innermost(&self, base: &BaseExtractor, node: Node, name: &str) -> Option<usize> {
+        let mut current = node;
+        while let Some(parent) = current.parent() {
+            let mut by_scope = self.by_scope.borrow_mut();
+            let declared = by_scope
+                .entry(parent.id())
+                .or_insert_with(|| declarations_by_name(base, parent));
+            let before = declared.get(name).and_then(|starts| {
+                starts
+                    .iter()
+                    .rev()
+                    .find(|start| **start < current.start_byte())
+            });
+            if let Some(start) = before {
+                return Some(*start);
+            }
+            if parent.kind() == "function_declaration" && declares_local(base, parent, name) {
+                return Some(parent.start_byte());
+            }
+            current = parent;
         }
-        if parent.kind() == "function_declaration" && declares_local(base, parent, name) {
-            return Some(parent);
-        }
-        current = parent;
+        None
     }
-    None
+}
+
+fn declarations_by_name(base: &BaseExtractor, scope: Node) -> HashMap<String, Vec<usize>> {
+    let mut declared: HashMap<String, Vec<usize>> = HashMap::new();
+    let mut cursor = scope.walk();
+    for child in scope.children(&mut cursor) {
+        for name in declared_local_names(base, child) {
+            declared.entry(name).or_default().push(child.start_byte());
+        }
+    }
+    declared
 }
 
 fn declares_local(base: &BaseExtractor, node: Node, name: &str) -> bool {
+    if let Some(function_name) = local_function_name(node) {
+        return base.get_node_text(&function_name) == name;
+    }
+    name_list(node).is_some_and(|list| {
+        let mut cursor = list.walk();
+        list.children_by_field_name("name", &mut cursor)
+            .any(|child| child.kind() == "identifier" && base.get_node_text(&child) == name)
+    })
+}
+
+fn declared_local_names(base: &BaseExtractor, node: Node) -> Vec<String> {
+    if let Some(function_name) = local_function_name(node) {
+        return vec![base.get_node_text(&function_name)];
+    }
+    let Some(list) = name_list(node) else {
+        return Vec::new();
+    };
+    let mut cursor = list.walk();
+    list.children_by_field_name("name", &mut cursor)
+        .filter(|child| child.kind() == "identifier")
+        .map(|child| base.get_node_text(&child))
+        .collect()
+}
+
+/// The identifier a `local function name` declaration binds.
+fn local_function_name(node: Node) -> Option<Node> {
+    if node.kind() != "function_declaration"
+        || !node.child(0).is_some_and(|first| first.kind() == "local")
+    {
+        return None;
+    }
+    node.child_by_field_name("name")
+        .filter(|name| name.kind() == "identifier")
+}
+
+/// The node whose `name` fields hold the names a `local`, parameter list, or
+/// loop clause binds.
+fn name_list(node: Node) -> Option<Node> {
     match node.kind() {
         "variable_declaration" => {
-            let list = crate::base::find_child_by_type(&node, "variable_list").or_else(|| {
+            crate::base::find_child_by_type(&node, "variable_list").or_else(|| {
                 crate::base::find_child_by_type(&node, "assignment_statement").and_then(
                     |assignment| crate::base::find_child_by_type(&assignment, "variable_list"),
                 )
-            });
-            list.is_some_and(|list| has_name_field(base, list, name))
+            })
         }
-        "function_declaration" => {
-            base.get_node_text(&node).trim_start().starts_with("local")
-                && node
-                    .child_by_field_name("name")
-                    .is_some_and(|n| n.kind() == "identifier" && base.get_node_text(&n) == name)
-        }
-        "parameters" | "for_numeric_clause" => has_name_field(base, node, name),
-        "for_generic_clause" => crate::base::find_child_by_type(&node, "variable_list")
-            .is_some_and(|list| has_name_field(base, list, name)),
-        _ => false,
+        "parameters" | "for_numeric_clause" => Some(node),
+        "for_generic_clause" => crate::base::find_child_by_type(&node, "variable_list"),
+        _ => None,
     }
-}
-
-fn has_name_field(base: &BaseExtractor, node: Node, name: &str) -> bool {
-    let mut cursor = node.walk();
-    node.children_by_field_name("name", &mut cursor)
-        .any(|child| child.kind() == "identifier" && base.get_node_text(&child) == name)
 }
 
 /// Resolve a table expression (`M`, `M.config`, `self`) to the symbol that owns it.

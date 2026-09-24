@@ -211,7 +211,7 @@ impl InitializerScope {
         if rejected {
             return None;
         }
-        let binding = root_binding(base, path.root);
+        let binding = self.return_types.root_binding(base, path.root);
         self.return_types
             .lookup(&path.name, path.owner.as_deref(), binding)
     }
@@ -279,7 +279,11 @@ impl<'tree> TargetPath<'tree> {
             _ => return None,
         };
         let (owner, root) = table_path(base, target.child_by_field_name("table")?, depth)?;
-        let owner = (owner != "_G" || root_binding(base, root).is_some()).then_some(owner);
+        let owner = (owner != "_G"
+            || scope::LocalBindings::default()
+                .innermost(base, root, &base.get_node_text(&root))
+                .is_some())
+        .then_some(owner);
         Some(Self {
             owner,
             name: member,
@@ -325,13 +329,6 @@ fn string_key(base: &BaseExtractor, key: Node) -> Option<String> {
         "string" => Some(base.get_node_text(&key.child_by_field_name("content")?)),
         _ => None,
     }
-}
-
-/// Start byte of the declaration that binds the identifier `root` where it
-/// appears; `None` when it is global there.
-fn root_binding(base: &BaseExtractor, root: Node) -> Option<usize> {
-    scope::innermost_local_binding(base, root, &base.get_node_text(&root))
-        .map(|declaration| declaration.start_byte())
 }
 
 /// How many variable, parameter, import, and class symbols bind each name.
@@ -393,6 +390,7 @@ struct ReturnTypeIndex {
     /// Keyed by the target path: `M`, `M.get`, `View.update` for
     /// `self.update` in a colon method of `View`.
     value_sites: HashMap<String, Vec<ValueSite>>,
+    local_bindings: scope::LocalBindings,
 }
 
 #[derive(Debug)]
@@ -430,6 +428,13 @@ struct AssignedValue<'tree> {
 }
 
 impl ReturnTypeIndex {
+    /// Start byte of the declaration that binds the identifier `root` where it
+    /// appears; `None` when it is global there.
+    fn root_binding(&self, base: &BaseExtractor, root: Node) -> Option<usize> {
+        self.local_bindings
+            .innermost(base, root, &base.get_node_text(&root))
+    }
+
     fn build(base: &BaseExtractor, root: Node, generics: &HashSet<String>) -> Self {
         let mut index = Self::default();
         index.collect(base, root, generics, 0);
@@ -453,7 +458,7 @@ impl ReturnTypeIndex {
                     .and_then(|target| TargetPath::of(base, target, 0))
                 {
                     let doc = helpers::doc_comment(base, &node);
-                    let binding = root_binding(base, path.root);
+                    let binding = self.root_binding(base, path.root);
                     self.insert(path.owner, path.name, binding, node, doc, generics);
                 }
             }
@@ -510,7 +515,7 @@ impl ReturnTypeIndex {
             };
             let binding = match declaration {
                 Some(declaration) => Some(declaration.start_byte()),
-                None => root_binding(base, path.root),
+                None => self.root_binding(base, path.root),
             };
             let assigned = AssignedValue {
                 owner: path.owner,

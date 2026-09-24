@@ -108,8 +108,13 @@ struct ReturnEntry {
 impl ReturnTypeIndex {
     pub(super) fn build(base: &BaseExtractor, root: Node) -> Self {
         let mut definitions = Vec::new();
+        let mut module_bodies = HashMap::new();
         let mut index = Self::default();
-        collect(base, root, 0, &mut definitions, &mut index);
+        let mut walk = Walk {
+            definitions: &mut definitions,
+            definition_scopes: HashMap::new(),
+        };
+        collect(base, root, None, 0, &mut walk, &mut index);
         for (name, key) in std::mem::take(&mut index.redefinitions) {
             index.entries.entry(name).or_default().push(ReturnEntry {
                 key,
@@ -126,7 +131,9 @@ impl ReturnTypeIndex {
                 .and_then(|scope| index.annotated_return(base, definition, scope));
             let entries = index.entries.entry(base.get_node_text(&name)).or_default();
             if let Some(scope) = scope.as_ref().filter(|scope| {
-                !scope.singleton && scope.owner.is_some() && is_module_function(base, definition)
+                !scope.singleton
+                    && scope.owner.is_some()
+                    && is_module_function(base, definition, &mut module_bodies)
             }) {
                 entries.push(ReturnEntry {
                     key: Some((scope.owner.clone(), true)),
@@ -490,11 +497,26 @@ impl ReturnTypeIndex {
 /// `describe` and most other DSLs run their block with an instance or another
 /// object as `self`.
 pub(super) fn self_scope(base: &BaseExtractor, node: Node) -> Option<SelfScope> {
+    self_scope_cached(base, node, &mut HashMap::new())
+}
+
+/// `self_scope`, with `definition_scopes` caching `definition_scope` by `def`
+/// node id.
+fn self_scope_cached(
+    base: &BaseExtractor,
+    node: Node,
+    definition_scopes: &mut HashMap<usize, Option<SelfScope>>,
+) -> Option<SelfScope> {
     let mut in_block = false;
     let mut current = node.parent();
     while let Some(ancestor) = current {
         match ancestor.kind() {
-            "method" | "singleton_method" => return definition_scope(base, ancestor),
+            "method" | "singleton_method" => {
+                return definition_scopes
+                    .entry(ancestor.id())
+                    .or_insert_with(|| definition_scope(base, ancestor))
+                    .clone();
+            }
             "class" | "module" | "program" if in_block => return None,
             "class" | "module" => return SelfScope::of_owner(base, ancestor, true),
             "singleton_class" => return None,
@@ -600,10 +622,60 @@ fn ivar_key(base: &BaseExtractor, ivar: Node) -> (Option<String>, String) {
     (lexical_owner(base, ivar), base.get_node_text(&ivar))
 }
 
+/// What a module body says about which of its `def`s are module methods.
+#[derive(Default)]
+struct ModuleBody {
+    extends_self: bool,
+    /// The `:name` arguments of `module_function :name` statements.
+    named: HashSet<String>,
+    /// Start byte of each bare `module_function`, `public`, `private`, or
+    /// `protected` statement, in source order, and whether it is
+    /// `module_function`.
+    markers: Vec<(usize, bool)>,
+}
+
+impl ModuleBody {
+    fn read(base: &BaseExtractor, body: Node) -> Self {
+        let mut read = Self::default();
+        for statement in body.named_children(&mut body.walk()) {
+            if statement.kind() == "identifier" {
+                match base.get_node_text(&statement).as_str() {
+                    "module_function" => read.markers.push((statement.start_byte(), true)),
+                    "public" | "private" | "protected" => {
+                        read.markers.push((statement.start_byte(), false));
+                    }
+                    _ => {}
+                }
+            }
+            let Some(arguments) = statement.child_by_field_name("arguments") else {
+                continue;
+            };
+            let mut cursor = arguments.walk();
+            let mut arguments = arguments.named_children(&mut cursor);
+            match call_method(base, statement).as_deref() {
+                Some("extend") => {
+                    read.extends_self |= arguments.all(|argument| argument.kind() == "self");
+                }
+                Some("module_function") => {
+                    read.named
+                        .extend(arguments.map(|argument| base.get_node_text(&argument)));
+                }
+                _ => {}
+            }
+        }
+        read
+    }
+}
+
 /// Whether a `def` in a module body is also a module method: it follows a
 /// bare `module_function`, is named by `module_function :name` or wrapped as
-/// `module_function def`, or the body has `extend self`.
-fn is_module_function(base: &BaseExtractor, definition: Node) -> bool {
+/// `module_function def`, or the body has `extend self`. `bodies` caches each
+/// module body's reading by node id.
+fn is_module_function(
+    base: &BaseExtractor,
+    definition: Node,
+    bodies: &mut HashMap<usize, ModuleBody>,
+) -> bool {
     let anchor = visibility_call_around(definition).unwrap_or(definition);
     if anchor != definition {
         return call_method(base, anchor).as_deref() == Some("module_function");
@@ -617,33 +689,20 @@ fn is_module_function(base: &BaseExtractor, definition: Node) -> bool {
     let Some(name) = definition.child_by_field_name("name") else {
         return false;
     };
-    let symbol = format!(":{}", base.get_node_text(&name));
-    let declared_by_statement = body.named_children(&mut body.walk()).any(|statement| {
-        let Some(arguments) = statement.child_by_field_name("arguments") else {
-            return false;
-        };
-        let mut cursor = arguments.walk();
-        let mut arguments = arguments.named_children(&mut cursor);
-        match call_method(base, statement).as_deref() {
-            Some("extend") => arguments.all(|argument| argument.kind() == "self"),
-            Some("module_function") => {
-                arguments.any(|argument| base.get_node_text(&argument) == symbol)
-            }
-            _ => false,
-        }
-    });
-    let mut previous = anchor.prev_named_sibling();
-    while let Some(statement) = previous {
-        if statement.kind() == "identifier" {
-            match base.get_node_text(&statement).as_str() {
-                "module_function" => return true,
-                "public" | "private" | "protected" => break,
-                _ => {}
-            }
-        }
-        previous = statement.prev_named_sibling();
-    }
-    declared_by_statement
+    let body = bodies
+        .entry(body.id())
+        .or_insert_with(|| ModuleBody::read(base, body));
+    let follows_module_function = body
+        .markers
+        .iter()
+        .rev()
+        .find(|(start, _)| *start < anchor.start_byte())
+        .is_some_and(|(_, module_function)| *module_function);
+    follows_module_function
+        || body.extends_self
+        || body
+            .named
+            .contains(&format!(":{}", base.get_node_text(&name)))
 }
 
 /// The method name of a receiverless call.
@@ -736,20 +795,31 @@ fn split_top_level(text: &str, separator: char) -> Vec<&str> {
     parts
 }
 
+/// State the index walk carries across the whole tree.
+struct Walk<'tree, 'a> {
+    definitions: &'a mut Vec<Node<'tree>>,
+    definition_scopes: HashMap<usize, Option<SelfScope>>,
+}
+
+/// `lexical_owner` is what `lexical_owner` gives for the children of `node`'s
+/// parent, carried down so an `@ivar` never climbs the tree for it.
 fn collect<'tree>(
     base: &BaseExtractor,
     node: Node<'tree>,
+    lexical_owner: Option<&str>,
     depth: u32,
-    definitions: &mut Vec<Node<'tree>>,
+    walk: &mut Walk<'tree, '_>,
     index: &mut ReturnTypeIndex,
 ) {
     if !should_visit_tree_depth(depth) {
         return;
     }
+    let mut own_path = None;
     match node.kind() {
-        "method" | "singleton_method" => definitions.push(node),
+        "method" | "singleton_method" => walk.definitions.push(node),
         "class" | "module" => {
-            if let Some(path) = owner_path(base, node) {
+            own_path = owner_path(base, node);
+            if let Some(path) = own_path.clone() {
                 if node.child_by_field_name("superclass").is_some() {
                     index.has_ancestors.insert((path.clone(), false));
                     index.has_ancestors.insert((path.clone(), true));
@@ -773,10 +843,11 @@ fn collect<'tree>(
             collect_call(base, node, index);
         }
         "instance_variable" => {
-            let level = self_scope(base, node).map(|scope| scope.singleton);
+            let level = self_scope_cached(base, node, &mut walk.definition_scopes)
+                .map(|scope| scope.singleton);
             index
                 .ivar_levels
-                .entry(ivar_key(base, node))
+                .entry((lexical_owner.map(str::to_string), base.get_node_text(&node)))
                 .or_default()
                 .insert(level);
         }
@@ -796,8 +867,13 @@ fn collect<'tree>(
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
+    let children_owner = if matches!(node.kind(), "class" | "module") {
+        own_path.as_deref()
+    } else {
+        lexical_owner
+    };
     for child in node.named_children(&mut node.walk()) {
-        collect(base, child, child_depth, definitions, index);
+        collect(base, child, children_owner, child_depth, walk, index);
     }
 }
 

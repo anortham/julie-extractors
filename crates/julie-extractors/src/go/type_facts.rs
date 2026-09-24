@@ -337,20 +337,21 @@ fn mentions_type_parameter(base: &BaseExtractor, type_node: Node, generics: &[St
 /// The names of every binding declared under `node`.
 fn declared_names(base: &BaseExtractor, node: Node) -> HashSet<String> {
     let mut names = HashSet::new();
-    let mut stack = vec![node];
-    while let Some(node) = stack.pop() {
-        if is_declared_name(node) {
+    let parent = node.parent();
+    let mut stack = vec![(node, parent, parent.and_then(|parent| parent.parent()))];
+    while let Some((node, parent, grandparent)) = stack.pop() {
+        if parent.is_some_and(|parent| is_declared_name(node, parent, grandparent)) {
             names.insert(base.get_node_text(&node));
         }
-        stack.extend(node.named_children(&mut node.walk()));
+        stack.extend(
+            node.named_children(&mut node.walk())
+                .map(|child| (child, Some(node), parent)),
+        );
     }
     names
 }
 
-fn is_declared_name(name: Node) -> bool {
-    let Some(parent) = name.parent() else {
-        return false;
-    };
+fn is_declared_name(name: Node, parent: Node, grandparent: Option<Node>) -> bool {
     match name.kind() {
         "identifier" => {}
         "type_identifier" => {
@@ -365,7 +366,7 @@ fn is_declared_name(name: Node) -> bool {
         | "parameter_declaration"
         | "variadic_parameter_declaration"
         | "type_parameter_declaration" => true,
-        "expression_list" => parent.parent().is_some_and(|holder| {
+        "expression_list" => grandparent.is_some_and(|holder| {
             matches!(
                 holder.kind(),
                 "short_var_declaration"

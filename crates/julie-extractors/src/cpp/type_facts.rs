@@ -39,9 +39,7 @@ pub(super) fn record_variable_fact(
             "init_declarator" => declarator.child_by_field_name("value"),
             _ => None,
         };
-        if let Some(shape) =
-            value.and_then(|value| initializer_type(base, value, declaration, return_types))
-        {
+        if let Some(shape) = value.and_then(|value| initializer_type(base, value, return_types)) {
             let declared = if shape.declared.contains('&') && !is_decltype_auto(type_node) {
                 &shape.name
             } else {
@@ -377,6 +375,9 @@ pub(super) struct ReturnTypeIndex {
     namespace_names: HashMap<String, HashSet<String>>,
     /// Every name a `#define` in the file defines.
     macros: HashSet<String>,
+    /// The unqualified name of every class, struct, or union the file
+    /// declares or defines.
+    type_names: HashSet<String>,
 }
 
 /// The namespace of a friend function: never a real namespace path, so no
@@ -474,8 +475,8 @@ impl ReturnTypeIndex {
     pub(super) fn build(base: &BaseExtractor, root: Node) -> Self {
         let mut index = Self::default();
         let mut out_of_line = Vec::new();
-        let mut stack = vec![root];
-        while let Some(node) = stack.pop() {
+        let mut stack = vec![(root, false)];
+        while let Some((node, at_scope_level)) = stack.pop() {
             match node.kind() {
                 "function_declarator" => match return_entry(base, node) {
                     Some((name, Some(scope), entry)) => out_of_line.push((name, scope, entry)),
@@ -483,6 +484,11 @@ impl ReturnTypeIndex {
                     None => {}
                 },
                 "class_specifier" | "struct_specifier" | "union_specifier" => {
+                    index.type_names.extend(
+                        node.children(&mut node.walk())
+                            .filter(|child| child.kind() == "type_identifier")
+                            .map(|name| base.get_node_text(&name)),
+                    );
                     index.add_class(base, node);
                 }
                 "preproc_def" | "preproc_function_def" => {
@@ -497,9 +503,7 @@ impl ReturnTypeIndex {
                 }
                 _ => {}
             }
-            if node.parent().is_some_and(|parent| {
-                matches!(parent.kind(), "translation_unit" | "declaration_list")
-            }) {
+            if at_scope_level {
                 let mut names = Vec::new();
                 declaration_names(base, node, false, &mut names);
                 if !names.is_empty() {
@@ -510,7 +514,12 @@ impl ReturnTypeIndex {
                         .extend(names);
                 }
             }
-            stack.extend(node.named_children(&mut node.walk()));
+            let holds_scope_members =
+                matches!(node.kind(), "translation_unit" | "declaration_list");
+            stack.extend(
+                node.named_children(&mut node.walk())
+                    .map(|child| (child, holds_scope_members)),
+            );
         }
         for (name, scope, mut entry) in out_of_line {
             let class = index
@@ -1221,10 +1230,9 @@ fn uses_template_parameter(base: &BaseExtractor, node: Node, depth: u32) -> bool
 fn initializer_type(
     base: &BaseExtractor,
     value: Node,
-    origin: Node,
     return_types: &ReturnTypeIndex,
 ) -> Option<TypeShape> {
-    if let Some(name) = inferred_constructor_name(base, value, origin) {
+    if let Some(name) = inferred_constructor_name(base, value, return_types) {
         return Some(TypeShape {
             declared: name.clone(),
             name,
@@ -1284,7 +1292,11 @@ fn initializer_type(
     }
 }
 
-fn inferred_constructor_name(base: &BaseExtractor, value: Node, origin: Node) -> Option<String> {
+fn inferred_constructor_name(
+    base: &BaseExtractor,
+    value: Node,
+    return_types: &ReturnTypeIndex,
+) -> Option<String> {
     match value.kind() {
         "call_expression" => {
             let function = value.child_by_field_name("function")?;
@@ -1292,7 +1304,7 @@ fn inferred_constructor_name(base: &BaseExtractor, value: Node, origin: Node) ->
                 return None;
             }
             let name = base.get_node_text(&function);
-            same_file_defines_type(base, origin, &name).then_some(name)
+            return_types.type_names.contains(&name).then_some(name)
         }
         "new_expression" => {
             let type_node = value.child_by_field_name("type")?;
@@ -1300,46 +1312,8 @@ fn inferred_constructor_name(base: &BaseExtractor, value: Node, origin: Node) ->
                 return None;
             }
             let name = structural_base_name(base, type_node, 0)?;
-            same_file_defines_type(base, origin, &name).then_some(name)
+            return_types.type_names.contains(&name).then_some(name)
         }
         _ => None,
     }
-}
-
-fn same_file_defines_type(base: &BaseExtractor, node: Node, name: &str) -> bool {
-    find_named_type(file_root(node), base, name, 0)
-}
-
-fn file_root(mut node: Node) -> Node {
-    while let Some(parent) = node.parent() {
-        node = parent;
-    }
-    node
-}
-
-fn find_named_type(node: Node, base: &BaseExtractor, name: &str, depth: u32) -> bool {
-    if !should_visit_tree_depth(depth) {
-        return false;
-    }
-    if matches!(
-        node.kind(),
-        "class_specifier" | "struct_specifier" | "union_specifier"
-    ) {
-        let found = node
-            .children(&mut node.walk())
-            .any(|child| child.kind() == "type_identifier" && base.get_node_text(&child) == name);
-        if found {
-            return true;
-        }
-    }
-    let Some(child_depth) = child_tree_depth(depth) else {
-        return false;
-    };
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if find_named_type(child, base, name, child_depth) {
-            return true;
-        }
-    }
-    false
 }

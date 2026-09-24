@@ -797,8 +797,8 @@ impl JavaScriptExtractor {
             }
             _ => None,
         };
-        if helpers::is_later_declarator(node)
-            && let Some(symbol) = symbol.as_mut()
+        if let Some(symbol) = symbol.as_mut()
+            && helpers::is_later_declarator(node)
         {
             symbol.doc_comment = None;
         }

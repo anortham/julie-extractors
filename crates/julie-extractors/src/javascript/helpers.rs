@@ -16,10 +16,17 @@ pub(super) fn is_later_declarator(node: Node) -> bool {
         node.parent()
             .filter(|parent| parent.kind() == "variable_declarator")
     };
-    declarator.is_some_and(|declarator| {
-        std::iter::successors(declarator.prev_named_sibling(), Node::prev_named_sibling)
-            .any(|sibling| sibling.kind() == "variable_declarator")
-    })
+    let Some(declarator) = declarator else {
+        return false;
+    };
+    let Some(declaration) = declarator.parent() else {
+        return false;
+    };
+    let mut cursor = declaration.walk();
+    declaration
+        .named_children(&mut cursor)
+        .take_while(|sibling| *sibling != declarator)
+        .any(|sibling| sibling.kind() == "variable_declarator")
 }
 
 impl super::JavaScriptExtractor {
