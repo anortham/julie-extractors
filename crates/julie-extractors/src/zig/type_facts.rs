@@ -270,9 +270,10 @@ fn names_fixed_type(base: &BaseExtractor, type_node: Node) -> bool {
     };
     nearest_declaration(base, leading).is_some_and(|declaration| {
         declaration.parent().is_some_and(is_container_or_root)
-            || declaration
-                .named_children(&mut declaration.walk())
-                .any(is_container)
+            || (declaration.kind() == "variable_declaration"
+                && declaration
+                    .named_children(&mut declaration.walk())
+                    .any(is_container))
     })
 }
 
@@ -449,7 +450,9 @@ fn self_receiver_container<'t>(base: &BaseExtractor, node: Node<'t>) -> Option<N
 }
 
 fn record_inferred_same_file_container(base: &mut BaseExtractor, symbol_id: &str, type_node: Node) {
-    if type_container(base, type_node, 0).is_some() {
+    if type_container(base, type_node, 0)
+        .is_some_and(|container| container_type_name(base, container).is_some())
+    {
         record_type_node(base, symbol_id, type_node, true);
     }
 }

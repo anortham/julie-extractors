@@ -79,11 +79,12 @@ belongs to that type, not to the declaration.
   same-file container with no `init` and no `usingnamespace` records `Type`.
 - A return type counts only when its leading name resolves to a
   container-level declaration or to a function-local container. A parameter
-  (`comptime T: type`), a loop capture (`|T|`), a function-local alias
+  (`comptime T: type`, or `comptime cfg: struct { T: type }` in `cfg.T`), a loop capture (`|T|`), a function-local alias
   (`const V = @TypeOf(value);`), or an unresolved name can stand for another
   type on each instantiation, so it records no fact.
 - These record no fact: a value fallback, a chain that ends in any other
-  member, a `void` return, a function of an anonymous container, a function of
+  member, a `void` return, a function or a literal (`Self{ .. }`,
+  `@This(){ .. }`) of an anonymous container, a function of
   a container declared inside a function with a `comptime`, `type`, or
   `anytype` parameter or inside an `inline for`/`inline while` body,
   `Type.init(..)` on a container with `usingnamespace` (the mixin may supply

@@ -747,3 +747,37 @@ fn run() void {
 "#;
     assert_eq!(fact(source, "mixed"), None);
 }
+
+#[test]
+fn return_type_led_by_a_comptime_struct_parameter_records_no_fact() {
+    let source = r#"
+const Box = struct {
+    fn get(comptime cfg: struct { T: type }) cfg.T { unreachable; }
+    fn getPtr(comptime cfg: struct { T: type }) *cfg.T { unreachable; }
+    fn use() void {
+        const bad_param_struct = get(.{ .T = u8 });
+        const bad_param_struct_ptr = getPtr(.{ .T = u8 });
+    }
+};
+"#;
+    assert_eq!(fact(source, "bad_param_struct"), None);
+    assert_eq!(fact(source, "bad_param_struct_ptr"), None);
+}
+
+#[test]
+fn struct_literal_of_an_anonymous_generic_container_records_no_fact() {
+    let source = r#"
+fn List(comptime T: type) type {
+    return struct {
+        const Self = @This();
+        items: []T,
+        fn dup(self: *Self) void {
+            const bad_anon_lit = Self{ .items = self.items };
+            const bad_this_lit = @This(){ .items = self.items };
+        }
+    };
+}
+"#;
+    assert_eq!(fact(source, "bad_anon_lit"), None);
+    assert_eq!(fact(source, "bad_this_lit"), None);
+}
