@@ -51,6 +51,8 @@ pub struct PowerShellExtractor {
     /// Variables already declared, keyed by syntax parent and
     /// [`helpers::variable_key`], so a reassignment adds no second symbol.
     declared_variables: HashSet<(Option<String>, String)>,
+    /// The file's classes and declared return types, for assignment inference.
+    return_types: type_facts::ReturnTypeIndex,
 }
 
 impl PowerShellExtractor {
@@ -63,12 +65,14 @@ impl PowerShellExtractor {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
             declared_variables: HashSet::new(),
+            return_types: type_facts::ReturnTypeIndex::default(),
         }
     }
 
     /// Extract all symbols from the PowerShell AST
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
+        self.return_types = type_facts::ReturnTypeIndex::build(&self.base, tree.root_node());
         self.walk_tree_for_symbols(tree.root_node(), &mut symbols, None, 0);
         if manifest::is_data_file_path(&self.base.file_path) {
             symbols.extend(manifest::extract_manifest_symbols(
@@ -213,7 +217,9 @@ impl PowerShellExtractor {
         match node.kind() {
             "function_statement" => functions::extract_function(&mut self.base, node, parent_id),
             "ERROR" => self.extract_error_node(node, parent_id),
-            "assignment_expression" => variables::extract_variable(&mut self.base, node, parent_id),
+            "assignment_expression" => {
+                variables::extract_variable(&mut self.base, node, parent_id, &self.return_types)
+            }
             "class_statement" => classes::extract_class(&mut self.base, node, parent_id),
             "class_method_definition" => classes::extract_method(&mut self.base, node, parent_id),
             "class_property_definition" => {

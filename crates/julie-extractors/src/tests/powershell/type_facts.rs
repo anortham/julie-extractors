@@ -504,3 +504,413 @@ function Use {
     assert_eq!(foo_rows.len(), 1);
     assert_eq!(foo_rows[0].resolved_type, "Foo");
 }
+
+fn inferred(code: &str, name: &str) -> Option<TypeInfo> {
+    let (symbols, extractor) = extract(code);
+    let variable = variable(&symbols, name);
+    extractor.base.type_info.get(&variable.id).cloned()
+}
+
+fn assert_inferred(code: &str, name: &str, expected: &str) {
+    let fact = inferred(code, name).unwrap_or_else(|| panic!("missing type fact for `{name}`"));
+    assert_eq!(fact.resolved_type, expected);
+    assert!(fact.is_inferred);
+}
+
+fn assert_not_inferred(code: &str, name: &str) {
+    assert!(
+        inferred(code, name).is_none(),
+        "expected no type fact for `{name}`"
+    );
+}
+
+#[test]
+fn output_type_function_call_records_inferred_fact() {
+    assert_inferred(
+        r#"
+class Workspace {}
+function Get-Workspace {
+    [CmdletBinding()]
+    [OutputType([Workspace])]
+    param([string]$Name)
+}
+function Use {
+    $w = get-workspace -Name x
+}
+"#,
+        "w",
+        "Workspace",
+    );
+}
+
+#[test]
+fn output_type_function_call_through_call_operator_records_inferred_fact() {
+    assert_inferred(
+        r#"
+function Get-Workspace {
+    [OutputType([Workspace])]
+    param()
+}
+$w = & Get-Workspace
+"#,
+        "w",
+        "Workspace",
+    );
+}
+
+#[test]
+fn parenthesized_call_records_inferred_fact() {
+    assert_inferred(
+        r#"
+function Get-Workspace {
+    [OutputType([Workspace])]
+    param()
+}
+$w = (Get-Workspace)
+"#,
+        "w",
+        "Workspace",
+    );
+}
+
+#[test]
+fn scope_qualified_function_call_records_inferred_fact() {
+    assert_inferred(
+        r#"
+function script:Get-Workspace {
+    [OutputType([Workspace])]
+    param()
+}
+$w = Get-Workspace
+"#,
+        "w",
+        "Workspace",
+    );
+}
+
+#[test]
+fn output_type_with_named_argument_records_inferred_fact() {
+    assert_inferred(
+        r#"
+function Get-Workspace {
+    [OutputType([Workspace], ParameterSetName = 'ById')]
+    param()
+}
+$w = Get-Workspace
+"#,
+        "w",
+        "Workspace",
+    );
+}
+
+#[test]
+fn repeated_output_type_with_one_type_records_inferred_fact() {
+    assert_inferred(
+        r#"
+function Get-Workspace {
+    [OutputType([Workspace])]
+    [OutputType([Workspace])]
+    param()
+}
+$w = Get-Workspace
+"#,
+        "w",
+        "Workspace",
+    );
+}
+
+#[test]
+fn output_type_generic_records_base_name_and_declared_text() {
+    let fact = inferred(
+        r#"
+function Get-Names {
+    [OutputType([System.Collections.Generic.List[string]])]
+    param()
+}
+$names = Get-Names
+"#,
+        "names",
+    )
+    .expect("missing type fact for `names`");
+    assert_eq!(fact.resolved_type, "System.Collections.Generic.List");
+    assert_eq!(
+        declared_metadata(&fact),
+        Some(&serde_json::json!(
+            "[System.Collections.Generic.List[string]]"
+        ))
+    );
+    assert!(fact.is_inferred);
+}
+
+#[test]
+fn this_method_call_records_inferred_fact() {
+    assert_inferred(
+        r#"
+class Workspace {
+    [Workspace] Load() { return $this }
+    [void] Use() {
+        $loaded = $this.Load()
+    }
+}
+"#,
+        "loaded",
+        "Workspace",
+    );
+}
+
+#[test]
+fn static_method_call_on_same_file_class_records_inferred_fact() {
+    assert_inferred(
+        r#"
+class Workspace {
+    static [Workspace] Create() { return [Workspace]::new() }
+}
+function Use {
+    $created = [Workspace]::Create()
+}
+"#,
+        "created",
+        "Workspace",
+    );
+}
+
+#[test]
+fn function_without_output_type_records_no_fact() {
+    assert_not_inferred(
+        r#"
+function Get-Workspace {
+    param()
+}
+$w = Get-Workspace
+"#,
+        "w",
+    );
+}
+
+#[test]
+fn same_named_functions_that_disagree_record_no_fact() {
+    assert_not_inferred(
+        r#"
+function Get-Workspace {
+    [OutputType([Workspace])]
+    param()
+}
+function Get-Workspace {
+    [OutputType([Folder])]
+    param()
+}
+$w = Get-Workspace
+"#,
+        "w",
+    );
+}
+
+#[test]
+fn output_type_with_two_types_records_no_fact() {
+    assert_not_inferred(
+        r#"
+function Get-Workspace {
+    [OutputType([Workspace], [Folder])]
+    param()
+}
+$w = Get-Workspace
+"#,
+        "w",
+    );
+}
+
+#[test]
+fn output_type_attributes_that_disagree_record_no_fact() {
+    assert_not_inferred(
+        r#"
+function Get-Workspace {
+    [OutputType([Workspace])]
+    [OutputType([Folder])]
+    param()
+}
+$w = Get-Workspace
+"#,
+        "w",
+    );
+}
+
+#[test]
+fn output_type_string_records_no_fact() {
+    assert_not_inferred(
+        r#"
+function Get-Workspace {
+    [OutputType('Folder')]
+    [OutputType([Workspace])]
+    param()
+}
+$w = Get-Workspace
+"#,
+        "w",
+    );
+}
+
+#[test]
+fn piped_call_records_no_fact() {
+    assert_not_inferred(
+        r#"
+function Get-Workspace {
+    [OutputType([Workspace])]
+    param()
+}
+$w = Get-Workspace | Select-Object -First 1
+"#,
+        "w",
+    );
+}
+
+#[test]
+fn method_chain_after_this_call_records_no_fact() {
+    assert_not_inferred(
+        r#"
+class Workspace {
+    [Workspace] Load() { return $this }
+    [void] Use() {
+        $copy = $this.Load().Clone()
+    }
+}
+"#,
+        "copy",
+    );
+}
+
+#[test]
+fn this_call_outside_class_records_no_fact() {
+    assert_not_inferred(
+        r#"
+class Workspace {
+    [Workspace] Load() { return $this }
+}
+function Use {
+    $loaded = $this.Load()
+}
+"#,
+        "loaded",
+    );
+}
+
+#[test]
+fn this_call_to_static_method_records_no_fact() {
+    assert_not_inferred(
+        r#"
+class Workspace {
+    static [Workspace] Load() { return $null }
+    [void] Use() {
+        $loaded = $this.Load()
+    }
+}
+"#,
+        "loaded",
+    );
+}
+
+#[test]
+fn static_call_to_instance_method_records_no_fact() {
+    assert_not_inferred(
+        r#"
+class Workspace {
+    [Workspace] Load() { return $this }
+}
+$loaded = [Workspace]::Load()
+"#,
+        "loaded",
+    );
+}
+
+#[test]
+fn this_static_access_records_no_fact() {
+    assert_not_inferred(
+        r#"
+class Workspace {
+    [Workspace] Load() { return $this }
+    [void] Use() {
+        $loaded = $this::Load()
+    }
+}
+"#,
+        "loaded",
+    );
+}
+
+#[test]
+fn overloads_that_disagree_record_no_fact() {
+    assert_not_inferred(
+        r#"
+class Workspace {
+    [Workspace] Load() { return $this }
+    [string] Load([string]$path) { return $path }
+    [void] Use() {
+        $loaded = $this.Load()
+    }
+}
+"#,
+        "loaded",
+    );
+}
+
+#[test]
+fn this_call_to_base_class_method_records_no_fact() {
+    assert_not_inferred(
+        r#"
+class Base {
+    [Base] Load() { return $this }
+}
+class Workspace : Base {
+    [void] Use() {
+        $loaded = $this.Load()
+    }
+}
+"#,
+        "loaded",
+    );
+}
+
+#[test]
+fn void_and_untyped_methods_record_no_fact() {
+    let code = r#"
+class Workspace {
+    [void] Reset() {}
+    Refresh() {}
+    [void] Use() {
+        $reset = $this.Reset()
+        $refreshed = $this.Refresh()
+    }
+}
+"#;
+    assert_not_inferred(code, "reset");
+    assert_not_inferred(code, "refreshed");
+}
+
+#[test]
+fn static_call_on_class_from_another_file_records_no_fact() {
+    assert_not_inferred(
+        r#"
+class Folder {
+    static [Folder] Create() { return [Folder]::new() }
+}
+$created = [Workspace]::Create()
+"#,
+        "created",
+    );
+}
+
+#[test]
+fn written_type_wins_over_call_inference() {
+    let fact = inferred(
+        r#"
+function Get-Workspace {
+    [OutputType([Workspace])]
+    param()
+}
+[Folder]$w = Get-Workspace
+"#,
+        "w",
+    )
+    .expect("missing type fact for `w`");
+    assert_eq!(fact.resolved_type, "Folder");
+    assert!(!fact.is_inferred);
+}

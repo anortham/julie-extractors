@@ -1,9 +1,13 @@
 use crate::base::BaseExtractor;
 use crate::base::types::TypeNameRules;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
+use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
 
-use super::helpers::{find_class_name_node, find_command_name_node};
+use super::helpers::{
+    find_class_name_node, find_command_name_node, find_function_name_node, find_method_name_node,
+    has_modifier, invoked_command, split_function_scope,
+};
 
 pub(super) const TYPE_NAME_RULES: TypeNameRules = TypeNameRules {
     nullable_suffixes: &[],
@@ -41,7 +45,12 @@ pub(super) fn record_declared_type_literal(base: &mut BaseExtractor, symbol_id: 
     record_type_literal(base, symbol_id, type_node, false);
 }
 
-pub(super) fn record_assignment_facts(base: &mut BaseExtractor, symbol_id: &str, node: Node) {
+pub(super) fn record_assignment_facts(
+    base: &mut BaseExtractor,
+    symbol_id: &str,
+    node: Node,
+    index: &ReturnTypeIndex,
+) {
     if let Some(left) = direct_child(node, "left_assignment_expression")
         && let Some(type_node) = find_first_kind(left, "type_literal", 0)
     {
@@ -49,8 +58,167 @@ pub(super) fn record_assignment_facts(base: &mut BaseExtractor, symbol_id: &str,
     }
 
     if let Some(value) = node.child_by_field_name("value") {
-        record_inferred_rhs(base, symbol_id, value, node);
+        record_inferred_rhs(base, symbol_id, value, index);
     }
+}
+
+/// The file's class names and the declared return types of its functions
+/// (`[OutputType([T])]`) and class methods, keyed case-insensitively.
+#[derive(Debug, Default)]
+pub(super) struct ReturnTypeIndex {
+    classes: HashSet<String>,
+    callables: HashMap<(Option<String>, String), Vec<ReturnEntry>>,
+}
+
+#[derive(Debug)]
+struct ReturnEntry {
+    is_static: bool,
+    /// `None` when the callable declares no single return type.
+    returns: Option<ReducedType>,
+}
+
+impl ReturnTypeIndex {
+    pub(super) fn build(base: &BaseExtractor, root: Node) -> Self {
+        let mut index = Self::default();
+        let mut stack = vec![root];
+        while let Some(node) = stack.pop() {
+            match node.kind() {
+                "class_statement" => {
+                    if let Some(name) = find_class_name_node(node) {
+                        index
+                            .classes
+                            .insert(base.get_node_text(&name).to_ascii_lowercase());
+                    }
+                }
+                "function_statement" => {
+                    if let Some(name) = find_function_name_node(node) {
+                        let raw = base.get_node_text(&name);
+                        let key = (None, split_function_scope(&raw).1.to_ascii_lowercase());
+                        let returns = output_type(base, node);
+                        index.add(key, false, returns);
+                    }
+                }
+                "class_method_definition" => {
+                    if let (Some(owner), Some(name)) = (
+                        enclosing_class_name(base, node),
+                        find_method_name_node(node),
+                    ) {
+                        let key = (
+                            Some(owner.to_ascii_lowercase()),
+                            base.get_node_text(&name).to_ascii_lowercase(),
+                        );
+                        let returns = direct_child(node, "type_literal")
+                            .and_then(|type_node| reduce_type_literal(base, type_node));
+                        index.add(key, has_modifier(base, node, "static"), returns);
+                    }
+                }
+                _ => {}
+            }
+            stack.extend(node.named_children(&mut node.walk()));
+        }
+        index
+    }
+
+    fn add(
+        &mut self,
+        key: (Option<String>, String),
+        is_static: bool,
+        returns: Option<ReducedType>,
+    ) {
+        self.callables
+            .entry(key)
+            .or_default()
+            .push(ReturnEntry { is_static, returns });
+    }
+
+    fn has_class(&self, name: &str) -> bool {
+        self.classes.contains(&name.to_ascii_lowercase())
+    }
+
+    /// The return type every same-named callable of `owner` with this
+    /// staticness agrees on.
+    fn lookup(&self, owner: Option<&str>, name: &str, is_static: bool) -> Option<&ReducedType> {
+        let key = (
+            owner.map(str::to_ascii_lowercase),
+            name.to_ascii_lowercase(),
+        );
+        let mut returns = self
+            .callables
+            .get(&key)?
+            .iter()
+            .filter(|entry| entry.is_static == is_static)
+            .map(|entry| entry.returns.as_ref());
+        let first = returns.next()??;
+        returns.all(|other| other == Some(first)).then_some(first)
+    }
+}
+
+/// The one type a function's `[OutputType(...)]` attributes declare. A string
+/// or literal output type, or two different types, declares none.
+fn output_type(base: &BaseExtractor, function: Node) -> Option<ReducedType> {
+    let mut types = Vec::new();
+    let mut cursor = function.walk();
+    for block in function
+        .children(&mut cursor)
+        .filter(|child| child.kind() == "script_block")
+    {
+        let Some(param_block) = direct_child(block, "param_block") else {
+            continue;
+        };
+        let mut lists = param_block.walk();
+        for list in param_block
+            .children(&mut lists)
+            .filter(|child| child.kind() == "attribute_list")
+        {
+            let mut attributes = list.walk();
+            for attribute in list
+                .children(&mut attributes)
+                .filter(|child| child.kind() == "attribute")
+            {
+                let is_output_type =
+                    direct_child(attribute, "attribute_name").is_some_and(|name| {
+                        base.get_node_text(&name).eq_ignore_ascii_case("OutputType")
+                    });
+                if is_output_type {
+                    collect_output_types(base, attribute, &mut types, 0)?;
+                }
+            }
+        }
+    }
+    let first = types.first()?;
+    types
+        .iter()
+        .all(|other| other == first)
+        .then(|| first.clone())
+}
+
+/// Push the positional type literals of an `OutputType` attribute. `None`
+/// when a positional argument is a string or other literal.
+fn collect_output_types(
+    base: &BaseExtractor,
+    node: Node,
+    types: &mut Vec<ReducedType>,
+    depth: u32,
+) -> Option<()> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+    match node.kind() {
+        "attribute_name" => return Some(()),
+        "attribute_argument" if direct_child(node, "simple_name").is_some() => return Some(()),
+        "type_literal" => {
+            types.push(reduce_type_literal(base, node)?);
+            return Some(());
+        }
+        kind if kind.ends_with("_literal") => return None,
+        _ => {}
+    }
+    let child_depth = child_tree_depth(depth)?;
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        collect_output_types(base, child, types, child_depth)?;
+    }
+    Some(())
 }
 
 pub(super) fn enclosing_class_name(base: &BaseExtractor, node: Node) -> Option<String> {
@@ -110,13 +278,20 @@ pub(super) fn record_type_literal(
     type_node: Node,
     is_inferred: bool,
 ) {
-    let Some(reduced) = reduce_type_literal(base, type_node) else {
-        return;
-    };
+    if let Some(reduced) = reduce_type_literal(base, type_node) {
+        record_reduced_type(base, symbol_id, &reduced, is_inferred);
+    }
+}
+
+fn record_reduced_type(
+    base: &mut BaseExtractor,
+    symbol_id: &str,
+    reduced: &ReducedType,
+    is_inferred: bool,
+) {
     if reduced.base_name.eq_ignore_ascii_case("void") {
         return;
     }
-    let declared = base.get_node_text(&type_node);
     let rules = if reduced.is_array {
         &ARRAY_TYPE_NAME_RULES
     } else {
@@ -125,22 +300,26 @@ pub(super) fn record_type_literal(
     base.record_declared_type_fact_with_declared(
         symbol_id,
         &reduced.base_name,
-        declared.trim(),
+        &reduced.declared,
         rules,
         is_inferred,
     );
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct ReducedType {
     base_name: String,
+    declared: String,
     is_array: bool,
 }
 
 fn reduce_type_literal(base: &BaseExtractor, type_literal: Node) -> Option<ReducedType> {
     let spec = direct_child(type_literal, "type_spec")?;
+    let declared = base.get_node_text(&type_literal).trim().to_string();
     if direct_child(spec, "array_type_name").is_some() {
         return Some(ReducedType {
             base_name: base.get_node_text(&spec).trim().to_string(),
+            declared,
             is_array: true,
         });
     }
@@ -149,19 +328,32 @@ fn reduce_type_literal(base: &BaseExtractor, type_literal: Node) -> Option<Reduc
         .or_else(|| direct_child(spec, "type_name"))?;
     Some(ReducedType {
         base_name: base.get_node_text(&name).trim().to_string(),
+        declared,
         is_array: false,
     })
 }
 
-fn record_inferred_rhs(base: &mut BaseExtractor, symbol_id: &str, value: Node, origin: Node) {
-    let core = unwrap_expr(value);
+/// Record the type an untyped assignment's value produces (`is_inferred=true`):
+/// a cast, `[T]::new()` or `New-Object T` for a same-file class `T`, or a call
+/// with a declared return type to a same-file function, a `$this` method of
+/// the enclosing class, or a static method of a same-file class. Parentheses
+/// are looked through; a pipeline or a longer chain records nothing.
+fn record_inferred_rhs(
+    base: &mut BaseExtractor,
+    symbol_id: &str,
+    value: Node,
+    index: &ReturnTypeIndex,
+) {
+    let Some(core) = value_core(value, 0) else {
+        return;
+    };
     if core.kind() == "cast_expression" {
         if let Some(type_node) = direct_child(core, "type_literal") {
             record_type_literal(base, symbol_id, type_node, true);
         }
         return;
     }
-    if let Some(type_name) = inferred_constructor_name(base, core, origin) {
+    if let Some(type_name) = inferred_constructor_name(base, core, index) {
         base.record_declared_type_fact_with_declared(
             symbol_id,
             &type_name,
@@ -169,10 +361,58 @@ fn record_inferred_rhs(base: &mut BaseExtractor, symbol_id: &str, value: Node, o
             &TYPE_NAME_RULES,
             true,
         );
+        return;
+    }
+    if let Some(returns) = call_return_type(base, core, index) {
+        let returns = returns.clone();
+        record_reduced_type(base, symbol_id, &returns, true);
     }
 }
 
-fn inferred_constructor_name(base: &BaseExtractor, core: Node, origin: Node) -> Option<String> {
+fn value_core(value: Node, depth: u32) -> Option<Node> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+    let core = unwrap_expr(value);
+    if core.kind() == "parenthesized_expression" {
+        return value_core(first_named_child(core)?, child_tree_depth(depth)?);
+    }
+    Some(core)
+}
+
+fn call_return_type<'a>(
+    base: &BaseExtractor,
+    core: Node,
+    index: &'a ReturnTypeIndex,
+) -> Option<&'a ReducedType> {
+    match core.kind() {
+        "command" => {
+            let (_, name) = invoked_command(base, core)?;
+            index.lookup(None, &name, false)
+        }
+        "invokation_expression" | "invocation_expression" => {
+            let (_, method) = invocation_member_name(base, core)?;
+            let is_static = direct_child(core, "::").is_some();
+            if is_static {
+                let owner = reduce_type_literal(base, direct_child(core, "type_literal")?)?;
+                if owner.is_array {
+                    return None;
+                }
+                index.lookup(Some(&owner.base_name), &method, true)
+            } else {
+                let owner = this_receiver_type(base, core)?;
+                index.lookup(Some(&owner), &method, false)
+            }
+        }
+        _ => None,
+    }
+}
+
+fn inferred_constructor_name(
+    base: &BaseExtractor,
+    core: Node,
+    index: &ReturnTypeIndex,
+) -> Option<String> {
     match core.kind() {
         "invokation_expression" | "invocation_expression" => {
             let (_, member) = invocation_member_name(base, core)?;
@@ -184,14 +424,20 @@ fn inferred_constructor_name(base: &BaseExtractor, core: Node, origin: Node) -> 
             if reduced.is_array || reduced.base_name.contains('.') {
                 return None;
             }
-            same_file_class(base, origin, &reduced.base_name).then_some(reduced.base_name)
+            index
+                .has_class(&reduced.base_name)
+                .then_some(reduced.base_name)
         }
-        "command" | "command_expression" => new_object_type_name(base, core, origin),
+        "command" | "command_expression" => new_object_type_name(base, core, index),
         _ => None,
     }
 }
 
-fn new_object_type_name(base: &BaseExtractor, command: Node, origin: Node) -> Option<String> {
+fn new_object_type_name(
+    base: &BaseExtractor,
+    command: Node,
+    index: &ReturnTypeIndex,
+) -> Option<String> {
     let name_node = find_command_name_node(command)?;
     if !base
         .get_node_text(&name_node)
@@ -215,38 +461,9 @@ fn new_object_type_name(base: &BaseExtractor, command: Node, origin: Node) -> Op
         if text.contains('.') {
             return None;
         }
-        return same_file_class(base, origin, &text).then_some(text);
+        return index.has_class(&text).then_some(text);
     }
     None
-}
-
-fn same_file_class(base: &BaseExtractor, origin: Node, name: &str) -> bool {
-    find_class_named(file_root(origin), name, base, 0)
-}
-
-fn file_root(mut node: Node) -> Node {
-    while let Some(parent) = node.parent() {
-        node = parent;
-    }
-    node
-}
-
-fn find_class_named(node: Node, name: &str, base: &BaseExtractor, depth: u32) -> bool {
-    if !should_visit_tree_depth(depth) {
-        return false;
-    }
-    if node.kind() == "class_statement"
-        && find_class_name_node(node)
-            .is_some_and(|n| base.get_node_text(&n).eq_ignore_ascii_case(name))
-    {
-        return true;
-    }
-    let Some(child_depth) = child_tree_depth(depth) else {
-        return false;
-    };
-    let mut cursor = node.walk();
-    node.children(&mut cursor)
-        .any(|child| find_class_named(child, name, base, child_depth))
 }
 
 fn unwrap_expr(node: Node) -> Node {
