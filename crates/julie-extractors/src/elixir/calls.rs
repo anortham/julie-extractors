@@ -279,7 +279,7 @@ fn extract_defmacro(
 fn record_spec_type(extractor: &mut ElixirExtractor, node: &Node, symbol: &Symbol) {
     let arity = helpers::definition_arity(&extractor.base, node).1;
     let key = (
-        extractor.module_stack.last().cloned(),
+        type_facts::module_scope(&extractor.base, node),
         type_facts::quote_scope(&extractor.base, node),
         symbol.name.clone(),
         arity,

@@ -41,9 +41,9 @@ pub struct ElixirExtractor {
     pub(crate) spec_returns: HashMap<String, SpecReturn>,
 }
 
-/// Enclosing module, enclosing `quote` block, function name, and arity of a
-/// `@spec` or definition.
-pub(crate) type SpecKey = (Option<String>, Option<usize>, String, usize);
+/// Start bytes of the enclosing module and `quote` block, function name, and
+/// arity of a `@spec` or definition.
+pub(crate) type SpecKey = (Option<usize>, Option<usize>, String, usize);
 
 impl ElixirExtractor {
     pub fn new(

@@ -36,6 +36,9 @@ struct CallScope<'a> {
     callers: ContainingSymbolIndex<'a>,
     modules: ContainingSymbolIndex<'a>,
     modules_by_name: HashMap<&'a str, &'a Symbol>,
+    /// Names that more than one module in the file declares, such as the
+    /// branches of `if Code.ensure_loaded?(...)`.
+    shared_module_names: HashSet<&'a str>,
     by_id: HashMap<&'a str, &'a Symbol>,
     callables: HashMap<(Option<&'a str>, &'a str), Vec<Callable<'a>>>,
     /// `alias` directives and nested module names, in source order.
@@ -92,6 +95,13 @@ impl<'a> CallScope<'a> {
             })),
             modules: ContainingSymbolIndex::from_iter(module_symbols()),
             modules_by_name: module_symbols().map(|s| (s.name.as_str(), s)).collect(),
+            shared_module_names: {
+                let mut seen = HashSet::new();
+                module_symbols()
+                    .filter(|s| !seen.insert(s.name.as_str()))
+                    .map(|s| s.name.as_str())
+                    .collect()
+            },
             by_id,
             callables: HashMap::new(),
             aliases: Vec::new(),
@@ -283,7 +293,7 @@ fn call_arity(base: &BaseExtractor, node: &Node) -> usize {
         return arity;
     }
     let explicit = helpers::find_child_by_type(node, "arguments")
-        .map(|args| args.named_child_count())
+        .map(|args| helpers::argument_nodes(&args).len())
         .unwrap_or(0);
     let piped = node.parent().is_some_and(|parent| {
         parent.kind() == "binary_operator"
@@ -425,7 +435,7 @@ fn record_initializer_type(
 
 /// The return type every same-file definition a call can reach agrees on: a
 /// local call in the enclosing module, or `Alias.fun()` / `__MODULE__.fun()`
-/// on a module defined in this file. A piped call counts the piped argument.
+/// on a module defined once in this file. A piped call counts the piped argument.
 /// A macro expands at compile time, so a macro call records nothing. Quoted
 /// code runs in the module that injects it, so a call in a quote records
 /// nothing.
@@ -454,6 +464,9 @@ fn initializer_type(
             let left = target.child_by_field_name("left")?;
             let reference = base.get_node_text(&left);
             let module = scope.expand_module(enclosing, &reference, left.start_byte());
+            if scope.shared_module_names.contains(module.as_str()) {
+                return None;
+            }
             let module = *scope.modules_by_name.get(module.as_str())?;
             (
                 Some(module),

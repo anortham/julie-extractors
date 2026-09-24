@@ -117,7 +117,7 @@ fn typespec_head<'a>(base: &BaseExtractor, head: Node<'a>) -> Option<(String, us
         "call" => {
             let target = head.child_by_field_name("target")?;
             let arity = find_child_by_type(&head, "arguments")
-                .map(|args| args.named_child_count())
+                .map(|args| super::helpers::argument_nodes(&args).len())
                 .unwrap_or(0);
             Some((base.get_node_text(&target), arity))
         }
@@ -238,7 +238,7 @@ fn extract_spec_attribute(extractor: &mut ElixirExtractor, call_node: &Node) {
     let Some((name, arity)) = typespec_head(&extractor.base, head) else {
         return;
     };
-    let module = extractor.module_stack.last().cloned();
+    let module = super::type_facts::module_scope(&extractor.base, call_node);
     let quote = super::type_facts::quote_scope(&extractor.base, call_node);
     let spec = SpecReturn::from_node(&extractor.base, return_type);
     extractor

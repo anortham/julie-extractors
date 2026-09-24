@@ -732,3 +732,137 @@ end
     assert!(x.local_type("after_alias").is_none());
     assert!(x.local_type("fn_alias").is_none());
 }
+
+#[test]
+fn comment_inside_call_arguments_is_not_an_argument() {
+    let x = extract(
+        r#"
+defmodule App do
+  @spec load(integer()) :: One.T.t()
+  def load(a), do: a
+  @spec load(integer(), integer()) :: Two.T.t()
+  def load(a, b), do: {a, b}
+
+  def run do
+    commented =
+      load(
+        # the id
+        1
+      )
+    commented
+  end
+end
+"#,
+    );
+
+    assert_eq!(x.inferred("commented"), "One.T.t");
+}
+
+#[test]
+fn comment_inside_spec_arguments_is_not_a_parameter() {
+    let x = extract(
+        r#"
+defmodule App do
+  @spec load(
+          # the id
+          integer()
+        ) :: One.T.t()
+  def load(a), do: a
+  def load(a, b), do: {a, b}
+
+  def run do
+    two = load(1, 2)
+    one = load(1)
+    {one, two}
+  end
+end
+"#,
+    );
+
+    assert!(x.local_type("two").is_none());
+    assert_eq!(x.inferred("one"), "One.T.t");
+}
+
+#[test]
+fn comment_inside_definition_head_is_not_a_parameter() {
+    let x = extract(
+        r#"
+defmodule App do
+  @spec load(integer()) :: One.T.t()
+  def load(
+        # the id
+        a
+      ),
+      do: a
+
+  def run do
+    one = load(1)
+    one
+  end
+end
+"#,
+    );
+
+    assert_eq!(x.inferred("one"), "One.T.t");
+}
+
+#[test]
+fn same_named_conditional_modules_record_nothing() {
+    let x = extract(
+        r#"
+defmodule Cond do
+  if Code.ensure_loaded?(Jason) do
+    defmodule Impl do
+      @spec load() :: A.Thing.t()
+      def load, do: nil
+    end
+  else
+    defmodule Impl do
+      def load, do: :something_else
+    end
+  end
+
+  def run do
+    borrowed = Cond.Impl.load()
+    borrowed
+  end
+end
+"#,
+    );
+
+    assert!(x.local_type("borrowed").is_none());
+    let load_types: Vec<Option<&str>> = x
+        .symbols
+        .iter()
+        .filter(|s| s.name == "load" && s.kind == SymbolKind::Function)
+        .map(|s| x.types.get(&s.id).map(|fact| fact.resolved_type.as_str()))
+        .collect();
+    assert_eq!(load_types, [Some("A.Thing.t"), None]);
+}
+
+#[test]
+fn same_named_conditional_modules_record_nothing_when_only_the_last_has_a_spec() {
+    let x = extract(
+        r#"
+defmodule Cond do
+  if Code.ensure_loaded?(Jason) do
+    defmodule Impl do
+      def load, do: :something_else
+    end
+  else
+    defmodule Impl do
+      @spec load() :: A.Thing.t()
+      def load, do: nil
+    end
+  end
+
+  def run do
+    borrowed = Cond.Impl.load()
+    borrowed
+  end
+end
+"#,
+    );
+
+    assert!(x.local_type("borrowed").is_none());
+}

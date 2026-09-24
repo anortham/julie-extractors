@@ -56,6 +56,21 @@ pub(super) fn quote_scope(base: &BaseExtractor, node: &Node) -> Option<usize> {
         .map(|quote| quote.start_byte())
 }
 
+/// The start byte of the innermost `defmodule`, `defprotocol`, or `defimpl`
+/// around `node`. Two modules with one name (the branches of an `if`) are
+/// different modules.
+pub(super) fn module_scope(base: &BaseExtractor, node: &Node) -> Option<usize> {
+    std::iter::successors(node.parent(), Node::parent)
+        .find(|ancestor| {
+            ancestor.kind() == "call"
+                && matches!(
+                    helpers::extract_call_target_name(base, ancestor).as_deref(),
+                    Some("defmodule" | "defprotocol" | "defimpl")
+                )
+        })
+        .map(|module| module.start_byte())
+}
+
 fn is_quote_call(base: &BaseExtractor, node: Node) -> bool {
     node.kind() == "call"
         && node.child_by_field_name("target").is_some_and(|target| {

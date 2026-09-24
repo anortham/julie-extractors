@@ -9,7 +9,10 @@
   `integer`, `Workspace.t()` -> `Workspace.t`). The spec can come before or
   after the definition. Tuples, lists, unions, maps, and type variables
   record nothing. Two specs for one head with different return types record
-  nothing.
+  nothing. A spec matches only definitions in the same `defmodule` block, so
+  two modules with one name (the branches of `if Code.ensure_loaded?(...)`)
+  do not share specs. Comments inside a spec, head, or call are not
+  arguments.
 - A `%Worker{} = w` parameter records the declared fact `Worker`. A local
   bound to an unqualified struct literal (`job = %Job{}`) records the
   inferred fact `Job`. `%__MODULE__{}`, `%mod{}`, and `%Foo.Bar{}` record
@@ -50,7 +53,9 @@
   different `{:ok, _}` payloads, or a payload that is not a named type
   (`{:ok, [Foo.t()]}`, `{:ok, t}`) records nothing.
 - These cases record no inferred fact: a macro call, a call on a variable
-  module (`mod.load()`), a call with an arity that no same-file definition
+  module (`mod.load()`), a call on a module name that two modules in the
+  file declare (`Cond.Impl.load()` when both branches of an `if` define
+  `Cond.Impl`), a call with an arity that no same-file definition
   accepts, and a callee in another file. Other files are out of scope because
   each file is extracted alone. `with {:ok, x} <- load()` and `case` clause
   patterns are not locals and record nothing.
