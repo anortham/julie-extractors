@@ -53,7 +53,7 @@ fn generic_classes_and_functions_keep_type_parameters_in_signatures() {
     );
     assert_eq!(
         one(&result, "first").signature.as_deref(),
-        Some("def first[T](items: list[T]): T")
+        Some("def first[T](items: list[T]) -> T")
     );
 }
 
@@ -304,7 +304,7 @@ fn signatures_keep_splat_parameters_and_separators() {
     );
     assert_eq!(
         one(&result, "typed").signature.as_deref(),
-        Some("def typed(*values: int, **options: str): None")
+        Some("def typed(*values: int, **options: str) -> None")
     );
     assert_eq!(
         one(&result, "kwonly").signature.as_deref(),

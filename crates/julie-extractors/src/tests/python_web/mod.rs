@@ -141,6 +141,41 @@ def health():
 }
 
 #[test]
+fn flask_route_methods_accept_tuples_and_sets() {
+    let source = r#"
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route("/register", methods=("GET", "POST"))
+def register():
+    pass
+
+@app.route("/<int:id>/delete", methods=("POST",))
+def delete(id):
+    pass
+
+@app.route("/sync", methods={"PUT"})
+def sync():
+    pass
+"#;
+    let results = extract("app.py", source);
+    let routes = facts_with_pattern(&results, FLASK_ROUTE_PATTERN_ID);
+    let verbs = |template: &str| {
+        let mut verbs: Vec<&str> = routes
+            .iter()
+            .filter(|fact| metadata_str(fact, "route_template") == Some(template))
+            .filter_map(|fact| metadata_str(fact, "verb"))
+            .collect();
+        verbs.sort_unstable();
+        verbs
+    };
+    assert_eq!(verbs("/register"), ["GET", "POST"]);
+    assert_eq!(verbs("/<int:id>/delete"), ["POST"]);
+    assert_eq!(verbs("/sync"), ["PUT"]);
+}
+
+#[test]
 fn flask_routes_defaults_methods_and_blueprints_emit_boundary_facts() {
     let source = r#"
 from flask import Flask, Blueprint

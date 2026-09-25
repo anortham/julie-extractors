@@ -1051,7 +1051,7 @@
         "end_byte": 1400
       },
       "body_hash": "44d4842763a4b1e24c54a4e394b9df8f",
-      "signature": "@retry def fetch(repo: \"Repo\", state: Literal[\"active\", \"idle\"]): \"User | None\"",
+      "signature": "@retry def fetch(repo: \"Repo\", state: Literal[\"active\", \"idle\"]) -> \"User | None\"",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
@@ -1060,7 +1060,7 @@
           "retry"
         ],
         "isAsync": false,
-        "returnType": ": \"User | None\""
+        "returnType": "\"User | None\""
       },
       "annotations": [
         {
@@ -1094,14 +1094,14 @@
         "end_byte": 1059
       },
       "body_hash": "e5b3fa2be625c0adb991771a1ec3b2b6",
-      "signature": "def first[S](self, items: list[S], index: dict[str, Order]): S",
+      "signature": "def first[S](self, items: list[S], index: dict[str, Order]) -> S",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/python/wave2_semantics/source.py:Box:57:0",
       "metadata": {
         "decorators": [],
         "isAsync": false,
-        "returnType": ": S"
+        "returnType": "S"
       },
       "annotations": [],
       "semantic_group": null,
@@ -1351,14 +1351,14 @@
         "end_byte": 496
       },
       "body_hash": "0c476ba58556b6a629028109b4ed67b3",
-      "signature": "def read(self): bytes",
+      "signature": "def read(self) -> bytes",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/python/wave2_semantics/source.py:Reader:22:0",
       "metadata": {
         "decorators": [],
         "isAsync": false,
-        "returnType": ": bytes"
+        "returnType": "bytes"
       },
       "annotations": [],
       "semantic_group": null,

@@ -88,6 +88,27 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 3.6.2
+
+classification: compatible
+
+Two Python changes. No SQLite or report-schema column is added, removed, or
+retyped: SQLite schema remains 7, report schema remains 3, and extraction
+identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` adds
+`python-return-arrow-v1` and `flask-methods-tuple-v1` because canonical output
+changes.
+
+- A Python function or method signature writes its return annotation with
+  `->`: `def load(path: str) -> Config`, not `def load(path: str): Config`.
+  The `returnType` metadata key holds the annotation text alone (`Config`, not
+  `: Config`), as it does in PHP and Kotlin. A function without an annotation
+  keeps `returnType` as the empty string. Names, kinds, spans, and ids do not
+  change.
+- A Flask route whose `methods=` value is a tuple or a set now gives one route
+  fact for each listed method, as a list already did. Before, such a route got
+  one fact with the default verb `GET`, so `methods=("POST",)` was recorded as
+  `GET`. Rows are added and changed in `structural_facts` for these routes.
+
 ## 3.6.1
 
 classification: compatible

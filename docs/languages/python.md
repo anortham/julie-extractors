@@ -181,6 +181,11 @@ Imports, variables, constants, attributes, and parameters have no body span.
   whatever its case, except `_sunder_` and `__dunder__` names. An enum member
   gets no type fact from its value: `RED = compute()` is a member of the enum,
   not a value of `compute()`'s return type.
+- A function signature writes its return type as Python does:
+  `def load(path: str) -> Config`. The `returnType` metadata holds the type
+  alone (`Config`).
+- A Flask `methods=` value may be a list, a tuple, or a set:
+  `methods=("GET", "POST")` gives one route fact for each method.
 - A `self.x = ...` assignment in a method is a `property` of the enclosing
   class. Its signature keeps the receiver (`self.x = make()`), so it reads
   apart from a class-level `x = ...`. A class-level declaration of the same

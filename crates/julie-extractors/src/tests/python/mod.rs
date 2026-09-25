@@ -137,7 +137,7 @@ async def fetch_data(url: str) -> dict:
                 .signature
                 .as_ref()
                 .unwrap()
-                .contains("def calculate_tax(amount: float, rate: float = 0.1): float")
+                .contains("def calculate_tax(amount: float, rate: float = 0.1) -> float")
         );
         assert!(
             calculate_tax
@@ -156,7 +156,7 @@ async def fetch_data(url: str) -> dict:
                 .signature
                 .as_ref()
                 .unwrap()
-                .contains("async def fetch_data(url: str): dict")
+                .contains("async def fetch_data(url: str) -> dict")
         );
         assert!(
             fetch_data
@@ -249,7 +249,7 @@ class Calculator:
                 .signature
                 .as_ref()
                 .unwrap()
-                .contains("def add(self, a: float, b: float): float")
+                .contains("def add(self, a: float, b: float) -> float")
         );
         assert!(
             add_method

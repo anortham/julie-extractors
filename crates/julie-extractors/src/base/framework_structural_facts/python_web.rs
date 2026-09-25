@@ -8,7 +8,8 @@ use super::helpers::{
     smallest_node_covering_range,
 };
 use super::scan::{
-    MaskLanguage, RouteFactSpec, SourceMask, find_matching_bracket_within, find_matching_paren,
+    MaskLanguage, RouteFactSpec, SourceMask, find_matching_brace_within,
+    find_matching_bracket_within, find_matching_paren, find_matching_paren_within,
     find_top_level_comma_or_end, parse_python_string_literal, route_fact,
 };
 use super::{
@@ -1378,11 +1379,14 @@ fn methods_keyword_named(args: &str, key: &str) -> Vec<String> {
     let Some(value_start) = keyword_value_start(args, key) else {
         return Vec::new();
     };
-    if args.as_bytes().get(value_start) != Some(&b'[') {
-        return Vec::new();
-    }
     let args_mask = SourceMask::new(args, MaskLanguage::Python);
-    let Some(end) = find_matching_bracket_within(args, &args_mask, value_start, args.len()) else {
+    let end = match args.as_bytes().get(value_start) {
+        Some(b'[') => find_matching_bracket_within(args, &args_mask, value_start, args.len()),
+        Some(b'(') => find_matching_paren_within(args, &args_mask, value_start, args.len()),
+        Some(b'{') => find_matching_brace_within(args, &args_mask, value_start, args.len()),
+        _ => None,
+    };
+    let Some(end) = end else {
         return Vec::new();
     };
     let mut methods = Vec::new();

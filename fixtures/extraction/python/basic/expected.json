@@ -114,14 +114,14 @@
         "end_byte": 148
       },
       "body_hash": "9fc5dd46e870ffb938aef0240f947bed",
-      "signature": "def __init__(self, id: int): None",
+      "signature": "def __init__(self, id: int) -> None",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/python/basic/source.py:Worker:6:0",
       "metadata": {
         "decorators": [],
         "isAsync": false,
-        "returnType": ": None"
+        "returnType": "None"
       },
       "annotations": [],
       "semantic_group": null,
@@ -175,7 +175,7 @@
         "end_byte": 299
       },
       "body_hash": "83cda753e6624d41e2a2fa5a45dd0a42",
-      "signature": "@staticmethod def default_id(): int",
+      "signature": "@staticmethod def default_id() -> int",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/python/basic/source.py:Worker:6:0",
@@ -184,7 +184,7 @@
           "staticmethod"
         ],
         "isAsync": false,
-        "returnType": ": int"
+        "returnType": "int"
       },
       "annotations": [
         {
@@ -244,14 +244,14 @@
         "end_byte": 968
       },
       "body_hash": "3cdebbca47fdb4a2844d753a93da279a",
-      "signature": "def evaluate(count: int, enabled: bool): int",
+      "signature": "def evaluate(count: int, enabled: bool) -> int",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "decorators": [],
         "isAsync": false,
-        "returnType": ": int"
+        "returnType": "int"
       },
       "annotations": [],
       "semantic_group": null,
@@ -305,14 +305,14 @@
         "end_byte": 773
       },
       "body_hash": "c0ad54c7207c3274b938bff58428aa30",
-      "signature": "def fetch_status(): None",
+      "signature": "def fetch_status() -> None",
       "doc_comment": "Checks the worker service health endpoint.",
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "decorators": [],
         "isAsync": false,
-        "returnType": ": None"
+        "returnType": "None"
       },
       "annotations": [],
       "semantic_group": null,
@@ -340,14 +340,14 @@
         "end_byte": 817
       },
       "body_hash": "1a1dc91c907325c69271ddf0c944bc72",
-      "signature": "def fetch_url(url: str): None",
+      "signature": "def fetch_url(url: str) -> None",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "decorators": [],
         "isAsync": false,
-        "returnType": ": None"
+        "returnType": "None"
       },
       "annotations": [],
       "semantic_group": null,
@@ -375,14 +375,14 @@
         "end_byte": 634
       },
       "body_hash": "5637ce87077f66b326b44cc1bd913073",
-      "signature": "def helper(value: int): int",
+      "signature": "def helper(value: int) -> int",
       "doc_comment": "Increment a worker id.",
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "decorators": [],
         "isAsync": false,
-        "returnType": ": int"
+        "returnType": "int"
       },
       "annotations": [],
       "semantic_group": null,
@@ -514,14 +514,14 @@
         "end_byte": 547
       },
       "body_hash": "68b597a57aebb275e240a7b2ca501a3a",
-      "signature": "def observe_run(event: str, id: int): None",
+      "signature": "def observe_run(event: str, id: int) -> None",
       "doc_comment": "Records a named worker event for downstream hooks.",
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "decorators": [],
         "isAsync": false,
-        "returnType": ": None"
+        "returnType": "None"
       },
       "annotations": [],
       "semantic_group": null,
@@ -549,14 +549,14 @@
         "end_byte": 429
       },
       "body_hash": "1467d81e1404de0ef6606aa44d623cec",
-      "signature": "def record_run(id: int): None",
+      "signature": "def record_run(id: int) -> None",
       "doc_comment": "Emits a worker-run marker for observability hooks.",
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "decorators": [],
         "isAsync": false,
-        "returnType": ": None"
+        "returnType": "None"
       },
       "annotations": [],
       "semantic_group": null,
@@ -584,14 +584,14 @@
         "end_byte": 234
       },
       "body_hash": "adac0ca9a4bde0460a940aacab36257c",
-      "signature": "def run(self): int",
+      "signature": "def run(self) -> int",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/python/basic/source.py:Worker:6:0",
       "metadata": {
         "decorators": [],
         "isAsync": false,
-        "returnType": ": int"
+        "returnType": "int"
       },
       "annotations": [],
       "semantic_group": null,

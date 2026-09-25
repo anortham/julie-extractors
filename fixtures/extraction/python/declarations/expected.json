@@ -812,14 +812,14 @@
         "end_byte": 921
       },
       "body_hash": "2cf518f861c0c5c09dcb7cc638f638aa",
-      "signature": "def ranked(self, orders: list[Order], limit: Annotated[int, \"max\"]): list[Order]",
+      "signature": "def ranked(self, orders: list[Order], limit: Annotated[int, \"max\"]) -> list[Order]",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/python/declarations/source.py:OrderService:29:0",
       "metadata": {
         "decorators": [],
         "isAsync": false,
-        "returnType": ": list[Order]"
+        "returnType": "list[Order]"
       },
       "annotations": [],
       "semantic_group": null,
@@ -873,7 +873,7 @@
         "end_byte": 649
       },
       "body_hash": "178e2da1627453f6f3d5c2fa87768ffe",
-      "signature": "@property def repository(self): Repository | None",
+      "signature": "@property def repository(self) -> Repository | None",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/python/declarations/source.py:Order:9:0",
@@ -882,7 +882,7 @@
           "property"
         ],
         "isAsync": false,
-        "returnType": ": Repository | None"
+        "returnType": "Repository | None"
       },
       "annotations": [
         {
@@ -916,14 +916,14 @@
         "end_byte": 562
       },
       "body_hash": "aa713fe4e8e8de7c7cd35f706889b347",
-      "signature": "def reset(self): \"Order\"",
+      "signature": "def reset(self) -> \"Order\"",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/python/declarations/source.py:Order:9:0",
       "metadata": {
         "decorators": [],
         "isAsync": false,
-        "returnType": ": \"Order\""
+        "returnType": "\"Order\""
       },
       "annotations": [],
       "semantic_group": null,

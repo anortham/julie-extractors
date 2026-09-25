@@ -24,14 +24,14 @@ pub fn extract_function(extractor: &mut PythonExtractor, node: Node) -> Option<S
         Vec::new()
     };
 
-    // Extract return type annotation from 'return_type' field
-    let return_type = if let Some(return_type_node) = node.child_by_field_name("return_type") {
-        format!(
-            ": {}",
-            extractor.base_mut().get_node_text(&return_type_node)
-        )
-    } else {
+    let return_type = node
+        .child_by_field_name("return_type")
+        .map(|return_type_node| extractor.base_mut().get_node_text(&return_type_node))
+        .unwrap_or_default();
+    let return_arrow = if return_type.is_empty() {
         String::new()
+    } else {
+        format!(" -> {return_type}")
     };
 
     // Extract decorators
@@ -61,7 +61,7 @@ pub fn extract_function(extractor: &mut PythonExtractor, node: Node) -> Option<S
         name,
         type_parameters,
         params.join(", "),
-        return_type
+        return_arrow
     );
 
     // Determine if it's a method or function based on context
