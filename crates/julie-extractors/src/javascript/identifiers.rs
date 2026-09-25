@@ -52,6 +52,22 @@ impl super::JavaScriptExtractor {
         containing_symbols: &super::EcmaOwnerIndex<'_>,
     ) {
         match node.kind() {
+            "binary_expression" => {
+                if is_instanceof_binary_expression(node) {
+                    if let Some(right) = node.child_by_field_name("right") {
+                        if let Some((name_node, name)) = self.terminal_identifier(right) {
+                            let containing_symbol_id =
+                                self.find_containing_symbol_id(node, containing_symbols);
+                            self.base.create_identifier(
+                                &name_node,
+                                name,
+                                IdentifierKind::TypeUsage,
+                                containing_symbol_id,
+                            );
+                        }
+                    }
+                }
+            }
             "jsx_opening_element" | "jsx_self_closing_element" => {
                 if let Some(name) = node.child_by_field_name("name")
                     && let Some((name_node, name)) = self.terminal_identifier(name)
@@ -151,6 +167,9 @@ impl super::JavaScriptExtractor {
                     {
                         return;
                     }
+                }
+                if is_instanceof_rhs_terminal(node) {
+                    return;
                 }
 
                 // Extract the rightmost identifier (the property name)
@@ -409,6 +428,42 @@ fn ecmascript_base_class_name(base: &crate::base::BaseExtractor, class: Node) ->
     Some(base.get_node_text(&name))
 }
 
+/// True when `node` is a `binary_expression` whose operator is `instanceof`.
+pub(crate) fn is_instanceof_binary_expression(node: Node<'_>) -> bool {
+    if node.kind() != "binary_expression" {
+        return false;
+    }
+    if let Some(op) = node.child_by_field_name("operator") {
+        if op.kind() == "instanceof" {
+            return true;
+        }
+    }
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if child.kind() == "instanceof" {
+            return true;
+        }
+    }
+    false
+}
+
+/// True when `node` is the terminal `member_expression` (e.g. `ns.Validator`)
+/// on the right-hand side of an `instanceof` binary expression.
+pub(crate) fn is_instanceof_rhs_terminal(node: Node<'_>) -> bool {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        if parent.kind() == "parenthesized_expression" {
+            current = parent;
+            continue;
+        }
+        if is_instanceof_binary_expression(parent) {
+            return parent.child_by_field_name("right").map(|r| r.id()) == Some(current.id());
+        }
+        break;
+    }
+    false
+}
+
 /// Rule 1/4 predicate: is this bare `identifier` a value read or a member-access
 /// receiver — the complement of the Call/MemberAccess/TypeUsage arms? The default
 /// is inclusive (`_ => true`) with enumerated exclusions, exactly like the C#
@@ -489,6 +544,13 @@ pub(crate) fn is_ecmascript_value_read_identifier(node: Node) -> bool {
         // for-in/of: the loop binding (`left`) is a write target/declaration; the
         // iterated collection (`right`) reads.
         "for_in_statement" => !is_field("left"),
+
+        // Rule 2: the `instanceof` RHS is owned by the binary_expression
+        // TypeUsage arm, so the variable_ref complement arm ignores it.
+        "binary_expression" => {
+            let is_instanceof_rhs = is_field("right") && is_instanceof_binary_expression(parent);
+            !is_instanceof_rhs
+        }
 
         // Every other position — argument, operand, return value, template
         // substitution, JSX expression `{x}`, collection element, spread,

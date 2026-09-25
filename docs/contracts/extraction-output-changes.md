@@ -92,13 +92,19 @@ Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
 classification: compatible
 
-Nine Python changes. No SQLite or report-schema column is added, removed, or
+Nine Python changes and five cross-language parity fixes across JavaScript,
+TypeScript, and C++. No SQLite or report-schema column is added, removed, or
 retyped: SQLite schema remains 7, report schema remains 3, and extraction
 identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` adds
 `python-return-arrow-v1`, `flask-methods-tuple-v1`, `python-cls-binding-v1`,
 `python-decorator-args-v1`, `python-annotation-only-v1`,
 `python-isinstance-type-v1`, `python-lambda-line-v1`,
-`python-attribute-docs-v1`, and `python-property-init-v1` because canonical
+`python-attribute-docs-v1`, `python-property-init-v1`,
+`ecmascript-instanceof-type-usage-v1`,
+`typescript-decorator-signature-arguments-v1`,
+`cpp-anonymous-union-naming-v1`,
+`javascript-property-init-coexistence-v1`, and
+`typescript-constructor-assigned-properties-v1` because canonical
 output changes.
 
 - A Python function or method signature writes its return annotation with
@@ -137,6 +143,18 @@ output changes.
 - A `@property` method no longer hides the first `self.x = ...` assignment of
   the same name. `self.static_folder = static_folder` in `__init__` is a member
   row next to the `static_folder` getter and setter rows.
+- The right-hand side of ECMAScript and TypeScript `instanceof` expressions
+  (`x instanceof MyClass`) is emitted as an `identifiers` row with kind `type_usage`
+  instead of `variable_ref`, and is excluded from value-read expressions.
+- Decorated TypeScript methods, classes, and properties retain decorator arguments
+  in signatures (normalized to single-line and truncated at 100 chars with `…`),
+  matching Python decorator signature formatting.
+- Anonymous unions in C++ are named using 1-based row indexing (`anonymous_union_{row + 1}`)
+  without enclosing angle brackets, aligning with anonymous structs and cross-language conventions.
+- In JavaScript, constructor property initializations (`this.x = value`) coexist with
+  getter/setter methods of the same name instead of being suppressed as duplicate declarations.
+- In TypeScript, constructor-assigned instance properties (`this.x = value`) are extracted
+  as property symbols with visibility and doc comments, mirroring JavaScript extractor behavior.
 
 ## 3.6.1
 

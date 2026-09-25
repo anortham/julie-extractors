@@ -3,8 +3,8 @@
 //! This module handles the main tree traversal and symbol type routing.
 //! It delegates to specialized modules for specific symbol kinds.
 
-use super::{classes, functions, imports_exports, interfaces};
-use crate::base::{Symbol, SymbolKind};
+use super::{classes, functions, helpers, imports_exports, interfaces};
+use crate::base::{Symbol, SymbolKind, SymbolOptions};
 use crate::javascript::test_symbols;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use crate::typescript::TypeScriptExtractor;
@@ -178,6 +178,9 @@ fn extract_node_symbols(
         "public_field_definition" | "property_definition" => {
             interfaces::extract_property(extractor, node, parent_id)
         }
+        "assignment_expression" => {
+            extract_constructor_property(extractor, node, symbols)
+        }
         "pair" if functions::function_value(node).is_some() => {
             functions::extract_member_function(extractor, node, parent_id)
         }
@@ -296,3 +299,115 @@ fn is_parent_scope_kind(kind: &SymbolKind) -> bool {
             | SymbolKind::Constructor
     )
 }
+
+/// `this.name = value` inside a class constructor declares an instance
+/// property of the class, unless the class already declares the member.
+fn extract_constructor_property(
+    extractor: &mut TypeScriptExtractor,
+    node: Node,
+    symbols: &[Symbol],
+) -> Option<Symbol> {
+    let left = node.child_by_field_name("left")?;
+    let value = node.child_by_field_name("right")?;
+    if left.kind() != "member_expression" {
+        return None;
+    }
+    let object = left.child_by_field_name("object")?;
+    if object.kind() != "this" {
+        return None;
+    }
+    let property_name = extractor
+        .base()
+        .get_node_text(&left.child_by_field_name("property")?);
+
+    let constructor = enclosing_constructor(node, &extractor.base().content)?;
+    let class_body = constructor.parent()?;
+    let class = class_body.parent()?;
+    let class_symbol = symbols.iter().find(|symbol| {
+        symbol.kind == SymbolKind::Class && symbol.start_byte == class.start_byte() as u32
+    })?;
+
+    if symbols.iter().any(|symbol| {
+        symbol.parent_id.as_deref() == Some(&class_symbol.id)
+            && symbol.name == property_name
+            && symbol.kind != SymbolKind::Method
+    }) || class_body_declares_property(class_body, &property_name, &extractor.base().content) {
+        return None;
+    }
+
+    let class_id = class_symbol.id.clone();
+    let metadata = std::collections::HashMap::from([(
+        "isConstructorAssigned".to_string(),
+        serde_json::json!(true),
+    )]);
+    let signature = extractor.base().get_node_text(&node);
+    let visibility = helpers::extract_ts_visibility(node);
+    let property = extractor.base_mut().create_symbol(
+        &node,
+        property_name,
+        SymbolKind::Property,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility,
+            parent_id: Some(class_id),
+            metadata: Some(metadata),
+            ..Default::default()
+        },
+    );
+    crate::javascript::type_facts::record_new_expression_fact(
+        extractor.base_mut(),
+        &property.id,
+        value,
+        &super::type_facts::TYPE_NAME_RULES,
+    );
+    Some(property)
+}
+
+fn enclosing_constructor<'t>(node: Node<'t>, content: &str) -> Option<Node<'t>> {
+    let mut current = node.parent();
+    while let Some(candidate) = current {
+        match candidate.kind() {
+            "method_definition" => {
+                let is_constructor = candidate
+                    .child_by_field_name("name")
+                    .and_then(|name| content.get(name.byte_range()))
+                    == Some("constructor");
+                return (is_constructor
+                    && candidate
+                        .parent()
+                        .is_some_and(|body| body.kind() == "class_body"))
+                .then_some(candidate);
+            }
+            "function_declaration"
+            | "function_expression"
+            | "arrow_function"
+            | "generator_function"
+            | "generator_function_declaration"
+            | "class_body" => return None,
+            _ => current = candidate.parent(),
+        }
+    }
+    None
+}
+
+fn class_body_declares_property(class_body: Node, name: &str, content: &str) -> bool {
+    let mut cursor = class_body.walk();
+    for child in class_body.children(&mut cursor) {
+        if matches!(
+            child.kind(),
+            "public_field_definition" | "property_definition" | "field_definition"
+        ) {
+            let name_node = child
+                .child_by_field_name("name")
+                .or_else(|| child.child_by_field_name("property"))
+                .or_else(|| child.child_by_field_name("key"));
+            if let Some(n) = name_node
+                && content.get(n.byte_range()) == Some(name)
+            {
+                return true;
+            }
+        }
+    }
+    false
+}
+

@@ -58,6 +58,11 @@ fn test_public_contract_version_marks_current_fact_families() {
         "python-property-init-v1",
         "go-module-manifest-v1",
         "go-sum-checksums-v1",
+        "ecmascript-instanceof-type-usage-v1",
+        "typescript-decorator-signature-arguments-v1",
+        "cpp-anonymous-union-naming-v1",
+        "javascript-property-init-coexistence-v1",
+        "typescript-constructor-assigned-properties-v1",
     ] {
         assert!(
             version.contains(marker),

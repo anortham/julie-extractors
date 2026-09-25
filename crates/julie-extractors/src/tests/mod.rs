@@ -107,3 +107,4 @@ pub mod test_tiers;
 pub mod syntax_api_faults;
 
 mod return_type_parity;
+pub mod repro_parity_gaps;

@@ -170,13 +170,16 @@ impl super::JavaScriptExtractor {
         symbols: &[Symbol],
     ) -> Option<Symbol> {
         let constructor = enclosing_constructor(node, &self.base.content)?;
-        let class = constructor.parent()?.parent()?;
+        let class_body = constructor.parent()?;
+        let class = class_body.parent()?;
         let class_symbol = symbols.iter().find(|symbol| {
             symbol.kind == SymbolKind::Class && symbol.start_byte == class.start_byte() as u32
         })?;
         if symbols.iter().any(|symbol| {
-            symbol.parent_id.as_deref() == Some(&class_symbol.id) && symbol.name == name
-        }) {
+            symbol.parent_id.as_deref() == Some(&class_symbol.id)
+                && symbol.name == name
+                && symbol.kind != SymbolKind::Method
+        }) || class_body_declares_property(class_body, &name, &self.base.content) {
             return None;
         }
         let class_id = class_symbol.id.clone();
@@ -268,3 +271,25 @@ fn enclosing_constructor_function<'a>(node: Node, symbols: &'a [Symbol]) -> Opti
     }
     None
 }
+
+fn class_body_declares_property(class_body: Node, name: &str, content: &str) -> bool {
+    let mut cursor = class_body.walk();
+    for child in class_body.children(&mut cursor) {
+        if matches!(
+            child.kind(),
+            "public_field_definition" | "property_definition" | "field_definition"
+        ) {
+            let name_node = child
+                .child_by_field_name("name")
+                .or_else(|| child.child_by_field_name("property"))
+                .or_else(|| child.child_by_field_name("key"));
+            if let Some(n) = name_node
+                && content.get(n.byte_range()) == Some(name)
+            {
+                return true;
+            }
+        }
+    }
+    false
+}
+

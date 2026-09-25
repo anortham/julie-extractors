@@ -8,6 +8,7 @@ mod type_arguments;
 use crate::base::{Identifier, IdentifierKind, Symbol, extract_type_arguments};
 use crate::javascript::identifiers::{
     ecmascript_enclosing_class_name, is_ecmascript_value_read_identifier,
+    is_instanceof_binary_expression, is_instanceof_rhs_terminal,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use crate::typescript::TypeScriptExtractor;
@@ -64,6 +65,23 @@ fn extract_identifier_from_node(
     containing_symbols: &crate::javascript::EcmaOwnerIndex<'_>,
 ) {
     match node.kind() {
+        "binary_expression" => {
+            if is_instanceof_binary_expression(node) {
+                if let Some(right) = node.child_by_field_name("right") {
+                    if let Some((name_node, name)) = terminal_identifier(extractor, right) {
+                        let containing_symbol_id =
+                            find_containing_symbol_id(node, containing_symbols);
+                        extractor.base_mut().create_identifier(
+                            &name_node,
+                            name,
+                            IdentifierKind::TypeUsage,
+                            containing_symbol_id,
+                        );
+                    }
+                }
+            }
+        }
+
         // Function/method calls: foo(), object.method()
         "call_expression" => {
             // The function being called is in the "function" field
@@ -201,6 +219,10 @@ fn extract_identifier_from_node(
                 {
                     return;
                 }
+            }
+
+            if is_instanceof_rhs_terminal(node) {
+                return;
             }
 
             // Extract the rightmost identifier (the property name)

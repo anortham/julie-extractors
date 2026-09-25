@@ -339,8 +339,10 @@ impl BaseExtractor {
         ) {
             return true;
         }
-        if matches!(self.language.as_str(), "javascript" | "jsx")
-            && ancestor.kind() == "expression_statement"
+        if matches!(
+            self.language.as_str(),
+            "javascript" | "jsx" | "typescript" | "tsx"
+        ) && ancestor.kind() == "expression_statement"
         {
             return true;
         }

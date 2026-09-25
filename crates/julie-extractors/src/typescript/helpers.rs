@@ -123,14 +123,32 @@ fn extract_single_decorator_name(decorator_node: Node, content: &str) -> Option<
     None
 }
 
-/// Build a decorator prefix string from decorator names (e.g., "@Component @Injectable ").
+const DECORATOR_SIGNATURE_CHARS: usize = 100;
+
+/// Build a decorator prefix string from decorator texts (e.g., "@Component @Injectable ").
+/// Each decorator is collapsed onto a single line and truncated to `DECORATOR_SIGNATURE_CHARS`.
 ///
 /// Returns empty string if no decorators.
-pub(super) fn decorator_prefix(decorators: &[String]) -> String {
-    if decorators.is_empty() {
+pub(super) fn decorator_prefix(decorator_texts: &[String]) -> String {
+    if decorator_texts.is_empty() {
         String::new()
     } else {
-        format!("{} ", decorators.join(" "))
+        decorator_texts
+            .iter()
+            .map(|text| {
+                let one_line = text.split_whitespace().collect::<Vec<_>>().join(" ");
+                if one_line.chars().count() > DECORATOR_SIGNATURE_CHARS {
+                    one_line
+                        .chars()
+                        .take(DECORATOR_SIGNATURE_CHARS - 1)
+                        .collect::<String>()
+                        + "…"
+                } else {
+                    one_line
+                }
+            })
+            .map(|text| text + " ")
+            .collect()
     }
 }
 

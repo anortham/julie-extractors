@@ -351,7 +351,7 @@ class UserService {
             .signature
             .as_deref()
             .unwrap_or_default()
-            .contains("@Injectable class UserService")
+            .contains("@Injectable() class UserService")
     );
 
     let method_sym = symbols
@@ -370,7 +370,7 @@ class UserService {
             .signature
             .as_deref()
             .unwrap_or_default()
-            .contains("@HostListener onClick")
+            .contains("@HostListener('click') onClick")
     );
 }
 

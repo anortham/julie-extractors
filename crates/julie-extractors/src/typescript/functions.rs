@@ -203,16 +203,16 @@ pub(super) fn extract_member_function(
 
     let is_static = helpers::has_modifier(node, "static");
     let content = extractor.base().content.clone();
-    let decorators = helpers::extract_decorator_names(node, &content);
+    let decorator_texts = helpers::extract_decorator_texts(node, &content);
     let annotations = normalize_annotations(
-        &helpers::extract_decorator_texts(node, &content),
+        &decorator_texts,
         "typescript",
     );
     let base_sig = build_function_signature(extractor, &value, &name);
     let static_prefix = if is_static { "static " } else { "" };
     let signature = format!(
         "{}{}{}",
-        helpers::decorator_prefix(&decorators),
+        helpers::decorator_prefix(&decorator_texts),
         static_prefix,
         base_sig
     );
@@ -269,14 +269,13 @@ pub(super) fn extract_method(
 
     // Extract decorators from preceding siblings (tree-sitter TS puts method decorators as siblings)
     let content = extractor.base().content.clone();
-    let decorators = helpers::extract_preceding_decorator_names(node, &content);
     let decorator_texts = helpers::extract_preceding_decorator_texts(node, &content);
     let annotations = normalize_annotations(&decorator_texts, "typescript");
     let annotation_keys: Vec<String> = annotations
         .iter()
         .map(|marker| marker.annotation_key.clone())
         .collect();
-    let decorator_prefix = helpers::decorator_prefix(&decorators);
+    let decorator_prefix = helpers::decorator_prefix(&decorator_texts);
     let static_prefix = if is_static { "static " } else { "" };
     let signature = format!("{}{}{}", decorator_prefix, static_prefix, base_sig);
 

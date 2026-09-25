@@ -506,7 +506,7 @@ export class UsersController {
         find(&results, "email", SymbolKind::Property)
             .signature
             .as_deref(),
-        Some("@Column @IsEmail email: string")
+        Some("@Column({ unique: true }) @IsEmail() email: string")
     );
 }
 

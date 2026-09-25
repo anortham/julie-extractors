@@ -356,14 +356,14 @@ pub(super) fn extract_property(
     let visibility = helpers::extract_ts_visibility(node);
 
     let content = extractor.base().content.clone();
-    let decorators = helpers::extract_decorator_names(node, &content);
+    let decorator_texts = helpers::extract_decorator_texts(node, &content);
     let annotations = decorator_annotations(extractor, node);
 
     let is_readonly = helpers::has_readonly(node);
     let is_static = helpers::has_modifier(node, "static");
 
     let mut sig_parts = Vec::new();
-    let decorator_prefix = helpers::decorator_prefix(&decorators);
+    let decorator_prefix = helpers::decorator_prefix(&decorator_texts);
     if !decorator_prefix.is_empty() {
         sig_parts.push(decorator_prefix.trim().to_string());
     }

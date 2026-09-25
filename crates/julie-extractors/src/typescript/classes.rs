@@ -78,13 +78,12 @@ pub(super) fn extract_class(
     // Extract decorators from child nodes (or the wrapping export_statement)
     let content = extractor.base().content.clone();
     let decorator_carrier = helpers::decorator_carrier_node(node);
-    let decorators = helpers::extract_decorator_names(decorator_carrier, &content);
     let decorator_texts = helpers::extract_decorator_texts(decorator_carrier, &content);
     let annotations = normalize_annotations(&decorator_texts, "typescript");
 
     // Build signature
     let mut signature = String::new();
-    let decorator_prefix = helpers::decorator_prefix(&decorators);
+    let decorator_prefix = helpers::decorator_prefix(&decorator_texts);
     signature.push_str(&decorator_prefix);
     if is_abstract {
         signature.push_str("abstract ");

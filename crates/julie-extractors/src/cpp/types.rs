@@ -183,8 +183,8 @@ pub(super) fn extract_union(
     let name = if let Some(name_node) = name_node {
         base.get_node_text(&name_node)
     } else {
-        // Handle anonymous unions
-        format!("<anonymous_union_{}>", node.start_position().row)
+        // Handle anonymous unions: 1-based line indexing without angle brackets
+        format!("anonymous_union_{}", node.start_position().row + 1)
     };
 
     let signature = if name_node.is_some() {
