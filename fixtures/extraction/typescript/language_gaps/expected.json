@@ -2379,7 +2379,7 @@
         "end_byte": 2944
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
-      "signature": "@Input label: string",
+      "signature": "@Input() label: string",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/language_gaps/source.ts:Form:160:7",

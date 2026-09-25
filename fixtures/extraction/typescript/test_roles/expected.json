@@ -419,7 +419,7 @@
         "end_byte": 328
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "keepsAFocusedCase(): void",
+      "signature": "@test.only keepsAFocusedCase(): void",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/test_roles/source.ts:CartSuite:9:0",
@@ -534,7 +534,7 @@
         "end_byte": 470
       },
       "body_hash": "efcbc8cce40ac49e072ff453e89e71c5",
-      "signature": "@params @params scalesQuantity(input: { quantity: number }): number",
+      "signature": "@params({ quantity: 1 }) @params({ quantity: 2 }) scalesQuantity(input: { quantity: number }): number",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/test_roles/source.ts:CartSuite:9:0",

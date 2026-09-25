@@ -106,5 +106,5 @@ pub mod test_tiers;
 #[cfg(feature = "syntax-api")]
 pub mod syntax_api_faults;
 
-mod return_type_parity;
 pub mod repro_parity_gaps;
+mod return_type_parity;

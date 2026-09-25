@@ -247,7 +247,7 @@
         "end_byte": 611
       },
       "body_hash": "6f9ca5b06efa0c8896ca5a2ed9d088d3",
-      "signature": "@Controller class UsersController",
+      "signature": "@Controller('users') class UsersController",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
@@ -286,7 +286,7 @@
         "end_byte": 360
       },
       "body_hash": "e070e6c21a3a1a78ba58c0e669a825cd",
-      "signature": "@All audit()",
+      "signature": "@All('audit') audit()",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/nestjs_routes/source.ts:UsersController:4:7",
@@ -329,7 +329,7 @@
         "end_byte": 609
       },
       "body_hash": "e070e6c21a3a1a78ba58c0e669a825cd",
-      "signature": "@Post concatenated()",
+      "signature": "@Post('/a/' + suffix) concatenated()",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/nestjs_routes/source.ts:UsersController:4:7",
@@ -372,7 +372,7 @@
         "end_byte": 258
       },
       "body_hash": "e070e6c21a3a1a78ba58c0e669a825cd",
-      "signature": "@Post create()",
+      "signature": "@Post() create()",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/nestjs_routes/source.ts:UsersController:4:7",
@@ -415,7 +415,7 @@
         "end_byte": 163
       },
       "body_hash": "9287bec85f545fc4b81ee5622a56f25c",
-      "signature": "@Get findAll()",
+      "signature": "@Get() findAll()",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/nestjs_routes/source.ts:UsersController:4:7",
@@ -458,7 +458,7 @@
         "end_byte": 213
       },
       "body_hash": "e070e6c21a3a1a78ba58c0e669a825cd",
-      "signature": "@Get findOne()",
+      "signature": "@Get(':id') findOne()",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/nestjs_routes/source.ts:UsersController:4:7",
@@ -501,7 +501,7 @@
         "end_byte": 483
       },
       "body_hash": "e070e6c21a3a1a78ba58c0e669a825cd",
-      "signature": "@Get interpolated()",
+      "signature": "@Get(`/tpl/${id}`) interpolated()",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/nestjs_routes/source.ts:UsersController:4:7",
@@ -544,7 +544,7 @@
         "end_byte": 310
       },
       "body_hash": "e070e6c21a3a1a78ba58c0e669a825cd",
-      "signature": "@Delete remove()",
+      "signature": "@Delete(':id') remove()",
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/nestjs_routes/source.ts:UsersController:4:7",

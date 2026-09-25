@@ -44,7 +44,10 @@ class ApiController {
         .find(|s| s.name == "getUsers" && s.kind == SymbolKind::Method)
         .expect("getUsers method symbol found");
 
-    let sig = method.signature.as_deref().expect("method signature present");
+    let sig = method
+        .signature
+        .as_deref()
+        .expect("method signature present");
 
     // Verified behavior: Decorator arguments are retained in the signature.
     assert_eq!(
@@ -425,4 +428,3 @@ function check(x: unknown) {
     );
     assert_eq!(ts_validators[0].kind, IdentifierKind::TypeUsage);
 }
-

@@ -204,10 +204,7 @@ pub(super) fn extract_member_function(
     let is_static = helpers::has_modifier(node, "static");
     let content = extractor.base().content.clone();
     let decorator_texts = helpers::extract_decorator_texts(node, &content);
-    let annotations = normalize_annotations(
-        &decorator_texts,
-        "typescript",
-    );
+    let annotations = normalize_annotations(&decorator_texts, "typescript");
     let base_sig = build_function_signature(extractor, &value, &name);
     let static_prefix = if is_static { "static " } else { "" };
     let signature = format!(

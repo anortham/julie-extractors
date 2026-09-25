@@ -179,7 +179,8 @@ impl super::JavaScriptExtractor {
             symbol.parent_id.as_deref() == Some(&class_symbol.id)
                 && symbol.name == name
                 && symbol.kind != SymbolKind::Method
-        }) || class_body_declares_property(class_body, &name, &self.base.content) {
+        }) || class_body_declares_property(class_body, &name, &self.base.content)
+        {
             return None;
         }
         let class_id = class_symbol.id.clone();
@@ -292,4 +293,3 @@ fn class_body_declares_property(class_body: Node, name: &str, content: &str) -> 
     }
     false
 }
-

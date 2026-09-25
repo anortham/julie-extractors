@@ -124,7 +124,7 @@
         "end_byte": 194
       },
       "body_hash": "dea2d18d9598bb206b092f26d7737ce0",
-      "signature": "@Component class Worker implements Job",
+      "signature": "@Component() class Worker implements Job",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,

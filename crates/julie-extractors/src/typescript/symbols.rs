@@ -178,9 +178,7 @@ fn extract_node_symbols(
         "public_field_definition" | "property_definition" => {
             interfaces::extract_property(extractor, node, parent_id)
         }
-        "assignment_expression" => {
-            extract_constructor_property(extractor, node, symbols)
-        }
+        "assignment_expression" => extract_constructor_property(extractor, node, symbols),
         "pair" if functions::function_value(node).is_some() => {
             functions::extract_member_function(extractor, node, parent_id)
         }
@@ -331,7 +329,8 @@ fn extract_constructor_property(
         symbol.parent_id.as_deref() == Some(&class_symbol.id)
             && symbol.name == property_name
             && symbol.kind != SymbolKind::Method
-    }) || class_body_declares_property(class_body, &property_name, &extractor.base().content) {
+    }) || class_body_declares_property(class_body, &property_name, &extractor.base().content)
+    {
         return None;
     }
 
@@ -410,4 +409,3 @@ fn class_body_declares_property(class_body: Node, name: &str, content: &str) -> 
     }
     false
 }
-

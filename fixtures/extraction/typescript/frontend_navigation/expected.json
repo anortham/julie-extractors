@@ -125,7 +125,7 @@
         "end_byte": 848
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
-      "signature": "@NgModule class AppRoutingModule",
+      "signature": "@NgModule({ imports: [RouterModule.forRoot(routes)] }) class AppRoutingModule",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,

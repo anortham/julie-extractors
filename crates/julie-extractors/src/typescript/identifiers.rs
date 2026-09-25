@@ -66,19 +66,17 @@ fn extract_identifier_from_node(
 ) {
     match node.kind() {
         "binary_expression" => {
-            if is_instanceof_binary_expression(node) {
-                if let Some(right) = node.child_by_field_name("right") {
-                    if let Some((name_node, name)) = terminal_identifier(extractor, right) {
-                        let containing_symbol_id =
-                            find_containing_symbol_id(node, containing_symbols);
-                        extractor.base_mut().create_identifier(
-                            &name_node,
-                            name,
-                            IdentifierKind::TypeUsage,
-                            containing_symbol_id,
-                        );
-                    }
-                }
+            if is_instanceof_binary_expression(node)
+                && let Some(right) = node.child_by_field_name("right")
+                && let Some((name_node, name)) = terminal_identifier(extractor, right)
+            {
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                extractor.base_mut().create_identifier(
+                    &name_node,
+                    name,
+                    IdentifierKind::TypeUsage,
+                    containing_symbol_id,
+                );
             }
         }
 

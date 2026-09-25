@@ -53,19 +53,18 @@ impl super::JavaScriptExtractor {
     ) {
         match node.kind() {
             "binary_expression" => {
-                if is_instanceof_binary_expression(node) {
-                    if let Some(right) = node.child_by_field_name("right") {
-                        if let Some((name_node, name)) = self.terminal_identifier(right) {
-                            let containing_symbol_id =
-                                self.find_containing_symbol_id(node, containing_symbols);
-                            self.base.create_identifier(
-                                &name_node,
-                                name,
-                                IdentifierKind::TypeUsage,
-                                containing_symbol_id,
-                            );
-                        }
-                    }
+                if is_instanceof_binary_expression(node)
+                    && let Some(right) = node.child_by_field_name("right")
+                    && let Some((name_node, name)) = self.terminal_identifier(right)
+                {
+                    let containing_symbol_id =
+                        self.find_containing_symbol_id(node, containing_symbols);
+                    self.base.create_identifier(
+                        &name_node,
+                        name,
+                        IdentifierKind::TypeUsage,
+                        containing_symbol_id,
+                    );
                 }
             }
             "jsx_opening_element" | "jsx_self_closing_element" => {
@@ -433,10 +432,10 @@ pub(crate) fn is_instanceof_binary_expression(node: Node<'_>) -> bool {
     if node.kind() != "binary_expression" {
         return false;
     }
-    if let Some(op) = node.child_by_field_name("operator") {
-        if op.kind() == "instanceof" {
-            return true;
-        }
+    if let Some(op) = node.child_by_field_name("operator")
+        && op.kind() == "instanceof"
+    {
+        return true;
     }
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
