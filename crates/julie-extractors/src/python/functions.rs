@@ -42,11 +42,7 @@ pub fn extract_function(extractor: &mut PythonExtractor, node: Node) -> Option<S
         .iter()
         .map(|marker| marker.annotation_key.clone())
         .collect();
-    let decorator_info = if decorators_list.is_empty() {
-        String::new()
-    } else {
-        format!("@{} ", decorators_list.join(" @"))
-    };
+    let decorator_info = decorators::signature_prefix(&decorator_texts);
 
     // Build signature
     let async_prefix = if is_async { "async " } else { "" };

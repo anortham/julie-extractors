@@ -264,7 +264,7 @@
         "end_byte": 503
       },
       "body_hash": "4ac849fbaad2b2f70ef193c9859f2515",
-      "signature": "@app.route def health()",
+      "signature": "@app.route(\"/health\") def health()",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
@@ -449,7 +449,7 @@
         "end_byte": 797
       },
       "body_hash": "1a1dc91c907325c69271ddf0c944bc72",
-      "signature": "@action def recent(self, request)",
+      "signature": "@action(detail=False) def recent(self, request)",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/python/drf_and_clients/urls.py:UserViewSet:28:0",
@@ -758,7 +758,7 @@
         "end_byte": 726
       },
       "body_hash": "1a1dc91c907325c69271ddf0c944bc72",
-      "signature": "@action def set_password(self, request, pk=None)",
+      "signature": "@action(detail=True, methods=[\"post\"], url_path=\"set-password\") def set_password(self, request, pk=None)",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/python/drf_and_clients/urls.py:UserViewSet:28:0",
@@ -801,7 +801,7 @@
         "end_byte": 856
       },
       "body_hash": "1a1dc91c907325c69271ddf0c944bc72",
-      "signature": "@api_view def status(request)",
+      "signature": "@api_view([\"GET\", \"POST\"]) def status(request)",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
@@ -879,7 +879,7 @@
         "end_byte": 555
       },
       "body_hash": "1a1dc91c907325c69271ddf0c944bc72",
-      "signature": "@typed_router.get def typed()",
+      "signature": "@typed_router.get(\"/typed\") def typed()",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,

@@ -1051,7 +1051,7 @@
         "end_byte": 1400
       },
       "body_hash": "44d4842763a4b1e24c54a4e394b9df8f",
-      "signature": "@retry def fetch(repo: \"Repo\", state: Literal[\"active\", \"idle\"]) -> \"User | None\"",
+      "signature": "@retry(3) def fetch(repo: \"Repo\", state: Literal[\"active\", \"idle\"]) -> \"User | None\"",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,

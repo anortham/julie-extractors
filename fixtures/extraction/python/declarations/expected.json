@@ -1203,7 +1203,7 @@
         "end_byte": 1069
       },
       "body_hash": "15aaa6fdfe797cfe2de22b49a2f55585",
-      "signature": "@functools.wraps def wrapper(*args, **kwargs)",
+      "signature": "@functools.wraps(fn) def wrapper(*args, **kwargs)",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/python/declarations/source.py:decorate:38:4",

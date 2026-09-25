@@ -50,6 +50,9 @@ fn test_public_contract_version_marks_current_fact_families() {
         "python-return-arrow-v1",
         "flask-methods-tuple-v1",
         "python-cls-binding-v1",
+        "python-decorator-args-v1",
+        "python-annotation-only-v1",
+        "python-isinstance-type-v1",
         "go-module-manifest-v1",
         "go-sum-checksums-v1",
     ] {

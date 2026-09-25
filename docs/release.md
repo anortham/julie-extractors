@@ -52,6 +52,15 @@ cargo xtask release preflight --version <version>
 cargo xtask release package --version <version> --target <target> --out-dir <path> --binary <path>
 ```
 
+## Downstream Gate
+
+The julie gates compare this build with the previous one, so a defect that both
+builds share passes them. code-kb dogfood sessions find those defects. Before
+you tag a version that changes extraction output, build code-kb with the local
+release binary in its `.tools/julie-extract`, and pass the code-kb corpus check
+and dogfood round (code-kb `docs/RELEASING.md`, steps 6 to 8). Fix every
+defect those checks find in this version before the tag.
+
 ## Source-Control Release Closeout
 
 A release is not complete until source control is reconciled in the primary

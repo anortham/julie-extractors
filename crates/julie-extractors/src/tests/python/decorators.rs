@@ -174,7 +174,7 @@ class User:
             .signature
             .as_deref()
             .unwrap_or_default()
-            .contains("@app.route def show_user")
+            .contains("@app.route(\"/users/<id>\") def show_user")
     );
 
     let test_value = symbols

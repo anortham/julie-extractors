@@ -511,3 +511,66 @@ fn django_regex_routes_keep_raw_backslashes_and_normalize_by_policy() {
         Some("router.urls")
     );
 }
+
+#[test]
+fn an_annotation_without_a_value_has_no_equals_sign() {
+    let result = extract(
+        "app.py",
+        "class App:\n    default_config: dict[str, int]\n    name: str = \"app\"\n",
+    );
+    assert_eq!(
+        one(&result, "default_config").signature.as_deref(),
+        Some("default_config: dict[str, int]")
+    );
+    assert_eq!(
+        one(&result, "name").signature.as_deref(),
+        Some("name: str = \"app\"")
+    );
+}
+
+#[test]
+fn decorator_arguments_stay_in_the_signature_on_one_line() {
+    let long_argument = "x".repeat(120);
+    let result = extract(
+        "blog.py",
+        &format!(
+            "@bp.route(\n    \"/create\",\n    methods=(\"GET\", \"POST\"),\n)\n@login_required\ndef create():\n    pass\n\n@pytest.mark.parametrize(\"v\", [\"{long_argument}\"])\ndef test_long(v):\n    pass\n"
+        ),
+    );
+    assert_eq!(
+        one(&result, "create").signature.as_deref(),
+        Some("@bp.route( \"/create\", methods=(\"GET\", \"POST\"), ) @login_required def create()")
+    );
+    let long = one(&result, "test_long").signature.clone().unwrap();
+    assert!(
+        long.starts_with("@pytest.mark.parametrize(\"v\", [\"xxx")
+            && long.contains("… def test_long(v)"),
+        "{long}"
+    );
+}
+
+#[test]
+fn isinstance_and_issubclass_classes_are_type_usages() {
+    let result = extract(
+        "cli.py",
+        "import flask\n\ndef check(app, cls):\n    return isinstance(app, Flask) or isinstance(app, (flask.Blueprint, Scaffold)) or issubclass(cls, Base) or isinstance(Flask, str)\n",
+    );
+    for name in ["Flask", "Blueprint", "Scaffold", "Base"] {
+        let kinds: Vec<_> = idents(&result, name)
+            .iter()
+            .map(|i| i.kind.clone())
+            .collect();
+        assert!(
+            kinds.contains(&IdentifierKind::TypeUsage),
+            "{name}: {kinds:?}"
+        );
+    }
+    let app_kinds: Vec<_> = idents(&result, "app")
+        .iter()
+        .map(|i| i.kind.clone())
+        .collect();
+    assert!(
+        !app_kinds.contains(&IdentifierKind::TypeUsage),
+        "{app_kinds:?}"
+    );
+}

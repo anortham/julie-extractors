@@ -108,7 +108,9 @@ fn extract_identifier_from_node(
         // Member access: object.property
         // Python uses "attribute" node type
         "attribute" => {
-            if is_python_type_usage_node(node) {
+            if is_python_type_usage_node(node)
+                || is_isinstance_class_argument(extractor.base(), node)
+            {
                 if let Some(attr_node) = node.child_by_field_name("attribute") {
                     let name = extractor.base_mut().get_node_text(&attr_node);
                     if !is_python_builtin_type(&name) {
@@ -157,7 +159,10 @@ fn extract_identifier_from_node(
             }
         }
 
-        "identifier" if is_python_type_usage_identifier(node) => {
+        "identifier"
+            if is_python_type_usage_identifier(node)
+                || is_isinstance_class_argument(extractor.base(), node) =>
+        {
             let name = extractor.base_mut().get_node_text(&node);
             if !is_python_builtin_type(&name) || is_generic_head(node) {
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
@@ -498,6 +503,31 @@ fn is_python_type_usage_node(node: Node) -> bool {
     }
 
     false
+}
+
+/// A class that `isinstance(value, Class)` or `issubclass(cls, Class)` checks, alone or in a
+/// tuple: a runtime type check names its classes as types.
+fn is_isinstance_class_argument(base: &BaseExtractor, node: Node) -> bool {
+    let argument = match node.parent() {
+        Some(tuple) if tuple.kind() == "tuple" => tuple,
+        _ => node,
+    };
+    let Some(arguments) = argument.parent().filter(|p| p.kind() == "argument_list") else {
+        return false;
+    };
+    if arguments.named_child(1).map(|second| second.id()) != Some(argument.id()) {
+        return false;
+    }
+    arguments
+        .parent()
+        .and_then(|call| call.child_by_field_name("function"))
+        .is_some_and(|function| {
+            function.kind() == "identifier"
+                && matches!(
+                    base.get_node_text(&function).as_str(),
+                    "isinstance" | "issubclass"
+                )
+        })
 }
 
 fn is_python_declaration_name(node: Node) -> bool {

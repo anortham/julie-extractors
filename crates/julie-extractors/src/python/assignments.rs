@@ -63,7 +63,11 @@ pub(super) fn extract_assignment(extractor: &mut PythonExtractor, node: Node) ->
     } else {
         name.clone()
     };
-    let signature = format!("{}{} = {}", target, type_annotation, value);
+    let signature = if right.is_some() {
+        format!("{target}{type_annotation} = {value}")
+    } else {
+        format!("{target}{type_annotation}")
+    };
 
     // Infer visibility from name
     let visibility = signatures::infer_visibility(&name);

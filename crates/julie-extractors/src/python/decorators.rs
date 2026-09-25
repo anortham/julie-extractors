@@ -28,6 +28,30 @@ pub fn extract_decorator_texts(extractor: &PythonExtractor, node: &Node) -> Vec<
     decorators
 }
 
+/// The decorators as a signature prefix: each on one line with its arguments, at most
+/// `DECORATOR_SIGNATURE_CHARS` characters, so `@bp.route("/create", methods=("GET", "POST"))`
+/// keeps its route and methods.
+pub fn signature_prefix(decorator_texts: &[String]) -> String {
+    decorator_texts
+        .iter()
+        .map(|text| {
+            let one_line = text.split_whitespace().collect::<Vec<_>>().join(" ");
+            if one_line.chars().count() > DECORATOR_SIGNATURE_CHARS {
+                one_line
+                    .chars()
+                    .take(DECORATOR_SIGNATURE_CHARS - 1)
+                    .collect::<String>()
+                    + "…"
+            } else {
+                one_line
+            }
+        })
+        .map(|text| text + " ")
+        .collect()
+}
+
+const DECORATOR_SIGNATURE_CHARS: usize = 100;
+
 /// The `decorated_definition` whose decorators belong to `node`.
 ///
 /// The walk stops at the first enclosing function or class. Without that stop a

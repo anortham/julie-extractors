@@ -94,11 +94,7 @@ pub(super) fn extract_class(extractor: &mut PythonExtractor, node: Node) -> Opti
     let decorators_list = decorators::extract_decorators(extractor, &node);
     let decorator_texts = decorators::extract_decorator_texts(extractor, &node);
     let annotations = normalize_annotations(&decorator_texts, "python");
-    let decorator_info = if decorators_list.is_empty() {
-        String::new()
-    } else {
-        format!("@{} ", decorators_list.join(" @"))
-    };
+    let decorator_info = decorators::signature_prefix(&decorator_texts);
 
     let type_parameters = node
         .child_by_field_name("type_parameters")

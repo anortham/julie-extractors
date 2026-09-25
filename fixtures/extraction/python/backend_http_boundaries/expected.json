@@ -250,7 +250,7 @@
         "end_byte": 274
       },
       "body_hash": "1a1dc91c907325c69271ddf0c944bc72",
-      "signature": "@router.get def fastapi_user(user_id: str)",
+      "signature": "@router.get(\"/users/{user_id}\") def fastapi_user(user_id: str)",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
@@ -319,7 +319,7 @@
         "end_byte": 518
       },
       "body_hash": "1a1dc91c907325c69271ddf0c944bc72",
-      "signature": "@bp.get def flask_user(user_id)",
+      "signature": "@bp.get(\"/users/<int:user_id>/\") def flask_user(user_id)",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
@@ -362,7 +362,7 @@
         "end_byte": 450
       },
       "body_hash": "1a1dc91c907325c69271ddf0c944bc72",
-      "signature": "@flask_app.route def health()",
+      "signature": "@flask_app.route(\"/health\") def health()",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,

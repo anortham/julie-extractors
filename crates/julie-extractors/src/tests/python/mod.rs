@@ -736,7 +736,7 @@ class Container(Generic[T]):
                 .signature
                 .as_ref()
                 .unwrap()
-                .contains("@dataclass class Point")
+                .contains("@dataclass(frozen=True, slots=True) class Point")
         );
         assert!(
             point

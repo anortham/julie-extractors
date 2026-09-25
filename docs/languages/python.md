@@ -184,6 +184,12 @@ Imports, variables, constants, attributes, and parameters have no body span.
 - A function signature writes its return type as Python does:
   `def load(path: str) -> Config`. The `returnType` metadata holds the type
   alone (`Config`).
+- A decorated function or class signature keeps each decorator with its
+  arguments, on one line and at most 100 characters each:
+  `@bp.route("/create", methods=("GET", "POST")) @login_required def create()`.
+- An annotation with no value keeps no `=`: `default_config: dict[str, Any]`.
+- The class argument of `isinstance(x, C)` or `issubclass(x, C)`, alone or in
+  a tuple, is a `type_usage` of `C`.
 - A Flask `methods=` value may be a list, a tuple, or a set:
   `methods=("GET", "POST")` gives one route fact for each method.
 - `cls(...)` and `cls.m()` name the enclosing class only when the nearest

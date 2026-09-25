@@ -105,7 +105,7 @@
         "end_byte": 268
       },
       "body_hash": "4ac849fbaad2b2f70ef193c9859f2515",
-      "signature": "@app.route def health()",
+      "signature": "@app.route(\"/health\") def health()",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
@@ -148,7 +148,7 @@
         "end_byte": 144
       },
       "body_hash": "df48b8eae7172a1e9bb053b557033daf",
-      "signature": "@bp.route def index()",
+      "signature": "@bp.route(\"/index\", methods=[\"GET\", \"POST\"]) def index()",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
@@ -226,7 +226,7 @@
         "end_byte": 214
       },
       "body_hash": "9fc47a1796189ea6dbf6ba211a134571",
-      "signature": "@bp.get def user(username)",
+      "signature": "@bp.get(\"/user/<username>\") def user(username)",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,

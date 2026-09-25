@@ -213,7 +213,7 @@
         "end_byte": 416
       },
       "body_hash": "df632deb528a5f72a15615bba0dc7bce",
-      "signature": "@functools.lru_cache def cached_total()",
+      "signature": "@functools.lru_cache(maxsize=None) def cached_total()",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
@@ -1114,7 +1114,7 @@
         "end_byte": 346
       },
       "body_hash": "e18f359bef43d96fcd0bb9da9672af7e",
-      "signature": "@pytest.mark.parametrize def test_addition_is_commutative(left, right)",
+      "signature": "@pytest.mark.parametrize(\"left,right\", [(1, 1), (2, 3)]) def test_addition_is_commutative(left, right)",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
@@ -1204,7 +1204,7 @@
         "end_byte": 1267
       },
       "body_hash": "50cbe53f713fc53b3698bfda2d5a55b9",
-      "signature": "@unittest.skipIf def test_guarded_case(self)",
+      "signature": "@unittest.skipIf(True, \"environment guard\") def test_guarded_case(self)",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/python/test_roles/test_source.py:ArithmeticTest:59:0",

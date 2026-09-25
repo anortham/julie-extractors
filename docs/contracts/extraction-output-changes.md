@@ -92,11 +92,12 @@ Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
 classification: compatible
 
-Three Python changes. No SQLite or report-schema column is added, removed, or
+Six Python changes. No SQLite or report-schema column is added, removed, or
 retyped: SQLite schema remains 7, report schema remains 3, and extraction
 identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` adds
-`python-return-arrow-v1`, `flask-methods-tuple-v1`, and `python-cls-binding-v1`
-because canonical output changes.
+`python-return-arrow-v1`, `flask-methods-tuple-v1`, `python-cls-binding-v1`,
+`python-decorator-args-v1`, `python-annotation-only-v1`, and
+`python-isinstance-type-v1` because canonical output changes.
 
 - A Python function or method signature writes its return annotation with
   `->`: `def load(path: str) -> Config`, not `def load(path: str): Config`.
@@ -115,6 +116,16 @@ because canonical output changes.
   (`cls = self.test_client_class` ... `return cls(...)`) recorded a pending
   call to `Flask`. Such a call now stays a pending call to `cls`, with no
   receiver type.
+- A decorated Python function or class signature keeps each decorator's
+  arguments: `@bp.route("/create", methods=("GET", "POST")) def create()`, not
+  `@bp.route def create()`. Each decorator is written on one line, with runs of
+  whitespace joined, and a decorator longer than 100 characters ends with `…`.
+  The `decorators` metadata still holds the bare names. Only signatures change.
+- An annotated assignment with no value (`default_config: dict[str, Any]` in a
+  class body) no longer ends its signature with ` = `.
+- The class argument of `isinstance(value, C)` or `issubclass(cls, C)`, alone or
+  in a tuple, is an `identifiers` row of kind `type_usage` for `C`. Before, it was
+  a `variable_ref`. Rows change kind in `identifiers` for these arguments.
 
 ## 3.6.1
 
