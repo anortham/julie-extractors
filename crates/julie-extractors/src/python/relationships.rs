@@ -303,6 +303,7 @@ fn extract_target_from_call(
         "identifier" => {
             let name = base.get_node_text(function_node);
             if name == "cls"
+                && helpers::cls_names_enclosing_class(base, function_node)
                 && let Some(class_name) = helpers::enclosing_class_name(base, function_node)
             {
                 return (

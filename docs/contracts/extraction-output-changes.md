@@ -92,11 +92,11 @@ Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
 classification: compatible
 
-Two Python changes. No SQLite or report-schema column is added, removed, or
+Three Python changes. No SQLite or report-schema column is added, removed, or
 retyped: SQLite schema remains 7, report schema remains 3, and extraction
 identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` adds
-`python-return-arrow-v1` and `flask-methods-tuple-v1` because canonical output
-changes.
+`python-return-arrow-v1`, `flask-methods-tuple-v1`, and `python-cls-binding-v1`
+because canonical output changes.
 
 - A Python function or method signature writes its return annotation with
   `->`: `def load(path: str) -> Config`, not `def load(path: str): Config`.
@@ -108,6 +108,13 @@ changes.
   fact for each listed method, as a list already did. Before, such a route got
   one fact with the default verb `GET`, so `methods=("POST",)` was recorded as
   `GET`. Rows are added and changed in `structural_facts` for these routes.
+- `cls(...)` and `cls.m()` name the enclosing class only when the nearest
+  function that binds `cls` takes it as a parameter, as a classmethod and its
+  closures do. A function that assigns or imports `cls` binds something else,
+  and an unbound `cls` names nothing. Before, flask's `Flask.test_client`
+  (`cls = self.test_client_class` ... `return cls(...)`) recorded a pending
+  call to `Flask`. Such a call now stays a pending call to `cls`, with no
+  receiver type.
 
 ## 3.6.1
 

@@ -49,6 +49,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "python-instance-attribute-signature-v1",
         "python-return-arrow-v1",
         "flask-methods-tuple-v1",
+        "python-cls-binding-v1",
         "go-module-manifest-v1",
         "go-sum-checksums-v1",
     ] {

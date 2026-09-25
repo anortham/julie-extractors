@@ -357,8 +357,11 @@ fn self_and_cls_calls_record_enclosing_class_as_receiver_type() {
 class Widget:
     def ping(self):
         self.helper()
-        cls.helper()
         other.helper()
+
+    @classmethod
+    def build(cls):
+        cls.helper()
 "#;
     let (_, identifiers, extractor) = extract_calls(source);
     let helpers: Vec<_> = identifiers
@@ -367,8 +370,8 @@ class Widget:
         .collect();
     assert_eq!(helpers.len(), 3);
     assert_eq!(helpers[0].receiver_type.as_deref(), Some("Widget"));
-    assert_eq!(helpers[1].receiver_type.as_deref(), Some("Widget"));
-    assert_eq!(helpers[2].receiver_type, None);
+    assert_eq!(helpers[1].receiver_type, None);
+    assert_eq!(helpers[2].receiver_type.as_deref(), Some("Widget"));
     let pending = extractor.get_structured_pending_relationships();
     let pending_for = |receiver: &str| {
         pending

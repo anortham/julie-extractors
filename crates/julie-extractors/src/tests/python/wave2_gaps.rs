@@ -108,6 +108,23 @@ fn super_call_carries_the_first_base_and_resolves_in_file() {
 }
 
 #[test]
+fn a_local_cls_binding_is_not_the_enclosing_class() {
+    let result = extract(
+        "app.py",
+        "class App:\n    def test_client(self):\n        cls = self.client_class\n        if cls is None:\n            from .testing import Client as cls\n        return cls(self)\n\n    @classmethod\n    def build(cls):\n        def make():\n            return cls()\n        return make()\n",
+    );
+    let terminal_at = |line: u32| {
+        result
+            .structured_pending_relationships
+            .iter()
+            .find(|p| p.pending.line_number == line)
+            .map(|p| p.target.terminal_name.clone())
+    };
+    assert_eq!(terminal_at(6).as_deref(), Some("cls"));
+    assert_eq!(terminal_at(11).as_deref(), Some("App"));
+}
+
+#[test]
 fn super_call_to_an_imported_base_stays_pending_with_receiver_type() {
     let result = extract(
         "view.py",

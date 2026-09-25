@@ -78,6 +78,78 @@ pub fn enclosing_class_name(base: &crate::base::BaseExtractor, node: &Node) -> O
     None
 }
 
+/// `cls` at `node` names the enclosing class: the nearest function that binds
+/// `cls` takes it as a parameter. A function that assigns or imports `cls`
+/// binds something else, and an unbound `cls` names nothing.
+pub fn cls_names_enclosing_class(base: &crate::base::BaseExtractor, node: &Node) -> bool {
+    let mut current = *node;
+    while let Some(parent) = current.parent() {
+        current = parent;
+        match current.kind() {
+            "class_definition" => return false,
+            "function_definition" => {
+                let takes_cls =
+                    current
+                        .child_by_field_name("parameters")
+                        .is_some_and(|parameters| {
+                            parameters
+                                .named_children(&mut parameters.walk())
+                                .any(|parameter| {
+                                    parameter_name(base, parameter) == Some("cls".into())
+                                })
+                        });
+                if takes_cls {
+                    return true;
+                }
+                if current
+                    .child_by_field_name("body")
+                    .is_some_and(|body| binds_cls_locally(base, body))
+                {
+                    return false;
+                }
+            }
+            _ => {}
+        }
+    }
+    false
+}
+
+fn parameter_name(base: &crate::base::BaseExtractor, parameter: Node) -> Option<String> {
+    match parameter.kind() {
+        "identifier" => Some(base.get_node_text(&parameter)),
+        _ => parameter
+            .child_by_field_name("name")
+            .or_else(|| {
+                parameter
+                    .named_children(&mut parameter.walk())
+                    .find(|child| child.kind() == "identifier")
+            })
+            .map(|name| base.get_node_text(&name)),
+    }
+}
+
+/// An assignment to `cls` or an import bound as `cls` in `body`, outside nested scopes.
+fn binds_cls_locally(base: &crate::base::BaseExtractor, body: Node) -> bool {
+    let mut stack = vec![body];
+    while let Some(node) = stack.pop() {
+        let binds = match node.kind() {
+            "function_definition" | "class_definition" | "lambda" => continue,
+            "assignment" => node.child_by_field_name("left").is_some_and(|left| {
+                left.kind() == "identifier" && base.get_node_text(&left) == "cls"
+            }),
+            "aliased_import" => node
+                .child_by_field_name("alias")
+                .is_some_and(|alias| base.get_node_text(&alias) == "cls"),
+            _ => false,
+        };
+        if binds {
+            return true;
+        }
+        stack.extend(node.named_children(&mut node.walk()));
+    }
+    false
+}
+
 /// The type a method call's receiver names: the enclosing class for `self.m()`
 /// and `cls.m()`, and the first declared base for `super().m()`.
 pub fn self_or_cls_receiver_type(
@@ -92,7 +164,7 @@ pub fn self_or_cls_receiver_type(
         return first_base_name(base, function_node);
     }
     let receiver = base.get_node_text(&object);
-    if receiver == "self" || receiver == "cls" {
+    if receiver == "self" || (receiver == "cls" && cls_names_enclosing_class(base, function_node)) {
         enclosing_class_name(base, function_node)
     } else {
         None

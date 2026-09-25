@@ -186,6 +186,9 @@ Imports, variables, constants, attributes, and parameters have no body span.
   alone (`Config`).
 - A Flask `methods=` value may be a list, a tuple, or a set:
   `methods=("GET", "POST")` gives one route fact for each method.
+- `cls(...)` and `cls.m()` name the enclosing class only when the nearest
+  function that binds `cls` takes it as a parameter. A function that assigns
+  or imports `cls` binds something else.
 - A `self.x = ...` assignment in a method is a `property` of the enclosing
   class. Its signature keeps the receiver (`self.x = make()`), so it reads
   apart from a class-level `x = ...`. A class-level declaration of the same
