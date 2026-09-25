@@ -137,6 +137,12 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "Source text of the add_url_rule view function.",
             ),
             key(
+                "endpoint",
+                STR,
+                OPT,
+                "Literal endpoint name from an endpoint keyword or the second add_url_rule argument.",
+            ),
+            key(
                 "effective_route_template",
                 STR,
                 OPT,

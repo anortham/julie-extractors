@@ -103,9 +103,9 @@ identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` adds
 `ecmascript-instanceof-type-usage-v1`,
 `typescript-decorator-signature-arguments-v1`,
 `cpp-anonymous-union-naming-v1`,
-`javascript-property-init-coexistence-v1`, and
-`typescript-constructor-assigned-properties-v1` because canonical
-output changes.
+`javascript-property-init-coexistence-v1`,
+`typescript-constructor-assigned-properties-v1`, and
+`flask-route-endpoint-v1` because canonical output changes.
 
 - A Python function or method signature writes its return annotation with
   `->`: `def load(path: str) -> Config`, not `def load(path: str): Config`.
@@ -155,6 +155,11 @@ output changes.
   getter/setter methods of the same name instead of being suppressed as duplicate declarations.
 - In TypeScript, constructor-assigned instance properties (`this.x = value`) are extracted
   as property symbols with visibility and doc comments, mirroring JavaScript extractor behavior.
+- A Flask route fact records a literal endpoint name in the optional
+  `endpoint` metadata key: the `endpoint=` keyword of a route decorator or of
+  `add_url_rule`, or the second positional `add_url_rule` argument.
+  `app.add_url_rule("/", endpoint="index")` now says which endpoint the rule
+  names. A route without a literal endpoint has no key.
 
 ## 3.6.1
 

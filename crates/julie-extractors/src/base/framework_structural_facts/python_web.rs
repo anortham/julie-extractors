@@ -745,6 +745,7 @@ fn collect_flask_routes(
             continue;
         }
         let has_methods_keyword = keyword_value_start(&decorator.args, "methods").is_some();
+        let endpoint = keyword_string_arg(&decorator.args, "endpoint");
         for verb in verbs {
             let verb_source = if decorator.method == "route" && !has_methods_keyword {
                 "default"
@@ -777,6 +778,9 @@ fn collect_flask_routes(
                     if let Some(name) = receiver.blueprint_name.as_deref() {
                         insert_string(metadata, "blueprint", name);
                     }
+                    if let Some(endpoint) = endpoint.as_deref() {
+                        insert_string(metadata, "endpoint", endpoint);
+                    }
                 },
             ) {
                 facts.push(fact);
@@ -788,7 +792,7 @@ fn collect_flask_routes(
 
 /// `app.add_url_rule("/ping", view_func=ping, methods=[...])` registers a
 /// route without a decorator. The view is the `view_func` keyword or the third
-/// positional argument.
+/// positional argument; the endpoint is the `endpoint` keyword or the second.
 fn collect_flask_url_rules(
     context: &PythonFactContext<'_>,
     receivers: &HashMap<String, FlaskReceiver>,
@@ -826,6 +830,8 @@ fn collect_flask_url_rules(
                     args[start..end].trim().to_string()
                 })
                 .or_else(|| positional_raw_arg(args, 2));
+            let endpoint =
+                keyword_string_arg(args, "endpoint").or_else(|| positional_string_arg(args, 1));
             let methods = methods_keyword(args);
             let verb_source = if methods.is_empty() {
                 "default"
@@ -866,6 +872,9 @@ fn collect_flask_url_rules(
                         }
                         if let Some(view_target) = view_target.as_deref() {
                             insert_string(metadata, "view_target", view_target);
+                        }
+                        if let Some(endpoint) = endpoint.as_deref() {
+                            insert_string(metadata, "endpoint", endpoint);
                         }
                     },
                 ) {

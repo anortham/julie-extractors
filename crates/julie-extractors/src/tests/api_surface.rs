@@ -63,6 +63,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "cpp-anonymous-union-naming-v1",
         "javascript-property-init-coexistence-v1",
         "typescript-constructor-assigned-properties-v1",
+        "flask-route-endpoint-v1",
     ] {
         assert!(
             version.contains(marker),

@@ -3268,6 +3268,12 @@
         "value_type": "string"
       },
       {
+        "description": "Literal endpoint name from an endpoint keyword or the second add_url_rule argument.",
+        "key": "endpoint",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
         "description": "Blueprint prefix joined with route template.",
         "key": "effective_route_template",
         "presence": "optional",

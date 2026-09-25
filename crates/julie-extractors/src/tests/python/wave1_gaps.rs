@@ -507,3 +507,47 @@ app.add_url_rule("/ping", view_func=ping, methods=["POST"])
     assert_eq!(facts[1]["api_style"], "call_routing");
     assert_eq!(facts[1]["view_target"], "ping");
 }
+
+#[test]
+fn flask_routes_record_an_explicit_endpoint() {
+    let module = extract(
+        "flaskr/__init__.py",
+        r#"from flask import Flask
+app = Flask(__name__)
+
+@app.route("/hello", endpoint="greet")
+def hello():
+    return "hi"
+
+@app.route("/plain")
+def plain():
+    return "plain"
+
+app.add_url_rule("/", endpoint="index")
+app.add_url_rule("/old", "legacy", plain)
+"#,
+    );
+    let endpoints: Vec<(String, Option<String>)> = module
+        .structural_facts
+        .iter()
+        .filter(|f| f.pattern_id == "flask.route.v1")
+        .map(|f| {
+            let m = f.metadata.as_ref().unwrap();
+            (
+                m["route_template"].as_str().unwrap().to_string(),
+                m.get("endpoint")
+                    .and_then(|e| e.as_str())
+                    .map(str::to_string),
+            )
+        })
+        .collect();
+    assert_eq!(
+        endpoints,
+        vec![
+            ("/hello".to_string(), Some("greet".to_string())),
+            ("/plain".to_string(), None),
+            ("/".to_string(), Some("index".to_string())),
+            ("/old".to_string(), Some("legacy".to_string())),
+        ]
+    );
+}
