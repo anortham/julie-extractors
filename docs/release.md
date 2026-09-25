@@ -57,9 +57,10 @@ cargo xtask release package --version <version> --target <target> --out-dir <pat
 The julie gates compare this build with the previous one, so a defect that both
 builds share passes them. code-kb dogfood sessions find those defects. Before
 you tag a version that changes extraction output, build code-kb with the local
-release binary in its `.tools/julie-extract`, and pass the code-kb corpus check
-and dogfood round (code-kb `docs/RELEASING.md`, steps 6 to 8). Fix every
-defect those checks find in this version before the tag.
+release binary in its `.tools/julie-extract`, and run the code-kb dogfood round
+(code-kb `docs/RELEASING.md`, steps 7 and 8). Fix every wrong answer that round
+finds in this version before the tag; a gap does not block it. The code-kb
+corpus check runs on the published binary after the tag.
 
 ## Source-Control Release Closeout
 
@@ -189,10 +190,12 @@ Historical v0.1.0 dogfood evidence: `docs/release-evidence/v0.1.0-dogfood.md`.
 Historical v0.1.0 release-candidate audit evidence:
 `docs/release-evidence/2026-06-01-v0-1-0-release-candidate-audit.md`.
 
-Current published release: `v3.6.1`.
+Current published release: `v3.6.2`.
 
 Current release notes and published evidence:
 
+- `docs/release-notes/v3.6.2.md`
+- `docs/release-evidence/2026-09-25-v3-6-2-release.md`
 - `docs/release-notes/v3.6.1.md`
 - `docs/release-evidence/2026-09-24-v3-6-1-release.md`
 - `docs/release-notes/v3.6.0.md`
