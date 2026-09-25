@@ -92,12 +92,14 @@ Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
 classification: compatible
 
-Six Python changes. No SQLite or report-schema column is added, removed, or
+Nine Python changes. No SQLite or report-schema column is added, removed, or
 retyped: SQLite schema remains 7, report schema remains 3, and extraction
 identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` adds
 `python-return-arrow-v1`, `flask-methods-tuple-v1`, `python-cls-binding-v1`,
-`python-decorator-args-v1`, `python-annotation-only-v1`, and
-`python-isinstance-type-v1` because canonical output changes.
+`python-decorator-args-v1`, `python-annotation-only-v1`,
+`python-isinstance-type-v1`, `python-lambda-line-v1`,
+`python-attribute-docs-v1`, and `python-property-init-v1` because canonical
+output changes.
 
 - A Python function or method signature writes its return annotation with
   `->`: `def load(path: str) -> Config`, not `def load(path: str): Config`.
@@ -126,6 +128,15 @@ identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` adds
 - The class argument of `isinstance(value, C)` or `issubclass(cls, C)`, alone or
   in a tuple, is an `identifiers` row of kind `type_usage` for `C`. Before, it was
   a `variable_ref`. Rows change kind in `identifiers` for these arguments.
+- A Python lambda is named for its one-based line: `lambda_312` for a lambda on
+  line 312. Before, the name used the zero-based row (`lambda_311`). Names, keys,
+  and ids of lambda rows change.
+- A `self.x = ...` member row takes the Sphinx `#:` comment lines right above it,
+  or the attribute docstring right after it, as its `doc_comment`, as a class
+  attribute already did.
+- A `@property` method no longer hides the first `self.x = ...` assignment of
+  the same name. `self.static_folder = static_folder` in `__init__` is a member
+  row next to the `static_folder` getter and setter rows.
 
 ## 3.6.1
 

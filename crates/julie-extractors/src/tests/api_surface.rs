@@ -53,6 +53,9 @@ fn test_public_contract_version_marks_current_fact_families() {
         "python-decorator-args-v1",
         "python-annotation-only-v1",
         "python-isinstance-type-v1",
+        "python-lambda-line-v1",
+        "python-attribute-docs-v1",
+        "python-property-init-v1",
         "go-module-manifest-v1",
         "go-sum-checksums-v1",
     ] {

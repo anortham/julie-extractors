@@ -262,6 +262,41 @@ class App:
 }
 
 #[test]
+fn a_self_attribute_keeps_its_sphinx_comment_and_its_row_beside_a_property() {
+    let source = r#"
+class Scaffold:
+    def __init__(self, static_folder):
+        #: The Click command group.
+        #: Commands register here.
+        self.cli = make_group()
+        self.static_folder = static_folder
+
+    @property
+    def static_folder(self):
+        return self._static_folder
+"#;
+    let result = extract("scaffold.py", source);
+    assert_eq!(
+        one(&result, "cli").doc_comment.as_deref(),
+        Some("The Click command group.\nCommands register here.")
+    );
+    let static_folder = named(&result, "static_folder");
+    assert!(
+        static_folder.iter().any(|symbol| symbol.start_line == 7
+            && symbol.signature.as_deref() == Some("self.static_folder = static_folder")),
+        "{static_folder:#?}"
+    );
+}
+
+#[test]
+fn a_lambda_is_named_for_its_one_based_line() {
+    let source = "handler = None\ncallback = lambda value: value\n";
+    let result = extract("lambdas.py", source);
+    let lambda = one(&result, "lambda_2");
+    assert_eq!(lambda.start_line, 2);
+}
+
+#[test]
 fn import_rows_carry_structured_metadata_and_pending_calls_carry_import_context() {
     let source = r#"from app.models import Order as O
 import app.services.billing as billing

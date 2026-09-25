@@ -1248,8 +1248,8 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/python/wave2_semantics/source.py:lambda_76:77:11",
-      "name": "lambda_76",
+      "key": "fixtures/extraction/python/wave2_semantics/source.py:lambda_77:77:11",
+      "name": "lambda_77",
       "kind": "function",
       "language": "python",
       "file_path": "fixtures/extraction/python/wave2_semantics/source.py",
@@ -2641,7 +2641,7 @@
       "end_column": 24,
       "start_byte": 1283,
       "end_byte": 1285,
-      "containing_key": "fixtures/extraction/python/wave2_semantics/source.py:lambda_76:77:11",
+      "containing_key": "fixtures/extraction/python/wave2_semantics/source.py:lambda_77:77:11",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -3153,7 +3153,7 @@
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/python/wave2_semantics/source.py:lambda_76:77:11",
+      "symbol_key": "fixtures/extraction/python/wave2_semantics/source.py:lambda_77:77:11",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "python",
       "file_path": "fixtures/extraction/python/wave2_semantics/source.py",

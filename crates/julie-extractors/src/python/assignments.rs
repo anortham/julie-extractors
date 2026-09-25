@@ -84,7 +84,7 @@ pub(super) fn extract_assignment(extractor: &mut PythonExtractor, node: Node) ->
         serde_json::json!(!type_annotation.is_empty()),
     );
 
-    let doc_comment = attribute_doc_comment(extractor, node);
+    let doc_comment = attribute_doc_comment(extractor, node, is_instance_attribute);
 
     let symbol = extractor.base_mut().create_symbol(
         &node,
@@ -130,10 +130,14 @@ fn directly_in_enum_body(extractor: &PythonExtractor, assignment: Node) -> bool 
     class_node.is_some_and(|class_node| types::is_enum_class(extractor, &class_node))
 }
 
-/// The documentation of a module or class attribute: the Sphinx `#:` comment
-/// lines right above the statement, else the PEP 257 attribute docstring (a
-/// string statement right after it).
-fn attribute_doc_comment(extractor: &PythonExtractor, assignment: Node) -> Option<String> {
+/// The documentation of a module, class, or `self.x` attribute: the Sphinx
+/// `#:` comment lines right above the statement, else the PEP 257 attribute
+/// docstring (a string statement right after it).
+fn attribute_doc_comment(
+    extractor: &PythonExtractor,
+    assignment: Node,
+    instance_attribute: bool,
+) -> Option<String> {
     let statement = assignment
         .parent()
         .filter(|statement| statement.kind() == "expression_statement")?;
@@ -142,15 +146,18 @@ fn attribute_doc_comment(extractor: &PythonExtractor, assignment: Node) -> Optio
         && scope
             .parent()
             .is_some_and(|owner| owner.kind() == "class_definition");
-    if scope.kind() != "module" && !class_body {
+    let method_body = instance_attribute && scope.kind() == "block";
+    if scope.kind() != "module" && !class_body && !method_body {
         return None;
     }
     let mut lines = Vec::new();
     let mut expected_row = statement.start_position().row;
     let mut previous = statement.prev_sibling().or_else(|| {
-        // A comment above the first statement of a class body is a child of
-        // the class definition, not of its body block.
-        class_body.then(|| scope.prev_sibling()).flatten()
+        // A comment above the first statement of a class or method body is a
+        // child of the definition, not of its body block.
+        (class_body || method_body)
+            .then(|| scope.prev_sibling())
+            .flatten()
     });
     while let Some(comment) = previous.filter(|node| node.kind() == "comment") {
         let text = extractor.base().get_node_text(&comment);
@@ -187,7 +194,9 @@ fn self_attribute_name(extractor: &PythonExtractor, target: Node) -> Option<Stri
 
 /// Keep one member row per class attribute. A class-level declaration wins;
 /// otherwise the first `self.x` assignment in source order does. Later
-/// assignments stay visible as member-access identifiers.
+/// assignments stay visible as member-access identifiers. A `@property`
+/// method is not a declaration: `self.x = x` in `__init__` that runs its
+/// setter still shows where the attribute is first set.
 pub(super) fn keep_first_attribute_declaration(
     symbols: &mut Vec<Symbol>,
     instance_attribute_ids: &HashSet<String>,
@@ -195,6 +204,12 @@ pub(super) fn keep_first_attribute_declaration(
     let mut declared: HashSet<(String, String)> = symbols
         .iter()
         .filter(|symbol| !instance_attribute_ids.contains(&symbol.id))
+        .filter(|symbol| {
+            !symbol
+                .signature
+                .as_deref()
+                .is_some_and(|signature| signature.contains("def "))
+        })
         .filter(|symbol| {
             matches!(
                 symbol.kind,
@@ -265,7 +280,11 @@ fn extract_multiple_assignment_targets(
 
         let visibility = signatures::infer_visibility(&name);
 
-        let doc_comment = attribute_doc_comment(extractor, left_node.parent().unwrap_or(left_node));
+        let doc_comment = attribute_doc_comment(
+            extractor,
+            left_node.parent().unwrap_or(left_node),
+            symbol_kind == SymbolKind::Property,
+        );
 
         let symbol = extractor.base_mut().create_symbol(
             &child,

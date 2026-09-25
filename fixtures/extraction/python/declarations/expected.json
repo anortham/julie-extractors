@@ -569,8 +569,8 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/python/declarations/source.py:lambda_33:34:34",
-      "name": "lambda_33",
+      "key": "fixtures/extraction/python/declarations/source.py:lambda_34:34:34",
+      "name": "lambda_34",
       "kind": "function",
       "language": "python",
       "file_path": "fixtures/extraction/python/declarations/source.py",
@@ -1246,7 +1246,7 @@
       "metadata": null
     },
     {
-      "from_key": "fixtures/extraction/python/declarations/source.py:lambda_33:34:34",
+      "from_key": "fixtures/extraction/python/declarations/source.py:lambda_34:34:34",
       "to_key": "fixtures/extraction/python/declarations/source.py:weight:31:8",
       "kind": "calls",
       "file_path": "fixtures/extraction/python/declarations/source.py",
@@ -1967,7 +1967,7 @@
       "end_column": 60,
       "start_byte": 906,
       "end_byte": 911,
-      "containing_key": "fixtures/extraction/python/declarations/source.py:lambda_33:34:34",
+      "containing_key": "fixtures/extraction/python/declarations/source.py:lambda_34:34:34",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2143,7 +2143,7 @@
       "end_column": 54,
       "start_byte": 899,
       "end_byte": 905,
-      "containing_key": "fixtures/extraction/python/declarations/source.py:lambda_33:34:34",
+      "containing_key": "fixtures/extraction/python/declarations/source.py:lambda_34:34:34",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -2409,7 +2409,7 @@
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/python/declarations/source.py:lambda_33:34:34",
+      "symbol_key": "fixtures/extraction/python/declarations/source.py:lambda_34:34:34",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "python",
       "file_path": "fixtures/extraction/python/declarations/source.py",
