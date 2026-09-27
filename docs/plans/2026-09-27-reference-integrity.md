@@ -36,8 +36,8 @@ Task 3 is split into concrete owned briefs as current source establishes the nee
 - [x] All 21 declared gaps have current source-backed dispositions; all locally actionable omissions are fixed and claims have golden evidence.
 - [x] Lead reviews changed code, metadata, spans and negative cases; no new global resolver or speculative framework.
 - [x] Focused RED/GREEN checks pass, followed by one default suite, golden suite and strict quality report on the final source.
-- [ ] Windows checks cover CLI lifecycle/equivalence and affected extraction contracts.
-- [ ] Related worktrees are reconciled, work is committed and locally integrated, and no push or release occurs.
+- [x] Windows checks cover CLI lifecycle/equivalence and affected extraction contracts.
+- [x] Related worktrees are reconciled, work is committed and locally integrated, and no push or release occurs.
 
 ## Verification
 
@@ -57,9 +57,11 @@ Regex conditionals need a grammar correction. Vendor the existing parser with it
 
 Gap discovery and source-local implementations are complete. Source-site mount facts remain separate from route declarations, since one router can have multiple mounts. A lead probe also found missing routes on typed Actix `ServiceConfig` parameters; those declarations are now extracted. The 21 dispositions below close 10 original gaps and retain 11 context/composition requirements.
 
-The first integrated run exposed regressions in function pointers, prototype methods, Kotlin extension receivers, Lua predeclared mutual recursion, Ruby implicit calls, Zig method callers and Go Ginkgo pending hooks. Focused checks cover their known positive targets as well as shadowing and unresolved occurrences. New recursive collectors also received the existing traversal-budget guards. Final fixture regeneration and platform gates follow these corrections.
+The first integrated run exposed regressions in function pointers, prototype methods, Kotlin extension receivers, Lua predeclared mutual recursion, Ruby implicit calls, Zig method callers and Go Ginkgo pending hooks. Focused checks cover their known positive targets as well as shadowing and unresolved occurrences. New recursive collectors also received the existing traversal-budget guards. Final fixture regeneration and platform gates pass after these corrections.
 
-Final Linux verification passes: `cargo xtask test default` completes in 29 seconds; `cargo xtask test golden` passes all eight checks; the strict quality report records 42 languages, zero silent cells, zero quality-bar debts and 12 explicit gaps. All 26 new fixture groups parse without diagnostics. Golden review finds no new duplicate pending rows, resolved/pending overlaps or dangling structural-fact owners. Three inherited calls now remain pending instead of relying on whole-file name uniqueness. The CLI capability contract includes the two new Rust patterns. Windows verification remains pending on the implementation commit.
+Final Linux verification passes: `cargo xtask test default` passes 6,804 tests in 29 seconds; `cargo xtask test golden` passes all eight checks; the strict quality report records 42 languages, zero silent cells, zero quality-bar debts and 12 explicit gaps. All 26 new fixture groups parse without diagnostics. Golden review finds no new duplicate pending rows, resolved/pending overlaps or dangling structural-fact owners. Three inherited calls now remain pending instead of relying on whole-file name uniqueness. The CLI capability contract includes the two new Rust patterns.
+
+Native Windows `cargo xtask test default` passes on implementation commit `14f4510cdb0cb55ab5d71929c92f7d433ff5094c`: 190 seconds including the rebuild; all four incremental-equivalence tests pass in 6.56 seconds. The first attempt exhausted guest disk during linking; clearing only this package's rebuildable Cargo output freed 38.8 GiB. The retry used the same source commit. Main was fast-forwarded locally to the verified implementation; related earlier worktrees are clean and already merged. Final documentation/memory changes do not alter the verified source.
 
 ### Individual gap dispositions
 
