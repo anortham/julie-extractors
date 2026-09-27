@@ -1,9 +1,9 @@
 ---
 id: canonical-receiver-facts-and-measured-incremental-
 title: Canonical receiver facts and measured incremental reporting
-status: active
+status: completed
 created: 2026-09-27T15:35:44.604Z
-updated: 2026-09-27T17:07:21.515Z
+updated: 2026-09-27T17:19:14.218Z
 tags:
   - receiver-facts
   - all-languages
@@ -11,17 +11,14 @@ tags:
   - performance-measurement
 ---
 
-## Goal
-Move receiver detection out of CLI artifact mapping into canonical language-aware extraction. Verify receiver names/types and precise reference locations across every applicable language. Measure whole-artifact counting during incremental commands and make only evidence-backed changes.
+## Outcome
+Canonical extraction now owns receiver names and qualification; the CLI byte scanner is removed. Language-specific producers correct reference spans, duplicate C++/Rust calls, SQL qualifications and Rust macro receivers. Ruby setter declarations no longer produce call facts. Semantic extraction identity advanced; updated consumers need scan --force.
 
-## Authority and scope
-User approved these three next items with "ok do it". Implementation and local commits are authorized; no push or release. All languages matter. Historical docs may be overturned. Do not modify code-kb.
+## Coverage and verification
+42-language applicability matrix, 31 supplementary fixtures, 121 literal receiver expectations, and receiver-type preservation across extraction levels and APIs. Final comparison of 308 source-named golden fixtures preserved all valid old receivers and removed five false facts. Reviewed 205 golden changes. Linux default: 6,741 passed, 7 ignored, 38s. Golden update: 8 passed. Strict quality: zero silent cells and quality-bar debts. Windows on f65b2e68: 384 CLI/artifact and 36 focused extractor tests passed.
 
-## Worktree
-/home/murphy/source/julie-extractors/.worktrees/refactor-receiver-facts on refactor/receiver-facts, base e11fe30a. Main and prior correctness worktree are clean.
+## Reporting decision
+On 1.69M rows, 22 exact count queries took 10.472ms p95 against about 540ms incremental command time. Keep exact counts. No cache or reporting optimization was justified.
 
-## Approach and evidence
-AST enrichment belongs at the registry boundary. Rust macro trees preserve original byte positions; SQL call producers use existing parsed qualification. Preserve authoritative receiver metadata/null suppression/types. CLI serializes facts; no consumer syntax guessing or new schema/resolver. The 42-language matrix plus 31 supplementary fixtures passes. Producer fixes correct broad spans in R/C++/HTML/regex/C#, duplicate C++/Rust member calls, and false Ruby setter references. Golden review, Linux branch gate and Windows verification remain.
-
-## Performance decision
-Immutable baseline measurement on 1.69M rows: 22 exact count queries took 10.472ms p95 against ~540ms incremental command time. Keep exact totals; no cache or count optimization justified.
+## Authority and integration
+All languages matter; historical docs are revisable. No code-kb changes. Implementation commit f65b2e68 and measurement commit d20db26e are local. Final documentation records verified state. No push or release authorized or performed.

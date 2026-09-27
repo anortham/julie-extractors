@@ -86,7 +86,7 @@ Commit mode: `parallel-lead-commit`.
 - [x] CLI maps receiver facts without interpreting source syntax.
 - [x] Cross-language gaps found by Task 2 are corrected within extraction, with focused tests.
 - [x] Golden changes are reviewed and strict quality reports zero silent cells/quality debts.
-- [ ] Relevant Linux/Windows gates pass, reviewed changes are committed, and all worktrees are reconciled.
+- [x] Relevant Linux/Windows gates pass, reviewed changes are committed, and all worktrees are reconciled.
 
 ### Task 4: Reporting measurement
 
@@ -129,4 +129,6 @@ The 42-language matrix includes 31 supplementary fixtures and 121 literal receiv
 
 Two old assertions encoded the corrected gaps. The C++ fixture now explicitly checks both nested `Map` arguments and `make_unique<Item>`. The HTML check now checks declarations and references directly, without using an incorrect declaration span as a filter.
 
-Linux default verification: **6,741 passed, 7 ignored, 38s**. Golden update: **8 passed**. Strict quality: **42 languages, 0 silent cells, 0 quality-bar debts**. Formatting and diff checks pass. The final 308-source-fixture artifact comparison preserved all genuine old receivers; five removals are two CSS selector guesses, two expression-rooted guesses, and one false Ruby setter call. Windows verification is pending the clean implementation commit.
+Linux default verification: **6,741 passed, 7 ignored, 38s**. Golden update: **8 passed**. Strict quality: **42 languages, 0 silent cells, 0 quality-bar debts**. Formatting and diff checks pass. The final 308-source-fixture artifact comparison preserved all genuine old receivers; five removals are two CSS selector guesses, two expression-rooted guesses, and one false Ruby setter call. Windows verification on implementation commit `f65b2e68` passed: **384 CLI/artifact tests** and **36 focused extractor tests** on NTFS. All task changes are committed locally; no push or release.
+
+Windows commands used `win-test sync /home/murphy/source/julie-extractors f65b2e688b09c3196a856a434b8d95ad9ed0bed1`, then `cargo test -p julie-extract-cli -p julie-extract-artifact` and `cargo test -p julie-extractors --test receiver_metadata --test receiver_spans --test receiver_sql --test receiver_rust_macros` through `win-test run`. Linux logs and final fixture differential are in the shared `target/receiver-facts-tmp/`; Windows runner logs are `20260927T171614Z-julie-extractors-1060433.log` and `20260927T171655Z-julie-extractors-1060790.log` under `~/.local/share/win-test/logs/`.

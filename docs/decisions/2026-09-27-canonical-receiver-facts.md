@@ -19,7 +19,9 @@ the registry with their own trees before Vue relabels the results.
 
 SQL call producers publish their existing parsed qualification parts, including
 quoted names. Rust macro extraction reuses item-macro trees and parses expression
-macro bodies with their original byte positions preserved.
+macro bodies with their original byte positions preserved. Nested expression
+macros require another parse per nesting level, bounded by the existing extraction
+depth limit. Revisit direct token-tree handling if profiling shows this work is costly.
 
 No schema change or resolver is needed. The semantic extraction version changes,
 so existing artifacts require a forced scan. Reference spans and IDs remain
