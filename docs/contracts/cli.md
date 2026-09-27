@@ -157,6 +157,8 @@ compatible artifact, this re-extracts the entire workspace and commits facts
 and current producer metadata together. When changing producer generation,
 source or discovery errors abort the scan without replacing the previous
 generation. Schema compatibility and extraction-level checks still apply.
+An unreadable or incompatible artifact is refused and preserved; `--force`
+does not delete it as a recovery step.
 
 ### `scan`
 

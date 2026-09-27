@@ -2764,7 +2764,7 @@ fn a_failing_scan_still_reports_the_spool_dir_it_excluded() {
 }
 
 #[test]
-fn a_force_scan_aborted_by_the_watchdog_leaves_an_unopenable_artifact_on_disk() {
+fn force_scan_preserves_unopenable_artifact_with_or_without_parent_supervision() {
     let fixture = FixtureRoot::new();
     let db = fixture.path("artifact.sqlite");
     std::fs::write(&db, b"not an artifact this scan can open").unwrap();
@@ -2786,14 +2786,14 @@ fn a_force_scan_aborted_by_the_watchdog_leaves_an_unopenable_artifact_on_disk() 
     if cfg!(unix) {
         assert_eq!(output.status.code(), Some(1));
         assert_eq!(json_report(&output)["errors"][0]["code"], "parent_exited");
-        assert_eq!(
-            std::fs::read(&db).unwrap(),
-            before,
-            "parent_exited is documented as leaving the artifact untouched"
-        );
     } else {
-        assert_success(output);
+        assert_eq!(output.status.code(), Some(3));
+        assert_eq!(
+            json_report(&output)["errors"][0]["code"],
+            "schema_incompatible"
+        );
     }
+    assert_eq!(std::fs::read(&db).unwrap(), before);
 }
 
 #[test]
