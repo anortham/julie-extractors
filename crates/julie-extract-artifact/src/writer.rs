@@ -35,6 +35,8 @@ use rows::{
 pub type ArtifactWriteResult<T> = Result<T, ArtifactWriteError>;
 
 const SQLITE_STATEMENT_CACHE_CAPACITY: usize = 64;
+type ProducerGeneration = (String, String, String);
+
 #[derive(Debug)]
 pub enum ArtifactWriteError {
     Sqlite(rusqlite::Error),
@@ -68,6 +70,10 @@ pub enum ArtifactWriteError {
     IndexLevelConflict {
         recorded: String,
         staged: String,
+    },
+    ProducerGenerationChanged,
+    IncompleteProducerRefresh {
+        path: String,
     },
 }
 
@@ -134,6 +140,16 @@ impl std::fmt::Display for ArtifactWriteError {
                  '{recorded}' (a concurrent scan established it after this scan chose its level); \
                  rebuild into a fresh artifact to change level"
             ),
+            ArtifactWriteError::ProducerGenerationChanged => {
+                write!(
+                    f,
+                    "artifact producer generation changed while preparing the write"
+                )
+            }
+            ArtifactWriteError::IncompleteProducerRefresh { path } => write!(
+                f,
+                "force scan could not complete a producer generation refresh because {path} was not fully indexed"
+            ),
         }
     }
 }
@@ -182,6 +198,7 @@ impl PhaseClock {
 pub struct ArtifactWriter {
     connection: Option<Connection>,
     metadata: ArtifactMetadata,
+    expected_producer_generation: Option<ProducerGeneration>,
     staged_capability_snapshot: Option<ArtifactCapabilitySnapshot>,
     /// Extraction level recorded into `artifact_metadata.index_level` by scan
     /// writes. Staged by the CLI once per scan; `None` writes nothing, which
@@ -212,6 +229,7 @@ impl ArtifactWriter {
         Ok(Self {
             connection: Some(connection),
             metadata,
+            expected_producer_generation: None,
             staged_capability_snapshot: None,
             staged_index_level: None,
             last_capability_rows_written: RowDomainCounts::default(),
@@ -240,6 +258,7 @@ impl ArtifactWriter {
         Ok(Self {
             connection: Some(connection),
             metadata,
+            expected_producer_generation: None,
             staged_capability_snapshot: None,
             staged_index_level: None,
             last_capability_rows_written: RowDomainCounts::default(),
@@ -358,6 +377,11 @@ impl ArtifactWriter {
         self.staged_index_level = Some(level.to_string());
     }
 
+    /// Stage the generation observed before extraction; only a Force scan may replace it.
+    pub fn expect_producer_generation(&mut self, metadata: &ArtifactMetadata) {
+        self.expected_producer_generation = Some(producer_generation(metadata));
+    }
+
     pub fn last_capability_rows_written(&self) -> RowDomainCounts {
         self.last_capability_rows_written.clone()
     }
@@ -367,11 +391,13 @@ impl ArtifactWriter {
         snapshot: &ArtifactCapabilitySnapshot,
     ) -> ArtifactWriteResult<RowDomainCounts> {
         self.ensure_not_poisoned()?;
+        let (expected, target) = self.producer_generation_precondition();
         let tx = self
             .connection
             .as_mut()
             .expect("artifact writer is closed")
             .transaction()?;
+        verify_producer_generation(&tx, &expected, &target, false)?;
         let counts = capabilities::sync_capability_snapshot_in_tx(&tx, snapshot)?;
         tx.commit()?;
         self.last_capability_rows_written = counts.clone();
@@ -381,6 +407,25 @@ impl ArtifactWriter {
     fn staged_capability_snapshot(&mut self) -> Option<ArtifactCapabilitySnapshot> {
         self.last_capability_rows_written = RowDomainCounts::default();
         self.staged_capability_snapshot.take()
+    }
+
+    fn producer_generation_precondition(&self) -> (ProducerGeneration, ProducerGeneration) {
+        (
+            self.expected_producer_generation
+                .clone()
+                .unwrap_or_else(|| producer_generation(&self.metadata)),
+            producer_generation(&self.metadata),
+        )
+    }
+
+    fn is_producer_generation_change(&self) -> bool {
+        self.expected_producer_generation
+            .as_ref()
+            .is_some_and(|expected| expected != &producer_generation(&self.metadata))
+    }
+
+    fn accept_staged_producer_generation(&mut self) {
+        self.expected_producer_generation = Some(producer_generation(&self.metadata));
     }
 
     pub fn write_scan(
@@ -468,11 +513,13 @@ impl ArtifactWriter {
         self.take_bulk_load_eligibility();
         let mut clock = PhaseClock::start();
         let capability_snapshot = self.staged_capability_snapshot();
+        let (expected, target) = self.producer_generation_precondition();
         let tx = self
             .connection
             .as_mut()
             .expect("artifact writer is closed")
             .transaction()?;
+        verify_producer_generation(&tx, &expected, &target, false)?;
         let existing = load_existing_file(&tx, path)?;
         let Some(existing) = existing else {
             clock.lap(|phases| &mut phases.plan);
@@ -538,11 +585,13 @@ impl ArtifactWriter {
         self.take_bulk_load_eligibility();
         let mut clock = PhaseClock::start();
         let capability_snapshot = self.staged_capability_snapshot();
+        let (expected, target) = self.producer_generation_precondition();
         let tx = self
             .connection
             .as_mut()
             .expect("artifact writer is closed")
             .transaction()?;
+        verify_producer_generation(&tx, &expected, &target, false)?;
         let capability_rows_written = capabilities::sync_optional_capability_snapshot_in_tx(
             &tx,
             capability_snapshot.as_ref(),
@@ -668,11 +717,16 @@ impl ArtifactWriter {
     ) -> ArtifactWriteResult<WriteResult> {
         let mut clock = PhaseClock::start();
         let capability_snapshot = self.staged_capability_snapshot();
+        let allow_generation_change =
+            revision.operation == WriteOperation::Scan && revision.mode == Some(WriteMode::Force);
+        let producer_generation_change = self.is_producer_generation_change();
+        let (expected, target) = self.producer_generation_precondition();
         let tx = self
             .connection
             .as_mut()
             .expect("artifact writer is closed")
             .transaction()?;
+        verify_producer_generation(&tx, &expected, &target, allow_generation_change)?;
         if bulk_load {
             drop_secondary_indexes(&tx)?;
         }
@@ -694,6 +748,14 @@ impl ArtifactWriter {
 
         for file in files {
             let existing = load_existing_file(&tx, &file.path)?;
+            if revision.mode == Some(WriteMode::Force)
+                && producer_generation_change
+                && file.status == FileStatus::FailedPreserved
+            {
+                return Err(ArtifactWriteError::IncompleteProducerRefresh {
+                    path: file.path.clone(),
+                });
+            }
             if skip_unchanged_content
                 && existing
                     .as_ref()
@@ -719,7 +781,11 @@ impl ArtifactWriter {
             planned.push((file, existing, change_kind));
         }
 
-        if planned.is_empty() && deleted.is_empty() && !capability_rows_written.has_rows() {
+        if planned.is_empty()
+            && deleted.is_empty()
+            && !capability_rows_written.has_rows()
+            && !producer_generation_change
+        {
             clock.lap(|phases| &mut phases.plan);
             if bulk_load {
                 create_secondary_indexes(&tx)?;
@@ -866,6 +932,7 @@ impl ArtifactWriter {
         let bulk_setup = bulk_setup_started.elapsed();
         match operation(self, bulk_load) {
             Ok(mut result) => {
+                self.accept_staged_producer_generation();
                 result.phases.plan += bulk_setup;
                 Ok(result)
             }
@@ -886,11 +953,16 @@ impl ArtifactWriter {
     ) -> ArtifactWriteResult<WriteResult> {
         let mut clock = PhaseClock::start();
         let capability_snapshot = self.staged_capability_snapshot();
+        let allow_generation_change =
+            revision.operation == WriteOperation::Scan && revision.mode == Some(WriteMode::Force);
+        let producer_generation_change = self.is_producer_generation_change();
+        let (expected, target) = self.producer_generation_precondition();
         let tx = self
             .connection
             .as_mut()
             .expect("artifact writer is closed")
             .unchecked_transaction()?;
+        verify_producer_generation(&tx, &expected, &target, allow_generation_change)?;
         // Symbol parent FKs can point to symbols inserted later in the same spooled transaction.
         // Defer validation until commit while keeping connection-level foreign_keys ON so
         // ON DELETE CASCADE/SET NULL actions still run during rewrites and snapshot deletes.
@@ -906,6 +978,14 @@ impl ArtifactWriter {
             .iter()
             .map(String::as_str)
             .collect::<HashSet<_>>();
+        if revision.mode == Some(WriteMode::Force)
+            && producer_generation_change
+            && !preserved_missing_paths.is_empty()
+        {
+            return Err(ArtifactWriteError::IncompleteProducerRefresh {
+                path: preserved_missing_paths[0].clone(),
+            });
+        }
         let skip_unchanged_content = revision.mode != Some(WriteMode::Force);
         let mut planned_files: HashMap<String, Option<ExistingFile>> = HashMap::new();
         let mut files_skipped = 0;
@@ -920,18 +1000,24 @@ impl ArtifactWriter {
                     path: header.path.clone(),
                 });
             }
-            spooled_paths.insert(header.path.clone());
-            let existing = load_existing_file(&tx, &header.path)?;
+            let file = header.into_file_without_child_rows();
+            spooled_paths.insert(file.path.clone());
+            let existing = load_existing_file(&tx, &file.path)?;
+            if revision.mode == Some(WriteMode::Force)
+                && producer_generation_change
+                && file.status == FileStatus::FailedPreserved
+            {
+                return Err(ArtifactWriteError::IncompleteProducerRefresh { path: file.path });
+            }
             if skip_unchanged_content
                 && existing
                     .as_ref()
-                    .is_some_and(|row| row.content_hash == header.content_hash)
+                    .is_some_and(|row| row.content_hash == file.content_hash)
             {
                 files_skipped += 1;
                 continue;
             }
 
-            let file = header.into_file_without_child_rows();
             if file.status != FileStatus::FailedPreserved {
                 ensure_data_loss_guard(&tx, &file)?;
             }
@@ -964,7 +1050,11 @@ impl ArtifactWriter {
             })
             .collect::<Vec<_>>();
 
-        if planned_files.is_empty() && deleted.is_empty() && !capability_rows_written.has_rows() {
+        if planned_files.is_empty()
+            && deleted.is_empty()
+            && !capability_rows_written.has_rows()
+            && !producer_generation_change
+        {
             clock.lap(|phases| &mut phases.plan);
             if bulk_load {
                 create_secondary_indexes(&tx)?;
@@ -1104,6 +1194,39 @@ fn metadata_row_count(connection: &Connection) -> rusqlite::Result<i64> {
     connection.query_row("SELECT COUNT(*) FROM artifact_metadata", [], |row| {
         row.get(0)
     })
+}
+
+fn producer_generation(metadata: &ArtifactMetadata) -> ProducerGeneration {
+    (
+        metadata.binary_version.clone(),
+        metadata.parser_inventory_fingerprint.clone(),
+        metadata.capability_snapshot_fingerprint.clone(),
+    )
+}
+
+fn stored_producer_generation(tx: &Transaction<'_>) -> rusqlite::Result<ProducerGeneration> {
+    tx.query_row(
+        "SELECT \
+            COALESCE((SELECT value FROM artifact_metadata WHERE key = 'binary_version'), ''), \
+            COALESCE((SELECT value FROM artifact_metadata WHERE key = 'parser_inventory_fingerprint'), ''), \
+            COALESCE((SELECT value FROM artifact_metadata WHERE key = 'capability_snapshot_fingerprint'), '')",
+        [],
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+    )
+}
+
+fn verify_producer_generation(
+    tx: &Transaction<'_>,
+    expected: &ProducerGeneration,
+    target: &ProducerGeneration,
+    allow_generation_change: bool,
+) -> ArtifactWriteResult<()> {
+    if (!allow_generation_change && expected != target)
+        || stored_producer_generation(tx)? != *expected
+    {
+        return Err(ArtifactWriteError::ProducerGenerationChanged);
+    }
+    Ok(())
 }
 
 fn write_metadata(tx: &Transaction<'_>, metadata: &ArtifactMetadata) -> rusqlite::Result<()> {

@@ -2205,6 +2205,236 @@ fn force_scan_rewrites_unchanged_hash_rows() {
 }
 
 #[test]
+fn writer_refuses_a_producer_generation_changed_after_open() {
+    let mut writer = open_writer();
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"])],
+        )
+        .unwrap();
+    writer
+        .connection()
+        .execute(
+            "UPDATE artifact_metadata SET value = 'sha256:changed' WHERE key = 'capability_snapshot_fingerprint'",
+            [],
+        )
+        .unwrap();
+
+    let result = writer.write_scan(
+        revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+        &[file_with_symbols(
+            "file-a",
+            "src/a.rs",
+            "hash-a2",
+            ["alpha_v2"],
+        )],
+    );
+
+    assert!(result.is_err());
+    assert_eq!(
+        symbols_for_path(writer.connection(), "src/a.rs"),
+        vec!["alpha"]
+    );
+    assert_eq!(
+        file_hash(writer.connection(), "src/a.rs"),
+        Some("hash-a".to_string())
+    );
+    assert_eq!(count(writer.connection(), "extraction_revisions"), 1);
+}
+
+#[test]
+fn force_scan_rejects_new_failed_preserved_files_during_generation_change() {
+    let old_metadata = artifact_metadata();
+    let mut target_metadata = old_metadata.clone();
+    target_metadata.capability_snapshot_fingerprint = "sha256:new-capability".to_string();
+    let mut writer = ArtifactWriter::open_in_memory(target_metadata).unwrap();
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"])],
+        )
+        .unwrap();
+    writer
+        .connection()
+        .execute(
+            "UPDATE artifact_metadata SET value = ?1 WHERE key = 'capability_snapshot_fingerprint'",
+            [&old_metadata.capability_snapshot_fingerprint],
+        )
+        .unwrap();
+    writer.expect_producer_generation(&old_metadata);
+    let mut failed = file_with_symbols("file-b", "src/b.rs", "hash-b", []);
+    failed.status = FileStatus::FailedPreserved;
+
+    let error = writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Force)),
+            &[
+                file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha_v2"]),
+                failed,
+            ],
+        )
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        ArtifactWriteError::IncompleteProducerRefresh { ref path } if path == "src/b.rs"
+    ));
+    assert_eq!(
+        writer
+            .connection()
+            .query_row(
+                "SELECT value FROM artifact_metadata WHERE key = 'capability_snapshot_fingerprint'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        old_metadata.capability_snapshot_fingerprint
+    );
+    assert_eq!(
+        symbols_for_path(writer.connection(), "src/a.rs"),
+        vec!["alpha"]
+    );
+    assert_eq!(
+        symbols_for_path(writer.connection(), "src/b.rs"),
+        Vec::<String>::new()
+    );
+    assert_eq!(count(writer.connection(), "extraction_revisions"), 1);
+}
+
+#[test]
+fn writer_accepts_same_generation_write_after_force_refresh() {
+    let temp_dir = unique_temp_dir("producer-generation-refresh");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+    let old_metadata = artifact_metadata();
+    let mut current_metadata = old_metadata.clone();
+    current_metadata.capability_snapshot_fingerprint = "sha256:new-capability".to_string();
+
+    let mut original = ArtifactWriter::open_path(&db_path, old_metadata.clone()).unwrap();
+    original
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"])],
+        )
+        .unwrap();
+    drop(original);
+
+    let mut writer = ArtifactWriter::open_path(&db_path, current_metadata).unwrap();
+    writer.expect_producer_generation(&old_metadata);
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Force)),
+            &[file_with_symbols(
+                "file-a",
+                "src/a.rs",
+                "hash-a",
+                ["alpha_v2"],
+            )],
+        )
+        .unwrap();
+    let result = writer.write_scan(
+        revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+        &[file_with_symbols(
+            "file-a",
+            "src/a.rs",
+            "hash-a2",
+            ["alpha_v3"],
+        )],
+    );
+
+    assert!(result.is_ok());
+    assert_eq!(
+        symbols_for_path(writer.connection(), "src/a.rs"),
+        vec!["alpha_v3"]
+    );
+    assert_eq!(
+        writer
+            .connection()
+            .query_row(
+                "SELECT value FROM artifact_metadata WHERE key = 'capability_snapshot_fingerprint'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        "sha256:new-capability"
+    );
+    drop(writer);
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn staged_old_generation_rejects_every_non_force_mutation() {
+    let old_metadata = artifact_metadata();
+    let mut target_metadata = old_metadata.clone();
+    target_metadata.capability_snapshot_fingerprint = "sha256:new-capability".to_string();
+    let mut writer = ArtifactWriter::open_in_memory(target_metadata).unwrap();
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"])],
+        )
+        .unwrap();
+    writer
+        .connection()
+        .execute(
+            "UPDATE artifact_metadata SET value = ?1 WHERE key = 'capability_snapshot_fingerprint'",
+            [&old_metadata.capability_snapshot_fingerprint],
+        )
+        .unwrap();
+    writer.expect_producer_generation(&old_metadata);
+
+    let scan_error = writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_symbols(
+                "file-a",
+                "src/a.rs",
+                "hash-a2",
+                ["alpha_v2"],
+            )],
+        )
+        .unwrap_err();
+    let update_error = writer
+        .write_update(
+            revision(WriteOperation::Update, Some(WriteMode::SingleFile)),
+            &file_with_symbols("file-a", "src/a.rs", "hash-a2", ["alpha_v2"]),
+        )
+        .unwrap_err();
+    let delete_error = writer
+        .delete_file(
+            revision(WriteOperation::Delete, Some(WriteMode::SingleFile)),
+            "src/a.rs",
+        )
+        .unwrap_err();
+    let capability_error = writer
+        .sync_capability_snapshot(&ArtifactCapabilitySnapshot::default())
+        .unwrap_err();
+
+    assert!(matches!(
+        scan_error,
+        ArtifactWriteError::ProducerGenerationChanged
+    ));
+    assert!(matches!(
+        update_error,
+        ArtifactWriteError::ProducerGenerationChanged
+    ));
+    assert!(matches!(
+        delete_error,
+        ArtifactWriteError::ProducerGenerationChanged
+    ));
+    assert!(matches!(
+        capability_error,
+        ArtifactWriteError::ProducerGenerationChanged
+    ));
+    assert_eq!(
+        symbols_for_path(writer.connection(), "src/a.rs"),
+        vec!["alpha"]
+    );
+    assert_eq!(count(writer.connection(), "extraction_revisions"), 1);
+}
+
+#[test]
 fn data_loss_guard_preserves_known_good_rows_on_parser_failure_evidence() {
     let mut writer = open_writer();
     writer

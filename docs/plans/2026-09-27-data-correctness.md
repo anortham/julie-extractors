@@ -46,11 +46,11 @@ Commit mode: `parallel-lead-commit`. Workers never stage or commit and must not 
 **What to build:** Version the capability fingerprint payload and include the existing semantic extraction contract string. Compare all three producer values on incremental writes, including scan/update/delete/rebind. Reuse shared checks and keep schema error precedence and read compatibility.
 **Approach:** Force must bypass only freshness, retain valid schema/root/level checks, and rewrite compatible artifacts transactionally. Never route a producer mismatch into generic unlink/recreate recovery. On generation change, discovery/read/extraction errors or interruption must leave prior facts and metadata untouched. Handle empty artifacts and failed writes. Assess transaction-time validation so concurrent producer changes cannot evade the early guard.
 
-- [ ] Focused regression fails before the fix and passes afterward.
-- [ ] Each producer mismatch, including old semantic fingerprint, prevents every incremental mutation; reads still work.
-- [ ] Unchanged files are re-extracted by successful force; removed files are removed; same-generation incremental behavior remains unchanged.
-- [ ] Generation-changing force errors and write failures preserve old rows and metadata; empty workspace can adopt the current generation.
-- [ ] Semantic contract alone changes the fingerprint; canonical row order remains stable.
+- [x] Focused regression fails before the fix and passes afterward.
+- [x] Each producer mismatch, including old semantic fingerprint, prevents every incremental mutation; reads still work.
+- [x] Unchanged files are re-extracted by successful force; removed files are removed; same-generation incremental behavior remains unchanged.
+- [x] Generation-changing force errors and write failures preserve old rows and metadata; empty workspace can adopt the current generation.
+- [x] Semantic contract alone changes the fingerprint; canonical row order remains stable.
 
 ### Task 2: Reference occurrences
 
@@ -70,7 +70,7 @@ Commit mode: `parallel-lead-commit`. Workers never stage or commit and must not 
 **Interfaces:** Extraction semantic version and public contract documentation.
 **File ownership:** Task 3 row above. **Serialization required:** Yes. **Dependency reason:** Both fixes must exist before broad verification.
 
-- [ ] Review each implementation against live source, tests, and the criteria above; resolve defects.
-- [ ] Advance semantic output identity and document freshness/occurrence behavior without changing the schema unnecessarily.
+- [x] Review each implementation against live source, tests, and the criteria above; resolve defects.
+- [x] Advance semantic output identity and document freshness/occurrence behavior without changing the schema unnecessarily.
 - [ ] Run relevant Linux and Windows verification, update any intentionally affected goldens, and commit reviewed work locally.
 - [ ] Reconcile all worktree states and report the result and recovery command concisely.

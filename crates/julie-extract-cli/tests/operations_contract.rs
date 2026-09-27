@@ -458,7 +458,7 @@ fn scan_profile_splits_artifact_write_into_additive_sub_phases() {
 }
 
 #[test]
-fn scan_report_includes_profile_when_db_open_fails_after_extraction() {
+fn force_scan_reports_profile_and_preserves_unusable_db_path_before_extraction() {
     let fixture = FixtureRoot::with_file("src/lib.rs", "pub fn alpha() {}\n");
     let db = fixture.path("artifact.sqlite");
     std::fs::create_dir_all(&db).unwrap();
@@ -479,20 +479,19 @@ fn scan_report_includes_profile_when_db_open_fails_after_extraction() {
     assert_eq!(report["errors"][0]["code"], "db_open_failed");
     let profile = report["profile"]
         .as_object()
-        .expect("scan failure after extraction should include a profile");
+        .expect("force metadata failure should include a profile");
     assert!(
-        profile["phases"]["extraction_spool"].as_u64().is_some(),
-        "profile should include extraction_spool phase: {profile:#?}"
+        profile["phases"]["discovery"].as_u64().is_some(),
+        "profile should include discovery phase: {profile:#?}"
     );
     assert!(
-        profile["phases"]["writer_open"].as_u64().is_some(),
-        "profile should include writer_open phase: {profile:#?}"
+        profile["phases"]["force_metadata"].as_u64().is_some(),
+        "profile should include force_metadata phase: {profile:#?}"
     );
-    assert_eq!(profile["languages"]["rust"]["files"].as_i64(), Some(1));
-    assert_eq!(
-        profile["languages"]["rust"]["changed_files"].as_i64(),
-        Some(1)
-    );
+    assert!(profile["phases"].get("extraction_spool").is_none());
+    assert!(profile["phases"].get("writer_open").is_none());
+    assert!(profile["languages"].as_object().unwrap().is_empty());
+    assert!(db.is_dir());
 }
 
 #[test]

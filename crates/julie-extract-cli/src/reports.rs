@@ -287,6 +287,18 @@ pub(crate) fn write_error_outcome_with_profile(
             ),
             json!({"artifact_index_level": recorded, "staged_index_level": staged}),
         ),
+        ArtifactWriteError::ProducerGenerationChanged => (
+            3,
+            ReportCode::FingerprintMismatch,
+            "artifact producer generation changed while the write was being prepared; retry with `julie-extract scan --force`".to_string(),
+            json!({"action": "julie-extract scan --force"}),
+        ),
+        ArtifactWriteError::IncompleteProducerRefresh { path } => (
+            3,
+            ReportCode::FingerprintMismatch,
+            format!("force scan could not complete a producer generation refresh because {path} was not fully indexed"),
+            json!({"path": path, "action": "resolve source errors and retry `julie-extract scan --force`"}),
+        ),
     };
     let mut report = base_report(ReportStatus::Failed, operation, mode, input)
         .with_error(diagnostic(report_code, message, None, None, false, details));

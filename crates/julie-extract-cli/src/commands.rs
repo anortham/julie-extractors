@@ -32,7 +32,7 @@ use crate::artifact_access::{
     ArtifactAccess, ExistingArtifact, artifact_report_from_connection, existing_artifact_for_root,
     file_row_attribution, latest_revision_id, load_existing_content_hashes, open_artifact,
     open_artifact_for_info, open_artifact_for_rebind, open_artifact_for_root,
-    scan_file_row_attribution, table_totals, write_rebind,
+    producer_generation_matches, scan_file_row_attribution, table_totals, write_rebind,
 };
 use crate::capability_snapshot::{
     artifact_capability_snapshot, current_capability_fingerprints, flags, kind_coverage_json,
@@ -269,26 +269,32 @@ fn scan_collecting_warnings(
     controls.enter_phase("force_metadata");
     let mut force_existing_level = None;
     let force_existing_metadata = if args.force && db.exists() {
-        match open_artifact(&db, args.strict_schema, ArtifactAccess::Write) {
+        match open_artifact(&db, args.strict_schema, ArtifactAccess::Force) {
             Ok(artifact) if artifact.report.root_path == display_path(&root) => {
                 if artifact.has_extraction_history {
                     force_existing_level = Some(artifact.index_level.clone());
                 }
                 Some(artifact.write_metadata)
             }
-            // A force scan treats an artifact it cannot reuse as one to rebuild from
-            // scratch, but an older schema is the one refusal it must not swallow:
-            // the rebuild writes in place whenever the root still matches, which is
-            // exactly the case that would stamp the current version onto older DDL.
-            Err(error) if error.diagnostic.code == ReportCode::SchemaMigrationRequired => {
+            Ok(_) => None,
+            Err(error) => {
+                record_profile_phase(
+                    &mut profile_phases,
+                    "force_metadata",
+                    force_metadata_started.elapsed(),
+                );
                 return outcome(
                     base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input)
-                        .with_error(error.diagnostic),
+                        .with_error(error.diagnostic)
+                        .with_profile(scan_profile(
+                            scan_started,
+                            &profile_phases,
+                            &BTreeMap::new(),
+                        )),
                     error.exit_code,
                     args.json,
                 );
             }
-            Ok(_) | Err(_) => None,
         }
     } else {
         None
@@ -402,6 +408,59 @@ fn scan_collecting_warnings(
     }
     let db_existed_before_write = db.exists();
 
+    let expected_producer_metadata = force_existing_metadata
+        .as_ref()
+        .or(existing_scan_metadata.as_ref())
+        .cloned();
+    let producer_generation_changed = expected_producer_metadata
+        .as_ref()
+        .is_some_and(|metadata| !producer_generation_matches(metadata));
+    if args.force && producer_generation_changed {
+        let source_error = discovered
+            .errors
+            .first()
+            .map(|error| {
+                (
+                    error.path.clone(),
+                    error.root_relative_path.clone(),
+                    error.message.clone(),
+                )
+            })
+            .or_else(|| {
+                extracted.errors.first().map(|error| {
+                    (
+                        error.path.clone(),
+                        error.root_relative_path.clone(),
+                        error.message.clone(),
+                    )
+                })
+            });
+        if let Some((path, root_relative_path, message)) = source_error {
+            return outcome(
+                base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input)
+                    .with_error(diagnostic(
+                        ReportCode::FingerprintMismatch,
+                        format!(
+                            "force scan cannot change producer generation while source extraction failed for {root_relative_path}: {message}"
+                        ),
+                        Some(path),
+                        Some(root_relative_path.clone()),
+                        false,
+                        json!({
+                            "path": root_relative_path,
+                            "action": "resolve source errors and retry `julie-extract scan --force`"
+                        }),
+                    ))
+                    .with_profile(scan_profile(
+                        scan_started,
+                        &profile_phases,
+                        &profile_languages,
+                    )),
+                3,
+                args.json,
+            );
+        }
+    }
     let metadata = force_existing_metadata
         .or(existing_scan_metadata)
         .map(refreshed_metadata)
@@ -411,6 +470,12 @@ fn scan_collecting_warnings(
     controls.enter_phase("writer_open");
     match ArtifactWriter::open_path(&db, metadata) {
         Ok(mut writer) => {
+            if args.force && producer_generation_changed {
+                let metadata = expected_producer_metadata
+                    .as_ref()
+                    .expect("a changed producer generation has an existing artifact");
+                writer.expect_producer_generation(metadata);
+            }
             record_profile_phase(
                 &mut profile_phases,
                 "writer_open",
@@ -735,12 +800,18 @@ fn update(args: UpdateArgs) -> CommandOutcome {
             );
         }
     };
+    let expected_producer_metadata = existing_artifact
+        .as_ref()
+        .map(|artifact| artifact.write_metadata.clone());
     let metadata = existing_artifact
         .map(|artifact| refreshed_metadata(artifact.write_metadata))
         .unwrap_or_else(|| new_artifact_metadata(&root, None));
 
     match ArtifactWriter::open_path(&db, metadata) {
         Ok(mut writer) => {
+            if let Some(metadata) = expected_producer_metadata.as_ref() {
+                writer.expect_producer_generation(metadata);
+            }
             writer.stage_capability_snapshot(artifact_capability_snapshot());
             match writer.write_update(
                 revision_input(WriteOperation::Update, Some(WriteMode::SingleFile), &root),
@@ -2165,10 +2236,16 @@ fn delete_artifact_rows(
     operation: WriteOperation,
     change_kind: RevisionChangeKind,
 ) -> Result<RowRemovalResult, ArtifactWriteError> {
+    let expected_producer_metadata = existing_artifact
+        .as_ref()
+        .map(|artifact| artifact.write_metadata.clone());
     let metadata = existing_artifact
         .map(|artifact| refreshed_metadata(artifact.write_metadata))
         .unwrap_or_else(|| new_artifact_metadata(root, None));
     let mut writer = ArtifactWriter::open_path(db, metadata)?;
+    if let Some(metadata) = expected_producer_metadata.as_ref() {
+        writer.expect_producer_generation(metadata);
+    }
     writer.stage_capability_snapshot(artifact_capability_snapshot());
     let revision = revision_input(operation, Some(WriteMode::SingleFile), root);
     let result = match change_kind {

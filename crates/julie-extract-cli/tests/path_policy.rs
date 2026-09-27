@@ -1,11 +1,6 @@
 use std::path::Path;
 use std::process::{Command, Output};
 
-use julie_extract_artifact::metadata::ArtifactMetadata;
-use julie_extract_artifact::model::{
-    ArtifactFile, ArtifactSymbol, FileStatus, RevisionInput, WriteMode, WriteOperation,
-};
-use julie_extract_artifact::writer::ArtifactWriter;
 use rusqlite::Connection;
 use serde_json::Value;
 use tempfile::TempDir;
@@ -38,7 +33,7 @@ fn update_canonicalizes_root_db_file_and_ignore_file_before_reporting() {
     std::fs::write(source_dir.join("ignored.rs"), "fn ignored() {}\n").unwrap();
     std::fs::write(root.join(".extractignore"), "src/ignored.rs\n").unwrap();
     let db = artifact_dir.join("artifact.sqlite");
-    create_artifact_with_file(&db, &root, "src/ignored.rs");
+    create_artifact(&db, &root);
 
     let root_arg = root.join(".");
     let db_arg = artifact_dir
@@ -163,11 +158,12 @@ fn root_mismatch_returns_exit_3_unless_scan_force_rebuilds_metadata() {
     let temp = TempDir::new().unwrap();
     let old_root = temp.path().join("old-root");
     let new_root = temp.path().join("new-root");
-    std::fs::create_dir_all(&old_root).unwrap();
+    std::fs::create_dir_all(old_root.join("src")).unwrap();
+    std::fs::write(old_root.join("src/old.rs"), "fn stale() {}\n").unwrap();
     std::fs::create_dir_all(new_root.join("src")).unwrap();
     std::fs::write(new_root.join("src/main.rs"), "fn main() {}\n").unwrap();
     let db = temp.path().join("artifact.sqlite");
-    create_artifact_with_file(&db, &old_root, "src/old.rs");
+    create_artifact(&db, &old_root);
 
     let mismatch = julie_extract(&[
         "update",
@@ -203,89 +199,15 @@ fn root_mismatch_returns_exit_3_unless_scan_force_rebuilds_metadata() {
 }
 
 fn create_artifact(path: &Path, root: &Path) {
-    let _writer = ArtifactWriter::open_path(
-        path,
-        ArtifactMetadata {
-            artifact_id: "artifact-path-policy-test".to_string(),
-            root_path: canonical(root),
-            binary_version: "julie-extract 0.1.0".to_string(),
-            hash_algorithm: "blake3".to_string(),
-            parser_inventory_fingerprint: "sha256:parser".to_string(),
-            capability_snapshot_fingerprint: "sha256:cap".to_string(),
-            created_at: "2026-05-31T21:00:00Z".to_string(),
-            updated_at: "2026-05-31T21:00:00Z".to_string(),
-        },
-    )
-    .unwrap();
-}
-
-fn create_artifact_with_file(path: &Path, root: &Path, relative_path: &str) {
-    let mut writer = ArtifactWriter::open_path(path, metadata(root)).unwrap();
-    writer
-        .write_scan(
-            revision(WriteOperation::Scan, Some(WriteMode::Incremental), root),
-            &[file_with_symbol(relative_path)],
-        )
-        .unwrap();
-}
-
-fn metadata(root: &Path) -> ArtifactMetadata {
-    ArtifactMetadata {
-        artifact_id: "artifact-path-policy-test".to_string(),
-        root_path: canonical(root),
-        binary_version: "julie-extract 0.1.0".to_string(),
-        hash_algorithm: "blake3".to_string(),
-        parser_inventory_fingerprint: "sha256:parser".to_string(),
-        capability_snapshot_fingerprint: "sha256:cap".to_string(),
-        created_at: "2026-05-31T21:00:00Z".to_string(),
-        updated_at: "2026-05-31T21:00:00Z".to_string(),
-    }
-}
-
-fn revision(operation: WriteOperation, mode: Option<WriteMode>, root: &Path) -> RevisionInput {
-    RevisionInput {
-        operation,
-        mode,
-        started_at: "2026-05-31T21:00:00Z".to_string(),
-        completed_at: "2026-05-31T21:00:01Z".to_string(),
-        binary_version: "julie-extract 0.1.0".to_string(),
-        input_root: Some(canonical(root)),
-    }
-}
-
-fn file_with_symbol(path: &str) -> ArtifactFile {
-    ArtifactFile {
-        file_id: "file-stale".to_string(),
-        path: path.to_string(),
-        language: "rust".to_string(),
-        content_hash: "blake3:stale".to_string(),
-        content_bytes: 16,
-        line_count: Some(1),
-        indexed_at: "2026-05-31T21:00:00Z".to_string(),
-        status: FileStatus::Indexed,
-        metadata_json: None,
-        symbols: vec![ArtifactSymbol {
-            symbol_id: "file-stale-symbol".to_string(),
-            name: "stale".to_string(),
-            kind: "function".to_string(),
-            signature: Some("fn stale()".to_string()),
-            start_line: 1,
-            end_line: 1,
-            ..ArtifactSymbol::default()
-        }],
-        symbol_annotations: Vec::new(),
-        identifiers: Vec::new(),
-        relationships: Vec::new(),
-        pending_relationships: Vec::new(),
-        type_facts: Vec::new(),
-        type_argument_usages: Vec::new(),
-        type_arguments: Vec::new(),
-        literals: Vec::new(),
-        source_regions: Vec::new(),
-        structural_facts: Vec::new(),
-        complexity_metrics: Vec::new(),
-        parse_diagnostics: Vec::new(),
-    }
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        path_str(root),
+        "--db",
+        path_str(path),
+        "--json",
+    ]);
+    assert_eq!(output.status.code(), Some(0), "{}", json_report(&output));
 }
 
 #[test]

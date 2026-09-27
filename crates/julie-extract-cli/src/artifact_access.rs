@@ -27,6 +27,7 @@ use crate::reports::{CommandError, command_error, diagnostic, display_path};
 pub(crate) enum ArtifactAccess {
     Read,
     Write,
+    Force,
 }
 
 pub(crate) struct OpenArtifact {
@@ -125,6 +126,9 @@ pub(crate) fn open_artifact(
     })?;
     check_versions(&metadata, strict_schema, access)?;
     let write_metadata = artifact_metadata_from_rows(&metadata)?;
+    if access == ArtifactAccess::Write {
+        check_producer_generation(&write_metadata, db_path)?;
+    }
     let report = artifact_report(db_path, &metadata)?;
     let index_level = report.index_level.clone();
     let has_extraction_history = connection
@@ -307,27 +311,6 @@ pub(crate) fn open_artifact_for_rebind(
     strict_schema: bool,
 ) -> Result<OpenArtifact, CommandError> {
     let artifact = open_artifact(db_path, strict_schema, ArtifactAccess::Write)?;
-    let (parser_inventory_fingerprint, capability_snapshot_fingerprint) =
-        current_capability_fingerprints();
-    if artifact.report.parser_inventory_fingerprint != parser_inventory_fingerprint
-        || artifact.report.capability_snapshot_fingerprint != capability_snapshot_fingerprint
-    {
-        return Err(command_error(
-            3,
-            ReportCode::FingerprintMismatch,
-            "artifact capability fingerprints do not match this binary",
-            Some(display_path(db_path)),
-            None,
-            false,
-            json!({
-                "artifact_parser_inventory_fingerprint": artifact.report.parser_inventory_fingerprint,
-                "expected_parser_inventory_fingerprint": parser_inventory_fingerprint,
-                "artifact_capability_snapshot_fingerprint": artifact.report.capability_snapshot_fingerprint,
-                "expected_capability_snapshot_fingerprint": capability_snapshot_fingerprint,
-                "action": "julie-extract scan",
-            }),
-        ));
-    }
     if latest_revision_id(&artifact.connection).is_none() {
         return Err(command_error(
             3,
@@ -389,6 +372,9 @@ pub(crate) fn write_rebind(
         })?;
     let transaction = connection.unchecked_transaction().map_err(write_failed)?;
     check_validated_identity(&transaction, db_path, rebind)?;
+    let metadata = read_metadata(&transaction).map_err(write_failed)?;
+    check_versions(&metadata, false, ArtifactAccess::Write)?;
+    check_producer_generation(&artifact_metadata_from_rows(&metadata)?, db_path)?;
     apply_rebind(&transaction, rebind).map_err(write_failed)?;
     transaction.commit().map_err(write_failed)
 }
@@ -477,7 +463,7 @@ fn check_versions(
             }),
         ));
     }
-    if (strict_schema || access == ArtifactAccess::Write)
+    if (strict_schema || access != ArtifactAccess::Read)
         && (sqlite_schema_version != SQLITE_SCHEMA_VERSION
             || schema_version != SQLITE_SCHEMA_VERSION)
     {
@@ -510,6 +496,42 @@ fn check_versions(
         ));
     }
     Ok(())
+}
+
+pub(crate) fn producer_generation_matches(metadata: &ArtifactMetadata) -> bool {
+    let (parser_inventory_fingerprint, capability_snapshot_fingerprint) =
+        current_capability_fingerprints();
+    metadata.binary_version == env!("CARGO_PKG_VERSION")
+        && metadata.parser_inventory_fingerprint == parser_inventory_fingerprint
+        && metadata.capability_snapshot_fingerprint == capability_snapshot_fingerprint
+}
+
+fn check_producer_generation(
+    metadata: &ArtifactMetadata,
+    db_path: &Path,
+) -> Result<(), CommandError> {
+    if producer_generation_matches(metadata) {
+        return Ok(());
+    }
+    let (parser_inventory_fingerprint, capability_snapshot_fingerprint) =
+        current_capability_fingerprints();
+    Err(command_error(
+        3,
+        ReportCode::FingerprintMismatch,
+        "artifact producer generation does not match this binary; rebuild with `julie-extract scan --force`",
+        Some(display_path(db_path)),
+        None,
+        true,
+        json!({
+            "artifact_binary_version": metadata.binary_version,
+            "expected_binary_version": env!("CARGO_PKG_VERSION"),
+            "artifact_parser_inventory_fingerprint": metadata.parser_inventory_fingerprint,
+            "expected_parser_inventory_fingerprint": parser_inventory_fingerprint,
+            "artifact_capability_snapshot_fingerprint": metadata.capability_snapshot_fingerprint,
+            "expected_capability_snapshot_fingerprint": capability_snapshot_fingerprint,
+            "action": "julie-extract scan --force",
+        }),
+    ))
 }
 
 fn artifact_report(
@@ -938,6 +960,8 @@ mod tests {
     const REBOUND_AT: &str = "2026-08-05T00:00:00Z";
 
     fn seed_artifact(db_path: &Path) {
+        let (parser_inventory_fingerprint, capability_snapshot_fingerprint) =
+            current_capability_fingerprints();
         let connection = Connection::open(db_path).unwrap();
         create_schema(&connection).unwrap();
         initialize_metadata(
@@ -945,10 +969,10 @@ mod tests {
             &ArtifactMetadata {
                 artifact_id: VALIDATED_ARTIFACT_ID.to_string(),
                 root_path: VALIDATED_ROOT.to_string(),
-                binary_version: "test".to_string(),
+                binary_version: env!("CARGO_PKG_VERSION").to_string(),
                 hash_algorithm: "blake3".to_string(),
-                parser_inventory_fingerprint: "parser".to_string(),
-                capability_snapshot_fingerprint: "capability".to_string(),
+                parser_inventory_fingerprint,
+                capability_snapshot_fingerprint,
                 created_at: "2026-08-04T00:00:00Z".to_string(),
                 updated_at: "2026-08-04T00:00:00Z".to_string(),
             },
@@ -979,6 +1003,23 @@ mod tests {
 
     fn metadata_rows(db_path: &Path) -> BTreeMap<String, String> {
         read_metadata(&Connection::open(db_path).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn write_rebind_refuses_a_producer_changed_after_validation() {
+        let temporary = tempfile::tempdir().unwrap();
+        let db_path = temporary.path().join("artifact.sqlite");
+        seed_artifact(&db_path);
+        set_metadata(&db_path, "binary_version", "older-producer");
+        let before = metadata_rows(&db_path);
+
+        let result = write_rebind(&db_path, &validated_rebind());
+
+        assert_eq!(
+            result.unwrap_err().diagnostic.code,
+            ReportCode::FingerprintMismatch
+        );
+        assert_eq!(metadata_rows(&db_path), before);
     }
 
     #[test]

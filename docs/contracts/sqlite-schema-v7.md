@@ -42,3 +42,19 @@ artifact.
 
 There is no in-place artifact migration. Rebuild the workspace to produce a
 v7 catalog.
+
+## Producer freshness and reference occurrences
+
+The catalog is unchanged. `capability_snapshot_fingerprint` uses a versioned
+payload containing both canonical capability rows and the extractor's semantic
+contract version. It changes when extraction rules change, even if the set of
+advertised capabilities is unchanged. Incremental writes also require matching
+binary and parser-inventory versions; see [the CLI contract](cli.md#producer-freshness).
+
+Relationship and pending-relationship row identity includes the available
+source span. A context span can distinguish occurrences without identifying
+the exact target token. Such rows still publish nonexact, row-specific
+`reference_sites` with null span columns. Exact sites retain their existing
+`(file_id, start_byte, end_byte)` identity and can be shared by identifier and
+relationship evidence. Repeated evidence for the same occurrence is deduplicated;
+separate same-line occurrences remain separate rows.

@@ -138,6 +138,26 @@ invalid `--ignore-file` is a hard CLI error.
 
 ## Command Semantics
 
+### Producer freshness
+
+Incremental `scan`, `update`, `delete`, and `rebind` require the artifact's
+`binary_version`, `parser_inventory_fingerprint`, and
+`capability_snapshot_fingerprint` to match the running producer. A mismatch
+fails with `fingerprint_mismatch` and exit code `3`, before changing facts or
+metadata. `info` remains available for reading older artifacts under its
+existing schema compatibility rules.
+
+The capability fingerprint includes the extractor's semantic contract version,
+so changed extraction rules invalidate unchanged source files too. Binary
+version comparison is conservative: even a release with unchanged extraction
+rules requires a force scan.
+
+Recover with `julie-extract scan --root <dir> --db <path> --force`. For a
+compatible artifact, this re-extracts the entire workspace and commits facts
+and current producer metadata together. When changing producer generation,
+source or discovery errors abort the scan without replacing the previous
+generation. Schema compatibility and extraction-level checks still apply.
+
 ### `scan`
 
 Scans the root, extracts supported changed files, deletes artifact rows for
@@ -381,15 +401,15 @@ Validation order, each step refusing before the next runs:
    artifact is opened.
 3. Artifact open. A missing or unopenable artifact fails with `db_open_failed`
    and exit code `1`; a refused `rebind` never creates an artifact.
-4. The version gates every artifact command runs: `schema_migration_required`
-   for an older schema under `--strict-schema`, `schema_incompatible`, and
+4. The write-version gates: `schema_migration_required`
+   for an older schema, `schema_incompatible`, and
    `contract_incompatible`, each with exit code `3`.
-5. The capability-fingerprint gate. An artifact whose recorded
-   `parser_inventory_fingerprint` or `capability_snapshot_fingerprint`
+5. The producer-freshness gate. An artifact whose recorded `binary_version`,
+   `parser_inventory_fingerprint`, or `capability_snapshot_fingerprint`
    disagrees with the running binary fails with `fingerprint_mismatch` and exit
    code `3`. It was built by a different extractor, so retargeting it would
    serve rows this binary would not produce; the fix is a fresh
-   `julie-extract scan`, which the diagnostic's `details.action` names.
+   `julie-extract scan --force`, which the diagnostic's `details.action` names.
 6. The committed-revision gate. An artifact with no committed extraction
    revision is a metadata-only shell rather than an index, and fails with
    `no_committed_revision` and exit code `3`. This runs after the fingerprint

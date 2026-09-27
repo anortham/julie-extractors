@@ -174,6 +174,16 @@ pub(crate) fn parser_inventory_fingerprint(rows: &[ArtifactParserInventoryRow]) 
 }
 
 pub(crate) fn capability_snapshot_fingerprint(rows: &[ArtifactLanguageCapabilityRow]) -> String {
+    capability_snapshot_fingerprint_for_contract(
+        rows,
+        julie_extractors::EXTRACTION_CONTRACT_VERSION,
+    )
+}
+
+fn capability_snapshot_fingerprint_for_contract(
+    rows: &[ArtifactLanguageCapabilityRow],
+    extraction_contract_version: &str,
+) -> String {
     let mut canonical_rows = rows
         .iter()
         .map(|row| {
@@ -237,7 +247,8 @@ pub(crate) fn capability_snapshot_fingerprint(rows: &[ArtifactLanguageCapability
     canonical_rows.sort_by(|left, right| left.0.cmp(&right.0));
     fingerprint_json(&json!({
         "domain": "capability_snapshot",
-        "version": 1,
+        "version": 2,
+        "extraction_contract_version": extraction_contract_version,
         "rows": canonical_rows
             .into_iter()
             .map(|(_, value)| value)
@@ -294,4 +305,25 @@ pub(crate) fn flags(flags: CapabilityFlags) -> Value {
 /// through CLI structs — the registry is the sole source of truth.
 pub(crate) fn structural_fact_patterns_json() -> Value {
     julie_extractors::structural_fact_patterns_json()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn capability_fingerprint_changes_with_extraction_semantics() {
+        assert_ne!(
+            capability_snapshot_fingerprint_for_contract(&[], "old-semantics"),
+            capability_snapshot_fingerprint_for_contract(&[], "new-semantics")
+        );
+    }
+
+    #[test]
+    fn capability_fingerprint_is_stable_when_language_rows_are_reordered() {
+        let mut rows = artifact_capability_snapshot().languages;
+        let before = capability_snapshot_fingerprint(&rows);
+        rows.reverse();
+        assert_eq!(capability_snapshot_fingerprint(&rows), before);
+    }
 }
