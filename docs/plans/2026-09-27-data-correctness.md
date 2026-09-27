@@ -72,5 +72,23 @@ Commit mode: `parallel-lead-commit`. Workers never stage or commit and must not 
 
 - [x] Review each implementation against live source, tests, and the criteria above; resolve defects.
 - [x] Advance semantic output identity and document freshness/occurrence behavior without changing the schema unnecessarily.
-- [ ] Run relevant Linux and Windows verification, update any intentionally affected goldens, and commit reviewed work locally.
-- [ ] Reconcile all worktree states and report the result and recovery command concisely.
+- [x] Run relevant Linux and Windows verification, update any intentionally affected goldens, and commit reviewed work locally.
+- [x] Reconcile all worktree states and report the result and recovery command concisely.
+
+## Verification results
+
+- Linux default tier: 6,708 passed, 7 ignored, 49 seconds on the final production code.
+- Windows CLI and artifact suites: 390 passed on commit `4cc16974546bca4e5af0f1cf70a2980413d76c6d`.
+- Reference-site contracts: 3 passed, including the full extraction fixture corpus.
+- SQL unit tests: 110 passed. Golden tests across all languages: 8 passed.
+- Strict language-quality report: 42 languages, 0 silent cells, 0 quality-bar debts.
+- Formatting and whitespace checks passed.
+
+The default gate exposed an early-error profiling regression, which was fixed,
+and path fixtures with fake producer metadata, which now use real CLI artifacts.
+Windows verified that the new force refusal preserves corrupt artifact bytes;
+its old success assertion was updated to the new contract. No schema migration,
+dependency addition, code-kb change, push, or release was needed.
+
+Existing artifacts need one `julie-extract scan --root <dir> --db <path> --force`
+with the updated binary before incremental writes can resume.
