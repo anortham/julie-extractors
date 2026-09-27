@@ -54,23 +54,20 @@
           of grammars.
         </p>
         <p>
-          The trouble starts when a tool needs meaning rather than shape. A query can capture a node. It
-          cannot easily carry context across the tree, apply language rules, or decide anything. A C#
-          method's real signature (modifiers, generic constraints, parameter defaults, nullability) is
-          scattered across sibling and ancestor nodes; a capture returns one node, and assembling a
-          signature takes an algorithm. Whether an identifier declares a variable, shadows one, or
-          references an outer symbol depends on scope rules the grammar does not encode.
-          <code>services.AddScoped&lt;IFoo, Foo&gt;()</code> is just a generic method call to a query, and
-          recognizing it as a dependency-injection registration that should emit edges to both
-          <code>IFoo</code> and <code>Foo</code> means knowing the convention, handling chained receiver
-          forms, and parsing nested generic arguments. And a query cannot decline to answer: deciding
-          which declaration an identifier points at requires the ability to say "ambiguous" and stop,
-          which is control flow, not pattern matching.
+          Queries can capture several related nodes,
+          <a href="https://tree-sitter.github.io/tree-sitter/using-parsers/queries/3-predicates-and-directives.html">filter matches with predicates, and attach metadata</a>.
+          They can be a useful selection layer for a semantic extractor. Host-language code still has
+          to apply scope rules, assemble signatures, infer types, reconcile embedded languages, and
+          preserve ambiguity when the evidence cannot identify a declaration. For example, recognizing
+          <code>services.AddScoped&lt;IFoo, Foo&gt;()</code> as a dependency-injection registration
+          requires framework rules beyond capturing the call and its type arguments.
         </p>
         <p>
-          Tools built on query packs inherit this ceiling quietly. They report symbols and name-based
-          references and look complete, right up until an agent asks who calls this specific overload, and
-          the answer is not in the data.
+          julie-extractors keeps tree traversal and language rules in Rust. A query-based selection
+          layer could feed the same semantic processing, so query files do not impose a fixed ceiling
+          on extraction quality. The choice here trades concise selection patterns for direct control
+          of traversal and state. Either approach needs complete facts and efficient downstream
+          queries to answer who calls a specific symbol.
         </p>
 
         <h3>What the extra code buys</h3>
