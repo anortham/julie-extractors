@@ -812,7 +812,7 @@
       "end_column": 18,
       "start_byte": 504,
       "end_byte": 512,
-      "containing_key": "fixtures/extraction/go/gocheck_ginkgo/source_test.go:store:32:8",
+      "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
@@ -831,7 +831,7 @@
       "end_column": 5,
       "start_byte": 534,
       "end_byte": 536,
-      "containing_key": "fixtures/extraction/go/gocheck_ginkgo/source_test.go:saves:33:1",
+      "containing_key": "fixtures/extraction/go/gocheck_ginkgo/source_test.go:store:32:8",
       "target_key": null,
       "confidence": "1.000",
       "metadata": {

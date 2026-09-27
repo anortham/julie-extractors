@@ -3090,7 +3090,7 @@
       "end_column": 11,
       "start_byte": 1428,
       "end_byte": 1437,
-      "containing_key": "fixtures/extraction/go/test_roles/source_test.go:AfterEach:76:2",
+      "containing_key": "fixtures/extraction/go/test_roles/source_test.go:addition:74:1",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -3122,7 +3122,7 @@
       "end_column": 12,
       "start_byte": 1404,
       "end_byte": 1414,
-      "containing_key": "fixtures/extraction/go/test_roles/source_test.go:BeforeEach:75:2",
+      "containing_key": "fixtures/extraction/go/test_roles/source_test.go:addition:74:1",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -3266,7 +3266,7 @@
       "end_column": 8,
       "start_byte": 1373,
       "end_byte": 1380,
-      "containing_key": "fixtures/extraction/go/test_roles/source_test.go:addition:74:1",
+      "containing_key": "fixtures/extraction/go/test_roles/source_test.go:calculator:73:8",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -3282,7 +3282,7 @@
       "end_column": 16,
       "start_byte": 1340,
       "end_byte": 1348,
-      "containing_key": "fixtures/extraction/go/test_roles/source_test.go:calculator:73:8",
+      "containing_key": null,
       "target_key": null,
       "confidence": "1.000"
     },
@@ -3378,7 +3378,7 @@
       "end_column": 4,
       "start_byte": 1451,
       "end_byte": 1453,
-      "containing_key": "fixtures/extraction/go/test_roles/source_test.go:adds two numbers:77:2",
+      "containing_key": "fixtures/extraction/go/test_roles/source_test.go:addition:74:1",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -3394,7 +3394,7 @@
       "end_column": 3,
       "start_byte": 1522,
       "end_byte": 1524,
-      "containing_key": "fixtures/extraction/go/test_roles/source_test.go:never runs without a container:82:1",
+      "containing_key": "fixtures/extraction/go/test_roles/source_test.go:orphanGinkgoHelper:81:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -3480,7 +3480,7 @@
       "end_column": 15,
       "start_byte": 1628,
       "end_byte": 1631,
-      "containing_key": "fixtures/extraction/go/test_roles/source_test.go:literal child:86:1",
+      "containing_key": "fixtures/extraction/go/test_roles/source_test.go:TestSubtests:85:0",
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
@@ -3499,7 +3499,7 @@
       "end_column": 11,
       "start_byte": 1682,
       "end_byte": 1685,
-      "containing_key": "fixtures/extraction/go/test_roles/source_test.go:nested child:87:2",
+      "containing_key": "fixtures/extraction/go/test_roles/source_test.go:literal child:86:1",
       "target_key": null,
       "confidence": "1.000",
       "metadata": {

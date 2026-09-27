@@ -618,17 +618,24 @@ impl QmlExtractor {
         );
 
         let object_owners = relationships::object_owner_map(symbols);
+        let call_scopes = identifiers::QmlContainingSymbolIndex::new(symbols);
         self.walk_for_pending_calls(
             tree.root_node(),
             symbols,
             &symbol_map,
             &class_symbols,
             &object_owners,
+            &call_scopes,
             0,
         );
     }
 
-    /// Walk the tree for calls that cannot resolve in their lexical component scope
+    /// Walk the tree for calls that cannot resolve in their lexical component scope.
+    ///
+    /// A pending call shares its exact reference site with the call identifier,
+    /// so its caller scope is the identifier's container, such as the property
+    /// whose binding makes the call.
+    #[allow(clippy::too_many_arguments)]
     fn walk_for_pending_calls(
         &mut self,
         node: tree_sitter::Node,
@@ -636,6 +643,7 @@ impl QmlExtractor {
         symbol_map: &std::collections::HashMap<String, &Symbol>,
         class_symbols: &ContainingSymbolIndex<'_>,
         object_owners: &std::collections::HashMap<u32, &Symbol>,
+        call_scopes: &identifiers::QmlContainingSymbolIndex<'_>,
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
@@ -697,7 +705,9 @@ impl QmlExtractor {
                             target,
                             crate::base::RelationshipKind::Calls,
                             &target_node,
-                            Some(caller_symbol.id.clone()),
+                            call_scopes
+                                .find(node)
+                                .or_else(|| Some(caller_symbol.id.clone())),
                             Some(0.7),
                         )
                         .with_receiver_type(relationships::call_receiver_type(
@@ -721,6 +731,7 @@ impl QmlExtractor {
                 symbol_map,
                 class_symbols,
                 object_owners,
+                call_scopes,
                 child_depth,
             );
         }

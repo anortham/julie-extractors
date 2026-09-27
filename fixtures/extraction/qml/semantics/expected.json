@@ -1998,7 +1998,7 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/qml/semantics/Dashboard.qml:Dashboard:12:0",
+      "caller_scope_key": "fixtures/extraction/qml/semantics/Dashboard.qml:Loader:52:4",
       "span": {
         "start_line": 52,
         "start_column": 24,
@@ -2024,7 +2024,7 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/qml/semantics/Dashboard.qml:Dashboard:12:0",
+      "caller_scope_key": "fixtures/extraction/qml/semantics/Dashboard.qml:tint:27:4",
       "span": {
         "start_line": 27,
         "start_column": 37,

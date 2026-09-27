@@ -46,8 +46,9 @@ impl super::GoExtractor {
                         "identifier" => {
                             // Simple function call: foo()
                             let name = self.base.get_node_text(&child);
-                            let containing_symbol_id =
-                                self.find_containing_symbol_id(node, containing_symbols);
+                            let containing_symbol_id = containing_symbols
+                                .find_enclosing(node)
+                                .map(|s| s.id.clone());
                             let identifier = self.base.create_identifier(
                                 &child,
                                 name,
@@ -62,8 +63,9 @@ impl super::GoExtractor {
                             // Extract the rightmost identifier (the method name)
                             if let Some(field_node) = child.child_by_field_name("field") {
                                 let name = self.base.get_node_text(&field_node);
-                                let containing_symbol_id =
-                                    self.find_containing_symbol_id(node, containing_symbols);
+                                let containing_symbol_id = containing_symbols
+                                    .find_enclosing(node)
+                                    .map(|s| s.id.clone());
                                 let receiver_type = self.method_self_receiver_type(child);
                                 let identifier = self.base.create_identifier_with_receiver_type(
                                     &field_node,
@@ -100,8 +102,9 @@ impl super::GoExtractor {
                     super::type_facts::instantiated_function_name(&self.base, node)
                 {
                     let name = self.base.get_node_text(&name_node);
-                    let containing_symbol_id =
-                        self.find_containing_symbol_id(node, containing_symbols);
+                    let containing_symbol_id = containing_symbols
+                        .find_enclosing(node)
+                        .map(|s| s.id.clone());
                     let identifier = self.base.create_identifier(
                         &name_node,
                         name,

@@ -123,6 +123,13 @@ identifier spans now select the target token instead of a wider node, and SQL
 and Rust macro calls gain qualified receiver facts. Consumer action for
 code-kb: read receivers from the artifact rather than parsing source text.
 
+Rows that share an exact reference site now agree on its container. A Go call
+that declares its own node, such as Ginkgo `Context("addition", ...)` or
+`t.Run("case", ...)`, has the enclosing block as its identifier
+`containing_symbol_id`, not the node it declares. A QML pending call inside a
+property binding has that property as `caller_scope_symbol_id`, matching its
+identifier row. Consumer action for code-kb: none beyond the forced rebuild.
+
 The reference-integrity corrections add `reference-integrity-v1` to the
 extraction contract. False local targets caused by shadowing, unrelated
 scopes or incompatible Elixir arity become structured pending calls with

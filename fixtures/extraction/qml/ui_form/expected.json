@@ -891,7 +891,7 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:Screen01:4:0",
+      "caller_scope_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:size:8:4",
       "span": {
         "start_line": 8,
         "start_column": 38,

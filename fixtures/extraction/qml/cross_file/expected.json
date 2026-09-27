@@ -1142,7 +1142,7 @@
         "namespace_path": [],
         "import_context": "./js/helpers.js"
       },
-      "caller_scope_key": "fixtures/extraction/qml/cross_file/source.qml:source:7:0",
+      "caller_scope_key": "fixtures/extraction/qml/cross_file/source.qml:localCard:23:4",
       "span": {
         "start_line": 25,
         "start_column": 23,

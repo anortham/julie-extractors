@@ -511,17 +511,7 @@ impl super::GoExtractor {
     /// The innermost symbol enclosing a call. A call that is itself a symbol
     /// (a Ginkgo node or a `t.Run` subtest) belongs to its enclosing symbol.
     fn find_caller<'a>(&self, scope: &RelationshipScope<'a>, call: Node) -> Option<&'a Symbol> {
-        let found = scope.containers.find(call)?;
-        if found.start_byte != call.start_byte() as u32 {
-            return Some(found);
-        }
-        crate::base::BaseExtractor::find_containing_symbol_from_iter(
-            &call,
-            scope
-                .symbols
-                .iter()
-                .filter(|symbol| symbol.id != found.id && symbol.file_path == found.file_path),
-        )
+        scope.containers.find_enclosing(call)
     }
 }
 

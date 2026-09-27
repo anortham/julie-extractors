@@ -79,17 +79,21 @@ impl IntervalNode {
         symbols: &[IndexedSymbol<'_>],
         pos_line: u32,
         pos_column: u32,
+        excluded_start_byte: Option<u32>,
         best: &mut Option<usize>,
     ) {
         let is_better = |candidate_idx: usize, current_idx: usize| {
             is_better_containing_symbol(&symbols[candidate_idx], &symbols[current_idx])
         };
+        let contains = |symbol: &Symbol| {
+            excluded_start_byte != Some(symbol.start_byte)
+                && symbol_contains_position(symbol, pos_line, pos_column)
+        };
 
         if pos_line == self.center {
             for &idx in &self.by_start {
                 let candidate = &symbols[idx];
-                if symbol_contains_position(candidate.symbol, pos_line, pos_column)
-                    && best.is_none_or(|current| is_better(idx, current))
+                if contains(candidate.symbol) && best.is_none_or(|current| is_better(idx, current))
                 {
                     *best = Some(idx);
                 }
@@ -100,14 +104,13 @@ impl IntervalNode {
                 if candidate.symbol.start_line > pos_line {
                     break;
                 }
-                if symbol_contains_position(candidate.symbol, pos_line, pos_column)
-                    && best.is_none_or(|current| is_better(idx, current))
+                if contains(candidate.symbol) && best.is_none_or(|current| is_better(idx, current))
                 {
                     *best = Some(idx);
                 }
             }
             if let Some(left) = &self.left {
-                left.query(symbols, pos_line, pos_column, best);
+                left.query(symbols, pos_line, pos_column, excluded_start_byte, best);
             }
         } else {
             for &idx in &self.by_end {
@@ -115,14 +118,13 @@ impl IntervalNode {
                 if candidate.symbol.end_line < pos_line {
                     break;
                 }
-                if symbol_contains_position(candidate.symbol, pos_line, pos_column)
-                    && best.is_none_or(|current| is_better(idx, current))
+                if contains(candidate.symbol) && best.is_none_or(|current| is_better(idx, current))
                 {
                     *best = Some(idx);
                 }
             }
             if let Some(right) = &self.right {
-                right.query(symbols, pos_line, pos_column, best);
+                right.query(symbols, pos_line, pos_column, excluded_start_byte, best);
             }
         }
     }
@@ -184,9 +186,36 @@ impl<'a> ContainingSymbolIndex<'a> {
     }
 
     pub(crate) fn find_at(&self, pos_line: u32, pos_column: u32) -> Option<&'a Symbol> {
+        self.query(pos_line, pos_column, None)
+    }
+
+    /// The container of `node` that does not start at `node` itself. A call
+    /// that declares its own symbol, such as a Ginkgo `Context(...)`, runs in
+    /// the scope around that symbol.
+    pub(crate) fn find_enclosing(&self, node: tree_sitter::Node) -> Option<&'a Symbol> {
+        let position = node.start_position();
+        self.query(
+            (position.row + 1) as u32,
+            position.column as u32,
+            Some(node.start_byte() as u32),
+        )
+    }
+
+    fn query(
+        &self,
+        pos_line: u32,
+        pos_column: u32,
+        excluded_start_byte: Option<u32>,
+    ) -> Option<&'a Symbol> {
         let mut best: Option<usize> = None;
         if let Some(root) = &self.root {
-            root.query(&self.symbols, pos_line, pos_column, &mut best);
+            root.query(
+                &self.symbols,
+                pos_line,
+                pos_column,
+                excluded_start_byte,
+                &mut best,
+            );
         }
         best.map(|idx| self.symbols[idx].symbol)
     }
