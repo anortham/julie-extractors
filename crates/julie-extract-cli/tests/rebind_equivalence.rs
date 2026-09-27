@@ -1,31 +1,8 @@
-//! The rebind acceptance gate: an artifact copied, retargeted at a second
-//! checkout, and reconciled by an ordinary incremental scan must be
-//! indistinguishable from a from-scratch scan of that checkout.
+//! CLI incremental scans must match a fresh scan of the same source tree.
 //!
-//! ## What "indistinguishable" means here
-//!
-//! Per-table row-multiset equality over every data table, with these
-//! normalizations applied first:
-//!
-//! 1. Identity and timing metadata — `artifact_id`, `created_at`, `updated_at`,
-//!    and the three `rebound_*` provenance keys. Every REMAINING
-//!    `artifact_metadata` key must match, `root_path` included: that key is the
-//!    whole point of the verb.
-//! 2. Revision-history bookkeeping — `extraction_revisions` and
-//!    `revision_file_changes` are append-only histories of HOW an artifact was
-//!    reached, and a rebound artifact necessarily reached the same content by a
-//!    different route. They are excluded whole; every other table is compared
-//!    whole minus its revision-id columns, and the one revision id that lives in
-//!    metadata goes with them (see [`RUN_VARIANT_METADATA_KEYS`]).
-//! 3. `files.indexed_at` — see [`RUN_VARIANT_FILE_COLUMNS`]. NOT one of the
-//!    design's contracted exclusions; excluded here as a reported finding.
-//! 4. `*_json` columns are compared as JSON with keys sorted, not as bytes — see
-//!    [`canonical_json`]. Also a reported finding, and also not a rebind
-//!    difference: two plain scans of the same tree disagree the same way.
-//!
-//! A failure here is a defect in the rebind path, never a test to relax: it
-//! means a consumer served by a rebound artifact would get a different answer
-//! than one served by a fresh scan of the same tree.
+//! The comparator keeps all IDs and content facts. It excludes only the named
+//! identity, history and timing fields below, and sorts JSON object keys while
+//! preserving array order.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -36,9 +13,7 @@ use rusqlite::types::Value;
 use serde_json::Value as Json;
 use tempfile::TempDir;
 
-/// Excluded because they record the artifact's identity and when it was
-/// touched, which a retarget deliberately rewrites.
-///
+/// Artifact identity and timestamps vary between scans.
 const RUN_VARIANT_METADATA_KEYS: &[&str] = &[
     "artifact_id",
     "created_at",
@@ -48,18 +23,13 @@ const RUN_VARIANT_METADATA_KEYS: &[&str] = &[
     "rebound_from_artifact_id",
 ];
 
-/// Append-only records of how an artifact was reached rather than what it
-/// contains. A rebound artifact carries the base scan's revision plus the
-/// reconciling one; a fresh scan carries a single revision.
+/// Append-only records of how an artifact was reached.
 const HISTORY_TABLES: &[&str] = &["extraction_revisions", "revision_file_changes"];
 
 /// `last_revision_id` is contracted: it names a row in the excluded history.
 ///
-/// `indexed_at` is NOT, and is excluded here as a reported finding — an
-/// unchanged file keeps the wall-clock stamp of the scan that last extracted it,
-/// so every file the reconciling scan skipped carries the BASE scan's stamp
-/// while a fresh scan stamps them all with its own. The column is a scan-time
-/// audit fact, not content, so no consumer answer depends on it.
+/// An unchanged file keeps the stamp from the scan that last extracted it,
+/// while a fresh scan stamps it again.
 const RUN_VARIANT_FILE_COLUMNS: &[&str] = &["last_revision_id", "indexed_at"];
 
 fn excluded_columns(table: &str) -> &'static [&'static str] {
@@ -486,9 +456,9 @@ fn only_in<'a>(left: &'a [String], right: &[String]) -> Vec<&'a String> {
     extra
 }
 
-fn describe_difference(rebound: &[String], fresh: &[String]) -> String {
-    let missing = only_in(fresh, rebound);
-    let unexpected = only_in(rebound, fresh);
+fn describe_difference(actual: &[String], fresh: &[String]) -> String {
+    let missing = only_in(fresh, actual);
+    let unexpected = only_in(actual, fresh);
     let sample = |label: &str, rows: &[&String]| {
         if rows.is_empty() {
             return String::new();
@@ -502,25 +472,24 @@ fn describe_difference(rebound: &[String], fresh: &[String]) -> String {
         format!("\n  {label} ({}):\n{shown}", rows.len())
     };
     format!(
-        "rebound has {} rows, fresh has {} rows{}{}",
-        rebound.len(),
+        "actual has {} rows, fresh has {} rows{}{}",
+        actual.len(),
         fresh.len(),
         sample("only in fresh", &missing),
-        sample("only in rebound", &unexpected),
+        sample("only in actual", &unexpected),
     )
 }
 
-/// The gate itself: a rebound-and-reconciled artifact against a fresh scan.
-fn assert_equivalent(rebound: &Path, fresh: &Path, what: &str) {
+fn assert_equivalent(actual: &Path, fresh: &Path, what: &str) {
     assert_gate_is_not_vacuous(fresh, what);
     assert_eq!(
-        data_tables(rebound),
+        data_tables(actual),
         data_tables(fresh),
         "{what}: the two artifacts must carry the same tables"
     );
 
     assert_eq!(
-        comparable_metadata(rebound),
+        comparable_metadata(actual),
         comparable_metadata(fresh),
         "{what}: every artifact_metadata key outside the contracted identity and \
          timing keys must match, root_path included"
@@ -530,15 +499,154 @@ fn assert_equivalent(rebound: &Path, fresh: &Path, what: &str) {
         if table == "artifact_metadata" || HISTORY_TABLES.contains(&table.as_str()) {
             continue;
         }
-        let rebound_rows = table_rows(rebound, &table);
+        let actual_rows = table_rows(actual, &table);
         let fresh_rows = table_rows(fresh, &table);
         assert_eq!(
-            rebound_rows,
+            actual_rows,
             fresh_rows,
             "{what}: {table} must match a fresh scan row for row — {}",
-            describe_difference(&rebound_rows, &fresh_rows)
+            describe_difference(&actual_rows, &fresh_rows)
         );
     }
+}
+
+fn file_identity(db: &Path, path: &str) -> (String, String) {
+    let conn = Connection::open(db).expect("artifact opens");
+    conn.query_row(
+        "SELECT file_id, content_hash FROM files WHERE path = ?1",
+        [path],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    )
+    .unwrap()
+}
+
+fn rows_for_path(db: &Path, table: &str, path: &str) -> i64 {
+    let conn = Connection::open(db).expect("artifact opens");
+    conn.query_row(
+        &format!("SELECT COUNT(*) FROM \"{table}\" WHERE path = ?1"),
+        [path],
+        |row| row.get(0),
+    )
+    .unwrap()
+}
+
+fn type_arguments_for_path(db: &Path, path: &str) -> i64 {
+    let conn = Connection::open(db).expect("artifact opens");
+    conn.query_row(
+        "SELECT COUNT(*)
+         FROM type_arguments AS arguments
+         JOIN type_argument_usages AS usages USING (usage_id)
+         WHERE usages.path = ?1",
+        [path],
+        |row| row.get(0),
+    )
+    .unwrap()
+}
+
+fn assert_no_source_path_facts(db: &Path, path: &str) {
+    for table in [
+        "files",
+        "symbols",
+        "reference_sites",
+        "identifiers",
+        "relationships",
+        "pending_relationships",
+        "type_argument_usages",
+        "literals",
+        "source_regions",
+        "structural_facts",
+        "complexity_metrics",
+        "parse_diagnostics",
+    ] {
+        assert_eq!(
+            rows_for_path(db, table, path),
+            0,
+            "{table} retained facts for {path}"
+        );
+    }
+
+    let conn = Connection::open(db).expect("artifact opens");
+    for (table, query) in [
+        (
+            "symbol_annotations",
+            "SELECT COUNT(*) FROM symbol_annotations
+             JOIN symbols USING (symbol_id) WHERE symbols.path = ?1",
+        ),
+        (
+            "type_facts",
+            "SELECT COUNT(*) FROM type_facts
+             JOIN symbols USING (symbol_id) WHERE symbols.path = ?1",
+        ),
+    ] {
+        let count: i64 = conn.query_row(query, [path], |row| row.get(0)).unwrap();
+        assert_eq!(count, 0, "{table} retained facts for {path}");
+    }
+    let type_argument_count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*)
+             FROM type_arguments AS arguments
+             JOIN type_argument_usages AS usages USING (usage_id)
+             WHERE usages.path = ?1",
+            [path],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        type_argument_count, 0,
+        "type_arguments retained facts for {path}"
+    );
+}
+
+fn assert_incremental_report(report: &Json, min_changed: i64, min_deleted: i64) {
+    assert_eq!(report["status"], "ok", "incremental scan report: {report}");
+    assert!(
+        report["counts"]["files_changed"]
+            .as_i64()
+            .unwrap_or_default()
+            >= min_changed,
+        "incremental scan changed too few files: {report}"
+    );
+    assert!(
+        report["counts"]["files_deleted"]
+            .as_i64()
+            .unwrap_or_default()
+            >= min_deleted,
+        "incremental scan deleted too few files: {report}"
+    );
+    assert!(
+        report["counts"]["files_unchanged"]
+            .as_i64()
+            .unwrap_or_default()
+            > 0,
+        "incremental scan did not skip any unchanged files: {report}"
+    );
+}
+
+fn assert_noop_report(report: &Json) {
+    assert_eq!(report["status"], "no_change", "no-op scan report: {report}");
+    assert_eq!(
+        report["counts"]["files_changed"], 0,
+        "no-op scan report: {report}"
+    );
+    assert_eq!(
+        report["counts"]["files_deleted"], 0,
+        "no-op scan report: {report}"
+    );
+    assert!(
+        report["counts"]["files_unchanged"]
+            .as_i64()
+            .unwrap_or_default()
+            > 0,
+        "no-op scan did not skip files: {report}"
+    );
+}
+
+fn assert_matches_fresh(fixture: &Fixture, root: &Path, actual: &Path, label: &str) {
+    let fresh = fixture.db(&format!("fresh-{label}.sqlite"));
+    let report = scan(root, &fresh);
+    assert_eq!(report["status"], "ok", "fresh scan report: {report}");
+    assert_all_languages_extracted(&fresh, &["rust", "csharp", "typescript"]);
+    assert_equivalent(actual, &fresh, label);
 }
 
 /// Guards the gate against passing vacuously on an artifact that extracted
@@ -711,4 +819,132 @@ fn rebound_artifact_matches_a_fresh_scan_after_an_add_and_delete_delta() {
     assert_all_languages_extracted(&fresh, &["rust", "csharp", "typescript"]);
 
     assert_equivalent(&rebound, &fresh, "add-and-delete delta");
+}
+
+#[test]
+fn incremental_scans_match_fresh_after_source_tree_changes() {
+    let fixture = Fixture::new();
+    let root = fixture.tree("incremental");
+    let source = root.join("src");
+    let incremental = fixture.db("incremental.sqlite");
+    let initial_report = scan(&root, &incremental);
+    assert_eq!(
+        initial_report["status"], "ok",
+        "initial scan report: {initial_report}"
+    );
+    assert_all_languages_extracted(&incremental, &["rust", "csharp", "typescript"]);
+    assert_gate_is_not_vacuous(&incremental, "initial scan");
+    let stable_identity = file_identity(&incremental, "src/core.rs");
+
+    std::fs::write(
+        source.join("retired.ts"),
+        "export interface RetiredToken { id: string; }\n\
+         export function retire(tokens: RetiredToken[]): string {\n  \
+         const index = new Map<string, RetiredToken>();\n  \
+         index.set(\"retired-only-literal\", tokens[0]);\n  \
+         if (tokens.length > 0) {\n    \
+         return fetch(\"https://retired.example.test/item\").then(response => response.url);\n  \
+         }\n  \
+         return \"empty\";\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        source.join("recovery.go"),
+        "package main\n\ntype Recovered struct {\n    value int\n\nfunc recoverValue() int { return 1 }\n",
+    )
+    .unwrap();
+
+    let add_report = scan(&root, &incremental);
+    assert_incremental_report(&add_report, 2, 0);
+    assert!(
+        rows_for_path(&incremental, "parse_diagnostics", "src/recovery.go") > 0,
+        "the malformed Go source must produce parse diagnostics"
+    );
+    for table in [
+        "symbols",
+        "type_argument_usages",
+        "literals",
+        "structural_facts",
+        "complexity_metrics",
+    ] {
+        assert!(
+            rows_for_path(&incremental, table, "src/retired.ts") > 0,
+            "the added source must exercise {table}"
+        );
+    }
+    assert!(
+        type_arguments_for_path(&incremental, "src/retired.ts") > 0,
+        "the added source must exercise type_arguments"
+    );
+    assert_matches_fresh(&fixture, &root, &incremental, "after-add");
+    assert_eq!(file_identity(&incremental, "src/core.rs"), stable_identity);
+
+    apply_modify_delta(&root);
+    std::fs::write(
+        source.join("recovery.go"),
+        "package main\n\nfunc recoverValue() int { return 2 }\n",
+    )
+    .unwrap();
+
+    let edit_report = scan(&root, &incremental);
+    assert_incremental_report(&edit_report, 4, 0);
+    assert_eq!(
+        rows_for_path(&incremental, "parse_diagnostics", "src/recovery.go"),
+        0,
+        "valid source must clear the old parse diagnostics"
+    );
+    assert_matches_fresh(&fixture, &root, &incremental, "after-edit");
+    assert_eq!(file_identity(&incremental, "src/core.rs"), stable_identity);
+
+    let old_retired_path = "src/retired.ts";
+    let new_retired_path = "src/renamed_retired.ts";
+    let renamed_fact_counts = [
+        "symbols",
+        "type_argument_usages",
+        "literals",
+        "structural_facts",
+        "complexity_metrics",
+    ]
+    .map(|table| rows_for_path(&incremental, table, old_retired_path));
+    let renamed_type_arguments = type_arguments_for_path(&incremental, old_retired_path);
+    std::fs::rename(source.join("retired.ts"), source.join("renamed_retired.ts")).unwrap();
+
+    let rename_report = scan(&root, &incremental);
+    assert_incremental_report(&rename_report, 1, 1);
+    assert_no_source_path_facts(&incremental, old_retired_path);
+    assert_eq!(
+        [
+            "symbols",
+            "type_argument_usages",
+            "literals",
+            "structural_facts",
+            "complexity_metrics",
+        ]
+        .map(|table| rows_for_path(&incremental, table, new_retired_path)),
+        renamed_fact_counts,
+        "renaming the file must preserve its source facts"
+    );
+    assert_eq!(
+        type_arguments_for_path(&incremental, new_retired_path),
+        renamed_type_arguments
+    );
+    assert_matches_fresh(&fixture, &root, &incremental, "after-rename");
+    assert_eq!(file_identity(&incremental, "src/core.rs"), stable_identity);
+
+    std::fs::remove_file(source.join("renamed_retired.ts")).unwrap();
+    std::fs::remove_file(source.join("Repository.cs")).unwrap();
+
+    let delete_report = scan(&root, &incremental);
+    assert_incremental_report(&delete_report, 0, 2);
+    assert_no_source_path_facts(&incremental, new_retired_path);
+    assert_no_source_path_facts(&incremental, "src/Repository.cs");
+    assert_matches_fresh(&fixture, &root, &incremental, "after-delete");
+    assert_eq!(file_identity(&incremental, "src/core.rs"), stable_identity);
+
+    for label in ["first-noop", "second-noop"] {
+        let report = scan(&root, &incremental);
+        assert_noop_report(&report);
+        assert_matches_fresh(&fixture, &root, &incremental, label);
+        assert_eq!(file_identity(&incremental, "src/core.rs"), stable_identity);
+    }
 }
