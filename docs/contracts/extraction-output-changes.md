@@ -88,9 +88,40 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
-## 3.6.3
+## 3.7.0
 
 classification: compatible
+
+The SQLite schema remains 7, the report schema remains 3, and the extraction
+identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` adds
+`reference-occurrence-identity-v2`, `canonical-receiver-facts-v1`,
+`reference-integrity-v1` and `regex-branch-reset-v1`. Re-extract every existing
+artifact with `julie-extract scan --force`.
+
+Producer freshness: incremental `scan`, `update`, `delete` and `rebind` now
+also require the artifact's `binary_version` to match the running binary, and
+`capability_snapshot_fingerprint` now includes the semantic contract version.
+An artifact built by 3.6.3 therefore fails the first incremental command with
+`fingerprint_mismatch` (exit code `3`) before any row changes. A `--force` scan
+that changes producer generation commits facts and producer metadata together;
+source or discovery errors abort it without replacing the previous generation.
+Consumer action for code-kb: run one `--force` scan after the upgrade and treat
+`fingerprint_mismatch` as the rebuild signal.
+
+`relationships` and `pending_relationships`: row identity now includes the
+available source span, so separate occurrences on one line stay separate rows
+instead of collapsing. A row with only a context span gets its own nonexact
+`reference_sites` row with null span columns. Exact sites keep their
+`(file_id, start_byte, end_byte)` identity. Consumer action for code-kb: expect
+more rows for repeated same-line calls, and do not join nonexact sites by span.
+
+`identifiers`: the language extractor, not the CLI, now produces `receiver`
+and `receiver_qualifier` metadata from the syntax tree. For `a.b.run()`,
+`receiver` is `b` and `receiver_qualifier` is `a`. Expression-rooted chains
+such as `factory().b.run()` get no guessed receiver. HTML, regex and C#
+identifier spans now select the target token instead of a wider node, and SQL
+and Rust macro calls gain qualified receiver facts. Consumer action for
+code-kb: read receivers from the artifact rather than parsing source text.
 
 The reference-integrity corrections add `reference-integrity-v1` to the
 extraction contract. False local targets caused by shadowing, unrelated
@@ -119,6 +150,10 @@ pattern. A backreference or condition to a shared number or name emits one
 produced parse diagnostics and sequential numbers. Consumer action for
 code-kb: allow repeated capture numbers, and re-extract regex files with
 `--force`.
+
+## 3.6.3
+
+classification: compatible
 
 Five cross-language parity fixes across JavaScript, TypeScript, and C++, and
 one Flask route change. No SQLite or report-schema column is added, removed, or
