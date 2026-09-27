@@ -1400,7 +1400,10 @@
       "end_byte": 756,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "services"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:BaseLists:type_usage:1:18",
@@ -1464,7 +1467,10 @@
       "end_byte": 727,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "EventArgs"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:EventArgs:variable_ref:24:30",
@@ -1544,7 +1550,11 @@
       "end_byte": 1266,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Run:45:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Inner",
+        "receiver_qualifier": "other"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Foo:type_usage:25:33",
@@ -1640,7 +1650,10 @@
       "end_byte": 1260,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Run:45:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "other"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Invoke:call:24:17",
@@ -1656,7 +1669,10 @@
       "end_byte": 705,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Changed"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Lines:member_access:26:34",
@@ -1672,7 +1688,10 @@
       "end_byte": 810,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "item"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:LogInformation:call:23:16",
@@ -1688,7 +1707,10 @@
       "end_byte": 671,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "logger"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:NullConditionalFixture:type_usage:45:20",
@@ -1816,7 +1838,10 @@
       "end_byte": 1232,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Run:45:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "other"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:call:21:13",
@@ -1833,7 +1858,10 @@
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "RepositoryBase"
+      "receiver_type": "RepositoryBase",
+      "metadata": {
+        "receiver": "base"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:ShapeFixture:type_usage:13:45",

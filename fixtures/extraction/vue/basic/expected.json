@@ -2177,7 +2177,10 @@
       "end_byte": 1047,
       "containing_key": "fixtures/extraction/vue/basic/source.vue:format:35:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "value"
+      }
     },
     {
       "key": "fixtures/extraction/vue/basic/source.vue:url:call:56:11",

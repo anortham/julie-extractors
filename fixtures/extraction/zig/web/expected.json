@@ -1163,7 +1163,11 @@
       "end_byte": 789,
       "containing_key": "fixtures/extraction/zig/web/source.zig:ping:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "mem",
+        "receiver_qualifier": "std"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:Client:member_access:34:26",
@@ -1179,7 +1183,11 @@
       "end_byte": 831,
       "containing_key": "fixtures/extraction/zig/web/source.zig:ping:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "http",
+        "receiver_qualifier": "std"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:DELETE:member_access:40:31",
@@ -1233,7 +1241,10 @@
       "end_byte": 410,
       "containing_key": "fixtures/extraction/zig/web/source.zig:getUser:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "httpz"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:Request:member_access:18:26",
@@ -1249,7 +1260,10 @@
       "end_byte": 504,
       "containing_key": "fixtures/extraction/zig/web/source.zig:createUser:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "httpz"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:Request:member_access:23:26",
@@ -1265,7 +1279,10 @@
       "end_byte": 598,
       "containing_key": "fixtures/extraction/zig/web/source.zig:deleteUser:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "httpz"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:Request:member_access:28:22",
@@ -1281,7 +1298,10 @@
       "end_byte": 688,
       "containing_key": "fixtures/extraction/zig/web/source.zig:health:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "httpz"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:Response:member_access:13:44",
@@ -1297,7 +1317,10 @@
       "end_byte": 432,
       "containing_key": "fixtures/extraction/zig/web/source.zig:getUser:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "httpz"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:Response:member_access:18:47",
@@ -1313,7 +1336,10 @@
       "end_byte": 526,
       "containing_key": "fixtures/extraction/zig/web/source.zig:createUser:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "httpz"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:Response:member_access:23:47",
@@ -1329,7 +1355,10 @@
       "end_byte": 620,
       "containing_key": "fixtures/extraction/zig/web/source.zig:deleteUser:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "httpz"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:Response:member_access:28:43",
@@ -1345,7 +1374,10 @@
       "end_byte": 710,
       "containing_key": "fixtures/extraction/zig/web/source.zig:health:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "httpz"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:Server:call:4:28",
@@ -1361,7 +1393,10 @@
       "end_byte": 95,
       "containing_key": "fixtures/extraction/zig/web/source.zig:serve:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "httpz"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:Uri:member_access:38:24",
@@ -1377,7 +1412,10 @@
       "end_byte": 1124,
       "containing_key": "fixtures/extraction/zig/web/source.zig:ping:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "std"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:admin:variable_ref:10:4",
@@ -1425,7 +1463,10 @@
       "end_byte": 214,
       "containing_key": "fixtures/extraction/zig/web/source.zig:serve:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "router"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:allocator:member_access:34:35",
@@ -1572,7 +1613,10 @@
       "end_byte": 882,
       "containing_key": "fixtures/extraction/zig/web/source.zig:ping:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "client"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:deinit:call:41:14",
@@ -1588,7 +1632,10 @@
       "end_byte": 1302,
       "containing_key": "fixtures/extraction/zig/web/source.zig:ping:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "req"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:delete:call:10:10",
@@ -1604,7 +1651,10 @@
       "end_byte": 344,
       "containing_key": "fixtures/extraction/zig/web/source.zig:serve:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "admin"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:deleteUser:variable_ref:10:31",
@@ -1636,7 +1686,10 @@
       "end_byte": 910,
       "containing_key": "fixtures/extraction/zig/web/source.zig:ping:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "client"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:fetch:call:37:19",
@@ -1652,7 +1705,10 @@
       "end_byte": 1015,
       "containing_key": "fixtures/extraction/zig/web/source.zig:ping:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "client"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:get:call:6:11",
@@ -1668,7 +1724,10 @@
       "end_byte": 166,
       "containing_key": "fixtures/extraction/zig/web/source.zig:serve:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "router"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:getUser:variable_ref:6:33",
@@ -1700,7 +1759,10 @@
       "end_byte": 268,
       "containing_key": "fixtures/extraction/zig/web/source.zig:serve:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "router"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:health:variable_ref:7:26",
@@ -1732,7 +1794,10 @@
       "end_byte": 824,
       "containing_key": "fixtures/extraction/zig/web/source.zig:ping:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "std"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:httpz:type_usage:13:17",
@@ -1930,7 +1995,10 @@
       "end_byte": 779,
       "containing_key": "fixtures/extraction/zig/web/source.zig:ping:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "std"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:method:member_access:36:87",
@@ -1965,7 +2033,10 @@
       "end_byte": 1231,
       "containing_key": "fixtures/extraction/zig/web/source.zig:ping:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "client"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:parse:call:38:28",
@@ -1981,7 +2052,11 @@
       "end_byte": 1130,
       "containing_key": "fixtures/extraction/zig/web/source.zig:ping:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Uri",
+        "receiver_qualifier": "std"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:payload:member_access:37:87",
@@ -2016,7 +2091,10 @@
       "end_byte": 299,
       "containing_key": "fixtures/extraction/zig/web/source.zig:serve:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "admin"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:req:variable_ref:14:8",
@@ -2176,7 +2254,10 @@
       "end_byte": 145,
       "containing_key": "fixtures/extraction/zig/web/source.zig:serve:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "server"
+      }
     },
     {
       "key": "fixtures/extraction/zig/web/source.zig:router:variable_ref:6:4",

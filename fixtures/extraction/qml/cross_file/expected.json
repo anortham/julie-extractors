@@ -1421,7 +1421,10 @@
       "end_byte": 527,
       "containing_key": "fixtures/extraction/qml/cross_file/source.qml:localCard:23:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Helpers"
+      }
     },
     {
       "key": "fixtures/extraction/qml/cross_file/source.qml:localHelper:call:10:28",
@@ -1469,7 +1472,10 @@
       "end_byte": 453,
       "containing_key": "fixtures/extraction/qml/cross_file/source.qml:entry:17:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "localCard"
+      }
     },
     {
       "key": "fixtures/extraction/qml/cross_file/source.qml:title:member_access:9:36",
@@ -1485,7 +1491,10 @@
       "end_byte": 214,
       "containing_key": "fixtures/extraction/qml/cross_file/source.qml:title:9:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "localCard"
+      }
     }
   ],
   "types": [

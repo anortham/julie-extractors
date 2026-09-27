@@ -122,14 +122,23 @@ impl SqlExtractor {
                     let name = normalize_sql_identifier(&self.base.get_node_text(&name_node));
                     let containing_symbol_id =
                         self.find_containing_symbol_id(node, containing_symbols);
-                    self.base
-                        .create_identifier(&name_node, name, kind, containing_symbol_id);
+                    if let Some(metadata) = self.object_reference_receiver_metadata(node) {
+                        self.base.create_identifier_with_metadata(
+                            &name_node,
+                            name,
+                            kind,
+                            containing_symbol_id,
+                            metadata,
+                        );
+                    } else {
+                        self.base
+                            .create_identifier(&name_node, name, kind, containing_symbol_id);
+                    }
                 }
             }
             "invocation" => {
-                let name_node = if let Some(obj_ref) =
-                    self.base.find_child_by_type(&node, "object_reference")
-                {
+                let object_reference = self.base.find_child_by_type(&node, "object_reference");
+                let name_node = if let Some(obj_ref) = object_reference {
                     obj_ref
                         .child_by_field_name("name")
                         .or_else(|| self.base.find_child_by_type(&obj_ref, "identifier"))
@@ -142,12 +151,24 @@ impl SqlExtractor {
                     let containing_symbol_id =
                         self.find_containing_symbol_id(node, containing_symbols);
 
-                    self.base.create_identifier(
-                        &name_node,
-                        name,
-                        IdentifierKind::Call,
-                        containing_symbol_id,
-                    );
+                    if let Some(metadata) = object_reference
+                        .and_then(|reference| self.object_reference_receiver_metadata(reference))
+                    {
+                        self.base.create_identifier_with_metadata(
+                            &name_node,
+                            name,
+                            IdentifierKind::Call,
+                            containing_symbol_id,
+                            metadata,
+                        );
+                    } else {
+                        self.base.create_identifier(
+                            &name_node,
+                            name,
+                            IdentifierKind::Call,
+                            containing_symbol_id,
+                        );
+                    }
                 }
             }
 
@@ -316,5 +337,27 @@ impl SqlExtractor {
         containing_symbols: &ContainingSymbolIndex<'_>,
     ) -> Option<String> {
         containing_symbols.find(node).map(|s| s.id.clone())
+    }
+
+    fn object_reference_receiver_metadata(
+        &self,
+        node: tree_sitter::Node,
+    ) -> Option<HashMap<String, serde_json::Value>> {
+        if super::references::object_reference_role(node)
+            != Some(super::references::ObjectReferenceRole::Call)
+        {
+            return None;
+        }
+        let parts = super::references::object_reference_parts(&self.base, node);
+        let receiver_index = parts.len().checked_sub(2)?;
+        let mut metadata =
+            HashMap::from([("receiver".to_string(), parts[receiver_index].clone().into())]);
+        if receiver_index > 0 {
+            metadata.insert(
+                "receiver_qualifier".to_string(),
+                parts[..receiver_index].join(".").into(),
+            );
+        }
+        Some(metadata)
     }
 }

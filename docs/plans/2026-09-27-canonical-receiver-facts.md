@@ -48,8 +48,11 @@ Commit mode: `parallel-lead-commit`.
 |---|---|---|---|---|
 | 1: Canonical AST receiver facts | A | `crates/julie-extractors/src/base/receiver_metadata.rs` new, `base/mod.rs`, `registry.rs`, `crates/julie-extractors/tests/receiver_metadata.rs` new | No | Existing public extraction API is the interface |
 | 2: Cross-language contract | A | `crates/julie-extract-cli/tests/receiver_contract.rs` new | No | Tests call existing public APIs; no production overlap |
-| 3: CLI and integration | B | `crates/julie-extract-cli/src/extraction.rs`, `tests/receiver_type_contract.rs`, extractor `lib.rs`, changed golden expectations/capability evidence, contract/decision docs, this plan, memories | Yes | Canonical extraction must supply the facts before completing CLI integration; independent type-preservation checks can run during A |
+| 3: CLI and integration | B | `crates/julie-extract-cli/src/extraction.rs`, `tests/receiver_type_contract.rs`, extractor `lib.rs`, `r/identifiers.rs`, `cpp/identifiers.rs`, `src/tests/cpp/identifier_extraction.rs`, changed golden expectations/capability evidence, contract/decision docs, this plan, memories | Yes | Canonical extraction must supply the facts before completing CLI integration; independent type-preservation and span checks can run during A |
 | 4: Reporting measurement | A | `docs/findings/2026-09-27-incremental-reporting-cost.md`, ignored scratch measurements | No | Read-only production work; no reporting optimization without measured evidence |
+| 5: Target-token span corrections | A | `html/identifiers.rs`, `regex/identifiers.rs`, `csharp/identifiers.rs`, transferred `tests/receiver_spans.rs` | No | Fixture audit exposed independent broad-span emitters; lead retains R/C++ ownership |
+| 6: SQL qualified call facts | C | `src/sql/`, `tests/receiver_sql.rs` | No | SQL call producers already have parsed qualification parts |
+| 7: Rust macro receiver facts | C | `src/rust/`, `tests/receiver_rust_macros.rs` | No | Macro token trees hide expressions from the outer registry tree |
 
 ### Task 1: Canonical AST receiver facts
 
@@ -58,10 +61,10 @@ Commit mode: `parallel-lead-commit`.
 **What to build:** Attach receiver facts during extraction from the actual AST, with minimal common logic and explicit grammar handling. Inspect existing language helpers first. Hook shared enrichment where normal/embedded/public calls receive it; report any embedded path needing a separate hook before editing outside ownership.
 **Approach:** Start with public-API failures for ordinary, Unicode, commented/multiline and qualified member calls. Avoid raw backward source scanning. Keep source spans unchanged. The lead will remove CLI guessing after conformance passes.
 
-- [ ] Public-API regression fails before the change and passes afterward.
-- [ ] Named receiver and qualifier use AST evidence; authoritative metadata and type facts remain intact.
-- [ ] Embedded coordinates and non-member negative cases are handled without false facts.
-- [ ] Worker checks pass; lead reviews the implementation.
+- [x] Public-API regression fails before the change and passes afterward.
+- [x] Named receiver and qualifier use AST evidence; authoritative metadata and type facts remain intact.
+- [x] Embedded coordinates and non-member negative cases are handled without false facts.
+- [x] Worker checks pass; lead reviews the implementation.
 
 ### Task 2: Cross-language receiver/reference contract
 
@@ -70,19 +73,19 @@ Commit mode: `parallel-lead-commit`.
 **What to build:** A compact contract matrix covering every applicable language, including embedded hosts and meaningful negative controls. Compare canonical facts with SQLite output, and independently assert expected receiver names/types and exact byte/line/column locations. Preserve multiplicity and precise sites through shared mappings.
 **Approach:** Reuse valid source idioms from existing fixtures. Include comments, Unicode, multiline/chained calls, self/static receivers and explicit suppression where applicable. Report missing facts to the lead/core implementer rather than weakening expectations. One batched CLI fixture scan is preferable to one process per case.
 
-- [ ] Matrix explicitly accounts for every registered language's applicability.
-- [ ] Canonical and CLI receiver/type facts agree and match hand-derived expectations.
-- [ ] Exact reference locations select the right source token, including Unicode and embedded offsets.
-- [ ] Negative cases emit no false receiver; existing exact-site identity and repeated occurrences survive.
+- [x] Matrix explicitly accounts for every registered language's applicability.
+- [x] Canonical and CLI receiver/type facts agree and match hand-derived expectations.
+- [x] Exact reference locations select the right source token, including Unicode and embedded offsets.
+- [x] Negative cases emit no false receiver; existing exact-site identity and repeated occurrences survive.
 
 ### Task 3: CLI and integration
 
 **Interfaces:** `map_identifiers`, published metadata, semantic contract string and golden outputs.
 **What to build:** Delete CLI source-text receiver detection and its private-helper tests once behavior is proven through extraction. Keep metadata serialization/explicit absence handling and existing type facts. Advance semantic identity and record the new ownership rule in a concise decision.
 
-- [ ] CLI maps receiver facts without interpreting source syntax.
-- [ ] Cross-language gaps found by Task 2 are corrected within extraction, with focused tests.
-- [ ] Golden changes are reviewed and strict quality reports zero silent cells/quality debts.
+- [x] CLI maps receiver facts without interpreting source syntax.
+- [x] Cross-language gaps found by Task 2 are corrected within extraction, with focused tests.
+- [x] Golden changes are reviewed and strict quality reports zero silent cells/quality debts.
 - [ ] Relevant Linux/Windows gates pass, reviewed changes are committed, and all worktrees are reconciled.
 
 ### Task 4: Reporting measurement
@@ -95,3 +98,35 @@ Commit mode: `parallel-lead-commit`.
 - [x] Any retained optimization has a matching before/after measurement and correctness/count regression; otherwise document why no change is warranted.
 
 **Measurement result:** On 1,688,470 extracted rows, all 22 count queries took 10.472 ms warm p95 versus 544.041 ms update and 534.918 ms delete. Keep exact totals; no reporting optimization is justified by this workload. See `docs/findings/2026-09-27-incremental-reporting-cost.md`.
+
+### Task 5: Target-token span corrections
+
+The existing-fixture audit exposed broad spans for HTML ID/class tokens, regex named backreferences and C# target-typed construction. Reuse parser children or existing exact-subspan helpers. A target-typed constructor keeps its inferred type name and selects the written `new` keyword. R qualified-call spans are fixed by the lead; the cross-API matrix also exposed C++ duplicate Call/MemberAccess rows and broad qualified/template call targets, owned by the lead in `cpp/identifiers.rs` and `src/tests/cpp/identifier_extraction.rs`.
+
+- [x] Public API regressions prove exact token spans and distinct repeated occurrences.
+- [x] Minimal emitter fixes preserve names, types, and containing-symbol facts.
+- [x] Focused tests and reviewed golden changes pass.
+
+### Tasks 6–7: Nested extraction boundaries
+
+A differential scan of 308 source-named golden fixtures exposed receiver facts
+that the initial language matrix did not exercise. Extend literal expectations
+for those ordinary syntax forms. The shared helper owns grammar rules for named
+member, static, generic and conditional access. SQL call producers attach the
+qualification parts already supplied by their parser. Rust macro extraction
+enriches parsed bodies with their original byte positions preserved. Reuse current
+metadata and parsing helpers rather than restoring a consumer-side text scanner.
+The lead also owns `ruby/identifiers.rs` and its existing identifier tests to
+exclude setter declaration names from call and relationship evidence.
+
+- [x] Public API regressions cover SQL qualified routine calls and Rust macro calls.
+- [x] Exact spans, type evidence and expression-receiver negatives remain intact.
+- [x] Expanded CLI matrix and old/new fixture comparison show no unintended receiver losses.
+
+## Integration evidence
+
+The 42-language matrix includes 31 supplementary fixtures and 121 literal receiver expectations. Type evidence is checked across extraction levels and both public APIs. Golden review covered 205 changed expectation files: receiver metadata additions, corrected target spans, C++/Rust duplicate removal and type-argument anchors, and removal of a false Ruby setter call. No symbol, literal, structural-fact, source-region, type, or complexity output changed.
+
+Two old assertions encoded the corrected gaps. The C++ fixture now explicitly checks both nested `Map` arguments and `make_unique<Item>`. The HTML check now checks declarations and references directly, without using an incorrect declaration span as a filter.
+
+Linux default verification: **6,741 passed, 7 ignored, 38s**. Golden update: **8 passed**. Strict quality: **42 languages, 0 silent cells, 0 quality-bar debts**. Formatting and diff checks pass. The final 308-source-fixture artifact comparison preserved all genuine old receivers; five removals are two CSS selector guesses, two expression-rooted guesses, and one false Ruby setter call. Windows verification is pending the clean implementation commit.

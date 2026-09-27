@@ -510,7 +510,10 @@
       "end_byte": 21,
       "containing_key": "fixtures/extraction/c/test_roles/source.c:math:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "math"
+      }
     },
     {
       "key": "fixtures/extraction/c/test_roles/source.c:math:variable_ref:1:10",

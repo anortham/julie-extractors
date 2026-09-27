@@ -597,7 +597,10 @@
       "end_byte": 350,
       "containing_key": "fixtures/extraction/sql/tsql_semantics/source.sql:SetUp:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "tSQLt"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:Id:member_access:31:28",
@@ -631,7 +634,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Orders"
+      "receiver_type": "Orders",
+      "metadata": {
+        "receiver": "t"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:Id:member_access:35:36",
@@ -648,7 +654,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Incoming"
+      "receiver_type": "Incoming",
+      "metadata": {
+        "receiver": "s"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:Id:member_access:37:30",
@@ -682,7 +691,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Incoming"
+      "receiver_type": "Incoming",
+      "metadata": {
+        "receiver": "s"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:Incoming:type_usage:35:10",
@@ -714,7 +726,10 @@
       "end_byte": 265,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "tSQLt"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:Orders:type_usage:27:36",
@@ -861,7 +876,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Incoming"
+      "receiver_type": "Incoming",
+      "metadata": {
+        "receiver": "s"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:Status:member_access:7:51",
@@ -895,7 +913,10 @@
       "containing_key": "fixtures/extraction/sql/tsql_semantics/source.sql:usp_Drain:23:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Orders"
+      "receiver_type": "Orders",
+      "metadata": {
+        "receiver": "o"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:Total:member_access:29:37",
@@ -962,7 +983,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Incoming"
+      "receiver_type": "Incoming",
+      "metadata": {
+        "receiver": "s"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:Total:member_access:37:42",
@@ -996,7 +1020,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Incoming"
+      "receiver_type": "Incoming",
+      "metadata": {
+        "receiver": "s"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:Total:member_access:7:70",
@@ -1046,7 +1073,10 @@
       "end_byte": 463,
       "containing_key": "fixtures/extraction/sql/tsql_semantics/source.sql:test drain empties the queue:17:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "dbo"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_semantics/source.sql:usp_WriteAudit:call:45:13",
@@ -1062,7 +1092,10 @@
       "end_byte": 1183,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "dbo"
+      }
     }
   ],
   "types": [

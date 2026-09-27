@@ -307,7 +307,10 @@
       "end_byte": 276,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/directives/source.razor:Badge:8:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "State"
+      }
     },
     {
       "key": "fixtures/extraction/razor/attribute-expressions/directives/source.razor:RenderFragment:type_usage:8:4",

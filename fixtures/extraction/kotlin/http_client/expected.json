@@ -1222,7 +1222,10 @@
       "end_byte": 373,
       "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "client"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client/source.kt:get:call:14:11",
@@ -1238,7 +1241,10 @@
       "end_byte": 479,
       "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "client"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client/source.kt:get:call:15:11",
@@ -1254,7 +1260,10 @@
       "end_byte": 509,
       "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "client"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client/source.kt:get:call:26:32",
@@ -1270,7 +1279,10 @@
       "end_byte": 888,
       "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:status:26:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ktor"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client/source.kt:get:call:9:11",
@@ -1286,7 +1298,10 @@
       "end_byte": 296,
       "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "client"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client/source.kt:getForObject:call:25:28",
@@ -1302,7 +1317,10 @@
       "end_byte": 798,
       "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:legacyUser:25:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "rest"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client/source.kt:getForObject:call:29:28",
@@ -1318,7 +1336,10 @@
       "end_byte": 1020,
       "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:unrelated:29:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "other"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client/source.kt:id:variable_ref:15:27",
@@ -1350,7 +1371,11 @@
       "end_byte": 851,
       "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:legacyUser:25:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "class",
+        "receiver_qualifier": "String"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client/source.kt:java:member_access:29:88",
@@ -1366,7 +1391,11 @@
       "end_byte": 1072,
       "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:unrelated:29:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "class",
+        "receiver_qualifier": "String"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client/source.kt:ktor:variable_ref:26:27",
@@ -1414,7 +1443,10 @@
       "end_byte": 345,
       "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "client"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client/source.kt:rest:variable_ref:25:23",

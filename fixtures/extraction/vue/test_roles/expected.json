@@ -388,7 +388,10 @@
       "end_byte": 338,
       "containing_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ordinary"
+      }
     },
     {
       "key": "fixtures/extraction/vue/test_roles/source.vue:test:call:8:2",

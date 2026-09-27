@@ -160,7 +160,10 @@
       "end_byte": 42,
       "containing_key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:Index:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Url"
+      }
     },
     {
       "key": "fixtures/extraction/razor/mvc_views/Pages/Index.cshtml:Url:variable_ref:3:10",

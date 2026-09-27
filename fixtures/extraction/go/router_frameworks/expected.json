@@ -1966,7 +1966,10 @@
       "end_byte": 1087,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:clientCalls:39:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "http"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:Delete:call:17:8",
@@ -1982,7 +1985,10 @@
       "end_byte": 372,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "admin"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:Do:call:42:15",
@@ -1998,7 +2004,10 @@
       "end_byte": 1003,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:clientCalls:39:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "client"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:Get:call:13:3",
@@ -2014,7 +2023,10 @@
       "end_byte": 186,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "r"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:Get:call:33:5",
@@ -2030,7 +2042,10 @@
       "end_byte": 754,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:fiberRoutes:31:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:Get:call:43:15",
@@ -2046,7 +2061,10 @@
       "end_byte": 1027,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:clientCalls:39:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "client"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:Group:call:34:11",
@@ -2062,7 +2080,10 @@
       "end_byte": 797,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:fiberRoutes:31:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:HandleFunc:call:25:8",
@@ -2078,7 +2099,10 @@
       "end_byte": 527,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:gorillaRoutes:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "router"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:HandleFunc:call:27:5",
@@ -2094,7 +2118,10 @@
       "end_byte": 628,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:gorillaRoutes:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "api"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:Handler:type_usage:11:22",
@@ -2174,7 +2201,10 @@
       "end_byte": 270,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "r"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:MethodDelete:member_access:41:32",
@@ -2190,7 +2220,10 @@
       "end_byte": 944,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:clientCalls:39:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "http"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:MethodPost:member_access:27:51",
@@ -2206,7 +2239,10 @@
       "end_byte": 674,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:gorillaRoutes:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "http"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:MethodPut:member_access:15:15",
@@ -2222,7 +2258,10 @@
       "end_byte": 285,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "http"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:Methods:call:25:44",
@@ -2270,7 +2309,10 @@
       "end_byte": 412,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "r"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:New:call:32:14",
@@ -2286,7 +2328,10 @@
       "end_byte": 743,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:fiberRoutes:31:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "fiber"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:NewRequest:call:41:16",
@@ -2302,7 +2347,10 @@
       "end_byte": 926,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:clientCalls:39:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "http"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:NewRouter:call:12:10",
@@ -2318,7 +2366,10 @@
       "end_byte": 177,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "chi"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:NewRouter:call:24:15",
@@ -2334,7 +2385,10 @@
       "end_byte": 506,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:gorillaRoutes:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "mux"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:PathPrefix:call:26:15",
@@ -2350,7 +2404,10 @@
       "end_byte": 593,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:gorillaRoutes:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "router"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:Post:call:14:22",
@@ -2382,7 +2439,10 @@
       "end_byte": 813,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:fiberRoutes:31:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "v1"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:Post:call:44:27",
@@ -2398,7 +2458,11 @@
       "end_byte": 1092,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:clientCalls:39:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "DefaultClient",
+        "receiver_qualifier": "http"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:Request:type_usage:47:45",
@@ -2606,7 +2670,10 @@
       "end_byte": 322,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "r"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:Router:type_usage:16:34",
@@ -2670,7 +2737,10 @@
       "end_byte": 219,
       "containing_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "r"
+      }
     },
     {
       "key": "fixtures/extraction/go/router_frameworks/source.go:admin:variable_ref:17:2",

@@ -310,7 +310,10 @@
       "end_byte": 441,
       "containing_key": "fixtures/extraction/vbnet/cross_file/source.vb:Run:10:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "x"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/cross_file/source.vb:value:variable_ref:16:19",

@@ -337,7 +337,10 @@
       "end_byte": 87,
       "containing_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:load:4:15",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "axios"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/http_client_axios/source.jsx:get:call:6:33",
@@ -353,7 +356,10 @@
       "end_byte": 225,
       "containing_key": "fixtures/extraction/jsx/http_client_axios/source.jsx:dynamic:6:18",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "axios"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/http_client_axios/source.jsx:load:variable_ref:7:26",

@@ -52,42 +52,26 @@ fn extract_identifier_from_node(
     containing_symbols: &ContainingSymbolIndex<'_>,
 ) {
     match node.kind() {
-        // Function calls: foo(), library(dplyr), lapply(x, f)
         "call" => {
-            if let Some(function_node) = node.child(0) {
-                let name = match function_node.kind() {
-                    "identifier" => extractor.base.get_node_text(&function_node),
-                    "namespace_operator" => {
-                        // Handle package::function syntax
-                        if let Some(function_child) = function_node.child(2) {
-                            extractor.base.get_node_text(&function_child)
-                        } else {
-                            extractor.base.get_node_text(&function_node)
-                        }
-                    }
-                    "extract_operator" => {
-                        // Handle object$method() syntax
-                        if let Some(member) = function_node.child(2) {
-                            extractor.base.get_node_text(&member)
-                        } else {
-                            extractor.base.get_node_text(&function_node)
-                        }
-                    }
-                    _ => extractor.base.get_node_text(&function_node),
+            if let Some(function_node) = node.child_by_field_name("function") {
+                let name_node = match function_node.kind() {
+                    "namespace_operator" | "extract_operator" => function_node
+                        .child_by_field_name("rhs")
+                        .unwrap_or(function_node),
+                    _ => function_node,
                 };
+                let name = extractor.base.get_node_text(&name_node);
 
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 let receiver_type = super::type_facts::self_receiver_type(extractor, function_node);
                 extractor.base.create_identifier_with_receiver_type(
-                    &function_node,
+                    &name_node,
                     name,
                     IdentifierKind::Call,
                     containing_symbol_id,
                     receiver_type,
                 );
             }
-            // Phase 3b: capture string-literal call-arguments config-free; the
-            // carrier classification + bloat gate run later in the artifact language-policy pass.
             record_r_call_arg_literals(extractor, node, containing_symbols);
         }
 
@@ -100,8 +84,7 @@ fn extract_identifier_from_node(
                 return;
             }
 
-            // Extract the member being accessed
-            if let Some(member_node) = node.child(2) {
+            if let Some(member_node) = node.child_by_field_name("rhs") {
                 let name = extractor.base.get_node_text(&member_node);
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 

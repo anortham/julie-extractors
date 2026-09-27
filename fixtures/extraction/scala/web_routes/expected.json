@@ -2048,7 +2048,10 @@
       "end_byte": 336,
       "containing_key": "fixtures/extraction/scala/web_routes/source.scala:UserRoutes:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "service"
+      }
     },
     {
       "key": "fixtures/extraction/scala/web_routes/source.scala:delete:call:11:40",
@@ -2128,7 +2131,10 @@
       "end_byte": 261,
       "containing_key": "fixtures/extraction/scala/web_routes/source.scala:UserRoutes:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "service"
+      }
     },
     {
       "key": "fixtures/extraction/scala/web_routes/source.scala:get:call:14:24",
@@ -2176,7 +2182,10 @@
       "end_byte": 924,
       "containing_key": "fixtures/extraction/scala/web_routes/source.scala:items:28:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "requests"
+      }
     },
     {
       "key": "fixtures/extraction/scala/web_routes/source.scala:get:call:33:35",
@@ -2192,7 +2201,10 @@
       "end_byte": 1203,
       "containing_key": "fixtures/extraction/scala/web_routes/source.scala:user:33:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "basicRequest"
+      }
     },
     {
       "key": "fixtures/extraction/scala/web_routes/source.scala:get:call:34:58",
@@ -2288,7 +2300,10 @@
       "end_byte": 631,
       "containing_key": "fixtures/extraction/scala/web_routes/source.scala:Http4sRoutes:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "HttpRoutes"
+      }
     },
     {
       "key": "fixtures/extraction/scala/web_routes/source.scala:of:member_access:19:26",
@@ -2304,7 +2319,10 @@
       "end_byte": 631,
       "containing_key": "fixtures/extraction/scala/web_routes/source.scala:Http4sRoutes:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "HttpRoutes"
+      }
     },
     {
       "key": "fixtures/extraction/scala/web_routes/source.scala:other:variable_ref:34:20",
@@ -2416,7 +2434,10 @@
       "end_byte": 992,
       "containing_key": "fixtures/extraction/scala/web_routes/source.scala:create:29:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "basicRequest"
+      }
     },
     {
       "key": "fixtures/extraction/scala/web_routes/source.scala:q:variable_ref:22:57",
@@ -2512,7 +2533,10 @@
       "end_byte": 1065,
       "containing_key": "fixtures/extraction/scala/web_routes/source.scala:remove:30:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ws"
+      }
     },
     {
       "key": "fixtures/extraction/scala/web_routes/source.scala:url:call:34:26",
@@ -2528,7 +2552,10 @@
       "end_byte": 1273,
       "containing_key": "fixtures/extraction/scala/web_routes/source.scala:unrelated:34:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "other"
+      }
     },
     {
       "key": "fixtures/extraction/scala/web_routes/source.scala:user:variable_ref:10:64",

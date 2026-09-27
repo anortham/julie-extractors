@@ -2168,7 +2168,10 @@
       "end_byte": 1516,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:qualified:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "routing"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:health:variable_ref:14:30",
@@ -2232,7 +2235,10 @@
       "end_byte": 392,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Router"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:new:call:28:12",
@@ -2248,7 +2254,10 @@
       "end_byte": 957,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Router"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:new:call:44:12",
@@ -2264,7 +2273,10 @@
       "end_byte": 1291,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:api_routes:43:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Router"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:new:call:49:12",
@@ -2280,7 +2292,10 @@
       "end_byte": 1431,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:qualified:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Router"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:post:call:13:35",
@@ -2312,7 +2327,11 @@
       "end_byte": 1476,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:qualified:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "routing",
+        "receiver_qualifier": "axum"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:route:call:12:9",
@@ -2376,7 +2395,10 @@
       "end_byte": 733,
       "containing_key": "fixtures/extraction/rust/axum_routes/source.rs:add_admin:20:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_routes/source.rs:route:call:29:9",

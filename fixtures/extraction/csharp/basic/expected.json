@@ -1641,7 +1641,10 @@
       "end_byte": 1545,
       "containing_key": "fixtures/extraction/csharp/basic/source.cs:Configure:68:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "slot"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/basic/source.cs:Capacity:variable_ref:72:34",
@@ -1833,7 +1836,10 @@
       "end_byte": 1981,
       "containing_key": "fixtures/extraction/csharp/basic/source.cs:Scaled:81:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Math"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/basic/source.cs:Obsolete:type_usage:25:5",
@@ -1865,7 +1871,10 @@
       "end_byte": 1411,
       "containing_key": "fixtures/extraction/csharp/basic/source.cs:Configure:68:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "GraphTraversal"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/basic/source.cs:Registry:call:72:23",

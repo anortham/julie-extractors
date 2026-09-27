@@ -1614,7 +1614,10 @@
       "end_byte": 711,
       "containing_key": "fixtures/extraction/ruby/app_structure/source.rb:export:38:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "rows"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/app_structure/source.rb:items:call:30:6",
@@ -1646,7 +1649,10 @@
       "end_byte": 958,
       "containing_key": "fixtures/extraction/ruby/app_structure/source.rb:classify:44:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "e"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/app_structure/source.rb:owner:call:40:22",
@@ -1710,7 +1716,10 @@
       "end_byte": 977,
       "containing_key": "fixtures/extraction/ruby/app_structure/source.rb:classify:44:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "$stderr"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/app_structure/source.rb:rate:variable_ref:35:17",
@@ -1855,7 +1864,10 @@
       "containing_key": "fixtures/extraction/ruby/app_structure/source.rb:export:38:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "OrdersController"
+      "receiver_type": "OrdersController",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/app_structure/source.rb:subtotal:call:26:6",
@@ -1903,7 +1915,10 @@
       "end_byte": 591,
       "containing_key": "fixtures/extraction/ruby/app_structure/source.rb:subtotal:29:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "items"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/app_structure/source.rb:tax:call:26:17",
@@ -1951,7 +1966,10 @@
       "end_byte": 342,
       "containing_key": "fixtures/extraction/ruby/app_structure/source.rb:respond:14:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "payload"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/app_structure/source.rb:value:variable_ref:45:11",
@@ -1999,7 +2017,10 @@
       "end_byte": 757,
       "containing_key": "fixtures/extraction/ruby/app_structure/source.rb:export:38:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Mailer"
+      }
     }
   ],
   "types": [

@@ -1282,7 +1282,10 @@
       "end_byte": 512,
       "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:22:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Routes"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Route:type_usage:18:5",

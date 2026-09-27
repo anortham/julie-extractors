@@ -384,7 +384,10 @@
       "end_byte": 51,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Rails"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:draw:member_access:4:25",
@@ -400,7 +403,11 @@
       "end_byte": 63,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "routes",
+        "receiver_qualifier": "Rails.application"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:get:call:15:8",
@@ -480,7 +487,11 @@
       "end_byte": 488,
       "containing_key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:call_clients:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "HTTP",
+        "receiver_qualifier": "Net"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:match:call:7:4",
@@ -576,7 +587,10 @@
       "end_byte": 558,
       "containing_key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:call_clients:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "URI"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:post_form:member_access:24:12",
@@ -592,7 +606,11 @@
       "end_byte": 548,
       "containing_key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:call_clients:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "HTTP",
+        "receiver_qualifier": "Net"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:require:call:1:0",
@@ -688,7 +706,11 @@
       "end_byte": 58,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "application",
+        "receiver_qualifier": "Rails"
+      }
     }
   ],
   "types": [],

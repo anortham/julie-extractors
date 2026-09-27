@@ -1647,7 +1647,10 @@
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:run:15:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Worker"
+      "receiver_type": "Worker",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:helper:call:19:15",
@@ -1661,22 +1664,6 @@
       "end_column": 21,
       "start_byte": 362,
       "end_byte": 368,
-      "containing_key": "fixtures/extraction/cpp/basic/source.cpp:run:15:4",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/cpp/basic/source.cpp:helper:member_access:18:14",
-      "name": "helper",
-      "kind": "member_access",
-      "language": "cpp",
-      "file_path": "fixtures/extraction/cpp/basic/source.cpp",
-      "start_line": 18,
-      "start_column": 14,
-      "end_line": 18,
-      "end_column": 20,
-      "start_byte": 334,
-      "end_byte": 340,
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:run:15:4",
       "target_key": null,
       "confidence": "1.000"
@@ -1760,7 +1747,10 @@
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:Worker::ping:32:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Worker"
+      "receiver_type": "Worker",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:id:call:34:12",
@@ -1778,38 +1768,6 @@
       "target_key": null,
       "confidence": "1.000",
       "receiver_type": "Worker"
-    },
-    {
-      "key": "fixtures/extraction/cpp/basic/source.cpp:id:member_access:33:10",
-      "name": "id",
-      "kind": "member_access",
-      "language": "cpp",
-      "file_path": "fixtures/extraction/cpp/basic/source.cpp",
-      "start_line": 33,
-      "start_column": 10,
-      "end_line": 33,
-      "end_column": 12,
-      "start_byte": 537,
-      "end_byte": 539,
-      "containing_key": "fixtures/extraction/cpp/basic/source.cpp:Worker::ping:32:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/cpp/basic/source.cpp:id:member_access:34:12",
-      "name": "id",
-      "kind": "member_access",
-      "language": "cpp",
-      "file_path": "fixtures/extraction/cpp/basic/source.cpp",
-      "start_line": 34,
-      "start_column": 12,
-      "end_line": 34,
-      "end_column": 14,
-      "start_byte": 555,
-      "end_byte": 557,
-      "containing_key": "fixtures/extraction/cpp/basic/source.cpp:Worker::ping:32:0",
-      "target_key": null,
-      "confidence": "1.000"
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:id:variable_ref:12:34",
@@ -1876,20 +1834,23 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/cpp/basic/source.cpp:std::make_unique<Item>:call:68:16",
-      "name": "std::make_unique<Item>",
+      "key": "fixtures/extraction/cpp/basic/source.cpp:make_unique:call:68:21",
+      "name": "make_unique",
       "kind": "call",
       "language": "cpp",
       "file_path": "fixtures/extraction/cpp/basic/source.cpp",
       "start_line": 68,
-      "start_column": 16,
+      "start_column": 21,
       "end_line": 68,
-      "end_column": 38,
-      "start_byte": 1124,
-      "end_byte": 1146,
+      "end_column": 32,
+      "start_byte": 1129,
+      "end_byte": 1140,
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:use_facts:67:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "std"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:total:variable_ref:51:12",
@@ -2543,6 +2504,18 @@
               "children": []
             }
           ]
+        }
+      ]
+    },
+    {
+      "identifier_key": "fixtures/extraction/cpp/basic/source.cpp:make_unique:call:68:21",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/basic/source.cpp",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "Item",
+          "children": []
         }
       ]
     }

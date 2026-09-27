@@ -1751,7 +1751,10 @@
       "end_byte": 1305,
       "containing_key": "fixtures/extraction/kotlin/basic/source.kt:Worker:63:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "label"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/basic/source.kt:missingWave2:call:60:13",
@@ -1768,7 +1771,10 @@
       "containing_key": "fixtures/extraction/kotlin/basic/source.kt:persist:58:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Worker"
+      "receiver_type": "Worker",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/basic/source.kt:observeRun:call:43:8",
@@ -1817,7 +1823,10 @@
       "containing_key": "fixtures/extraction/kotlin/basic/source.kt:persist:58:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Worker"
+      "receiver_type": "Worker",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/basic/source.kt:total:variable_ref:71:12",

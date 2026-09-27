@@ -1485,7 +1485,10 @@
       "end_byte": 886,
       "containing_key": "fixtures/extraction/go/basic/source.go:FetchStatus:53:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "http"
+      }
     },
     {
       "key": "fixtures/extraction/go/basic/source.go:ID:member_access:24:13",
@@ -1501,7 +1504,10 @@
       "end_byte": 318,
       "containing_key": "fixtures/extraction/go/basic/source.go:Run:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "w"
+      }
     },
     {
       "key": "fixtures/extraction/go/basic/source.go:ID:member_access:25:17",
@@ -1517,7 +1523,10 @@
       "end_byte": 339,
       "containing_key": "fixtures/extraction/go/basic/source.go:Run:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "w"
+      }
     },
     {
       "key": "fixtures/extraction/go/basic/source.go:ID:member_access:29:21",
@@ -1533,7 +1542,10 @@
       "end_byte": 393,
       "containing_key": "fixtures/extraction/go/basic/source.go:Start:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "w"
+      }
     },
     {
       "key": "fixtures/extraction/go/basic/source.go:ID:member_access:92:13",
@@ -1549,7 +1561,10 @@
       "end_byte": 1548,
       "containing_key": "fixtures/extraction/go/basic/source.go:Restart:91:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "w"
+      }
     },
     {
       "key": "fixtures/extraction/go/basic/source.go:ID:variable_ref:20:15",
@@ -1646,7 +1661,10 @@
       "containing_key": "fixtures/extraction/go/basic/source.go:Start:28:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Worker"
+      "receiver_type": "Worker",
+      "metadata": {
+        "receiver": "w"
+      }
     },
     {
       "key": "fixtures/extraction/go/basic/source.go:Run:call:33:7",
@@ -1662,7 +1680,10 @@
       "end_byte": 443,
       "containing_key": "fixtures/extraction/go/basic/source.go:Start:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "other"
+      }
     },
     {
       "key": "fixtures/extraction/go/basic/source.go:Run:call:92:17",
@@ -1694,7 +1715,10 @@
       "end_byte": 1406,
       "containing_key": "fixtures/extraction/go/basic/source.go:Decode:82:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "yaml"
+      }
     },
     {
       "key": "fixtures/extraction/go/basic/source.go:Worker:type_usage:19:23",
@@ -2094,7 +2118,10 @@
       "end_byte": 1492,
       "containing_key": "fixtures/extraction/go/basic/source.go:Load:87:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "s"
+      }
     },
     {
       "key": "fixtures/extraction/go/basic/source.go:memStore:type_usage:87:8",

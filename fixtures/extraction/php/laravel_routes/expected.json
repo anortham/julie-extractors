@@ -197,7 +197,10 @@
       "end_byte": 1466,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:PhotoController:type_usage:18:26",
@@ -581,7 +584,10 @@
       "end_byte": 500,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Route"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:apiResource:call:19:7",
@@ -597,7 +603,10 @@
       "end_byte": 696,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Route"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:delete:call:12:7",
@@ -613,7 +622,10 @@
       "end_byte": 398,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Route"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:get:call:10:7",
@@ -629,7 +641,10 @@
       "end_byte": 278,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Route"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:get:call:23:11",
@@ -645,7 +660,10 @@
       "end_byte": 840,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Route"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:get:call:24:11",
@@ -661,7 +679,10 @@
       "end_byte": 909,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Route"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:get:call:29:11",
@@ -677,7 +698,10 @@
       "end_byte": 1101,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Route"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:get:call:34:7",
@@ -693,7 +717,10 @@
       "end_byte": 1323,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Route"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:get:call:35:7",
@@ -709,7 +736,10 @@
       "end_byte": 1382,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Route"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:get:call:36:7",
@@ -725,7 +755,10 @@
       "end_byte": 1448,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Route"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:group:call:22:24",
@@ -757,7 +790,10 @@
       "end_byte": 1027,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Route"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:id:variable_ref:34:19",
@@ -789,7 +825,10 @@
       "end_byte": 339,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Route"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:prefix:call:22:7",
@@ -805,7 +844,10 @@
       "end_byte": 795,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Route"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:resource:call:18:7",
@@ -821,7 +863,10 @@
       "end_byte": 642,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Route"
+      }
     },
     {
       "key": "fixtures/extraction/php/laravel_routes/source.php:suffix:variable_ref:35:23",

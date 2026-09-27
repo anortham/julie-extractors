@@ -496,7 +496,10 @@
       "end_byte": 378,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ordinary"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/test_roles/source.jsx:test:call:5:2",

@@ -2209,7 +2209,11 @@
       "end_byte": 1843,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:allocator:91:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "mem",
+        "receiver_qualifier": "std"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:ArrayList:call:73:26",
@@ -2241,7 +2245,10 @@
       "end_byte": 1676,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:demo:81:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "std"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:Key:type_usage:73:21",
@@ -2546,7 +2553,10 @@
       "containing_key": "fixtures/extraction/zig/basic/source.zig:drain:98:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Pool"
+      "receiver_type": "Pool",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:count:variable_ref:64:16",
@@ -2626,7 +2636,11 @@
       "end_byte": 2365,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:square:117:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "testing",
+        "receiver_qualifier": "std"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:fetch_url:call:52:4",
@@ -2738,7 +2752,10 @@
       "end_byte": 202,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:run:8:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:id:member_access:58:25",
@@ -2754,7 +2771,10 @@
       "end_byte": 1195,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:runWorker:57:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "worker"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:id:member_access:9:24",
@@ -2770,7 +2790,10 @@
       "end_byte": 170,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:run:8:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:id:variable_ref:23:30",
@@ -2818,7 +2841,10 @@
       "end_byte": 2005,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:drain:98:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:items:member_access:82:22",
@@ -2981,7 +3007,10 @@
       "end_byte": 1833,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:allocator:91:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "std"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:missingWave2:call:17:44",
@@ -2998,7 +3027,10 @@
       "containing_key": "fixtures/extraction/zig/basic/source.zig:probe:17:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Worker"
+      "receiver_type": "Worker",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:observe_run:call:23:4",
@@ -3030,7 +3062,10 @@
       "end_byte": 1924,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:isOpen:94:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:record_run:call:9:8",
@@ -3063,7 +3098,10 @@
       "containing_key": "fixtures/extraction/zig/basic/source.zig:go:13:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Worker"
+      "receiver_type": "Worker",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:s:variable_ref:87:11",
@@ -3303,7 +3341,10 @@
       "end_byte": 2353,
       "containing_key": "fixtures/extraction/zig/basic/source.zig:square:117:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "std"
+      }
     },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:total:variable_ref:65:12",

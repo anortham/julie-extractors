@@ -1379,7 +1379,10 @@
       "end_byte": 518,
       "containing_key": "fixtures/extraction/r/frameworks/source.R:server:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "input"
+      }
     },
     {
       "key": "fixtures/extraction/r/frameworks/source.R:region:member_access:26:21",
@@ -1395,7 +1398,10 @@
       "end_byte": 483,
       "containing_key": "fixtures/extraction/r/frameworks/source.R:server:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "input"
+      }
     },
     {
       "key": "fixtures/extraction/r/frameworks/source.R:renderPlot:call:31:22",
@@ -1443,7 +1449,10 @@
       "end_byte": 579,
       "containing_key": "fixtures/extraction/r/frameworks/source.R:server:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "output"
+      }
     },
     {
       "key": "fixtures/extraction/r/frameworks/source.R:selectInput:call:19:2",

@@ -291,7 +291,10 @@
       "end_byte": 132,
       "containing_key": "fixtures/extraction/fsharp/script/source.fsx:scriptMain:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Console"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/script/source.fsx:int:type_usage:6:17",

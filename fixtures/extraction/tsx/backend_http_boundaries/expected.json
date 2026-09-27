@@ -284,7 +284,10 @@
       "end_byte": 152,
       "containing_key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "express"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:app:variable_ref:10:2",
@@ -396,7 +399,10 @@
       "end_byte": 196,
       "containing_key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "router"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:res:variable_ref:10:53",
@@ -444,7 +450,10 @@
       "end_byte": 254,
       "containing_key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:route:call:13:9",
@@ -460,7 +469,10 @@
       "end_byte": 360,
       "containing_key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "server"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:router:variable_ref:8:18",
@@ -508,7 +520,10 @@
       "end_byte": 304,
       "containing_key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "res"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:send:call:9:46",
@@ -524,7 +539,10 @@
       "end_byte": 234,
       "containing_key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "res"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:server:variable_ref:13:2",
@@ -556,7 +574,10 @@
       "end_byte": 166,
       "containing_key": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     }
   ],
   "types": [],

@@ -171,6 +171,25 @@
   ],
   "identifiers": [
     {
+      "key": "fixtures/extraction/cpp/cross_file/source.cpp:do_thing:call:13:14",
+      "name": "do_thing",
+      "kind": "call",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/cross_file/source.cpp",
+      "start_line": 13,
+      "start_column": 14,
+      "end_line": 13,
+      "end_column": 22,
+      "start_byte": 394,
+      "end_byte": 402,
+      "containing_key": "fixtures/extraction/cpp/cross_file/source.cpp:entry:12:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "other_ns"
+      }
+    },
+    {
       "key": "fixtures/extraction/cpp/cross_file/source.cpp:local_helper:call:14:11",
       "name": "local_helper",
       "kind": "call",
@@ -182,22 +201,6 @@
       "end_column": 23,
       "start_byte": 417,
       "end_byte": 429,
-      "containing_key": "fixtures/extraction/cpp/cross_file/source.cpp:entry:12:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/cpp/cross_file/source.cpp:other_ns::do_thing:call:13:4",
-      "name": "other_ns::do_thing",
-      "kind": "call",
-      "language": "cpp",
-      "file_path": "fixtures/extraction/cpp/cross_file/source.cpp",
-      "start_line": 13,
-      "start_column": 4,
-      "end_line": 13,
-      "end_column": 22,
-      "start_byte": 384,
-      "end_byte": 402,
       "containing_key": "fixtures/extraction/cpp/cross_file/source.cpp:entry:12:0",
       "target_key": null,
       "confidence": "1.000"

@@ -1197,7 +1197,10 @@
       "end_byte": 944,
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "billing"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_WriteAudit:call:30:13",
@@ -1213,7 +1216,10 @@
       "end_byte": 903,
       "containing_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "dbo"
+      }
     }
   ],
   "types": [

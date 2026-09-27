@@ -845,7 +845,10 @@
       "end_byte": 831,
       "containing_key": "fixtures/extraction/vbnet/call_initializers/source.vb:Run:32:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Loader"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/call_initializers/source.vb:Load:call:33:21",
@@ -878,7 +881,10 @@
       "containing_key": "fixtures/extraction/vbnet/call_initializers/source.vb:Run:32:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Loader"
+      "receiver_type": "Loader",
+      "metadata": {
+        "receiver": "Me"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/call_initializers/source.vb:Load:call:39:20",
@@ -990,7 +996,10 @@
       "end_byte": 966,
       "containing_key": "fixtures/extraction/vbnet/call_initializers/source.vb:Run:32:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "loaded"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/call_initializers/source.vb:Name:call:41:16",
@@ -1006,7 +1015,10 @@
       "end_byte": 989,
       "containing_key": "fixtures/extraction/vbnet/call_initializers/source.vb:Run:32:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "awaited"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/call_initializers/source.vb:Of:variable_ref:38:26",

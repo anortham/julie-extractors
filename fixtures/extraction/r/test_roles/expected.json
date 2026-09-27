@@ -841,20 +841,23 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/r/test_roles/test_source.r:test_that:call:37:0",
+      "key": "fixtures/extraction/r/test_roles/test_source.r:test_that:call:37:10",
       "name": "test_that",
       "kind": "call",
       "language": "r",
       "file_path": "fixtures/extraction/r/test_roles/test_source.r",
       "start_line": 37,
-      "start_column": 0,
+      "start_column": 10,
       "end_line": 37,
       "end_column": 19,
-      "start_byte": 471,
+      "start_byte": 481,
       "end_byte": 490,
       "containing_key": "fixtures/extraction/r/test_roles/test_source.r:qualified case:37:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "testthat"
+      }
     },
     {
       "key": "fixtures/extraction/r/test_roles/test_source.r:test_that:call:7:0",

@@ -848,7 +848,10 @@
       "end_byte": 297,
       "containing_key": "fixtures/extraction/typescript/test_roles/source.ts:CartSuite:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "test"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/test_roles/source.ts:ordinary:variable_ref:36:0",
@@ -912,7 +915,10 @@
       "end_byte": 465,
       "containing_key": "fixtures/extraction/typescript/test_roles/source.ts:scalesQuantity:19:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "input"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/test_roles/source.ts:suite:variable_ref:9:1",
@@ -944,7 +950,10 @@
       "end_byte": 668,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ordinary"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/test_roles/source.ts:test:variable_ref:11:3",

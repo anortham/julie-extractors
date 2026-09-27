@@ -957,7 +957,10 @@
       "end_byte": 309,
       "containing_key": "fixtures/extraction/csharp/step_definitions/source.cs:WhenIAddItems:14:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "cart"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/step_definitions/source.cs:AfterScenario:type_usage:26:5",
@@ -1048,9 +1051,9 @@
       "start_line": 9,
       "start_column": 33,
       "end_line": 9,
-      "end_column": 38,
+      "end_column": 36,
       "start_byte": 133,
-      "end_byte": 138,
+      "end_byte": 136,
       "containing_key": "fixtures/extraction/csharp/step_definitions/source.cs:CartSteps:6:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1085,7 +1088,10 @@
       "end_byte": 219,
       "containing_key": "fixtures/extraction/csharp/step_definitions/source.cs:GivenAnEmptyCart:11:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "cart"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/step_definitions/source.cs:Clear:call:24:32",
@@ -1101,7 +1107,10 @@
       "end_byte": 593,
       "containing_key": "fixtures/extraction/csharp/step_definitions/source.cs:Reset:23:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "cart"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/step_definitions/source.cs:Count:member_access:18:72",
@@ -1117,7 +1126,10 @@
       "end_byte": 438,
       "containing_key": "fixtures/extraction/csharp/step_definitions/source.cs:ThenTheCartHolds:17:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "cart"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/step_definitions/source.cs:Count:member_access:29:31",
@@ -1133,7 +1145,10 @@
       "end_byte": 694,
       "containing_key": "fixtures/extraction/csharp/step_definitions/source.cs:Total:29:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "cart"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/step_definitions/source.cs:Equal:call:18:54",
@@ -1149,7 +1164,10 @@
       "end_byte": 420,
       "containing_key": "fixtures/extraction/csharp/step_definitions/source.cs:ThenTheCartHolds:17:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Assert"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/step_definitions/source.cs:Given:type_usage:11:5",
@@ -1213,7 +1231,10 @@
       "end_byte": 530,
       "containing_key": "fixtures/extraction/csharp/step_definitions/source.cs:TheCartIsSaved:20:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "cart"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/step_definitions/source.cs:Save:call:27:31",
@@ -1229,7 +1250,10 @@
       "end_byte": 653,
       "containing_key": "fixtures/extraction/csharp/step_definitions/source.cs:Tidy:26:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "cart"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/step_definitions/source.cs:Shop:type_usage:4:10",

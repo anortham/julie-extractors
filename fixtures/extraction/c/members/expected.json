@@ -1442,7 +1442,10 @@
       "end_byte": 1197,
       "containing_key": "fixtures/extraction/c/members/source.c:value_int:43:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "v"
+      }
     },
     {
       "key": "fixtures/extraction/c/members/source.c:i:member_access:40:42",
@@ -1458,7 +1461,10 @@
       "end_byte": 1034,
       "containing_key": "fixtures/extraction/c/members/source.c:make_pun:40:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "p"
+      }
     },
     {
       "key": "fixtures/extraction/c/members/source.c:line:member_access:45:30",
@@ -1474,7 +1480,11 @@
       "end_byte": 1211,
       "containing_key": "fixtures/extraction/c/members/source.c:value_int:43:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "pos",
+        "receiver_qualifier": "v"
+      }
     },
     {
       "key": "fixtures/extraction/c/members/source.c:on_request:call:49:9",
@@ -1490,7 +1500,10 @@
       "end_byte": 1307,
       "containing_key": "fixtures/extraction/c/members/source.c:serve:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "srv"
+      }
     },
     {
       "key": "fixtures/extraction/c/members/source.c:on_request:call:51:11",
@@ -1506,7 +1519,10 @@
       "end_byte": 1357,
       "containing_key": "fixtures/extraction/c/members/source.c:serve:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "srv"
+      }
     },
     {
       "key": "fixtures/extraction/c/members/source.c:ops:member_access:50:9",
@@ -1522,7 +1538,10 @@
       "end_byte": 1326,
       "containing_key": "fixtures/extraction/c/members/source.c:serve:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "srv"
+      }
     },
     {
       "key": "fixtures/extraction/c/members/source.c:p:variable_ref:40:40",
@@ -1570,7 +1589,10 @@
       "end_byte": 1206,
       "containing_key": "fixtures/extraction/c/members/source.c:value_int:43:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "v"
+      }
     },
     {
       "key": "fixtures/extraction/c/members/source.c:run:call:50:14",
@@ -1586,7 +1608,11 @@
       "end_byte": 1331,
       "containing_key": "fixtures/extraction/c/members/source.c:serve:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ops",
+        "receiver_qualifier": "srv"
+      }
     },
     {
       "key": "fixtures/extraction/c/members/source.c:srv:variable_ref:49:4",
@@ -1650,7 +1676,10 @@
       "end_byte": 1229,
       "containing_key": "fixtures/extraction/c/members/source.c:value_int:43:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "v"
+      }
     },
     {
       "key": "fixtures/extraction/c/members/source.c:v:variable_ref:45:11",

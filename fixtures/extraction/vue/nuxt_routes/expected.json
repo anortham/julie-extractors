@@ -277,7 +277,10 @@
       "end_byte": 171,
       "containing_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "post"
+      }
     },
     {
       "key": "fixtures/extraction/vue/nuxt_routes/source.vue:post:variable_ref:5:53",

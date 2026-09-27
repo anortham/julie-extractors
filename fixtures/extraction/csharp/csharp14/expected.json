@@ -1292,7 +1292,10 @@
       "end_byte": 723,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:IsEmpty:29:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "source"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:ArgumentNullException:call:45:42",
@@ -1591,9 +1594,9 @@
       "start_line": 21,
       "start_column": 34,
       "end_line": 21,
-      "end_column": 39,
+      "end_column": 37,
       "start_byte": 517,
-      "end_byte": 522,
+      "end_byte": 520,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:GetCurrentOrder:21:0",
       "target_key": null,
       "confidence": "1.000"
@@ -1612,7 +1615,10 @@
       "end_byte": 333,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:fixtures/extraction/csharp/csharp14/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "customer"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:Order:type_usage:21:7",
@@ -1756,7 +1762,10 @@
       "end_byte": 412,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:parse$lambda:17:22",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "int"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:TryParse:type_usage:17:0",
@@ -1804,7 +1813,10 @@
       "end_byte": 832,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:Where:31:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Enumerable"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:WriteLine:call:12:8",
@@ -1820,7 +1832,10 @@
       "end_byte": 261,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:fixtures/extraction/csharp/csharp14/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Console"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:amount:variable_ref:73:17",

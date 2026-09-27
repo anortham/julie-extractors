@@ -1545,7 +1545,10 @@
       "end_byte": 647,
       "containing_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "http"
+      }
     },
     {
       "key": "fixtures/extraction/dart/basic/source.dart:Foo:call:33:22",
@@ -2217,7 +2220,10 @@
       "end_byte": 574,
       "containing_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Foo"
+      }
     },
     {
       "key": "fixtures/extraction/dart/basic/source.dart:observeRun:call:51:2",
@@ -2266,7 +2272,10 @@
       "containing_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "OrderService"
+      "receiver_type": "OrderService",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/dart/basic/source.dart:recordRun:call:12:4",
@@ -2299,7 +2308,10 @@
       "containing_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "ServiceBase"
+      "receiver_type": "ServiceBase",
+      "metadata": {
+        "receiver": "super"
+      }
     },
     {
       "key": "fixtures/extraction/dart/basic/source.dart:run:call:32:10",
@@ -2315,7 +2327,10 @@
       "end_byte": 453,
       "containing_key": "fixtures/extraction/dart/basic/source.dart:process:29:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "other"
+      }
     },
     {
       "key": "fixtures/extraction/dart/basic/source.dart:total:variable_ref:70:6",

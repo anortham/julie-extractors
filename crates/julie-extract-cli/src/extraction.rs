@@ -608,10 +608,9 @@ fn map_results(
     let mut type_infos = results.types.values().collect::<Vec<_>>();
     type_infos.sort_by(|left, right| left.symbol_id.cmp(&right.symbol_id));
 
-    let identifiers = dedupe_by_id(
-        map_identifiers(&results, target, &snapshot.content, &file_id)?,
-        |identifier| identifier.identifier_id.as_str(),
-    );
+    let identifiers = dedupe_by_id(map_identifiers(&results, target, &file_id)?, |identifier| {
+        identifier.identifier_id.as_str()
+    });
     let relationships = dedupe_by_id(
         map_relationships(&results, target, &file_id)?,
         |relationship| relationship.relationship_id.as_str(),
@@ -688,7 +687,6 @@ fn dedupe_by_id<T>(rows: Vec<T>, mut key: impl FnMut(&T) -> &str) -> Vec<T> {
 fn map_identifiers(
     results: &ExtractionResults,
     target: &FileTarget,
-    source: &str,
     file_id: &str,
 ) -> Result<Vec<ArtifactIdentifier>, ExtractFileError> {
     results
@@ -696,26 +694,6 @@ fn map_identifiers(
         .iter()
         .map(|identifier| {
             let mut metadata = serde_json::Map::new();
-            let identifier_kind = identifier.kind.to_string();
-            let source_receiver = (matches!(identifier_kind.as_str(), "call" | "member_access")
-                && language_has_member_access(&identifier.language))
-            .then(|| {
-                receiver_before_identifier(source, identifier.start_byte, &identifier.language)
-            })
-            .flatten();
-            if let Some(receiver) = source_receiver {
-                metadata.insert("receiver".to_string(), serde_json::Value::String(receiver));
-                if let Some(qualifier) = receiver_qualifier_before_identifier(
-                    source,
-                    identifier.start_byte,
-                    &identifier.language,
-                ) {
-                    metadata.insert(
-                        "receiver_qualifier".to_string(),
-                        serde_json::Value::String(qualifier),
-                    );
-                }
-            }
             if let Some(receiver_type) = identifier.receiver_type.as_ref() {
                 metadata.insert(
                     "receiver_type".to_string(),
@@ -758,98 +736,6 @@ fn map_identifiers(
         })
         .collect::<Result<Vec<_>, _>>()
         .map_err(|error| serialization_error(target, error))
-}
-
-/// Bash has no member access: a `.` before a command belongs to a comment,
-/// a path, or a script name, never to a receiver.
-fn language_has_member_access(language: &str) -> bool {
-    language != "bash"
-}
-
-/// The member-access token immediately before `at`, with the byte offset it starts
-/// at, so the caller can keep walking the same chain leftward. `->` is a member
-/// separator only in C, C++, and PHP; elsewhere (F# match arms, lambdas) it is
-/// not a receiver.
-fn receiver_token_before(source: &str, at: usize, language: &str) -> Option<(String, usize)> {
-    let arrow_is_member_access = matches!(language, "c" | "cpp" | "php");
-    // PowerShell reads `.` after whitespace as an argument (`dotnet restore .`),
-    // never as member access, so only an adjacent separator names a receiver.
-    let separator_may_follow_space = language != "powershell";
-    let bytes = source.as_bytes();
-    let mut cursor = at.min(bytes.len());
-    // A member separator ends the previous line only in a trailing-dot chain;
-    // across a line break the `.` is far more often the end of a comment or
-    // sentence, so the separator must sit on the identifier's own line.
-    while separator_may_follow_space
-        && cursor > 0
-        && bytes[cursor - 1].is_ascii_whitespace()
-        && bytes[cursor - 1] != b'\n'
-    {
-        cursor -= 1;
-    }
-    let separator_width = if cursor >= 2
-        && (matches!(&bytes[cursor - 2..cursor], b"::" | b"?.")
-            || (arrow_is_member_access && &bytes[cursor - 2..cursor] == b"->"))
-    {
-        2
-    } else if cursor >= 1 && bytes[cursor - 1] == b'.' {
-        1
-    } else {
-        return None;
-    };
-    cursor -= separator_width;
-    while cursor > 0 && bytes[cursor - 1].is_ascii_whitespace() {
-        cursor -= 1;
-    }
-    let end = cursor;
-    while cursor > 0
-        && (bytes[cursor - 1].is_ascii_alphanumeric()
-            || matches!(bytes[cursor - 1], b'_' | b'$' | b'@'))
-    {
-        cursor -= 1;
-    }
-    if !matches!(language, "ruby" | "csharp") {
-        // `@` is part of a name only for Ruby `@ivar`/`@@cvar` and C# verbatim
-        // identifiers (`@class`); elsewhere a leading `@` is a decorator,
-        // annotation, or Razor transition marker (`@app.route`, `@Model`).
-        while cursor < end && bytes[cursor] == b'@' {
-            cursor += 1;
-        }
-    }
-    let token = &source[cursor..end];
-    // Rust `.await` is a postfix keyword, so `x.await.unwrap()` has no named receiver.
-    if cursor == end || (language == "rust" && token == "await") {
-        return None;
-    }
-    Some((token.to_string(), cursor))
-}
-
-fn receiver_before_identifier(source: &str, start_byte: u32, language: &str) -> Option<String> {
-    let at = usize::try_from(start_byte).ok()?;
-    receiver_token_before(source, at, language).map(|(token, _)| token)
-}
-
-/// The dotted qualification standing in front of the receiver token:
-/// `Some.Namespace.Fixture.Create()` yields `Some.Namespace` for `Create`. A
-/// resolver needs it to tell a fully-qualified reference to a workspace type from
-/// a foreign one that merely shares the type's simple name.
-fn receiver_qualifier_before_identifier(
-    source: &str,
-    start_byte: u32,
-    language: &str,
-) -> Option<String> {
-    let at = usize::try_from(start_byte).ok()?;
-    let (_, mut cursor) = receiver_token_before(source, at, language)?;
-    let mut segments = Vec::new();
-    while let Some((token, start)) = receiver_token_before(source, cursor, language) {
-        segments.push(token);
-        cursor = start;
-    }
-    if segments.is_empty() {
-        return None;
-    }
-    segments.reverse();
-    Some(segments.join("."))
 }
 
 fn map_relationships(
@@ -1473,147 +1359,6 @@ mod tests {
         assert!(effective_extraction_workers(0) >= 1);
     }
 
-    #[test]
-    fn receiver_context_is_stable_across_common_member_separators() {
-        for (source, start, expected) in [
-            ("service.run()", 8, "service"),
-            ("service :: run()", 11, "service"),
-            ("service->run()", 9, "service"),
-            ("service?.run()", 9, "service"),
-            ("$service->run()", 10, "$service"),
-        ] {
-            assert_eq!(
-                receiver_before_identifier(source, start, "php"),
-                Some(expected.to_string())
-            );
-        }
-        assert_eq!(receiver_before_identifier("run()", 0, "php"), None);
-        for (source, start) in [
-            ("foo<Bar>::baz()", 10),
-            ("value - member", 8),
-            ("value > member", 8),
-            ("value ? member", 8),
-        ] {
-            assert_eq!(receiver_before_identifier(source, start, "php"), None);
-        }
-    }
-
-    #[test]
-    fn a_separator_on_the_previous_line_is_not_a_receiver() {
-        let source = "    # Then push it to the remote.\n    push(record)";
-        let at = source.find("push").unwrap() as u32;
-        assert_eq!(receiver_before_identifier(source, at, "ruby"), None);
-        let chained = "records\n  .select(&:valid?)";
-        let at = chained.find("select").unwrap() as u32;
-        assert_eq!(
-            receiver_before_identifier(chained, at, "ruby"),
-            Some("records".to_string())
-        );
-    }
-
-    #[test]
-    fn a_leading_at_sign_is_part_of_the_receiver_only_in_ruby_and_csharp() {
-        assert_eq!(
-            receiver_before_identifier("@service.run()", 9, "ruby"),
-            Some("@service".to_string())
-        );
-        assert_eq!(
-            receiver_before_identifier("@@count.inc()", 8, "ruby"),
-            Some("@@count".to_string())
-        );
-        let decorator = "@pytest.mark.parametrize(\"a\", [1])";
-        let at = decorator.find("parametrize").unwrap() as u32;
-        assert_eq!(
-            receiver_before_identifier(decorator, at, "python"),
-            Some("mark".to_string())
-        );
-        assert_eq!(
-            receiver_qualifier_before_identifier(decorator, at, "python"),
-            Some("pytest".to_string())
-        );
-        assert_eq!(
-            receiver_before_identifier("@app.route(\"/x\")", 5, "python"),
-            Some("app".to_string())
-        );
-    }
-
-    #[test]
-    fn powershell_dot_argument_on_the_previous_line_is_not_a_receiver() {
-        let source = "dotnet restore .\n    Invoke-Compile -Configuration Release";
-        let start = source.find("Invoke-Compile").unwrap() as u32;
-        assert_eq!(
-            receiver_before_identifier(source, start, "powershell"),
-            None
-        );
-        let member = "$w.Run()";
-        let at = member.find("Run").unwrap() as u32;
-        assert_eq!(
-            receiver_before_identifier(member, at, "powershell"),
-            Some("$w".to_string())
-        );
-    }
-
-    #[test]
-    fn razor_transition_is_not_part_of_the_receiver() {
-        let source = "<td>@item.Price.ToString(\"C\")</td>";
-        let price = source.find("Price").unwrap() as u32;
-        assert_eq!(
-            receiver_before_identifier(source, price, "razor"),
-            Some("item".to_string())
-        );
-        let to_string = source.find("ToString").unwrap() as u32;
-        assert_eq!(
-            receiver_qualifier_before_identifier(source, to_string, "razor"),
-            Some("item".to_string())
-        );
-        let verbatim = "@class.Name";
-        let at = verbatim.find("Name").unwrap() as u32;
-        assert_eq!(
-            receiver_before_identifier(verbatim, at, "csharp"),
-            Some("@class".to_string())
-        );
-    }
-
-    #[test]
-    fn rust_await_is_not_a_receiver() {
-        let source = "client.fetch().await.unwrap()";
-        let start = source.find("unwrap").unwrap() as u32;
-        assert_eq!(receiver_before_identifier(source, start, "rust"), None);
-        let source = "handle.await.len()";
-        let start = source.find("len").unwrap() as u32;
-        assert_eq!(receiver_before_identifier(source, start, "rust"), None);
-    }
-
-    #[test]
-    fn comment_text_is_never_a_receiver() {
-        let source = "// see config.\ninit();";
-        let start = source.find("init").unwrap() as u32;
-        assert_eq!(
-            receiver_before_identifier(source, start, "typescript"),
-            None
-        );
-    }
-
-    #[test]
-    fn arrow_is_a_receiver_separator_only_for_pointer_member_languages() {
-        let source = "| Some value -> log value";
-        let start = source.rfind("log").unwrap() as u32;
-        assert_eq!(receiver_before_identifier(source, start, "fsharp"), None);
-        assert_eq!(
-            receiver_before_identifier(source, start, "cpp"),
-            Some("value".to_string())
-        );
-        let qualified = "fun id -> Convert.ToString id";
-        let at = qualified.find("ToString").unwrap() as u32;
-        assert_eq!(
-            receiver_before_identifier(qualified, at, "fsharp"),
-            Some("Convert".to_string())
-        );
-        assert_eq!(
-            receiver_qualifier_before_identifier(qualified, at, "fsharp"),
-            None
-        );
-    }
     use std::sync::Mutex;
 
     static PANIC_HOOK_LOCK: Mutex<()> = Mutex::new(());
@@ -1926,16 +1671,16 @@ mod tests {
         }
     }
 
-    fn mapped_metadata_json(identifier: Identifier, source: &str) -> Option<String> {
+    fn mapped_metadata_json(identifier: Identifier) -> Option<String> {
         let mut results = ExtractionResults::empty();
         results.identifiers.push(identifier);
-        let rows = map_identifiers(&results, &sample_target(), source, "file-1")
+        let rows = map_identifiers(&results, &sample_target(), "file-1")
             .expect("identifier mapping should succeed");
         rows[0].metadata_json.clone()
     }
 
     #[test]
-    fn extractor_identifier_metadata_outranks_the_mapper_receiver_detection() {
+    fn extractor_identifier_metadata_reaches_the_artifact() {
         let mut identifier = call_identifier("run", 8);
         identifier.metadata = Some(HashMap::from([
             (
@@ -1948,7 +1693,7 @@ mod tests {
             ),
         ]));
 
-        let metadata_json = mapped_metadata_json(identifier, "service.run()")
+        let metadata_json = mapped_metadata_json(identifier)
             .expect("extractor metadata must reach the artifact row");
         let metadata: Value =
             serde_json::from_str(&metadata_json).expect("metadata_json parses as JSON");
@@ -1958,27 +1703,28 @@ mod tests {
     }
 
     #[test]
-    fn extractor_null_receiver_suppresses_the_mapper_receiver_detection() {
+    fn extractor_null_receiver_suppresses_receiver_and_qualifier() {
         let mut identifier = call_identifier("info", 13);
-        identifier.metadata = Some(HashMap::from([("receiver".to_string(), Value::Null)]));
+        identifier.metadata = Some(HashMap::from([
+            ("receiver".to_string(), Value::Null),
+            (
+                "receiver_qualifier".to_string(),
+                Value::String("ignored".to_string()),
+            ),
+        ]));
 
-        assert_eq!(mapped_metadata_json(identifier, "else a else .info"), None);
-    }
-
-    #[test]
-    fn identifier_without_metadata_maps_to_receiver_detection_alone() {
+        assert_eq!(mapped_metadata_json(identifier.clone()), None);
+        identifier.receiver_type = Some("Thing".to_string());
         assert_eq!(
-            mapped_metadata_json(call_identifier("run", 8), "service.run()").as_deref(),
-            Some(r#"{"receiver":"service"}"#)
+            mapped_metadata_json(identifier).as_deref(),
+            Some(r#"{"receiver_type":"Thing"}"#)
         );
     }
 
     #[test]
-    fn bash_commands_after_a_sentence_comment_have_no_receiver() {
-        let mut identifier = call_identifier("trap", 24);
-        identifier.language = "bash".to_string();
+    fn identifier_without_metadata_stays_without_metadata() {
         assert_eq!(
-            mapped_metadata_json(identifier, "# Run on interrupt.\n    trap cleanup EXIT"),
+            mapped_metadata_json(call_identifier("run", 8)).as_deref(),
             None
         );
     }

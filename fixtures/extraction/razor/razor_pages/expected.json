@@ -189,7 +189,10 @@
       "end_byte": 114,
       "containing_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Edit:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Formatter"
+      }
     },
     {
       "key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Formatter:variable_ref:4:4",
@@ -301,7 +304,10 @@
       "end_byte": 126,
       "containing_key": "fixtures/extraction/razor/razor_pages/Pages/Orders/Edit.cshtml:Edit:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Model"
+      }
     }
   ],
   "types": [

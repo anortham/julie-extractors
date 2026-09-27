@@ -330,17 +330,17 @@
   ],
   "identifiers": [
     {
-      "key": "fixtures/extraction/html/cross_file/source.html:entry:member_access:14:7",
+      "key": "fixtures/extraction/html/cross_file/source.html:entry:member_access:14:11",
       "name": "entry",
       "kind": "member_access",
       "language": "html",
       "file_path": "fixtures/extraction/html/cross_file/source.html",
       "start_line": 14,
-      "start_column": 7,
+      "start_column": 11,
       "end_line": 14,
-      "end_column": 17,
-      "start_byte": 442,
-      "end_byte": 452,
+      "end_column": 16,
+      "start_byte": 446,
+      "end_byte": 451,
       "containing_key": "fixtures/extraction/html/cross_file/source.html:div:14:2",
       "target_key": null,
       "confidence": "1.000"

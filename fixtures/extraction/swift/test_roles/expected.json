@@ -3397,7 +3397,10 @@
       "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:setUp:6:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "XCTestCase"
+      "receiver_type": "XCTestCase",
+      "metadata": {
+        "receiver": "super"
+      }
     },
     {
       "key": "fixtures/extraction/swift/test_roles/test_source.swift:setUpWithError:call:11:18",
@@ -3414,7 +3417,10 @@
       "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:setUpWithError:10:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "XCTestCase"
+      "receiver_type": "XCTestCase",
+      "metadata": {
+        "receiver": "super"
+      }
     },
     {
       "key": "fixtures/extraction/swift/test_roles/test_source.swift:sharedExamples:call:47:0",
@@ -3447,7 +3453,10 @@
       "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:tearDown:14:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "XCTestCase"
+      "receiver_type": "XCTestCase",
+      "metadata": {
+        "receiver": "super"
+      }
     },
     {
       "key": "fixtures/extraction/swift/test_roles/test_source.swift:tearDownWithError:call:19:18",
@@ -3464,7 +3473,10 @@
       "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:tearDownWithError:18:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "XCTestCase"
+      "receiver_type": "XCTestCase",
+      "metadata": {
+        "receiver": "super"
+      }
     },
     {
       "key": "fixtures/extraction/swift/test_roles/test_source.swift:to:call:49:18",

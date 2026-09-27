@@ -1477,7 +1477,10 @@
       "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:onClicked:60:16",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "source"
+      "receiver_type": "source",
+      "metadata": {
+        "receiver": "service"
+      }
     },
     {
       "key": "fixtures/extraction/qml/qt_symbols/source.qml:closeRequested:call:66:16",
@@ -1494,7 +1497,10 @@
       "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:close:65:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "source"
+      "receiver_type": "source",
+      "metadata": {
+        "receiver": "service"
+      }
     },
     {
       "key": "fixtures/extraction/qml/qt_symbols/source.qml:closeRequested:member_access:39:21",
@@ -1550,7 +1556,10 @@
       "end_byte": 867,
       "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:onReady:43:12",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "badgeRow"
+      }
     },
     {
       "key": "fixtures/extraction/qml/qt_symbols/source.qml:gap:member_access:54:31",
@@ -1566,7 +1575,10 @@
       "end_byte": 1045,
       "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:Text:53:12",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "badgeRow"
+      }
     },
     {
       "key": "fixtures/extraction/qml/qt_symbols/source.qml:label:member_access:26:8",
@@ -1619,7 +1631,10 @@
       "end_byte": 519,
       "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:onLabelChanged:26:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "console"
+      }
     },
     {
       "key": "fixtures/extraction/qml/qt_symbols/source.qml:log:call:40:24",
@@ -1635,7 +1650,10 @@
       "end_byte": 810,
       "containing_key": "fixtures/extraction/qml/qt_symbols/source.qml:onCloseRequested:39:12",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "console"
+      }
     },
     {
       "key": "fixtures/extraction/qml/qt_symbols/source.qml:ready:member_access:43:12",

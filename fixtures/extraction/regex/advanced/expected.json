@@ -705,17 +705,17 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/regex/advanced/source.regex:quote:call:2:28",
+      "key": "fixtures/extraction/regex/advanced/source.regex:quote:call:2:32",
       "name": "quote",
       "kind": "call",
       "language": "regex",
       "file_path": "fixtures/extraction/regex/advanced/source.regex",
       "start_line": 2,
-      "start_column": 28,
+      "start_column": 32,
       "end_line": 2,
-      "end_column": 38,
-      "start_byte": 78,
-      "end_byte": 88,
+      "end_column": 37,
+      "start_byte": 82,
+      "end_byte": 87,
       "containing_key": "fixtures/extraction/regex/advanced/source.regex:(?P<quote>[\"'])(?P<body>.*?)(?P=quote):2:0",
       "target_key": null,
       "confidence": "1.000"

@@ -1025,7 +1025,10 @@
       "end_byte": 331,
       "containing_key": "fixtures/extraction/c/basic/source.c:worker_run:14:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "worker"
+      }
     },
     {
       "key": "fixtures/extraction/c/basic/source.c:total:variable_ref:28:12",

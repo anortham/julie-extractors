@@ -42,67 +42,56 @@ impl CppExtractor {
         containing_symbols: &ContainingSymbolIndex<'_>,
     ) {
         match node.kind() {
-            // Function calls: foo(), bar.baz(), make_shared<Foo>()
             "call_expression" => {
-                // Phase 3: capture string-literal call-arguments (config-free; the
-                // carrier classification + gate happen in the artifact language-policy pass). Done
-                // first so it also covers template calls (`query<T>("SELECT ...")`),
-                // which the identifier logic below returns early for.
                 self.record_call_arg_literals(node, containing_symbols);
                 if super::test_calls::is_test_macro_call(&self.base, &node) {
                     return;
                 }
-                if let Some(func_node) = node.child_by_field_name("function") {
-                    // Template function call: make_shared<Foo>(), invoke<T>(), etc.
-                    if func_node.kind() == "template_function" {
-                        if let Some(name_node) = func_node.child_by_field_name("name") {
-                            let name = self.base.get_node_text(&name_node);
-                            let containing_symbol_id =
-                                self.find_containing_symbol_id(node, containing_symbols);
-                            let identifier = self.base.create_identifier(
-                                &name_node,
-                                name,
-                                IdentifierKind::Call,
-                                containing_symbol_id,
-                            );
-                            if let Some(arg_list) = func_node.child_by_field_name("arguments") {
-                                let arguments = crate::base::extract_type_arguments(
-                                    &self.base,
-                                    arg_list,
-                                    decompose_cpp_type_arg,
-                                );
-                                self.base.record_type_arguments(&identifier, arguments);
+                if let Some(mut name_node) = node.child_by_field_name("function") {
+                    let mut type_arguments = None;
+                    loop {
+                        let next = match name_node.kind() {
+                            "field_expression" => name_node.child_by_field_name("field"),
+                            "qualified_identifier" => name_node.child_by_field_name("name"),
+                            "template_function" | "template_method" => {
+                                type_arguments = name_node.child_by_field_name("arguments");
+                                name_node.child_by_field_name("name")
                             }
-                        }
-                        return;
+                            "dependent_name" => name_node.named_child(0),
+                            _ => None,
+                        };
+                        let Some(next) = next else { break };
+                        name_node = next;
                     }
-
-                    let (identifier_node, name) = if func_node.kind() == "field_expression" {
-                        if let Some(field_node) = func_node.child_by_field_name("field") {
-                            (field_node, self.base.get_node_text(&field_node))
-                        } else {
-                            (func_node, self.base.get_node_text(&func_node))
-                        }
-                    } else {
-                        (func_node, self.base.get_node_text(&func_node))
-                    };
-
+                    let name = self.base.get_node_text(&name_node);
                     let containing_symbol_id =
                         self.find_containing_symbol_id(node, containing_symbols);
                     let receiver_type = this_receiver_type(&self.base, node);
-                    self.base.create_identifier_with_receiver_type(
-                        &identifier_node,
+                    let identifier = self.base.create_identifier_with_receiver_type(
+                        &name_node,
                         name,
                         IdentifierKind::Call,
                         containing_symbol_id,
                         receiver_type,
                     );
+                    if let Some(arguments) = type_arguments {
+                        let arguments = crate::base::extract_type_arguments(
+                            &self.base,
+                            arguments,
+                            decompose_cpp_type_arg,
+                        );
+                        self.base.record_type_arguments(&identifier, arguments);
+                    }
                 }
             }
 
-            // Member access: object.field, object->field
             "field_expression" => {
-                // Extract the field name
+                if node.parent().is_some_and(|parent| {
+                    parent.kind() == "call_expression"
+                        && parent.child_by_field_name("function") == Some(node)
+                }) {
+                    return;
+                }
                 if let Some(field_node) = node.child_by_field_name("field") {
                     let name = self.base.get_node_text(&field_node);
                     let containing_symbol_id =

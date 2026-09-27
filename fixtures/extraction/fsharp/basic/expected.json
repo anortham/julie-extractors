@@ -1787,7 +1787,10 @@
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:Run:33:11",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Calculator"
+      "receiver_type": "Calculator",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/basic/source.fs:Helper:call:34:22",
@@ -1804,7 +1807,10 @@
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:Go:34:11",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Calculator"
+      "receiver_type": "Calculator",
+      "metadata": {
+        "receiver": "x"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/basic/source.fs:Helper:call:35:53",
@@ -1820,7 +1826,10 @@
       "end_byte": 713,
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:CallOther:35:11",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "other"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/basic/source.fs:Obsolete:type_usage:24:6",
@@ -1948,7 +1957,11 @@
       "end_byte": 965,
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:callPoint:45:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Console",
+        "receiver_qualifier": "System"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/basic/source.fs:X:member_access:47:35",
@@ -1964,7 +1977,10 @@
       "end_byte": 973,
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:callPoint:45:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "point"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/basic/source.fs:X:member_access:48:10",
@@ -1980,7 +1996,10 @@
       "end_byte": 986,
       "containing_key": "fixtures/extraction/fsharp/basic/source.fs:callPoint:45:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "point"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/basic/source.fs:X:variable_ref:38:29",

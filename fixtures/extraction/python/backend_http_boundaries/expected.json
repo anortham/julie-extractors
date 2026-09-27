@@ -1242,7 +1242,10 @@
       "end_byte": 649,
       "containing_key": "fixtures/extraction/python/backend_http_boundaries/source.py:urlpatterns:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "views"
+      }
     },
     {
       "key": "fixtures/extraction/python/backend_http_boundaries/source.py:flask_app:variable_ref:19:1",
@@ -1290,7 +1293,10 @@
       "end_byte": 213,
       "containing_key": "fixtures/extraction/python/backend_http_boundaries/source.py:fastapi_user:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "router"
+      }
     },
     {
       "key": "fixtures/extraction/python/backend_http_boundaries/source.py:get:call:23:4",
@@ -1306,7 +1312,10 @@
       "end_byte": 459,
       "containing_key": "fixtures/extraction/python/backend_http_boundaries/source.py:flask_user:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "bp"
+      }
     },
     {
       "key": "fixtures/extraction/python/backend_http_boundaries/source.py:get:call:37:13",
@@ -1322,7 +1331,10 @@
       "end_byte": 841,
       "containing_key": "fixtures/extraction/python/backend_http_boundaries/source.py:call_clients:36:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "requests"
+      }
     },
     {
       "key": "fixtures/extraction/python/backend_http_boundaries/source.py:httpx:variable_ref:38:4",
@@ -1370,7 +1382,10 @@
       "end_byte": 294,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/python/backend_http_boundaries/source.py:legacy:member_access:32:50",
@@ -1386,7 +1401,10 @@
       "end_byte": 728,
       "containing_key": "fixtures/extraction/python/backend_http_boundaries/source.py:urlpatterns:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "views"
+      }
     },
     {
       "key": "fixtures/extraction/python/backend_http_boundaries/source.py:path:call:30:4",
@@ -1450,7 +1468,10 @@
       "end_byte": 889,
       "containing_key": "fixtures/extraction/python/backend_http_boundaries/source.py:call_clients:36:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "httpx"
+      }
     },
     {
       "key": "fixtures/extraction/python/backend_http_boundaries/source.py:re_path:call:32:4",
@@ -1482,7 +1503,10 @@
       "end_byte": 548,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "flask_app"
+      }
     },
     {
       "key": "fixtures/extraction/python/backend_http_boundaries/source.py:requests:variable_ref:37:4",
@@ -1514,7 +1538,10 @@
       "end_byte": 416,
       "containing_key": "fixtures/extraction/python/backend_http_boundaries/source.py:health:20:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "flask_app"
+      }
     },
     {
       "key": "fixtures/extraction/python/backend_http_boundaries/source.py:router:variable_ref:10:1",

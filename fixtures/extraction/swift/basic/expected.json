@@ -2210,7 +2210,10 @@
       "end_byte": 1609,
       "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "UIKit"
+      }
     },
     {
       "key": "fixtures/extraction/swift/basic/source.swift:Unknown:call:82:22",
@@ -2531,7 +2534,10 @@
       "containing_key": "fixtures/extraction/swift/basic/source.swift:extra:106:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "ReceiverBox"
+      "receiver_type": "ReceiverBox",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/swift/basic/source.swift:persist:call:86:13",
@@ -2548,7 +2554,10 @@
       "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "ReceiverBox"
+      "receiver_type": "ReceiverBox",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/swift/basic/source.swift:recordRun:call:11:8",
@@ -2581,7 +2590,10 @@
       "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "ServiceBase"
+      "receiver_type": "ServiceBase",
+      "metadata": {
+        "receiver": "super"
+      }
     },
     {
       "key": "fixtures/extraction/swift/basic/source.swift:seed:variable_ref:77:22",
@@ -2613,7 +2625,10 @@
       "end_byte": 1426,
       "containing_key": "fixtures/extraction/swift/basic/source.swift:init:76:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/swift/basic/source.swift:total:variable_ref:68:12",

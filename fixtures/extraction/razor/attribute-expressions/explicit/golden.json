@@ -855,7 +855,10 @@
       "end_byte": 169,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "string"
+      }
     },
     {
       "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:Enter:member_access:5:56",
@@ -871,7 +874,10 @@
       "end_byte": 300,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "KeyCode"
+      }
     },
     {
       "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:FluentButton:type_usage:8:1",
@@ -951,7 +957,10 @@
       "end_byte": 286,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "KeyPress"
+      }
     },
     {
       "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:GroupMode:variable_ref:4:28",
@@ -1095,7 +1104,10 @@
       "end_byte": 45,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "item"
+      }
     },
     {
       "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:Name:member_access:2:38",
@@ -1111,7 +1123,10 @@
       "end_byte": 93,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "model"
+      }
     },
     {
       "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:Name:member_access:3:42",
@@ -1127,7 +1142,10 @@
       "end_byte": 145,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "model"
+      }
     },
     {
       "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:PropertyColumn:type_usage:1:1",
@@ -1175,7 +1193,10 @@
       "end_byte": 609,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "result"
+      }
     },
     {
       "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:Regular:type_usage:6:31",
@@ -1207,7 +1228,10 @@
       "end_byte": 703,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ContactList"
+      }
     },
     {
       "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:Result:type_usage:10:1",
@@ -1287,7 +1311,10 @@
       "end_byte": 441,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "area"
+      }
     },
     {
       "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:Size20:type_usage:6:39",
@@ -1319,7 +1346,10 @@
       "end_byte": 555,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "result"
+      }
     },
     {
       "key": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor:ValidationMessage:type_usage:2:1",

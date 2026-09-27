@@ -1257,7 +1257,10 @@
       "containing_key": "fixtures/extraction/html/basic/source.html:connectedCallback:31:8",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "WorkerCard"
+      "receiver_type": "WorkerCard",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/html/basic/source.html:reportError:call:26:10",
@@ -1372,17 +1375,17 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/html/basic/source.html:worker:member_access:8:13",
+      "key": "fixtures/extraction/html/basic/source.html:worker:member_access:8:17",
       "name": "worker",
       "kind": "member_access",
       "language": "html",
       "file_path": "fixtures/extraction/html/basic/source.html",
       "start_line": 8,
-      "start_column": 13,
+      "start_column": 17,
       "end_line": 8,
-      "end_column": 24,
-      "start_byte": 124,
-      "end_byte": 135,
+      "end_column": 23,
+      "start_byte": 128,
+      "end_byte": 134,
       "containing_key": "fixtures/extraction/html/basic/source.html:section:8:4",
       "target_key": null,
       "confidence": "1.000"

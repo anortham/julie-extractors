@@ -305,7 +305,10 @@
       "end_byte": 126,
       "containing_key": "fixtures/extraction/gdscript/return_types/source.gd:run:5:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/return_types/source.gd:new:call:4:15",
@@ -321,7 +324,10 @@
       "end_byte": 61,
       "containing_key": "fixtures/extraction/gdscript/return_types/source.gd:make:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Result"
+      }
     }
   ],
   "types": [

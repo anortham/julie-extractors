@@ -1217,7 +1217,10 @@
       "end_byte": 153,
       "containing_key": "fixtures/extraction/php/basic/source.php:Entity:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Attribute"
+      }
     },
     {
       "key": "fixtures/extraction/php/basic/source.php:TARGET_METHOD:member_access:11:52",
@@ -1233,7 +1236,10 @@
       "end_byte": 181,
       "containing_key": "fixtures/extraction/php/basic/source.php:Entity:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Attribute"
+      }
     },
     {
       "key": "fixtures/extraction/php/basic/source.php:TARGET_METHOD:member_access:16:25",
@@ -1249,7 +1255,10 @@
       "end_byte": 270,
       "containing_key": "fixtures/extraction/php/basic/source.php:Route:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Attribute"
+      }
     },
     {
       "key": "fixtures/extraction/php/basic/source.php:TARGET_PROPERTY:member_access:11:80",
@@ -1265,7 +1274,10 @@
       "end_byte": 211,
       "containing_key": "fixtures/extraction/php/basic/source.php:Entity:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Attribute"
+      }
     },
     {
       "key": "fixtures/extraction/php/basic/source.php:TARGET_PROPERTY:member_access:24:25",
@@ -1281,7 +1293,10 @@
       "end_byte": 395,
       "containing_key": "fixtures/extraction/php/basic/source.php:Required:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Attribute"
+      }
     },
     {
       "key": "fixtures/extraction/php/basic/source.php:count:variable_ref:100:14",
@@ -1441,7 +1456,10 @@
       "end_byte": 604,
       "containing_key": "fixtures/extraction/php/basic/source.php:__construct:39:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "$this"
+      }
     },
     {
       "key": "fixtures/extraction/php/basic/source.php:id:member_access:47:25",
@@ -1457,7 +1475,10 @@
       "end_byte": 704,
       "containing_key": "fixtures/extraction/php/basic/source.php:run:44:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "$this"
+      }
     },
     {
       "key": "fixtures/extraction/php/basic/source.php:id:member_access:49:29",
@@ -1473,7 +1494,10 @@
       "end_byte": 769,
       "containing_key": "fixtures/extraction/php/basic/source.php:run:44:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "$this"
+      }
     },
     {
       "key": "fixtures/extraction/php/basic/source.php:id:variable_ref:41:20",
@@ -1554,7 +1578,10 @@
       "containing_key": "fixtures/extraction/php/basic/source.php:run:44:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Worker"
+      "receiver_type": "Worker",
+      "metadata": {
+        "receiver": "$this"
+      }
     },
     {
       "key": "fixtures/extraction/php/basic/source.php:observeRun:call:67:4",

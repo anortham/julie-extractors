@@ -1731,7 +1731,10 @@
       "end_byte": 906,
       "containing_key": "fixtures/extraction/csharp/test_roles/source.cs:InitializeAsync:30:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Task"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/test_roles/source.cs:CompletedTask:member_access:68:42",
@@ -1747,7 +1750,10 @@
       "end_byte": 1696,
       "containing_key": "fixtures/extraction/csharp/test_roles/source.cs:InitializeAsync:68:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Task"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/test_roles/source.cs:DataTestMethod:type_usage:12:5",

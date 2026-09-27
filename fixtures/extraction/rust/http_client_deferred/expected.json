@@ -1488,7 +1488,11 @@
       "end_byte": 406,
       "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Request",
+        "receiver_qualifier": "hyper"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:builder:call:19:21",
@@ -1504,7 +1508,10 @@
       "end_byte": 716,
       "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Request"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:builder:call:22:26",
@@ -1520,7 +1527,10 @@
       "end_byte": 860,
       "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "OtherRequest"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:builder:call:8:21",
@@ -1536,7 +1546,10 @@
       "end_byte": 273,
       "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Request"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:call:call:13:55",
@@ -1616,7 +1629,10 @@
       "end_byte": 521,
       "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ureq"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:get:call:13:18",
@@ -1632,7 +1648,10 @@
       "end_byte": 455,
       "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ureq"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:get:call:20:18",
@@ -1648,7 +1667,10 @@
       "end_byte": 759,
       "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ureq"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:get:call:21:16",
@@ -1664,7 +1686,10 @@
       "end_byte": 792,
       "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "map"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client_deferred/source.rs:hyper:variable_ref:12:12",

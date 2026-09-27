@@ -625,7 +625,10 @@
       "end_byte": 541,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/html/test_roles/source.html:describe:call:9:4",
@@ -705,7 +708,10 @@
       "end_byte": 110,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "mocha"
+      }
     },
     {
       "key": "fixtures/extraction/html/test_roles/source.html:skip:call:17:11",
@@ -721,7 +727,10 @@
       "end_byte": 432,
       "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "it"
+      }
     },
     {
       "key": "fixtures/extraction/html/test_roles/source.html:test:call:16:8",

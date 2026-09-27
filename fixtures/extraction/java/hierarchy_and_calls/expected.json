@@ -3378,7 +3378,10 @@
       "end_byte": 1513,
       "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:run:58:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "users"
+      }
     },
     {
       "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:forEach:call:60:42",
@@ -3410,7 +3413,10 @@
       "end_byte": 1049,
       "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:OrderService:41:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "LoggerFactory"
+      }
     },
     {
       "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:getName:call:60:33",
@@ -3426,7 +3432,10 @@
       "end_byte": 1569,
       "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:run:58:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "User"
+      }
     },
     {
       "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:handle:call:59:28",
@@ -3443,7 +3452,10 @@
       "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:run:58:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "OrderService"
+      "receiver_type": "OrderService",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:helper:variable_ref:47:6",
@@ -3491,7 +3503,10 @@
       "end_byte": 1767,
       "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:OrderService:41:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Ops"
+      }
     },
     {
       "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:out:member_access:60:57",
@@ -3507,7 +3522,10 @@
       "end_byte": 1589,
       "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:run:58:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "System"
+      }
     },
     {
       "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:plus:call:69:16",
@@ -3523,7 +3541,10 @@
       "end_byte": 1749,
       "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:OrderService:41:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Ops"
+      }
     },
     {
       "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:prepare:call:47:13",
@@ -3539,7 +3560,10 @@
       "end_byte": 1195,
       "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:OrderService:41:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "helper"
+      }
     },
     {
       "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:println:call:60:62",
@@ -3555,7 +3579,11 @@
       "end_byte": 1598,
       "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:run:58:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "out",
+        "receiver_qualifier": "System"
+      }
     },
     {
       "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:register:call:45:22",
@@ -3571,7 +3599,10 @@
       "end_byte": 1150,
       "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:OrderService:41:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Registry"
+      }
     },
     {
       "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:repo:variable_ref:50:14",
@@ -3603,7 +3634,10 @@
       "end_byte": 1549,
       "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:run:58:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "users"
+      }
     },
     {
       "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:users:variable_ref:59:8",

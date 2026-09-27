@@ -370,7 +370,10 @@
       "end_byte": 205,
       "containing_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:GET:3:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "params"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:json:call:7:24",
@@ -386,7 +389,10 @@
       "end_byte": 189,
       "containing_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:GET:3:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "NextResponse"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:params:variable_ref:7:35",

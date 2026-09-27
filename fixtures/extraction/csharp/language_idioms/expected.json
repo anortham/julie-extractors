@@ -3504,7 +3504,10 @@
       "end_byte": 3125,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:of$lambda:111:17",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "cart"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:After:type_usage:95:5",
@@ -3552,7 +3555,10 @@
       "end_byte": 1675,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:Total:57:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "items"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:Amount:variable_ref:52:38",
@@ -3808,7 +3814,10 @@
       "end_byte": 3176,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:should_have_one_item$lambda:112:30",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "cart"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:Count:type_usage:55:16",
@@ -3840,7 +3849,10 @@
       "end_byte": 1438,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:Describe:45:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "legacy"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:Currency:member_access:52:63",
@@ -3856,7 +3868,10 @@
       "end_byte": 1520,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:Describe:45:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "free"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:Customer:member_access:48:25",
@@ -3872,7 +3887,10 @@
       "end_byte": 1356,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:Describe:45:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "order"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:Customer:type_usage:77:17",
@@ -4016,7 +4034,10 @@
       "end_byte": 2283,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:OnModelCreating:79:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "modelBuilder"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:EntityTypeBuilder:type_usage:88:26",
@@ -4272,7 +4293,10 @@
       "end_byte": 1925,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:IsBlank:69:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "string"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:It:type_usage:112:4",
@@ -4384,7 +4408,10 @@
       "end_byte": 347,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:fixtures/extraction/csharp/language_idioms/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:MapControllerRoute:call:9:4",
@@ -4400,7 +4427,10 @@
       "end_byte": 270,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:fixtures/extraction/csharp/language_idioms/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:MapGet:call:7:7",
@@ -4416,7 +4446,10 @@
       "end_byte": 188,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:fixtures/extraction/csharp/language_idioms/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "orders"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:MapGroup:call:5:14",
@@ -4432,7 +4465,10 @@
       "end_byte": 124,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:fixtures/extraction/csharp/language_idioms/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:MapGroup:call:6:17",
@@ -4448,7 +4484,10 @@
       "end_byte": 162,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:fixtures/extraction/csharp/language_idioms/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "api"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:MapHealthChecks:call:11:4",
@@ -4464,7 +4503,10 @@
       "end_byte": 389,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:fixtures/extraction/csharp/language_idioms/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:MapHub:call:8:4",
@@ -4480,7 +4522,10 @@
       "end_byte": 223,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:fixtures/extraction/csharp/language_idioms/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:ModelBuilder:type_usage:79:44",
@@ -4720,7 +4765,10 @@
       "end_byte": 1541,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:Describe:45:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Json"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:Set:call:76:34",
@@ -4768,7 +4816,11 @@
       "end_byte": 3188,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:should_have_one_item$lambda:112:30",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Count",
+        "receiver_qualifier": "cart"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:SqlQueryRaw:call:82:29",
@@ -4784,7 +4836,10 @@
       "end_byte": 2352,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:OnModelCreating:79:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Database"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:Subject:type_usage:106:1",
@@ -4864,7 +4919,10 @@
       "end_byte": 2623,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:Setup:93:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "HookType"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:Test:member_access:95:20",
@@ -4880,7 +4938,10 @@
       "end_byte": 2743,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:Cleanup:95:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "HookType"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:Test:type_usage:94:5",
@@ -4944,7 +5005,10 @@
       "end_byte": 2554,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:Configure:88:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "builder"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:Widget:call:34:37",
@@ -4955,9 +5019,9 @@
       "start_line": 34,
       "start_column": 37,
       "end_line": 34,
-      "end_column": 43,
+      "end_column": 40,
       "start_byte": 967,
-      "end_byte": 973,
+      "end_byte": 970,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:Current:34:4",
       "target_key": null,
       "confidence": "1.000"

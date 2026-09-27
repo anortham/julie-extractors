@@ -393,7 +393,10 @@
       "containing_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Worker"
+      "receiver_type": "Worker",
+      "metadata": {
+        "receiver": "$this"
+      }
     },
     {
       "key": "fixtures/extraction/php/cross_file/source.php:localHelper:call:21:31",
@@ -410,7 +413,10 @@
       "containing_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Worker"
+      "receiver_type": "Worker",
+      "metadata": {
+        "receiver": "$this"
+      }
     },
     {
       "key": "fixtures/extraction/php/cross_file/source.php:total:variable_ref:17:16",

@@ -1985,7 +1985,10 @@
       "end_byte": 339,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "$ordinary"
+      }
     },
     {
       "key": "fixtures/extraction/php/test_roles/PestFeatureTest.php:toBe:call:11:23",

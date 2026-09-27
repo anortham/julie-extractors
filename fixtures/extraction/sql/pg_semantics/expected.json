@@ -1238,7 +1238,10 @@
       "containing_key": "fixtures/extraction/sql/pg_semantics/source.sql:daily_revenue:30:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "orders"
+      "receiver_type": "orders",
+      "metadata": {
+        "receiver": "o"
+      }
     },
     {
       "key": "fixtures/extraction/sql/pg_semantics/source.sql:sum:call:31:18",
@@ -1271,7 +1274,10 @@
       "containing_key": "fixtures/extraction/sql/pg_semantics/source.sql:daily_revenue:30:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "orders"
+      "receiver_type": "orders",
+      "metadata": {
+        "receiver": "o"
+      }
     },
     {
       "key": "fixtures/extraction/sql/pg_semantics/source.sql:total:member_access:33:30",
@@ -1288,7 +1294,10 @@
       "containing_key": "fixtures/extraction/sql/pg_semantics/source.sql:daily_revenue:30:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "orders"
+      "receiver_type": "orders",
+      "metadata": {
+        "receiver": "o"
+      }
     },
     {
       "key": "fixtures/extraction/sql/pg_semantics/source.sql:total:member_access:42:29",
@@ -1338,7 +1347,10 @@
       "containing_key": "fixtures/extraction/sql/pg_semantics/source.sql:daily_revenue:30:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "orders"
+      "receiver_type": "orders",
+      "metadata": {
+        "receiver": "o"
+      }
     },
     {
       "key": "fixtures/extraction/sql/pg_semantics/source.sql:user_id:member_access:34:11",
@@ -1355,7 +1367,10 @@
       "containing_key": "fixtures/extraction/sql/pg_semantics/source.sql:daily_revenue:30:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "orders"
+      "receiver_type": "orders",
+      "metadata": {
+        "receiver": "o"
+      }
     },
     {
       "key": "fixtures/extraction/sql/pg_semantics/source.sql:users:type_usage:26:38",

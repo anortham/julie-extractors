@@ -1552,7 +1552,10 @@
       "end_byte": 1637,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:DeleteAsync:58:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Task"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:CompletedTask:member_access:61:49",
@@ -1568,7 +1571,10 @@
       "end_byte": 1834,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:DisposeAsync:61:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ValueTask"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Components:type_usage:2:16",
@@ -1600,7 +1606,10 @@
       "end_byte": 916,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "orders"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:DeleteAsync:call:18:36",
@@ -1632,7 +1641,10 @@
       "end_byte": 1012,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "item"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:FormatMoney:call:16:21",
@@ -1648,7 +1660,10 @@
       "end_byte": 500,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Formatter"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Formatter:variable_ref:16:11",
@@ -1712,7 +1727,10 @@
       "end_byte": 1579,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Refresh:57:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Service"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:GetFromJsonAsync:call:51:28",
@@ -1728,7 +1746,10 @@
       "end_byte": 1331,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OnInitializedAsync:49:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Http"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Http:variable_ref:51:23",
@@ -1824,7 +1845,10 @@
       "end_byte": 457,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "_order"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Id:member_access:22:45",
@@ -1840,7 +1864,10 @@
       "end_byte": 774,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "order"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Id:variable_ref:21:54",
@@ -2016,7 +2043,10 @@
       "end_byte": 1680,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Back:59:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Nav"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:NavigateTo:call:60:39",
@@ -2032,7 +2062,10 @@
       "end_byte": 1746,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Remove:60:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Nav"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:NavigationManager:type_usage:12:8",
@@ -2208,7 +2241,10 @@
       "end_byte": 1394,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OnInitializedAsync:49:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Http"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:RadzenDataGrid:type_usage:19:1",
@@ -2288,7 +2324,10 @@
       "end_byte": 1999,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Render:66:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "base"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Render:call:67:36",
@@ -2305,7 +2344,10 @@
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Redraw:67:8",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "ItemRow"
+      "receiver_type": "ItemRow",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:Render:call:67:46",
@@ -2481,7 +2523,10 @@
       "end_byte": 1218,
       "containing_key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:OrderPage:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "value"
+      }
     },
     {
       "key": "fixtures/extraction/razor/wave2_component/OrderPage.razor:ValueTask:type_usage:61:11",

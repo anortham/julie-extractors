@@ -978,7 +978,10 @@
       "end_byte": 459,
       "containing_key": "fixtures/extraction/tsx/basic/source.tsx:Badge:20:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "props"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/basic/source.tsx:observeRun:call:22:49",
@@ -1058,7 +1061,10 @@
       "end_byte": 616,
       "containing_key": "fixtures/extraction/tsx/basic/source.tsx:format:32:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "value"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/basic/source.tsx:value:variable_ref:33:11",

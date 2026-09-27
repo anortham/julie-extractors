@@ -2183,7 +2183,10 @@
       "end_byte": 1300,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:operator CType:37:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "value"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ApiController:type_usage:5:5",
@@ -2263,7 +2266,10 @@
       "end_byte": 1949,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ShipAll:54:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "orders"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Create:call:85:33",
@@ -2279,7 +2285,10 @@
       "end_byte": 2458,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "WebApplication"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Create:member_access:16:101",
@@ -2295,7 +2304,10 @@
       "end_byte": 492,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Create:15:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "IOrderApi"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Customer:member_access:62:41",
@@ -2327,7 +2339,10 @@
       "end_byte": 736,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Create:15:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "HttpMethod"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Dictionary:type_usage:24:36",
@@ -2375,7 +2390,10 @@
       "end_byte": 1936,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ShipAll:54:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "_repo"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Flags:type_usage:76:5",
@@ -2407,7 +2425,10 @@
       "end_byte": 542,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Create:15:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "_client"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:GetBaseException:call:64:19",
@@ -2423,7 +2444,10 @@
       "end_byte": 2058,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ShipAll:54:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ex"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:HttpClient:type_usage:11:36",
@@ -2599,7 +2623,10 @@
       "end_byte": 2793,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:MapGet:call:86:12",
@@ -2615,7 +2642,10 @@
       "end_byte": 2479,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:MapGet:call:88:12",
@@ -2631,7 +2661,10 @@
       "end_byte": 2565,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "api"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:MapGet:call:90:11",
@@ -2647,7 +2680,10 @@
       "end_byte": 2648,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "v1"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:MapGroup:call:87:22",
@@ -2663,7 +2699,10 @@
       "end_byte": 2538,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:MapGroup:call:89:21",
@@ -2679,7 +2718,10 @@
       "end_byte": 2623,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "api"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:MapHealthChecks:call:92:12",
@@ -2695,7 +2737,10 @@
       "end_byte": 2751,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:MapHub:call:91:12",
@@ -2711,7 +2756,10 @@
       "end_byte": 2697,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Main:84:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Money:type_usage:33:44",
@@ -2823,7 +2871,10 @@
       "end_byte": 1869,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ShipAll:54:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "conn"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:OrderDto:type_usage:16:44",
@@ -2919,7 +2970,10 @@
       "end_byte": 631,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Create:15:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "_client"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Receipt:type_usage:66:27",
@@ -2952,7 +3006,10 @@
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Reset:50:8",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "ShipperBase"
+      "receiver_type": "ShipperBase",
+      "metadata": {
+        "receiver": "MyBase"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:RoutePrefix:type_usage:6:5",
@@ -3016,7 +3073,10 @@
       "end_byte": 1768,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ShipAll:54:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "order"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ShipperBase:type_usage:47:17",
@@ -3096,7 +3156,10 @@
       "end_byte": 2215,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:OnTick:69:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "_timer"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Timer:type_usage:48:37",

@@ -172,7 +172,10 @@
       "end_byte": 355,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "s"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_batch_control/source.sql:Area:member_access:16:5",
@@ -188,7 +191,10 @@
       "end_byte": 346,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "t"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_batch_control/source.sql:Area:member_access:17:30",
@@ -220,7 +226,10 @@
       "end_byte": 432,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "s"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_batch_control/source.sql:Area:member_access:23:40",
@@ -285,7 +294,10 @@
       "end_byte": 366,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "t"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_batch_control/source.sql:Role:member_access:16:34",
@@ -301,7 +313,10 @@
       "end_byte": 375,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "s"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_batch_control/source.sql:Role:member_access:17:36",
@@ -333,7 +348,10 @@
       "end_byte": 440,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "s"
+      }
     },
     {
       "key": "fixtures/extraction/sql/tsql_batch_control/source.sql:Seed:type_usage:23:29",

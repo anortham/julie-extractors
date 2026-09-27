@@ -1276,7 +1276,10 @@
       "end_byte": 702,
       "containing_key": "fixtures/extraction/elixir/basic/source.ex:piped:33:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Kernel"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/basic/source.ex:acc:variable_ref:46:15",
@@ -1644,7 +1647,10 @@
       "end_byte": 1090,
       "containing_key": "fixtures/extraction/elixir/basic/source.ex:assemble:55:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Map"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/basic/source.ex:observe_run:call:21:4",

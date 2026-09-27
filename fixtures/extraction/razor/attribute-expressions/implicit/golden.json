@@ -427,7 +427,10 @@
       "end_byte": 205,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "action"
+      }
     },
     {
       "key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:Context:type_usage:10:12",
@@ -523,7 +526,10 @@
       "end_byte": 65,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "model"
+      }
     },
     {
       "key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:Router:type_usage:4:1",
@@ -555,7 +561,10 @@
       "end_byte": 117,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "context"
+      }
     },
     {
       "key": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor:StatusColor:call:3:21",

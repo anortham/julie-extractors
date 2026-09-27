@@ -2354,7 +2354,10 @@
       "end_byte": 964,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "a"
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:suite:call:39:13",
@@ -2434,7 +2437,10 @@
       "end_byte": 494,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:with fixture:24:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "tmp"
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:test:call:40:4",

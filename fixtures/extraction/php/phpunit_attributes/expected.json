@@ -641,7 +641,10 @@
       "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computesRows:19:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "PriceTest"
+      "receiver_type": "PriceTest",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:assertSame:call:31:14",
@@ -658,7 +661,10 @@
       "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:testLegacyRows:29:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "PriceTest"
+      "receiver_type": "PriceTest",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:assertTrue:call:16:14",
@@ -675,7 +681,10 @@
       "containing_key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:computes:12:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "PriceTest"
+      "receiver_type": "PriceTest",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/php/phpunit_attributes/PriceTest.php:b:variable_ref:23:29",

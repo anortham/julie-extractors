@@ -1384,7 +1384,10 @@
       "end_byte": 589,
       "containing_key": "fixtures/extraction/vbnet/basic/source.vb:HandleClick:22:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Button"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/basic/source.vb:Dictionary:type_usage:11:34",
@@ -1625,7 +1628,10 @@
       "containing_key": "fixtures/extraction/vbnet/basic/source.vb:ProbeFacts:46:8",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Worker"
+      "receiver_type": "Worker",
+      "metadata": {
+        "receiver": "Me"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/basic/source.vb:Run:member_access:17:57",
@@ -1641,7 +1647,10 @@
       "end_byte": 424,
       "containing_key": "fixtures/extraction/vbnet/basic/source.vb:Run:16:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "IJob"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/basic/source.vb:StringBuilder:type_usage:67:39",

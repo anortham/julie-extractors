@@ -238,7 +238,10 @@
       "end_byte": 357,
       "containing_key": "fixtures/extraction/swift/cross_file/source.swift:entry:9:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Other"
+      }
     }
   ],
   "types": [

@@ -29,6 +29,7 @@ pub mod marker_structural_facts;
 pub(crate) mod markup_scan;
 mod openapi_route_facts;
 pub(crate) mod owner_index;
+pub(crate) mod receiver_metadata;
 pub mod relationship_resolution;
 mod results_normalization;
 mod rust_doc_test_facts;

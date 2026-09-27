@@ -247,7 +247,7 @@ fn angular_bindings_produce_identifiers_inside_their_values() {
 }
 
 #[test]
-fn id_references_are_identifiers_named_by_the_target_id() {
+fn id_declarations_and_references_select_the_target_id() {
     let code = "<a href=\"#pricing\">Pricing</a>\n<section id=\"pricing\">\n  <label for=\"email\">Email</label>\n  <input id=\"email\" list=\"domains\" aria-describedby=\"email-help email-note\">\n</section>\n<button popovertarget=\"menu-pop\">Menu</button>\n<button hx-get=\"/items\" hx-target=\"#results\">Load</button>\n<svg><use href=\"#icon-close\"></use></svg>\n";
     let result = extract(code);
     let references: Vec<(&str, &str)> = result
@@ -260,12 +260,13 @@ fn id_references_are_identifiers_named_by_the_target_id() {
                 &code[identifier.start_byte as usize..identifier.end_byte as usize],
             )
         })
-        .filter(|(name, text)| name == text)
         .collect();
     assert_eq!(
         references,
         [
             ("pricing", "pricing"),
+            ("pricing", "pricing"),
+            ("email", "email"),
             ("email", "email"),
             ("domains", "domains"),
             ("email-help", "email-help"),

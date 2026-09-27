@@ -586,7 +586,10 @@
       "end_byte": 152,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "express"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:app:variable_ref:10:2",
@@ -634,7 +637,10 @@
       "end_byte": 650,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ctx"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:ctx:variable_ref:21:39",
@@ -730,7 +736,10 @@
       "end_byte": 196,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "router"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:hapi:variable_ref:23:2",
@@ -778,7 +787,10 @@
       "end_byte": 613,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "koa"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:res:variable_ref:10:53",
@@ -826,7 +838,10 @@
       "end_byte": 254,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:route:call:13:9",
@@ -842,7 +857,10 @@
       "end_byte": 360,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "server"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:route:call:23:7",
@@ -858,7 +876,10 @@
       "end_byte": 717,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "hapi"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:router:variable_ref:8:18",
@@ -906,7 +927,10 @@
       "end_byte": 304,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "res"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:send:call:9:46",
@@ -922,7 +946,10 @@
       "end_byte": 234,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "res"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:server:call:22:20",
@@ -938,7 +965,10 @@
       "end_byte": 687,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Hapi"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:server:variable_ref:13:2",
@@ -970,7 +1000,10 @@
       "end_byte": 166,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     }
   ],
   "types": [

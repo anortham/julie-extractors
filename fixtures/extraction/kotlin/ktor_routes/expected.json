@@ -1184,7 +1184,10 @@
       "end_byte": 1296,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "client"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:get:call:50:8",
@@ -1200,7 +1203,10 @@
       "end_byte": 1322,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "map"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:get:call:8:8",
@@ -1296,7 +1302,10 @@
       "end_byte": 302,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "call"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:respondText:call:15:17",
@@ -1312,7 +1321,10 @@
       "end_byte": 384,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "call"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:respondText:call:21:21",
@@ -1328,7 +1340,10 @@
       "end_byte": 563,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "call"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:respondText:call:25:21",
@@ -1344,7 +1359,10 @@
       "end_byte": 700,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "call"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:respondText:call:31:17",
@@ -1360,7 +1378,10 @@
       "end_byte": 848,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "call"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:respondText:call:36:17",
@@ -1376,7 +1397,10 @@
       "end_byte": 996,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "call"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:respondText:call:39:17",
@@ -1392,7 +1416,10 @@
       "end_byte": 1073,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "call"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:respondText:call:45:13",
@@ -1408,7 +1435,10 @@
       "end_byte": 1199,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "call"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:respondText:call:9:17",
@@ -1424,7 +1454,10 @@
       "end_byte": 232,
       "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "call"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/ktor_routes/source.kt:route:call:19:8",

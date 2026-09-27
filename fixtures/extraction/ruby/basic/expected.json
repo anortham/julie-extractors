@@ -1255,7 +1255,10 @@
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:assemble:20:2",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Worker"
+      "receiver_type": "Worker",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/basic/source.rb:i:variable_ref:50:17",
@@ -1336,7 +1339,10 @@
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:assemble:20:2",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Worker"
+      "receiver_type": "Worker",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/basic/source.rb:new:member_access:21:15",
@@ -1352,7 +1358,10 @@
       "end_byte": 259,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:assemble:20:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Widget"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/basic/source.rb:new:member_access:22:16",
@@ -1368,7 +1377,10 @@
       "end_byte": 279,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:assemble:20:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Unknown"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/basic/source.rb:new:member_access:23:18",
@@ -1384,7 +1396,11 @@
       "end_byte": 301,
       "containing_key": "fixtures/extraction/ruby/basic/source.rb:assemble:20:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "HTTP",
+        "receiver_qualifier": "Net"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/basic/source.rb:require:call:1:0",

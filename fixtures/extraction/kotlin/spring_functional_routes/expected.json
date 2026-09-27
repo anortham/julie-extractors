@@ -1808,7 +1808,10 @@
       "end_byte": 732,
       "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:mvc:22:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "handler"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:get:call:8:34",
@@ -1824,7 +1827,10 @@
       "end_byte": 297,
       "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "handler"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:handler:variable_ref:14:31",
@@ -1920,7 +1926,10 @@
       "end_byte": 601,
       "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "handler"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:list:call:7:29",
@@ -1936,7 +1945,10 @@
       "end_byte": 258,
       "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "handler"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:nest:call:13:20",
@@ -2064,7 +2076,10 @@
       "end_byte": 458,
       "containing_key": "fixtures/extraction/kotlin/spring_functional_routes/source.kt:api:5:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "handler"
+      }
     }
   ],
   "types": [

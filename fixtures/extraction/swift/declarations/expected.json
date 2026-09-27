@@ -2193,7 +2193,10 @@
       "end_byte": 191,
       "containing_key": "fixtures/extraction/swift/declarations/source.swift:==:10:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "lhs"
+      }
     },
     {
       "key": "fixtures/extraction/swift/declarations/source.swift:cents:member_access:10:71",
@@ -2209,7 +2212,10 @@
       "end_byte": 204,
       "containing_key": "fixtures/extraction/swift/declarations/source.swift:==:10:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "rhs"
+      }
     },
     {
       "key": "fixtures/extraction/swift/declarations/source.swift:cents:member_access:11:57",
@@ -2225,7 +2231,10 @@
       "end_byte": 269,
       "containing_key": "fixtures/extraction/swift/declarations/source.swift:<:11:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "lhs"
+      }
     },
     {
       "key": "fixtures/extraction/swift/declarations/source.swift:cents:member_access:11:69",
@@ -2241,7 +2250,10 @@
       "end_byte": 281,
       "containing_key": "fixtures/extraction/swift/declarations/source.swift:<:11:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "rhs"
+      }
     },
     {
       "key": "fixtures/extraction/swift/declarations/source.swift:cents:member_access:12:63",
@@ -2257,7 +2269,10 @@
       "end_byte": 352,
       "containing_key": "fixtures/extraction/swift/declarations/source.swift:-:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "m"
+      }
     },
     {
       "key": "fixtures/extraction/swift/declarations/source.swift:code:variable_ref:24:12",
@@ -2403,7 +2418,10 @@
       "containing_key": "fixtures/extraction/swift/declarations/source.swift:build:67:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Tool"
+      "receiver_type": "Tool",
+      "metadata": {
+        "receiver": "Self"
+      }
     },
     {
       "key": "fixtures/extraction/swift/declarations/source.swift:p:variable_ref:35:64",
@@ -2435,7 +2453,10 @@
       "end_byte": 1582,
       "containing_key": "fixtures/extraction/swift/declarations/source.swift:build:67:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "session"
+      }
     },
     {
       "key": "fixtures/extraction/swift/declarations/source.swift:retryPolicy:call:68:43",

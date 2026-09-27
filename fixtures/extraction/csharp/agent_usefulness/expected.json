@@ -358,7 +358,10 @@
       "end_byte": 147,
       "containing_key": "fixtures/extraction/csharp/agent_usefulness/source.cs:fixtures/extraction/csharp/agent_usefulness/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "HttpMethods"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/agent_usefulness/source.cs:HttpMethods:variable_ref:3:31",
@@ -390,7 +393,10 @@
       "end_byte": 24,
       "containing_key": "fixtures/extraction/csharp/agent_usefulness/source.cs:fixtures/extraction/csharp/agent_usefulness/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/agent_usefulness/source.cs:MapHead:call:4:4",
@@ -406,7 +412,10 @@
       "end_byte": 191,
       "containing_key": "fixtures/extraction/csharp/agent_usefulness/source.cs:fixtures/extraction/csharp/agent_usefulness/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/agent_usefulness/source.cs:MapMethods:call:2:6",
@@ -422,7 +431,10 @@
       "end_byte": 50,
       "containing_key": "fixtures/extraction/csharp/agent_usefulness/source.cs:fixtures/extraction/csharp/agent_usefulness/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "group"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/agent_usefulness/source.cs:MapMethods:call:3:4",
@@ -438,7 +450,10 @@
       "end_byte": 114,
       "containing_key": "fixtures/extraction/csharp/agent_usefulness/source.cs:fixtures/extraction/csharp/agent_usefulness/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/agent_usefulness/source.cs:MapMethods:call:6:4",
@@ -454,7 +469,10 @@
       "end_byte": 271,
       "containing_key": "fixtures/extraction/csharp/agent_usefulness/source.cs:fixtures/extraction/csharp/agent_usefulness/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/agent_usefulness/source.cs:MapOptions:call:5:4",
@@ -470,7 +488,10 @@
       "end_byte": 228,
       "containing_key": "fixtures/extraction/csharp/agent_usefulness/source.cs:fixtures/extraction/csharp/agent_usefulness/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/agent_usefulness/source.cs:app:variable_ref:1:12",

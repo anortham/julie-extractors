@@ -1739,7 +1739,10 @@
       "end_byte": 946,
       "containing_key": "fixtures/extraction/c/declarators/source.c:use:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "drv"
+      }
     },
     {
       "key": "fixtures/extraction/c/declarators/source.c:ptr:variable_ref:31:18",

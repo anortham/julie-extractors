@@ -1544,7 +1544,10 @@
       "end_byte": 1058,
       "containing_key": "fixtures/extraction/gdscript/structure/source.gd:setup:53:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "FileAccess"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/structure/source.gd:add:call:43:2",
@@ -1577,7 +1580,10 @@
       "containing_key": "fixtures/extraction/gdscript/structure/source.gd:add:46:1",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "ItemStack"
+      "receiver_type": "ItemStack",
+      "metadata": {
+        "receiver": "super"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/structure/source.gd:clampi:call:18:11",
@@ -1753,7 +1759,11 @@
       "end_byte": 1013,
       "containing_key": "fixtures/extraction/gdscript/structure/source.gd:setup:53:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "stats",
+        "receiver_qualifier": "player"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/structure/source.gd:info:call:51:8",
@@ -1769,7 +1779,10 @@
       "end_byte": 887,
       "containing_key": "fixtures/extraction/gdscript/structure/source.gd:_init:49:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Logger"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/structure/source.gd:int:type_usage:16:12",
@@ -1945,7 +1958,10 @@
       "end_byte": 297,
       "containing_key": "fixtures/extraction/gdscript/structure/source.gd:pool:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ObjectPool"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/structure/source.gd:open:call:56:12",
@@ -1961,7 +1977,10 @@
       "end_byte": 1030,
       "containing_key": "fixtures/extraction/gdscript/structure/source.gd:setup:53:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "FileAccess"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/structure/source.gd:player:variable_ref:55:9",
@@ -2073,7 +2092,10 @@
       "end_byte": 1006,
       "containing_key": "fixtures/extraction/gdscript/structure/source.gd:setup:53:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "player"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/structure/source.gd:value:variable_ref:18:18",

@@ -95,11 +95,21 @@ fn extract_identifier_from_node(
             record_csharp_constructor_arg_literals(base, node, containing_symbols);
         }
         "implicit_object_creation_expression" => {
-            if let Some(type_node) = super::scope::target_type_of_implicit_new(node)
+            let mut cursor = node.walk();
+            let new_keyword = node
+                .children(&mut cursor)
+                .find(|child| child.kind() == "new");
+            if let (Some(new_keyword), Some(type_node)) =
+                (new_keyword, super::scope::target_type_of_implicit_new(node))
                 && let Some((_, name)) = terminal_type_identifier(base, type_node, 0)
             {
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
-                base.create_identifier(&node, name, IdentifierKind::Call, containing_symbol_id);
+                base.create_identifier(
+                    &new_keyword,
+                    name,
+                    IdentifierKind::Call,
+                    containing_symbol_id,
+                );
             }
         }
         // An attribute name names its attribute class. A qualified name is

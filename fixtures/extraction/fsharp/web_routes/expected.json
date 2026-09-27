@@ -1307,7 +1307,10 @@
       "end_byte": 322,
       "containing_key": "fixtures/extraction/fsharp/web_routes/source.fs:Get:15:11",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "svc"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/web_routes/source.fs:Func:call:30:29",
@@ -1355,7 +1358,10 @@
       "end_byte": 864,
       "containing_key": "fixtures/extraction/fsharp/web_routes/source.fs:fetch:32:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "client"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/web_routes/source.fs:HttpClient:type_usage:32:23",
@@ -1435,7 +1441,10 @@
       "end_byte": 757,
       "containing_key": "fixtures/extraction/fsharp/web_routes/source.fs:configure:29:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/web_routes/source.fs:Ok:call:15:36",
@@ -1452,7 +1461,10 @@
       "containing_key": "fixtures/extraction/fsharp/web_routes/source.fs:Get:15:11",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "UsersController"
+      "receiver_type": "UsersController",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/web_routes/source.fs:Ok:call:18:32",
@@ -1469,7 +1481,10 @@
       "containing_key": "fixtures/extraction/fsharp/web_routes/source.fs:Create:18:11",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "UsersController"
+      "receiver_type": "UsersController",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/web_routes/source.fs:POST:variable_ref:27:12",

@@ -1681,7 +1681,10 @@
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:testAdditionInPlace:66:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "ArithmeticTest"
+      "receiver_type": "ArithmeticTest",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:assertEqual:call:71:13",
@@ -1698,7 +1701,10 @@
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_guarded_case:70:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "ArithmeticTest"
+      "receiver_type": "ArithmeticTest",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:asyncio:member_access:28:13",
@@ -1714,7 +1720,11 @@
       "end_byte": 439,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_async_total:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "mark",
+        "receiver_qualifier": "pytest"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:calculate_total:call:47:21",
@@ -1778,7 +1788,10 @@
       "end_byte": 157,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:temporary_operands:14:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "contextlib"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:fixture:member_access:8:8",
@@ -1794,7 +1807,10 @@
       "end_byte": 83,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:arithmetic_operands:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "pytest"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:functools:variable_ref:23:1",
@@ -1874,7 +1890,10 @@
       "end_byte": 369,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:cached_total:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "functools"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:mark:member_access:18:8",
@@ -1890,7 +1909,10 @@
       "end_byte": 215,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_addition_is_commutative:19:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "pytest"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:mark:member_access:28:8",
@@ -1906,7 +1928,10 @@
       "end_byte": 431,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_async_total:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "pytest"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:object:call:53:15",
@@ -1938,7 +1963,11 @@
       "end_byte": 227,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_addition_is_commutative:19:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "mark",
+        "receiver_qualifier": "pytest"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:pytest:variable_ref:18:1",
@@ -2034,7 +2063,10 @@
       "end_byte": 1167,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_guarded_case:70:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "unittest"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:total:member_access:47:13",
@@ -2050,7 +2082,10 @@
       "end_byte": 713,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:setup_method:46:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:total:member_access:50:13",
@@ -2066,7 +2101,10 @@
       "end_byte": 792,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:teardown_method:49:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:total:member_access:56:20",
@@ -2082,7 +2120,10 @@
       "end_byte": 909,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_total_is_two:55:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:total:member_access:61:13",
@@ -2098,7 +2139,10 @@
       "end_byte": 997,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:setUp:60:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:total:member_access:64:13",
@@ -2114,7 +2158,10 @@
       "end_byte": 1061,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:tearDown:63:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:total:member_access:67:30",
@@ -2130,7 +2177,10 @@
       "end_byte": 1137,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:testAdditionInPlace:66:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:total:member_access:71:30",
@@ -2146,7 +2196,10 @@
       "end_byte": 1263,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_guarded_case:70:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:total:member_access:74:20",
@@ -2162,7 +2215,10 @@
       "end_byte": 1327,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:production_helper:73:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:unittest:variable_ref:59:21",

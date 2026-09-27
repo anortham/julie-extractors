@@ -509,7 +509,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "workers"
+      "receiver_type": "workers",
+      "metadata": {
+        "receiver": "w"
+      }
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:id:member_access:25:21",
@@ -526,7 +529,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "recent_workers"
+      "receiver_type": "recent_workers",
+      "metadata": {
+        "receiver": "rw"
+      }
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:id:member_access:25:28",
@@ -543,7 +549,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "workers"
+      "receiver_type": "workers",
+      "metadata": {
+        "receiver": "w"
+      }
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:id:member_access:28:42",
@@ -628,7 +637,10 @@
       "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "workers"
+      "receiver_type": "workers",
+      "metadata": {
+        "receiver": "w"
+      }
     },
     {
       "key": "fixtures/extraction/sql/basic/source.sql:name:member_access:28:19",

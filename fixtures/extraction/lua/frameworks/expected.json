@@ -347,7 +347,10 @@
       "end_byte": 60,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "lapis"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:api:member_access:12:4",
@@ -363,7 +366,10 @@
       "end_byte": 201,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "vim"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:api:member_access:16:4",
@@ -379,7 +385,10 @@
       "end_byte": 322,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "vim"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:app:variable_ref:4:0",
@@ -427,7 +436,10 @@
       "end_byte": 268,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "opts"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:buf:member_access:19:12",
@@ -443,7 +455,11 @@
       "end_byte": 424,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "lsp",
+        "receiver_qualifier": "vim"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:format:call:19:16",
@@ -459,7 +475,11 @@
       "end_byte": 431,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "buf",
+        "receiver_qualifier": "vim.lsp"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:get:call:4:4",
@@ -494,7 +514,10 @@
       "end_byte": 616,
       "containing_key": "fixtures/extraction/lua/frameworks/source.lua:draw:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "love"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:keymap:member_access:23:4",
@@ -510,7 +533,10 @@
       "end_byte": 455,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "vim"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:lapis:variable_ref:2:12",
@@ -590,7 +616,10 @@
       "end_byte": 420,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "vim"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:match:call:8:4",
@@ -625,7 +654,11 @@
       "end_byte": 342,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "api",
+        "receiver_qualifier": "vim"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:nvim_create_user_command:call:12:8",
@@ -641,7 +674,11 @@
       "end_byte": 226,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "api",
+        "receiver_qualifier": "vim"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:opts:variable_ref:13:8",
@@ -721,7 +758,11 @@
       "end_byte": 622,
       "containing_key": "fixtures/extraction/lua/frameworks/source.lua:draw:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "graphics",
+        "receiver_qualifier": "love"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:require:call:1:14",
@@ -769,7 +810,11 @@
       "end_byte": 459,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "keymap",
+        "receiver_qualifier": "vim"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:setup:call:40:16",
@@ -785,7 +830,10 @@
       "end_byte": 865,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "telescope"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:telescope:variable_ref:40:6",
@@ -881,7 +929,10 @@
       "end_byte": 637,
       "containing_key": "fixtures/extraction/lua/frameworks/source.lua:draw:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "player"
+      }
     },
     {
       "key": "fixtures/extraction/lua/frameworks/source.lua:y:member_access:30:45",
@@ -897,7 +948,10 @@
       "end_byte": 647,
       "containing_key": "fixtures/extraction/lua/frameworks/source.lua:draw:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "player"
+      }
     }
   ],
   "types": [],

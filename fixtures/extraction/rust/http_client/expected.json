@@ -756,7 +756,10 @@
       "end_byte": 721,
       "containing_key": "fixtures/extraction/rust/http_client/source.rs:dynamic:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "reqwest"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client/source.rs:get:call:18:13",
@@ -772,7 +775,10 @@
       "end_byte": 793,
       "containing_key": "fixtures/extraction/rust/http_client/source.rs:dynamic:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "reqwest"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client/source.rs:get:call:8:13",
@@ -788,7 +794,10 @@
       "end_byte": 367,
       "containing_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "reqwest"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client/source.rs:new:call:11:21",
@@ -804,7 +813,11 @@
       "end_byte": 522,
       "containing_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Client",
+        "receiver_qualifier": "reqwest"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client/source.rs:new:call:9:25",
@@ -820,7 +833,10 @@
       "end_byte": 437,
       "containing_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Client"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client/source.rs:post:call:10:11",
@@ -836,7 +852,10 @@
       "end_byte": 456,
       "containing_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "client"
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client/source.rs:reqwest:variable_ref:11:4",

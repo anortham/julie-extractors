@@ -626,7 +626,10 @@
       "end_byte": 603,
       "containing_key": "fixtures/extraction/razor/cross_file/source.razor:Entry:21:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Items"
+      }
     },
     {
       "key": "fixtures/extraction/razor/cross_file/source.razor:LocalHelper:call:13:4",

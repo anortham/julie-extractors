@@ -414,7 +414,10 @@
       "end_byte": 429,
       "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor:LoadAsync:14:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Http"
+      }
     },
     {
       "key": "fixtures/extraction/razor/code-behind/Widget.razor:Http:variable_ref:17:14",
@@ -462,7 +465,10 @@
       "end_byte": 372,
       "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor:LoadAsync:14:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Navigation"
+      }
     },
     {
       "key": "fixtures/extraction/razor/code-behind/Widget.razor:Navigation:variable_ref:16:8",

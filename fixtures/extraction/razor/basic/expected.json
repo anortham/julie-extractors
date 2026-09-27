@@ -1137,7 +1137,10 @@
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Run:17:8",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "WorkerPage"
+      "receiver_type": "WorkerPage",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/razor/basic/source.razor:Title:variable_ref:3:12",
@@ -1201,7 +1204,10 @@
       "end_byte": 549,
       "containing_key": "fixtures/extraction/razor/basic/source.razor:Format:25:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "value"
+      }
     },
     {
       "key": "fixtures/extraction/razor/basic/source.razor:WorkerCard:type_usage:5:1",

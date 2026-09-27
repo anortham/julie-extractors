@@ -834,7 +834,10 @@
       "end_byte": 416,
       "containing_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "HttpClient"
+      }
     },
     {
       "key": "fixtures/extraction/php/http_client_deferred/source.php:curl_init:call:17:14",
@@ -1042,7 +1045,10 @@
       "end_byte": 348,
       "containing_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "$symfony"
+      }
     },
     {
       "key": "fixtures/extraction/php/http_client_deferred/source.php:request:call:12:26",
@@ -1074,7 +1080,10 @@
       "end_byte": 491,
       "containing_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "$guzzle"
+      }
     },
     {
       "key": "fixtures/extraction/php/http_client_deferred/source.php:request:call:23:13",
@@ -1090,7 +1099,10 @@
       "end_byte": 817,
       "containing_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "$guzzle"
+      }
     },
     {
       "key": "fixtures/extraction/php/http_client_deferred/source.php:request:call:24:13",
@@ -1106,7 +1118,10 @@
       "end_byte": 858,
       "containing_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "$guzzle"
+      }
     },
     {
       "key": "fixtures/extraction/php/http_client_deferred/source.php:requestAsync:call:15:13",
@@ -1122,7 +1137,10 @@
       "end_byte": 535,
       "containing_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "$guzzle"
+      }
     },
     {
       "key": "fixtures/extraction/php/http_client_deferred/source.php:symfony:variable_ref:11:4",

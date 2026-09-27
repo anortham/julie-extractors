@@ -349,7 +349,10 @@
       "end_byte": 329,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:LookupAsync:8:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Task"
+      }
     },
     {
       "key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:CompletedTask:member_access:9:40",
@@ -365,7 +368,10 @@
       "end_byte": 384,
       "containing_key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:ValueUpdated:9:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Task"
+      }
     },
     {
       "key": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor:InputText:type_usage:3:1",

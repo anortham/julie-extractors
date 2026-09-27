@@ -923,6 +923,7 @@ pub fn extract_for_language_at(
         )
     })?;
     let mut results = (entry.extract)(tree, file_path, content, workspace_root, level)?;
+    crate::base::receiver_metadata::enrich(language, tree, content, &mut results.identifiers);
     if level.includes_structural_facts() {
         let extractor_structural_facts = std::mem::take(&mut results.structural_facts);
         let extractor_source_regions = std::mem::take(&mut results.source_regions);

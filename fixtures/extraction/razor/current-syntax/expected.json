@@ -477,7 +477,10 @@
       "end_byte": 397,
       "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "item"
+      }
     },
     {
       "key": "fixtures/extraction/razor/current-syntax/source.razor:Now:member_access:13:17",
@@ -493,7 +496,10 @@
       "end_byte": 330,
       "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "DateTime"
+      }
     },
     {
       "key": "fixtures/extraction/razor/current-syntax/source.razor:ParameterChild:type_usage:21:1",
@@ -573,7 +579,10 @@
       "end_byte": 504,
       "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "panelData"
+      }
     },
     {
       "key": "fixtures/extraction/razor/current-syntax/source.razor:condition:variable_ref:19:10",

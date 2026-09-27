@@ -467,7 +467,10 @@
       "end_byte": 292,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ordinary"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/test_roles/source.js:test:call:5:2",

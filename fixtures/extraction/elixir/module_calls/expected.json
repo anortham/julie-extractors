@@ -1888,7 +1888,10 @@
       "end_byte": 763,
       "containing_key": "fixtures/extraction/elixir/module_calls/source.ex:start:30:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Inv"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/module_calls/source.ex:get_env:member_access:28:30",
@@ -1904,7 +1907,10 @@
       "end_byte": 675,
       "containing_key": "fixtures/extraction/elixir/module_calls/source.ex:config:28:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Application"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/module_calls/source.ex:insert:member_access:32:9",
@@ -1920,7 +1926,10 @@
       "end_byte": 741,
       "containing_key": "fixtures/extraction/elixir/module_calls/source.ex:start:30:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Repo"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/module_calls/source.ex:integer:type_usage:14:14",
@@ -2032,7 +2041,10 @@
       "end_byte": 842,
       "containing_key": "fixtures/extraction/elixir/module_calls/source.ex:start:30:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Entry"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/module_calls/source.ex:n:variable_ref:21:30",
@@ -2080,7 +2092,11 @@
       "end_byte": 793,
       "containing_key": "fixtures/extraction/elixir/module_calls/source.ex:start:30:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Queue",
+        "receiver_qualifier": "Mailer"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/module_calls/source.ex:seed:variable_ref:64:25",
@@ -2144,7 +2160,10 @@
       "end_byte": 611,
       "containing_key": "fixtures/extraction/elixir/module_calls/source.ex:total:25:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Enum"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/module_calls/source.ex:test:call:64:2",
@@ -2176,7 +2195,10 @@
       "end_byte": 822,
       "containing_key": "fixtures/extraction/elixir/module_calls/source.ex:start:30:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "__MODULE__"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/module_calls/source.ex:total:member_access:65:28",
@@ -2192,7 +2214,11 @@
       "end_byte": 1315,
       "containing_key": "fixtures/extraction/elixir/module_calls/source.ex:totals:64:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Accounts",
+        "receiver_qualifier": "Fixture"
+      }
     }
   ],
   "types": [

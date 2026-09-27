@@ -989,7 +989,10 @@
       "end_byte": 236,
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:health:12:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Req"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/http_client/source.ex:get!:member_access:33:18",
@@ -1005,7 +1008,10 @@
       "end_byte": 588,
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:real:33:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "R"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/http_client/source.ex:get!:member_access:34:20",
@@ -1021,7 +1027,10 @@
       "end_byte": 641,
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:fake:34:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Req"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/http_client/source.ex:get:call:26:17",
@@ -1053,7 +1062,10 @@
       "end_byte": 322,
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Req"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/http_client/source.ex:get:member_access:5:8",
@@ -1069,7 +1081,10 @@
       "end_byte": 106,
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:list_users:4:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Req"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/http_client/source.ex:id:variable_ref:18:22",
@@ -1117,7 +1132,10 @@
       "end_byte": 190,
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:create_user:8:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Req"
+      }
     }
   ],
   "types": [],

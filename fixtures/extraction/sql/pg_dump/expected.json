@@ -1242,7 +1242,10 @@
       "end_byte": 1023,
       "containing_key": "fixtures/extraction/sql/pg_dump/source.sql:order_count:38:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "public"
+      }
     },
     {
       "key": "fixtures/extraction/sql/pg_dump/source.sql:since:variable_ref:35:18",
@@ -1274,7 +1277,10 @@
       "end_byte": 1241,
       "containing_key": "fixtures/extraction/sql/pg_dump/source.sql:orders_touch:46:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "public"
+      }
     }
   ],
   "types": [

@@ -1155,7 +1155,10 @@
       "end_byte": 740,
       "containing_key": "fixtures/extraction/vue/options_api/source.vue:created:28:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/vue/options_api/source.vue:items:variable_ref:4:34",
@@ -1187,7 +1190,10 @@
       "end_byte": 168,
       "containing_key": "fixtures/extraction/vue/options_api/source.vue:UploadForm:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "items"
+      }
     },
     {
       "key": "fixtures/extraction/vue/options_api/source.vue:next:variable_ref:33:26",
@@ -1219,7 +1225,10 @@
       "end_byte": 792,
       "containing_key": "fixtures/extraction/vue/options_api/source.vue:title:32:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/vue/options_api/source.vue:open:variable_ref:4:13",
@@ -1283,7 +1292,10 @@
       "end_byte": 882,
       "containing_key": "fixtures/extraction/vue/options_api/source.vue:upload:37:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "axios"
+      }
     },
     {
       "key": "fixtures/extraction/vue/options_api/source.vue:reset:call:5:20",
@@ -1363,7 +1375,10 @@
       "end_byte": 669,
       "containing_key": "fixtures/extraction/vue/options_api/source.vue:reset:23:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "count"
+      }
     }
   ],
   "types": [],

@@ -1158,7 +1158,10 @@
       "end_byte": 727,
       "containing_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:Text:24:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "root"
+      }
     },
     {
       "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:background:member_access:7:52",
@@ -1174,7 +1177,11 @@
       "end_byte": 186,
       "containing_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:tooltipBackground:7:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "tooltip",
+        "receiver_qualifier": "Color"
+      }
     },
     {
       "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:body:member_access:8:53",
@@ -1190,7 +1197,11 @@
       "end_byte": 244,
       "containing_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:size:8:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "font",
+        "receiver_qualifier": "Style"
+      }
     },
     {
       "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:count:member_access:9:40",
@@ -1206,7 +1217,10 @@
       "end_byte": 307,
       "containing_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:count:9:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "view"
+      }
     },
     {
       "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:flush:call:13:71",
@@ -1222,7 +1236,10 @@
       "end_byte": 467,
       "containing_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:save:13:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "docModel"
+      }
     },
     {
       "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:font:member_access:8:48",
@@ -1238,7 +1255,10 @@
       "end_byte": 239,
       "containing_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:size:8:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Style"
+      }
     },
     {
       "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:localHelper:call:8:59",
@@ -1270,7 +1290,10 @@
       "end_byte": 228,
       "containing_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:size:8:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Math"
+      }
     },
     {
       "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:refresh:call:17:41",
@@ -1287,7 +1310,10 @@
       "containing_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:onTriggered:17:23",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Screen01"
+      "receiver_type": "Screen01",
+      "metadata": {
+        "receiver": "root"
+      }
     },
     {
       "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:refresh:call:21:40",
@@ -1304,7 +1330,10 @@
       "containing_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:refresh:21:8",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Screen01"
+      "receiver_type": "Screen01",
+      "metadata": {
+        "receiver": "root"
+      }
     },
     {
       "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:tooltip:member_access:7:44",
@@ -1320,7 +1349,10 @@
       "end_byte": 175,
       "containing_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:tooltipBackground:7:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Color"
+      }
     },
     {
       "key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:triggered:member_access:17:23",

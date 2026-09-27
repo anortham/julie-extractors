@@ -4359,7 +4359,10 @@
       "end_byte": 1751,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:routes:93:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "express"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:Router:call:96:22",
@@ -4375,7 +4378,10 @@
       "end_byte": 1835,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:items:96:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "express"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:Router:type_usage:93:14",
@@ -4504,7 +4510,10 @@
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:describe:13:2",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Shape"
+      "receiver_type": "Shape",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:audit:variable_ref:49:4",
@@ -4632,7 +4641,10 @@
       "end_byte": 1478,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:run:76:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "api"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:find:call:45:10",
@@ -4648,7 +4660,10 @@
       "end_byte": 904,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:load:44:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "super"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:findAll:call:78:6",
@@ -4664,7 +4679,10 @@
       "end_byte": 1459,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:run:76:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "svc"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:findById:call:46:9",
@@ -4681,7 +4699,10 @@
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:load:44:2",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "UserRepo"
+      "receiver_type": "UserRepo",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:get:call:103:7",
@@ -4697,7 +4718,10 @@
       "end_byte": 2004,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "server"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:get:call:91:4",
@@ -4713,7 +4737,10 @@
       "end_byte": 1660,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:get:call:94:7",
@@ -4729,7 +4756,10 @@
       "end_byte": 1765,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "routes"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:get:call:99:3",
@@ -4825,7 +4855,10 @@
       "end_byte": 1016,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:load:44:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "audit"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:items:variable_ref:97:0",
@@ -4857,7 +4890,10 @@
       "end_byte": 1696,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "res"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:json:call:94:40",
@@ -4873,7 +4909,10 @@
       "end_byte": 1799,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "res"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:json:call:99:26",
@@ -4889,7 +4928,10 @@
       "end_byte": 1892,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "res"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:kind:member_access:14:19",
@@ -4905,7 +4947,10 @@
       "end_byte": 452,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:describe:13:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:lazyAdmin:call:176:14",
@@ -4953,7 +4998,10 @@
       "end_byte": 1500,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:run:76:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "repo"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:log:variable_ref:81:2",
@@ -4985,7 +5033,10 @@
       "end_byte": 948,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:load:44:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:logger:member_access:48:31",
@@ -5001,7 +5052,10 @@
       "end_byte": 1000,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:load:44:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:repo:variable_ref:80:2",
@@ -5129,7 +5183,10 @@
       "end_byte": 1853,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "items"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:routes:variable_ref:94:0",
@@ -5161,7 +5218,10 @@
       "end_byte": 1936,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "res"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:server:variable_ref:103:0",
@@ -5210,7 +5270,10 @@
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:onSave:163:2",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Form"
+      "receiver_type": "Form",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:svc:variable_ref:78:2",
@@ -5242,7 +5305,10 @@
       "end_byte": 2989,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:#secret:162:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "legacy"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:touch:call:50:9",
@@ -5259,7 +5325,10 @@
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:load:44:2",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "UserRepo"
+      "receiver_type": "UserRepo",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:value:variable_ref:116:16",
@@ -5307,7 +5376,11 @@
       "end_byte": 953,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:load:44:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "logger",
+        "receiver_qualifier": "this"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:warn:call:81:6",
@@ -5323,7 +5396,10 @@
       "end_byte": 1517,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:run:76:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "log"
+      }
     }
   ],
   "types": [

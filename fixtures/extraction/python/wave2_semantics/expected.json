@@ -2387,7 +2387,10 @@
       "end_byte": 1714,
       "containing_key": "fixtures/extraction/python/wave2_semantics/source.py:describe:93:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Color"
+      }
     },
     {
       "key": "fixtures/extraction/python/wave2_semantics/source.py:Repo:type_usage:81:17",
@@ -2547,7 +2550,10 @@
       "end_byte": 913,
       "containing_key": "fixtures/extraction/python/wave2_semantics/source.py:withdraw:52:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/wave2_semantics/source.py:classmethod:variable_ref:71:5",
@@ -2659,7 +2665,10 @@
       "end_byte": 1393,
       "containing_key": "fixtures/extraction/python/wave2_semantics/source.py:fetch:81:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "repo"
+      }
     },
     {
       "key": "fixtures/extraction/python/wave2_semantics/source.py:items:variable_ref:59:15",

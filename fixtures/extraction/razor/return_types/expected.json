@@ -405,7 +405,10 @@
       "containing_key": "fixtures/extraction/razor/return_types/source.razor:Use:7:1",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "source"
+      "receiver_type": "source",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/razor/return_types/source.razor:Models:type_usage:6:8",

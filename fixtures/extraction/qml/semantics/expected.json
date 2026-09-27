@@ -2640,7 +2640,10 @@
       "end_byte": 1566,
       "containing_key": "fixtures/extraction/qml/semantics/Dashboard.qml:save:56:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Sql"
+      }
     },
     {
       "key": "fixtures/extraction/qml/semantics/Dashboard.qml:MouseArea:type_usage:53:4",
@@ -2838,7 +2841,10 @@
       "end_byte": 1532,
       "containing_key": "fixtures/extraction/qml/semantics/Dashboard.qml:save:56:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Utils"
+      }
     },
     {
       "key": "fixtures/extraction/qml/semantics/Dashboard.qml:clicked:member_access:53:26",
@@ -2894,7 +2900,11 @@
       "end_byte": 2157,
       "containing_key": "fixtures/extraction/qml/semantics/Dashboard.qml:Component.onCompleted:74:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "refreshed",
+        "receiver_qualifier": "root"
+      }
     },
     {
       "key": "fixtures/extraction/qml/semantics/Dashboard.qml:containsMouse:member_access:34:28",
@@ -2910,7 +2920,10 @@
       "end_byte": 950,
       "containing_key": "fixtures/extraction/qml/semantics/Dashboard.qml:hot:34:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "area"
+      }
     },
     {
       "key": "fixtures/extraction/qml/semantics/Dashboard.qml:count:variable_ref:64:20",
@@ -2942,7 +2955,10 @@
       "end_byte": 1994,
       "containing_key": "fixtures/extraction/qml/semantics/Dashboard.qml:openDetails:62:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Qt"
+      }
     },
     {
       "key": "fixtures/extraction/qml/semantics/Dashboard.qml:enabled:variable_ref:79:30",
@@ -3038,7 +3054,10 @@
       "end_byte": 1741,
       "containing_key": "fixtures/extraction/qml/semantics/Dashboard.qml:inner:63:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "MathLib"
+      }
     },
     {
       "key": "fixtures/extraction/qml/semantics/Dashboard.qml:onRefreshedHandler:variable_ref:76:31",
@@ -3090,7 +3109,10 @@
       "end_byte": 1840,
       "containing_key": "fixtures/extraction/qml/semantics/Dashboard.qml:openDetails:62:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "request"
+      }
     },
     {
       "key": "fixtures/extraction/qml/semantics/Dashboard.qml:openDatabaseSync:call:58:25",
@@ -3106,7 +3128,11 @@
       "end_byte": 1583,
       "containing_key": "fixtures/extraction/qml/semantics/Dashboard.qml:save:56:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "LocalStorage",
+        "receiver_qualifier": "Sql"
+      }
     },
     {
       "key": "fixtures/extraction/qml/semantics/Dashboard.qml:pressed:member_access:80:4",
@@ -3142,7 +3168,10 @@
       "end_byte": 1899,
       "containing_key": "fixtures/extraction/qml/semantics/Dashboard.qml:openDetails:62:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "stack"
+      }
     },
     {
       "key": "fixtures/extraction/qml/semantics/Dashboard.qml:refreshed:member_access:76:13",
@@ -3194,7 +3223,10 @@
       "end_byte": 1382,
       "containing_key": "fixtures/extraction/qml/semantics/Dashboard.qml:Loader:52:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Qt"
+      }
     },
     {
       "key": "fixtures/extraction/qml/semantics/Dashboard.qml:resolvedUrl:call:67:22",
@@ -3210,7 +3242,10 @@
       "end_byte": 1914,
       "containing_key": "fixtures/extraction/qml/semantics/Dashboard.qml:openDetails:62:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Qt"
+      }
     },
     {
       "key": "fixtures/extraction/qml/semantics/Dashboard.qml:returnPressed:member_access:79:4",
@@ -3246,7 +3281,10 @@
       "end_byte": 672,
       "containing_key": "fixtures/extraction/qml/semantics/Dashboard.qml:tint:27:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Qt"
+      }
     },
     {
       "key": "fixtures/extraction/qml/semantics/Dashboard.qml:save:call:53:42",
@@ -3263,7 +3301,10 @@
       "containing_key": "fixtures/extraction/qml/semantics/Dashboard.qml:onClicked:53:26",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Dashboard"
+      "receiver_type": "Dashboard",
+      "metadata": {
+        "receiver": "root"
+      }
     },
     {
       "key": "fixtures/extraction/qml/semantics/Dashboard.qml:save:call:75:8",
@@ -3311,7 +3352,10 @@
       "end_byte": 802,
       "containing_key": "fixtures/extraction/qml/semantics/Dashboard.qml:label:30:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "body"
+      }
     },
     {
       "key": "fixtures/extraction/qml/semantics/Dashboard.qml:total:variable_ref:69:21",

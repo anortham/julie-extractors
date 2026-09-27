@@ -186,13 +186,20 @@ fn extract_fixture(source: &str) -> crate::ExtractionResults {
 #[test]
 fn basic_fixture_emits_nested_type_arguments_via_canonical_pipeline() {
     let results = extract_fixture(FIXTURE_SOURCE);
-    assert_eq!(
-        results.type_argument_usages.len(),
-        1,
-        "fixture should emit one Map<int, Vec<Item>> usage, got {:?}",
-        results.type_argument_usages
-    );
-    let usage = &results.type_argument_usages[0];
+    assert_eq!(results.type_argument_usages.len(), 2);
+    let usage_for = |name: &str| {
+        let identifier = results
+            .identifiers
+            .iter()
+            .find(|identifier| identifier.name == name)
+            .unwrap();
+        results
+            .type_argument_usages
+            .iter()
+            .find(|usage| usage.identifier_id == identifier.id)
+            .unwrap()
+    };
+    let usage = usage_for("Map");
     assert_eq!(top_level(usage), vec![(0, "int"), (1, "Vec")]);
     assert!(usage.arguments[0].children.is_empty());
     assert_eq!(
@@ -204,6 +211,9 @@ fn basic_fixture_emits_nested_type_arguments_via_canonical_pipeline() {
         vec![(0, "Item")],
         "Vec<Item> nested argument preserved under ordinal 1"
     );
+    let constructor = usage_for("make_unique");
+    assert_eq!(top_level(constructor), vec![(0, "Item")]);
+    assert!(constructor.arguments[0].children.is_empty());
 }
 
 #[test]

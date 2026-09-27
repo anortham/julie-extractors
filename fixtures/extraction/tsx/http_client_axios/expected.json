@@ -421,7 +421,10 @@
       "end_byte": 281,
       "containing_key": "fixtures/extraction/tsx/http_client_axios/source.tsx:dynamic:10:18",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "axios"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/http_client_axios/source.tsx:get:call:8:27",
@@ -437,7 +440,10 @@
       "end_byte": 121,
       "containing_key": "fixtures/extraction/tsx/http_client_axios/source.tsx:load:8:15",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "axios"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/http_client_axios/source.tsx:load:variable_ref:11:26",

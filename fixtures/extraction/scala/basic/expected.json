@@ -2114,7 +2114,10 @@
       "end_byte": 1118,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:given_Ordering_Int:49:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Ordering"
+      }
     },
     {
       "key": "fixtures/extraction/scala/basic/source.scala:Job:type_usage:8:34",
@@ -2194,7 +2197,11 @@
       "end_byte": 1638,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "mutable",
+        "receiver_qualifier": "scala.collection"
+      }
     },
     {
       "key": "fixtures/extraction/scala/basic/source.scala:Ordering:type_usage:49:6",
@@ -2274,7 +2281,10 @@
       "end_byte": 1619,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "scala"
+      }
     },
     {
       "key": "fixtures/extraction/scala/basic/source.scala:count:variable_ref:35:24",
@@ -2563,7 +2573,10 @@
       "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Widget"
+      "receiver_type": "Widget",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/scala/basic/source.scala:m:call:81:10",
@@ -2579,7 +2592,10 @@
       "end_byte": 1713,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "other"
+      }
     },
     {
       "key": "fixtures/extraction/scala/basic/source.scala:missingWave2:call:80:9",
@@ -2596,7 +2612,10 @@
       "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Widget"
+      "receiver_type": "Widget",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/scala/basic/source.scala:mutable:member_access:77:36",
@@ -2612,7 +2631,11 @@
       "end_byte": 1627,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "collection",
+        "receiver_qualifier": "scala"
+      }
     },
     {
       "key": "fixtures/extraction/scala/basic/source.scala:observeRun:call:19:4",

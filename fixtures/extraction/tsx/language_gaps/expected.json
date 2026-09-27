@@ -1124,7 +1124,10 @@
       "end_byte": 443,
       "containing_key": "fixtures/extraction/tsx/language_gaps/source.tsx:Legacy:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "React"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/language_gaps/source.tsx:Component:type_usage:23:27",
@@ -1188,7 +1191,10 @@
       "end_byte": 259,
       "containing_key": "fixtures/extraction/tsx/language_gaps/source.tsx:Profile:11:23",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "UI"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/language_gaps/source.tsx:Panel:member_access:12:6",
@@ -1204,7 +1210,10 @@
       "end_byte": 259,
       "containing_key": "fixtures/extraction/tsx/language_gaps/source.tsx:Profile:11:23",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "UI"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/language_gaps/source.tsx:Panel:member_access:16:7",
@@ -1220,7 +1229,10 @@
       "end_byte": 344,
       "containing_key": "fixtures/extraction/tsx/language_gaps/source.tsx:Profile:11:23",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "UI"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/language_gaps/source.tsx:Profile:call:20:10",

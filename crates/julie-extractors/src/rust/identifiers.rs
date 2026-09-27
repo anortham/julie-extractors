@@ -31,8 +31,78 @@ pub(super) fn extract_identifiers(
 
     walk_tree_for_identifiers(extractor, tree.root_node(), &containing_symbols, 0);
 
-    // Return extracted identifiers from base extractor
+    for macro_tree in &extractor.macro_trees {
+        crate::base::receiver_metadata::enrich(
+            "rust",
+            macro_tree,
+            &extractor.base.content,
+            &mut extractor.base.identifiers,
+        );
+    }
+    if let Some(macro_tree) = macro_receiver_tree(&extractor.base, tree) {
+        crate::base::receiver_metadata::enrich(
+            "rust",
+            &macro_tree,
+            &extractor.base.content,
+            &mut extractor.base.identifiers,
+        );
+    }
+
     extractor.get_base_mut().identifiers.clone()
+}
+
+fn macro_receiver_tree(base: &BaseExtractor, tree: &Tree) -> Option<Tree> {
+    let mut source = base.content.as_bytes().to_vec();
+    if !mask_receiver_macro_heads(base, tree.root_node(), &mut source) {
+        return None;
+    }
+
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_rust::LANGUAGE.into())
+        .ok()?;
+    let mut tree = parser.parse(source.as_slice(), None)?;
+    // ponytail: opaque token trees cost one parse per depth; parse tokens directly if profiling warrants it.
+    for _ in 0..crate::tree_traversal::TREE_TRAVERSAL_DEPTH_LIMIT {
+        if !mask_receiver_macro_heads(base, tree.root_node(), &mut source) {
+            return Some(tree);
+        }
+        tree = parser.parse(source.as_slice(), None)?;
+    }
+    Some(tree)
+}
+
+fn mask_receiver_macro_heads(
+    base: &BaseExtractor,
+    root: tree_sitter::Node,
+    source: &mut [u8],
+) -> bool {
+    let mut changed = false;
+    let mut pending = vec![root];
+    while let Some(node) = pending.pop() {
+        if node.kind() == "macro_invocation"
+            && super::item_macros::classify(base, node).is_none()
+            && let (Some(macro_path), Some(token_tree)) = (
+                node.child_by_field_name("macro"),
+                node.named_children(&mut node.walk())
+                    .find(|child| child.kind() == "token_tree"),
+            )
+        {
+            let start = macro_path.start_byte();
+            let end = token_tree.start_byte();
+            if start < end && end <= source.len() {
+                for byte in &mut source[start..end] {
+                    if !matches!(*byte, b'\r' | b'\n') {
+                        *byte = b' ';
+                    }
+                }
+                changed = true;
+            }
+        }
+        let mut cursor = node.walk();
+        pending.extend(node.children(&mut cursor));
+    }
+    changed
 }
 
 /// Walk the tree extracting identifiers
@@ -150,21 +220,26 @@ fn extract_identifier_from_node(
             record_rust_call_arg_literals(extractor, node, containing_symbols);
         }
 
-        // Variable/field references in specific contexts
-        // We're conservative - only extract clear variable usages, not all identifiers
         "field_expression" => {
-            // Skip if this field_expression is the function of a call_expression
-            // (e.g., self.method() - we want "method" as Call, not MemberAccess)
             if let Some(parent) = node.parent()
-                && parent.kind() == "call_expression"
-                && let Some(func_child) = parent.child_by_field_name("function")
-                && func_child.id() == node.id()
+                && ((parent.kind() == "call_expression"
+                    && parent
+                        .child_by_field_name("function")
+                        .is_some_and(|function| function.id() == node.id()))
+                    || (parent.kind() == "generic_function"
+                        && parent
+                            .child_by_field_name("function")
+                            .is_some_and(|function| function.id() == node.id())
+                        && parent.parent().is_some_and(|call| {
+                            call.kind() == "call_expression"
+                                && call
+                                    .child_by_field_name("function")
+                                    .is_some_and(|function| function.id() == parent.id())
+                        })))
             {
-                // This field_expression IS the function being called, skip it
                 return;
             }
 
-            // object.field - extract the field name (not part of a call)
             if let Some(field_node) = node.child_by_field_name("field") {
                 let name = {
                     let base = extractor.get_base_mut();

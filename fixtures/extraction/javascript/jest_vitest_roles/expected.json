@@ -1420,7 +1420,10 @@
       "end_byte": 684,
       "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:doubles %i:31:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "test"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:each:call:32:11",
@@ -1436,7 +1439,10 @@
       "end_byte": 750,
       "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:scales %i:32:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "describe"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:failing:call:26:7",
@@ -1452,7 +1458,10 @@
       "end_byte": 467,
       "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "test"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:fdescribe:call:38:0",
@@ -1580,7 +1589,10 @@
       "end_byte": 159,
       "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:total:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "items"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:name:variable_ref:46:15",
@@ -1612,7 +1624,10 @@
       "end_byte": 334,
       "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "it"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:reporter:variable_ref:50:0",
@@ -1660,7 +1675,10 @@
       "end_byte": 379,
       "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "it"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:test:call:50:9",
@@ -1676,7 +1694,10 @@
       "end_byte": 1098,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "reporter"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:test:variable_ref:25:2",
@@ -1740,7 +1761,10 @@
       "end_byte": 427,
       "containing_key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:cart totals:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "test"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/jest_vitest_roles/source.js:total:call:31:45",

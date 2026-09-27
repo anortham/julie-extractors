@@ -343,7 +343,10 @@
       "end_byte": 323,
       "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Refresh:13:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Navigation"
+      }
     },
     {
       "key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Navigation:variable_ref:15:8",

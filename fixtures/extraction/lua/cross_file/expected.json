@@ -258,7 +258,10 @@
       "end_byte": 530,
       "containing_key": "fixtures/extraction/lua/cross_file/source.lua:entry:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "other"
+      }
     },
     {
       "key": "fixtures/extraction/lua/cross_file/source.lua:i:variable_ref:16:28",

@@ -2040,23 +2040,10 @@
       "end_byte": 1172,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:fill:37:0",
       "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/cpp/members/source.cpp:allocate:member_access:37:67",
-      "name": "allocate",
-      "kind": "member_access",
-      "language": "cpp",
-      "file_path": "fixtures/extraction/cpp/members/source.cpp",
-      "start_line": 37,
-      "start_column": 67,
-      "end_line": 37,
-      "end_column": 75,
-      "start_byte": 1164,
-      "end_byte": 1172,
-      "containing_key": "fixtures/extraction/cpp/members/source.cpp:fill:37:0",
-      "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "alloc"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/members/source.cpp:close_handle:call:17:14",
@@ -2184,7 +2171,10 @@
       "end_byte": 300,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:operator==:11:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "o"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/members/source.cpp:label:variable_ref:11:59",

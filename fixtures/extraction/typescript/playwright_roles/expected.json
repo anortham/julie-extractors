@@ -1112,7 +1112,10 @@
       "end_byte": 286,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "test"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:afterEach:call:11:7",
@@ -1128,7 +1131,10 @@
       "end_byte": 253,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "test"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:beforeAll:call:9:7",
@@ -1144,7 +1150,10 @@
       "end_byte": 184,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "test"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:beforeEach:call:10:7",
@@ -1160,7 +1169,10 @@
       "end_byte": 219,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "test"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:buildCheckout:variable_ref:50:60",
@@ -1192,7 +1204,10 @@
       "end_byte": 1110,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "runner"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:describe:call:8:5",
@@ -1208,7 +1223,10 @@
       "end_byte": 147,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "test"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:describe:member_access:29:5",
@@ -1224,7 +1242,10 @@
       "end_byte": 736,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout in order:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "test"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:describe:member_access:33:5",
@@ -1240,7 +1261,10 @@
       "end_byte": 823,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout at once:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "test"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:expect:call:16:4",
@@ -1272,7 +1296,10 @@
       "end_byte": 387,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:loads the cart:14:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "page"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:goto:call:24:17",
@@ -1288,7 +1315,10 @@
       "end_byte": 693,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:records a step:22:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "page"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:only:call:19:7",
@@ -1304,7 +1334,10 @@
       "end_byte": 461,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "test"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:page:variable_ref:15:10",
@@ -1368,7 +1401,11 @@
       "end_byte": 832,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout at once:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "describe",
+        "receiver_qualifier": "test"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:run:call:46:4",
@@ -1416,7 +1453,11 @@
       "end_byte": 743,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout in order:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "describe",
+        "receiver_qualifier": "test"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:skip:call:20:7",
@@ -1432,7 +1473,10 @@
       "end_byte": 514,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "test"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:step:call:23:15",
@@ -1448,7 +1492,10 @@
       "end_byte": 640,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:records a step:22:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "test"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:test:call:14:2",
@@ -1688,7 +1735,10 @@
       "end_byte": 425,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:loads the cart:14:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "page"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:toBe:call:16:31",

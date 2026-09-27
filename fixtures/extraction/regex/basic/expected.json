@@ -509,17 +509,17 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/regex/basic/source.regex:name:call:1:31",
+      "key": "fixtures/extraction/regex/basic/source.regex:name:call:1:34",
       "name": "name",
       "kind": "call",
       "language": "regex",
       "file_path": "fixtures/extraction/regex/basic/source.regex",
       "start_line": 1,
-      "start_column": 31,
+      "start_column": 34,
       "end_line": 1,
-      "end_column": 39,
-      "start_byte": 31,
-      "end_byte": 39,
+      "end_column": 38,
+      "start_byte": 34,
+      "end_byte": 38,
       "containing_key": "fixtures/extraction/regex/basic/source.regex:^(?<name>[A-Za-z]+)-(?<id>\\d+)-\\k<name>-(foo)-\\3$:1:0",
       "target_key": null,
       "confidence": "1.000"

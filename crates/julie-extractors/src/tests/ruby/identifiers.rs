@@ -226,3 +226,26 @@ end
         "seed variable_ref should be contained in evaluate"
     );
 }
+#[test]
+fn setter_declaration_names_do_not_become_calls() {
+    let source = "class Config\n  def self.logger=(value); @logger = value; end\n  def logger=(value); @logger = value; end\n  def read; logger; end\nend\n";
+    let results = crate::extract_canonical_for_language_at(
+        "ruby",
+        "source.rb",
+        source,
+        std::path::Path::new("."),
+        crate::ExtractionLevel::Full,
+    )
+    .unwrap();
+    let references: Vec<_> = results
+        .identifiers
+        .iter()
+        .filter(|identifier| identifier.name == "logger")
+        .collect();
+    assert_eq!(references.len(), 1);
+    assert_eq!(references[0].kind, crate::IdentifierKind::Call);
+    assert_eq!(
+        references[0].start_byte as usize,
+        source.rfind("logger").unwrap()
+    );
+}

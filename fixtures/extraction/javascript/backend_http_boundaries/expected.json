@@ -260,7 +260,10 @@
       "end_byte": 146,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "express"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:app:variable_ref:11:2",
@@ -420,7 +423,10 @@
       "end_byte": 283,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:get:call:13:5",
@@ -468,7 +474,10 @@
       "end_byte": 420,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "cache"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:get:call:8:9",
@@ -484,7 +493,10 @@
       "end_byte": 189,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "router"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:get:call:9:26",
@@ -532,7 +544,10 @@
       "end_byte": 410,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "res"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:key:variable_ref:15:59",
@@ -628,7 +643,10 @@
       "end_byte": 304,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:route:call:15:6",
@@ -644,7 +662,10 @@
       "end_byte": 373,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:route:call:18:9",
@@ -660,7 +681,10 @@
       "end_byte": 472,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "server"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:route:call:9:6",
@@ -676,7 +700,10 @@
       "end_byte": 226,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:router:variable_ref:7:18",
@@ -788,7 +815,10 @@
       "end_byte": 159,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:writeMulti:variable_ref:14:10",

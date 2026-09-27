@@ -333,7 +333,10 @@
       "end_byte": 557,
       "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Router"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/cross_file/source.ex:total:variable_ref:21:4",

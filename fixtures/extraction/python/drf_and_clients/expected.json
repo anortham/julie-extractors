@@ -1950,7 +1950,10 @@
       "end_byte": 916,
       "containing_key": "fixtures/extraction/python/drf_and_clients/urls.py:fetch_users:43:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "httpx"
+      }
     },
     {
       "key": "fixtures/extraction/python/drf_and_clients/urls.py:DefaultRouter:call:14:17",
@@ -1966,7 +1969,10 @@
       "end_byte": 385,
       "containing_key": "fixtures/extraction/python/drf_and_clients/urls.py:router:14:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "routers"
+      }
     },
     {
       "key": "fixtures/extraction/python/drf_and_clients/urls.py:Flask:call:12:13",
@@ -2030,7 +2036,10 @@
       "end_byte": 1058,
       "containing_key": "fixtures/extraction/python/drf_and_clients/urls.py:sync_session:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "requests"
+      }
     },
     {
       "key": "fixtures/extraction/python/drf_and_clients/urls.py:UserViewSet:member_access:15:32",
@@ -2046,7 +2055,10 @@
       "end_byte": 431,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "views"
+      }
     },
     {
       "key": "fixtures/extraction/python/drf_and_clients/urls.py:action:call:29:5",
@@ -2126,7 +2138,10 @@
       "end_byte": 1343,
       "containing_key": "fixtures/extraction/python/drf_and_clients/urls.py:urlpatterns:59:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "views"
+      }
     },
     {
       "key": "fixtures/extraction/python/drf_and_clients/urls.py:client:variable_ref:45:21",
@@ -2158,7 +2173,10 @@
       "end_byte": 1510,
       "containing_key": "fixtures/extraction/python/drf_and_clients/urls.py:urlpatterns:59:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "views"
+      }
     },
     {
       "key": "fixtures/extraction/python/drf_and_clients/urls.py:feeds:member_access:64:36",
@@ -2174,7 +2192,10 @@
       "end_byte": 1554,
       "containing_key": "fixtures/extraction/python/drf_and_clients/urls.py:urlpatterns:59:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "views"
+      }
     },
     {
       "key": "fixtures/extraction/python/drf_and_clients/urls.py:get:call:23:14",
@@ -2190,7 +2211,10 @@
       "end_byte": 523,
       "containing_key": "fixtures/extraction/python/drf_and_clients/urls.py:typed:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "typed_router"
+      }
     },
     {
       "key": "fixtures/extraction/python/drf_and_clients/urls.py:get:call:45:28",
@@ -2206,7 +2230,10 @@
       "end_byte": 995,
       "containing_key": "fixtures/extraction/python/drf_and_clients/urls.py:fetch_users:43:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "client"
+      }
     },
     {
       "key": "fixtures/extraction/python/drf_and_clients/urls.py:get:call:51:4",
@@ -2286,7 +2313,10 @@
       "end_byte": 1469,
       "containing_key": "fixtures/extraction/python/drf_and_clients/urls.py:urlpatterns:59:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "views"
+      }
     },
     {
       "key": "fixtures/extraction/python/drf_and_clients/urls.py:path:call:65:4",
@@ -2334,7 +2364,10 @@
       "end_byte": 1077,
       "containing_key": "fixtures/extraction/python/drf_and_clients/urls.py:sync_session:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "session"
+      }
     },
     {
       "key": "fixtures/extraction/python/drf_and_clients/urls.py:post:call:52:13",
@@ -2350,7 +2383,10 @@
       "end_byte": 1169,
       "containing_key": "fixtures/extraction/python/drf_and_clients/urls.py:sync_session:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "requests"
+      }
     },
     {
       "key": "fixtures/extraction/python/drf_and_clients/urls.py:post:call:56:12",
@@ -2366,7 +2402,10 @@
       "end_byte": 1244,
       "containing_key": "fixtures/extraction/python/drf_and_clients/urls.py:unproven:55:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "session"
+      }
     },
     {
       "key": "fixtures/extraction/python/drf_and_clients/urls.py:re_path:call:60:4",
@@ -2462,7 +2501,10 @@
       "end_byte": 403,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "router"
+      }
     },
     {
       "key": "fixtures/extraction/python/drf_and_clients/urls.py:requests:variable_ref:49:14",
@@ -2510,7 +2552,10 @@
       "end_byte": 462,
       "containing_key": "fixtures/extraction/python/drf_and_clients/urls.py:health:19:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/python/drf_and_clients/urls.py:router:variable_ref:15:0",
@@ -2622,7 +2667,10 @@
       "end_byte": 1660,
       "containing_key": "fixtures/extraction/python/drf_and_clients/urls.py:urlpatterns:59:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "router"
+      }
     },
     {
       "key": "fixtures/extraction/python/drf_and_clients/urls.py:user:member_access:61:37",
@@ -2638,7 +2686,10 @@
       "end_byte": 1387,
       "containing_key": "fixtures/extraction/python/drf_and_clients/urls.py:urlpatterns:59:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "views"
+      }
     },
     {
       "key": "fixtures/extraction/python/drf_and_clients/urls.py:views:variable_ref:15:26",

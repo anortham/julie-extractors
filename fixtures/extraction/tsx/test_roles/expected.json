@@ -540,7 +540,10 @@
       "end_byte": 431,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ordinary"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/test_roles/source.tsx:test:call:5:2",

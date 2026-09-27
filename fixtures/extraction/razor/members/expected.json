@@ -1362,7 +1362,10 @@
       "end_byte": 1160,
       "containing_key": "fixtures/extraction/razor/members/Counter.razor:OnInitializedAsync:43:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "TodoService"
+      }
     },
     {
       "key": "fixtures/extraction/razor/members/Counter.razor:IDisposable:type_usage:3:12",
@@ -1522,7 +1525,10 @@
       "end_byte": 1189,
       "containing_key": "fixtures/extraction/razor/members/Counter.razor:OnInitializedAsync:43:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Nav"
+      }
     },
     {
       "key": "fixtures/extraction/razor/members/Counter.razor:NavigationManager:type_usage:16:13",

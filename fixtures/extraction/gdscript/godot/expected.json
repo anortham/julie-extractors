@@ -1770,7 +1770,10 @@
       "end_byte": 1059,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:lookup:41:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Outer"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:Inner:type_usage:42:18",
@@ -2042,7 +2045,10 @@
       "end_byte": 667,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:_ready:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "$Hurtbox"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:bind:call:30:23",
@@ -2058,7 +2064,10 @@
       "end_byte": 729,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:_ready:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "_on_died"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:config:variable_ref:38:46",
@@ -2090,7 +2099,11 @@
       "end_byte": 675,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:_ready:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "area_entered",
+        "receiver_qualifier": "$Hurtbox"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:connect:call:30:6",
@@ -2106,7 +2119,10 @@
       "end_byte": 715,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:_ready:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "died"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:connect:call:31:1",
@@ -2170,7 +2186,10 @@
       "end_byte": 1216,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:_on_hurtbox_area_entered:46:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "died"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:emit_signal:call:50:1",
@@ -2330,7 +2349,10 @@
       "end_byte": 940,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:reset:35:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "level"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:inner:variable_ref:43:8",
@@ -2442,7 +2464,10 @@
       "end_byte": 1088,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:lookup:41:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "inner"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:level:variable_ref:38:9",
@@ -2490,7 +2515,10 @@
       "end_byte": 889,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:reset:35:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ResourceLoader"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:new:call:42:38",
@@ -2506,7 +2534,11 @@
       "end_byte": 1063,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:lookup:41:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Inner",
+        "receiver_qualifier": "Outer"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:preload:call:11:15",
@@ -2570,7 +2602,10 @@
       "end_byte": 973,
       "containing_key": "fixtures/extraction/gdscript/godot/source.gd:reset:35:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "config"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/godot/source.gd:value:variable_ref:59:9",

@@ -473,7 +473,10 @@
       "end_byte": 261,
       "containing_key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:make_player:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Node"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/gdunit_roles/player_test.gd:void:type_usage:12:16",

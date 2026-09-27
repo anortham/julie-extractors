@@ -233,8 +233,7 @@ pub(super) fn is_ruby_value_read_identifier(node: Node) -> bool {
         | "hash_splat_parameter"
         | "block_parameter" => false,
         "optional_parameter" | "keyword_parameter" => !is_name_field,
-        // Rule 3: method definition names.
-        "method" | "singleton_method" => !is_name_field,
+        "method" | "singleton_method" | "setter" => !is_name_field,
         // Rule 4: the `for` loop pattern binds; the iterated value is a read.
         "for" => parent.child_by_field_name("pattern").map(|p| p.id()) != Some(node.id()),
         // `rescue … => err` binds err.

@@ -155,7 +155,11 @@
       "end_byte": 79,
       "containing_key": "fixtures/extraction/zig/test_roles/source.zig:addition works:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "testing",
+        "receiver_qualifier": "std"
+      }
     },
     {
       "key": "fixtures/extraction/zig/test_roles/source.zig:std:variable_ref:4:8",
@@ -187,7 +191,10 @@
       "end_byte": 72,
       "containing_key": "fixtures/extraction/zig/test_roles/source.zig:addition works:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "std"
+      }
     }
   ],
   "types": [],

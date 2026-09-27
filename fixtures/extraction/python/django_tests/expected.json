@@ -961,7 +961,10 @@
       "containing_key": "fixtures/extraction/python/django_tests/tests.py:test_value:17:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "AsyncTests"
+      "receiver_type": "AsyncTests",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/django_tests/tests.py:assertIsNone:call:30:13",
@@ -978,7 +981,10 @@
       "containing_key": "fixtures/extraction/python/django_tests/tests.py:test_was_published_recently:26:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "QuestionModelTests"
+      "receiver_type": "QuestionModelTests",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/django_tests/tests.py:assertTrue:call:10:13",
@@ -995,7 +1001,10 @@
       "containing_key": "fixtures/extraction/python/django_tests/tests.py:test_list_users:9:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "UserApiTests"
+      "receiver_type": "UserApiTests",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/django_tests/tests.py:classmethod:variable_ref:22:5",
@@ -1027,7 +1036,10 @@
       "end_byte": 667,
       "containing_key": "fixtures/extraction/python/django_tests/tests.py:client:34:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "pytest_asyncio"
+      }
     },
     {
       "key": "fixtures/extraction/python/django_tests/tests.py:pytest_asyncio:variable_ref:33:1",
@@ -1059,7 +1071,10 @@
       "end_byte": 497,
       "containing_key": "fixtures/extraction/python/django_tests/tests.py:setUpTestData:23:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "cls"
+      }
     },
     {
       "key": "fixtures/extraction/python/django_tests/tests.py:test_helper:call:30:26",
@@ -1107,7 +1122,10 @@
       "end_byte": 316,
       "containing_key": "fixtures/extraction/python/django_tests/tests.py:asyncSetUp:14:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/django_tests/tests.py:value:member_access:18:30",
@@ -1123,7 +1141,10 @@
       "end_byte": 389,
       "containing_key": "fixtures/extraction/python/django_tests/tests.py:test_value:17:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     }
   ],
   "types": [],

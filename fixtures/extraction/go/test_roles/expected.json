@@ -3444,7 +3444,10 @@
       "end_byte": 2011,
       "containing_key": "fixtures/extraction/go/test_roles/source_test.go:helperUnrelatedRun:100:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "receiver"
+      }
     },
     {
       "key": "fixtures/extraction/go/test_roles/source_test.go:Run:call:14:3",
@@ -3460,7 +3463,10 @@
       "end_byte": 290,
       "containing_key": "fixtures/extraction/go/test_roles/source_test.go:TestMain:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "m"
+      }
     },
     {
       "key": "fixtures/extraction/go/test_roles/source_test.go:Run:call:86:12",
@@ -3476,7 +3482,10 @@
       "end_byte": 1631,
       "containing_key": "fixtures/extraction/go/test_roles/source_test.go:literal child:86:1",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "testHandle"
+      }
     },
     {
       "key": "fixtures/extraction/go/test_roles/source_test.go:Run:call:87:8",
@@ -3492,7 +3501,10 @@
       "end_byte": 1685,
       "containing_key": "fixtures/extraction/go/test_roles/source_test.go:nested child:87:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "child"
+      }
     },
     {
       "key": "fixtures/extraction/go/test_roles/source_test.go:Run:call:93:12",
@@ -3508,7 +3520,10 @@
       "end_byte": 1830,
       "containing_key": "fixtures/extraction/go/test_roles/source_test.go:TestDynamicSubtest:91:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "testHandle"
+      }
     },
     {
       "key": "fixtures/extraction/go/test_roles/source_test.go:Suite:type_usage:34:7",

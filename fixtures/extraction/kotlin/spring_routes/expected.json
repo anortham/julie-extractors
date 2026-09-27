@@ -475,7 +475,10 @@
       "end_byte": 401,
       "containing_key": "fixtures/extraction/kotlin/spring_routes/source.kt:search:15:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "RequestMethod"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/spring_routes/source.kt:GetMapping:type_usage:12:5",
@@ -571,7 +574,10 @@
       "end_byte": 421,
       "containing_key": "fixtures/extraction/kotlin/spring_routes/source.kt:search:15:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "RequestMethod"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/spring_routes/source.kt:PostMapping:type_usage:9:5",

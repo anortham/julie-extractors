@@ -973,7 +973,10 @@
       "end_byte": 287,
       "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:badge:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "hooks"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:equal:call:15:11",
@@ -989,7 +992,10 @@
       "end_byte": 370,
       "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:renders a label:14:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "assert"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:hooks:variable_ref:12:2",
@@ -1053,7 +1059,10 @@
       "end_byte": 207,
       "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:badge:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "QUnit"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:module:call:37:7",
@@ -1069,7 +1078,10 @@
       "end_byte": 915,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "runner"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:module:member_access:23:6",
@@ -1085,7 +1097,10 @@
       "end_byte": 633,
       "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:badge focused group:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "QUnit"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:only:call:18:8",
@@ -1101,7 +1116,10 @@
       "end_byte": 441,
       "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:badge:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "QUnit"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:only:call:23:13",
@@ -1117,7 +1135,11 @@
       "end_byte": 638,
       "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:badge focused group:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "module",
+        "receiver_qualifier": "QUnit"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:renderBadge:variable_ref:37:58",
@@ -1181,7 +1203,10 @@
       "end_byte": 503,
       "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:badge:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "QUnit"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:test:call:14:8",
@@ -1197,7 +1222,10 @@
       "end_byte": 312,
       "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:badge:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "QUnit"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:test:call:24:8",
@@ -1213,7 +1241,10 @@
       "end_byte": 682,
       "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:badge focused group:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "QUnit"
+      }
     },
     {
       "key": "fixtures/extraction/tsx/qunit_roles/source.tsx:todo:call:20:8",
@@ -1229,7 +1260,10 @@
       "end_byte": 566,
       "containing_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:badge:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "QUnit"
+      }
     }
   ],
   "types": [

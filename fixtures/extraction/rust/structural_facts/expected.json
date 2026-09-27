@@ -245,7 +245,11 @@
       "end_byte": 400,
       "containing_key": "fixtures/extraction/rust/structural_facts/source.rs:read_flag:20:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ptr",
+        "receiver_qualifier": "core"
+      }
     },
     {
       "key": "fixtures/extraction/rust/structural_facts/source.rs:value:variable_ref:22:33",

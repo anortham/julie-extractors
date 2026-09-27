@@ -2318,23 +2318,10 @@
       "end_byte": 1430,
       "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:save:48:0",
       "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/cpp/declarations/source.cpp:flush:member_access:54:11",
-      "name": "flush",
-      "kind": "member_access",
-      "language": "cpp",
-      "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
-      "start_line": 54,
-      "start_column": 11,
-      "end_line": 54,
-      "end_column": 16,
-      "start_byte": 1425,
-      "end_byte": 1430,
-      "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:save:48:0",
-      "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "writer"
+      }
     },
     {
       "key": "fixtures/extraction/cpp/declarations/source.cpp:function:type_usage:10:21",

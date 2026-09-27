@@ -947,7 +947,10 @@
       "end_byte": 458,
       "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:Increments:25:11",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Is"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/test_roles/source.fs:Fact:type_usage:11:8",
@@ -995,7 +998,10 @@
       "end_byte": 345,
       "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:Starts:22:11",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Assert"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/test_roles/source.fs:SetUp:type_usage:18:6",
@@ -1139,7 +1145,10 @@
       "end_byte": 436,
       "containing_key": "fixtures/extraction/fsharp/test_roles/source.fs:Increments:25:11",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Assert"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/test_roles/source.fs:Theory:type_usage:8:2",

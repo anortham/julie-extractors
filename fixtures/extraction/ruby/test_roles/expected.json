@@ -2566,7 +2566,10 @@
       "end_byte": 225,
       "containing_key": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb:test_adds_two_numbers:12:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "@calculator"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb:assert_equal:call:13:4",
@@ -2614,7 +2617,10 @@
       "end_byte": 110,
       "containing_key": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb:setup:4:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Calculator"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/minitest_class_test.rb:require:call:1:0",
@@ -2918,7 +2924,10 @@
       "end_byte": 253,
       "containing_key": "fixtures/extraction/ruby/test_roles/rails_macro_test.rb:helper_order:16:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Order"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/rails_macro_test.rb:new:member_access:5:19",
@@ -2934,7 +2943,10 @@
       "end_byte": 98,
       "containing_key": "fixtures/extraction/ruby/test_roles/rails_macro_test.rb:setup:4:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Order"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/rails_macro_test.rb:post:call:23:4",
@@ -3046,7 +3058,10 @@
       "end_byte": 213,
       "containing_key": "fixtures/extraction/ruby/test_roles/rails_macro_test.rb:computes the order total:12:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "@order"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/test_source.rb:ExampleRunner:type_usage:59:7",
@@ -3206,7 +3221,10 @@
       "end_byte": 14,
       "containing_key": "fixtures/extraction/ruby/test_roles/test_source.rb:ruby roles:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "RSpec"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/test_source.rb:describe:member_access:60:5",
@@ -3222,7 +3240,10 @@
       "end_byte": 834,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "test"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/test_source.rb:described_class:call:4:12",
@@ -3366,7 +3387,10 @@
       "end_byte": 764,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ordinary"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/test_source.rb:let!:call:3:2",
@@ -3430,7 +3454,10 @@
       "end_byte": 56,
       "containing_key": "fixtures/extraction/ruby/test_roles/test_source.rb:order:2:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Order"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/test_source.rb:new:member_access:3:29",
@@ -3446,7 +3473,10 @@
       "end_byte": 91,
       "containing_key": "fixtures/extraction/ruby/test_roles/test_source.rb:eager_order:3:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Order"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/test_source.rb:new:member_access:45:29",
@@ -3462,7 +3492,10 @@
       "end_byte": 669,
       "containing_key": "fixtures/extraction/ruby/test_roles/test_source.rb:shared_order:45:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Order"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/test_source.rb:new:member_access:4:28",
@@ -3478,7 +3511,10 @@
       "end_byte": 125,
       "containing_key": "fixtures/extraction/ruby/test_roles/test_source.rb:subject:4:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "described_class"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/test_source.rb:new:member_access:55:18",
@@ -3494,7 +3530,10 @@
       "end_byte": 752,
       "containing_key": "fixtures/extraction/ruby/test_roles/test_source.rb:ordinary:55:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Object"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/test_source.rb:new:member_access:59:21",
@@ -3510,7 +3549,10 @@
       "end_byte": 820,
       "containing_key": "fixtures/extraction/ruby/test_roles/test_source.rb:test:59:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ExampleRunner"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/test_source.rb:ordinary:variable_ref:56:0",
@@ -3542,7 +3584,10 @@
       "end_byte": 203,
       "containing_key": "fixtures/extraction/ruby/test_roles/test_source.rb:around:12:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "example"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/test_roles/test_source.rb:shared_context:call:44:0",

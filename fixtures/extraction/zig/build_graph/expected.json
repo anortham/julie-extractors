@@ -1043,7 +1043,10 @@
       "end_byte": 55,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "std"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:addExecutable:call:10:18",
@@ -1059,7 +1062,10 @@
       "end_byte": 371,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "b"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:addImport:call:16:20",
@@ -1075,7 +1081,11 @@
       "end_byte": 543,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "root_module",
+        "receiver_qualifier": "exe"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:addImport:call:17:20",
@@ -1091,7 +1101,11 @@
       "end_byte": 606,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "root_module",
+        "receiver_qualifier": "exe"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:addModule:call:8:19",
@@ -1107,7 +1121,10 @@
       "end_byte": 280,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "b"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:addRunArtifact:call:25:25",
@@ -1123,7 +1140,10 @@
       "end_byte": 870,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "b"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:addRunArtifact:call:27:26",
@@ -1139,7 +1159,10 @@
       "end_byte": 979,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "b"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:addTest:call:20:20",
@@ -1155,7 +1178,10 @@
       "end_byte": 678,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "b"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:b:variable_ref:10:16",
@@ -1427,7 +1453,10 @@
       "end_byte": 719,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "b"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:dependOn:call:25:13",
@@ -1443,7 +1472,10 @@
       "end_byte": 852,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "run_step"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:dependOn:call:27:14",
@@ -1459,7 +1491,10 @@
       "end_byte": 961,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "test_step"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:dependency:call:6:20",
@@ -1475,7 +1510,10 @@
       "end_byte": 195,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "b"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:exe:variable_ref:16:4",
@@ -1571,7 +1609,10 @@
       "end_byte": 643,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "b"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:module:call:16:45",
@@ -1587,7 +1628,10 @@
       "end_byte": 565,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "httpz"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:name:member_access:11:9",
@@ -1692,7 +1736,10 @@
       "end_byte": 432,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "b"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:path:call:21:63",
@@ -1708,7 +1755,10 @@
       "end_byte": 749,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "b"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:path:call:8:62",
@@ -1724,7 +1774,10 @@
       "end_byte": 318,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "b"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:root_module:member_access:16:8",
@@ -1740,7 +1793,10 @@
       "end_byte": 533,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "exe"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:root_module:member_access:17:8",
@@ -1756,7 +1812,10 @@
       "end_byte": 596,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "exe"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:root_module:member_access:21:9",
@@ -1864,7 +1923,10 @@
       "end_byte": 158,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "b"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:standardTargetOptions:call:4:21",
@@ -1880,7 +1942,10 @@
       "end_byte": 106,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "b"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:std:type_usage:3:17",
@@ -1912,7 +1977,10 @@
       "end_byte": 807,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "b"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:step:call:26:24",
@@ -1928,7 +1996,10 @@
       "end_byte": 911,
       "containing_key": "fixtures/extraction/zig/build_graph/build.zig:build:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "b"
+      }
     },
     {
       "key": "fixtures/extraction/zig/build_graph/build.zig:step:member_access:25:45",

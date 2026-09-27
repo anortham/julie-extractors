@@ -249,7 +249,10 @@
       "end_byte": 513,
       "containing_key": "fixtures/extraction/ruby/cross_file/source.rb:entry:10:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "OtherModule"
+      }
     },
     {
       "key": "fixtures/extraction/ruby/cross_file/source.rb:i:variable_ref:14:17",

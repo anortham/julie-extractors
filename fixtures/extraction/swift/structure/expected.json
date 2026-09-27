@@ -2210,7 +2210,10 @@
       "end_byte": 1434,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:names:68:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "headers"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:makeSession:call:42:8",
@@ -2258,7 +2261,10 @@
       "end_byte": 1679,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:teardown:75:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "headers"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:report:call:34:17",
@@ -2322,7 +2328,11 @@
       "end_byte": 1441,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:names:68:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "keys",
+        "receiver_qualifier": "headers"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:tail:variable_ref:62:19",
@@ -2386,7 +2396,10 @@
       "end_byte": 1333,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:encode:60:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "session"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:validate:call:38:8",
@@ -2450,7 +2463,10 @@
       "end_byte": 1008,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:init:47:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:x:variable_ref:48:17",
@@ -2498,7 +2514,10 @@
       "end_byte": 1027,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:init:47:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:y:variable_ref:49:17",

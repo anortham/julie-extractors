@@ -294,7 +294,10 @@
       "end_byte": 327,
       "containing_key": "fixtures/extraction/zig/file_struct/Tokenizer.zig:peek:14:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/zig/file_struct/Tokenizer.zig:buffer:member_access:8:27",
@@ -310,7 +313,10 @@
       "end_byte": 178,
       "containing_key": "fixtures/extraction/zig/file_struct/Tokenizer.zig:next:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/zig/file_struct/Tokenizer.zig:byte:variable_ref:11:11",
@@ -342,7 +348,10 @@
       "end_byte": 241,
       "containing_key": "fixtures/extraction/zig/file_struct/Tokenizer.zig:next:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/zig/file_struct/Tokenizer.zig:index:member_access:15:28",
@@ -358,7 +367,10 @@
       "end_byte": 338,
       "containing_key": "fixtures/extraction/zig/file_struct/Tokenizer.zig:peek:14:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/zig/file_struct/Tokenizer.zig:index:member_access:8:13",
@@ -374,7 +386,10 @@
       "end_byte": 163,
       "containing_key": "fixtures/extraction/zig/file_struct/Tokenizer.zig:next:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/zig/file_struct/Tokenizer.zig:len:member_access:8:34",
@@ -390,7 +405,11 @@
       "end_byte": 182,
       "containing_key": "fixtures/extraction/zig/file_struct/Tokenizer.zig:next:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "buffer",
+        "receiver_qualifier": "self"
+      }
     },
     {
       "key": "fixtures/extraction/zig/file_struct/Tokenizer.zig:peek:call:9:22",
@@ -407,7 +426,10 @@
       "containing_key": "fixtures/extraction/zig/file_struct/Tokenizer.zig:next:7:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Tokenizer"
+      "receiver_type": "Tokenizer",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/zig/file_struct/Tokenizer.zig:self:variable_ref:10:4",

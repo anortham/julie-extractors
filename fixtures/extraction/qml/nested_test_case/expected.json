@@ -764,7 +764,10 @@
       "end_byte": 589,
       "containing_key": "fixtures/extraction/qml/nested_test_case/tst_nested.qml:test_space:23:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Qt"
+      }
     },
     {
       "key": "fixtures/extraction/qml/nested_test_case/tst_nested.qml:SignalSpy:type_usage:8:4",
@@ -831,7 +834,10 @@
       "end_byte": 316,
       "containing_key": "fixtures/extraction/qml/nested_test_case/tst_nested.qml:cleanup:15:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "toggledSpy"
+      }
     },
     {
       "key": "fixtures/extraction/qml/nested_test_case/tst_nested.qml:compare:call:17:36",
@@ -863,7 +869,10 @@
       "end_byte": 430,
       "containing_key": "fixtures/extraction/qml/nested_test_case/tst_nested.qml:test_click:17:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "toggledSpy"
+      }
     },
     {
       "key": "fixtures/extraction/qml/nested_test_case/tst_nested.qml:keyClick:call:23:32",

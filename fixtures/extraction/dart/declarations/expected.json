@@ -2450,7 +2450,10 @@
       "end_byte": 1908,
       "containing_key": "fixtures/extraction/dart/declarations/source.dart:settle:71:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "coll"
+      }
     },
     {
       "key": "fixtures/extraction/dart/declarations/source.dart:ListEquality:member_access:83:13",
@@ -2466,7 +2469,10 @@
       "end_byte": 1908,
       "containing_key": "fixtures/extraction/dart/declarations/source.dart:settle:71:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "coll"
+      }
     },
     {
       "key": "fixtures/extraction/dart/declarations/source.dart:ListEquality:variable_ref:4:57",
@@ -2834,7 +2840,10 @@
       "end_byte": 1867,
       "containing_key": "fixtures/extraction/dart/declarations/source.dart:settle:71:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "_Cache"
+      }
     },
     {
       "key": "fixtures/extraction/dart/declarations/source.dart:a:variable_ref:78:10",
@@ -2946,7 +2955,10 @@
       "end_byte": 929,
       "containing_key": "fixtures/extraction/dart/declarations/source.dart:+:40:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "other"
+      }
     },
     {
       "key": "fixtures/extraction/dart/declarations/source.dart:cents:member_access:42:60",
@@ -2962,7 +2974,10 @@
       "end_byte": 998,
       "containing_key": "fixtures/extraction/dart/declarations/source.dart:==:42:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "other"
+      }
     },
     {
       "key": "fixtures/extraction/dart/declarations/source.dart:cents:variable_ref:35:23",
@@ -3122,7 +3137,10 @@
       "end_byte": 1095,
       "containing_key": "fixtures/extraction/dart/declarations/source.dart:hashCode:46:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "cents"
+      }
     },
     {
       "key": "fixtures/extraction/dart/declarations/source.dart:heavy:variable_ref:72:8",
@@ -3474,7 +3492,10 @@
       "end_byte": 1837,
       "containing_key": "fixtures/extraction/dart/declarations/source.dart:settle:71:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "list"
+      }
     },
     {
       "key": "fixtures/extraction/dart/declarations/source.dart:list:variable_ref:82:28",
@@ -3506,7 +3527,10 @@
       "end_byte": 1511,
       "containing_key": "fixtures/extraction/dart/declarations/source.dart:settle:71:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "heavy"
+      }
     },
     {
       "key": "fixtures/extraction/dart/declarations/source.dart:name:variable_ref:75:12",
@@ -3618,7 +3642,10 @@
       "end_byte": 380,
       "containing_key": "fixtures/extraction/dart/declarations/source.dart:AccountId.parse:12:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "int"
+      }
     },
     {
       "key": "fixtures/extraction/dart/declarations/source.dart:print:call:22:18",
@@ -3746,7 +3773,10 @@
       "end_byte": 1821,
       "containing_key": "fixtures/extraction/dart/declarations/source.dart:settle:71:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "buffer"
+      }
     },
     {
       "key": "fixtures/extraction/dart/declarations/source.dart:toString:call:82:40",
@@ -3762,7 +3792,11 @@
       "end_byte": 1846,
       "containing_key": "fixtures/extraction/dart/declarations/source.dart:settle:71:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "length",
+        "receiver_qualifier": "list"
+      }
     },
     {
       "key": "fixtures/extraction/dart/declarations/source.dart:toString:call:82:72",

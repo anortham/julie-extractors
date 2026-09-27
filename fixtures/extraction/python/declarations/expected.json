@@ -1697,7 +1697,10 @@
       "end_byte": 440,
       "containing_key": "fixtures/extraction/python/declarations/source.py:__init__:14:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:_cache:member_access:21:13",
@@ -1713,7 +1716,10 @@
       "end_byte": 537,
       "containing_key": "fixtures/extraction/python/declarations/source.py:reset:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:args:variable_ref:41:23",
@@ -1777,7 +1783,10 @@
       "end_byte": 412,
       "containing_key": "fixtures/extraction/python/declarations/source.py:__init__:14:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:fn:call:41:19",
@@ -1841,7 +1850,11 @@
       "end_byte": 1196,
       "containing_key": "fixtures/extraction/python/declarations/source.py:lookup:51:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "path",
+        "receiver_qualifier": "os"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:kwargs:variable_ref:41:31",
@@ -1889,7 +1902,10 @@
       "end_byte": 397,
       "containing_key": "fixtures/extraction/python/declarations/source.py:__init__:14:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:list:type_usage:11:19",
@@ -2017,7 +2033,10 @@
       "end_byte": 1191,
       "containing_key": "fixtures/extraction/python/declarations/source.py:lookup:51:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "os"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:path:variable_ref:52:24",
@@ -2065,7 +2084,10 @@
       "end_byte": 649,
       "containing_key": "fixtures/extraction/python/declarations/source.py:Order:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:sorted:call:34:15",
@@ -2097,7 +2119,10 @@
       "end_byte": 374,
       "containing_key": "fixtures/extraction/python/declarations/source.py:__init__:14:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:total:member_access:20:13",
@@ -2113,7 +2138,10 @@
       "end_byte": 513,
       "containing_key": "fixtures/extraction/python/declarations/source.py:reset:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:total:member_access:32:25",
@@ -2129,7 +2157,10 @@
       "end_byte": 849,
       "containing_key": "fixtures/extraction/python/declarations/source.py:weight:31:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "order"
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:weight:call:34:48",
@@ -2177,7 +2208,10 @@
       "end_byte": 988,
       "containing_key": "fixtures/extraction/python/declarations/source.py:wrapper:40:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "functools"
+      }
     }
   ],
   "types": [

@@ -2610,7 +2610,10 @@
       "end_byte": 287,
       "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:FromJson:17:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "AnnotationTarget"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:Factory:type_usage:35:57",
@@ -2873,7 +2876,10 @@
       "end_byte": 252,
       "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:FromJson:17:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "AnnotationRetention"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:Repository:type_usage:29:17",
@@ -3148,7 +3154,10 @@
       "end_byte": 1363,
       "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:isValid:63:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "m"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:cents:variable_ref:55:52",
@@ -3212,7 +3221,10 @@
       "end_byte": 1561,
       "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:render:67:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "items"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:inner:variable_ref:35:104",
@@ -3308,7 +3320,10 @@
       "end_byte": 1228,
       "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:toVariableName:59:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "simpleName"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:m:variable_ref:63:33",
@@ -3356,7 +3371,10 @@
       "end_byte": 1843,
       "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:render:67:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "s"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:other:variable_ref:55:60",
@@ -3516,7 +3534,10 @@
       "end_byte": 1829,
       "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:render:67:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "type"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:type:variable_ref:77:32",

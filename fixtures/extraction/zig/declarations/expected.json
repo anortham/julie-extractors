@@ -1961,7 +1961,10 @@
       "end_byte": 1621,
       "containing_key": "fixtures/extraction/zig/declarations/source.zig:sizes:80:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "std"
+      }
     },
     {
       "key": "fixtures/extraction/zig/declarations/source.zig:debug:variable_ref:65:15",
@@ -2042,7 +2045,10 @@
       "containing_key": "fixtures/extraction/zig/declarations/source.zig:double:30:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Shape"
+      "receiver_type": "Shape",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/zig/declarations/source.zig:identifier:member_access:70:12",
@@ -2112,7 +2118,10 @@
       "end_byte": 1363,
       "containing_key": "fixtures/extraction/zig/declarations/source.zig:parse:68:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "text"
+      }
     },
     {
       "key": "fixtures/extraction/zig/declarations/source.zig:n:variable_ref:81:54",
@@ -2179,7 +2188,11 @@
       "end_byte": 1627,
       "containing_key": "fixtures/extraction/zig/declarations/source.zig:sizes:80:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "debug",
+        "receiver_qualifier": "std"
+      }
     },
     {
       "key": "fixtures/extraction/zig/declarations/source.zig:self:variable_ref:27:8",
@@ -2307,7 +2320,10 @@
       "end_byte": 501,
       "containing_key": "fixtures/extraction/zig/declarations/source.zig:grow:26:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/zig/declarations/source.zig:width:member_access:31:23",
@@ -2323,7 +2339,10 @@
       "end_byte": 582,
       "containing_key": "fixtures/extraction/zig/declarations/source.zig:double:30:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/zig/declarations/source.zig:width:member_access:75:26",

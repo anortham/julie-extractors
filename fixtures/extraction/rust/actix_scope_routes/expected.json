@@ -2150,7 +2150,10 @@
       "end_byte": 1804,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:create:42:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "HttpResponse"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:HttpResponse:variable_ref:40:4",
@@ -2230,7 +2233,10 @@
       "end_byte": 1727,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:show:39:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "HttpResponse"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:Ok:call:46:18",
@@ -2246,7 +2252,10 @@
       "end_byte": 1876,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:health:45:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "HttpResponse"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:Ok:call:49:18",
@@ -2262,7 +2271,10 @@
       "end_byte": 1954,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:report_index:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "HttpResponse"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:Responder:type_usage:39:24",
@@ -2534,7 +2546,10 @@
       "end_byte": 675,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "web"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:get:call:35:54",
@@ -2550,7 +2565,10 @@
       "end_byte": 1561,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "web"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:get:call:36:76",
@@ -2566,7 +2584,10 @@
       "end_byte": 1654,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "web"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:health:variable_ref:16:46",
@@ -2598,7 +2619,10 @@
       "end_byte": 594,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "App"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:new:call:23:9",
@@ -2614,7 +2638,10 @@
       "end_byte": 1070,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "App"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:new:call:28:9",
@@ -2630,7 +2657,10 @@
       "end_byte": 1263,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "App"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:new:call:34:9",
@@ -2646,7 +2676,10 @@
       "end_byte": 1501,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "App"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:post:call:14:34",
@@ -2662,7 +2695,10 @@
       "end_byte": 726,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "web"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:prefix:variable_ref:35:29",
@@ -2758,7 +2794,10 @@
       "end_byte": 848,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "web"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:route:call:35:37",
@@ -2806,7 +2845,10 @@
       "end_byte": 624,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "web"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:scope:call:23:28",
@@ -2822,7 +2864,10 @@
       "end_byte": 1091,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "web"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:scope:call:28:28",
@@ -2838,7 +2883,10 @@
       "end_byte": 1284,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "web"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:scope:call:35:22",
@@ -2854,7 +2902,10 @@
       "end_byte": 1531,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "web"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:scope:call:36:22",
@@ -2870,7 +2921,10 @@
       "end_byte": 1602,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "web"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:service:call:11:15",

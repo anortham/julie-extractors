@@ -326,7 +326,10 @@
       "end_byte": 453,
       "containing_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Thing"
+      }
     },
     {
       "key": "fixtures/extraction/scala/cross_file/source.scala:i:variable_ref:14:36",

@@ -827,7 +827,10 @@
       "end_byte": 612,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ordinary"
+      }
     },
     {
       "key": "fixtures/extraction/lua/test_roles/test_source.lua:it:call:5:2",
@@ -859,7 +862,10 @@
       "end_byte": 559,
       "containing_key": "fixtures/extraction/lua/test_roles/test_source.lua:it:41:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ordinary"
+      }
     },
     {
       "key": "fixtures/extraction/lua/test_roles/test_source.lua:ordinary:variable_ref:41:0",

@@ -431,7 +431,10 @@
       "end_byte": 55,
       "containing_key": "fixtures/extraction/python/flask_routes/source.py:app:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "flask"
+      }
     },
     {
       "key": "fixtures/extraction/python/flask_routes/source.py:add_url_rule:call:26:4",
@@ -447,7 +450,10 @@
       "end_byte": 319,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/python/flask_routes/source.py:app:variable_ref:17:1",
@@ -543,7 +549,10 @@
       "end_byte": 154,
       "containing_key": "fixtures/extraction/python/flask_routes/source.py:user:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "bp"
+      }
     },
     {
       "key": "fixtures/extraction/python/flask_routes/source.py:ping:variable_ref:26:36",
@@ -575,7 +584,10 @@
       "end_byte": 227,
       "containing_key": "fixtures/extraction/python/flask_routes/source.py:health:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/python/flask_routes/source.py:route:call:7:4",
@@ -591,7 +603,10 @@
       "end_byte": 77,
       "containing_key": "fixtures/extraction/python/flask_routes/source.py:index:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "bp"
+      }
     },
     {
       "key": "fixtures/extraction/python/flask_routes/source.py:username:variable_ref:14:11",

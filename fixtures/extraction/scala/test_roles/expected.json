@@ -387,7 +387,10 @@
       "end_byte": 274,
       "containing_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:11:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "feature"
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_roles/source.scala:feature:variable_ref:12:4",

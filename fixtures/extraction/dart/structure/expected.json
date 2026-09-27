@@ -1960,7 +1960,10 @@
       "end_byte": 727,
       "containing_key": "fixtures/extraction/dart/structure/source.dart:add:39:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "items"
+      }
     },
     {
       "key": "fixtures/extraction/dart/structure/source.dart:connect:call:16:10",
@@ -1976,7 +1979,10 @@
       "end_byte": 416,
       "containing_key": "fixtures/extraction/dart/structure/source.dart:Cart:15:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "store"
+      }
     },
     {
       "key": "fixtures/extraction/dart/structure/source.dart:create:call:43:9",
@@ -1992,7 +1998,10 @@
       "end_byte": 783,
       "containing_key": "fixtures/extraction/dart/structure/source.dart:add:39:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Cart"
+      }
     },
     {
       "key": "fixtures/extraction/dart/structure/source.dart:defaultRetries:call:15:31",
@@ -2040,7 +2049,10 @@
       "end_byte": 1049,
       "containing_key": "fixtures/extraction/dart/structure/source.dart:wire:48:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Cart"
+      }
     },
     {
       "key": "fixtures/extraction/dart/structure/source.dart:format:call:60:4",
@@ -2088,7 +2100,10 @@
       "end_byte": 962,
       "containing_key": "fixtures/extraction/dart/structure/source.dart:wire:48:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "User"
+      }
     },
     {
       "key": "fixtures/extraction/dart/structure/source.dart:int:type_usage:13:2",
@@ -2216,7 +2231,10 @@
       "end_byte": 582,
       "containing_key": "fixtures/extraction/dart/structure/source.dart:size:27:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "items"
+      }
     },
     {
       "key": "fixtures/extraction/dart/structure/source.dart:lookupOwner:call:35:21",
@@ -2248,7 +2266,10 @@
       "end_byte": 939,
       "containing_key": "fixtures/extraction/dart/structure/source.dart:wire:48:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "rows"
+      }
     },
     {
       "key": "fixtures/extraction/dart/structure/source.dart:recalc:call:41:9",
@@ -2265,7 +2286,10 @@
       "containing_key": "fixtures/extraction/dart/structure/source.dart:add:39:2",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Cart"
+      "receiver_type": "Cart",
+      "metadata": {
+        "receiver": "this"
+      }
     },
     {
       "key": "fixtures/extraction/dart/structure/source.dart:recalc:call:42:4",

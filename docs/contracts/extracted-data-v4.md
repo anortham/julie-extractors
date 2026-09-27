@@ -27,6 +27,24 @@ Assertions remain separate evidence rows. No assertion table is added. Consumers
 assertions by `(reference_site_id, target_symbol_id, canonical_kind)` and unresolved assertions by
 `(reference_site_id, target_name, canonical_kind)`.
 
+## Identifier receiver facts
+
+Canonical extraction owns receiver metadata. The CLI serializes these facts
+without inspecting source syntax. For a wholly named member chain such as
+`a.b.run()`, `receiver` is `b` and `receiver_qualifier` is `a`. These keys
+describe written qualification, not a resolved object or type.
+
+AST evidence supports Unicode names, multiline access, comments between tokens,
+and language-specific member syntax. Expression-rooted chains such as
+`factory().b.run()` and `items[0].run()` do not acquire a guessed named receiver.
+Existing language-specific receiver metadata remains authoritative as a pair;
+an explicit null receiver suppresses both keys in the artifact.
+
+`receiver_type` is independent type evidence from the language extractor.
+Attaching receiver metadata does not change identifier spans, reference-site
+identity, or relationship type facts. Embedded code is enriched against its own
+syntax tree before coordinates are mapped to the host file.
+
 ## Unsupported files are recorded, not parsed
 
 A `scan` records every file the discovery walk reached and dropped because no

@@ -555,7 +555,10 @@
       "end_byte": 195,
       "containing_key": "fixtures/extraction/typescript/http_client_axios/source.ts:loadUsers:7:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "response"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/http_client_axios/source.ts:get:call:17:15",
@@ -571,7 +574,10 @@
       "end_byte": 414,
       "containing_key": "fixtures/extraction/typescript/http_client_axios/source.ts:dynamicRequest:16:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "axios"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/http_client_axios/source.ts:get:member_access:8:31",
@@ -587,7 +593,10 @@
       "end_byte": 149,
       "containing_key": "fixtures/extraction/typescript/http_client_axios/source.ts:loadUsers:7:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "axios"
+      }
     },
     {
       "key": "fixtures/extraction/typescript/http_client_axios/source.ts:payload:variable_ref:13:52",

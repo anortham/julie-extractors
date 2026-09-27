@@ -814,7 +814,10 @@
       "end_byte": 512,
       "containing_key": "fixtures/extraction/go/gocheck_ginkgo/source_test.go:store:32:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "g"
+      }
     },
     {
       "key": "fixtures/extraction/go/gocheck_ginkgo/source_test.go:It:call:33:3",
@@ -830,7 +833,10 @@
       "end_byte": 536,
       "containing_key": "fixtures/extraction/go/gocheck_ginkgo/source_test.go:saves:33:1",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "g"
+      }
     },
     {
       "key": "fixtures/extraction/go/gocheck_ginkgo/source_test.go:Registry:type_usage:24:9",
@@ -926,7 +932,10 @@
       "end_byte": 204,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "check"
+      }
     },
     {
       "key": "fixtures/extraction/go/gocheck_ginkgo/source_test.go:Suite:call:30:17",
@@ -942,7 +951,10 @@
       "end_byte": 475,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "registry"
+      }
     },
     {
       "key": "fixtures/extraction/go/gocheck_ginkgo/source_test.go:T:type_usage:10:21",
@@ -974,7 +986,10 @@
       "end_byte": 138,
       "containing_key": "fixtures/extraction/go/gocheck_ginkgo/source_test.go:Test:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "check"
+      }
     },
     {
       "key": "fixtures/extraction/go/gocheck_ginkgo/source_test.go:Unregistered:type_usage:30:24",

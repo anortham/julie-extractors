@@ -394,7 +394,10 @@
       "end_byte": 54,
       "containing_key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:GET:1:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Response"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:json:call:6:31",
@@ -410,7 +413,10 @@
       "end_byte": 150,
       "containing_key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:POST:5:20",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "request"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:json:call:7:20",
@@ -426,7 +432,10 @@
       "end_byte": 178,
       "containing_key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:POST:5:20",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Response"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:request:variable_ref:6:23",
@@ -458,7 +467,10 @@
       "end_byte": 312,
       "containing_key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:serialize:11:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "JSON"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:value:variable_ref:12:26",

@@ -1207,7 +1207,10 @@
       "end_byte": 1042,
       "containing_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:Run:32:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "o"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:IService:type_usage:8:19",
@@ -1239,7 +1242,10 @@
       "end_byte": 530,
       "containing_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:Value:16:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Logger"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:LoadValue:call:10:35",
@@ -1351,7 +1357,10 @@
       "end_byte": 1135,
       "containing_key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:Run:32:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "_svc"
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/calls_and_bodies/source.vb:Service:type_usage:11:24",

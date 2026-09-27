@@ -817,7 +817,10 @@
       "end_byte": 358,
       "containing_key": "fixtures/extraction/elixir/call_initializers/source.ex:run:18:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Store"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/call_initializers/source.ex:load:member_access:22:21",
@@ -833,7 +836,10 @@
       "end_byte": 449,
       "containing_key": "fixtures/extraction/elixir/call_initializers/source.ex:run:18:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "External"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/call_initializers/source.ex:new:member_access:20:18",
@@ -849,7 +855,10 @@
       "end_byte": 382,
       "containing_key": "fixtures/extraction/elixir/call_initializers/source.ex:run:18:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Store"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/call_initializers/source.ex:open:member_access:21:32",
@@ -865,7 +874,10 @@
       "end_byte": 421,
       "containing_key": "fixtures/extraction/elixir/call_initializers/source.ex:run:18:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Store"
+      }
     },
     {
       "key": "fixtures/extraction/elixir/call_initializers/source.ex:other:variable_ref:23:22",

@@ -156,20 +156,23 @@
   ],
   "identifiers": [
     {
-      "key": "fixtures/extraction/r/cross_file/source.R:do_thing:call:14:2",
+      "key": "fixtures/extraction/r/cross_file/source.R:do_thing:call:14:9",
       "name": "do_thing",
       "kind": "call",
       "language": "r",
       "file_path": "fixtures/extraction/r/cross_file/source.R",
       "start_line": 14,
-      "start_column": 2,
+      "start_column": 9,
       "end_line": 14,
       "end_column": 17,
-      "start_byte": 391,
+      "start_byte": 398,
       "end_byte": 406,
       "containing_key": "fixtures/extraction/r/cross_file/source.R:entry:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "other"
+      }
     },
     {
       "key": "fixtures/extraction/r/cross_file/source.R:library:call:7:0",

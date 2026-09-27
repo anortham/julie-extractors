@@ -840,7 +840,10 @@
       "end_byte": 352,
       "containing_key": "fixtures/extraction/dart/test_roles/source.dart:emits one after increment:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "cubit"
+      }
     },
     {
       "key": "fixtures/extraction/dart/test_roles/source.dart:int:type_usage:12:27",

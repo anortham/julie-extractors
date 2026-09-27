@@ -1139,7 +1139,10 @@
       "end_byte": 573,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Request"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:Builder:call:20:12",
@@ -1155,7 +1158,10 @@
       "end_byte": 641,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Request"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:Builder:call:27:12",
@@ -1171,7 +1177,10 @@
       "end_byte": 954,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Request"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:GET:type_usage:11:5",
@@ -1462,7 +1471,10 @@
       "end_byte": 734,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "web"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:get:call:21:8",
@@ -1478,7 +1490,10 @@
       "end_byte": 688,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "web"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:get:call:28:8",
@@ -1494,7 +1509,10 @@
       "end_byte": 985,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "web"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:getForObject:call:23:9",
@@ -1510,7 +1528,10 @@
       "end_byte": 806,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "rest"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:getForObject:call:29:9",
@@ -1526,7 +1547,10 @@
       "end_byte": 1029,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "rest"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:java:member_access:23:53",
@@ -1542,7 +1566,11 @@
       "end_byte": 842,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "class",
+        "receiver_qualifier": "String"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:java:member_access:24:60",
@@ -1558,7 +1586,11 @@
       "end_byte": 908,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "class",
+        "receiver_qualifier": "String"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:java:member_access:29:41",
@@ -1574,7 +1606,11 @@
       "end_byte": 1053,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "class",
+        "receiver_qualifier": "String"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:post:call:20:36",
@@ -1606,7 +1642,10 @@
       "end_byte": 866,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "rest"
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:rest:variable_ref:23:4",

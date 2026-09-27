@@ -1039,7 +1039,10 @@
       "end_byte": 175,
       "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:calculator tdd:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "test"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:right:variable_ref:27:40",
@@ -1103,7 +1106,10 @@
       "end_byte": 222,
       "containing_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:calculator tdd:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "test"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:specify:call:19:4",
@@ -1151,7 +1157,10 @@
       "end_byte": 710,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "harness"
+      }
     },
     {
       "key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:suiteSetup:call:2:2",

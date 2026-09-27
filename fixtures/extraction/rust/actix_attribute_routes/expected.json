@@ -1281,7 +1281,10 @@
       "end_byte": 582,
       "containing_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:create:14:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "HttpResponse"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:HttpResponse:variable_ref:15:4",
@@ -1393,7 +1396,10 @@
       "end_byte": 886,
       "containing_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:destroy:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "HttpResponse"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:Ok:call:29:18",
@@ -1409,7 +1415,10 @@
       "end_byte": 1088,
       "containing_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:thing:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "HttpResponse"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:Ok:call:38:22",
@@ -1425,7 +1434,10 @@
       "end_byte": 1291,
       "containing_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:health:37:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "HttpResponse"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:Ok:call:47:18",
@@ -1441,7 +1453,10 @@
       "end_byte": 1501,
       "containing_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:list:46:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "HttpResponse"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:Ok:call:9:18",
@@ -1457,7 +1472,10 @@
       "end_byte": 426,
       "containing_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:show:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "HttpResponse"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:Path:type_usage:22:28",
@@ -1713,7 +1731,10 @@
       "end_byte": 449,
       "containing_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:show:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "path"
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:json:call:9:23",

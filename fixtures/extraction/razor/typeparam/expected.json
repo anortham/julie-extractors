@@ -247,7 +247,10 @@
       "end_byte": 190,
       "containing_key": "fixtures/extraction/razor/typeparam/GenericList.razor:GenericList:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Array"
+      }
     },
     {
       "key": "fixtures/extraction/razor/typeparam/GenericList.razor:IEntity:type_usage:2:31",

@@ -1934,7 +1934,10 @@
       "end_byte": 1023,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Foo"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:new:call:51:32",
@@ -1950,7 +1953,10 @@
       "end_byte": 1061,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Unknown"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:observe_run:call:21:4",
@@ -1983,7 +1989,10 @@
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Worker"
+      "receiver_type": "Worker",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:persist:call:63:13",
@@ -2000,7 +2009,10 @@
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:inner_run:62:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Bar"
+      "receiver_type": "Bar",
+      "metadata": {
+        "receiver": "self"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:range:call:35:17",
@@ -2049,7 +2061,10 @@
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:typed_params:48:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Node"
+      "receiver_type": "Node",
+      "metadata": {
+        "receiver": "super"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:restore:call:64:14",
@@ -2066,7 +2081,10 @@
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:inner_run:62:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Resource"
+      "receiver_type": "Resource",
+      "metadata": {
+        "receiver": "super"
+      }
     },
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:total:variable_ref:36:12",

@@ -761,7 +761,10 @@
       "end_byte": 422,
       "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "rocket"
+      }
     },
     {
       "key": "fixtures/extraction/rust/rocket_routes/source.rs:create:variable_ref:24:38",

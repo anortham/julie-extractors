@@ -628,7 +628,10 @@
       "end_byte": 543,
       "containing_key": "fixtures/extraction/jsx/language_gaps/source.jsx:Panel:22:14",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "React"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/language_gaps/source.jsx:EmptyState:call:11:29",
@@ -660,7 +663,10 @@
       "end_byte": 291,
       "containing_key": "fixtures/extraction/jsx/language_gaps/source.jsx:List:10:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "UI"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/language_gaps/source.jsx:Panel:member_access:13:8",
@@ -676,7 +682,10 @@
       "end_byte": 291,
       "containing_key": "fixtures/extraction/jsx/language_gaps/source.jsx:List:10:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "UI"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/language_gaps/source.jsx:Panel:member_access:17:9",
@@ -692,7 +701,10 @@
       "end_byte": 393,
       "containing_key": "fixtures/extraction/jsx/language_gaps/source.jsx:List:10:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "UI"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/language_gaps/source.jsx:Panel:variable_ref:23:9",
@@ -820,7 +832,10 @@
       "end_byte": 352,
       "containing_key": "fixtures/extraction/jsx/language_gaps/source.jsx:List:10:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "item"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/language_gaps/source.jsx:item:variable_ref:15:23",
@@ -900,7 +915,10 @@
       "end_byte": 227,
       "containing_key": "fixtures/extraction/jsx/language_gaps/source.jsx:List:10:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "items"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/language_gaps/source.jsx:map:call:14:13",
@@ -916,7 +934,10 @@
       "end_byte": 309,
       "containing_key": "fixtures/extraction/jsx/language_gaps/source.jsx:List:10:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "items"
+      }
     },
     {
       "key": "fixtures/extraction/jsx/language_gaps/source.jsx:memo:call:21:21",

@@ -19,6 +19,81 @@ mod identifier_extraction_tests {
     use super::*;
 
     #[test]
+    fn member_callees_have_one_identifier_per_token() {
+        let source = "void use(Thing& object) { object.send(); object.send(); auto value = object.child.value; }";
+        let results = crate::extract_canonical_for_language_at(
+            "cpp",
+            "source.cpp",
+            source,
+            &PathBuf::from("."),
+            crate::ExtractionLevel::Full,
+        )
+        .unwrap();
+        let calls: Vec<_> = results
+            .identifiers
+            .iter()
+            .filter(|identifier| identifier.name == "send")
+            .collect();
+        assert_eq!(calls.len(), 2);
+        assert!(
+            calls
+                .iter()
+                .all(|identifier| identifier.kind == IdentifierKind::Call)
+        );
+        assert_ne!(calls[0].id, calls[1].id);
+        for name in ["child", "value"] {
+            assert!(results.identifiers.iter().any(|identifier| {
+                identifier.name == name && identifier.kind == IdentifierKind::MemberAccess
+            }));
+        }
+        let mut ids = std::collections::HashSet::new();
+        assert!(
+            results
+                .identifiers
+                .iter()
+                .all(|identifier| ids.insert(&identifier.id))
+        );
+    }
+
+    #[test]
+    fn qualified_and_template_calls_select_the_terminal_name() {
+        let source = "void use(Worker& object) { remote::ns::run(); Box<Item>::make(); object.send<Item>(); }";
+        let results = crate::extract_canonical_for_language_at(
+            "cpp",
+            "source.cpp",
+            source,
+            &PathBuf::from("."),
+            crate::ExtractionLevel::Full,
+        )
+        .unwrap();
+        for (name, receiver, qualifier) in [
+            ("run", "ns", Some("remote")),
+            ("make", "Box", None),
+            ("send", "object", None),
+        ] {
+            let call = results
+                .identifiers
+                .iter()
+                .find(|identifier| {
+                    identifier.kind == IdentifierKind::Call && identifier.name == name
+                })
+                .unwrap_or_else(|| panic!("missing call {name}: {:?}", results.identifiers));
+            assert_eq!(
+                &source[call.start_byte as usize..call.end_byte as usize],
+                name
+            );
+            let metadata = call.metadata.as_ref().expect("named receiver metadata");
+            assert_eq!(metadata["receiver"].as_str(), Some(receiver));
+            assert_eq!(
+                metadata
+                    .get("receiver_qualifier")
+                    .and_then(serde_json::Value::as_str),
+                qualifier
+            );
+        }
+    }
+
+    #[test]
     fn test_extract_function_calls() {
         let cpp_code = r#"
 class Calculator {

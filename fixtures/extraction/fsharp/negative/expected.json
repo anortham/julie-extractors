@@ -174,7 +174,10 @@
       "end_byte": 82,
       "containing_key": "fixtures/extraction/fsharp/negative/source.fs:caller:4:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "input"
+      }
     },
     {
       "key": "fixtures/extraction/fsharp/negative/source.fs:input:variable_ref:7:12",

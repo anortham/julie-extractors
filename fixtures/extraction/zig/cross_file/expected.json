@@ -200,7 +200,10 @@
       "end_byte": 469,
       "containing_key": "fixtures/extraction/zig/cross_file/source.zig:entry:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "m"
+      }
     },
     {
       "key": "fixtures/extraction/zig/cross_file/source.zig:local_helper:call:13:16",

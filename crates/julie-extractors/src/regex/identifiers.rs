@@ -49,60 +49,66 @@ fn extract_identifier_from_node(
     containing_symbols: &[Symbol],
 ) {
     match node.kind() {
-        // Backreferences: tree-sitter-regex uses "backreference_escape" for \k
-        // But doesn't properly parse the <name> part, so we need to extract manually
         "backreference_escape" => {
-            // Get the full text context around this node to find the group name
             let start_byte = node.start_byte();
-            let content_after = &base.content[start_byte..];
+            let backref_text = base.get_node_text(&node);
 
-            // Try to extract \k<name> pattern manually
-            if content_after.starts_with("\\k<")
-                && let Some(end_pos) = content_after.find('>')
+            if backref_text.starts_with("\\k<")
+                && let Some(end_pos) = backref_text.find('>')
             {
-                // SAFETY: Check char boundary before slicing to prevent UTF-8 panic
-                if content_after.is_char_boundary(3) && content_after.is_char_boundary(end_pos) {
-                    let group_name = content_after[3..end_pos].to_string();
+                if backref_text.is_char_boundary(3) && backref_text.is_char_boundary(end_pos) {
+                    let group_name = backref_text[3..end_pos].to_string();
                     if !group_name.is_empty() {
                         let containing_symbol_id =
                             find_containing_symbol_id(node, containing_symbols);
 
-                        base.create_identifier(
-                            &node,
-                            group_name,
-                            IdentifierKind::Call,
-                            containing_symbol_id,
-                        );
+                        if let Some(span) =
+                            base.span_for_byte_range(start_byte + 3, start_byte + end_pos)
+                        {
+                            base.create_identifier_at_span(
+                                span,
+                                group_name,
+                                IdentifierKind::Call,
+                                containing_symbol_id,
+                                None,
+                            );
+                        }
                     }
                 }
             }
         }
 
-        // Original "backreference" node type (if tree-sitter-regex ever adds proper support)
         "backreference" => {
             let backref_text = base.get_node_text(&node);
 
-            // Try to extract named backreference (e.g., \k<email>)
-            if let Some(group_name) = flags::extract_backref_group_name(&backref_text) {
+            if let Some(group_name) = flags::extract_backref_group_name(&backref_text)
+                && let Some(name_start) = backref_text
+                    .find("\\k<")
+                    .map(|start| start + 3)
+                    .or_else(|| backref_text.find("(?P=").map(|start| start + 4))
+                && let Some(span) = base.span_for_byte_range(
+                    node.start_byte() + name_start,
+                    node.start_byte() + name_start + group_name.len(),
+                )
+            {
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
-                base.create_identifier(
-                    &node,
+                base.create_identifier_at_span(
+                    span,
                     group_name,
                     IdentifierKind::Call,
                     containing_symbol_id,
+                    None,
                 );
             }
-            // Note: Numeric backreferences (\1, \2) don't have names to track
         }
 
-        // Python-style named backreference: (?P=name)
         "named_group_backreference" => {
             if let Some(name_node) = groups::group_name_node(node) {
                 let group_name = base.get_node_text(&name_node);
                 let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
                 base.create_identifier(
-                    &node,
+                    &name_node,
                     group_name,
                     IdentifierKind::Call,
                     containing_symbol_id,

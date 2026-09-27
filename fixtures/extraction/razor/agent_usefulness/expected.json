@@ -496,7 +496,10 @@
       "end_byte": 420,
       "containing_key": "fixtures/extraction/razor/agent_usefulness/source.razor:Configure:6:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/razor/agent_usefulness/source.razor:MapHead:call:9:12",
@@ -512,7 +515,10 @@
       "end_byte": 523,
       "containing_key": "fixtures/extraction/razor/agent_usefulness/source.razor:Configure:6:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/razor/agent_usefulness/source.razor:MapMethods:call:8:14",
@@ -528,7 +534,10 @@
       "end_byte": 454,
       "containing_key": "fixtures/extraction/razor/agent_usefulness/source.razor:Configure:6:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "group"
+      }
     },
     {
       "key": "fixtures/extraction/razor/agent_usefulness/source.razor:MapOptions:call:10:12",
@@ -544,7 +553,10 @@
       "end_byte": 568,
       "containing_key": "fixtures/extraction/razor/agent_usefulness/source.razor:Configure:6:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/razor/agent_usefulness/source.razor:app:variable_ref:10:8",

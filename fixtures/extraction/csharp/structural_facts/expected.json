@@ -669,7 +669,10 @@
       "end_byte": 110,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "builder"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:Builder:type_usage:1:27",
@@ -701,7 +704,10 @@
       "end_byte": 79,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "WebApplication"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:CreateTodo:variable_ref:11:23",
@@ -797,7 +803,10 @@
       "end_byte": 197,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:MapGet:call:14:4",
@@ -813,7 +822,10 @@
       "end_byte": 352,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:MapGet:call:15:4",
@@ -829,7 +841,10 @@
       "end_byte": 392,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:MapGet:call:6:4",
@@ -845,7 +860,10 @@
       "end_byte": 125,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:MapGroup:call:10:16",
@@ -861,7 +879,10 @@
       "end_byte": 251,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:MapPost:call:11:6",
@@ -877,7 +898,10 @@
       "end_byte": 287,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "admin"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:MapPost:call:7:4",
@@ -893,7 +917,10 @@
       "end_byte": 160,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "app"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:Microsoft:type_usage:1:6",
@@ -925,7 +952,10 @@
       "end_byte": 469,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:CreateTodo:17:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Results"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:Ok:call:18:45",
@@ -941,7 +971,10 @@
       "end_byte": 520,
       "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:DeleteTodo:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "Results"
+      }
     },
     {
       "key": "fixtures/extraction/csharp/structural_facts/source.cs:Results:variable_ref:17:31",

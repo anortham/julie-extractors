@@ -189,7 +189,10 @@
       "end_byte": 193,
       "containing_key": "fixtures/extraction/vue/http_client/source.vue:load:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "axios"
+      }
     },
     {
       "key": "fixtures/extraction/vue/http_client/source.vue:load:call:2:18",

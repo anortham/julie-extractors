@@ -2768,7 +2768,10 @@
       "end_byte": 133,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:now:7:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "System"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:deprecated:type_usage:14:1",
@@ -2848,7 +2851,10 @@
       "end_byte": 1653,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:fetch:67:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "requests"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:get:call:68:64",
@@ -2992,7 +2998,10 @@
       "end_byte": 1467,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:show:60:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "a"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:n:variable_ref:43:36",
@@ -3104,7 +3113,10 @@
       "end_byte": 1514,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:area:63:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "s"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:r:member_access:63:29",
@@ -3120,7 +3132,10 @@
       "end_byte": 1520,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:area:63:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "s"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:repo:variable_ref:38:16",
@@ -3248,7 +3263,10 @@
       "end_byte": 1387,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:show:57:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "a"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:url:call:68:30",
@@ -3264,7 +3282,10 @@
       "end_byte": 1725,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:load:68:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "ws"
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:volatile:type_usage:29:3",

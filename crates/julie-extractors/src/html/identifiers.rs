@@ -76,23 +76,30 @@ impl IdentifierExtractor {
             );
         }
 
-        let declared: Vec<String> = match name.as_str() {
+        let declared: Vec<(usize, String)> = match name.as_str() {
             "class" => class_tokens(&value),
-            "id" if !is_templated(&value) && !value.trim().is_empty() => vec![value.clone()],
+            "id" if !is_templated(&value) && !value.trim().is_empty() => {
+                vec![(0, value.clone())]
+            }
             _ => Vec::new(),
         };
-        for member_name in declared {
-            base.create_identifier(
-                &node,
-                member_name,
-                IdentifierKind::MemberAccess,
-                containing_symbol_id.clone(),
-            );
-        }
-
         let Some(value_start) = value_node.map(inner_value_start) else {
             return;
         };
+        for (offset, member_name) in declared {
+            if let Some(span) = base.span_for_byte_range(
+                value_start + offset,
+                value_start + offset + member_name.len(),
+            ) {
+                base.create_identifier_at_span(
+                    span,
+                    member_name,
+                    IdentifierKind::MemberAccess,
+                    containing_symbol_id.clone(),
+                    None,
+                );
+            }
+        }
         for (offset, id) in id_references(&name, &value) {
             let start = value_start + offset;
             if let Some(span) = base.span_for_byte_range(start, start + id.len()) {
@@ -117,38 +124,41 @@ impl IdentifierExtractor {
 }
 
 /// Class names in a `class` value, with server-template segments removed.
-fn class_tokens(value: &str) -> Vec<String> {
-    strip_template_segments(value)
-        .split_whitespace()
-        .filter(|token| {
-            !token.chars().any(|c| {
-                matches!(
-                    c,
-                    '{' | '}' | '%' | '<' | '>' | '=' | '"' | '\'' | '(' | ')'
-                )
-            })
-        })
-        .map(str::to_string)
-        .collect()
-}
-
-fn strip_template_segments(value: &str) -> String {
-    let mut stripped = String::with_capacity(value.len());
+fn class_tokens(value: &str) -> Vec<(usize, String)> {
+    let mut tokens = Vec::new();
     let mut rest = value;
+    let mut rest_start = 0;
     while let Some((open, close)) = [("{{", "}}"), ("{%", "%}"), ("<%", "%>"), ("{#", "#}")]
         .iter()
         .filter_map(|(open, close)| rest.find(open).map(|at| (at, *close)))
         .min_by_key(|(at, _)| *at)
     {
-        stripped.push_str(&rest[..open]);
-        stripped.push(' ');
-        rest = match rest[open + 2..].find(close) {
-            Some(end) => &rest[open + 2 + end + close.len()..],
-            None => "",
+        push_class_tokens(&rest[..open], rest_start, &mut tokens);
+        let Some(end) = rest[open + 2..].find(close) else {
+            return tokens;
         };
+        let consumed = open + 2 + end + close.len();
+        rest = &rest[consumed..];
+        rest_start += consumed;
     }
-    stripped.push_str(rest);
-    stripped
+    push_class_tokens(rest, rest_start, &mut tokens);
+    tokens
+}
+
+fn push_class_tokens(value: &str, source_start: usize, tokens: &mut Vec<(usize, String)>) {
+    let mut search_start = 0;
+    for token in value.split_whitespace() {
+        let token_start = search_start + value[search_start..].find(token).unwrap();
+        search_start = token_start + token.len();
+        if !token.chars().any(|c| {
+            matches!(
+                c,
+                '{' | '}' | '%' | '<' | '>' | '=' | '"' | '\'' | '(' | ')'
+            )
+        }) {
+            tokens.push((source_start + token_start, token.to_string()));
+        }
+    }
 }
 
 /// Attributes whose value names one element id.
