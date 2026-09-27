@@ -744,7 +744,14 @@
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_NightlyTotals:37:0",
-      "span": null
+      "span": {
+        "start_line": 40,
+        "start_column": 16,
+        "end_line": 40,
+        "end_column": 31,
+        "start_byte": 1116,
+        "end_byte": 1131
+      }
     },
     {
       "pending": {
@@ -765,7 +772,14 @@
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
-      "span": null
+      "span": {
+        "start_line": 31,
+        "start_column": 12,
+        "end_line": 31,
+        "end_column": 30,
+        "start_byte": 926,
+        "end_byte": 944
+      }
     },
     {
       "pending": {
@@ -786,7 +800,14 @@
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_PlaceOrder:22:0",
-      "span": null
+      "span": {
+        "start_line": 29,
+        "start_column": 16,
+        "end_line": 29,
+        "end_column": 31,
+        "start_byte": 828,
+        "end_byte": 843
+      }
     },
     {
       "pending": {
@@ -807,7 +828,14 @@
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/sql/tsql_routines/source.sql:usp_WriteAudit:16:0",
-      "span": null
+      "span": {
+        "start_line": 19,
+        "start_column": 16,
+        "end_line": 19,
+        "end_column": 30,
+        "start_byte": 519,
+        "end_byte": 533
+      }
     }
   ],
   "identifiers": [

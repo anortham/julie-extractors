@@ -865,27 +865,28 @@ fn map_relationships(
                 .span
                 .as_ref()
                 .filter(|_| relationship.reference_site_is_exact);
+            let relationship_id = relationship.span.as_ref().map_or_else(
+                || relationship.id.clone(),
+                |span| {
+                    stable_id(
+                        "relationship",
+                        [
+                            relationship.from_symbol_id.clone(),
+                            relationship.to_symbol_id.clone(),
+                            relationship.kind.to_string(),
+                            span.start_line.to_string(),
+                            span.start_column.to_string(),
+                            span.end_line.to_string(),
+                            span.end_column.to_string(),
+                            span.start_byte.to_string(),
+                            span.end_byte.to_string(),
+                        ],
+                    )
+                },
+            );
             Ok(ArtifactRelationship {
-                reference_site_id: reference_site_id(file_id, span, &relationship.id),
-                relationship_id: span.map_or_else(
-                    || relationship.id.clone(),
-                    |span| {
-                        stable_id(
-                            "relationship",
-                            [
-                                relationship.from_symbol_id.clone(),
-                                relationship.to_symbol_id.clone(),
-                                relationship.kind.to_string(),
-                                span.start_line.to_string(),
-                                span.start_column.to_string(),
-                                span.end_line.to_string(),
-                                span.end_column.to_string(),
-                                span.start_byte.to_string(),
-                                span.end_byte.to_string(),
-                            ],
-                        )
-                    },
-                ),
+                reference_site_id: reference_site_id(file_id, span, &relationship_id),
+                relationship_id,
                 from_symbol_id: relationship.from_symbol_id.clone(),
                 to_symbol_id: relationship.to_symbol_id.clone(),
                 kind: relationship.kind.to_string(),
@@ -946,7 +947,7 @@ fn map_structured_pending(
         pending.target.display_name.as_str(),
         pending.pending.kind.to_string().as_str(),
         pending.pending.line_number,
-        span,
+        pending.span.as_ref(),
     );
     Ok(ArtifactPendingRelationship {
         reference_site_id: reference_site_id(file_id, span, &pending_relationship_id),
@@ -1325,10 +1326,6 @@ fn pending_id(
     line_number: u32,
     span: Option<&NormalizedSpan>,
 ) -> String {
-    // Spanless rows keep the historical (from, name, kind, line) identity so
-    // their dedup behavior is unchanged. When a call-site span is present, fold
-    // in the occurrence's start_byte/start_column so two same-name calls on one
-    // line become distinct rows.
     match span {
         Some(span) => stable_id(
             "pending_relationship",
@@ -1339,6 +1336,9 @@ fn pending_id(
                 line_number.to_string().as_str(),
                 span.start_byte.to_string().as_str(),
                 span.start_column.to_string().as_str(),
+                span.end_byte.to_string().as_str(),
+                span.end_line.to_string().as_str(),
+                span.end_column.to_string().as_str(),
             ],
         ),
         None => stable_id(
@@ -1677,6 +1677,20 @@ mod tests {
         assert_eq!(a, b, "spanless ids for the same key must be identical");
     }
 
+    #[test]
+    fn pending_id_distinguishes_context_spans_with_a_shared_start() {
+        let inner = span_at(20, 10);
+        let outer = NormalizedSpan {
+            end_byte: 40,
+            end_column: 30,
+            ..inner
+        };
+        assert_ne!(
+            pending_id("caller", "external", "calls", 5, Some(&inner)),
+            pending_id("caller", "external", "calls", 5, Some(&outer))
+        );
+    }
+
     /// Invariant: adding a span never collides with the spanless id, and two
     /// same-line occurrences with different byte offsets get distinct ids —
     /// the property the occurrence-distinct row test relies on.
@@ -1854,6 +1868,40 @@ mod tests {
             artifact.structural_facts[0].structural_fact_id,
             "structural-fact:duplicate"
         );
+    }
+
+    #[test]
+    fn map_results_dedupes_repeated_evidence_for_the_same_reference_occurrence() {
+        let source = "fn local() {} fn caller() { local(); external(); }";
+        let mut results = extract_canonical_for_language_at(
+            "rust",
+            "x.rs",
+            source,
+            Path::new("."),
+            ExtractionLevel::Full,
+        )
+        .unwrap();
+        results.relationships.extend(results.relationships.clone());
+        results
+            .structured_pending_relationships
+            .extend(results.structured_pending_relationships.clone());
+        let snapshot = SourceSnapshot {
+            content: source.to_string(),
+            content_hash: content_hash(source),
+            content_bytes: source.len() as i64,
+            line_count: Some(1),
+        };
+        let artifact = map_results(
+            &sample_target(),
+            "rust".to_string(),
+            "2026-09-27T00:00:00Z".to_string(),
+            &snapshot,
+            results,
+        )
+        .unwrap();
+
+        assert_eq!(artifact.relationships.len(), 1);
+        assert_eq!(artifact.pending_relationships.len(), 1);
     }
 
     fn call_identifier(name: &str, start_byte: u32) -> Identifier {

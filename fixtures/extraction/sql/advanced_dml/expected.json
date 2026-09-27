@@ -156,7 +156,14 @@
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/sql/advanced_dml/source.sql:MarkWorker:4:0",
-      "span": null
+      "span": {
+        "start_line": 8,
+        "start_column": 11,
+        "end_line": 8,
+        "end_column": 22,
+        "start_byte": 172,
+        "end_byte": 183
+      }
     }
   ],
   "identifiers": [

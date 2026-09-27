@@ -98,7 +98,14 @@
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/sql/return_types/source.sql:make:2:0",
-      "span": null
+      "span": {
+        "start_line": 2,
+        "start_column": 64,
+        "end_line": 2,
+        "end_column": 67,
+        "start_byte": 95,
+        "end_byte": 98
+      }
     }
   ],
   "identifiers": [

@@ -7,10 +7,7 @@
 //! relationship when the target is declared in this file, a structured pending
 //! relationship otherwise.
 
-use crate::base::{
-    BaseExtractor, Relationship, RelationshipKind, StructuredPendingRelationship, Symbol,
-    UnresolvedTarget,
-};
+use crate::base::{BaseExtractor, Relationship, RelationshipKind, Symbol, UnresolvedTarget};
 use crate::sql::helpers::normalize_sql_identifier;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
@@ -179,15 +176,15 @@ fn record_reference(
             namespace_path: parts[..parts.len() - 1].to_vec(),
             import_context: None,
         };
-        base.add_structured_pending_relationship(StructuredPendingRelationship::new(
+        let pending = base.create_pending_relationship(
             owner.id.clone(),
             target,
-            Some(owner.id.clone()),
             kind,
-            base.file_path.clone(),
-            line_number,
-            1.0,
-        ));
+            &node,
+            Some(owner.id.clone()),
+            None,
+        );
+        base.add_structured_pending_relationship(pending);
         return;
     };
 

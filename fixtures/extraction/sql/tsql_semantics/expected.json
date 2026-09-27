@@ -524,7 +524,14 @@
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/sql/tsql_semantics/source.sql:SetUp:11:0",
-      "span": null
+      "span": {
+        "start_line": 14,
+        "start_column": 9,
+        "end_line": 14,
+        "end_column": 24,
+        "start_byte": 335,
+        "end_byte": 350
+      }
     }
   ],
   "identifiers": [

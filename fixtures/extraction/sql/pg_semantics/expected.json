@@ -919,7 +919,14 @@
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/sql/pg_semantics/source.sql:archive_old_orders:38:0",
-      "span": null
+      "span": {
+        "start_line": 43,
+        "start_column": 11,
+        "end_line": 43,
+        "end_column": 16,
+        "start_byte": 1244,
+        "end_byte": 1249
+      }
     },
     {
       "pending": {
@@ -938,7 +945,14 @@
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/sql/pg_semantics/source.sql:daily_revenue:30:0",
-      "span": null
+      "span": {
+        "start_line": 31,
+        "start_column": 18,
+        "end_line": 31,
+        "end_column": 21,
+        "start_byte": 945,
+        "end_byte": 948
+      }
     },
     {
       "pending": {
@@ -957,7 +971,14 @@
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/sql/pg_semantics/source.sql:test_totals:54:0",
-      "span": null
+      "span": {
+        "start_line": 54,
+        "start_column": 81,
+        "end_line": 54,
+        "end_column": 83,
+        "start_byte": 1809,
+        "end_byte": 1811
+      }
     }
   ],
   "identifiers": [

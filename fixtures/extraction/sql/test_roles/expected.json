@@ -244,7 +244,14 @@
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/sql/test_roles/source.sql:setup_user:6:0",
-      "span": null
+      "span": {
+        "start_line": 6,
+        "start_column": 74,
+        "end_line": 6,
+        "end_column": 78,
+        "start_byte": 239,
+        "end_byte": 243
+      }
     },
     {
       "pending": {
@@ -263,7 +270,14 @@
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/sql/test_roles/source.sql:teardown_user:7:0",
-      "span": null
+      "span": {
+        "start_line": 7,
+        "start_column": 77,
+        "end_line": 7,
+        "end_column": 81,
+        "start_byte": 335,
+        "end_byte": 339
+      }
     },
     {
       "pending": {
@@ -282,7 +296,14 @@
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/sql/test_roles/source.sql:test_user:5:0",
-      "span": null
+      "span": {
+        "start_line": 5,
+        "start_column": 73,
+        "end_line": 5,
+        "end_column": 75,
+        "start_byte": 151,
+        "end_byte": 153
+      }
     }
   ],
   "identifiers": [
