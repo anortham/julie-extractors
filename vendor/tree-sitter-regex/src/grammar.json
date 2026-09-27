@@ -126,6 +126,10 @@
               },
               {
                 "type": "SYMBOL",
+                "name": "branch_reset_group"
+              },
+              {
+                "type": "SYMBOL",
                 "name": "conditional_group"
               },
               {
@@ -401,6 +405,23 @@
         {
           "type": "STRING",
           "value": "(?>"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "pattern"
+        },
+        {
+          "type": "STRING",
+          "value": ")"
+        }
+      ]
+    },
+    "branch_reset_group": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "(?|"
         },
         {
           "type": "SYMBOL",

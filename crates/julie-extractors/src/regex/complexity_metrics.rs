@@ -146,6 +146,7 @@ fn collect_stats(
         | "named_capturing_group"
         | "non_capturing_group"
         | "atomic_group"
+        | "branch_reset_group"
         | "conditional_group"
         | "lookaround_assertion" => true,
         "inline_flags_group" => is_scoped_inline_flags_group(node),

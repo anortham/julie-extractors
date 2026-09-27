@@ -7470,6 +7470,11 @@
           "name": "conditionals",
           "source": "fixtures/extraction/regex/conditionals/source.regex",
           "expected": "fixtures/extraction/regex/conditionals/expected.json"
+        },
+        {
+          "name": "branch_reset",
+          "source": "fixtures/extraction/regex/branch_reset/source.regex",
+          "expected": "fixtures/extraction/regex/branch_reset/expected.json"
         }
       ],
       "target_capabilities": {
@@ -7534,6 +7539,7 @@
             "regex.alternation.v1",
             "regex.anchor.v1",
             "regex.backreference.v1",
+            "regex.branch_reset.v1",
             "regex.capture_group.v1",
             "regex.character_class.v1",
             "regex.conditional.v1",
@@ -7544,14 +7550,7 @@
             "regex.quoted_literal.v1"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "regex_branch_reset_groups",
-              "reason": "PCRE2 branch-reset groups (?|...) remain unsupported; their reused capture numbers cannot be assigned reliable targets by the current grammar.",
-              "required_closure": "Add a branch-reset AST rule and branch-aware capture numbering, preserve every possible capture target, and add golden/public extraction evidence.",
-              "planned_closure_task": "docs/plans/2026-09-27-reference-integrity.md: Branch-reset capture groups"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [

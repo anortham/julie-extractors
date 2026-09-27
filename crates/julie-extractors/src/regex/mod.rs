@@ -127,9 +127,12 @@ fn verbose_comment_start(line: &str) -> Option<usize> {
 }
 
 /// The capture groups one pattern declares: how many, and their names.
+/// Capture numbers of one pattern, assigned by PCRE2 rules.
 pub(crate) struct CaptureInventory {
     pub(crate) count: usize,
     pub(crate) names: HashSet<String>,
+    numbers: HashMap<usize, usize>,
+    opened_before: HashMap<usize, usize>,
 }
 
 impl CaptureInventory {
@@ -137,34 +140,66 @@ impl CaptureInventory {
         let mut inventory = Self {
             count: 0,
             names: HashSet::new(),
+            numbers: HashMap::new(),
+            opened_before: HashMap::new(),
         };
-        inventory.collect(root, content, 0);
+        inventory.collect(root, content, &mut 0, 0);
         inventory
     }
 
-    fn collect(&mut self, node: Node, content: &str, depth: u32) {
+    /// The capture number of an anonymous or named capturing group.
+    pub(crate) fn number(&self, group: Node) -> Option<usize> {
+        self.numbers.get(&group.start_byte()).copied()
+    }
+
+    /// The number of the last capture opened before a conditional condition,
+    /// which anchors its relative `-n` and `+n` references.
+    pub(crate) fn opened_before(&self, condition: Node) -> Option<usize> {
+        self.opened_before.get(&condition.start_byte()).copied()
+    }
+
+    fn collect(&mut self, node: Node, content: &str, opened: &mut usize, depth: u32) {
         if !should_visit_tree_depth(depth) {
             return;
         }
         match node.kind() {
-            "anonymous_capturing_group" => self.count += 1,
+            "anonymous_capturing_group" => self.open(node, opened),
             "named_capturing_group" => {
-                self.count += 1;
+                self.open(node, opened);
                 if let Some(name) = groups::group_name_node(node)
                     .and_then(|name| content.get(name.start_byte()..name.end_byte()))
                 {
                     self.names.insert(name.to_string());
                 }
             }
+            "conditional_condition" => {
+                self.opened_before.insert(node.start_byte(), *opened);
+            }
             _ => {}
         }
         let Some(child_depth) = child_tree_depth(depth) else {
             return;
         };
+        let restarts_per_branch = groups::is_branch_reset_alternation(node);
+        let branch_start = *opened;
+        let mut widest = branch_start;
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.collect(child, content, child_depth);
+            if restarts_per_branch {
+                *opened = branch_start;
+            }
+            self.collect(child, content, opened, child_depth);
+            widest = widest.max(*opened);
         }
+        if restarts_per_branch {
+            *opened = widest;
+        }
+    }
+
+    fn open(&mut self, group: Node, opened: &mut usize) {
+        *opened += 1;
+        self.count = self.count.max(*opened);
+        self.numbers.insert(group.start_byte(), *opened);
     }
 }
 
@@ -227,15 +262,15 @@ impl RegexExtractor {
         let mut symbols = Vec::new();
         let pattern_trees = std::mem::take(&mut self.pattern_trees);
         for pattern_tree in &pattern_trees {
+            let captures = CaptureInventory::of(pattern_tree.root_node(), &self.base.content);
             let referenced_capture_numbers =
-                relationships::referenced_capture_numbers(&self.base, pattern_tree);
-            let mut capture_index = 0;
+                relationships::referenced_capture_numbers(&self.base, pattern_tree, &captures);
             self.visit_node(
                 pattern_tree.root_node(),
                 &mut symbols,
                 None,
                 &referenced_capture_numbers,
-                &mut capture_index,
+                &captures,
                 0,
             );
         }
@@ -249,7 +284,7 @@ impl RegexExtractor {
         symbols: &mut Vec<Symbol>,
         parent_id: Option<String>,
         referenced_capture_numbers: &HashSet<usize>,
-        capture_index: &mut usize,
+        captures: &CaptureInventory,
         depth: u32,
     ) -> Option<String> {
         if !should_visit_tree_depth(depth) {
@@ -263,31 +298,28 @@ impl RegexExtractor {
             "character_class" => {
                 patterns::extract_character_class(&mut self.base, node, parent_id.clone())
             }
-            "named_capturing_group" => {
-                *capture_index += 1;
+            "named_capturing_group" => captures.number(node).and_then(|capture_index| {
                 patterns::extract_group(&mut self.base, node, parent_id.clone()).map(
                     |mut symbol| {
                         symbol.kind = SymbolKind::Function;
-                        add_capture_index(&mut symbol, *capture_index);
+                        add_capture_index(&mut symbol, capture_index);
                         symbol
                     },
                 )
-            }
+            }),
             // Anonymous capture groups are symbols only when a numeric backreference targets them.
-            "anonymous_capturing_group" => {
-                *capture_index += 1;
-                if referenced_capture_numbers.contains(capture_index) {
+            "anonymous_capturing_group" => captures
+                .number(node)
+                .filter(|capture_index| referenced_capture_numbers.contains(capture_index))
+                .and_then(|capture_index| {
                     patterns::extract_group(&mut self.base, node, parent_id.clone()).map(
                         |mut symbol| {
                             symbol.kind = SymbolKind::Function;
-                            add_capture_index(&mut symbol, *capture_index);
+                            add_capture_index(&mut symbol, capture_index);
                             symbol
                         },
                     )
-                } else {
-                    None
-                }
-            }
+                }),
             "lookaround_assertion" => {
                 patterns::extract_lookaround(&mut self.base, node, parent_id.clone())
             }
@@ -324,7 +356,7 @@ impl RegexExtractor {
                 symbols,
                 current_parent_id.clone(),
                 referenced_capture_numbers,
-                capture_index,
+                captures,
                 child_depth,
             );
         }

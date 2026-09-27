@@ -4,7 +4,8 @@ This parser is based on `tree-sitter-regex` 0.25.0 from
 `tree-sitter/tree-sitter-regex`, upstream commit
 `b2ac15e27fce703d2f37a79ccd94a5c0cbe9720b` (MIT license). The upstream
 grammar did not parse conditional or atomic groups. `grammar.js` adds
-conditional-group rules and an atomic-group rule. The atomic rule keeps atomic
+conditional-group rules, an atomic-group rule and a branch-reset rule for
+`(?|...)`. The atomic rule keeps atomic
 patterns inside the root `pattern` node while the conditional rule handles the
 shared `(?` prefix. `src/parser.c` and `src/node-types.json` are generated from
 that grammar with tree-sitter CLI 0.26.11 using:

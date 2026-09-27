@@ -108,6 +108,18 @@ in parser inventory and capability metadata. The SQLite schema is unchanged.
 Re-extract existing artifacts with the changed binary and `--force` to replace
 old facts; the extraction contract prevents mixing producer semantics.
 
+Regex branch-reset groups `(?|...)` now parse and add
+`regex-branch-reset-v1` to the extraction contract. One new pattern id,
+`regex.branch_reset.v1`, records each group with `branch_count`. Captures
+inside the group use PCRE2 numbering: each branch restarts at the same number,
+and later captures continue from the widest branch. `capture_index` on capture
+facts and `captureIndex` on capture symbols can therefore repeat within one
+pattern. A backreference or condition to a shared number or name emits one
+`references` row per group that holds it. Before this change the construct
+produced parse diagnostics and sequential numbers. Consumer action for
+code-kb: allow repeated capture numbers, and re-extract regex files with
+`--force`.
+
 Five cross-language parity fixes across JavaScript, TypeScript, and C++, and
 one Flask route change. No SQLite or report-schema column is added, removed, or
 retyped: SQLite schema remains 7, report schema remains 3, and extraction

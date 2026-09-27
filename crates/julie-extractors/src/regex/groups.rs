@@ -38,3 +38,13 @@ pub(crate) fn group_name_node(node: tree_sitter::Node) -> Option<tree_sitter::No
     node.named_children(&mut cursor)
         .find(|child| child.kind() == "group_name")
 }
+
+/// True for the alternation directly inside a PCRE2 branch-reset group
+/// `(?|...)`, whose branches each restart capture numbering.
+pub(crate) fn is_branch_reset_alternation(node: tree_sitter::Node) -> bool {
+    node.kind() == "alternation"
+        && node
+            .parent()
+            .and_then(|pattern| pattern.parent())
+            .is_some_and(|group| group.kind() == "branch_reset_group")
+}

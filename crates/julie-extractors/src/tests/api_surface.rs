@@ -65,6 +65,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "typescript-constructor-assigned-properties-v1",
         "flask-route-endpoint-v1",
         "reference-integrity-v1",
+        "regex-branch-reset-v1",
     ] {
         assert!(
             version.contains(marker),

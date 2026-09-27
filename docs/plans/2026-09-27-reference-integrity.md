@@ -101,4 +101,6 @@ Unknown receiver types require a consumer join over published type facts. Signal
 
 ### Branch-reset capture groups
 
-The conditional grammar audit also identified a separate pre-existing PCRE2 gap: `(?|...)` branch-reset groups are unsupported. They share capture numbers across alternative branches, unlike ordinary groups. A follow-up must add the grammar node, reset numbering at each branch, preserve every possible capture target and cover the result with golden fixtures. This new entry is outside the original 21 declarations; conditional support does not claim support for every PCRE2 group form.
+The conditional grammar audit also identified a separate pre-existing PCRE2 gap: `(?|...)` branch-reset groups were unsupported. This entry was outside the original 21 declarations.
+
+Closed on branch `fix/regex-branch-reset`. The vendored grammar adds a `branch_reset_group` rule. `CaptureInventory` is now the one source of PCRE2 capture numbers for symbols, relationships and structural facts; it restarts numbering per branch and records the open-capture count at each condition for relative references. References to a shared number or name target every group that holds it. Evidence: the `regex/branch_reset` golden fixture, `crates/julie-extractors/tests/regex_branch_reset.rs`, and `regex.branch_reset.v1` in the capability manifest. The regex `open_gaps` list is empty.

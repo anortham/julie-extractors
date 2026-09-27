@@ -56,6 +56,7 @@ const XML_WSDL_OPERATION_PATTERN_ID: &str = "xml.wsdl.operation.v1";
 // Regex
 const REGEX_CAPTURE_GROUP_PATTERN_ID: &str = "regex.capture_group.v1";
 const REGEX_CONDITIONAL_PATTERN_ID: &str = "regex.conditional.v1";
+const REGEX_BRANCH_RESET_PATTERN_ID: &str = "regex.branch_reset.v1";
 const REGEX_NAMED_CAPTURE_PATTERN_ID: &str = "regex.named_capture.v1";
 const REGEX_LOOKAROUND_PATTERN_ID: &str = "regex.lookaround.v1";
 const REGEX_CHARACTER_CLASS_PATTERN_ID: &str = "regex.character_class.v1";
@@ -1664,7 +1665,6 @@ fn collect_regex_structural_facts(file_path: &str, content: &str) -> Vec<Structu
     let mut facts = Vec::new();
     for pattern_tree in crate::regex::pattern_trees(content) {
         let captures = crate::regex::CaptureInventory::of(pattern_tree.root_node(), content);
-        let mut capture_index = 0usize;
         collect_regex_node(
             pattern_tree.root_node(),
             &RegexFactContext {
@@ -1673,7 +1673,6 @@ fn collect_regex_structural_facts(file_path: &str, content: &str) -> Vec<Structu
                 captures: &captures,
             },
             &mut facts,
-            &mut capture_index,
             0,
         );
     }
@@ -1690,7 +1689,6 @@ fn collect_regex_node(
     node: Node<'_>,
     context: &RegexFactContext<'_>,
     facts: &mut Vec<StructuralFact>,
-    capture_index: &mut usize,
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -1700,15 +1698,16 @@ fn collect_regex_node(
     let file_path = context.file_path;
     let content = context.content;
     let fact = match node.kind() {
-        "named_capturing_group" => {
-            *capture_index += 1;
-            regex_named_capture_fact(file_path, content, node, *capture_index)
-        }
-        "anonymous_capturing_group" => {
-            *capture_index += 1;
-            regex_capture_group_fact(file_path, content, node, *capture_index)
-        }
+        "named_capturing_group" => context
+            .captures
+            .number(node)
+            .and_then(|index| regex_named_capture_fact(file_path, content, node, index)),
+        "anonymous_capturing_group" => context
+            .captures
+            .number(node)
+            .and_then(|index| regex_capture_group_fact(file_path, content, node, index)),
         "conditional_group" => regex_conditional_fact(file_path, content, node),
+        "branch_reset_group" => regex_branch_reset_fact(file_path, node),
         "lookaround_assertion" => regex_lookaround_fact(file_path, content, node),
         "character_class" => regex_character_class_fact(file_path, content, node),
         kind if crate::regex::is_quantifier_kind(kind) => {
@@ -1737,7 +1736,7 @@ fn collect_regex_node(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_regex_node(child, context, facts, capture_index, child_depth);
+        collect_regex_node(child, context, facts, child_depth);
     }
 }
 
@@ -1831,6 +1830,39 @@ fn regex_conditional_fact(
         "regex",
         REGEX_CONDITIONAL_PATTERN_ID,
         "conditional",
+        node,
+        metadata,
+    ))
+}
+
+fn regex_branch_reset_fact(file_path: &str, node: Node<'_>) -> Option<StructuralFact> {
+    let mut cursor = node.walk();
+    let body = node
+        .named_children(&mut cursor)
+        .find(|child| child.kind() == "pattern")?;
+    let mut body_cursor = body.walk();
+    let branch_count = body
+        .named_children(&mut body_cursor)
+        .find(|child| child.kind() == "alternation")
+        .map_or(1, |alternation| {
+            let mut alternation_cursor = alternation.walk();
+            alternation
+                .children(&mut alternation_cursor)
+                .filter(|child| child.kind() == "|")
+                .count()
+                + 1
+        });
+    let mut metadata = base_metadata("pattern_structure");
+    metadata.insert(
+        "branch_count".to_string(),
+        Value::Number(Number::from(branch_count)),
+    );
+
+    Some(fact_for_node(
+        file_path,
+        "regex",
+        REGEX_BRANCH_RESET_PATTERN_ID,
+        "branch_reset",
         node,
         metadata,
     ))

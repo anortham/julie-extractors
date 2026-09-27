@@ -4,7 +4,7 @@ use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use tree_sitter::{Node, Tree};
 
-use super::{flags, groups, helpers};
+use super::{CaptureInventory, flags, groups, helpers};
 
 pub(super) fn extract_relationships(
     base: &BaseExtractor,
@@ -13,7 +13,7 @@ pub(super) fn extract_relationships(
 ) -> Vec<Relationship> {
     let named_groups = named_group_symbols(symbols);
     let numbered_groups = numbered_group_symbols(symbols);
-    let capture_positions = capture_positions(tree.root_node());
+    let captures = CaptureInventory::of(tree.root_node(), &base.content);
     let mut relationships = Vec::new();
     let mut seen = HashSet::new();
 
@@ -23,7 +23,7 @@ pub(super) fn extract_relationships(
         symbols,
         &named_groups,
         &numbered_groups,
-        &capture_positions,
+        &captures,
         &mut relationships,
         &mut seen,
         0,
@@ -37,9 +37,9 @@ fn visit_node(
     base: &BaseExtractor,
     node: Node,
     symbols: &[Symbol],
-    named_groups: &HashMap<String, &Symbol>,
-    numbered_groups: &HashMap<usize, &Symbol>,
-    capture_positions: &[(usize, usize)],
+    named_groups: &HashMap<String, Vec<&Symbol>>,
+    numbered_groups: &HashMap<usize, Vec<&Symbol>>,
+    captures: &CaptureInventory,
     relationships: &mut Vec<Relationship>,
     seen: &mut HashSet<(String, String, u32, usize)>,
     depth: u32,
@@ -49,67 +49,75 @@ fn visit_node(
     }
 
     if let Some(group_name) = named_backreference_name(base, node)
-        && let Some(target) = named_groups.get(&group_name)
+        && let Some(targets) = named_groups.get(&group_name)
         && let Some(source) = helpers::innermost_symbol(symbols, node)
     {
-        push_backreference_relationship(
-            base,
-            source,
-            target,
-            node,
-            seen,
-            relationships,
-            "named-backreference",
-            Some(("name", Value::String(group_name))),
-        );
+        for target in targets {
+            push_backreference_relationship(
+                base,
+                source,
+                target,
+                node,
+                seen,
+                relationships,
+                "named-backreference",
+                Some(("name", Value::String(group_name.clone()))),
+            );
+        }
     }
 
     if let Some(group_number) = numeric_backreference_number(base, node)
-        && let Some(target) = numbered_groups.get(&group_number)
+        && let Some(targets) = numbered_groups.get(&group_number)
         && let Some(source) = helpers::innermost_symbol(symbols, node)
     {
-        push_backreference_relationship(
-            base,
-            source,
-            target,
-            node,
-            seen,
-            relationships,
-            "numeric-backreference",
-            Some(("captureIndex", Value::Number((group_number as u64).into()))),
-        );
+        for target in targets {
+            push_backreference_relationship(
+                base,
+                source,
+                target,
+                node,
+                seen,
+                relationships,
+                "numeric-backreference",
+                Some(("captureIndex", Value::Number((group_number as u64).into()))),
+            );
+        }
     }
 
     if node.kind() == "conditional_condition" {
         if let Some((reference_type, capture_index, reference_node)) =
-            numeric_conditional_reference(base, node, capture_positions)
-            && let Some(target) = numbered_groups.get(&capture_index)
+            numeric_conditional_reference(base, node, captures)
+            && let Some(targets) = numbered_groups.get(&capture_index)
             && let Some(source) = helpers::innermost_symbol(symbols, reference_node)
         {
-            push_backreference_relationship(
-                base,
-                source,
-                target,
-                reference_node,
-                seen,
-                relationships,
-                reference_type,
-                Some(("captureIndex", Value::from(capture_index))),
-            );
+            for target in targets {
+                push_backreference_relationship(
+                    base,
+                    source,
+                    target,
+                    reference_node,
+                    seen,
+                    relationships,
+                    reference_type,
+                    Some(("captureIndex", Value::from(capture_index))),
+                );
+            }
         } else if let Some((group_name, reference_node)) = conditional_capture_name(base, node)
-            && let Some(target) = named_groups.get(&group_name)
+            && let Some(targets) = named_groups.get(&group_name)
             && let Some(source) = helpers::innermost_symbol(symbols, reference_node)
         {
-            push_backreference_relationship(
-                base,
-                source,
-                target,
-                reference_node,
-                seen,
-                relationships,
-                "named-condition",
-                Some(("name", Value::String(group_name))),
-            );
+            for target in targets {
+                push_backreference_relationship(
+                    base,
+                    source,
+                    target,
+                    reference_node,
+                    seen,
+                    relationships,
+                    "named-condition",
+                    Some(("name", Value::String(group_name.clone()))),
+                );
+            }
         }
     }
 
@@ -124,7 +132,7 @@ fn visit_node(
             symbols,
             named_groups,
             numbered_groups,
-            capture_positions,
+            captures,
             relationships,
             seen,
             child_depth,
@@ -132,32 +140,39 @@ fn visit_node(
     }
 }
 
-fn named_group_symbols(symbols: &[Symbol]) -> HashMap<String, &Symbol> {
-    symbols
-        .iter()
-        .filter_map(|symbol| {
-            let name = symbol
-                .metadata
-                .as_ref()
-                .and_then(|metadata| metadata.get("named"))
-                .and_then(Value::as_str)?;
-            Some((name.to_string(), symbol))
-        })
-        .collect()
+/// Branch-reset branches may repeat a group name, so one name can have several targets.
+fn named_group_symbols(symbols: &[Symbol]) -> HashMap<String, Vec<&Symbol>> {
+    let mut groups: HashMap<String, Vec<&Symbol>> = HashMap::new();
+    for symbol in symbols {
+        if let Some(name) = symbol
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("named"))
+            .and_then(Value::as_str)
+        {
+            groups.entry(name.to_string()).or_default().push(symbol);
+        }
+    }
+    groups
 }
 
-fn numbered_group_symbols(symbols: &[Symbol]) -> HashMap<usize, &Symbol> {
-    symbols
-        .iter()
-        .filter_map(|symbol| {
-            let capture_index = symbol
-                .metadata
-                .as_ref()
-                .and_then(|metadata| metadata.get("captureIndex"))
-                .and_then(Value::as_u64)? as usize;
-            Some((capture_index, symbol))
-        })
-        .collect()
+/// Branch-reset branches share capture numbers, so one number can have several targets.
+fn numbered_group_symbols(symbols: &[Symbol]) -> HashMap<usize, Vec<&Symbol>> {
+    let mut groups: HashMap<usize, Vec<&Symbol>> = HashMap::new();
+    for symbol in symbols {
+        if let Some(capture_index) = symbol
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("captureIndex"))
+            .and_then(Value::as_u64)
+        {
+            groups
+                .entry(capture_index as usize)
+                .or_default()
+                .push(symbol);
+        }
+    }
+    groups
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -237,17 +252,20 @@ fn numeric_backreference_number(base: &BaseExtractor, node: Node) -> Option<usiz
     flags::extract_group_number(&text)?.parse().ok()
 }
 
-pub(super) fn referenced_capture_numbers(base: &BaseExtractor, tree: &Tree) -> HashSet<usize> {
+pub(super) fn referenced_capture_numbers(
+    base: &BaseExtractor,
+    tree: &Tree,
+    captures: &CaptureInventory,
+) -> HashSet<usize> {
     let mut numbers = HashSet::new();
-    let capture_positions = capture_positions(tree.root_node());
-    collect_referenced_capture_numbers(base, tree.root_node(), &capture_positions, &mut numbers, 0);
+    collect_referenced_capture_numbers(base, tree.root_node(), captures, &mut numbers, 0);
     numbers
 }
 
 fn collect_referenced_capture_numbers(
     base: &BaseExtractor,
     node: Node,
-    capture_positions: &[(usize, usize)],
+    captures: &CaptureInventory,
     numbers: &mut HashSet<usize>,
     depth: u32,
 ) {
@@ -259,8 +277,7 @@ fn collect_referenced_capture_numbers(
         numbers.insert(number);
     }
     if node.kind() == "conditional_condition"
-        && let Some((_, capture_index, _)) =
-            numeric_conditional_reference(base, node, capture_positions)
+        && let Some((_, capture_index, _)) = numeric_conditional_reference(base, node, captures)
     {
         numbers.insert(capture_index);
     }
@@ -270,7 +287,7 @@ fn collect_referenced_capture_numbers(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_referenced_capture_numbers(base, child, capture_positions, numbers, child_depth);
+        collect_referenced_capture_numbers(base, child, captures, numbers, child_depth);
     }
 }
 
@@ -287,72 +304,32 @@ fn conditional_capture_name<'tree>(
 fn numeric_conditional_reference<'tree>(
     base: &BaseExtractor,
     node: Node<'tree>,
-    capture_positions: &[(usize, usize)],
+    captures: &CaptureInventory,
 ) -> Option<(&'static str, usize, Node<'tree>)> {
     let test = named_child(node, "conditional_test")?;
     let numeric = named_child(test, "conditional_numeric_condition")?;
     let text = base.get_node_text(&numeric);
     let (reference_type, capture_index) = match text.as_bytes().first().copied() {
-        Some(b'-') => (
+        Some(b'-' | b'+') => (
             "relative-condition",
-            relative_capture_index(&text, node, capture_positions)?,
-        ),
-        Some(b'+') => (
-            "relative-condition",
-            relative_capture_index(&text, node, capture_positions)?,
+            relative_capture_index(&text, captures.opened_before(node)?)?,
         ),
         _ => ("numeric-condition", text.parse::<usize>().ok()?),
     };
     (capture_index > 0).then_some((reference_type, capture_index, numeric))
 }
 
-fn relative_capture_index(
-    reference: &str,
-    condition: Node,
-    capture_positions: &[(usize, usize)],
-) -> Option<usize> {
+/// PCRE2 counts relative references from the captures opened so far, so
+/// `-1` is the latest opened number and `+1` the next one.
+fn relative_capture_index(reference: &str, opened_before: usize) -> Option<usize> {
     let distance = reference.get(1..)?.parse::<usize>().ok()?;
     if distance == 0 {
         return None;
     }
     match reference.as_bytes().first().copied()? {
-        b'-' => capture_positions
-            .iter()
-            .filter(|(_, start_byte)| *start_byte < condition.start_byte())
-            .rev()
-            .nth(distance - 1)
-            .map(|(capture_index, _)| *capture_index),
-        b'+' => capture_positions
-            .iter()
-            .filter(|(_, start_byte)| *start_byte > condition.start_byte())
-            .nth(distance - 1)
-            .map(|(capture_index, _)| *capture_index),
+        b'-' => (opened_before + 1).checked_sub(distance),
+        b'+' => opened_before.checked_add(distance),
         _ => None,
-    }
-}
-
-fn capture_positions(root: Node) -> Vec<(usize, usize)> {
-    let mut captures = Vec::new();
-    collect_capture_positions(root, &mut captures, 0);
-    captures
-}
-
-fn collect_capture_positions(node: Node, captures: &mut Vec<(usize, usize)>, depth: u32) {
-    if !should_visit_tree_depth(depth) {
-        return;
-    }
-    if matches!(
-        node.kind(),
-        "anonymous_capturing_group" | "named_capturing_group"
-    ) {
-        captures.push((captures.len() + 1, node.start_byte()));
-    }
-    let Some(child_depth) = child_tree_depth(depth) else {
-        return;
-    };
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        collect_capture_positions(child, captures, child_depth);
     }
 }
 

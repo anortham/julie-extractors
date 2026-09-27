@@ -67,6 +67,7 @@ module.exports = grammar({
         $.backreference_escape,
         $.named_group_backreference,
         $.atomic_group,
+        $.branch_reset_group,
         $.conditional_group,
         $.anonymous_capturing_group,
         $.named_capturing_group,
@@ -126,6 +127,8 @@ module.exports = grammar({
     conditional_no_branch: $ => $.term,
 
     atomic_group: $ => seq('(?>', $.pattern, ')'),
+
+    branch_reset_group: $ => seq('(?|', $.pattern, ')'),
 
     any_character: _ => '.',
 

@@ -28,6 +28,22 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
         ],
     },
     StructuralFactPatternSpec {
+        pattern_id: "regex.branch_reset.v1",
+        languages: &["regex"],
+        query_family: "pattern_structure",
+        description: "A PCRE2 branch-reset group `(?|...)`, whose branches reuse the same capture numbers.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "branch_count",
+                NUM,
+                ALWAYS,
+                "Number of direct branches; each restarts capture numbering.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
         pattern_id: "regex.capture_group.v1",
         languages: &["regex"],
         query_family: "pattern_structure",
@@ -39,7 +55,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "capture_index",
                 NUM,
                 ALWAYS,
-                "1-based ordinal index of this capturing group.",
+                "1-based PCRE2 capture number; branch-reset branches share numbers.",
             ),
             key(
                 "named",
@@ -67,7 +83,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "capture_index",
                 NUM,
                 ALWAYS,
-                "1-based ordinal index of this capturing group.",
+                "1-based PCRE2 capture number; branch-reset branches share numbers.",
             ),
         ],
     },

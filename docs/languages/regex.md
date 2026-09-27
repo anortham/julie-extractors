@@ -82,8 +82,14 @@ fixture covers conditional syntax and capture references.
 Atomic groups `(?>...)` parse without changing the numbers of captures nested
 inside them and contribute to nesting depth.
 
-PCRE2 branch-reset groups `(?|...)` remain an explicit grammar gap. Numeric
-capture targets in patterns containing that construct are not reliable.
+`regex.branch_reset.v1` records a PCRE2 branch-reset group `(?|...)` and
+its direct `branch_count`. Each branch restarts capture numbering at the same
+number, and captures after the group continue from the widest branch, so
+`(?|(a)(b)|(c))(d)` numbers `a`, `c` as 1, `b` as 2 and `d` as 3. Capture
+facts and symbols carry these shared numbers. A numeric or named reference to
+a shared number or name references every group that holds it. Relative
+conditions count from the captures opened so far, as PCRE2 does. The
+`branch_reset` fixture covers nesting, named branches and relative conditions.
 
 ## Complexity
 

@@ -60,6 +60,21 @@
     }
   },
   {
+    "type": "branch_reset_group",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "pattern",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "character_class",
     "named": true,
     "fields": {},
@@ -504,6 +519,10 @@
           "named": true
         },
         {
+          "type": "branch_reset_group",
+          "named": true
+        },
+        {
           "type": "character_class",
           "named": true
         },
@@ -663,6 +682,10 @@
   },
   {
     "type": "(?P=",
+    "named": false
+  },
+  {
+    "type": "(?|",
     "named": false
   },
   {

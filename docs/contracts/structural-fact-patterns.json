@@ -11241,6 +11241,34 @@
     "query_family": "pattern_structure"
   },
   {
+    "description": "A PCRE2 branch-reset group `(?|...)`, whose branches reuse the same capture numbers.",
+    "languages": [
+      "regex"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Number of direct branches; each restarts capture numbering.",
+        "key": "branch_count",
+        "presence": "always",
+        "value_type": "number"
+      }
+    ],
+    "pattern_id": "regex.branch_reset.v1",
+    "query_family": "pattern_structure"
+  },
+  {
     "description": "A regex anonymous capturing group.",
     "languages": [
       "regex"
@@ -11259,7 +11287,7 @@
         "value_type": "string"
       },
       {
-        "description": "1-based ordinal index of this capturing group.",
+        "description": "1-based PCRE2 capture number; branch-reset branches share numbers.",
         "key": "capture_index",
         "presence": "always",
         "value_type": "number"
@@ -11435,7 +11463,7 @@
         "value_type": "string"
       },
       {
-        "description": "1-based ordinal index of this capturing group.",
+        "description": "1-based PCRE2 capture number; branch-reset branches share numbers.",
         "key": "capture_index",
         "presence": "always",
         "value_type": "number"
