@@ -40,7 +40,6 @@ struct PendingCallContext<'a> {
     symbol_index: crate::base::ScopedSymbolIndex<'a>,
     owners: crate::javascript::EcmaOwnerIndex<'a>,
     typed_receivers: HashSet<String>,
-    local_callables: HashSet<&'a str>,
 }
 
 /// Names of the file's bindings (variables, parameters, properties) that carry
@@ -167,16 +166,6 @@ impl TypeScriptExtractor {
                 symbols,
             ),
             typed_receivers: typed_receiver_names(symbols, &self.base.type_info),
-            local_callables: symbols
-                .iter()
-                .filter(|symbol| {
-                    matches!(
-                        symbol.kind,
-                        SymbolKind::Function | SymbolKind::Variable | SymbolKind::Class
-                    ) && !crate::base::is_test_call_symbol(symbol)
-                })
-                .map(|symbol| symbol.name.as_str())
-                .collect(),
         };
 
         self.walk_for_pending_calls(tree.root_node(), &context, &symbol_map, 0);
@@ -211,17 +200,18 @@ impl TypeScriptExtractor {
                     symbol_map,
                 );
             } else {
-                let confidence = match symbol_map
-                    .get(self.base.get_node_text(&function_node).as_str())
-                {
-                    Some(called_symbol) if called_symbol.kind == SymbolKind::Import => Some(0.8),
-                    None if !context
-                        .local_callables
-                        .contains(self.base.get_node_text(&function_node).as_str()) =>
-                    {
-                        Some(0.7)
-                    }
-                    _ => None,
+                let function_name = self.base.get_node_text(&function_node);
+                let confidence = match context.symbol_index.resolve_call_target(
+                    &function_name,
+                    Some(caller_symbol),
+                    None,
+                    node,
+                ) {
+                    crate::base::LocalTargetResolution::Import(_) => Some(0.8),
+                    crate::base::LocalTargetResolution::Ambiguous
+                    | crate::base::LocalTargetResolution::Missing => Some(0.7),
+                    crate::base::LocalTargetResolution::Resolved(_)
+                    | crate::base::LocalTargetResolution::ReceiverQualified => None,
                 };
                 if let Some(confidence) = confidence
                     && let Some(target) =
@@ -250,9 +240,6 @@ impl TypeScriptExtractor {
         }
     }
 
-    /// A member call is pending when its receiver names an import, a binding
-    /// with a type fact, or `this`/`super` with a known class and no
-    /// same-class target. The terminal name alone never makes it local.
     fn emit_pending_member_call(
         &mut self,
         call_node: tree_sitter::Node,
@@ -274,15 +261,15 @@ impl TypeScriptExtractor {
                 crate::javascript::identifiers::ecmascript_self_receiver_type(&self.base, object)
             });
         let emit = if matches!(receiver, "this" | "super") {
-            receiver_type.is_some()
-                && !matches!(
-                    context.symbol_index.resolve_call_target(
-                        &target.terminal_name,
-                        Some(caller_symbol),
-                        Some(receiver),
-                    ),
-                    crate::base::LocalTargetResolution::Resolved(_)
-                )
+            !matches!(
+                context.symbol_index.resolve_call_target(
+                    &target.terminal_name,
+                    Some(caller_symbol),
+                    Some(receiver),
+                    call_node,
+                ),
+                crate::base::LocalTargetResolution::Resolved(_)
+            )
         } else {
             target.import_context.is_some() || context.typed_receivers.contains(receiver)
         };

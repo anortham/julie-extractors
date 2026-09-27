@@ -540,11 +540,11 @@
       "caller_scope_key": "fixtures/extraction/qml/nested_test_case/tst_nested.qml:cleanup:15:8",
       "span": {
         "start_line": 15,
-        "start_column": 29,
+        "start_column": 40,
         "end_line": 15,
-        "end_column": 47,
-        "start_byte": 300,
-        "end_byte": 318
+        "end_column": 45,
+        "start_byte": 311,
+        "end_byte": 316
       }
     },
     {
@@ -568,9 +568,9 @@
         "start_line": 14,
         "start_column": 34,
         "end_line": 14,
-        "end_column": 46,
+        "end_column": 40,
         "start_byte": 256,
-        "end_byte": 268
+        "end_byte": 262
       }
     },
     {
@@ -594,9 +594,9 @@
         "start_line": 17,
         "start_column": 36,
         "end_line": 17,
-        "end_column": 64,
+        "end_column": 43,
         "start_byte": 406,
-        "end_byte": 434
+        "end_byte": 413
       }
     },
     {
@@ -620,9 +620,9 @@
         "start_line": 23,
         "start_column": 32,
         "end_line": 23,
-        "end_column": 54,
+        "end_column": 40,
         "start_byte": 568,
-        "end_byte": 590
+        "end_byte": 576
       }
     },
     {

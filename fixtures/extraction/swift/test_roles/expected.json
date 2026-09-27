@@ -2139,24 +2139,6 @@
       "metadata": {
         "baseType": "ServiceBaseTestCase"
       }
-    },
-    {
-      "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:testServiceStarts:82:4",
-      "to_key": "fixtures/extraction/swift/test_roles/test_source.swift:makeService:78:4",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
-      "line_number": 82,
-      "span": {
-        "start_line": 82,
-        "start_column": 46,
-        "end_line": 82,
-        "end_column": 59,
-        "start_byte": 1406,
-        "end_byte": 1419
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": null
     }
   ],
   "pending_relationships": [
@@ -2270,6 +2252,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
       "line_number": 19,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:testServiceStarts:82:4",
+      "callee_name": "makeService",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "line_number": 82,
       "confidence": "0.700"
     },
     {
@@ -2649,6 +2639,32 @@
         "end_byte": 374
       },
       "receiver_type": "XCTestCase"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:testServiceStarts:82:4",
+        "callee_name": "makeService",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+        "line_number": 82,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "makeService",
+        "terminal_name": "makeService",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/test_roles/test_source.swift:testServiceStarts:82:4",
+      "span": {
+        "start_line": 82,
+        "start_column": 46,
+        "end_line": 82,
+        "end_column": 59,
+        "start_byte": 1406,
+        "end_byte": 1419
+      }
     },
     {
       "pending": {

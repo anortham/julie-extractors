@@ -126,6 +126,7 @@ fn resolve_call_relationship(
         &target.terminal_name,
         Some(caller_symbol),
         resolver_receiver,
+        node,
     ) {
         LocalTargetResolution::Resolved(called_symbol) => {
             relationships.push(Relationship {

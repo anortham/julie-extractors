@@ -389,3 +389,102 @@ class PlainHelper {
     assert!(role(named(&syms, "OuterSuite"), "test_container"));
     assert!(!role(named(&syms, "PlainHelper"), "test_container"));
 }
+
+#[test]
+fn cucumber_steps_are_step_definitions_inside_test_containers() {
+    let path = "fixtures/extraction/java/cucumber_steps/source.java";
+    let results = crate::pipeline::extract_canonical(
+        path,
+        include_str!("../../../../../fixtures/extraction/java/cucumber_steps/source.java"),
+        &PathBuf::from("/repo"),
+    )
+    .expect("canonical Java extraction should succeed");
+    let symbol = |name: &str| {
+        results
+            .symbols
+            .iter()
+            .find(|symbol| symbol.name == name)
+            .unwrap_or_else(|| panic!("expected symbol {name}"))
+    };
+
+    for name in [
+        "has_cucumbers",
+        "starts_application",
+        "application_is_ready",
+        "application_is_open",
+        "application_is_not_closed",
+        "qualified_step",
+    ] {
+        let step = symbol(name);
+        assert_eq!(
+            test_role(step).as_deref(),
+            Some("step_definition"),
+            "{name}"
+        );
+        assert!(!is_test(step), "{name} must not be counted as a test case");
+    }
+
+    assert!(role(symbol("CheckoutSteps"), "test_container"));
+    assert!(role(symbol("QualifiedSteps"), "test_container"));
+    assert_eq!(test_role(symbol("helper")), None);
+    assert!(!is_test(symbol("helper")));
+}
+
+#[test]
+fn unrelated_given_annotations_do_not_create_cucumber_roles() {
+    let source = r#"
+@interface Given {}
+
+class PlainCode {
+    @Given
+    void helper() {}
+
+    @example.Given
+    void qualifiedHelper() {}
+}
+"#;
+    let results = crate::pipeline::extract_canonical(
+        "src/main/java/PlainCode.java",
+        source,
+        &PathBuf::from("/repo"),
+    )
+    .expect("canonical Java extraction should succeed");
+    let symbol = |name: &str| {
+        results
+            .symbols
+            .iter()
+            .find(|symbol| symbol.name == name)
+            .unwrap_or_else(|| panic!("expected symbol {name}"))
+    };
+
+    for name in ["helper", "qualifiedHelper"] {
+        assert_eq!(test_role(symbol(name)), None, "{name}");
+        assert!(!is_test(symbol(name)), "{name}");
+    }
+    assert!(!role(symbol("PlainCode"), "test_container"));
+}
+
+#[test]
+fn cucumber_wildcard_import_binds_bare_step_annotations() {
+    let path = "fixtures/extraction/java/cucumber_steps/wildcard.java";
+    let results = crate::pipeline::extract_canonical(
+        path,
+        include_str!("../../../../../fixtures/extraction/java/cucumber_steps/wildcard.java"),
+        &PathBuf::from("/repo"),
+    )
+    .expect("canonical Java extraction should succeed");
+    let step = results
+        .symbols
+        .iter()
+        .find(|symbol| symbol.name == "wildcard_step")
+        .expect("expected wildcard-imported step definition");
+    let container = results
+        .symbols
+        .iter()
+        .find(|symbol| symbol.name == "WildcardSteps")
+        .expect("expected wildcard step container");
+
+    assert_eq!(test_role(step).as_deref(), Some("step_definition"));
+    assert!(!is_test(step));
+    assert!(role(container, "test_container"));
+}

@@ -2473,11 +2473,11 @@
       "caller_scope_key": "fixtures/extraction/lua/basic/source.lua:log:23:0",
       "span": {
         "start_line": 24,
-        "start_column": 4,
+        "start_column": 9,
         "end_line": 24,
-        "end_column": 24,
-        "start_byte": 377,
-        "end_byte": 397
+        "end_column": 22,
+        "start_byte": 382,
+        "end_byte": 395
       },
       "receiver_type": "Worker"
     },
@@ -2502,9 +2502,9 @@
         "start_line": 16,
         "start_column": 11,
         "end_line": 16,
-        "end_column": 44,
+        "end_column": 23,
         "start_byte": 258,
-        "end_byte": 291
+        "end_byte": 270
       }
     },
     {
@@ -2528,9 +2528,9 @@
         "start_line": 62,
         "start_column": 17,
         "end_line": 62,
-        "end_column": 40,
+        "end_column": 29,
         "start_byte": 1122,
-        "end_byte": 1145
+        "end_byte": 1134
       }
     },
     {
@@ -2554,9 +2554,9 @@
         "start_line": 86,
         "start_column": 4,
         "end_line": 86,
-        "end_column": 25,
+        "end_column": 16,
         "start_byte": 1626,
-        "end_byte": 1647
+        "end_byte": 1638
       }
     },
     {
@@ -2580,9 +2580,9 @@
         "start_line": 115,
         "start_column": 16,
         "end_line": 115,
-        "end_column": 26,
+        "end_column": 19,
         "start_byte": 2223,
-        "end_byte": 2233
+        "end_byte": 2226
       }
     },
     {
@@ -2604,11 +2604,11 @@
       "caller_scope_key": "fixtures/extraction/lua/basic/source.lua:render:111:0",
       "span": {
         "start_line": 117,
-        "start_column": 4,
+        "start_column": 11,
         "end_line": 117,
-        "end_column": 18,
-        "start_byte": 2290,
-        "end_byte": 2304
+        "end_column": 16,
+        "start_byte": 2297,
+        "end_byte": 2302
       }
     },
     {
@@ -2630,11 +2630,11 @@
       "caller_scope_key": "fixtures/extraction/lua/basic/source.lua:render:111:0",
       "span": {
         "start_line": 122,
-        "start_column": 4,
+        "start_column": 7,
         "end_line": 122,
-        "end_column": 36,
-        "start_byte": 2470,
-        "end_byte": 2502
+        "end_column": 12,
+        "start_byte": 2473,
+        "end_byte": 2478
       }
     },
     {
@@ -2658,11 +2658,11 @@
       "caller_scope_key": "fixtures/extraction/lua/basic/source.lua:render:111:0",
       "span": {
         "start_line": 118,
-        "start_column": 4,
+        "start_column": 15,
         "end_line": 118,
-        "end_column": 21,
-        "start_byte": 2309,
-        "end_byte": 2326
+        "end_column": 19,
+        "start_byte": 2320,
+        "end_byte": 2324
       }
     },
     {
@@ -2684,11 +2684,11 @@
       "caller_scope_key": "fixtures/extraction/lua/basic/source.lua:render:111:0",
       "span": {
         "start_line": 123,
-        "start_column": 4,
+        "start_column": 7,
         "end_line": 123,
-        "end_column": 35,
-        "start_byte": 2507,
-        "end_byte": 2538
+        "end_column": 14,
+        "start_byte": 2510,
+        "end_byte": 2517
       }
     },
     {
@@ -2712,9 +2712,9 @@
         "start_line": 116,
         "start_column": 17,
         "end_line": 116,
-        "end_column": 51,
+        "end_column": 29,
         "start_byte": 2251,
-        "end_byte": 2285
+        "end_byte": 2263
       }
     },
     {
@@ -2736,11 +2736,11 @@
       "caller_scope_key": "fixtures/extraction/lua/basic/source.lua:render:111:0",
       "span": {
         "start_line": 121,
-        "start_column": 4,
+        "start_column": 32,
         "end_line": 121,
-        "end_column": 41,
-        "start_byte": 2428,
-        "end_byte": 2465
+        "end_column": 37,
+        "start_byte": 2456,
+        "end_byte": 2461
       }
     },
     {
@@ -2762,11 +2762,11 @@
       "caller_scope_key": "fixtures/extraction/lua/basic/source.lua:render:111:0",
       "span": {
         "start_line": 119,
-        "start_column": 4,
+        "start_column": 10,
         "end_line": 119,
-        "end_column": 17,
-        "start_byte": 2331,
-        "end_byte": 2344
+        "end_column": 14,
+        "start_byte": 2337,
+        "end_byte": 2341
       }
     },
     {
@@ -2790,11 +2790,11 @@
       "caller_scope_key": "fixtures/extraction/lua/basic/source.lua:render:111:0",
       "span": {
         "start_line": 120,
-        "start_column": 4,
+        "start_column": 15,
         "end_line": 120,
-        "end_column": 78,
-        "start_byte": 2349,
-        "end_byte": 2423
+        "end_column": 18,
+        "start_byte": 2360,
+        "end_byte": 2363
       }
     }
   ],

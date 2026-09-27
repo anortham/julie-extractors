@@ -65,7 +65,7 @@ fn walk_tree_for_relationships(
             extract_macro_token_call(extractor, node, symbols, symbol_index, relationships);
         }
         "macro_invocation" => {
-            extract_macro_invocation_call(extractor, node, symbols, relationships);
+            extract_macro_invocation_call(extractor, node, symbols, symbol_index, relationships);
         }
         "use_declaration" | "extern_crate_declaration" => {
             extract_use_import_relationship(extractor, node, symbols);
@@ -484,6 +484,7 @@ fn extract_macro_invocation_call(
     extractor: &mut RustExtractor,
     node: Node,
     symbols: &[Symbol],
+    symbol_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
     let Some(macro_path) = node.child_by_field_name("macro") else {
@@ -500,14 +501,8 @@ fn extract_macro_invocation_call(
         return;
     };
     if target.namespace_path.is_empty() {
-        let local_macro = symbols.iter().find(|symbol| {
-            symbol.name == target.terminal_name
-                && symbol
-                    .metadata
-                    .as_ref()
-                    .and_then(|metadata| metadata.get("rustSymbolKind"))
-                    .is_some_and(|kind| kind == "macro_rules")
-        });
+        let local_macro =
+            symbol_index.resolve_macro_target(&target.terminal_name, Some(&caller), node);
         if let Some(local_macro) = local_macro {
             relationships.push(Relationship {
                 id: format!(
@@ -616,6 +611,7 @@ fn handle_call_target(
         callee_name,
         Some(&caller),
         unresolved_target.receiver.as_deref(),
+        call_node,
     ) {
         LocalTargetResolution::Import(_) => {
             add_structured_pending_call(

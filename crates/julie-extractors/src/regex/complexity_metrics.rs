@@ -86,7 +86,7 @@ fn metric_for_scope(
         ),
         (
             "decision_signal_kinds".to_string(),
-            serde_json::Value::String("alternation".to_string()),
+            serde_json::Value::String("alternation,conditional".to_string()),
         ),
         (
             "loop_signal_kinds".to_string(),
@@ -94,7 +94,7 @@ fn metric_for_scope(
         ),
         (
             "nesting_signal_kinds".to_string(),
-            serde_json::Value::String("group,lookaround".to_string()),
+            serde_json::Value::String("group,lookaround,conditional".to_string()),
         ),
     ]);
 
@@ -145,6 +145,8 @@ fn collect_stats(
         "anonymous_capturing_group"
         | "named_capturing_group"
         | "non_capturing_group"
+        | "atomic_group"
+        | "conditional_group"
         | "lookaround_assertion" => true,
         "inline_flags_group" => is_scoped_inline_flags_group(node),
         _ => false,
@@ -153,6 +155,9 @@ fn collect_stats(
 
     if contains(span, node) {
         if kind == "alternation" {
+            stats.decision_count += 1;
+        }
+        if kind == "conditional_group" {
             stats.decision_count += 1;
         }
         if super::is_quantifier_kind(kind) {

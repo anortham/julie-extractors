@@ -930,6 +930,14 @@
       "file_path": "fixtures/extraction/vue/options_api/source.vue",
       "line_number": 18,
       "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/vue/options_api/source.vue:created:28:2",
+      "callee_name": "this.init",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/vue/options_api/source.vue",
+      "line_number": 29,
+      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
@@ -1009,6 +1017,32 @@
         "end_column": 20,
         "start_byte": 497,
         "end_byte": 506
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/vue/options_api/source.vue:created:28:2",
+        "callee_name": "this.init",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/vue/options_api/source.vue",
+        "line_number": 29,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "this.init",
+        "terminal_name": "init",
+        "receiver": "this",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/vue/options_api/source.vue:created:28:2",
+      "span": {
+        "start_line": 29,
+        "start_column": 4,
+        "end_line": 29,
+        "end_column": 15,
+        "start_byte": 731,
+        "end_byte": 742
       }
     }
   ],

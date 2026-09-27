@@ -150,7 +150,6 @@ struct PendingCallContext<'a> {
     symbol_index: crate::base::ScopedSymbolIndex<'a>,
     owners: EcmaOwnerIndex<'a>,
     typed_receivers: HashSet<String>,
-    local_bindings: HashSet<String>,
 }
 
 pub struct JavaScriptExtractor {
@@ -215,16 +214,6 @@ impl JavaScriptExtractor {
             symbol_index: crate::base::ScopedSymbolIndex::new(symbols),
             owners: ecmascript_owner_index(&self.base, tree.root_node(), symbols),
             typed_receivers: crate::typescript::typed_receiver_names(symbols, &self.base.type_info),
-            local_bindings: symbols
-                .iter()
-                .filter(|symbol| {
-                    matches!(
-                        symbol.kind,
-                        SymbolKind::Variable | SymbolKind::Function | SymbolKind::Constant
-                    )
-                })
-                .map(|symbol| symbol.name.clone())
-                .collect(),
         };
 
         self.walk_for_pending_calls(tree.root_node(), &context, &symbol_map, 0);
@@ -258,10 +247,17 @@ impl JavaScriptExtractor {
                 );
             } else if function_node.kind() == "identifier" {
                 let function_name = self.base.get_node_text(&function_node);
-                let confidence = match symbol_map.get(function_name.as_str()) {
-                    Some(called_symbol) if called_symbol.kind == SymbolKind::Import => Some(0.8),
-                    None if !context.local_bindings.contains(&function_name) => Some(0.7),
-                    _ => None,
+                let confidence = match context.symbol_index.resolve_call_target(
+                    &function_name,
+                    Some(caller_symbol),
+                    None,
+                    node,
+                ) {
+                    crate::base::LocalTargetResolution::Import(_) => Some(0.8),
+                    crate::base::LocalTargetResolution::Ambiguous
+                    | crate::base::LocalTargetResolution::Missing => Some(0.7),
+                    crate::base::LocalTargetResolution::Resolved(_)
+                    | crate::base::LocalTargetResolution::ReceiverQualified => None,
                 };
                 if let Some(confidence) = confidence
                     && let Some(target) =
@@ -290,9 +286,6 @@ impl JavaScriptExtractor {
         }
     }
 
-    /// A member call is pending when its receiver names an import, a binding
-    /// with a type fact, or `this`/`super` with a known class and no
-    /// same-class target. The terminal name alone never makes it local.
     fn emit_pending_member_call(
         &mut self,
         call_node: tree_sitter::Node,
@@ -312,15 +305,15 @@ impl JavaScriptExtractor {
             .child_by_field_name("object")
             .and_then(|object| identifiers::ecmascript_self_receiver_type(&self.base, object));
         let emit = if matches!(receiver, "this" | "super") {
-            receiver_type.is_some()
-                && !matches!(
-                    context.symbol_index.resolve_call_target(
-                        &target.terminal_name,
-                        Some(caller_symbol),
-                        Some(receiver),
-                    ),
-                    crate::base::LocalTargetResolution::Resolved(_)
-                )
+            !matches!(
+                context.symbol_index.resolve_call_target(
+                    &target.terminal_name,
+                    Some(caller_symbol),
+                    Some(receiver),
+                    call_node,
+                ),
+                crate::base::LocalTargetResolution::Resolved(_)
+            )
         } else {
             target.import_context.is_some() || context.typed_receivers.contains(receiver)
         };

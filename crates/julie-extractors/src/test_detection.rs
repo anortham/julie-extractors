@@ -459,6 +459,56 @@ fn is_testng_class_case_annotation(annotation: &str) -> bool {
     annotation == "test"
 }
 
+const JAVA_CUCUMBER_STEP_ANNOTATIONS: [&str; 5] = ["Given", "When", "Then", "And", "But"];
+const JAVA_CUCUMBER_STEP_PACKAGE: &str = "io.cucumber.java.en.";
+
+fn java_cucumber_step_imports(symbols: &[Symbol]) -> HashSet<String> {
+    let mut imported = HashSet::new();
+    for path in symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Import)
+        .filter_map(|symbol| symbol.signature.as_deref())
+        .filter_map(|signature| signature.strip_prefix("import "))
+    {
+        if path == "io.cucumber.java.en.*" {
+            imported.extend(
+                JAVA_CUCUMBER_STEP_ANNOTATIONS
+                    .iter()
+                    .map(|annotation| (*annotation).to_string()),
+            );
+        } else if let Some(annotation) = path.strip_prefix(JAVA_CUCUMBER_STEP_PACKAGE)
+            && JAVA_CUCUMBER_STEP_ANNOTATIONS.contains(&annotation)
+        {
+            imported.insert(annotation.to_string());
+        }
+    }
+    imported
+}
+
+fn is_java_cucumber_step_annotation_name(annotation: &str) -> bool {
+    annotation
+        .strip_prefix(JAVA_CUCUMBER_STEP_PACKAGE)
+        .is_some_and(|name| JAVA_CUCUMBER_STEP_ANNOTATIONS.contains(&name))
+}
+
+fn has_java_cucumber_step_annotation(symbol: &Symbol, imports: &HashSet<String>) -> bool {
+    symbol.kind == SymbolKind::Method
+        && symbol.annotations.iter().any(|annotation| {
+            let raw_annotation = annotation
+                .raw_text
+                .as_deref()
+                .unwrap_or(annotation.annotation.as_str())
+                .trim()
+                .trim_start_matches('@');
+            let name = raw_annotation
+                .split_once('(')
+                .map_or(raw_annotation, |(name, _)| name)
+                .trim();
+            is_java_cucumber_step_annotation_name(name)
+                || (JAVA_CUCUMBER_STEP_ANNOTATIONS.contains(&name) && imports.contains(name))
+        })
+}
+
 /// Annotations that declare a type to be a test container on their own.
 fn is_java_container_annotation(annotation: &str) -> bool {
     matches!(annotation, "nested" | "suite") || is_testng_class_case_annotation(annotation)
@@ -950,10 +1000,14 @@ fn xunit_lifecycle_direction(symbol: &Symbol) -> TestLifecycleDirection {
 }
 
 pub(crate) fn mark_java_test_containers(symbols: &mut [Symbol]) {
+    let cucumber_step_imports = java_cucumber_step_imports(symbols);
     let containers_with_test_members: HashSet<String> = symbols
         .iter()
         .filter(|symbol| symbol.kind == SymbolKind::Method)
-        .filter(|symbol| has_java_annotation(symbol, is_java_member_test_annotation))
+        .filter(|symbol| {
+            has_java_annotation(symbol, is_java_member_test_annotation)
+                || has_java_cucumber_step_annotation(symbol, &cucumber_step_imports)
+        })
         .filter_map(|symbol| symbol.parent_id.clone())
         .collect();
 
@@ -982,7 +1036,7 @@ pub(crate) fn mark_java_test_containers(symbols: &mut [Symbol]) {
 
     let test_container_ids = marked_test_container_ids(symbols);
     normalize_scoped_test_roles(symbols, &test_container_ids);
-    apply_java_member_test_roles(symbols, &testng_class_ids);
+    apply_java_member_test_roles(symbols, &testng_class_ids, &cucumber_step_imports);
 }
 
 /// JUnit 5 runs the `@Test` default methods of an interface on every class that
@@ -1191,7 +1245,11 @@ fn marked_test_container_ids(symbols: &[Symbol]) -> HashSet<String> {
 /// from: it also strips an annotated Kotlin top-level test function, which has
 /// no enclosing class at all. Re-deriving from annotations alone puts those
 /// roles back without reviving the name convention.
-fn apply_java_member_test_roles(symbols: &mut [Symbol], testng_class_ids: &HashSet<String>) {
+fn apply_java_member_test_roles(
+    symbols: &mut [Symbol],
+    testng_class_ids: &HashSet<String>,
+    cucumber_step_imports: &HashSet<String>,
+) {
     for symbol in symbols
         .iter_mut()
         .filter(|symbol| is_callable(&symbol.kind))
@@ -1200,7 +1258,8 @@ fn apply_java_member_test_roles(symbols: &mut [Symbol], testng_class_ids: &HashS
             .parent_id
             .as_ref()
             .is_some_and(|parent_id| testng_class_ids.contains(parent_id));
-        let Some(role) = java_member_test_role(symbol, inside_testng_class) else {
+        let Some(role) = java_member_test_role(symbol, inside_testng_class, cucumber_step_imports)
+        else {
             continue;
         };
         apply_test_role(symbol.metadata.get_or_insert_with(Default::default), role);
@@ -1210,7 +1269,14 @@ fn apply_java_member_test_roles(symbols: &mut [Symbol], testng_class_ids: &HashS
 /// TestNG runs every public method of a `@Test`-annotated class as a case, so
 /// those methods carry no annotation of their own. A hook annotation on such a
 /// method wins, because TestNG runs it around the cases instead.
-fn java_member_test_role(symbol: &Symbol, inside_testng_class: bool) -> Option<TestRole> {
+fn java_member_test_role(
+    symbol: &Symbol,
+    inside_testng_class: bool,
+    cucumber_step_imports: &HashSet<String>,
+) -> Option<TestRole> {
+    if has_java_cucumber_step_annotation(symbol, cucumber_step_imports) {
+        return Some(TestRole::StepDefinition);
+    }
     let annotation_keys: Vec<String> = symbol
         .annotations
         .iter()

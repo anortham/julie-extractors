@@ -361,10 +361,10 @@ fn local_call_target<'a>(
                 .flatten()
         }
         Some("private") => symbol_index
-            .resolve_call_target(&target.terminal_name, Some(caller), Some("self"))
+            .resolve_call_target(&target.terminal_name, Some(caller), Some("self"), site)
             .as_symbol(),
         receiver => symbol_index
-            .resolve_call_target(&target.terminal_name, Some(caller), receiver)
+            .resolve_call_target(&target.terminal_name, Some(caller), receiver, site)
             .as_symbol(),
     };
     resolved.filter(|symbol| matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method))

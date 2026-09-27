@@ -2107,22 +2107,6 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:combine:41:4",
-      "callee_name": "Vec",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/kotlin/members_and_literals/source.kt",
-      "line_number": 41,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:create:29:8",
-      "callee_name": "Cache",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/kotlin/members_and_literals/source.kt",
-      "line_number": 30,
-      "confidence": "0.700"
-    },
-    {
       "from_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:create:29:8",
       "callee_name": "Cache",
       "kind": "calls",
@@ -2136,22 +2120,6 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/kotlin/members_and_literals/source.kt",
       "line_number": 83,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:load:81:4",
-      "callee_name": "URI.create",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/kotlin/members_and_literals/source.kt",
-      "line_number": 83,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:load:81:4",
-      "callee_name": "jdbc.query",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/kotlin/members_and_literals/source.kt",
-      "line_number": 82,
       "confidence": "0.700"
     },
     {
@@ -2172,34 +2140,10 @@
     },
     {
       "from_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:setup:88:4",
-      "callee_name": "context",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/kotlin/members_and_literals/source.kt",
-      "line_number": 90,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:setup:88:4",
       "callee_name": "r.apply",
       "kind": "calls",
       "file_path": "fixtures/extraction/kotlin/members_and_literals/source.kt",
       "line_number": 89,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:setup:88:4",
-      "callee_name": "r.apply",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/kotlin/members_and_literals/source.kt",
-      "line_number": 89,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:setup:88:4",
-      "callee_name": "register",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/kotlin/members_and_literals/source.kt",
-      "line_number": 91,
       "confidence": "0.700"
     },
     {
@@ -2300,58 +2244,6 @@
     },
     {
       "pending": {
-        "from_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:combine:41:4",
-        "callee_name": "Vec",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/kotlin/members_and_literals/source.kt",
-        "line_number": 41,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Vec",
-        "terminal_name": "Vec",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:combine:41:4",
-      "span": {
-        "start_line": 41,
-        "start_column": 35,
-        "end_line": 41,
-        "end_column": 51,
-        "start_byte": 918,
-        "end_byte": 934
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:create:29:8",
-        "callee_name": "Cache",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/kotlin/members_and_literals/source.kt",
-        "line_number": 30,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Cache",
-        "terminal_name": "Cache",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:create:29:8",
-      "span": {
-        "start_line": 30,
-        "start_column": 24,
-        "end_line": 30,
-        "end_column": 37,
-        "start_byte": 718,
-        "end_byte": 731
-      }
-    },
-    {
-      "pending": {
         "from_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:create:29:8",
         "callee_name": "Cache",
         "kind": "calls",
@@ -2400,58 +2292,6 @@
         "end_column": 62,
         "start_byte": 1711,
         "end_byte": 1755
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:load:81:4",
-        "callee_name": "URI.create",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/kotlin/members_and_literals/source.kt",
-        "line_number": 83,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "URI.create",
-        "terminal_name": "create",
-        "receiver": "URI",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:load:81:4",
-      "span": {
-        "start_line": 83,
-        "start_column": 18,
-        "end_line": 83,
-        "end_column": 62,
-        "start_byte": 1711,
-        "end_byte": 1755
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:load:81:4",
-        "callee_name": "jdbc.query",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/kotlin/members_and_literals/source.kt",
-        "line_number": 82,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "jdbc.query",
-        "terminal_name": "query",
-        "receiver": "jdbc",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:load:81:4",
-      "span": {
-        "start_line": 82,
-        "start_column": 8,
-        "end_line": 82,
-        "end_column": 52,
-        "start_byte": 1648,
-        "end_byte": 1692
       }
     },
     {
@@ -2509,32 +2349,6 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:setup:88:4",
-        "callee_name": "context",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/kotlin/members_and_literals/source.kt",
-        "line_number": 90,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "context",
-        "terminal_name": "context",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:setup:88:4",
-      "span": {
-        "start_line": 90,
-        "start_column": 12,
-        "end_line": 90,
-        "end_column": 28,
-        "start_byte": 1839,
-        "end_byte": 1855
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:setup:88:4",
         "callee_name": "r.apply",
         "kind": "calls",
         "file_path": "fixtures/extraction/kotlin/members_and_literals/source.kt",
@@ -2556,58 +2370,6 @@
         "end_column": 9,
         "start_byte": 1817,
         "end_byte": 1911
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:setup:88:4",
-        "callee_name": "r.apply",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/kotlin/members_and_literals/source.kt",
-        "line_number": 89,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "r.apply",
-        "terminal_name": "apply",
-        "receiver": "r",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:setup:88:4",
-      "span": {
-        "start_line": 89,
-        "start_column": 8,
-        "end_line": 93,
-        "end_column": 9,
-        "start_byte": 1817,
-        "end_byte": 1911
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:setup:88:4",
-        "callee_name": "register",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/kotlin/members_and_literals/source.kt",
-        "line_number": 91,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "register",
-        "terminal_name": "register",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:setup:88:4",
-      "span": {
-        "start_line": 91,
-        "start_column": 16,
-        "end_line": 91,
-        "end_column": 29,
-        "start_byte": 1874,
-        "end_byte": 1887
       }
     },
     {

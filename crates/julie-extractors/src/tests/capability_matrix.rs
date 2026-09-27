@@ -212,7 +212,7 @@ fn capability_matrix_matches_registry_entries() {
         assert!(
             matches!(
                 row.dependency_status.as_str(),
-                "current" | "upgrade_available" | "git_pinned" | "held"
+                "current" | "upgrade_available" | "git_pinned" | "held" | "vendored"
             ),
             "{} has unsupported dependency_status {}",
             row.language,

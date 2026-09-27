@@ -193,7 +193,7 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/java/cross_file/Source.java",
       "line_number": 13,
-      "confidence": "0.800"
+      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
@@ -204,7 +204,7 @@
         "kind": "calls",
         "file_path": "fixtures/extraction/java/cross_file/Source.java",
         "line_number": 13,
-        "confidence": "0.800"
+        "confidence": "0.700"
       },
       "target": {
         "display_name": "Other",

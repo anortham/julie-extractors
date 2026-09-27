@@ -204,6 +204,7 @@ pub(super) fn extract_call_relationships(
     walk_tree_for_calls(
         extractor,
         node,
+        node.id(),
         &symbol_index,
         symbols,
         relationships,
@@ -214,12 +215,15 @@ pub(super) fn extract_call_relationships(
 fn walk_tree_for_calls(
     extractor: &mut KotlinExtractor,
     node: Node,
+    root_node_id: usize,
     symbol_index: &ScopedSymbolIndex<'_>,
     all_symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
     depth: u32,
 ) {
-    if !should_visit_tree_depth(depth) {
+    if !should_visit_tree_depth(depth)
+        || (node.id() != root_node_id && is_relationship_scope_owner(node.kind()))
+    {
         return;
     }
 
@@ -251,6 +255,7 @@ fn walk_tree_for_calls(
         walk_tree_for_calls(
             extractor,
             child,
+            root_node_id,
             symbol_index,
             all_symbols,
             relationships,
@@ -264,6 +269,7 @@ struct CallSite {
     /// The receiver is an expression result (`a().b()`, `list.map {}.c()`),
     /// so the callee cannot be a same-file function found by bare name.
     receiver_is_expression: bool,
+    receiver_is_this: bool,
 }
 
 fn call_expression_target(extractor: &KotlinExtractor, node: Node) -> Option<CallSite> {
@@ -292,9 +298,16 @@ fn call_expression_target(extractor: &KotlinExtractor, node: Node) -> Option<Cal
     }
     let function_name = function_name?;
     let (target, receiver_is_expression) = unresolved_call_target(extractor, node, &function_name);
+    let receiver_is_this = node.named_child(0).is_some_and(|callee| {
+        callee.kind() == "navigation_expression"
+            && callee.named_child(0).is_some_and(|receiver| {
+                receiver.kind() == "this_expression" && base.get_node_text(&receiver) == "this"
+            })
+    });
     Some(CallSite {
         target,
         receiver_is_expression,
+        receiver_is_this,
     })
 }
 
@@ -308,14 +321,22 @@ fn infix_call_target(extractor: &KotlinExtractor, node: Node) -> Option<CallSite
         "identifier" => CallSite {
             target: UnresolvedTarget::from_chain(vec![call_name(base, &left), name]),
             receiver_is_expression: false,
+            receiver_is_this: false,
         },
-        "this_expression" | "super_expression" => CallSite {
+        "this_expression" => CallSite {
             target: UnresolvedTarget::simple(name),
             receiver_is_expression: false,
+            receiver_is_this: base.get_node_text(&left) == "this",
+        },
+        "super_expression" => CallSite {
+            target: UnresolvedTarget::simple(name),
+            receiver_is_expression: false,
+            receiver_is_this: false,
         },
         _ => CallSite {
             target: UnresolvedTarget::simple(name),
             receiver_is_expression: true,
+            receiver_is_this: false,
         },
     })
 }
@@ -350,9 +371,13 @@ fn function_reference_target(extractor: &KotlinExtractor, node: Node) -> Option<
         }
         _ => UnresolvedTarget::simple(name),
     };
+    let receiver_is_this = named.first().is_some_and(|receiver| {
+        receiver.kind() == "this_expression" && base.get_node_text(receiver) == "this"
+    });
     Some(CallSite {
         target,
         receiver_is_expression: false,
+        receiver_is_this,
     })
 }
 
@@ -375,18 +400,33 @@ fn emit_call(
     let CallSite {
         target,
         receiver_is_expression,
+        receiver_is_this,
     } = call;
     let line_number = node.start_position().row as u32 + 1;
     let file_path = extractor.base().file_path.clone();
     let receiver_type = super::identifiers::self_receiver_type(extractor.base(), node);
 
-    let resolution = if receiver_is_expression {
+    let resolution = if receiver_is_this {
+        match explicit_this_member_target(
+            extractor.base(),
+            &target,
+            caller,
+            receiver_type.as_deref(),
+            node,
+            symbol_index,
+            all_symbols,
+        ) {
+            Some(member) => LocalTargetResolution::Resolved(member),
+            None => LocalTargetResolution::Missing,
+        }
+    } else if receiver_is_expression {
         LocalTargetResolution::ReceiverQualified
     } else {
         match symbol_index.resolve_call_target(
             target.terminal_name.as_str(),
             Some(caller),
             target.receiver.as_deref(),
+            node,
         ) {
             LocalTargetResolution::ReceiverQualified => {
                 match extension_target(extractor.base(), &target, caller, all_symbols) {
@@ -479,6 +519,97 @@ fn extension_target<'a>(
     });
     let extension = candidates.next()?;
     candidates.next().is_none().then_some(extension)
+}
+
+fn explicit_this_member_target<'a>(
+    base: &BaseExtractor,
+    target: &UnresolvedTarget,
+    caller: &Symbol,
+    receiver_type: Option<&str>,
+    call_site: Node,
+    symbol_index: &ScopedSymbolIndex<'a>,
+    all_symbols: &'a [Symbol],
+) -> Option<&'a Symbol> {
+    if target.receiver.is_some() || !target.namespace_path.is_empty() {
+        return None;
+    }
+    let receiver_type = receiver_type
+        .map(str::to_string)
+        .or_else(|| enclosing_this_receiver_type(caller, all_symbols))?;
+    let receiver_type = type_base_name(&receiver_type);
+    if receiver_type.contains('.')
+        || receiver_is_visible_type_parameter(base, call_site, receiver_type)
+    {
+        return None;
+    }
+    let owner =
+        match symbol_index.resolve_constructable_target(receiver_type, Some(caller), call_site) {
+            LocalTargetResolution::Resolved(owner) => owner,
+            _ => return None,
+        };
+    let mut members = symbol_index
+        .candidates_by_name(&target.terminal_name)
+        .filter(|symbol| {
+            symbol.parent_id.as_deref() == Some(owner.id.as_str())
+                && matches!(symbol.kind, SymbolKind::Method | SymbolKind::Function)
+        });
+    let member = members.next()?;
+    members.next().is_none().then_some(member)
+}
+
+fn enclosing_this_receiver_type(caller: &Symbol, all_symbols: &[Symbol]) -> Option<String> {
+    let mut current = Some(caller);
+    while let Some(symbol) = current {
+        if let Some(receiver_type) = symbol
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("extendedType"))
+            .and_then(Value::as_str)
+        {
+            return Some(receiver_type.to_string());
+        }
+        if matches!(
+            symbol.kind,
+            SymbolKind::Class | SymbolKind::Interface | SymbolKind::Struct | SymbolKind::Enum
+        ) {
+            return Some(symbol.name.clone());
+        }
+        current = symbol.parent_id.as_deref().and_then(|parent_id| {
+            all_symbols
+                .iter()
+                .find(|candidate| candidate.id == parent_id)
+        });
+    }
+    None
+}
+
+fn receiver_is_visible_type_parameter(base: &BaseExtractor, call_site: Node, name: &str) -> bool {
+    std::iter::successors(Some(call_site), Node::parent)
+        .filter(|node| matches!(node.kind(), "function_declaration" | "class_declaration"))
+        .filter_map(|node| {
+            node.children(&mut node.walk())
+                .find(|child| child.kind() == "type_parameters")
+        })
+        .flat_map(|parameters| {
+            parameters
+                .named_children(&mut parameters.walk())
+                .filter(|parameter| parameter.kind() == "type_parameter")
+                .filter_map(|parameter| super::helpers::declared_name(base, &parameter))
+                .map(|(name, _)| name)
+                .collect::<Vec<_>>()
+        })
+        .any(|parameter| parameter == name)
+}
+
+fn is_relationship_scope_owner(kind: &str) -> bool {
+    matches!(
+        kind,
+        "class_declaration"
+            | "enum_declaration"
+            | "object_declaration"
+            | "interface_declaration"
+            | "function_declaration"
+    )
 }
 
 /// `List<User>?` reduces to `List`.

@@ -17,6 +17,9 @@ impl super::JavaScriptExtractor {
         parent_id: Option<String>,
     ) -> Option<Symbol> {
         let name_node = node.child_by_field_name("name");
+        let inner_name = matches!(node.kind(), "function_expression" | "generator_function")
+            .then(|| name_node.map(|name| self.base.get_node_text(&name)))
+            .flatten();
         let mut name = name_node.map(|n| self.base.get_node_text(&n));
 
         // Handle arrow functions assigned to variables (reference logic)
@@ -79,7 +82,9 @@ impl super::JavaScriptExtractor {
             "isExpression".to_string(),
             json!(node.kind() == "function_expression"),
         );
-
+        if let Some(inner_name) = inner_name {
+            metadata.insert("innerName".to_string(), json!(inner_name));
+        }
         let doc_comment = (!super::helpers::is_later_declarator(node))
             .then(|| self.base.find_doc_comment(&node))
             .flatten();

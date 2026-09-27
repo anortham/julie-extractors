@@ -282,6 +282,7 @@ fn extract_function_call_relationships(
                     &unresolved_target.terminal_name,
                     Some(caller_symbol),
                     unresolved_target.receiver.as_deref(),
+                    node,
                 ),
             };
             match resolution {

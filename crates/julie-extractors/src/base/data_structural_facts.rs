@@ -55,6 +55,7 @@ const XML_WSDL_OPERATION_PATTERN_ID: &str = "xml.wsdl.operation.v1";
 
 // Regex
 const REGEX_CAPTURE_GROUP_PATTERN_ID: &str = "regex.capture_group.v1";
+const REGEX_CONDITIONAL_PATTERN_ID: &str = "regex.conditional.v1";
 const REGEX_NAMED_CAPTURE_PATTERN_ID: &str = "regex.named_capture.v1";
 const REGEX_LOOKAROUND_PATTERN_ID: &str = "regex.lookaround.v1";
 const REGEX_CHARACTER_CLASS_PATTERN_ID: &str = "regex.character_class.v1";
@@ -154,6 +155,7 @@ const REGEX_DATA_PATTERN_IDS: &[&str] = &[
     REGEX_BACKREFERENCE_PATTERN_ID,
     REGEX_CAPTURE_GROUP_PATTERN_ID,
     REGEX_CHARACTER_CLASS_PATTERN_ID,
+    REGEX_CONDITIONAL_PATTERN_ID,
     REGEX_INLINE_FLAGS_PATTERN_ID,
     REGEX_LOOKAROUND_PATTERN_ID,
     REGEX_NAMED_CAPTURE_PATTERN_ID,
@@ -1706,6 +1708,7 @@ fn collect_regex_node(
             *capture_index += 1;
             regex_capture_group_fact(file_path, content, node, *capture_index)
         }
+        "conditional_group" => regex_conditional_fact(file_path, content, node),
         "lookaround_assertion" => regex_lookaround_fact(file_path, content, node),
         "character_class" => regex_character_class_fact(file_path, content, node),
         kind if crate::regex::is_quantifier_kind(kind) => {
@@ -1781,6 +1784,53 @@ fn regex_capture_group_fact(
         "regex",
         REGEX_CAPTURE_GROUP_PATTERN_ID,
         "capture_group",
+        node,
+        metadata,
+    ))
+}
+
+fn regex_conditional_fact(
+    file_path: &str,
+    content: &str,
+    node: Node<'_>,
+) -> Option<StructuralFact> {
+    let mut cursor = node.walk();
+    let condition_node = node
+        .named_children(&mut cursor)
+        .find(|child| child.kind() == "conditional_condition")?;
+    let mut condition_cursor = condition_node.walk();
+    let condition = if let Some(assertion) = condition_node
+        .named_children(&mut condition_cursor)
+        .find(|child| child.kind() == "lookaround_assertion")
+    {
+        node_text(content, assertion)?
+    } else {
+        let mut condition_cursor = condition_node.walk();
+        let test = condition_node
+            .named_children(&mut condition_cursor)
+            .find(|child| child.kind() == "conditional_test")?;
+        let mut test_cursor = test.walk();
+        let value = test.named_children(&mut test_cursor).next()?;
+        node_text(content, value)?
+    };
+    let mut cursor = node.walk();
+    let branch_count = node
+        .children(&mut cursor)
+        .filter(|child| child.kind() == "|")
+        .count()
+        + 1;
+    let mut metadata = base_metadata("pattern_structure");
+    insert_string(&mut metadata, "condition", condition);
+    metadata.insert(
+        "branch_count".to_string(),
+        Value::Number(Number::from(branch_count)),
+    );
+
+    Some(fact_for_node(
+        file_path,
+        "regex",
+        REGEX_CONDITIONAL_PATTERN_ID,
+        "conditional",
         node,
         metadata,
     ))

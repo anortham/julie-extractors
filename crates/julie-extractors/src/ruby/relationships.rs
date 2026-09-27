@@ -482,6 +482,7 @@ fn record_call(
             &call.target.terminal_name,
             caller_symbol,
             call.target.receiver.as_deref(),
+            node,
         )
     } else {
         LocalTargetResolution::Missing
@@ -678,9 +679,10 @@ fn resolve_ruby_call_target<'a>(
     method_name: &str,
     caller: &Symbol,
     receiver: Option<&str>,
+    site: Node,
 ) -> LocalTargetResolution<'a> {
     if receiver.is_some() {
-        return symbol_index.resolve_call_target(method_name, Some(caller), receiver);
+        return symbol_index.resolve_call_target(method_name, Some(caller), receiver, site);
     }
 
     // A class-level macro (`before_action :set_post`) names a method of the
@@ -709,7 +711,7 @@ fn resolve_ruby_call_target<'a>(
         }
     }
 
-    match symbol_index.resolve_call_target(method_name, Some(caller), None) {
+    match symbol_index.resolve_call_target(method_name, Some(caller), None, site) {
         LocalTargetResolution::Resolved(symbol) if super::calls::is_hook_block_symbol(symbol) => {
             LocalTargetResolution::Missing
         }

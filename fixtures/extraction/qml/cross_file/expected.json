@@ -1095,9 +1095,9 @@
         "start_line": 19,
         "start_column": 8,
         "end_line": 19,
-        "end_column": 25,
+        "end_column": 23,
         "start_byte": 405,
-        "end_byte": 422
+        "end_byte": 420
       }
     },
     {
@@ -1145,11 +1145,11 @@
       "caller_scope_key": "fixtures/extraction/qml/cross_file/source.qml:source:7:0",
       "span": {
         "start_line": 25,
-        "start_column": 15,
+        "start_column": 23,
         "end_line": 25,
-        "end_column": 36,
-        "start_byte": 514,
-        "end_byte": 535
+        "end_column": 28,
+        "start_byte": 522,
+        "end_byte": 527
       }
     },
     {

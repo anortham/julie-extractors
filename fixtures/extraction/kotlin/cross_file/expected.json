@@ -185,43 +185,9 @@
       "file_path": "fixtures/extraction/kotlin/cross_file/source.kt",
       "line_number": 12,
       "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/kotlin/cross_file/source.kt:entry:11:4",
-      "callee_name": "Thing",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/kotlin/cross_file/source.kt",
-      "line_number": 12,
-      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/kotlin/cross_file/source.kt:entry:11:4",
-        "callee_name": "Thing",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/kotlin/cross_file/source.kt",
-        "line_number": 12,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Thing",
-        "terminal_name": "Thing",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/kotlin/cross_file/source.kt:entry:11:4",
-      "span": {
-        "start_line": 12,
-        "start_column": 8,
-        "end_line": 12,
-        "end_column": 15,
-        "start_byte": 358,
-        "end_byte": 365
-      }
-    },
     {
       "pending": {
         "from_key": "fixtures/extraction/kotlin/cross_file/source.kt:entry:11:4",

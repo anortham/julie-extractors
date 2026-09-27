@@ -84,7 +84,7 @@ impl super::BashExtractor {
             .span_for_byte_range(target.range.start, target.range.end)
             .unwrap_or_else(|| NormalizedSpan::from_node(&target.anchor));
         let unresolved_target = UnresolvedTarget::simple(target.name.clone());
-        match scoped_index.resolve_call_target(&target.name, Some(caller), None) {
+        match scoped_index.resolve_call_target(&target.name, Some(caller), None, target.anchor) {
             LocalTargetResolution::Resolved(called_symbol) => {
                 if caller.id != called_symbol.id {
                     let mut relationship = self.base.create_relationship_at_target(

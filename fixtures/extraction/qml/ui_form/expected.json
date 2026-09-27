@@ -894,11 +894,11 @@
       "caller_scope_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:Screen01:4:0",
       "span": {
         "start_line": 8,
-        "start_column": 33,
+        "start_column": 38,
         "end_line": 8,
-        "end_column": 74,
-        "start_byte": 220,
-        "end_byte": 261
+        "end_column": 41,
+        "start_byte": 225,
+        "end_byte": 228
       }
     },
     {
@@ -998,11 +998,11 @@
       "caller_scope_key": "fixtures/extraction/qml/ui_form/Screen01.ui.qml:save:13:4",
       "span": {
         "start_line": 13,
-        "start_column": 62,
+        "start_column": 71,
         "end_line": 13,
-        "end_column": 78,
-        "start_byte": 453,
-        "end_byte": 469
+        "end_column": 76,
+        "start_byte": 462,
+        "end_byte": 467
       }
     }
   ],

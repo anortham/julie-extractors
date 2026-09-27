@@ -733,11 +733,11 @@
       "caller_scope_key": "fixtures/extraction/go/gocheck_ginkgo/source_test.go:Test:10:0",
       "span": {
         "start_line": 10,
-        "start_column": 26,
+        "start_column": 32,
         "end_line": 10,
-        "end_column": 43,
-        "start_byte": 124,
-        "end_byte": 141
+        "end_column": 40,
+        "start_byte": 130,
+        "end_byte": 138
       }
     },
     {
@@ -759,11 +759,11 @@
       "caller_scope_key": "fixtures/extraction/go/gocheck_ginkgo/source_test.go:store:32:8",
       "span": {
         "start_line": 33,
-        "start_column": 1,
+        "start_column": 3,
         "end_line": 33,
-        "end_column": 25,
-        "start_byte": 532,
-        "end_byte": 556
+        "end_column": 5,
+        "start_byte": 534,
+        "end_byte": 536
       }
     }
   ],

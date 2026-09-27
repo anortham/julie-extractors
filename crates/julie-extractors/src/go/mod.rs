@@ -10,8 +10,8 @@ mod type_facts;
 mod types;
 
 use crate::base::{
-    BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
-    Symbol, SymbolKind,
+    BaseExtractor, Identifier, PendingRelationship, Relationship, ScopedSymbolIndex,
+    StructuredPendingRelationship, Symbol, SymbolKind,
 };
 use crate::test_calls::TestCallCategory;
 use crate::test_detection::{mark_go_test_containers, normalize_scoped_test_roles};
@@ -184,6 +184,7 @@ impl GoExtractor {
             symbols,
             symbol_map: self.build_symbol_map(symbols),
             containers: self.base.containing_symbol_index(symbols),
+            scoped_index: ScopedSymbolIndex::new(symbols),
         };
         self.walk_tree_for_relationships(tree.root_node(), &scope, &mut relationships, 0);
 

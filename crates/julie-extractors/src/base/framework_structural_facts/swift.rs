@@ -21,6 +21,7 @@ use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 const SWIFTPM_PACKAGE_PATTERN_ID: &str = "swiftpm.package.v1";
 const SWIFTPM_PRODUCT_PATTERN_ID: &str = "swiftpm.product.v1";
 const SWIFTPM_TARGET_PATTERN_ID: &str = "swiftpm.target.v1";
+const SWIFT_TESTING_TRAIT_PATTERN_ID: &str = "swift_testing.trait.v1";
 
 /// Bound on `grouped` binding hops, so a self-referencing binding terminates.
 const MAX_PREFIX_HOPS: u32 = 16;
@@ -36,10 +37,113 @@ pub(super) fn collect_swift_framework_facts(
     if imports_module(root, content, "Vapor") {
         walk_vapor(root, language, tree, file_path, content, 0, &mut facts);
     }
+    if imports_module(root, content, "Testing") {
+        walk_testing_traits(root, language, file_path, content, 0, &mut facts);
+    }
     if is_package_manifest(file_path) {
         walk_manifest(root, language, file_path, content, 0, &mut facts);
     }
     facts
+}
+
+fn walk_testing_traits(
+    node: Node,
+    language: &str,
+    file_path: &str,
+    content: &str,
+    depth: u32,
+    facts: &mut Vec<StructuralFact>,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    if node.kind() == "attribute" {
+        let mut cursor = node.walk();
+        let mut arguments = node.named_children(&mut cursor);
+        let name = arguments
+            .next()
+            .and_then(|name| content.get(name.start_byte()..name.end_byte()));
+        if matches!(name, Some("Test" | "Suite")) {
+            for argument in arguments {
+                let Some((trait_name, values)) = testing_trait_expression(argument, content) else {
+                    continue;
+                };
+                let mut metadata = HashMap::from([(
+                    "pattern_version".to_string(),
+                    Value::Number(Number::from(1)),
+                )]);
+                insert_string(&mut metadata, "query_family", "testing");
+                insert_string(&mut metadata, "framework", "swift_testing");
+                insert_string(&mut metadata, "trait", trait_name);
+                if !values.is_empty() {
+                    insert_string_array(&mut metadata, "arguments", values);
+                }
+                facts.push(fact_for_node(
+                    file_path,
+                    language,
+                    SWIFT_TESTING_TRAIT_PATTERN_ID,
+                    "trait",
+                    argument,
+                    metadata,
+                ));
+            }
+        }
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        walk_testing_traits(child, language, file_path, content, child_depth, facts);
+    }
+}
+
+fn testing_trait_expression<'a>(
+    expression: Node,
+    content: &'a str,
+) -> Option<(&'static str, Vec<String>)> {
+    let callee = if expression.kind() == "call_expression" {
+        expression.named_child(0)?
+    } else {
+        expression
+    };
+    if callee.kind() != "prefix_expression" {
+        return None;
+    }
+    let member = callee.child_by_field_name("target")?;
+    let name = content.get(member.start_byte()..member.end_byte())?;
+    let trait_name = match name {
+        "tags" => "tags",
+        "disabled" => "disabled",
+        "enabled" => "enabled",
+        "serialized" => "serialized",
+        "timeLimit" => "timeLimit",
+        _ => return None,
+    };
+    let arguments = if expression.kind() == "call_expression" {
+        swift_call_argument_sources(expression, content)
+    } else {
+        Vec::new()
+    };
+    Some((trait_name, arguments))
+}
+
+fn swift_call_argument_sources(call: Node, content: &str) -> Vec<String> {
+    let Some(arguments) = named_child_of_kind(call, "call_suffix")
+        .and_then(|suffix| named_child_of_kind(suffix, "value_arguments"))
+    else {
+        return Vec::new();
+    };
+    let mut cursor = arguments.walk();
+    arguments
+        .named_children(&mut cursor)
+        .filter(|argument| argument.kind() == "value_argument")
+        .filter_map(|argument| {
+            content
+                .get(argument.start_byte()..argument.end_byte())
+                .map(str::to_string)
+        })
+        .collect()
 }
 
 fn imports_module(root: Node, content: &str, module: &str) -> bool {

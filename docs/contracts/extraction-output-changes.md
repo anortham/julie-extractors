@@ -92,6 +92,22 @@ Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
 classification: compatible
 
+The reference-integrity corrections add `reference-integrity-v1` to the
+extraction contract. False local targets caused by shadowing, unrelated
+scopes or incompatible Elixir arity become structured pending calls with
+source context. ECMAScript ordinary functions no longer inherit an enclosing
+class receiver. Calls requiring inheritance lookup also remain pending rather
+than selecting a method by file-wide name uniqueness. Existing call sites
+remain available for consumer resolution.
+
+Structural facts now cover Actix resources, local client bindings, Kotest
+checks, Swift Testing traits, Rust benchmarks, Phoenix sockets/channels and
+regex conditionals. Cucumber step methods use the existing step-definition
+role. The regex parser is the licensed `0.25.0-julie.1` vendored patch, reflected
+in parser inventory and capability metadata. The SQLite schema is unchanged.
+Re-extract existing artifacts with the changed binary and `--force` to replace
+old facts; the extraction contract prevents mixing producer semantics.
+
 Five cross-language parity fixes across JavaScript, TypeScript, and C++, and
 one Flask route change. No SQLite or report-schema column is added, removed, or
 retyped: SQLite schema remains 7, report schema remains 3, and extraction

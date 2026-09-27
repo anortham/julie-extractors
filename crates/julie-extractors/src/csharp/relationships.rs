@@ -87,7 +87,7 @@ fn visit_relationships(
             extract_call_relationships(extractor, node, symbols, sites, relationships);
         }
         "object_creation_expression" | "implicit_object_creation_expression" => {
-            extract_object_creation_relationships(extractor, node, symbols, sites, relationships);
+            extract_object_creation_relationships(extractor, node, sites, relationships);
         }
         _ => {}
     }
@@ -414,7 +414,6 @@ fn extract_constructor_parameter_relationships(
 fn extract_object_creation_relationships(
     extractor: &mut CSharpExtractor,
     node: tree_sitter::Node,
-    symbols: &[Symbol],
     sites: &CallSites<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
@@ -471,15 +470,15 @@ fn extract_object_creation_relationships(
         return;
     };
 
-    let resolution = sites
-        .targets
-        .resolve_call_target(&target.terminal_name, Some(&caller), None);
+    let resolution =
+        sites
+            .targets
+            .resolve_constructable_target(&target.terminal_name, Some(&caller), node);
     let resolved_type = match resolution {
         LocalTargetResolution::Resolved(symbol) => Some(symbol),
         _ => None,
     }
-    .filter(|symbol| is_constructible_type(symbol))
-    .or_else(|| unique_constructible_type(symbols, &target.terminal_name));
+    .filter(|symbol| is_constructible_type(symbol));
 
     if let Some(type_symbol) = resolved_type {
         relationships.push(Relationship {
@@ -519,16 +518,6 @@ fn is_constructible_type(symbol: &Symbol) -> bool {
         symbol.kind,
         SymbolKind::Class | SymbolKind::Struct | SymbolKind::Type
     )
-}
-
-/// The file's one class, struct, or record named `name`; a same-named
-/// constructor makes the name ambiguous as a call but not as a type.
-fn unique_constructible_type<'a>(symbols: &'a [Symbol], name: &str) -> Option<&'a Symbol> {
-    let mut matches = symbols
-        .iter()
-        .filter(|symbol| symbol.name == name && is_constructible_type(symbol));
-    let first = matches.next()?;
-    matches.next().is_none().then_some(first)
 }
 
 fn find_first_type_identifier(
@@ -702,6 +691,7 @@ fn handle_call_target(
         &target.terminal_name,
         Some(&caller),
         target.receiver.as_deref(),
+        call_node,
     ) {
         LocalTargetResolution::Resolved(called_symbol) => {
             LocalTargetResolution::Resolved(called_symbol)

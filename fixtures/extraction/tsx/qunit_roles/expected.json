@@ -634,6 +634,14 @@
   ],
   "pending_relationships": [
     {
+      "from_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:module:32:2",
+      "callee_name": "run",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
+      "line_number": 33,
+      "confidence": "0.700"
+    },
+    {
       "from_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:renders a label:14:2",
       "callee_name": "assert.equal",
       "kind": "calls",
@@ -643,6 +651,32 @@
     }
   ],
   "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:module:32:2",
+        "callee_name": "run",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/tsx/qunit_roles/source.tsx",
+        "line_number": 33,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "run",
+        "terminal_name": "run",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:module:32:2",
+      "span": {
+        "start_line": 33,
+        "start_column": 4,
+        "end_line": 33,
+        "end_column": 9,
+        "start_byte": 886,
+        "end_byte": 891
+      }
+    },
     {
       "pending": {
         "from_key": "fixtures/extraction/tsx/qunit_roles/source.tsx:renders a label:14:2",

@@ -945,8 +945,44 @@
       "metadata": null
     }
   ],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/jsx/node_test_roles/source.jsx:it:30:2",
+      "callee_name": "run",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/jsx/node_test_roles/source.jsx",
+      "line_number": 31,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/jsx/node_test_roles/source.jsx:it:30:2",
+        "callee_name": "run",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/jsx/node_test_roles/source.jsx",
+        "line_number": 31,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "run",
+        "terminal_name": "run",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/jsx/node_test_roles/source.jsx:it:30:2",
+      "span": {
+        "start_line": 31,
+        "start_column": 11,
+        "end_line": 31,
+        "end_column": 20,
+        "start_byte": 688,
+        "end_byte": 697
+      }
+    }
+  ],
   "identifiers": [
     {
       "key": "fixtures/extraction/jsx/node_test_roles/source.jsx:Panel:call:14:12",

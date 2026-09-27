@@ -99,7 +99,7 @@ impl super::DartExtractor {
         {
             target.import_context = Some((*uri).to_string());
         }
-        if let Some(called) = resolve(&target, caller, context) {
+        if let Some(called) = resolve(&target, caller, node, context) {
             self.same_file_calls.push((
                 caller.id.clone(),
                 called.id.clone(),
@@ -128,6 +128,7 @@ impl super::DartExtractor {
 fn resolve<'a>(
     target: &UnresolvedTarget,
     caller: &Symbol,
+    call_site: Node,
     context: &CallContext<'a>,
 ) -> Option<&'a Symbol> {
     let receiver = target.receiver.as_deref();
@@ -139,10 +140,12 @@ fn resolve<'a>(
     {
         return class_member(class, &target.terminal_name, context).or(Some(*class));
     }
-    match context
-        .scoped
-        .resolve_call_target(&target.terminal_name, Some(caller), receiver)
-    {
+    match context.scoped.resolve_call_target(
+        &target.terminal_name,
+        Some(caller),
+        receiver,
+        call_site,
+    ) {
         LocalTargetResolution::Resolved(symbol) => Some(symbol),
         _ => None,
     }

@@ -5,6 +5,7 @@ members = [
     "crates/julie-extractors",
     "xtask",
 ]
+exclude = ["vendor/tree-sitter-regex"]
 resolver = "2"
 
 [workspace.package]

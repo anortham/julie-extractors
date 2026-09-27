@@ -83,7 +83,11 @@ fn resolved_type(results: &ExtractionResults, symbol: &Symbol) -> Option<String>
 fn prototype_and_static_members_belong_to_the_constructor_function() {
     let source = r#"function Queue() { this.clear(); }
 Queue.prototype.clear = function clear() { this.jobs = []; };
-Queue.prototype.drain = function drain() { this.clear(); };
+Queue.prototype.drain = function drain() {
+  const clearLater = () => this.clear();
+  function nestedOrdinary() { this.clear(); }
+  this.clear();
+};
 Queue.create = () => new Queue();
 "#;
     let results = extract("queue.js", source);
@@ -100,6 +104,7 @@ Queue.create = () => new Queue();
     for expected in [
         "Queue Calls clear",
         "drain Calls clear",
+        "clearLater Calls clear",
         "create Instantiates Queue",
     ] {
         assert!(
@@ -107,17 +112,38 @@ Queue.create = () => new Queue();
             "{relationships:?}"
         );
     }
-    assert!(
-        pending_rows(&results).is_empty(),
-        "{:?}",
-        pending_rows(&results)
+    let unresolved: Vec<_> = results
+        .structured_pending_relationships
+        .iter()
+        .filter(|pending| pending.target.terminal_name == "clear")
+        .collect();
+    assert_eq!(unresolved.len(), 1, "{:?}", pending_rows(&results));
+    let unresolved = unresolved[0];
+    assert_eq!(
+        symbol_name(&results, &unresolved.pending.from_symbol_id),
+        "nestedOrdinary"
+    );
+    assert_eq!(unresolved.target.receiver.as_deref(), Some("this"));
+    assert_eq!(unresolved.receiver_type, None);
+    let span = unresolved.span.as_ref().expect("nested call span");
+    assert_eq!(
+        &source[span.start_byte as usize..span.end_byte as usize],
+        "this.clear()"
     );
     let this_call = results
         .identifiers
         .iter()
-        .find(|identifier| identifier.name == "clear" && identifier.start_line == 3)
-        .expect("this.clear() identifier");
-    assert_eq!(this_call.receiver_type.as_deref(), Some("Queue"));
+        .filter(|identifier| identifier.name == "clear")
+        .collect::<Vec<_>>();
+    let receiver_type_at = |line| {
+        this_call
+            .iter()
+            .find(|identifier| identifier.start_line == line)
+            .map(|identifier| identifier.receiver_type.as_deref())
+    };
+    assert_eq!(receiver_type_at(4), Some(Some("Queue")));
+    assert_eq!(receiver_type_at(5), Some(None));
+    assert_eq!(receiver_type_at(6), Some(Some("Queue")));
 }
 
 #[test]

@@ -1707,6 +1707,7 @@
       "visibility": null,
       "parent_key": "fixtures/extraction/javascript/language_gaps/source.js:wrap:40:0",
       "metadata": {
+        "innerName": "iife",
         "isArrowFunction": false,
         "isAsync": false,
         "isExpression": true,
@@ -3244,11 +3245,27 @@
     },
     {
       "from_key": "fixtures/extraction/javascript/language_gaps/source.js:useHook:57:0",
+      "callee_name": "toggle",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/javascript/language_gaps/source.js",
+      "line_number": 59,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/javascript/language_gaps/source.js:useHook:57:0",
       "callee_name": "validate",
       "kind": "calls",
       "file_path": "fixtures/extraction/javascript/language_gaps/source.js",
       "line_number": 60,
       "confidence": "0.800"
+    },
+    {
+      "from_key": "fixtures/extraction/javascript/language_gaps/source.js:waits for both:67:2",
+      "callee_name": "cb",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/javascript/language_gaps/source.js",
+      "line_number": 70,
+      "confidence": "0.700"
     },
     {
       "from_key": "fixtures/extraction/javascript/language_gaps/source.js:waits for both:67:2",
@@ -3549,6 +3566,32 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/javascript/language_gaps/source.js:useHook:57:0",
+        "callee_name": "toggle",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/javascript/language_gaps/source.js",
+        "line_number": 59,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "toggle",
+        "terminal_name": "toggle",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/javascript/language_gaps/source.js:useHook:57:0",
+      "span": {
+        "start_line": 59,
+        "start_column": 2,
+        "end_line": 59,
+        "end_column": 10,
+        "start_byte": 1231,
+        "end_byte": 1239
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/javascript/language_gaps/source.js:useHook:57:0",
         "callee_name": "validate",
         "kind": "calls",
         "file_path": "fixtures/extraction/javascript/language_gaps/source.js",
@@ -3570,6 +3613,32 @@
         "end_column": 19,
         "start_byte": 1243,
         "end_byte": 1260
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/javascript/language_gaps/source.js:waits for both:67:2",
+        "callee_name": "cb",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/javascript/language_gaps/source.js",
+        "line_number": 70,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "cb",
+        "terminal_name": "cb",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/javascript/language_gaps/source.js:waits for both:67:2",
+      "span": {
+        "start_line": 70,
+        "start_column": 4,
+        "end_line": 70,
+        "end_column": 8,
+        "start_byte": 1510,
+        "end_byte": 1514
       }
     },
     {

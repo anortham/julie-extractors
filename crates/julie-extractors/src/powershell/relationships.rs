@@ -62,7 +62,7 @@ fn extract_command_relationships(
         return;
     };
 
-    match local_command_target(symbols, &command_name) {
+    match local_command_target(symbols, &command_name, caller) {
         Some(command_symbol) => {
             if caller.id != command_symbol.id {
                 relationships.push(extractor.base.create_relationship_at_target(
@@ -93,27 +93,90 @@ fn extract_command_relationships(
 /// The same-file function a command name runs, matched without regard to
 /// case as PowerShell does, directly or through a same-file alias
 /// (`Set-Alias gt Get-Thing`). An ambiguous name resolves to nothing.
-fn local_command_target<'a>(symbols: &'a [Symbol], command_name: &str) -> Option<&'a Symbol> {
-    let unique_function = |name: &str| {
+fn local_command_target<'a>(
+    symbols: &'a [Symbol],
+    command_name: &str,
+    caller: &Symbol,
+) -> Option<&'a Symbol> {
+    match visible_command_alias(symbols, command_name, caller) {
+        Ok(Some(alias)) => {
+            let target = alias.metadata.as_ref()?.get("aliasTarget")?.as_str()?;
+            visible_command_function(symbols, target, caller)
+                .ok()
+                .flatten()
+        }
+        Ok(None) => visible_command_function(symbols, command_name, caller)
+            .ok()
+            .flatten(),
+        Err(()) => None,
+    }
+}
+
+fn visible_command_function<'a>(
+    symbols: &'a [Symbol],
+    name: &str,
+    caller: &Symbol,
+) -> Result<Option<&'a Symbol>, ()> {
+    for scope_id in visible_scope_ids(symbols, caller) {
         let mut matches = symbols.iter().filter(|symbol| {
             symbol.kind == SymbolKind::Function
                 && is_command_function(symbol)
                 && symbol.name.eq_ignore_ascii_case(name)
+                && symbol.parent_id.as_deref() == scope_id
         });
-        let first = matches.next()?;
-        matches.next().is_none().then_some(first)
-    };
-    unique_function(command_name).or_else(|| {
-        symbols
-            .iter()
-            .filter(|symbol| {
-                symbol.kind == SymbolKind::Import && symbol.name.eq_ignore_ascii_case(command_name)
-            })
-            .find_map(|alias| {
-                let target = alias.metadata.as_ref()?.get("aliasTarget")?.as_str()?;
-                unique_function(target)
-            })
-    })
+        if let Some(first) = matches.next() {
+            return if matches.next().is_none() {
+                Ok(Some(first))
+            } else {
+                Err(())
+            };
+        }
+    }
+    Ok(None)
+}
+
+fn visible_command_alias<'a>(
+    symbols: &'a [Symbol],
+    name: &str,
+    caller: &Symbol,
+) -> Result<Option<&'a Symbol>, ()> {
+    for scope_id in visible_scope_ids(symbols, caller) {
+        let mut matches = symbols.iter().filter(|symbol| {
+            symbol.kind == SymbolKind::Import
+                && symbol.name.eq_ignore_ascii_case(name)
+                && symbol.parent_id.as_deref() == scope_id
+        });
+        if let Some(first) = matches.next() {
+            return if matches.next().is_none() {
+                Ok(Some(first))
+            } else {
+                Err(())
+            };
+        }
+    }
+    Ok(None)
+}
+
+fn visible_scope_ids<'a>(symbols: &'a [Symbol], caller: &'a Symbol) -> Vec<Option<&'a str>> {
+    let mut scopes = Vec::new();
+    let mut scope_id = Some(caller.id.as_str());
+    loop {
+        scopes.push(scope_id);
+        let Some(current_id) = scope_id else {
+            break;
+        };
+        let Some(current) = symbols.iter().find(|symbol| symbol.id == current_id) else {
+            break;
+        };
+        match current.parent_id.as_deref() {
+            Some(parent_id) => scope_id = Some(parent_id),
+            None => {
+                scopes.push(None);
+                break;
+            }
+        }
+    }
+    scopes
 }
 
 /// Functions a command can call: declared functions, not Pester blocks or

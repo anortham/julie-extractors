@@ -122,11 +122,11 @@
         "start_line": 16,
         "start_column": 8,
         "end_line": 16,
-        "end_column": 22,
+        "end_column": 20,
         "start_byte": 382,
-        "end_byte": 396
+        "end_byte": 394
       },
-      "reference_site_is_exact": false,
+      "reference_site_is_exact": true,
       "confidence": "0.900",
       "metadata": null
     }
@@ -161,11 +161,11 @@
       "caller_scope_key": "fixtures/extraction/go/cross_file/source.go:entry:14:0",
       "span": {
         "start_line": 15,
-        "start_column": 1,
+        "start_column": 7,
         "end_line": 15,
-        "end_column": 13,
-        "start_byte": 361,
-        "end_byte": 373
+        "end_column": 11,
+        "start_byte": 367,
+        "end_byte": 371
       }
     }
   ],

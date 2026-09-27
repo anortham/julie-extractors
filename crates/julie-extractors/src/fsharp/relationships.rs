@@ -217,7 +217,7 @@ fn extract_call(
         ));
         return;
     }
-    match symbol_index.resolve_call_target(&terminal_name, Some(&caller), None) {
+    match symbol_index.resolve_call_target(&terminal_name, Some(&caller), None, node) {
         LocalTargetResolution::Resolved(called_symbol) => {
             relationships.push(extractor.base().create_relationship_at_target(
                 caller.id.clone(),

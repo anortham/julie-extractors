@@ -1,0 +1,465 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/rust/reference_targets/source.rs:before_inner_scope:5:0",
+      "name": "before_inner_scope",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/reference_targets/source.rs",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 1,
+      "start_byte": 42,
+      "end_byte": 84,
+      "body_span": {
+        "start_line": 5,
+        "start_column": 24,
+        "end_line": 7,
+        "end_column": 1,
+        "start_byte": 66,
+        "end_byte": 84
+      },
+      "body_hash": "42dd381d5a42580395eba5b7b4d087b9",
+      "signature": "fn before_inner_scope()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/reference_targets/source.rs:qualified:19:0",
+      "name": "qualified",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/reference_targets/source.rs",
+      "start_line": 19,
+      "start_column": 0,
+      "end_line": 21,
+      "end_column": 1,
+      "start_byte": 219,
+      "end_byte": 259,
+      "body_span": {
+        "start_line": 19,
+        "start_column": 15,
+        "end_line": 21,
+        "end_column": 1,
+        "start_byte": 234,
+        "end_byte": 259
+      },
+      "body_hash": "55dcee4afab78ee0485f45a5841f54ba",
+      "signature": "fn qualified()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/reference_targets/source.rs:render:11:8",
+      "name": "render",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/reference_targets/source.rs",
+      "start_line": 11,
+      "start_column": 8,
+      "end_line": 13,
+      "end_column": 9,
+      "start_byte": 119,
+      "end_byte": 175,
+      "body_span": {
+        "start_line": 11,
+        "start_column": 28,
+        "end_line": 13,
+        "end_column": 9,
+        "start_byte": 139,
+        "end_byte": 175
+      },
+      "body_hash": "8d575b371604b18c511149aa5c20978f",
+      "signature": "macro_rules! render",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/rust/reference_targets/source.rs:scope_owner:9:0",
+      "metadata": {
+        "rustSymbolKind": "macro_rules"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/reference_targets/source.rs:render:1:0",
+      "name": "render",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/reference_targets/source.rs",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 1,
+      "start_byte": 0,
+      "end_byte": 40,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 20,
+        "end_line": 3,
+        "end_column": 1,
+        "start_byte": 20,
+        "end_byte": 40
+      },
+      "body_hash": "04cf13144fe71fb7275b4614e8048bdf",
+      "signature": "macro_rules! render",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "rustSymbolKind": "macro_rules"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/reference_targets/source.rs:scope_owner:9:0",
+      "name": "scope_owner",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/reference_targets/source.rs",
+      "start_line": 9,
+      "start_column": 0,
+      "end_line": 17,
+      "end_column": 1,
+      "start_byte": 86,
+      "end_byte": 217,
+      "body_span": {
+        "start_line": 9,
+        "start_column": 17,
+        "end_line": 17,
+        "end_column": 1,
+        "start_byte": 103,
+        "end_byte": 217
+      },
+      "body_hash": "0a100761af58dfc04e8d1ff76cf42924",
+      "signature": "fn scope_owner()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [
+    {
+      "from_key": "fixtures/extraction/rust/reference_targets/source.rs:before_inner_scope:5:0",
+      "to_key": "fixtures/extraction/rust/reference_targets/source.rs:render:1:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/reference_targets/source.rs",
+      "line_number": 6,
+      "span": {
+        "start_line": 6,
+        "start_column": 4,
+        "end_line": 6,
+        "end_column": 13,
+        "start_byte": 72,
+        "end_byte": 81
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/rust/reference_targets/source.rs:scope_owner:9:0",
+      "to_key": "fixtures/extraction/rust/reference_targets/source.rs:render:11:8",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/reference_targets/source.rs",
+      "line_number": 14,
+      "span": {
+        "start_line": 14,
+        "start_column": 8,
+        "end_line": 14,
+        "end_column": 17,
+        "start_byte": 184,
+        "end_byte": 193
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/rust/reference_targets/source.rs:scope_owner:9:0",
+      "to_key": "fixtures/extraction/rust/reference_targets/source.rs:render:1:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/reference_targets/source.rs",
+      "line_number": 16,
+      "span": {
+        "start_line": 16,
+        "start_column": 4,
+        "end_line": 16,
+        "end_column": 13,
+        "start_byte": 205,
+        "end_byte": 214
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    }
+  ],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/rust/reference_targets/source.rs:qualified:19:0",
+      "callee_name": "render",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/reference_targets/source.rs",
+      "line_number": 20,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/reference_targets/source.rs:qualified:19:0",
+        "callee_name": "render",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/reference_targets/source.rs",
+        "line_number": 20,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "crate::render",
+        "terminal_name": "render",
+        "receiver": null,
+        "namespace_path": [
+          "crate"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/reference_targets/source.rs:qualified:19:0",
+      "span": {
+        "start_line": 20,
+        "start_column": 4,
+        "end_line": 20,
+        "end_column": 20,
+        "start_byte": 240,
+        "end_byte": 256
+      }
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/rust/reference_targets/source.rs:render:call:14:8",
+      "name": "render",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/reference_targets/source.rs",
+      "start_line": 14,
+      "start_column": 8,
+      "end_line": 14,
+      "end_column": 14,
+      "start_byte": 184,
+      "end_byte": 190,
+      "containing_key": "fixtures/extraction/rust/reference_targets/source.rs:scope_owner:9:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/reference_targets/source.rs:render:call:16:4",
+      "name": "render",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/reference_targets/source.rs",
+      "start_line": 16,
+      "start_column": 4,
+      "end_line": 16,
+      "end_column": 10,
+      "start_byte": 205,
+      "end_byte": 211,
+      "containing_key": "fixtures/extraction/rust/reference_targets/source.rs:scope_owner:9:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/reference_targets/source.rs:render:call:20:11",
+      "name": "render",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/reference_targets/source.rs",
+      "start_line": 20,
+      "start_column": 11,
+      "end_line": 20,
+      "end_column": 17,
+      "start_byte": 247,
+      "end_byte": 253,
+      "containing_key": "fixtures/extraction/rust/reference_targets/source.rs:qualified:19:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/reference_targets/source.rs:render:call:6:4",
+      "name": "render",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/reference_targets/source.rs",
+      "start_line": 6,
+      "start_column": 4,
+      "end_line": 6,
+      "end_column": 10,
+      "start_byte": 72,
+      "end_byte": 78,
+      "containing_key": "fixtures/extraction/rust/reference_targets/source.rs:before_inner_scope:5:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/reference_targets/source.rs",
+      "covered_lines": 22,
+      "covered_bytes": 260,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 22,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 260,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/reference_targets/source.rs:before_inner_scope:5:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/reference_targets/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 18,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 5,
+      "start_column": 24,
+      "end_line": 7,
+      "end_column": 1,
+      "start_byte": 66,
+      "end_byte": 84,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/reference_targets/source.rs:qualified:19:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/reference_targets/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 25,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 19,
+      "start_column": 15,
+      "end_line": 21,
+      "end_column": 1,
+      "start_byte": 234,
+      "end_byte": 259,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/reference_targets/source.rs:render:11:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/reference_targets/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 36,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 11,
+      "start_column": 28,
+      "end_line": 13,
+      "end_column": 9,
+      "start_byte": 139,
+      "end_byte": 175,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/reference_targets/source.rs:render:1:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/reference_targets/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 20,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 20,
+      "end_line": 3,
+      "end_column": 1,
+      "start_byte": 20,
+      "end_byte": 40,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/reference_targets/source.rs:scope_owner:9:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/reference_targets/source.rs",
+      "covered_lines": 9,
+      "covered_bytes": 114,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 9,
+      "start_column": 17,
+      "end_line": 17,
+      "end_column": 1,
+      "start_byte": 103,
+      "end_byte": 217,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

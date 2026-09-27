@@ -984,24 +984,6 @@
     },
     {
       "from_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
-      "to_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Create:9:4",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/csharp/base_lists_and_calls/source.cs",
-      "line_number": 22,
-      "span": {
-        "start_line": 22,
-        "start_column": 22,
-        "end_line": 22,
-        "end_column": 37,
-        "start_byte": 624,
-        "end_byte": 639
-      },
-      "reference_site_is_exact": false,
-      "confidence": "0.900",
-      "metadata": null
-    },
-    {
-      "from_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
       "to_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Flush:29:4",
       "kind": "calls",
       "file_path": "fixtures/extraction/csharp/base_lists_and_calls/source.cs",
@@ -1100,6 +1082,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/csharp/base_lists_and_calls/source.cs",
       "line_number": 24,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
+      "callee_name": "Create",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/csharp/base_lists_and_calls/source.cs",
+      "line_number": 22,
       "confidence": "0.700"
     },
     {
@@ -1331,6 +1321,33 @@
         "start_byte": 690,
         "end_byte": 728
       }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
+        "callee_name": "Create",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/csharp/base_lists_and_calls/source.cs",
+        "line_number": 22,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Create",
+        "terminal_name": "Create",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
+      "span": {
+        "start_line": 22,
+        "start_column": 22,
+        "end_line": 22,
+        "end_column": 37,
+        "start_byte": 624,
+        "end_byte": 639
+      },
+      "receiver_type": "OrderRepository"
     },
     {
       "pending": {

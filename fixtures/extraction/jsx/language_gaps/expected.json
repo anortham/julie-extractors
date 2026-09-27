@@ -477,6 +477,14 @@
       "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
       "line_number": 21,
       "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/jsx/language_gaps/source.jsx:render:22:46",
+      "callee_name": "Price",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+      "line_number": 22,
+      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
@@ -610,6 +618,32 @@
         "end_column": 95,
         "start_byte": 424,
         "end_byte": 498
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/jsx/language_gaps/source.jsx:render:22:46",
+        "callee_name": "Price",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/jsx/language_gaps/source.jsx",
+        "line_number": 22,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Price",
+        "terminal_name": "Price",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/jsx/language_gaps/source.jsx:render:22:46",
+      "span": {
+        "start_line": 22,
+        "start_column": 64,
+        "end_line": 22,
+        "end_column": 83,
+        "start_byte": 564,
+        "end_byte": 583
       }
     }
   ],

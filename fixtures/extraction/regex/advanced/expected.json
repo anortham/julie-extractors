@@ -1802,10 +1802,10 @@
       "start_byte": 0,
       "end_byte": 195,
       "metadata": {
-        "decision_signal_kinds": "alternation",
+        "decision_signal_kinds": "alternation,conditional",
         "loop_signal_kinds": "quantifier",
         "metric_version": 1,
-        "nesting_signal_kinds": "group,lookaround"
+        "nesting_signal_kinds": "group,lookaround,conditional"
       }
     },
     {
@@ -1827,10 +1827,10 @@
       "start_byte": 12,
       "end_byte": 26,
       "metadata": {
-        "decision_signal_kinds": "alternation",
+        "decision_signal_kinds": "alternation,conditional",
         "loop_signal_kinds": "quantifier",
         "metric_version": 1,
-        "nesting_signal_kinds": "group,lookaround"
+        "nesting_signal_kinds": "group,lookaround,conditional"
       }
     },
     {
@@ -1852,10 +1852,10 @@
       "start_byte": 17,
       "end_byte": 24,
       "metadata": {
-        "decision_signal_kinds": "alternation",
+        "decision_signal_kinds": "alternation,conditional",
         "loop_signal_kinds": "quantifier",
         "metric_version": 1,
-        "nesting_signal_kinds": "group,lookaround"
+        "nesting_signal_kinds": "group,lookaround,conditional"
       }
     },
     {
@@ -1877,10 +1877,10 @@
       "start_byte": 1,
       "end_byte": 12,
       "metadata": {
-        "decision_signal_kinds": "alternation",
+        "decision_signal_kinds": "alternation,conditional",
         "loop_signal_kinds": "quantifier",
         "metric_version": 1,
-        "nesting_signal_kinds": "group,lookaround"
+        "nesting_signal_kinds": "group,lookaround,conditional"
       }
     },
     {
@@ -1902,10 +1902,10 @@
       "start_byte": 50,
       "end_byte": 88,
       "metadata": {
-        "decision_signal_kinds": "alternation",
+        "decision_signal_kinds": "alternation,conditional",
         "loop_signal_kinds": "quantifier",
         "metric_version": 1,
-        "nesting_signal_kinds": "group,lookaround"
+        "nesting_signal_kinds": "group,lookaround,conditional"
       }
     },
     {
@@ -1927,10 +1927,10 @@
       "start_byte": 105,
       "end_byte": 132,
       "metadata": {
-        "decision_signal_kinds": "alternation",
+        "decision_signal_kinds": "alternation,conditional",
         "loop_signal_kinds": "quantifier",
         "metric_version": 1,
-        "nesting_signal_kinds": "group,lookaround"
+        "nesting_signal_kinds": "group,lookaround,conditional"
       }
     },
     {
@@ -1952,10 +1952,10 @@
       "start_byte": 173,
       "end_byte": 181,
       "metadata": {
-        "decision_signal_kinds": "alternation",
+        "decision_signal_kinds": "alternation,conditional",
         "loop_signal_kinds": "quantifier",
         "metric_version": 1,
-        "nesting_signal_kinds": "group,lookaround"
+        "nesting_signal_kinds": "group,lookaround,conditional"
       }
     },
     {
@@ -1977,10 +1977,10 @@
       "start_byte": 172,
       "end_byte": 194,
       "metadata": {
-        "decision_signal_kinds": "alternation",
+        "decision_signal_kinds": "alternation,conditional",
         "loop_signal_kinds": "quantifier",
         "metric_version": 1,
-        "nesting_signal_kinds": "group,lookaround"
+        "nesting_signal_kinds": "group,lookaround,conditional"
       }
     },
     {
@@ -2002,10 +2002,10 @@
       "start_byte": 89,
       "end_byte": 104,
       "metadata": {
-        "decision_signal_kinds": "alternation",
+        "decision_signal_kinds": "alternation,conditional",
         "loop_signal_kinds": "quantifier",
         "metric_version": 1,
-        "nesting_signal_kinds": "group,lookaround"
+        "nesting_signal_kinds": "group,lookaround,conditional"
       }
     },
     {
@@ -2027,10 +2027,10 @@
       "start_byte": 0,
       "end_byte": 49,
       "metadata": {
-        "decision_signal_kinds": "alternation",
+        "decision_signal_kinds": "alternation,conditional",
         "loop_signal_kinds": "quantifier",
         "metric_version": 1,
-        "nesting_signal_kinds": "group,lookaround"
+        "nesting_signal_kinds": "group,lookaround,conditional"
       }
     },
     {
@@ -2052,10 +2052,10 @@
       "start_byte": 145,
       "end_byte": 171,
       "metadata": {
-        "decision_signal_kinds": "alternation",
+        "decision_signal_kinds": "alternation,conditional",
         "loop_signal_kinds": "quantifier",
         "metric_version": 1,
-        "nesting_signal_kinds": "group,lookaround"
+        "nesting_signal_kinds": "group,lookaround,conditional"
       }
     },
     {
@@ -2077,10 +2077,10 @@
       "start_byte": 133,
       "end_byte": 144,
       "metadata": {
-        "decision_signal_kinds": "alternation",
+        "decision_signal_kinds": "alternation,conditional",
         "loop_signal_kinds": "quantifier",
         "metric_version": 1,
-        "nesting_signal_kinds": "group,lookaround"
+        "nesting_signal_kinds": "group,lookaround,conditional"
       }
     },
     {
@@ -2102,10 +2102,10 @@
       "start_byte": 65,
       "end_byte": 78,
       "metadata": {
-        "decision_signal_kinds": "alternation",
+        "decision_signal_kinds": "alternation,conditional",
         "loop_signal_kinds": "quantifier",
         "metric_version": 1,
-        "nesting_signal_kinds": "group,lookaround"
+        "nesting_signal_kinds": "group,lookaround,conditional"
       }
     },
     {
@@ -2127,10 +2127,10 @@
       "start_byte": 50,
       "end_byte": 65,
       "metadata": {
-        "decision_signal_kinds": "alternation",
+        "decision_signal_kinds": "alternation,conditional",
         "loop_signal_kinds": "quantifier",
         "metric_version": 1,
-        "nesting_signal_kinds": "group,lookaround"
+        "nesting_signal_kinds": "group,lookaround,conditional"
       }
     },
     {
@@ -2152,10 +2152,10 @@
       "start_byte": 26,
       "end_byte": 48,
       "metadata": {
-        "decision_signal_kinds": "alternation",
+        "decision_signal_kinds": "alternation,conditional",
         "loop_signal_kinds": "quantifier",
         "metric_version": 1,
-        "nesting_signal_kinds": "group,lookaround"
+        "nesting_signal_kinds": "group,lookaround,conditional"
       }
     }
   ],

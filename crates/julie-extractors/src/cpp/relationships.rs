@@ -300,6 +300,7 @@ fn handle_call_target(
         &target.terminal_name,
         Some(caller_symbol),
         target.receiver.as_deref(),
+        call_node,
     ) {
         LocalTargetResolution::Resolved(called_symbol) => {
             relationships.push(extractor.get_base_mut().create_relationship(

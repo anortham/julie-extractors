@@ -1205,11 +1205,11 @@
       "caller_scope_key": "fixtures/extraction/qml/qt_symbols/source.qml:onCloseRequested:39:12",
       "span": {
         "start_line": 40,
-        "start_column": 16,
+        "start_column": 24,
         "end_line": 40,
-        "end_column": 35,
-        "start_byte": 799,
-        "end_byte": 818
+        "end_column": 27,
+        "start_byte": 807,
+        "end_byte": 810
       }
     },
     {
@@ -1231,11 +1231,11 @@
       "caller_scope_key": "fixtures/extraction/qml/qt_symbols/source.qml:onLabelChanged:26:8",
       "span": {
         "start_line": 26,
-        "start_column": 24,
+        "start_column": 32,
         "end_line": 26,
-        "end_column": 42,
-        "start_byte": 508,
-        "end_byte": 526
+        "end_column": 35,
+        "start_byte": 516,
+        "end_byte": 519
       }
     },
     {

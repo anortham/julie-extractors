@@ -1845,11 +1845,11 @@
       "caller_scope_key": "fixtures/extraction/qml/semantics/Dashboard.qml:Component.onCompleted:74:4",
       "span": {
         "start_line": 76,
-        "start_column": 8,
+        "start_column": 23,
         "end_line": 76,
-        "end_column": 50,
-        "start_byte": 2135,
-        "end_byte": 2177
+        "end_column": 30,
+        "start_byte": 2150,
+        "end_byte": 2157
       }
     },
     {
@@ -2001,11 +2001,11 @@
       "caller_scope_key": "fixtures/extraction/qml/semantics/Dashboard.qml:Dashboard:12:0",
       "span": {
         "start_line": 52,
-        "start_column": 21,
+        "start_column": 24,
         "end_line": 52,
-        "end_column": 57,
-        "start_byte": 1368,
-        "end_byte": 1404
+        "end_column": 35,
+        "start_byte": 1371,
+        "end_byte": 1382
       }
     },
     {
@@ -2027,11 +2027,11 @@
       "caller_scope_key": "fixtures/extraction/qml/semantics/Dashboard.qml:Dashboard:12:0",
       "span": {
         "start_line": 27,
-        "start_column": 34,
+        "start_column": 37,
         "end_line": 27,
-        "end_column": 59,
-        "start_byte": 665,
-        "end_byte": 690
+        "end_column": 41,
+        "start_byte": 668,
+        "end_byte": 672
       }
     },
     {
@@ -2209,11 +2209,11 @@
       "caller_scope_key": "fixtures/extraction/qml/semantics/Dashboard.qml:inner:63:8",
       "span": {
         "start_line": 63,
-        "start_column": 35,
+        "start_column": 43,
         "end_line": 63,
-        "end_column": 50,
-        "start_byte": 1729,
-        "end_byte": 1744
+        "end_column": 47,
+        "start_byte": 1737,
+        "end_byte": 1741
       }
     },
     {
@@ -2237,9 +2237,9 @@
         "start_line": 80,
         "start_column": 28,
         "end_line": 80,
-        "end_column": 40,
+        "end_column": 33,
         "start_byte": 2289,
-        "end_byte": 2301
+        "end_byte": 2294
       }
     },
     {
@@ -2263,9 +2263,9 @@
         "start_line": 78,
         "start_column": 20,
         "end_line": 78,
-        "end_column": 30,
+        "end_column": 28,
         "start_byte": 2204,
-        "end_byte": 2214
+        "end_byte": 2212
       }
     },
     {
@@ -2287,11 +2287,11 @@
       "caller_scope_key": "fixtures/extraction/qml/semantics/Dashboard.qml:openDetails:62:4",
       "span": {
         "start_line": 68,
-        "start_column": 23,
+        "start_column": 26,
         "end_line": 68,
-        "end_column": 55,
-        "start_byte": 1976,
-        "end_byte": 2008
+        "end_column": 41,
+        "start_byte": 1979,
+        "end_byte": 1994
       }
     },
     {
@@ -2313,11 +2313,11 @@
       "caller_scope_key": "fixtures/extraction/qml/semantics/Dashboard.qml:openDetails:62:4",
       "span": {
         "start_line": 67,
-        "start_column": 19,
+        "start_column": 22,
         "end_line": 67,
-        "end_column": 54,
-        "start_byte": 1900,
-        "end_byte": 1935
+        "end_column": 33,
+        "start_byte": 1903,
+        "end_byte": 1914
       }
     },
     {
@@ -2339,11 +2339,11 @@
       "caller_scope_key": "fixtures/extraction/qml/semantics/Dashboard.qml:openDetails:62:4",
       "span": {
         "start_line": 66,
-        "start_column": 8,
+        "start_column": 16,
         "end_line": 66,
-        "end_column": 60,
-        "start_byte": 1828,
-        "end_byte": 1880
+        "end_column": 20,
+        "start_byte": 1836,
+        "end_byte": 1840
       }
     },
     {
@@ -2365,11 +2365,11 @@
       "caller_scope_key": "fixtures/extraction/qml/semantics/Dashboard.qml:openDetails:62:4",
       "span": {
         "start_line": 67,
-        "start_column": 8,
+        "start_column": 14,
         "end_line": 67,
-        "end_column": 71,
-        "start_byte": 1889,
-        "end_byte": 1952
+        "end_column": 18,
+        "start_byte": 1895,
+        "end_byte": 1899
       }
     },
     {
@@ -2391,11 +2391,11 @@
       "caller_scope_key": "fixtures/extraction/qml/semantics/Dashboard.qml:save:56:4",
       "span": {
         "start_line": 58,
-        "start_column": 8,
+        "start_column": 25,
         "end_line": 58,
-        "end_column": 72,
-        "start_byte": 1550,
-        "end_byte": 1614
+        "end_column": 41,
+        "start_byte": 1567,
+        "end_byte": 1583
       }
     },
     {
@@ -2417,11 +2417,11 @@
       "caller_scope_key": "fixtures/extraction/qml/semantics/Dashboard.qml:save:56:4",
       "span": {
         "start_line": 57,
-        "start_column": 8,
+        "start_column": 14,
         "end_line": 57,
-        "end_column": 28,
-        "start_byte": 1521,
-        "end_byte": 1541
+        "end_column": 19,
+        "start_byte": 1527,
+        "end_byte": 1532
       }
     }
   ],

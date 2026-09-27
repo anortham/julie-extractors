@@ -116,11 +116,9 @@ fn extract_function_call_relationships(
         &unresolved_target.terminal_name,
         Some(containing_symbol),
         unresolved_target.receiver.as_deref(),
+        node,
     ) {
         LocalTargetResolution::Resolved(called_symbol) => Some(called_symbol),
-        LocalTargetResolution::Missing if unresolved_target.receiver.is_none() => {
-            function_pointer_variable(symbols, &unresolved_target.terminal_name, containing_symbol)
-        }
         _ => None,
     };
     match called_symbol {
@@ -148,37 +146,6 @@ fn extract_function_call_relationships(
             extractor.add_structured_pending_relationship(pending);
         }
     }
-}
-
-/// A call through a function-pointer variable calls that variable: the caller's
-/// own local first, then a file-scope variable.
-fn function_pointer_variable<'a>(
-    symbols: &'a [Symbol],
-    name: &str,
-    caller: &Symbol,
-) -> Option<&'a Symbol> {
-    let candidates: Vec<&Symbol> = symbols
-        .iter()
-        .filter(|symbol| {
-            symbol.kind == SymbolKind::Variable
-                && symbol.name == name
-                && symbol
-                    .metadata
-                    .as_ref()
-                    .and_then(|m| m.get("isFunctionPointer"))
-                    .and_then(|v| v.as_str())
-                    == Some("true")
-        })
-        .collect();
-    let in_scope = |parent: Option<&str>| {
-        let matching: Vec<&Symbol> = candidates
-            .iter()
-            .copied()
-            .filter(|symbol| symbol.parent_id.as_deref() == parent)
-            .collect();
-        (matching.len() == 1).then(|| matching[0])
-    };
-    in_scope(Some(caller.id.as_str())).or_else(|| in_scope(None))
 }
 
 fn call_target_from_function_node(

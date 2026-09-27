@@ -59,6 +59,14 @@ pub(super) fn extract_function(
     let is_generator = helpers::has_modifier(node, "*");
 
     let mut metadata = callable_metadata(extractor, node, is_async, is_generator);
+    if matches!(node.kind(), "function_expression" | "generator_function")
+        && let Some(inner_name) = node.child_by_field_name("name")
+    {
+        metadata.insert(
+            "innerName".to_string(),
+            serde_json::json!(extractor.base().get_node_text(&inner_name)),
+        );
+    }
     if is_signature {
         metadata.insert("isDefinition".to_string(), serde_json::json!(false));
     }

@@ -694,9 +694,9 @@
         "start_line": 42,
         "start_column": 2,
         "end_line": 42,
-        "end_column": 12,
+        "end_column": 10,
         "start_byte": 586,
-        "end_byte": 596
+        "end_byte": 594
       }
     }
   ],

@@ -1974,14 +1974,6 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:plusCents:55:4",
-      "callee_name": "Money",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/kotlin/declarations_and_calls/source.kt",
-      "line_number": 55,
-      "confidence": "0.700"
-    },
-    {
       "from_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:render:67:0",
       "callee_name": "a.plusCents",
       "kind": "calls",
@@ -2237,32 +2229,6 @@
         "end_column": 29,
         "start_byte": 950,
         "end_byte": 955
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:plusCents:55:4",
-        "callee_name": "Money",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/kotlin/declarations_and_calls/source.kt",
-        "line_number": 55,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Money",
-        "terminal_name": "Money",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:plusCents:55:4",
-      "span": {
-        "start_line": 55,
-        "start_column": 46,
-        "end_line": 55,
-        "end_column": 66,
-        "start_byte": 1097,
-        "end_byte": 1117
       }
     },
     {

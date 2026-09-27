@@ -146,22 +146,17 @@ a test path. Test framework source is full of that vocabulary.
 `LedgerTestHelpers.testDataForLedger` in the kotlin.test golden is the control
 that must lose the role.
 
-### Recorded gaps
+### Kotest checks
 
-Two named Kotest surfaces are not adopted. Both are recorded as `open_gaps` on
-the kotlin row in `fixtures/extraction/capabilities.json`:
+`withData` retains the `parameterized_test` role. Table and property
+checks execute inside a test; they do not declare extra test cases.
 
-- `kotest.data_driven_test_roles` — data-driven testing runs one case per row
-  with `forAll(rows) { … }`. The rows are call arguments, not declarations, so
-  there is no per-row symbol and no `parameterized_test` role.
-- `kotest.property_test_roles` — property testing declares a case with
-  `checkAll`/`forAll` over generators inside an already-classified step, so the
-  generator block carries no role of its own.
+- `kotest.table_check.v1` records imported table `forAll` and `forNone` calls.
+- `kotest.property_check.v1` records imported property `checkAll` and `forAll` calls.
 
-They are recorded under `structural_facts` rather than `test_detection` because
-the `test_detection` coverage vocabulary is frozen to `test_case`,
-`test_container`, and `test_lifecycle`, and each of those three is already
-classified exactly once for kotlin.
+Facts retain the source callee, written arguments and type arguments when
+present. Ordinary same-named functions and local shadows are excluded.
+The `kotest_checks` fixture supplies the capability evidence.
 
 ## Backticked names
 

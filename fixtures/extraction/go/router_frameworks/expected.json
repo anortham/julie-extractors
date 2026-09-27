@@ -1124,11 +1124,11 @@
         "start_line": 19,
         "start_column": 17,
         "end_line": 19,
-        "end_column": 28,
+        "end_column": 26,
         "start_byte": 421,
-        "end_byte": 432
+        "end_byte": 430
       },
-      "reference_site_is_exact": false,
+      "reference_site_is_exact": true,
       "confidence": "0.900",
       "metadata": null
     }
@@ -1331,11 +1331,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "span": {
         "start_line": 17,
-        "start_column": 2,
+        "start_column": 8,
         "end_line": 17,
-        "end_column": 41,
-        "start_byte": 360,
-        "end_byte": 399
+        "end_column": 14,
+        "start_byte": 366,
+        "end_byte": 372
       }
     },
     {
@@ -1357,11 +1357,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "span": {
         "start_line": 12,
-        "start_column": 6,
+        "start_column": 10,
         "end_line": 12,
-        "end_column": 21,
-        "start_byte": 164,
-        "end_byte": 179
+        "end_column": 19,
+        "start_byte": 168,
+        "end_byte": 177
       }
     },
     {
@@ -1383,11 +1383,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "span": {
         "start_line": 13,
-        "start_column": 1,
+        "start_column": 3,
         "end_line": 13,
-        "end_column": 31,
-        "start_byte": 181,
-        "end_byte": 211
+        "end_column": 6,
+        "start_byte": 183,
+        "end_byte": 186
       }
     },
     {
@@ -1409,11 +1409,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "span": {
         "start_line": 15,
-        "start_column": 1,
+        "start_column": 3,
         "end_line": 15,
-        "end_column": 52,
-        "start_byte": 262,
-        "end_byte": 313
+        "end_column": 9,
+        "start_byte": 264,
+        "end_byte": 270
       }
     },
     {
@@ -1435,11 +1435,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "span": {
         "start_line": 19,
-        "start_column": 1,
+        "start_column": 3,
         "end_line": 19,
-        "end_column": 29,
-        "start_byte": 405,
-        "end_byte": 433
+        "end_column": 8,
+        "start_byte": 407,
+        "end_byte": 412
       }
     },
     {
@@ -1461,11 +1461,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "span": {
         "start_line": 16,
-        "start_column": 1,
-        "end_line": 18,
-        "end_column": 3,
-        "start_byte": 315,
-        "end_byte": 403
+        "start_column": 3,
+        "end_line": 16,
+        "end_column": 8,
+        "start_byte": 317,
+        "end_byte": 322
       }
     },
     {
@@ -1487,11 +1487,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "span": {
         "start_line": 14,
-        "start_column": 1,
+        "start_column": 3,
         "end_line": 14,
-        "end_column": 21,
-        "start_byte": 213,
-        "end_byte": 233
+        "end_column": 7,
+        "start_byte": 215,
+        "end_byte": 219
       }
     },
     {
@@ -1513,11 +1513,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:chiRoutes:11:0",
       "span": {
         "start_line": 14,
-        "start_column": 1,
+        "start_column": 22,
         "end_line": 14,
-        "end_column": 48,
-        "start_byte": 213,
-        "end_byte": 260
+        "end_column": 26,
+        "start_byte": 234,
+        "end_byte": 238
       }
     },
     {
@@ -1539,11 +1539,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:clientCalls:39:0",
       "span": {
         "start_line": 42,
-        "start_column": 8,
+        "start_column": 15,
         "end_line": 42,
-        "end_column": 22,
-        "start_byte": 994,
-        "end_byte": 1008
+        "end_column": 17,
+        "start_byte": 1001,
+        "end_byte": 1003
       }
     },
     {
@@ -1565,11 +1565,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:clientCalls:39:0",
       "span": {
         "start_line": 43,
-        "start_column": 8,
+        "start_column": 15,
         "end_line": 43,
-        "end_column": 51,
-        "start_byte": 1017,
-        "end_byte": 1060
+        "end_column": 18,
+        "start_byte": 1024,
+        "end_byte": 1027
       }
     },
     {
@@ -1593,11 +1593,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:clientCalls:39:0",
       "span": {
         "start_line": 44,
-        "start_column": 8,
+        "start_column": 27,
         "end_line": 44,
-        "end_column": 89,
-        "start_byte": 1069,
-        "end_byte": 1150
+        "end_column": 31,
+        "start_byte": 1088,
+        "end_byte": 1092
       }
     },
     {
@@ -1619,11 +1619,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:fiberRoutes:31:0",
       "span": {
         "start_line": 33,
-        "start_column": 1,
+        "start_column": 5,
         "end_line": 33,
-        "end_column": 34,
-        "start_byte": 747,
-        "end_byte": 780
+        "end_column": 8,
+        "start_byte": 751,
+        "end_byte": 754
       }
     },
     {
@@ -1645,11 +1645,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:fiberRoutes:31:0",
       "span": {
         "start_line": 34,
-        "start_column": 7,
+        "start_column": 11,
         "end_line": 34,
-        "end_column": 23,
-        "start_byte": 788,
-        "end_byte": 804
+        "end_column": 16,
+        "start_byte": 792,
+        "end_byte": 797
       }
     },
     {
@@ -1671,11 +1671,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:fiberRoutes:31:0",
       "span": {
         "start_line": 32,
-        "start_column": 8,
+        "start_column": 14,
         "end_line": 32,
-        "end_column": 19,
-        "start_byte": 734,
-        "end_byte": 745
+        "end_column": 17,
+        "start_byte": 740,
+        "end_byte": 743
       }
     },
     {
@@ -1697,11 +1697,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:fiberRoutes:31:0",
       "span": {
         "start_line": 35,
-        "start_column": 1,
+        "start_column": 4,
         "end_line": 35,
-        "end_column": 32,
-        "start_byte": 806,
-        "end_byte": 837
+        "end_column": 8,
+        "start_byte": 809,
+        "end_byte": 813
       }
     },
     {
@@ -1723,11 +1723,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:gorillaRoutes:23:0",
       "span": {
         "start_line": 27,
-        "start_column": 1,
+        "start_column": 5,
         "end_line": 27,
-        "end_column": 37,
-        "start_byte": 614,
-        "end_byte": 650
+        "end_column": 15,
+        "start_byte": 618,
+        "end_byte": 628
       }
     },
     {
@@ -1749,11 +1749,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:gorillaRoutes:23:0",
       "span": {
         "start_line": 27,
-        "start_column": 1,
+        "start_column": 38,
         "end_line": 27,
-        "end_column": 62,
-        "start_byte": 614,
-        "end_byte": 675
+        "end_column": 45,
+        "start_byte": 651,
+        "end_byte": 658
       }
     },
     {
@@ -1775,11 +1775,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:gorillaRoutes:23:0",
       "span": {
         "start_line": 24,
-        "start_column": 11,
+        "start_column": 15,
         "end_line": 24,
-        "end_column": 26,
-        "start_byte": 493,
-        "end_byte": 508
+        "end_column": 24,
+        "start_byte": 497,
+        "end_byte": 506
       }
     },
     {
@@ -1801,11 +1801,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:gorillaRoutes:23:0",
       "span": {
         "start_line": 25,
-        "start_column": 1,
+        "start_column": 8,
         "end_line": 25,
-        "end_column": 43,
-        "start_byte": 510,
-        "end_byte": 552
+        "end_column": 18,
+        "start_byte": 517,
+        "end_byte": 527
       }
     },
     {
@@ -1827,11 +1827,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:gorillaRoutes:23:0",
       "span": {
         "start_line": 25,
-        "start_column": 1,
+        "start_column": 44,
         "end_line": 25,
-        "end_column": 58,
-        "start_byte": 510,
-        "end_byte": 567
+        "end_column": 51,
+        "start_byte": 553,
+        "end_byte": 560
       }
     },
     {
@@ -1853,11 +1853,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:gorillaRoutes:23:0",
       "span": {
         "start_line": 26,
-        "start_column": 8,
+        "start_column": 15,
         "end_line": 26,
-        "end_column": 32,
-        "start_byte": 576,
-        "end_byte": 600
+        "end_column": 25,
+        "start_byte": 583,
+        "end_byte": 593
       }
     },
     {
@@ -1879,11 +1879,11 @@
       "caller_scope_key": "fixtures/extraction/go/router_frameworks/source.go:gorillaRoutes:23:0",
       "span": {
         "start_line": 26,
-        "start_column": 8,
+        "start_column": 33,
         "end_line": 26,
-        "end_column": 44,
-        "start_byte": 576,
-        "end_byte": 612
+        "end_column": 42,
+        "start_byte": 601,
+        "end_byte": 610
       }
     }
   ],

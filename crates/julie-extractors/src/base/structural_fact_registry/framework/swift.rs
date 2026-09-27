@@ -11,6 +11,24 @@ use super::super::{
 
 pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     StructuralFactPatternSpec {
+        pattern_id: "swift_testing.trait.v1",
+        languages: &["swift"],
+        query_family: "testing",
+        description: "A trait written on a Swift Testing Test or Suite declaration, without evaluating its runtime effect.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key("trait", STR, ALWAYS, "Trait name as written."),
+            key(
+                "arguments",
+                ARR,
+                OPT,
+                "Trait argument expressions as written, in source order.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
         pattern_id: "vapor.route.v1",
         languages: &["swift"],
         query_family: "framework",

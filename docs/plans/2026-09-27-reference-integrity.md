@@ -31,17 +31,17 @@ Task 3 is split into concrete owned briefs as current source establishes the nee
 
 ## Acceptance
 
-- [ ] Reference target audit covers every caller of the shared resolver and language-specific bypasses; reproduced false bindings are fixed with public extraction checks.
+- [x] Reference target audit covers every caller of the shared resolver and language-specific bypasses; reproduced false bindings are fixed with public extraction checks.
 - [x] Direct incremental scans after edits, deletes and renames match fresh scans in all compared tables, with unchanged files and populated optional fact tables.
-- [ ] All 21 declared gaps have current source-backed dispositions; all locally actionable omissions are fixed and claims have golden evidence.
-- [ ] Lead reviews changed code, metadata, spans and negative cases; no new global resolver or speculative framework.
-- [ ] Focused RED/GREEN checks pass, followed by one default suite, golden suite and strict quality report on the final source.
+- [x] All 21 declared gaps have current source-backed dispositions; all locally actionable omissions are fixed and claims have golden evidence.
+- [x] Lead reviews changed code, metadata, spans and negative cases; no new global resolver or speculative framework.
+- [x] Focused RED/GREEN checks pass, followed by one default suite, golden suite and strict quality report on the final source.
 - [ ] Windows checks cover CLI lifecycle/equivalence and affected extraction contracts.
 - [ ] Related worktrees are reconciled, work is committed and locally integrated, and no push or release occurs.
 
 ## Verification
 
-All cargo and scratch commands set `CARGO_TARGET_DIR=/home/murphy/source/julie-extractors/target` and `TMPDIR=/home/murphy/source/julie-extractors/target/reference-integrity-tmp`; `/tmp` quota is exhausted. MCP indexing fails for that reason; bounded native reads are the unavailable-index fallback.
+All cargo and scratch commands set `CARGO_TARGET_DIR=/home/murphy/source/julie-extractors/target` and `TMPDIR=/home/murphy/source/julie-extractors/target/reference-integrity-tmp`; `/tmp` quota is exhausted. Code-kb MCP recovered after the initial indexing failure. Bounded native reads remain the fallback if the index is unavailable or stale.
 
 Baseline shared resolution tests: 11 passed on `981e16cc`. Previous Linux default and Windows gates passed on the same implementation baseline. Workers run only affected tests. Lead owns the default tier, golden review, `node scripts/language-data-quality-report.mjs --strict`, formatting and the Windows run. Security scopes: none declared; no auth, credentials, dependency upgrade or deployment work is planned.
 
@@ -55,4 +55,48 @@ Implementation ownership is split into shared reference visibility, ECMAScript `
 
 Regex conditionals need a grammar correction. Vendor the existing parser with its license/provenance and the smallest conditional rule patch, including generated C and node types. This is an approved local implementation choice; it requires no remote fork push and no parser generator at consumer build time.
 
-Gap discovery is complete. Source-local omissions are assigned for implementation. Source-site mount facts remain separate from route declarations, since one router can have multiple mounts. A lead probe also found missing routes on typed Actix `ServiceConfig` parameters; that local omission is included in the Actix fix. Final dispositions for each of the 21 rows follow implementation and fixture review.
+Gap discovery and source-local implementations are complete. Source-site mount facts remain separate from route declarations, since one router can have multiple mounts. A lead probe also found missing routes on typed Actix `ServiceConfig` parameters; those declarations are now extracted. The 21 dispositions below close 10 original gaps and retain 11 context/composition requirements.
+
+The first integrated run exposed regressions in function pointers, prototype methods, Kotlin extension receivers, Lua predeclared mutual recursion, Ruby implicit calls, Zig method callers and Go Ginkgo pending hooks. Focused checks cover their known positive targets as well as shadowing and unresolved occurrences. New recursive collectors also received the existing traversal-budget guards. Final fixture regeneration and platform gates follow these corrections.
+
+Final Linux verification passes: `cargo xtask test default` completes in 29 seconds; `cargo xtask test golden` passes all eight checks; the strict quality report records 42 languages, zero silent cells, zero quality-bar debts and 12 explicit gaps. All 26 new fixture groups parse without diagnostics. Golden review finds no new duplicate pending rows, resolved/pending overlaps or dangling structural-fact owners. Three inherited calls now remain pending instead of relying on whole-file name uniqueness. The CLI capability contract includes the two new Rust patterns. Windows verification remains pending on the implementation commit.
+
+### Individual gap dispositions
+
+Fixture names below are under `fixtures/extraction/<language>/`. Closures require the final golden and strict-quality checks, not just source changes.
+
+| Language | Original gap | Change or remaining requirement | Evidence |
+| --- | --- | --- | --- |
+| Rust | `actix.scope_route_cross_file_registration` | Extract typed ServiceConfig routes; retain separate mount joins | `actix_local_bindings`, public two-mount check |
+| Rust | `actix.scope_route_variable_binding` | Trace local scope bindings with lexical visibility | `actix_local_bindings` |
+| Rust | `actix.resource_route_guard_forms` | Emit resource paths and source-attested method guards | `actix_resources` |
+| Rust | `axum.param_flavor_under_report` | Retain version/dialect uncertainty for colon segments | `axum_parameter_context` |
+| Rust | `axum.cross_file_nest_join` | Retain separate route and nest facts | Existing `axum_routes` and Axum tests |
+| Rust | `rust.http_client.instance_receiver` | Extract local typed fields; retain unknown external types | `reqwest_fields`, existing HTTP client fixtures |
+| Rust | `rust.benchmark_harness_roles` | Emit benchmark facts without test-case roles | `benchmark_harnesses` |
+| TypeScript | `nextjs.signal_free_pages_router_files` | Retain explicit project-context requirement | `signal_free_pages`, existing Next.js fixtures |
+| TSX | `nextjs.signal_free_pages_router_files` | Retain explicit project-context requirement | `signal_free_pages`, existing Next.js fixtures |
+| JavaScript | `nextjs.signal_free_pages_router_files` | Retain explicit project-context requirement | `signal_free_pages`, existing Next.js fixtures |
+| JSX | `nextjs.signal_free_pages_router_files` | Retain explicit project-context requirement | `signal_free_pages`, existing Next.js fixtures |
+| Java | `cucumber.step_binding_test_roles` | Use existing step-definition role and glue container | `cucumber_steps` |
+| PHP | `laravel.route_service_provider_prefix` | Retain separate provider mount and route facts | Existing `wave2_semantics` |
+| Swift | `swift_testing.test_traits` | Emit named traits and raw arguments; raw annotations already existed | `testing_traits` |
+| Kotlin | `kotlin.http_client.instance_receiver` | Local typed receivers already work; retain unknown external types | Existing `http_client` and `http_client_deferred` |
+| Kotlin | `kotest.data_driven_test_roles` | Emit table-check facts; retain existing withData test role | `kotest_checks` |
+| Kotlin | `kotest.property_test_roles` | Emit property-check facts inside the owning test | `kotest_checks` |
+| Elixir | `phoenix.non_route_macros` | Emit native socket and channel facts | `phoenix_websocket` |
+| Elixir | `phoenix.cross_file_scope_prefix` | Retain separate forward sites and target routes | Existing Phoenix route/forward fixtures |
+| Elixir | `elixir.http_client.tesla_middleware_base_url` | Trace local client BaseUrl middleware | `tesla_local_clients` |
+| Regex | `regex_conditional_patterns` | Patch grammar, emit conditionals and preserve capture numbering | `conditionals` |
+
+### Consumer mount joins
+
+A consumer can join the existing Actix mount, Axum nest, Laravel provider-prefix and Phoenix forward rows to route declarations. Preserve multiple registrations and source locations. This is the named closure task for four retained composition gaps; it belongs in the consumer and this session does not modify code-kb.
+
+### Explicit project context
+
+Unknown receiver types require a consumer join over published type facts. Signal-free Next.js files and ambiguous Axum colon syntax need explicit framework/dialect context if the product later chooses to interpret them. Such an extraction input must participate in freshness and dependency invalidation. No per-file collector may silently read neighboring manifests and make incremental results depend on untracked inputs. These are the named closure tasks for the seven remaining context gaps.
+
+### Branch-reset capture groups
+
+The conditional grammar audit also identified a separate pre-existing PCRE2 gap: `(?|...)` branch-reset groups are unsupported. They share capture numbers across alternative branches, unlike ordinary groups. A follow-up must add the grammar node, reset numbering at each branch, preserve every possible capture target and cover the result with golden fixtures. This new entry is outside the original 21 declarations; conditional support does not claim support for every PCRE2 group form.

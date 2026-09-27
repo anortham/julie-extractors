@@ -3,7 +3,7 @@
 //!
 //! Silence (design §4.4, M2): only static string/charlist URLs produce a fact.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use tree_sitter::{Node, Tree};
 
 use super::super::helpers::{child_of_kind, node_text};
@@ -17,7 +17,44 @@ struct ElixirClientRequest<'a> {
     target_path: &'a str,
     verb: &'static str,
     verb_source: &'static str,
-    base_url: Option<&'a str>,
+    base_url: Option<TeslaBaseUrl<'a>>,
+}
+
+#[derive(Clone, Copy)]
+struct TeslaBaseUrl<'a> {
+    value: &'a str,
+    policy: TeslaBaseUrlPolicy,
+}
+
+#[derive(Clone, Copy)]
+enum TeslaBaseUrlPolicy {
+    Insecure,
+    Strict,
+}
+
+impl TeslaBaseUrl<'_> {
+    fn join(self, target: &str) -> String {
+        if matches!(self.policy, TeslaBaseUrlPolicy::Insecure) && is_absolute_http_url(target) {
+            return target.to_string();
+        }
+        if target.is_empty() {
+            return self.value.to_string();
+        }
+        format!(
+            "{}/{}",
+            self.value.trim_end_matches('/'),
+            target.trim_start_matches('/')
+        )
+    }
+}
+
+fn is_absolute_http_url(target: &str) -> bool {
+    target
+        .get(..7)
+        .is_some_and(|scheme| scheme.eq_ignore_ascii_case("http://"))
+        || target
+            .get(..8)
+            .is_some_and(|scheme| scheme.eq_ignore_ascii_case("https://"))
 }
 
 fn verb_for_method(method: &str) -> Option<&'static str> {
@@ -49,6 +86,7 @@ pub(super) fn collect_elixir_http_client_requests(
     let context = ClientContext {
         aliases,
         tesla_module: None,
+        local_tesla_clients: HashMap::new(),
     };
     walk(
         tree.root_node(),
@@ -63,13 +101,13 @@ pub(super) fn collect_elixir_http_client_requests(
     facts
 }
 
-/// What a request call needs from its surroundings: the file's `alias`
-/// declarations, to resolve a receiver to its real module, and the enclosing
-/// `use Tesla` module with its `Tesla.Middleware.BaseUrl` plug, if any.
+/// Request context includes file aliases, an enclosing `use Tesla` module plug,
+/// and local clients assigned from a static Tesla BaseUrl constructor.
 #[derive(Clone)]
 struct ClientContext<'a> {
     aliases: HashMap<&'a str, String>,
-    tesla_module: Option<Option<&'a str>>,
+    tesla_module: Option<Option<TeslaBaseUrl<'a>>>,
+    local_tesla_clients: HashMap<String, TeslaBaseUrl<'a>>,
 }
 
 impl ClientContext<'_> {
@@ -133,10 +171,14 @@ fn bare_call_arguments<'a>(node: Node<'a>, content: &str, name: &str) -> Option<
 }
 
 fn keyword_value<'a>(arguments: Node<'a>, key: &str, content: &str) -> Option<Node<'a>> {
-    let mut cursor = arguments.walk();
-    let keywords = arguments
-        .named_children(&mut cursor)
-        .find(|child| child.kind() == "keywords")?;
+    let keywords = if arguments.kind() == "keywords" {
+        arguments
+    } else {
+        let mut cursor = arguments.walk();
+        arguments
+            .named_children(&mut cursor)
+            .find(|child| child.kind() == "keywords")?
+    };
     let mut pair_cursor = keywords.walk();
     keywords
         .named_children(&mut pair_cursor)
@@ -155,7 +197,7 @@ fn tesla_module_base_url<'a>(
     node: Node,
     context: &ClientContext,
     content: &'a str,
-) -> Option<Option<&'a str>> {
+) -> Option<Option<TeslaBaseUrl<'a>>> {
     bare_call_arguments(node, content, "defmodule")?;
     let body = child_of_kind(node, "do_block")?;
     let mut cursor = body.walk();
@@ -175,10 +217,9 @@ fn tesla_module_base_url<'a>(
         if context.resolve(middleware) != "Tesla.Middleware.BaseUrl" {
             return None;
         }
-        static_route_arg(
-            nth_positional_arg(arguments, 1)?,
+        tesla_base_url_config(
+            nth_positional_arg(arguments, 1).unwrap_or(arguments),
             content,
-            StaticArgLang::Elixir,
         )
     }))
 }
@@ -199,7 +240,19 @@ fn walk(
     }
 
     let mut inner = None;
-    if let Some(base_url) = tesla_module_base_url(node, context, content) {
+    if bare_call_arguments(node, content, "defmodule").is_some() {
+        let mut tesla = context.clone();
+        tesla.tesla_module = None;
+        tesla.local_tesla_clients.clear();
+        if let Some(base_url) = tesla_module_base_url(node, context, content) {
+            tesla.tesla_module = Some(base_url);
+        }
+        inner = Some(tesla);
+    } else if is_function_definition(node, content) {
+        let mut function = context.clone();
+        function.local_tesla_clients.clear();
+        inner = Some(function);
+    } else if let Some(base_url) = tesla_module_base_url(node, context, content) {
         let mut tesla = context.clone();
         tesla.tesla_module = Some(base_url);
         inner = Some(tesla);
@@ -209,12 +262,17 @@ fn walk(
     if node.kind() == "call"
         && let Some(req) = classify_call(node, context, content)
     {
-        let target_path = match (&req.base_url, req.target_path.starts_with('/')) {
-            (Some(base_url), true) => {
-                format!("{}{}", base_url.trim_end_matches('/'), req.target_path)
+        let base_url = req.base_url.or_else(|| {
+            if req.client == "tesla" {
+                local_tesla_base_url(node, context, content)
+            } else {
+                None
             }
-            _ => req.target_path.to_string(),
-        };
+        });
+        let target_path = base_url.map_or_else(
+            || req.target_path.to_string(),
+            |base_url| base_url.join(req.target_path),
+        );
         if let Some(fact) = client_fact(
             language,
             tree,
@@ -231,6 +289,65 @@ fn walk(
             facts.push(fact);
         }
     }
+
+    if node.kind() == "stab_clause" {
+        let mut clause_context = context.clone();
+        if let Some(left) = node.child_by_field_name("left") {
+            let mut names = HashSet::new();
+            collect_identifier_names(left, content, 0, &mut names);
+            for name in names {
+                clause_context.local_tesla_clients.remove(&name);
+            }
+        }
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            walk(
+                child,
+                &clause_context,
+                language,
+                tree,
+                file_path,
+                content,
+                child_depth,
+                facts,
+            );
+        }
+        return;
+    }
+
+    if matches!(node.kind(), "do_block" | "body") {
+        let mut block_context = context.clone();
+        if node
+            .parent()
+            .is_some_and(|parent| is_function_definition(parent, content))
+        {
+            block_context.local_tesla_clients.clear();
+        }
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
+        let mut cursor = node.walk();
+        for child in node.named_children(&mut cursor) {
+            walk(
+                child,
+                &block_context,
+                language,
+                tree,
+                file_path,
+                content,
+                child_depth,
+                facts,
+            );
+            if !is_control_flow_expression(child, content) {
+                update_local_tesla_clients(child, &mut block_context, content);
+            }
+        }
+        return;
+    }
+
     let Some(child_depth) = child_tree_depth(depth) else {
         return;
     };
@@ -248,6 +365,210 @@ fn walk(
             facts,
         );
     }
+}
+
+fn local_tesla_base_url<'a>(
+    call: Node,
+    context: &ClientContext<'a>,
+    content: &'a str,
+) -> Option<TeslaBaseUrl<'a>> {
+    let arguments = child_of_kind(call, "arguments")?;
+    let client = first_positional_arg(arguments)?;
+    if client.kind() != "identifier" {
+        return None;
+    }
+    let name = node_text(content, client)?;
+    context.local_tesla_clients.get(name).copied()
+}
+
+fn update_local_tesla_clients<'a>(
+    statement: Node,
+    context: &mut ClientContext<'a>,
+    content: &'a str,
+) {
+    if let Some((left, right)) = assignment_parts(statement, content) {
+        let mut nested_assignments = HashSet::new();
+        collect_assignment_names(right, content, 0, &mut nested_assignments);
+        for name in nested_assignments {
+            context.local_tesla_clients.remove(&name);
+        }
+        if left.kind() == "identifier"
+            && let Some(name) = node_text(content, left)
+        {
+            if let Some(base_url) = tesla_client_base_url(right, context, content) {
+                context
+                    .local_tesla_clients
+                    .insert(name.to_string(), base_url);
+            } else {
+                context.local_tesla_clients.remove(name);
+            }
+        } else {
+            let mut names = HashSet::new();
+            collect_identifier_names(left, content, 0, &mut names);
+            for name in names {
+                context.local_tesla_clients.remove(&name);
+            }
+        }
+    } else {
+        let mut names = HashSet::new();
+        collect_assignment_names(statement, content, 0, &mut names);
+        for name in names {
+            context.local_tesla_clients.remove(&name);
+        }
+    }
+}
+
+fn assignment_parts<'tree>(node: Node<'tree>, content: &str) -> Option<(Node<'tree>, Node<'tree>)> {
+    if node.kind() != "binary_operator"
+        || node_text(content, node.child_by_field_name("operator")?)? != "="
+    {
+        return None;
+    }
+    Some((
+        node.child_by_field_name("left")?,
+        node.child_by_field_name("right")?,
+    ))
+}
+
+fn collect_assignment_names(node: Node, content: &str, depth: u32, names: &mut HashSet<String>) {
+    if !should_visit_tree_depth(depth)
+        || is_function_definition(node, content)
+        || bare_call_arguments(node, content, "defmodule").is_some()
+        || node.kind() == "anonymous_function"
+    {
+        return;
+    }
+    if let Some((left, _)) = assignment_parts(node, content) {
+        collect_identifier_names(left, content, 0, names);
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_assignment_names(child, content, child_depth, names);
+    }
+}
+
+fn collect_identifier_names(node: Node, content: &str, depth: u32, names: &mut HashSet<String>) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    if node.kind() == "unary_operator"
+        && node
+            .child_by_field_name("operator")
+            .and_then(|operator| node_text(content, operator))
+            == Some("^")
+    {
+        return;
+    }
+    if node.kind() == "identifier"
+        && let Some(name) = node_text(content, node)
+        && name != "_"
+    {
+        names.insert(name.to_string());
+        return;
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_identifier_names(child, content, child_depth, names);
+    }
+}
+
+fn is_function_definition(node: Node, content: &str) -> bool {
+    [
+        "def",
+        "defp",
+        "defmacro",
+        "defmacrop",
+        "defguard",
+        "defguardp",
+    ]
+    .iter()
+    .any(|name| bare_call_arguments(node, content, name).is_some())
+}
+
+fn is_control_flow_expression(node: Node, content: &str) -> bool {
+    [
+        "if", "unless", "case", "cond", "with", "try", "receive", "for",
+    ]
+    .iter()
+    .any(|name| bare_call_arguments(node, content, name).is_some())
+}
+
+fn tesla_client_base_url<'a>(
+    value: Node,
+    context: &ClientContext<'a>,
+    content: &'a str,
+) -> Option<TeslaBaseUrl<'a>> {
+    if value.kind() != "call" {
+        return None;
+    }
+    let target = value.child_by_field_name("target")?;
+    if target.kind() != "dot" {
+        return None;
+    }
+    let module = target.child_by_field_name("left")?;
+    if module.kind() != "alias" || context.resolve(node_text(content, module)?) != "Tesla" {
+        return None;
+    }
+    if node_text(content, target.child_by_field_name("right")?)? != "client" {
+        return None;
+    }
+    let arguments = child_of_kind(value, "arguments")?;
+    let middleware = first_positional_arg(arguments)?;
+    if middleware.kind() != "list" {
+        return None;
+    }
+    let mut cursor = middleware.walk();
+    let mut base_url = None;
+    for item in middleware.named_children(&mut cursor) {
+        if item.kind() != "tuple" {
+            continue;
+        }
+        let mut tuple_cursor = item.walk();
+        let mut parts = item.named_children(&mut tuple_cursor);
+        let (Some(module), Some(options)) = (parts.next(), parts.next()) else {
+            continue;
+        };
+        if module.kind() != "alias"
+            || context.resolve(node_text(content, module)?) != "Tesla.Middleware.BaseUrl"
+        {
+            continue;
+        }
+        if base_url.is_some() {
+            return None;
+        }
+        base_url = Some(tesla_base_url_config(options, content)?);
+    }
+    base_url
+}
+
+fn tesla_base_url_config<'a>(options: Node, content: &'a str) -> Option<TeslaBaseUrl<'a>> {
+    if let Some(value) = static_route_arg(options, content, StaticArgLang::Elixir) {
+        return Some(TeslaBaseUrl {
+            value,
+            policy: TeslaBaseUrlPolicy::Insecure,
+        });
+    }
+
+    let value = static_route_arg(
+        keyword_value(options, "base_url", content)?,
+        content,
+        StaticArgLang::Elixir,
+    )?;
+    let policy = match keyword_value(options, "policy", content)
+        .and_then(|policy| node_text(content, policy))
+        .map(str::trim)
+    {
+        None | Some(":insecure") => TeslaBaseUrlPolicy::Insecure,
+        Some(":strict") => TeslaBaseUrlPolicy::Strict,
+        Some(_) => return None,
+    };
+    Some(TeslaBaseUrl { value, policy })
 }
 
 fn classify_call<'a>(

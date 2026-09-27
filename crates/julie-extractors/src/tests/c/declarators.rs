@@ -324,3 +324,65 @@ void sort_all(int *xs, int n) {
         result.relationships
     );
 }
+
+#[test]
+fn function_pointer_calls_obey_binding_scope_and_declaration_order() {
+    let source = r#"int (*callback)(void);
+void from_file(void) { callback(); }
+void shadow(int callback) { callback(); }
+void blocks(void) {
+    { int (*inner)(void); inner(); }
+    inner();
+}
+void before(void) { late(); }
+int (*late)(void);
+"#;
+    let result = extract(source);
+    assert!(result.parse_diagnostics.is_empty());
+    let global = result
+        .symbols
+        .iter()
+        .find(|s| s.name == "callback" && s.parent_id.is_none())
+        .unwrap();
+    let file_caller = only(&result, "from_file");
+    let block_caller = only(&result, "blocks");
+    let inner = only(&result, "inner");
+    for (caller, target) in [(file_caller, global), (block_caller, inner)] {
+        let calls: Vec<_> = result
+            .relationships
+            .iter()
+            .filter(|r| r.kind == RelationshipKind::Calls && r.from_symbol_id == caller.id)
+            .collect();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].to_symbol_id, target.id);
+    }
+    for (caller_name, target_name) in [
+        ("shadow", "callback"),
+        ("blocks", "inner"),
+        ("before", "late"),
+    ] {
+        let caller = only(&result, caller_name);
+        let pending: Vec<_> = result
+            .structured_pending_relationships
+            .iter()
+            .filter(|p| {
+                p.pending.from_symbol_id == caller.id && p.target.terminal_name == target_name
+            })
+            .collect();
+        assert_eq!(pending.len(), 1, "{caller_name}");
+        let span = pending[0].span.as_ref().unwrap();
+        assert_eq!(
+            &source[span.start_byte as usize..span.end_byte as usize],
+            target_name
+        );
+    }
+    for name in ["shadow", "before"] {
+        let caller = only(&result, name);
+        assert!(
+            !result
+                .relationships
+                .iter()
+                .any(|r| r.kind == RelationshipKind::Calls && r.from_symbol_id == caller.id)
+        );
+    }
+}

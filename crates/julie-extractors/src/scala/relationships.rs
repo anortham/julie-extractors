@@ -375,6 +375,7 @@ fn emit_call(
                 &target.terminal_name,
                 Some(caller),
                 target.receiver.as_deref(),
+                node,
             );
             (target, resolution)
         }

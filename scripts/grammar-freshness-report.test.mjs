@@ -82,6 +82,30 @@ test("parses parser dependencies and exact lock resolutions", () => {
   ])
 })
 
+test("reports vendored parser versions without querying a registry release", async () => {
+  const report = await createFreshnessReport({
+    manifestText: `${MANIFEST_FIXTURE}\ntree-sitter-regex = { path = "../../vendor/tree-sitter-regex" }\n`,
+    lockText: `${LOCK_FIXTURE}\n[[package]]\nname = "tree-sitter-regex"\nversion = "0.25.0-julie.1"\n`,
+    generatedAt: "2026-09-27T19:00:00.000Z",
+    getLatestStable: async (packageName) => {
+      assert.notEqual(packageName, "tree-sitter-regex")
+      return packageName === "tree-sitter" ? "0.26.11" : "0.7.3"
+    },
+    getGitDefaultHead: async () => ({
+      defaultBranch: "master",
+      head: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    }),
+  })
+  assert.deepEqual(report.vendored_grammars, [{
+    dependency: "tree-sitter-regex",
+    package: "tree-sitter-regex",
+    path: "../../vendor/tree-sitter-regex",
+    locked_version: "0.25.0-julie.1",
+    status: "vendored",
+  }])
+  assert.match(renderReport(report, "text"), /tree-sitter-regex.*0\.25\.0-julie\.1: vendored/)
+})
+
 test("normalizes supported GitHub remote URL forms", () => {
   for (const remote of [
     "https://github.com/anortham/tree-sitter-sql",
@@ -172,6 +196,7 @@ test("builds a deterministically ordered versioned report without semantic claim
         status: "drift",
       },
     ],
+    vendored_grammars: [],
   })
   assert.equal("semantic_support" in report.registry_grammars[0], false)
 })
@@ -204,6 +229,7 @@ Registry grammars
   swift-parser [tree-sitter-swift] declared =0.7.3, locked 0.7.3, latest stable 0.7.3: current
 Git grammars
   csharp-parser [anortham/tree-sitter-c-sharp] pinned aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, locked aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, master aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: current
+Vendored grammars
 `,
   )
 })

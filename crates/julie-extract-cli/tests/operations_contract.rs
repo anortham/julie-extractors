@@ -140,12 +140,14 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
         json!([
             "actix.attribute_route.v1",
             "actix.mount.v1",
+            "actix.resource_route.v1",
             "actix.scope_route.v1",
             "axum.nest.v1",
             "axum.route.v1",
             "http.client_request.v1",
             "rocket.mount.v1",
             "rocket.route.v1",
+            "rust.benchmark.v1",
             "rust.doc_test.v1",
             "rust.unsafe_block.v1"
         ]),

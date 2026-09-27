@@ -392,6 +392,7 @@ impl SwiftExtractor {
                 target.terminal_name.as_str(),
                 Some(caller),
                 target.receiver.as_deref(),
+                node,
             )
         } else {
             LocalTargetResolution::Missing

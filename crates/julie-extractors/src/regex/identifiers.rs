@@ -13,7 +13,16 @@ pub(super) fn extract_identifiers(
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
     for tree in pattern_trees {
-        walk_tree_for_identifiers(base, tree.root_node(), symbols, 0);
+        let root = tree.root_node();
+        let pattern_symbols: Vec<Symbol> = symbols
+            .iter()
+            .filter(|symbol| {
+                root.start_byte() as u32 <= symbol.start_byte
+                    && symbol.end_byte <= root.end_byte() as u32
+            })
+            .cloned()
+            .collect();
+        walk_tree_for_identifiers(base, root, symbols, &pattern_symbols, 0);
     }
     base.identifiers.clone()
 }
@@ -23,6 +32,7 @@ fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
     containing_symbols: &[Symbol],
+    pattern_symbols: &[Symbol],
     depth: u32,
 ) {
     if !should_visit_tree_depth(depth) {
@@ -30,7 +40,7 @@ fn walk_tree_for_identifiers(
     }
 
     // Extract identifier from this node if applicable
-    extract_identifier_from_node(base, node, containing_symbols);
+    extract_identifier_from_node(base, node, containing_symbols, pattern_symbols);
 
     // Recursively walk children
     let Some(child_depth) = child_tree_depth(depth) else {
@@ -38,7 +48,13 @@ fn walk_tree_for_identifiers(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, containing_symbols, child_depth);
+        walk_tree_for_identifiers(
+            base,
+            child,
+            containing_symbols,
+            pattern_symbols,
+            child_depth,
+        );
     }
 }
 
@@ -47,6 +63,7 @@ fn extract_identifier_from_node(
     base: &mut BaseExtractor,
     node: Node,
     containing_symbols: &[Symbol],
+    pattern_symbols: &[Symbol],
 ) {
     match node.kind() {
         "backreference_escape" => {
@@ -116,6 +133,28 @@ fn extract_identifier_from_node(
             }
         }
 
+        "conditional_condition" => {
+            if let Some(name_node) = conditional_capture_name_node(node) {
+                let group_name = base.get_node_text(&name_node);
+                if pattern_symbols.iter().any(|symbol| {
+                    symbol
+                        .metadata
+                        .as_ref()
+                        .and_then(|metadata| metadata.get("named"))
+                        .and_then(serde_json::Value::as_str)
+                        == Some(group_name.as_str())
+                }) {
+                    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                    base.create_identifier(
+                        &name_node,
+                        group_name,
+                        IdentifierKind::Call,
+                        containing_symbol_id,
+                    );
+                }
+            }
+        }
+
         // Named groups: (?<name>...) (these are "member access" in regex context)
         "named_capturing_group" => {
             if let Some(name_node) = groups::group_name_node(node) {
@@ -140,4 +179,15 @@ fn extract_identifier_from_node(
 /// Find the ID of the symbol that contains this node
 fn find_containing_symbol_id(node: Node, containing_symbols: &[Symbol]) -> Option<String> {
     helpers::innermost_symbol(containing_symbols, node).map(|s| s.id.clone())
+}
+
+fn conditional_capture_name_node(node: Node) -> Option<Node> {
+    let mut cursor = node.walk();
+    let test = node
+        .named_children(&mut cursor)
+        .find(|child| child.kind() == "conditional_test")?;
+    let mut cursor = test.walk();
+    test.named_children(&mut cursor)
+        .find(|child| child.kind() == "conditional_capture_name")
+        .and_then(groups::group_name_node)
 }

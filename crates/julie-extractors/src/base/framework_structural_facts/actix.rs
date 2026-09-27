@@ -1,21 +1,24 @@
 //! actix-web structural facts (`actix.attribute_route.v1`, `actix.scope_route.v1`,
-//! `actix.mount.v1`).
+//! `actix.resource_route.v1`, `actix.mount.v1`).
 //!
-//! actix-web registers routes through **two** provenance models, so — mirroring
+//! actix-web registers routes through **three** provenance models, so — mirroring
 //! the shipped `aspnet.attribute_route.v1` vs `aspnet.minimal_api.route.v1` split
-//! (design §2a/§4.5) — this collector emits two route pattern ids plus a mount:
+//! (design §2a/§4.5) — this collector emits three route pattern ids plus a mount:
 //!
 //! 1. **Attribute macros** (`#[get("/x")]`, `#[route("/x", method = "GET")]`) on a
 //!    handler `fn` → [`ACTIX_ATTRIBUTE_ROUTE_PATTERN_ID`]. The verb is ALWAYS
 //!    known (from the macro name or a `method =` argument) and registration is
 //!    **cross-file** (the app mounts the handler elsewhere), so there is no
 //!    same-file prefix: no `route_group_prefix`/`effective_route_template` keys.
-//! 2. **Scope-chained routes** (`web::scope("/api").route("/x", web::post().to(h))`)
-//!    → [`ACTIX_SCOPE_ROUTE_PATTERN_ID`]. The scope prefix is same-file in the
-//!    same call chain, so it flows into `route_group_prefix` +
-//!    `effective_route_template`; the verb is OPT (present for `web::<verb>()`,
-//!    omitted for the method-agnostic `web::route()`).
-//! 3. **Scope mounts** (`web::scope("/api").configure(init)` / `.service(sub)`) →
+//! 2. **Call routes** (`App::new().route`, `web::scope(...).route`, a local scope
+//!    binding, or a typed `web::ServiceConfig::route`) →
+//!    [`ACTIX_SCOPE_ROUTE_PATTERN_ID`]. A same-file static scope prefix flows
+//!    into `route_group_prefix` + `effective_route_template`; the verb is OPT
+//!    (present for `web::<verb>()`, omitted for unguarded `web::route()`).
+//! 3. **Resource routes** (`web::resource("/x").route(web::get().to(h))`) →
+//!    [`ACTIX_RESOURCE_ROUTE_PATTERN_ID`]. The resource path is local to the
+//!    route call; source-attested method guards can supply its optional verb.
+//! 4. **Scope mounts** (`web::scope("/api").configure(init)` / `.service(sub)`) →
 //!    [`ACTIX_MOUNT_PATTERN_ID`], the prefix-registration fact recorded at the
 //!    scope site (following the `express.router_mount.v1` shape). The delegated
 //!    routes live in a cross-file `configure`/service target, so no route join is
@@ -57,9 +60,10 @@ use super::helpers::{
 use super::scan::{RouteFactSpec, route_fact};
 use super::static_arg::{StaticArgLang, static_route_arg};
 use super::{
-    ACTIX_ATTRIBUTE_ROUTE_PATTERN_ID, ACTIX_MOUNT_PATTERN_ID, ACTIX_SCOPE_ROUTE_PATTERN_ID,
+    ACTIX_ATTRIBUTE_ROUTE_PATTERN_ID, ACTIX_MOUNT_PATTERN_ID, ACTIX_RESOURCE_ROUTE_PATTERN_ID,
+    ACTIX_SCOPE_ROUTE_PATTERN_ID,
 };
-use crate::base::http_boundary::{ParamFlavor, normalize_route_template};
+use crate::base::http_boundary::{ParamFlavor, join_route_templates, normalize_route_template};
 use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -113,6 +117,7 @@ fn walk(
         // `web::scope("/api").configure/service(...)` mounts.
         "call_expression" => {
             try_scope_route(node, language, tree, file_path, content, facts);
+            try_resource_route(node, language, tree, file_path, content, facts);
             try_mount(node, language, tree, file_path, content, facts);
         }
         _ => {}
@@ -290,7 +295,7 @@ fn try_scope_route(
     if method != "route" {
         return;
     }
-    let Some(prefix) = route_prefix(receiver, content) else {
+    let Some(prefix) = route_prefix(receiver, call, content) else {
         return;
     };
     let args = call_arguments(call);
@@ -314,6 +319,70 @@ fn try_scope_route(
         verb_source: verb.name().map(|_| "attested"),
         flavor: ParamFlavor::Braces,
         prefix,
+        prefix_key: Some("route_group_prefix"),
+    };
+    if let Some(fact) = route_fact(
+        language,
+        tree,
+        file_path,
+        content,
+        call.start_byte(),
+        call.end_byte(),
+        spec,
+        |_| {},
+    ) {
+        facts.push(fact);
+    }
+}
+
+fn try_resource_route(
+    call: Node,
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    facts: &mut Vec<StructuralFact>,
+) {
+    let Some((receiver, method)) = method_call_parts(call, content) else {
+        return;
+    };
+    if method != "route" {
+        return;
+    }
+    let Some((path, resource_guards, resource_ambiguous_guard)) =
+        resource_route_parts(receiver, content)
+    else {
+        return;
+    };
+    let prefix = resource_route_prefix(call, content).flatten();
+    let args = call_arguments(call);
+    let Some(router_arg) = args.first().copied() else {
+        return;
+    };
+    let Some((base, mut route_guards, route_ambiguous_guard)) =
+        actix_method_router_parts(router_arg, content)
+    else {
+        return;
+    };
+    route_guards.extend(resource_guards);
+    let Some(verb) = resolve_route_verb(
+        base,
+        &route_guards,
+        route_ambiguous_guard || resource_ambiguous_guard,
+    ) else {
+        return;
+    };
+
+    let spec = RouteFactSpec {
+        framework: "actix",
+        pattern_id: ACTIX_RESOURCE_ROUTE_PATTERN_ID,
+        capture_name: "resource_route",
+        api_style: "call_routing",
+        route_template: path,
+        verb: verb.name(),
+        verb_source: verb.name().map(|_| "attested"),
+        flavor: ParamFlavor::Braces,
+        prefix: prefix.as_deref(),
         prefix_key: Some("route_group_prefix"),
     };
     if let Some(fact) = route_fact(
@@ -360,6 +429,14 @@ impl VerbClass {
 /// conflicting method guards make the effective verb unknowable and stay silent
 /// (M2 — a verb-less fact would wrongly claim any-method).
 fn actix_method_router_verb(arg: Node, content: &str) -> Option<VerbClass> {
+    let (base, guard_verbs, ambiguous_method_guard) = actix_method_router_parts(arg, content)?;
+    resolve_route_verb(base, &guard_verbs, ambiguous_method_guard)
+}
+
+fn actix_method_router_parts(
+    arg: Node,
+    content: &str,
+) -> Option<(VerbClass, Vec<&'static str>, bool)> {
     let mut node = arg;
     let mut guard_verbs: Vec<&'static str> = Vec::new();
     let mut ambiguous_method_guard = false;
@@ -372,7 +449,7 @@ fn actix_method_router_verb(arg: Node, content: &str) -> Option<VerbClass> {
             // Base of the chain: `web::post()` / `web::route()`.
             "scoped_identifier" => {
                 let base = actix_web_verb(function, content)?;
-                return resolve_route_verb(base, &guard_verbs, ambiguous_method_guard);
+                return Some((base, guard_verbs, ambiguous_method_guard));
             }
             // Chained call: `.to(h)` / `.wrap(m)` / `.guard(g)` — descend the
             // receiver, recording any method guard along the way.
@@ -473,6 +550,83 @@ fn method_guard_verb(guard_call: Node, content: &str) -> GuardKind {
         None if name == "Method" => GuardKind::AmbiguousMethod,
         None => GuardKind::Other,
     }
+}
+
+fn resource_route_parts<'a>(
+    receiver: Node,
+    content: &'a str,
+) -> Option<(&'a str, Vec<&'static str>, bool)> {
+    let mut node = receiver;
+    let mut guard_verbs = Vec::new();
+    let mut ambiguous_method_guard = false;
+    loop {
+        if node.kind() != "call_expression" {
+            return None;
+        }
+        let function = node.child_by_field_name("function")?;
+        match function.kind() {
+            "scoped_identifier" if scoped_is_web_resource(function, content) => {
+                let path = static_route_arg(
+                    call_arguments(node).first().copied()?,
+                    content,
+                    StaticArgLang::Rust,
+                )?;
+                return Some((path, guard_verbs, ambiguous_method_guard));
+            }
+            "field_expression" => {
+                if node_text(content, function.child_by_field_name("field")?) == Some("guard") {
+                    match method_guard_verb(node, content) {
+                        GuardKind::Method(verb) => guard_verbs.push(verb),
+                        GuardKind::AmbiguousMethod => ambiguous_method_guard = true,
+                        GuardKind::Other => {}
+                    }
+                }
+                node = function.child_by_field_name("value")?;
+            }
+            _ => return None,
+        }
+    }
+}
+
+fn resource_route_prefix(call: Node, content: &str) -> Option<Option<String>> {
+    let service_calls = enclosing_service_calls(call, content);
+    let mut prefixes = Vec::new();
+    for service_call in &service_calls {
+        let (receiver, _) = method_call_parts(*service_call, content)?;
+        let prefix = route_prefix(receiver, *service_call, content)?;
+        if let Some(prefix) = prefix {
+            prefixes.push(prefix);
+        }
+    }
+    let mut prefix: Option<String> = None;
+    for part in prefixes.into_iter().rev() {
+        prefix = Some(match prefix {
+            Some(outer) => join_route_templates(&outer, part),
+            None => part.to_owned(),
+        });
+    }
+    Some(prefix)
+}
+
+fn enclosing_service_calls<'tree>(call: Node<'tree>, content: &str) -> Vec<Node<'tree>> {
+    let mut services = Vec::new();
+    let mut current = call.parent();
+    while let Some(node) = current {
+        if node.kind() == "call_expression"
+            && method_call_parts(node, content).is_some_and(|(_, method)| method == "service")
+            && call_arguments(node)
+                .first()
+                .is_some_and(|argument| contains_node(*argument, call))
+        {
+            services.push(node);
+        }
+        current = node.parent();
+    }
+    services
+}
+
+fn contains_node(container: Node, target: Node) -> bool {
+    container.start_byte() <= target.start_byte() && container.end_byte() >= target.end_byte()
 }
 
 /// The uppercase HTTP verb for a standard actix method guard (`guard::Get()` →
@@ -634,11 +788,294 @@ fn scope_prefix<'a>(receiver: Node, content: &'a str) -> Option<&'a str> {
     }
 }
 
-fn route_prefix<'a>(receiver: Node, content: &'a str) -> Option<Option<&'a str>> {
+fn route_prefix<'a>(receiver: Node, route_call: Node, content: &'a str) -> Option<Option<&'a str>> {
     if let Some(prefix) = scope_prefix(receiver, content) {
         return Some(Some(prefix));
     }
-    app_new_receiver(receiver, content).then_some(None)
+    if app_new_receiver(receiver, content) {
+        return Some(None);
+    }
+    let (reference, name) = receiver_identifier(receiver, content)?;
+    if let Some(prefix) = local_scope_prefix(name, reference, content, &mut Vec::new()) {
+        return Some(prefix);
+    }
+    (visible_scope_binding(name, reference, content).is_none()
+        && service_config_receiver(name, route_call, content))
+    .then_some(None)
+}
+
+fn receiver_identifier<'a, 'tree>(
+    mut receiver: Node<'tree>,
+    content: &'a str,
+) -> Option<(Node<'tree>, &'a str)> {
+    loop {
+        match receiver.kind() {
+            "identifier" => return Some((receiver, node_text(content, receiver)?)),
+            "parenthesized_expression" => {
+                let mut cursor = receiver.walk();
+                receiver = receiver.named_children(&mut cursor).next()?;
+            }
+            "call_expression" => {
+                let function = receiver.child_by_field_name("function")?;
+                if function.kind() != "field_expression" {
+                    return None;
+                }
+                let method = function
+                    .child_by_field_name("field")
+                    .and_then(|field| node_text(content, field))?;
+                if !scope_receiver_method(method) {
+                    return None;
+                }
+                receiver = function.child_by_field_name("value")?;
+            }
+            _ => return None,
+        }
+    }
+}
+
+fn local_scope_prefix<'a>(
+    name: &str,
+    reference: Node,
+    content: &'a str,
+    seen: &mut Vec<usize>,
+) -> Option<Option<&'a str>> {
+    if !should_visit_tree_depth(seen.len() as u32) {
+        return None;
+    }
+    let binding = visible_scope_binding(name, reference, content)?;
+    if seen.contains(&binding.start_byte())
+        || binding_is_reassigned_before(binding, reference, name, content)
+    {
+        return None;
+    }
+    seen.push(binding.start_byte());
+    let value = binding.child_by_field_name("value")?;
+    scope_value_prefix(value, content, seen)
+}
+
+fn scope_value_prefix<'a>(
+    mut value: Node,
+    content: &'a str,
+    seen: &mut Vec<usize>,
+) -> Option<Option<&'a str>> {
+    loop {
+        match value.kind() {
+            "parenthesized_expression" => {
+                let mut cursor = value.walk();
+                value = value.named_children(&mut cursor).next()?;
+            }
+            "call_expression" => {
+                let function = value.child_by_field_name("function")?;
+                match function.kind() {
+                    "scoped_identifier" if scoped_is_web_scope(function, content) => {
+                        let prefix = static_route_arg(
+                            call_arguments(value).first().copied()?,
+                            content,
+                            StaticArgLang::Rust,
+                        )?;
+                        return Some(Some(prefix));
+                    }
+                    "scoped_identifier" if scoped_is_app_new(function, content) => {
+                        return Some(None);
+                    }
+                    "field_expression" => {
+                        let method = function
+                            .child_by_field_name("field")
+                            .and_then(|field| node_text(content, field))?;
+                        if !scope_receiver_method(method) {
+                            return None;
+                        }
+                        value = function.child_by_field_name("value")?;
+                    }
+                    _ => return None,
+                }
+            }
+            "identifier" => {
+                let name = node_text(content, value)?;
+                return local_scope_prefix(name, value, content, seen);
+            }
+            _ => return None,
+        }
+    }
+}
+
+fn scope_receiver_method(method: &str) -> bool {
+    matches!(
+        method,
+        "route"
+            | "service"
+            | "configure"
+            | "wrap"
+            | "wrap_fn"
+            | "guard"
+            | "app_data"
+            | "default_service"
+            | "external_resource"
+    )
+}
+
+fn visible_scope_binding<'tree>(
+    name: &str,
+    from: Node<'tree>,
+    content: &str,
+) -> Option<Node<'tree>> {
+    let mut current = from.parent();
+    while let Some(node) = current {
+        match node.kind() {
+            "block" => {
+                if let Some(binding) = direct_scope_binding(node, name, from.start_byte(), content)
+                {
+                    return Some(binding);
+                }
+            }
+            "closure_expression" if closure_binds_name(node, name, content) => return None,
+            "function_item" => return None,
+            _ => {}
+        }
+        current = node.parent();
+    }
+    None
+}
+
+fn direct_scope_binding<'tree>(
+    block: Node<'tree>,
+    name: &str,
+    before: usize,
+    content: &str,
+) -> Option<Node<'tree>> {
+    let mut cursor = block.walk();
+    block
+        .named_children(&mut cursor)
+        .filter(|child| child.kind() == "let_declaration" && child.start_byte() < before)
+        .filter(|declaration| {
+            declaration
+                .child_by_field_name("pattern")
+                .is_some_and(|pattern| pattern_binds_name(pattern, name, content, 0))
+        })
+        .last()
+}
+
+fn pattern_binds_name(pattern: Node, name: &str, content: &str, depth: u32) -> bool {
+    if !should_visit_tree_depth(depth) {
+        return false;
+    }
+    if pattern.kind() == "identifier" && node_text(content, pattern) == Some(name) {
+        return true;
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return false;
+    };
+    let mut cursor = pattern.walk();
+    pattern
+        .named_children(&mut cursor)
+        .any(|child| pattern_binds_name(child, name, content, child_depth))
+}
+
+fn closure_binds_name(closure: Node, name: &str, content: &str) -> bool {
+    let Some(parameters) = closure.child_by_field_name("parameters") else {
+        return false;
+    };
+    let mut cursor = parameters.walk();
+    parameters.named_children(&mut cursor).any(|parameter| {
+        parameter
+            .child_by_field_name("pattern")
+            .is_some_and(|pattern| pattern_binds_name(pattern, name, content, 0))
+    })
+}
+
+fn binding_is_reassigned_before(binding: Node, reference: Node, name: &str, content: &str) -> bool {
+    let Some(block) = binding.parent().filter(|parent| parent.kind() == "block") else {
+        return true;
+    };
+    has_reassignment_to_binding(block, binding, reference.start_byte(), name, content, 0)
+}
+
+fn has_reassignment_to_binding(
+    node: Node,
+    binding: Node,
+    before: usize,
+    name: &str,
+    content: &str,
+    depth: u32,
+) -> bool {
+    if !should_visit_tree_depth(depth) || node.start_byte() >= before {
+        return false;
+    }
+    if node.kind() == "assignment_expression"
+        && node.start_byte() > binding.end_byte()
+        && let Some(left) = node.child_by_field_name("left")
+        && left.kind() == "identifier"
+        && node_text(content, left) == Some(name)
+        && visible_scope_binding(name, left, content)
+            .is_some_and(|candidate| candidate.start_byte() == binding.start_byte())
+    {
+        return true;
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return false;
+    };
+    let mut cursor = node.walk();
+    node.children(&mut cursor).any(|child| {
+        has_reassignment_to_binding(child, binding, before, name, content, child_depth)
+    })
+}
+
+fn service_config_receiver(name: &str, route_call: Node, content: &str) -> bool {
+    let mut current = Some(route_call);
+    while let Some(node) = current {
+        if node.kind() == "closure_expression" && closure_binds_name(node, name, content) {
+            return false;
+        }
+        if node.kind() == "function_item" {
+            let Some(parameters) = node.child_by_field_name("parameters") else {
+                return false;
+            };
+            let mut cursor = parameters.walk();
+            return parameters.named_children(&mut cursor).any(|parameter| {
+                parameter.kind() == "parameter"
+                    && parameter
+                        .child_by_field_name("pattern")
+                        .and_then(|pattern| node_text(content, pattern))
+                        == Some(name)
+                    && parameter
+                        .child_by_field_name("type")
+                        .is_some_and(|ty| type_is_actix_service_config(ty, content))
+            });
+        }
+        current = node.parent();
+    }
+    false
+}
+
+fn type_is_actix_service_config(ty: Node, content: &str) -> bool {
+    let ty = if ty.kind() == "reference_type" {
+        match ty.child_by_field_name("type") {
+            Some(inner) => inner,
+            None => return false,
+        }
+    } else {
+        ty
+    };
+    ty.kind() == "scoped_type_identifier"
+        && ty
+            .child_by_field_name("name")
+            .and_then(|name| node_text(content, name))
+            == Some("ServiceConfig")
+        && ty
+            .child_by_field_name("path")
+            .is_some_and(|path| path_terminal_is_web(path, content))
+}
+
+fn path_terminal_is_web(path: Node, content: &str) -> bool {
+    match path.kind() {
+        "identifier" => node_text(content, path) == Some("web"),
+        "scoped_identifier" | "scoped_type_identifier" => {
+            path.child_by_field_name("name")
+                .and_then(|name| node_text(content, name))
+                == Some("web")
+        }
+        _ => false,
+    }
 }
 
 fn app_new_receiver(receiver: Node, content: &str) -> bool {
@@ -692,6 +1129,14 @@ fn scoped_is_web_scope(scoped: Node, content: &str) -> bool {
         .child_by_field_name("name")
         .and_then(|name| node_text(content, name))
         == Some("scope")
+        && scoped_path_is_web(scoped, content)
+}
+
+fn scoped_is_web_resource(scoped: Node, content: &str) -> bool {
+    scoped
+        .child_by_field_name("name")
+        .and_then(|name| node_text(content, name))
+        == Some("resource")
         && scoped_path_is_web(scoped, content)
 }
 

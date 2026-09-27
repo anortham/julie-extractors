@@ -70,12 +70,24 @@ run: `colou?r` gives `colo`.
   `possessive: true`. The pinned grammar reads the second `+` as an error
   token.
 
-The pinned grammar has no conditional group (`(?(1)a|b)`). That gap is an
-`open_gaps` entry in `fixtures/extraction/capabilities.json`.
+`regex.conditional.v1` records the written condition and branch count
+for numeric, relative numeric, named, assertion and reserved conditional
+forms. Capture conditions reference the declared group without changing
+capture numbering. The conditional separator is not a second alternation.
+
+The parser is the licensed local `tree-sitter-regex 0.25.0-julie.1` patch
+under `vendor/tree-sitter-regex`. Generated parser sources ship with the
+crate; consumer builds need no parser generator. The `conditionals`
+fixture covers conditional syntax and capture references.
+Atomic groups `(?>...)` parse without changing the numbers of captures nested
+inside them and contribute to nesting depth.
+
+PCRE2 branch-reset groups `(?|...)` remain an explicit grammar gap. Numeric
+capture targets in patterns containing that construct are not reliable.
 
 ## Complexity
 
-Every group and lookaround adds one nesting level. A scoped inline flag group
+A conditional adds one decision. Every group and lookaround adds one nesting level. A scoped inline flag group
 (`(?i:...)`) also nests; a bare `(?i)` does not.
 
 ## Body spans

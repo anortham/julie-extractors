@@ -5,6 +5,17 @@ use crate::base::{
     RelationshipKind, ScopedSymbolIndex, StructuredPendingRelationship, Symbol, SymbolKind,
     UnresolvedTarget,
 };
+use tree_sitter::{Node, Tree};
+
+fn parsed_call_site<'tree>(tree: &'tree Tree, source: &str, expression: &str) -> Node<'tree> {
+    let start_byte = source.find(expression).unwrap();
+    let call_site = tree
+        .root_node()
+        .descendant_for_byte_range(start_byte, start_byte + expression.len())
+        .unwrap();
+    assert_eq!(call_site.kind(), "call_expression");
+    call_site
+}
 
 fn symbol(
     id: &str,
@@ -50,6 +61,9 @@ fn symbol_with_is_definition(id: &str, name: &str, is_definition: bool, start_li
 
 #[test]
 fn test_scoped_symbol_index_resolves_self_receiver_to_same_parent_method() {
+    let source = "class A { caller() { this.render(); } } class B { render() {} }";
+    let tree = crate::tests::helpers::init_parser(source, "javascript");
+    let call_site = parsed_call_site(&tree, source, "this.render()");
     let class_a = symbol("class-a", "A", SymbolKind::Class, None, 1);
     let class_b = symbol("class-b", "B", SymbolKind::Class, None, 10);
     let caller = symbol("caller", "caller", SymbolKind::Method, Some("class-a"), 3);
@@ -64,7 +78,7 @@ fn test_scoped_symbol_index_resolves_self_receiver_to_same_parent_method() {
     let symbols = vec![class_a, class_b, caller.clone(), a_render.clone(), b_render];
 
     let index = ScopedSymbolIndex::new(&symbols);
-    let resolution = index.resolve_call_target("render", Some(&caller), Some("self"));
+    let resolution = index.resolve_call_target("render", Some(&caller), Some("self"), call_site);
 
     assert_eq!(
         resolution.as_symbol().map(|symbol| symbol.id.as_str()),
@@ -74,6 +88,10 @@ fn test_scoped_symbol_index_resolves_self_receiver_to_same_parent_method() {
 
 #[test]
 fn test_scoped_symbol_index_super_receiver_does_not_resolve_to_child_override() {
+    let source =
+        "class Base { render() {} } class Child extends Base { render() { super.render(); } }";
+    let tree = crate::tests::helpers::init_parser(source, "javascript");
+    let call_site = parsed_call_site(&tree, source, "super.render()");
     let superclass = symbol("class-a", "Base", SymbolKind::Class, None, 1);
     let subclass = symbol("class-b", "Child", SymbolKind::Class, None, 10);
     let base_render = symbol(
@@ -93,7 +111,7 @@ fn test_scoped_symbol_index_super_receiver_does_not_resolve_to_child_override() 
     let symbols = vec![superclass, subclass, base_render, caller.clone()];
 
     let index = ScopedSymbolIndex::new(&symbols);
-    let resolution = index.resolve_call_target("render", Some(&caller), Some("super"));
+    let resolution = index.resolve_call_target("render", Some(&caller), Some("super"), call_site);
 
     assert!(
         matches!(resolution, LocalTargetResolution::ReceiverQualified),
@@ -103,25 +121,31 @@ fn test_scoped_symbol_index_super_receiver_does_not_resolve_to_child_override() 
 
 #[test]
 fn test_scoped_symbol_index_this_receiver_without_parent_scope_stays_unresolved() {
+    let source = "function caller() { this.render(); }";
+    let tree = crate::tests::helpers::init_parser(source, "javascript");
+    let call_site = parsed_call_site(&tree, source, "this.render()");
     let caller = symbol("caller", "caller", SymbolKind::Function, None, 3);
     let local_render = symbol("render", "render", SymbolKind::Function, None, 4);
     let symbols = vec![caller.clone(), local_render];
 
     let index = ScopedSymbolIndex::new(&symbols);
-    let resolution = index.resolve_call_target("render", Some(&caller), Some("this"));
+    let resolution = index.resolve_call_target("render", Some(&caller), Some("this"), call_site);
 
     assert!(matches!(resolution, LocalTargetResolution::Missing));
 }
 
 #[test]
 fn test_scoped_symbol_index_refuses_foreign_receiver_when_local_method_shares_name() {
+    let source = "class A { caller() { service.render(); } render() {} }";
+    let tree = crate::tests::helpers::init_parser(source, "javascript");
+    let call_site = parsed_call_site(&tree, source, "service.render()");
     let class_a = symbol("class-a", "A", SymbolKind::Class, None, 1);
     let caller = symbol("caller", "caller", SymbolKind::Method, Some("class-a"), 3);
     let local_render = symbol("a-render", "render", SymbolKind::Method, Some("class-a"), 4);
     let symbols = vec![class_a, caller.clone(), local_render];
 
     let index = ScopedSymbolIndex::new(&symbols);
-    let resolution = index.resolve_call_target("render", Some(&caller), Some("service"));
+    let resolution = index.resolve_call_target("render", Some(&caller), Some("service"), call_site);
 
     assert!(matches!(
         resolution,
@@ -131,26 +155,32 @@ fn test_scoped_symbol_index_refuses_foreign_receiver_when_local_method_shares_na
 
 #[test]
 fn test_scoped_symbol_index_marks_duplicate_unqualified_calls_ambiguous() {
+    let source = "function caller() { render(); }";
+    let tree = crate::tests::helpers::init_parser(source, "javascript");
+    let call_site = parsed_call_site(&tree, source, "render()");
     let first = symbol("first", "render", SymbolKind::Function, None, 1);
     let second = symbol("second", "render", SymbolKind::Function, None, 5);
     let caller = symbol("caller", "caller", SymbolKind::Function, None, 9);
     let symbols = vec![first, second, caller.clone()];
 
     let index = ScopedSymbolIndex::new(&symbols);
-    let resolution = index.resolve_call_target("render", Some(&caller), None);
+    let resolution = index.resolve_call_target("render", Some(&caller), None, call_site);
 
     assert!(matches!(resolution, LocalTargetResolution::Ambiguous));
 }
 
 #[test]
 fn test_scoped_symbol_index_prefers_unique_definition_over_declaration() {
+    let source = "function worker_run() { helper(); }";
+    let tree = crate::tests::helpers::init_parser(source, "javascript");
+    let call_site = parsed_call_site(&tree, source, "helper()");
     let declaration = symbol_with_is_definition("helper-decl", "helper", false, 5);
     let definition = symbol_with_is_definition("helper-def", "helper", true, 11);
     let caller = symbol("caller", "worker_run", SymbolKind::Function, None, 7);
     let symbols = vec![declaration, definition.clone(), caller.clone()];
 
     let index = ScopedSymbolIndex::new(&symbols);
-    let resolution = index.resolve_call_target("helper", Some(&caller), None);
+    let resolution = index.resolve_call_target("helper", Some(&caller), None, call_site);
 
     assert_eq!(
         resolution.as_symbol().map(|symbol| symbol.id.as_str()),
@@ -160,6 +190,9 @@ fn test_scoped_symbol_index_prefers_unique_definition_over_declaration() {
 
 #[test]
 fn test_scoped_symbol_index_marks_same_scope_overloads_ambiguous_for_self_receiver() {
+    let source = "class A { render() { this.render(); } render() {} }";
+    let tree = crate::tests::helpers::init_parser(source, "javascript");
+    let call_site = parsed_call_site(&tree, source, "this.render()");
     let class_a = symbol("class-a", "A", SymbolKind::Class, None, 1);
     let caller = symbol("caller", "render", SymbolKind::Method, Some("class-a"), 3);
     let overload_one = symbol("render-1", "render", SymbolKind::Method, Some("class-a"), 4);
@@ -167,7 +200,7 @@ fn test_scoped_symbol_index_marks_same_scope_overloads_ambiguous_for_self_receiv
     let symbols = vec![class_a, caller.clone(), overload_one, overload_two];
 
     let index = ScopedSymbolIndex::new(&symbols);
-    let resolution = index.resolve_call_target("render", Some(&caller), Some("self"));
+    let resolution = index.resolve_call_target("render", Some(&caller), Some("self"), call_site);
 
     assert!(matches!(resolution, LocalTargetResolution::Ambiguous));
 }

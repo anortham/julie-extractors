@@ -79,6 +79,41 @@
           "name": "rocket_routes",
           "source": "fixtures/extraction/rust/rocket_routes/source.rs",
           "expected": "fixtures/extraction/rust/rocket_routes/expected.json"
+        },
+        {
+          "name": "axum_parameter_context",
+          "source": "fixtures/extraction/rust/axum_parameter_context/source.rs",
+          "expected": "fixtures/extraction/rust/axum_parameter_context/expected.json"
+        },
+        {
+          "name": "benchmark_harnesses",
+          "source": "fixtures/extraction/rust/benchmark_harnesses/source.rs",
+          "expected": "fixtures/extraction/rust/benchmark_harnesses/expected.json",
+          "sources": [
+            "fixtures/extraction/rust/benchmark_harnesses/source.rs",
+            "fixtures/extraction/rust/benchmark_harnesses/local_macro_shadow.rs",
+            "fixtures/extraction/rust/benchmark_harnesses/unrelated_macros.rs"
+          ]
+        },
+        {
+          "name": "actix_local_bindings",
+          "source": "fixtures/extraction/rust/actix_local_bindings/source.rs",
+          "expected": "fixtures/extraction/rust/actix_local_bindings/expected.json"
+        },
+        {
+          "name": "actix_resources",
+          "source": "fixtures/extraction/rust/actix_resources/source.rs",
+          "expected": "fixtures/extraction/rust/actix_resources/expected.json"
+        },
+        {
+          "name": "reqwest_fields",
+          "source": "fixtures/extraction/rust/reqwest_fields/source.rs",
+          "expected": "fixtures/extraction/rust/reqwest_fields/expected.json"
+        },
+        {
+          "name": "reference_targets",
+          "source": "fixtures/extraction/rust/reference_targets/source.rs",
+          "expected": "fixtures/extraction/rust/reference_targets/expected.json"
         }
       ],
       "target_capabilities": {
@@ -147,12 +182,14 @@
           "supported": [
             "actix.attribute_route.v1",
             "actix.mount.v1",
+            "actix.resource_route.v1",
             "actix.scope_route.v1",
             "axum.nest.v1",
             "axum.route.v1",
             "http.client_request.v1",
             "rocket.mount.v1",
             "rocket.route.v1",
+            "rust.benchmark.v1",
             "rust.doc_test.v1",
             "rust.unsafe_block.v1"
           ],
@@ -160,45 +197,27 @@
           "open_gaps": [
             {
               "kind": "actix.scope_route_cross_file_registration",
-              "reason": "actix.scope_route.v1 joins a scope prefix to routes only when the routes chain directly off `web::scope(\"/lit\")` in the same expression. Routes registered under a scope via `.configure(fn)` or `.service(handler)` live in a cross-file target, so their scope prefix cannot flow into their effective_route_template in-file; actix.mount.v1 records the prefix at the scope site with mount_path/mount_target only.",
-              "required_closure": "resolve the scope prefix to routes registered in a cross-file configure/service target, which is code-kb's cross-file join responsibility per decision 0004; the extractor emits actix.mount.v1 and guesses no join",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2c (cross-file prefix registration)"
-            },
-            {
-              "kind": "actix.scope_route_variable_binding",
-              "reason": "actix.scope_route.v1 reads the scope prefix by walking the `.route` receiver chain to a base `web::scope(literal)` in the same expression. A scope bound to a variable first (`let s = web::scope(\"/api\"); s.route(...)`) is cross-statement single-assignment tracing, which is not attempted this slice; such routes stay silent (M2) rather than emit a route with an unresolved prefix.",
-              "required_closure": "add same-file single-assignment receiver tracing for scope variables (the axum receiver-poison model applied to `web::scope`), fixture-backed",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 4.3 (receiver-traced builder chains)"
-            },
-            {
-              "kind": "actix.resource_route_guard_forms",
-              "reason": "actix `web::resource(\"/x\").route(web::get().to(h))` and guard-based route forms register routes without a `web::scope` prefix chain, so they are not covered by actix.scope_route.v1 (which anchors on scope prefixes) and stay silent.",
-              "required_closure": "add a `web::resource`/route-guard collector emitting a resource route fact with the resource path and method-router verb, fixture-backed",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2a (actix idioms) — future actix.resource_route.v1"
+              "reason": "Routes on typed ServiceConfig parameters and local scope/resource builders are extracted. A configure or service target may be mounted at multiple prefixes, including targets in the same file; route declarations and actix.mount.v1 sites remain separate.",
+              "required_closure": "Join actix.mount.v1 mount_target to route declarations in the consumer, preserving every mount rather than overwriting a route with one inferred absolute path.",
+              "planned_closure_task": "docs/plans/2026-09-27-reference-integrity.md: Consumer mount joins"
             },
             {
               "kind": "axum.param_flavor_under_report",
-              "reason": "axum route params are recorded as brace captures (`{id}`, axum 0.8). axum 0.7 used `:id`; the extractor cannot know the crate version and does not version-sniff (design section 11), so a 0.7 `:id` template passes through to a correct normalized_route_template join key but its `:id` segment is not recorded in dynamic_segments.",
-              "required_closure": "no closure without version detection, which is explicitly out of scope; a 0.7 `:id` template still joins correctly, only dynamic_segments under-reports its params",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2a / section 11 (axum 0.7 param honest under-report)"
+              "reason": "Brace captures identify Axum parameters. A colon segment can be an older Axum capture or a literal accepted by Router::without_v07_checks; source text without a dialect/version context cannot distinguish them. The written template is preserved.",
+              "required_closure": "Accept explicit Axum version/dialect context if parameter interpretation is required; include that context in extraction freshness so changing it re-extracts affected files.",
+              "planned_closure_task": "docs/plans/2026-09-27-reference-integrity.md: Explicit project context"
             },
             {
               "kind": "axum.cross_file_nest_join",
-              "reason": "A `.nest(\"/api\", sub_router)` mounts a sub-router whose routes are defined in another function/file, so the nest prefix cannot flow into those routes' effective_route_template in-file; axum.nest.v1 records the mount at its own site with mount_path/mount_target only.",
-              "required_closure": "resolve nest prefix to sub-router routes, which is code-kb's cross-file join responsibility per decision 0004; the extractor emits axum.nest.v1 and guesses no join",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2c (cross-file prefix registration)"
+              "reason": "axum.route.v1 preserves route declarations and axum.nest.v1 preserves each mount_path and mount_target. The mounted router can be declared in the same file or another file and can have multiple mounts.",
+              "required_closure": "Join each nest site to its router routes in the consumer without replacing the direct source facts.",
+              "planned_closure_task": "docs/plans/2026-09-27-reference-integrity.md: Consumer mount joins"
             },
             {
               "kind": "rust.http_client.instance_receiver",
-              "reason": "The reqwest builder form (`client.get(\"url\")`) requires a same-file-proven reqwest receiver (inline `reqwest::Client::new()` chain, a single-assigned local, or a `reqwest::Client` typed param) — a struct-field or cross-file client (`self.client.get(...)`) is syntactically identical to a non-HTTP `.get(...)` and stays silent by M2 (a false client edge is worse than a miss).",
-              "required_closure": "extend reqwest builder detection to struct-field/typed receivers if in-file type resolution becomes available; scoped `reqwest::get(\"url\")` and proven-receiver forms already emit",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
-            },
-            {
-              "kind": "rust.benchmark_harness_roles",
-              "reason": "Rust benchmarks run under three harnesses the extractor does not classify. Nightly `#[bench]` is an attribute macro, so widening the test-attribute list would report it as `test_case`, which is wrong: a benchmark measures time and reports no pass or fail. Criterion and divan declare their cases through `criterion_group!`/`criterion_main!` and `#[divan::bench]`, so the case list lives in a macro invocation rather than in a callable symbol the role writer can reach. All three stay unclassified today.",
-              "required_closure": "add a benchmark unit to the published test-role vocabulary, which is frozen to test_case, test_container, and test_lifecycle today, then emit it for `#[bench]`, `#[divan::bench]`, and the criterion group macro arguments, fixture-backed",
-              "planned_closure_task": "docs/languages/rust.md section 'Recorded gaps' — future rust.benchmark.v1 structural fact, sequenced after the test-role vocabulary gains a benchmark unit"
+              "reason": "Reqwest calls are extracted for inline builders, proven local bindings, typed parameters and same-file typed self fields. An inferred field or receiver whose type is supplied by another file does not establish an HTTP client in the current extraction input.",
+              "required_closure": "Resolve remaining receiver types from published type facts in the consumer, or add explicit project type context to the extraction contract with dependency invalidation.",
+              "planned_closure_task": "docs/plans/2026-09-27-reference-integrity.md: Explicit project context"
             }
           ]
         },
@@ -700,6 +719,11 @@
           "name": "gocheck_ginkgo",
           "source": "fixtures/extraction/go/gocheck_ginkgo/source_test.go",
           "expected": "fixtures/extraction/go/gocheck_ginkgo/expected.json"
+        },
+        {
+          "name": "reference_targets",
+          "source": "fixtures/extraction/go/reference_targets/source.go",
+          "expected": "fixtures/extraction/go/reference_targets/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1475,6 +1499,16 @@
           "name": "frontend_navigation",
           "source": "fixtures/extraction/typescript/frontend_navigation/source.ts",
           "expected": "fixtures/extraction/typescript/frontend_navigation/expected.json"
+        },
+        {
+          "name": "signal_free_pages",
+          "source": "fixtures/extraction/typescript/signal_free_pages/src/pages/Home.ts",
+          "expected": "fixtures/extraction/typescript/signal_free_pages/expected.json"
+        },
+        {
+          "name": "reference_targets",
+          "source": "fixtures/extraction/typescript/reference_targets/source.ts",
+          "expected": "fixtures/extraction/typescript/reference_targets/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1567,9 +1601,9 @@
           "open_gaps": [
             {
               "kind": "nextjs.signal_free_pages_router_files",
-              "reason": "Next.js file-route extraction intentionally requires safe file/project signals. A plain pages-router component file with no route-specific exports or framework signal can be indistinguishable from a generic React SPA component, so it stays silent rather than reintroduce React route false positives.",
-              "required_closure": "add a safe pages-router project/file signal with fixtures, or keep signal-free pages-router files out of the extractor and let downstream project context infer them",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: Next.js pages-router signal policy"
+              "reason": "A default-exported React component under pages/ can belong to Next.js or an ordinary React project. The extractor recognizes source-local Next.js imports and exports but a directory name alone does not establish framework ownership.",
+              "required_closure": "Accept explicit project framework context for signal-free Pages Router files and include it in extraction freshness; until then preserve symbols without inventing a route.",
+              "planned_closure_task": "docs/plans/2026-09-27-reference-integrity.md: Explicit project context"
             }
           ]
         },
@@ -1728,6 +1762,11 @@
           "name": "language_gaps",
           "source": "fixtures/extraction/tsx/language_gaps/source.tsx",
           "expected": "fixtures/extraction/tsx/language_gaps/expected.json"
+        },
+        {
+          "name": "signal_free_pages",
+          "source": "fixtures/extraction/tsx/signal_free_pages/src/pages/Home.tsx",
+          "expected": "fixtures/extraction/tsx/signal_free_pages/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1810,9 +1849,9 @@
           "open_gaps": [
             {
               "kind": "nextjs.signal_free_pages_router_files",
-              "reason": "Next.js file-route extraction intentionally requires safe file/project signals. A plain pages-router component file with no route-specific exports or framework signal can be indistinguishable from a generic React SPA component, so it stays silent rather than reintroduce React route false positives.",
-              "required_closure": "add a safe pages-router project/file signal with fixtures, or keep signal-free pages-router files out of the extractor and let downstream project context infer them",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: Next.js pages-router signal policy"
+              "reason": "A default-exported React component under pages/ can belong to Next.js or an ordinary React project. The extractor recognizes source-local Next.js imports and exports but a directory name alone does not establish framework ownership.",
+              "required_closure": "Accept explicit project framework context for signal-free Pages Router files and include it in extraction freshness; until then preserve symbols without inventing a route.",
+              "planned_closure_task": "docs/plans/2026-09-27-reference-integrity.md: Explicit project context"
             }
           ]
         },
@@ -1981,6 +2020,16 @@
           "name": "language_gaps",
           "source": "fixtures/extraction/javascript/language_gaps/source.js",
           "expected": "fixtures/extraction/javascript/language_gaps/expected.json"
+        },
+        {
+          "name": "reference_targets",
+          "source": "fixtures/extraction/javascript/reference_targets/source.js",
+          "expected": "fixtures/extraction/javascript/reference_targets/expected.json"
+        },
+        {
+          "name": "signal_free_pages",
+          "source": "fixtures/extraction/javascript/signal_free_pages/src/pages/Home.js",
+          "expected": "fixtures/extraction/javascript/signal_free_pages/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2064,9 +2113,9 @@
           "open_gaps": [
             {
               "kind": "nextjs.signal_free_pages_router_files",
-              "reason": "Next.js file-route extraction intentionally requires safe file/project signals. A plain pages-router component file with no route-specific exports or framework signal can be indistinguishable from a generic React SPA component, so it stays silent rather than reintroduce React route false positives.",
-              "required_closure": "add a safe pages-router project/file signal with fixtures, or keep signal-free pages-router files out of the extractor and let downstream project context infer them",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: Next.js pages-router signal policy"
+              "reason": "A default-exported React component under pages/ can belong to Next.js or an ordinary React project. The extractor recognizes source-local Next.js imports and exports but a directory name alone does not establish framework ownership.",
+              "required_closure": "Accept explicit project framework context for signal-free Pages Router files and include it in extraction freshness; until then preserve symbols without inventing a route.",
+              "planned_closure_task": "docs/plans/2026-09-27-reference-integrity.md: Explicit project context"
             }
           ]
         },
@@ -2203,6 +2252,11 @@
           "name": "language_gaps",
           "source": "fixtures/extraction/jsx/language_gaps/source.jsx",
           "expected": "fixtures/extraction/jsx/language_gaps/expected.json"
+        },
+        {
+          "name": "signal_free_pages",
+          "source": "fixtures/extraction/jsx/signal_free_pages/src/pages/Home.jsx",
+          "expected": "fixtures/extraction/jsx/signal_free_pages/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2277,9 +2331,9 @@
           "open_gaps": [
             {
               "kind": "nextjs.signal_free_pages_router_files",
-              "reason": "Next.js file-route extraction intentionally requires safe file/project signals. A plain pages-router component file with no route-specific exports or framework signal can be indistinguishable from a generic React SPA component, so it stays silent rather than reintroduce React route false positives.",
-              "required_closure": "add a safe pages-router project/file signal with fixtures, or keep signal-free pages-router files out of the extractor and let downstream project context infer them",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: Next.js pages-router signal policy"
+              "reason": "A default-exported React component under pages/ can belong to Next.js or an ordinary React project. The extractor recognizes source-local Next.js imports and exports but a directory name alone does not establish framework ownership.",
+              "required_closure": "Accept explicit project framework context for signal-free Pages Router files and include it in extraction freshness; until then preserve symbols without inventing a route.",
+              "planned_closure_task": "docs/plans/2026-09-27-reference-integrity.md: Explicit project context"
             }
           ]
         },
@@ -2984,6 +3038,11 @@
           "name": "drf_and_clients",
           "source": "fixtures/extraction/python/drf_and_clients/urls.py",
           "expected": "fixtures/extraction/python/drf_and_clients/expected.json"
+        },
+        {
+          "name": "reference_targets",
+          "source": "fixtures/extraction/python/reference_targets/source.py",
+          "expected": "fixtures/extraction/python/reference_targets/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3163,6 +3222,20 @@
           "name": "module_info",
           "source": "fixtures/extraction/java/module_info/module-info.java",
           "expected": "fixtures/extraction/java/module_info/expected.json"
+        },
+        {
+          "name": "reference_targets",
+          "source": "fixtures/extraction/java/reference_targets/source.java",
+          "expected": "fixtures/extraction/java/reference_targets/expected.json"
+        },
+        {
+          "name": "cucumber_steps",
+          "source": "fixtures/extraction/java/cucumber_steps/source.java",
+          "expected": "fixtures/extraction/java/cucumber_steps/expected.json",
+          "sources": [
+            "fixtures/extraction/java/cucumber_steps/source.java",
+            "fixtures/extraction/java/cucumber_steps/wildcard.java"
+          ]
         }
       ],
       "target_capabilities": {
@@ -3237,14 +3310,7 @@
             "spring.request_mapping.v1"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "cucumber.step_binding_test_roles",
-              "reason": "Cucumber-JVM binds step definitions with @Given/@When/@Then on methods of a glue class, and the executable scenario lives in a .feature file, not in Java. The extractor classifies neither the glue class nor its step methods, so a Cucumber-JVM suite publishes no test roles from its Java side.",
-              "required_closure": "adopt the Cucumber-JVM glue contract as a named Java test framework, classify a glue class as a test container and step annotations as their own role, and register a golden fixture with a non-glue control class",
-              "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 10 follow-up: Cucumber-JVM step binding roles"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [
@@ -3381,6 +3447,11 @@
           "name": "step_definitions",
           "source": "fixtures/extraction/csharp/step_definitions/source.cs",
           "expected": "fixtures/extraction/csharp/step_definitions/expected.json"
+        },
+        {
+          "name": "reference_targets",
+          "source": "fixtures/extraction/csharp/reference_targets/source.cs",
+          "expected": "fixtures/extraction/csharp/reference_targets/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3883,9 +3954,9 @@
           "open_gaps": [
             {
               "kind": "laravel.route_service_provider_prefix",
-              "reason": "A RouteServiceProvider group prefix is applied cross-file (in the provider, not the routes file), so it cannot flow into a route's effective_route_template in-file; the extractor emits the provider-side laravel.route_prefix.v1 site fact with mount_target naming the routes file, but route_template in that routes file is not the absolute public path.",
-              "required_closure": "join the provider's laravel.route_prefix.v1 mount_target to the routes file's laravel.route.v1 rows, which is code-kb's cross-file join responsibility per decision 0004",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2c (cross-file RouteServiceProvider prefix)"
+              "reason": "laravel.route_prefix.v1 records provider group prefixes and the routes file in mount_target. Routes in that file retain their own declared paths; one routes file can be registered by multiple groups.",
+              "required_closure": "Join provider prefix sites to laravel.route.v1 rows through mount_target in the consumer, retaining multiple registrations.",
+              "planned_closure_task": "docs/plans/2026-09-27-reference-integrity.md: Consumer mount joins"
             }
           ]
         },
@@ -4217,6 +4288,15 @@
           "name": "package_manifest",
           "source": "fixtures/extraction/swift/package_manifest/Package.swift",
           "expected": "fixtures/extraction/swift/package_manifest/expected.json"
+        },
+        {
+          "name": "testing_traits",
+          "source": "fixtures/extraction/swift/testing_traits/source.swift",
+          "expected": "fixtures/extraction/swift/testing_traits/expected.json",
+          "sources": [
+            "fixtures/extraction/swift/testing_traits/source.swift",
+            "fixtures/extraction/swift/testing_traits/custom_test_identifier.swift"
+          ]
         }
       ],
       "target_capabilities": {
@@ -4289,25 +4369,19 @@
         },
         "structural_facts": {
           "supported": [
-            "swift.await_expression.v1",
-            "swift.actor_declaration.v1",
-            "swift.attribute.v1",
-            "vapor.route.v1",
             "http.client_request.v1",
             "manifest.dependency.v1",
+            "swift.actor_declaration.v1",
+            "swift.attribute.v1",
+            "swift.await_expression.v1",
+            "swift_testing.trait.v1",
             "swiftpm.package.v1",
             "swiftpm.product.v1",
-            "swiftpm.target.v1"
+            "swiftpm.target.v1",
+            "vapor.route.v1"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "swift_testing.test_traits",
-              "reason": "Swift Testing attaches traits to a case or a suite through extra macro arguments, such as `@Test(.tags(.slow))`, `@Test(.disabled(\"flaky\"))`, and `@Suite(.serialized)`. The annotation normalizer keys on the macro name and drops its argument list, so a skip, a tag, and a serialization constraint reach no channel and a runner filter such as `--filter-tag slow` has no published evidence.",
-              "required_closure": "choose the channel that carries a trait, either a structural fact or an annotation-shaped row, then capture the trait arguments of `@Test` and `@Suite` and register a golden fixture with a tagged case, a disabled case, and an untraited control",
-              "planned_closure_task": "docs/plans/2026-08-25-ct-test-detection-readiness.md Task 14 follow-up: Swift Testing test traits"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [
@@ -4459,6 +4533,18 @@
           "name": "kotest_behavior_spec",
           "source": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt",
           "expected": "fixtures/extraction/kotlin/kotest_behavior_spec/expected.json"
+        },
+        {
+          "name": "kotest_checks",
+          "source": "fixtures/extraction/kotlin/kotest_checks/source.kt",
+          "expected": "fixtures/extraction/kotlin/kotest_checks/expected.json",
+          "sources": [
+            "fixtures/extraction/kotlin/kotest_checks/source.kt",
+            "fixtures/extraction/kotlin/kotest_checks/shadowed_bindings.kt",
+            "fixtures/extraction/kotlin/kotest_checks/shadowed_import.kt",
+            "fixtures/extraction/kotlin/kotest_checks/unrelated_calls.kt",
+            "fixtures/extraction/kotlin/kotest_checks/wildcard_and_qualified.kt"
+          ]
         }
       ],
       "target_capabilities": {
@@ -4528,33 +4614,23 @@
         },
         "structural_facts": {
           "supported": [
-            "kotlin.suspend_modifier.v1",
-            "kotlin.property_delegate.v1",
-            "kotlin.annotation.v1",
-            "spring.request_mapping.v1",
-            "spring.functional_route.v1",
             "http.client_request.v1",
-            "ktor.route.v1"
+            "kotest.property_check.v1",
+            "kotest.table_check.v1",
+            "kotlin.annotation.v1",
+            "kotlin.property_delegate.v1",
+            "kotlin.suspend_modifier.v1",
+            "ktor.route.v1",
+            "spring.functional_route.v1",
+            "spring.request_mapping.v1"
           ],
           "not_applicable": [],
           "open_gaps": [
             {
               "kind": "kotlin.http_client.instance_receiver",
-              "reason": "Ktor/WebClient/RestTemplate receivers are proven by a typed function, primary-constructor, or class-body property declaration, an exact `WebClient.create()`/`RestTemplate` builder chain, or (Ktor) a same-file `HttpClient(...)` local. An untyped receiver whose client type comes from another file (a factory call, an injected value with an inferred type, or a supertype member) is syntactically identical to a non-HTTP fluent call and stays silent.",
-              "required_closure": "prove receivers whose client type is declared in another file once workspace-global type resolution is available to the extractor",
-              "planned_closure_task": "docs/plans/2026-09-22-language-gap-closure.md later waves"
-            },
-            {
-              "kind": "kotest.data_driven_test_roles",
-              "reason": "Kotest data-driven testing runs one case per row with `forAll(rows) { … }` / `io.kotest.data.forAll`. The rows are call arguments, not declarations, so the block is one lambda with no per-row symbol and no `parameterized_test` role is published.",
-              "required_closure": "publish a parameterized_test role for a `forAll`/`forNone` block once a row-count model for call-argument tables is designed",
-              "planned_closure_task": "docs/decisions/2026-08-20-test-role-contract-closure.md (Kotlin named contract and exclusions)"
-            },
-            {
-              "kind": "kotest.property_test_roles",
-              "reason": "Kotest property testing declares a case with `checkAll`/`forAll` over generators inside an already-classified spec step, so the generator block carries no role of its own and the arbitraries it uses are unclassified.",
-              "required_closure": "classify `checkAll`/`forAll` generator blocks once the contract decides whether a property block is a case or a case body",
-              "planned_closure_task": "docs/decisions/2026-08-20-test-role-contract-closure.md (Kotlin named contract and exclusions)"
+              "reason": "Ktor, WebClient and RestTemplate calls are extracted for typed parameters, primary-constructor properties, class-body properties and supported local builders. An untyped factory result, injected inferred value or inherited member can require type evidence outside the file.",
+              "required_closure": "Resolve remaining receiver types from published type facts in the consumer, or add explicit project type context to the extraction contract with dependency invalidation.",
+              "planned_closure_task": "docs/plans/2026-09-27-reference-integrity.md: Explicit project context"
             }
           ]
         },
@@ -4747,13 +4823,13 @@
         },
         "structural_facts": {
           "supported": [
-            "scala.extension_definition.v1",
-            "scala.given_definition.v1",
-            "scala.for_expression.v1",
-            "scala.annotation.v1",
             "akka_http.route.v1",
+            "http.client_request.v1",
             "http4s.route.v1",
-            "http.client_request.v1"
+            "scala.annotation.v1",
+            "scala.extension_definition.v1",
+            "scala.for_expression.v1",
+            "scala.given_definition.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -4939,13 +5015,13 @@
         },
         "structural_facts": {
           "supported": [
-            "dart.await_expression.v1",
-            "dart.async_modifier.v1",
             "dart.annotation.v1",
+            "dart.async_modifier.v1",
+            "dart.await_expression.v1",
             "go_router.route_definition.v1",
             "go_router.route_reference.v1",
-            "shelf_router.route.v1",
-            "http.client_request.v1"
+            "http.client_request.v1",
+            "shelf_router.route.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -5070,6 +5146,21 @@
           "name": "call_initializers",
           "source": "fixtures/extraction/elixir/call_initializers/source.ex",
           "expected": "fixtures/extraction/elixir/call_initializers/expected.json"
+        },
+        {
+          "name": "reference_targets",
+          "source": "fixtures/extraction/elixir/reference_targets/source.ex",
+          "expected": "fixtures/extraction/elixir/reference_targets/expected.json"
+        },
+        {
+          "name": "phoenix_websocket",
+          "source": "fixtures/extraction/elixir/phoenix_websocket/source.ex",
+          "expected": "fixtures/extraction/elixir/phoenix_websocket/expected.json"
+        },
+        {
+          "name": "tesla_local_clients",
+          "source": "fixtures/extraction/elixir/tesla_local_clients/source.ex",
+          "expected": "fixtures/extraction/elixir/tesla_local_clients/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5133,29 +5224,19 @@
             "elixir.pipeline_operator.v1",
             "elixir.with_expression.v1",
             "http.client_request.v1",
+            "phoenix.channel.v1",
             "phoenix.forward.v1",
             "phoenix.resource_route.v1",
-            "phoenix.route.v1"
+            "phoenix.route.v1",
+            "phoenix.socket.v1"
           ],
           "not_applicable": [],
           "open_gaps": [
             {
-              "kind": "phoenix.non_route_macros",
-              "reason": "The Phoenix lane emits route/resource/forward facts and `live` LiveView routes; the `socket` and `channel` router macros declare websocket endpoints with no request→handler HTTP route, so they emit nothing.",
-              "required_closure": "add collectors for the socket/channel surfaces if a websocket boundary lane is opened; `pipe_through` references a pipeline, not a route, and stays evidence-only",
-              "planned_closure_task": "docs/plans/2026-09-22-language-gap-closure.md later waves"
-            },
-            {
               "kind": "phoenix.cross_file_scope_prefix",
-              "reason": "A `scope` prefix declared in another router module (or via a forwarded plug's own router) is applied cross-file, so it cannot flow into a route's effective_route_template in-file; route_template is therefore not guaranteed to be the absolute public path when such a prefix applies.",
-              "required_closure": "resolve cross-file scope/forward prefixes, which is code-kb's join responsibility per decision 0004; the extractor emits phoenix.forward.v1 only for same-file forwards",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2c (cross-file prefix registration)"
-            },
-            {
-              "kind": "elixir.http_client.tesla_middleware_base_url",
-              "reason": "Tesla client middleware base URLs (`Tesla.client([{Tesla.Middleware.BaseUrl, \"https://api\"}])`) are declared apart from the request call, so `Tesla.get(client, \"/path\")` emits only the static path argument — the middleware base URL is not joined into target_path in-file.",
-              "required_closure": "join same-file Tesla middleware base URLs into request facts if a same-file client-binding model is designed; static URL arguments already emit",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
+              "reason": "Local scope prefixes are extracted and phoenix.forward.v1 records a forward path and target module. A forwarded router may be defined elsewhere or mounted more than once.",
+              "required_closure": "Join forward sites to the target router's declarations in the consumer while preserving local paths and every mount.",
+              "planned_closure_task": "docs/plans/2026-09-27-reference-integrity.md: Consumer mount joins"
             }
           ]
         },
@@ -5675,6 +5756,11 @@
           "name": "frameworks",
           "source": "fixtures/extraction/lua/frameworks/source.lua",
           "expected": "fixtures/extraction/lua/frameworks/expected.json"
+        },
+        {
+          "name": "reference_targets",
+          "source": "fixtures/extraction/lua/reference_targets/source.lua",
+          "expected": "fixtures/extraction/lua/reference_targets/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5729,17 +5815,17 @@
         },
         "structural_facts": {
           "supported": [
+            "lapis.route.v1",
+            "lazy_nvim.plugin_spec.v1",
+            "love.callback.v1",
             "lua.coroutine_call.v1",
             "lua.module_return.v1",
             "lua.require_call.v1",
             "lua.setmetatable_call.v1",
             "lua.table_constructor.v1",
-            "lapis.route.v1",
-            "neovim.user_command.v1",
             "neovim.autocmd.v1",
             "neovim.keymap.v1",
-            "love.callback.v1",
-            "lazy_nvim.plugin_spec.v1"
+            "neovim.user_command.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -5867,6 +5953,11 @@
           "name": "semantics",
           "source": "fixtures/extraction/qml/semantics/Dashboard.qml",
           "expected": "fixtures/extraction/qml/semantics/expected.json"
+        },
+        {
+          "name": "reference_targets",
+          "source": "fixtures/extraction/qml/reference_targets/source.qml",
+          "expected": "fixtures/extraction/qml/reference_targets/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5931,14 +6022,14 @@
         },
         "structural_facts": {
           "supported": [
+            "qml.binding.v1",
+            "qml.component_url.v1",
             "qml.import_statement.v1",
+            "qml.object_instantiation.v1",
+            "qml.pragma.v1",
             "qml.property_declaration.v1",
             "qml.signal_declaration.v1",
-            "qml.binding.v1",
-            "qml.object_instantiation.v1",
-            "qml.typeinfo_declaration.v1",
-            "qml.pragma.v1",
-            "qml.component_url.v1"
+            "qml.typeinfo_declaration.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -6450,10 +6541,10 @@
         },
         "structural_facts": {
           "supported": [
-            "bash.shebang.v1",
-            "bash.command_substitution.v1",
             "bash.arithmetic_expansion.v1",
+            "bash.command_substitution.v1",
             "bash.export_declaration.v1",
+            "bash.shebang.v1",
             "http.client_request.v1"
           ],
           "not_applicable": [],
@@ -6564,6 +6655,11 @@
           "name": "manifest",
           "source": "fixtures/extraction/powershell/manifest/Tools.psd1",
           "expected": "fixtures/extraction/powershell/manifest/expected.json"
+        },
+        {
+          "name": "reference_targets",
+          "source": "fixtures/extraction/powershell/reference_targets/source.ps1",
+          "expected": "fixtures/extraction/powershell/reference_targets/expected.json"
         }
       ],
       "target_capabilities": {
@@ -6622,14 +6718,14 @@
         },
         "structural_facts": {
           "supported": [
-            "powershell.cmdlet_binding_attribute.v1",
-            "powershell.param_block.v1",
-            "powershell.pipeline_expression.v1",
-            "powershell.class_definition.v1",
             "http.client_request.v1",
+            "powershell.class_definition.v1",
+            "powershell.cmdlet_binding_attribute.v1",
             "powershell.data_key.v1",
             "powershell.dsc_resource.v1",
-            "powershell.module_manifest.v1"
+            "powershell.module_manifest.v1",
+            "powershell.param_block.v1",
+            "powershell.pipeline_expression.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -6798,15 +6894,15 @@
         "structural_facts": {
           "supported": [
             "gdscript.class_name.v1",
-            "gdscript.extends_declaration.v1",
-            "gdscript.signal_declaration.v1",
             "gdscript.export_annotation.v1",
+            "gdscript.extends_declaration.v1",
             "gdscript.match_statement.v1",
-            "godot.signal_connection.v1",
-            "godot.signal_emission.v1",
-            "godot.resource_reference.v1",
+            "gdscript.signal_declaration.v1",
             "godot.node_path.v1",
-            "godot.rpc_annotation.v1"
+            "godot.resource_reference.v1",
+            "godot.rpc_annotation.v1",
+            "godot.signal_connection.v1",
+            "godot.signal_emission.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -7341,7 +7437,7 @@
         "regex",
         "regexp"
       ],
-      "dependency_status": "current",
+      "dependency_status": "vendored",
       "capabilities": {
         "symbols": true,
         "relationships": true,
@@ -7369,6 +7465,11 @@
           "name": "verbose",
           "source": "fixtures/extraction/regex/verbose/source.regex",
           "expected": "fixtures/extraction/regex/verbose/expected.json"
+        },
+        {
+          "name": "conditionals",
+          "source": "fixtures/extraction/regex/conditionals/source.regex",
+          "expected": "fixtures/extraction/regex/conditionals/expected.json"
         }
       ],
       "target_capabilities": {
@@ -7435,6 +7536,7 @@
             "regex.backreference.v1",
             "regex.capture_group.v1",
             "regex.character_class.v1",
+            "regex.conditional.v1",
             "regex.inline_flags.v1",
             "regex.lookaround.v1",
             "regex.named_capture.v1",
@@ -7444,10 +7546,10 @@
           "not_applicable": [],
           "open_gaps": [
             {
-              "kind": "regex_conditional_patterns",
-              "reason": "The pinned tree-sitter-regex grammar (ECMAScript syntax) has no conditional node: `(?(1)a|b)` parses as an ERROR token followed by a regrouped alternation in which the condition `(1)` becomes a capture group, so neither the condition, the branches, nor the capture numbering after it can be read from the tree. tree-sitter-regex 0.25.0 is the latest registry release and its grammar has no conditional rule, so a version update does not close the gap.",
-              "required_closure": "pin or patch a grammar that parses `(?(cond)yes|no)` groups, then emit a conditional fact with the condition and branch count, count conditionals as complexity decisions, and add fixture evidence",
-              "planned_closure_task": "docs/plans/2026-09-23-gap-followups.md task 4: stays a grammar limit until an upstream or owned tree-sitter-regex release adds a conditional node"
+              "kind": "regex_branch_reset_groups",
+              "reason": "PCRE2 branch-reset groups (?|...) remain unsupported; their reused capture numbers cannot be assigned reliable targets by the current grammar.",
+              "required_closure": "Add a branch-reset AST rule and branch-aware capture numbering, preserve every possible capture target, and add golden/public extraction evidence.",
+              "planned_closure_task": "docs/plans/2026-09-27-reference-integrity.md: Branch-reset capture groups"
             }
           ]
         },

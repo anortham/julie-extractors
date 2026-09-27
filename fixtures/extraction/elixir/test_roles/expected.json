@@ -583,7 +583,8 @@
         "end_column": 44,
         "start_byte": 188,
         "end_byte": 222
-      }
+      },
+      "target_arity": 2
     },
     {
       "pending": {
@@ -609,7 +610,8 @@
         "end_column": 27,
         "start_byte": 232,
         "end_byte": 253
-      }
+      },
+      "target_arity": 1
     },
     {
       "pending": {
@@ -635,7 +637,8 @@
         "end_column": 7,
         "start_byte": 182,
         "end_byte": 261
-      }
+      },
+      "target_arity": 2
     },
     {
       "pending": {
@@ -661,7 +664,8 @@
         "end_column": 28,
         "start_byte": 197,
         "end_byte": 206
-      }
+      },
+      "target_arity": 0
     },
     {
       "pending": {
@@ -687,7 +691,8 @@
         "end_column": 44,
         "start_byte": 213,
         "end_byte": 222
-      }
+      },
+      "target_arity": 0
     },
     {
       "pending": {
@@ -713,7 +718,8 @@
         "end_column": 27,
         "start_byte": 387,
         "end_byte": 408
-      }
+      },
+      "target_arity": 1
     }
   ],
   "identifiers": [

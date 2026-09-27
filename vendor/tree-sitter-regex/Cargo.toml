@@ -1,0 +1,21 @@
+[package]
+name = "tree-sitter-regex"
+version = "0.25.0-julie.1"
+edition = "2021"
+authors = ["Max Brunsfeld <maxbrunsfeld@gmail.com>"]
+description = "Locally patched tree-sitter grammar for regular expressions"
+license = "MIT"
+repository = "https://github.com/tree-sitter/tree-sitter-regex"
+build = "bindings/rust/build.rs"
+
+[workspace]
+
+[lib]
+name = "tree_sitter_regex"
+path = "bindings/rust/lib.rs"
+
+[dependencies]
+tree-sitter-language = "0.1"
+
+[build-dependencies]
+cc = "1.2"

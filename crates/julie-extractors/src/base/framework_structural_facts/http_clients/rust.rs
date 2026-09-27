@@ -50,9 +50,15 @@ pub(super) fn collect_rust_http_client_requests(
     } else {
         HashSet::new()
     };
+    let reqwest_fields = if has_reqwest {
+        collect_reqwest_fields(tree.root_node(), content)
+    } else {
+        HashSet::new()
+    };
     let has_hyper_import = has_hyper && has_rust_use_crate(tree.root_node(), content, "hyper", 0);
     let gates = RustGates {
         clients,
+        reqwest_fields,
         has_reqwest,
         has_reqwest_use,
         has_hyper,
@@ -76,11 +82,20 @@ pub(super) fn collect_rust_http_client_requests(
 
 struct RustGates {
     clients: HashSet<String>,
+    reqwest_fields: HashSet<ReqwestFieldKey>,
     has_reqwest: bool,
     has_reqwest_use: bool,
     has_hyper: bool,
     has_hyper_import: bool,
     has_ureq: bool,
+}
+
+#[derive(Hash, Eq, PartialEq)]
+struct ReqwestFieldKey {
+    module: Vec<String>,
+    declaration_scope: usize,
+    owner: String,
+    field: String,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -449,7 +464,280 @@ fn receiver_is_proven_reqwest(
             gates.clients.contains(&name)
                 || ident_is_reqwest_typed_param(&name, call, content, gates.has_reqwest_use)
         }
-        ReqwestRoot::Other => false,
+        ReqwestRoot::Other => self_field_reqwest_key(receiver, call, content)
+            .is_some_and(|key| gates.reqwest_fields.contains(&key)),
+    }
+}
+
+fn self_field_reqwest_key(receiver: Node, call: Node, content: &str) -> Option<ReqwestFieldKey> {
+    if receiver.kind() != "field_expression"
+        || receiver
+            .child_by_field_name("value")
+            .and_then(|value| node_text(content, value))
+            != Some("self")
+    {
+        return None;
+    }
+    let Some(field_name) = receiver
+        .child_by_field_name("field")
+        .and_then(|field| node_text(content, field))
+    else {
+        return None;
+    };
+    let Some(implementation) = enclosing_impl_item(call) else {
+        return None;
+    };
+    let Some(type_name) = implementation
+        .child_by_field_name("type")
+        .and_then(|ty| rust_local_impl_owner_name(ty, content))
+    else {
+        return None;
+    };
+    Some(ReqwestFieldKey {
+        module: rust_module_path(implementation, content),
+        declaration_scope: implementation.parent()?.start_byte(),
+        owner: type_name.to_owned(),
+        field: field_name.to_owned(),
+    })
+}
+
+fn enclosing_impl_item(from: Node) -> Option<Node> {
+    let mut current = from.parent();
+    while let Some(node) = current {
+        if node.kind() == "impl_item" {
+            return Some(node);
+        }
+        current = node.parent();
+    }
+    None
+}
+
+fn rust_local_impl_owner_name<'a>(ty: Node, content: &'a str) -> Option<&'a str> {
+    match ty.kind() {
+        "type_identifier" | "identifier" => node_text(content, ty),
+        "generic_type" => ty
+            .child_by_field_name("type")
+            .and_then(|inner| rust_local_impl_owner_name(inner, content)),
+        _ => None,
+    }
+}
+
+fn rust_module_path(node: Node, content: &str) -> Vec<String> {
+    let mut path = Vec::new();
+    let mut current = node.parent();
+    while let Some(parent) = current {
+        if parent.kind() == "mod_item"
+            && let Some(name) = parent
+                .child_by_field_name("name")
+                .and_then(|name| node_text(content, name))
+        {
+            path.push(name.to_owned());
+        }
+        current = parent.parent();
+    }
+    path
+}
+
+fn collect_reqwest_fields(root: Node, content: &str) -> HashSet<ReqwestFieldKey> {
+    let mut fields = HashSet::new();
+    collect_reqwest_fields_at(root, content, &mut fields, 0);
+    fields
+}
+
+fn collect_reqwest_fields_at(
+    node: Node,
+    content: &str,
+    fields: &mut HashSet<ReqwestFieldKey>,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
+    if node.kind() == "struct_item"
+        && let (Some(owner), Some(field_list)) = (
+            node.child_by_field_name("name")
+                .and_then(|name| node_text(content, name)),
+            node.children(&mut node.walk())
+                .find(|child| child.kind() == "field_declaration_list"),
+        )
+    {
+        let module = rust_module_path(node, content);
+        let Some(declaration_scope) = node.parent().map(|parent| parent.start_byte()) else {
+            return;
+        };
+        let mut cursor = field_list.walk();
+        for field in field_list.named_children(&mut cursor) {
+            if field.kind() != "field_declaration" {
+                continue;
+            }
+            let Some(name) = field
+                .child_by_field_name("name")
+                .and_then(|name| node_text(content, name))
+            else {
+                continue;
+            };
+            if field
+                .child_by_field_name("type")
+                .is_some_and(|ty| type_is_reqwest_field(ty, node, content))
+            {
+                fields.insert(ReqwestFieldKey {
+                    module: module.clone(),
+                    declaration_scope,
+                    owner: owner.to_owned(),
+                    field: name.to_owned(),
+                });
+            }
+        }
+    }
+
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_reqwest_fields_at(child, content, fields, child_depth);
+    }
+}
+
+fn type_is_reqwest_field(ty: Node, struct_item: Node, content: &str) -> bool {
+    let ty = if ty.kind() == "reference_type" {
+        match ty.child_by_field_name("type") {
+            Some(inner) => inner,
+            None => return false,
+        }
+    } else {
+        ty
+    };
+    match ty.kind() {
+        "scoped_type_identifier" => rust_path_segments(ty, content).is_some_and(|segments| {
+            segments.len() == 2 && segments[0] == "reqwest" && segments[1] == "Client"
+        }),
+        "type_identifier" => {
+            node_text(content, ty) == Some("Client")
+                && visible_reqwest_client_import(struct_item, content)
+        }
+        _ => false,
+    }
+}
+
+fn visible_reqwest_client_import(struct_item: Node, content: &str) -> bool {
+    let Some(scope) = struct_item.parent() else {
+        return false;
+    };
+    if scope_declares_type(scope, "Client", content)
+        || struct_type_parameters_contain(struct_item, "Client", content)
+    {
+        return false;
+    }
+    let mut cursor = scope.walk();
+    scope.named_children(&mut cursor).any(|item| {
+        item.kind() == "use_declaration"
+            && item
+                .child_by_field_name("argument")
+                .is_some_and(|argument| use_tree_imports_reqwest_client(argument, &[], content, 0))
+    })
+}
+
+fn struct_type_parameters_contain(struct_item: Node, expected: &str, content: &str) -> bool {
+    let Some(parameters) = struct_item.child_by_field_name("type_parameters") else {
+        return false;
+    };
+    let mut cursor = parameters.walk();
+    parameters.named_children(&mut cursor).any(|parameter| {
+        parameter.kind() == "type_parameter"
+            && parameter
+                .child_by_field_name("name")
+                .and_then(|name| node_text(content, name))
+                == Some(expected)
+    })
+}
+
+fn scope_declares_type(scope: Node, expected: &str, content: &str) -> bool {
+    let mut cursor = scope.walk();
+    scope.named_children(&mut cursor).any(|item| {
+        matches!(
+            item.kind(),
+            "struct_item" | "enum_item" | "union_item" | "type_item" | "trait_item" | "mod_item"
+        ) && item
+            .child_by_field_name("name")
+            .and_then(|name| node_text(content, name))
+            == Some(expected)
+    })
+}
+
+fn use_tree_imports_reqwest_client(
+    node: Node,
+    prefix: &[String],
+    content: &str,
+    depth: u32,
+) -> bool {
+    if !should_visit_tree_depth(depth) {
+        return false;
+    }
+    match node.kind() {
+        "use_as_clause" | "use_wildcard" => false,
+        "scoped_use_list" => {
+            let Some(import_path) = node
+                .child_by_field_name("path")
+                .and_then(|path| rust_path_segments(path, content))
+            else {
+                return false;
+            };
+            let mut full_path = prefix.to_vec();
+            full_path.extend(import_path);
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return false;
+            };
+            node.child_by_field_name("list").is_some_and(|list| {
+                use_tree_imports_reqwest_client(list, &full_path, content, child_depth)
+            })
+        }
+        "use_list" => {
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return false;
+            };
+            let mut cursor = node.walk();
+            node.named_children(&mut cursor)
+                .any(|item| use_tree_imports_reqwest_client(item, prefix, content, child_depth))
+        }
+        "self" => {
+            prefix.first().is_some_and(|root| root == "reqwest")
+                && prefix.last().is_some_and(|name| name == "Client")
+        }
+        _ => rust_path_segments(node, content).is_some_and(|segments| {
+            let mut path = prefix.to_vec();
+            path.extend(segments);
+            path.first().is_some_and(|root| root == "reqwest")
+                && path.last().is_some_and(|name| name == "Client")
+        }),
+    }
+}
+
+fn rust_path_segments(mut node: Node, content: &str) -> Option<Vec<String>> {
+    let mut segments = Vec::new();
+    let mut depth = 0;
+    loop {
+        if !should_visit_tree_depth(depth) {
+            return None;
+        }
+        match node.kind() {
+            "identifier" | "type_identifier" => {
+                segments.push(node_text(content, node)?.to_owned());
+                segments.reverse();
+                return Some(segments);
+            }
+            "scoped_identifier" | "scoped_type_identifier" => {
+                segments.push(
+                    node.child_by_field_name("name")
+                        .and_then(|name| node_text(content, name))?
+                        .to_owned(),
+                );
+                node = node.child_by_field_name("path")?;
+                depth = child_tree_depth(depth)?;
+            }
+            _ => return None,
+        }
     }
 }
 

@@ -1844,18 +1844,18 @@
       "metadata": null
     },
     {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:setUp:30:4",
-      "to_key": "fixtures/extraction/java/test_roles/test_source.java:seed:14:4",
+      "from_key": "fixtures/extraction/java/test_roles/test_source.java:pushThenPop:164:4",
+      "to_key": "fixtures/extraction/java/test_roles/test_source.java:create:159:4",
       "kind": "calls",
       "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 32,
+      "line_number": 166,
       "span": {
-        "start_line": 32,
+        "start_line": 166,
         "start_column": 8,
-        "end_line": 32,
-        "end_column": 14,
-        "start_byte": 667,
-        "end_byte": 673
+        "end_line": 166,
+        "end_column": 16,
+        "start_byte": 3471,
+        "end_byte": 3479
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -2041,14 +2041,6 @@
     },
     {
       "from_key": "fixtures/extraction/java/test_roles/test_source.java:pushThenPop:164:4",
-      "callee_name": "create",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-      "line_number": 166,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/test_roles/test_source.java:pushThenPop:164:4",
       "callee_name": "push",
       "kind": "calls",
       "file_path": "fixtures/extraction/java/test_roles/test_source.java",
@@ -2077,6 +2069,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/java/test_roles/test_source.java",
       "line_number": 15,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/test_roles/test_source.java:setUp:30:4",
+      "callee_name": "seed",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/test_roles/test_source.java",
+      "line_number": 32,
       "confidence": "0.700"
     },
     {
@@ -2680,32 +2680,6 @@
     {
       "pending": {
         "from_key": "fixtures/extraction/java/test_roles/test_source.java:pushThenPop:164:4",
-        "callee_name": "create",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
-        "line_number": 166,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "create",
-        "terminal_name": "create",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:pushThenPop:164:4",
-      "span": {
-        "start_line": 166,
-        "start_column": 8,
-        "end_line": 166,
-        "end_column": 16,
-        "start_byte": 3471,
-        "end_byte": 3479
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/test_roles/test_source.java:pushThenPop:164:4",
         "callee_name": "push",
         "kind": "calls",
         "file_path": "fixtures/extraction/java/test_roles/test_source.java",
@@ -2805,6 +2779,32 @@
         "end_column": 43,
         "start_byte": 298,
         "end_byte": 323
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/test_roles/test_source.java:setUp:30:4",
+        "callee_name": "seed",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/test_roles/test_source.java",
+        "line_number": 32,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "seed",
+        "terminal_name": "seed",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/test_roles/test_source.java:setUp:30:4",
+      "span": {
+        "start_line": 32,
+        "start_column": 8,
+        "end_line": 32,
+        "end_column": 14,
+        "start_byte": 667,
+        "end_byte": 673
       }
     },
     {

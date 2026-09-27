@@ -1176,14 +1176,6 @@
       "file_path": "fixtures/extraction/kotlin/basic/source.kt",
       "line_number": 60,
       "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/kotlin/basic/source.kt:persist:58:4",
-      "callee_name": "missingWave2",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/kotlin/basic/source.kt",
-      "line_number": 60,
-      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
@@ -1264,33 +1256,6 @@
         "start_byte": 1442,
         "end_byte": 1455
       }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/kotlin/basic/source.kt:persist:58:4",
-        "callee_name": "missingWave2",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/kotlin/basic/source.kt",
-        "line_number": 60,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "missingWave2",
-        "terminal_name": "missingWave2",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/kotlin/basic/source.kt:persist:58:4",
-      "span": {
-        "start_line": 60,
-        "start_column": 8,
-        "end_line": 60,
-        "end_column": 27,
-        "start_byte": 1228,
-        "end_byte": 1247
-      },
-      "receiver_type": "Worker"
     },
     {
       "pending": {

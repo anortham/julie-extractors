@@ -103,24 +103,16 @@ second pass re-derives every role that an annotation alone justifies. That pass
 also restores an annotated Kotlin top-level test function, which has no
 enclosing class at all.
 
-### Recorded gaps
+### Cucumber steps
 
-One named Java test framework family is not adopted. It is recorded as an
-`open_gaps` entry on the java row in `fixtures/extraction/capabilities.json`:
+Imported or fully qualified Cucumber-JVM `@Given`, `@When`, `@Then`,
+`@And`, and `@But` methods carry the `step_definition` role. Their glue
+class is a test container; unannotated helpers are not test cases. A
+same-spelled annotation without Cucumber import evidence earns no step role.
+The executable scenario remains in its `.feature` file.
 
-- `cucumber.step_binding_test_roles` — Cucumber-JVM puts the executable
-  scenario in a `.feature` file and binds steps with `@Given`/`@When`/`@Then`
-  on methods of a glue class. Neither the glue class nor its step methods is
-  classified. A step needs its own role value, and the frozen
-  `test_detection` vocabulary has none.
-
-It is recorded under `structural_facts` rather than `test_detection` because
-the `test_detection` coverage vocabulary is frozen to `test_case`,
-`test_container`, and `test_lifecycle`, and each of those three is already
-classified exactly once for java.
-
-The JUnit Platform `@Suite` gap (`junit_platform.suite_container_roles`) is
-closed: see the container rules above.
+The `cucumber_steps` fixture covers imported and qualified annotations,
+helper methods and ordinary annotation lookalikes.
 
 ## Relationships
 

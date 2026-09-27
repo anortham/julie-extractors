@@ -226,14 +226,12 @@ pub(super) fn extract_call_relationships(
     depth: u32,
 ) {
     let symbol_index = ScopedSymbolIndex::new(symbols);
-    let symbol_map = ScopedSymbolIndex::unique_symbol_map(symbols);
 
     // Find method invocation nodes in this subtree
     walk_tree_for_calls(
         extractor,
         node,
         &symbol_index,
-        &symbol_map,
         symbols,
         relationships,
         depth,
@@ -244,7 +242,6 @@ fn walk_tree_for_calls(
     extractor: &mut JavaExtractor,
     node: Node,
     symbol_index: &ScopedSymbolIndex<'_>,
-    symbol_map: &HashMap<String, &Symbol>,
     all_symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
     depth: u32,
@@ -282,7 +279,7 @@ fn walk_tree_for_calls(
                 relationships,
             ),
             CallTarget::Constructor(target) => {
-                emit_constructor_call(extractor, node, caller, target, symbol_map, relationships)
+                emit_constructor_call(extractor, node, caller, target, symbol_index, relationships)
             }
         }
     }
@@ -296,7 +293,6 @@ fn walk_tree_for_calls(
             extractor,
             child,
             symbol_index,
-            symbol_map,
             all_symbols,
             relationships,
             child_depth,
@@ -424,6 +420,7 @@ fn emit_method_call(
         &target.terminal_name,
         Some(caller),
         target.receiver.as_deref(),
+        node,
     ) {
         LocalTargetResolution::Resolved(called_symbol) => {
             push_call(extractor, node, caller, called_symbol, relationships);
@@ -454,20 +451,25 @@ fn emit_constructor_call(
     node: Node,
     caller: &Symbol,
     target: UnresolvedTarget,
-    symbol_map: &HashMap<String, &Symbol>,
+    symbol_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
-    let local = target
-        .receiver
-        .is_none()
-        .then(|| symbol_map.get(target.terminal_name.as_str()).copied())
-        .flatten();
-    match local {
-        Some(called_symbol) if called_symbol.kind != SymbolKind::Import => {
+    let local = (target.receiver.is_none() && target.namespace_path.is_empty()).then(|| {
+        symbol_index
+            .resolve_constructable_target(&target.terminal_name, Some(caller), node)
+            .as_symbol()
+    });
+    match local.flatten().filter(|symbol| {
+        matches!(
+            symbol.kind,
+            SymbolKind::Class | SymbolKind::Struct | SymbolKind::Type
+        )
+    }) {
+        Some(called_symbol) => {
             push_call(extractor, node, caller, called_symbol, relationships);
         }
-        local => {
-            let confidence = if local.is_some() { 0.8 } else { 0.7 };
+        _ => {
+            let confidence = 0.7;
             let pending = extractor.base().create_pending_relationship(
                 caller.id.clone(),
                 target,

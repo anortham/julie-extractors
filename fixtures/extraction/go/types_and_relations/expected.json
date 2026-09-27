@@ -1202,11 +1202,11 @@
         "start_line": 92,
         "start_column": 5,
         "end_line": 92,
-        "end_column": 21,
+        "end_column": 13,
         "start_byte": 1687,
-        "end_byte": 1703
+        "end_byte": 1695
       },
-      "reference_site_is_exact": false,
+      "reference_site_is_exact": true,
       "confidence": "0.900",
       "metadata": null
     },
@@ -1220,11 +1220,11 @@
         "start_line": 65,
         "start_column": 15,
         "end_line": 65,
-        "end_column": 27,
+        "end_column": 24,
         "start_byte": 1242,
-        "end_byte": 1254
+        "end_byte": 1251
       },
-      "reference_site_is_exact": false,
+      "reference_site_is_exact": true,
       "confidence": "0.900",
       "metadata": null
     },
@@ -1238,11 +1238,11 @@
         "start_line": 94,
         "start_column": 5,
         "end_line": 94,
-        "end_column": 15,
+        "end_column": 10,
         "start_byte": 1729,
-        "end_byte": 1739
+        "end_byte": 1734
       },
-      "reference_site_is_exact": false,
+      "reference_site_is_exact": true,
       "confidence": "0.900",
       "metadata": null
     }

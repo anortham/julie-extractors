@@ -1,15 +1,17 @@
 use super::identifiers::identifier_chain;
 use super::{core, scope, type_facts};
-use crate::base::{ContainingSymbolIndex, RelationshipKind, Symbol, SymbolKind, UnresolvedTarget};
+use crate::base::{
+    ContainingSymbolIndex, LocalTargetResolution, RelationshipKind, ScopedSymbolIndex, Symbol,
+    SymbolKind, UnresolvedTarget,
+};
 use crate::lua::LuaExtractor;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 struct CallContext<'a> {
     symbols: &'a [Symbol],
     callers: ContainingSymbolIndex<'a>,
-    callees: HashMap<String, &'a Symbol>,
+    scoped_index: ScopedSymbolIndex<'a>,
 }
 
 fn is_callable(symbol: &Symbol) -> bool {
@@ -24,20 +26,10 @@ pub(super) fn extract_relationships(extractor: &mut LuaExtractor, tree: &Tree, s
             .iter()
             .filter(|symbol| symbol.file_path == file_path && is_callable(symbol))
     };
-    let mut by_name: HashMap<String, Vec<&Symbol>> = HashMap::new();
-    for symbol in callables() {
-        by_name.entry(symbol.name.clone()).or_default().push(symbol);
-    }
     let context = CallContext {
         symbols,
         callers: ContainingSymbolIndex::from_iter(callables()),
-        callees: by_name
-            .into_iter()
-            .filter_map(|(name, candidates)| match candidates.as_slice() {
-                [symbol] => Some((name, *symbol)),
-                _ => None,
-            })
-            .collect(),
+        scoped_index: ScopedSymbolIndex::new(symbols),
     };
 
     traverse_tree_for_relationships(extractor, tree.root_node(), &context, 0);
@@ -200,24 +192,24 @@ fn process_function_call(
         {
             target.import_context = Some(receiver.to_string());
         }
-        let can_resolve_locally = target.namespace_path.is_empty()
-            && target
-                .receiver
-                .as_deref()
-                .is_none_or(|receiver| matches!(receiver, "self"))
-            && target.import_context.is_none();
         let local_callee = qualified_local_callee(extractor.base(), callee, &callee_name, context)
             .or_else(|| {
-                context
-                    .callees
-                    .get(callee_name.as_str())
-                    .copied()
-                    .filter(|_| can_resolve_locally)
+                if target.receiver.is_some() || target.import_context.is_some() {
+                    return None;
+                }
+                match context.scoped_index.resolve_call_target(
+                    &callee_name,
+                    Some(caller_symbol),
+                    None,
+                    node,
+                ) {
+                    LocalTargetResolution::Resolved(symbol) => Some(symbol),
+                    _ => None,
+                }
             });
 
         match local_callee {
             Some(callee_symbol) => {
-                // Target is a local function - create resolved Relationship
                 if caller_symbol.id != callee_symbol.id {
                     let relationship = extractor.base().create_relationship(
                         caller_symbol.id.clone(),
@@ -231,15 +223,14 @@ fn process_function_call(
                 }
             }
             None => {
-                // Target not found in local symbols - likely a cross-file call
-                // Create PendingRelationship for cross-file resolution
+                let target_node = target_token_node(callee);
                 let pending = extractor
                     .base()
-                    .create_pending_relationship(
+                    .create_pending_relationship_at_target(
                         caller_symbol.id.clone(),
                         target,
                         RelationshipKind::Calls,
-                        &node,
+                        &target_node,
                         Some(caller_symbol.id.clone()),
                         Some(0.7),
                     )
@@ -247,5 +238,13 @@ fn process_function_call(
                 extractor.add_structured_pending_relationship(pending);
             }
         }
+    }
+}
+
+fn target_token_node(callee: Node) -> Node {
+    match callee.kind() {
+        "dot_index_expression" => callee.child_by_field_name("field").unwrap_or(callee),
+        "method_index_expression" => callee.child_by_field_name("method").unwrap_or(callee),
+        _ => callee,
     }
 }

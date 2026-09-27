@@ -216,20 +216,17 @@ in another file and the Ruby contract chose not to publish a second row for it.
 Quick's group and its use commonly sit in one spec file, and the invocation
 site is where the examples run, so Swift publishes both rows.
 
-## Recorded gaps
+## Swift Testing traits
 
-One surface is recorded as an `open_gaps` entry on the swift row in
-`fixtures/extraction/capabilities.json`, under
-`kind_coverage.structural_facts.open_gaps`. The `test_detection` vocabulary is
-frozen to `test_case`, `test_container`, and `test_lifecycle`, and swift
-classifies each exactly once, so a swift-specific gap cannot live there.
+With a `Testing` import, `@Test` and `@Suite` traits emit
+`swift_testing.trait.v1` facts for `tags`, `disabled`, `enabled`,
+`serialized`, and `timeLimit`. Each fact records the trait name and
+its written arguments. Conditions are not evaluated and suite traits are
+not copied to every member.
 
-- `swift_testing.test_traits`. `@Test(.tags(.slow))`, `@Test(.disabled("flaky"))`,
-  and `@Suite(.serialized)` attach traits through extra macro arguments. The
-  annotation normalizer keys on the macro name and drops its argument list, so a
-  skip, a tag, and a serialization constraint reach no channel. No language
-  publishes a test tag or skip channel yet: Ruby records RSpec metadata tags
-  as the same kind of gap, so the channel is a cross-language decision.
+The complete macro payload also remains in the annotation's raw text.
+The `testing_traits` fixture covers traits, source ownership and an
+unrelated custom `Test` attribute without a `Testing` import.
 
 ## Windows grammar defect
 

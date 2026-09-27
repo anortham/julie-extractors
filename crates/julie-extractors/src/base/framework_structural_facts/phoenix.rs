@@ -1,5 +1,6 @@
-//! Phoenix router-macro structural facts (`phoenix.route.v1`,
-//! `phoenix.resource_route.v1`, `phoenix.forward.v1`).
+//! Phoenix route and websocket facts (`phoenix.route.v1`,
+//! `phoenix.resource_route.v1`, `phoenix.forward.v1`, `phoenix.socket.v1`,
+//! `phoenix.channel.v1`).
 //!
 //! A Phoenix router is a module that `use`s `Phoenix.Router` (directly, or via
 //! the generated `use MyAppWeb, :router`) and declares routes with bare macro
@@ -34,10 +35,12 @@
 //! routes with the member path `/users/:user_id`. Scope aliases qualify the
 //! controller into `controller_module`.
 //!
-//! Documented exclusions (emit nothing): `pipe_through`, `socket`, and
-//! `channel` router macros, and cross-file `scope`/router prefixes — recorded as
-//! `open_gaps` on the elixir capability row.
+//! Socket and channel declarations require module-local `use` or `import`
+//! context for `Phoenix.Endpoint` and `Phoenix.Socket` respectively, plus static
+//! paths/topics and module handlers. `pipe_through` configures a pipeline; it is
+//! not an endpoint. Cross-file route prefixes remain out of scope.
 
+use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 use super::helpers::{
@@ -47,7 +50,8 @@ use super::helpers::{
 use super::scan::{RouteFactSpec, route_fact};
 use super::static_arg::{StaticArgLang, static_route_arg};
 use super::{
-    PHOENIX_FORWARD_PATTERN_ID, PHOENIX_RESOURCE_ROUTE_PATTERN_ID, PHOENIX_ROUTE_PATTERN_ID,
+    PHOENIX_CHANNEL_PATTERN_ID, PHOENIX_FORWARD_PATTERN_ID, PHOENIX_RESOURCE_ROUTE_PATTERN_ID,
+    PHOENIX_ROUTE_PATTERN_ID, PHOENIX_SOCKET_PATTERN_ID,
 };
 use crate::base::http_boundary::{ParamFlavor, join_route_templates, normalize_route_template};
 use crate::base::span::NormalizedSpan;
@@ -69,21 +73,207 @@ pub(super) fn collect_phoenix_routes(
     file_path: &str,
     content: &str,
 ) -> Vec<StructuralFact> {
-    if !is_phoenix_router(content) {
-        return Vec::new();
-    }
     let mut facts = Vec::new();
-    walk(
+    if is_phoenix_router(content) {
+        walk(
+            tree.root_node(),
+            &RouterScope::default(),
+            language,
+            tree,
+            file_path,
+            content,
+            0,
+            &mut facts,
+        );
+    }
+    collect_websocket_facts(
         tree.root_node(),
-        &RouterScope::default(),
         language,
         tree,
         file_path,
         content,
-        0,
         &mut facts,
     );
     facts
+}
+
+fn collect_websocket_facts(
+    root: Node,
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    facts: &mut Vec<StructuralFact>,
+) {
+    let Some(depth) = child_tree_depth(0) else {
+        return;
+    };
+    let mut cursor = root.walk();
+    for module in root.named_children(&mut cursor) {
+        collect_module_websocket_facts(module, language, tree, file_path, content, depth, facts);
+    }
+}
+
+fn collect_module_websocket_facts(
+    node: Node,
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    depth: u32,
+    facts: &mut Vec<StructuralFact>,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    if call_macro_name(node, content) != Some("defmodule") {
+        return;
+    }
+    let Some(block) = call_do_block(node) else {
+        return;
+    };
+    let Some(block_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let Some(statement_depth) = child_tree_depth(block_depth) else {
+        return;
+    };
+    let mut context = PhoenixModuleContext::default();
+    let mut cursor = block.walk();
+    for statement in block.named_children(&mut cursor) {
+        match call_macro_name(statement, content) {
+            Some("defmodule") => {
+                collect_module_websocket_facts(
+                    statement,
+                    language,
+                    tree,
+                    file_path,
+                    content,
+                    statement_depth,
+                    facts,
+                );
+            }
+            Some("alias") => context.add_alias(statement, content),
+            Some("use" | "import") => context.attest_module(statement, content),
+            Some("socket") if context.endpoint => {
+                if let Some(fact) = websocket_declaration_fact(
+                    statement,
+                    language,
+                    tree,
+                    file_path,
+                    content,
+                    PHOENIX_SOCKET_PATTERN_ID,
+                    "socket",
+                    "path",
+                    "handler",
+                ) {
+                    facts.push(fact);
+                }
+            }
+            Some("channel") if context.socket => {
+                if let Some(fact) = websocket_declaration_fact(
+                    statement,
+                    language,
+                    tree,
+                    file_path,
+                    content,
+                    PHOENIX_CHANNEL_PATTERN_ID,
+                    "channel",
+                    "topic",
+                    "handler",
+                ) {
+                    facts.push(fact);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+#[derive(Default)]
+struct PhoenixModuleContext {
+    aliases: HashMap<String, String>,
+    endpoint: bool,
+    socket: bool,
+}
+
+impl PhoenixModuleContext {
+    fn add_alias(&mut self, call: Node, content: &str) {
+        let Some(module) = positional_args(call)
+            .first()
+            .and_then(|arg| alias_text(*arg, content))
+        else {
+            return;
+        };
+        let local = keyword_arg(call, "as", content)
+            .and_then(|arg| alias_text(arg, content))
+            .or_else(|| module.rsplit('.').next().map(str::to_string));
+        if let Some(local) = local {
+            self.aliases.insert(local, module);
+        }
+    }
+
+    fn attest_module(&mut self, call: Node, content: &str) {
+        let Some(module) = positional_args(call)
+            .first()
+            .and_then(|arg| alias_text(*arg, content))
+        else {
+            return;
+        };
+        match self.resolve(&module).as_str() {
+            "Phoenix.Endpoint" => self.endpoint = true,
+            "Phoenix.Socket" => self.socket = true,
+            _ => {}
+        }
+    }
+
+    fn resolve(&self, module: &str) -> String {
+        let (head, rest) = module
+            .split_once('.')
+            .map_or((module, None), |(head, rest)| (head, Some(rest)));
+        match (self.aliases.get(head), rest) {
+            (Some(full), Some(rest)) => format!("{full}.{rest}"),
+            (Some(full), None) => full.clone(),
+            (None, _) => module.to_string(),
+        }
+    }
+}
+
+fn websocket_declaration_fact(
+    node: Node,
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    pattern_id: &str,
+    capture_name: &str,
+    primary_key: &str,
+    handler_key: &str,
+) -> Option<StructuralFact> {
+    let args = positional_args(node);
+    let primary = args
+        .first()
+        .and_then(|arg| static_route_arg(*arg, content, StaticArgLang::Elixir))?;
+    let handler = args.get(1).and_then(|arg| alias_text(*arg, content))?;
+    let anchor =
+        smallest_node_covering_range(tree.root_node(), node.start_byte(), node.end_byte())?;
+    if is_comment_or_string_node(anchor.kind()) {
+        return None;
+    }
+    let span = NormalizedSpan::from_content_range(content, node.start_byte(), node.end_byte())?;
+    let mut metadata = base_metadata("framework", "phoenix");
+    insert_string(&mut metadata, "query_family", "websocket");
+    insert_string(&mut metadata, primary_key, primary);
+    insert_string(&mut metadata, handler_key, &handler);
+    Some(fact_for_span(
+        file_path,
+        language,
+        pattern_id,
+        capture_name,
+        anchor.kind(),
+        span,
+        metadata,
+    ))
 }
 
 /// Depth-first walk carrying the enclosing `scope` prefix stack. Each element is

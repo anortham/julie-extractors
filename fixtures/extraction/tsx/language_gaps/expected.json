@@ -961,6 +961,14 @@
       "file_path": "fixtures/extraction/tsx/language_gaps/source.tsx",
       "line_number": 13,
       "confidence": "0.800"
+    },
+    {
+      "from_key": "fixtures/extraction/tsx/language_gaps/source.tsx:onClick:41:18",
+      "callee_name": "navigate",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/tsx/language_gaps/source.tsx",
+      "line_number": 41,
+      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
@@ -1042,6 +1050,32 @@
         "end_column": 16,
         "start_byte": 281,
         "end_byte": 293
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/tsx/language_gaps/source.tsx:onClick:41:18",
+        "callee_name": "navigate",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/tsx/language_gaps/source.tsx",
+        "line_number": 41,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "navigate",
+        "terminal_name": "navigate",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/tsx/language_gaps/source.tsx:onClick:41:18",
+      "span": {
+        "start_line": 41,
+        "start_column": 24,
+        "end_line": 41,
+        "end_column": 42,
+        "start_byte": 755,
+        "end_byte": 773
       }
     }
   ],

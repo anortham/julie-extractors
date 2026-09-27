@@ -1,5 +1,6 @@
 use crate::base::{
-    ContainingSymbolIndex, Relationship, RelationshipKind, Symbol, SymbolKind, UnresolvedTarget,
+    ContainingSymbolIndex, LocalTargetResolution, Relationship, RelationshipKind,
+    ScopedSymbolIndex, Symbol, SymbolKind, UnresolvedTarget,
 };
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -73,6 +74,7 @@ pub(super) struct RelationshipScope<'a> {
     pub symbols: &'a [Symbol],
     pub symbol_map: HashMap<String, &'a Symbol>,
     pub containers: ContainingSymbolIndex<'a>,
+    pub scoped_index: ScopedSymbolIndex<'a>,
 }
 
 /// Relationship extraction for Go (method receivers, interface implementations, embedding, function calls)
@@ -149,12 +151,6 @@ impl super::GoExtractor {
         }
     }
 
-    /// Extract function call relationships
-    ///
-    /// Creates resolved Relationship when target is a local function/method.
-    /// Creates PendingRelationship when target is:
-    /// - An Import symbol (needs cross-file resolution)
-    /// - Not found in local symbol_map (e.g., method on imported package)
     fn extract_call_relationships(
         &mut self,
         node: Node,
@@ -195,9 +191,8 @@ impl super::GoExtractor {
         let Some(caller) = self.find_caller(scope, node) else {
             return;
         };
+        let target_node = call_target_token(func_node);
 
-        // Receiver-qualified calls (pkg.fn, obj.method) should not resolve to a local
-        // symbol by terminal name alone.
         if let Some(receiver) = target.receiver.as_deref() {
             let import_path = symbol_map
                 .get(receiver)
@@ -213,11 +208,11 @@ impl super::GoExtractor {
 
             let pending = self
                 .base
-                .create_pending_relationship(
+                .create_pending_relationship_at_target(
                     caller.id.clone(),
                     target,
                     RelationshipKind::Calls,
-                    &node,
+                    &target_node,
                     Some(caller.id.clone()),
                     Some(0.7),
                 )
@@ -226,46 +221,60 @@ impl super::GoExtractor {
             return;
         }
 
-        // A Ginkgo node call (`BeforeEach(...)`) is itself a symbol named after
-        // its callee; it must not resolve to the symbol it declares.
-        let callee = symbol_map
-            .get(&callee_name)
-            .filter(|symbol| symbol.start_byte != node.start_byte() as u32);
-        match callee {
-            Some(called_symbol) if called_symbol.kind == SymbolKind::Import => {
-                let pending = self.base.create_pending_relationship(
-                    caller.id.clone(),
-                    target,
-                    RelationshipKind::Calls,
-                    &node,
-                    Some(caller.id.clone()),
-                    Some(0.8),
-                );
-                self.add_structured_pending_relationship(pending);
-            }
-            Some(called_symbol) => {
-                let kind = if is_type_symbol(called_symbol) {
-                    RelationshipKind::Uses
+        let resolution =
+            scope
+                .scoped_index
+                .resolve_call_target(&callee_name, Some(caller), None, node);
+        let resolution = match resolution {
+            LocalTargetResolution::Ambiguous | LocalTargetResolution::Missing => scope
+                .scoped_index
+                .resolve_constructable_target(&callee_name, Some(caller), node),
+            other => other,
+        };
+        match resolution {
+            LocalTargetResolution::Resolved(called_symbol) => {
+                if called_symbol.start_byte == node.start_byte() as u32 {
+                    let pending = self.base.create_pending_relationship_at_target(
+                        caller.id.clone(),
+                        target,
+                        RelationshipKind::Calls,
+                        &target_node,
+                        Some(caller.id.clone()),
+                        Some(0.7),
+                    );
+                    self.add_structured_pending_relationship(pending);
                 } else {
-                    RelationshipKind::Calls
-                };
-                relationships.push(self.base.create_relationship(
-                    caller.id.clone(),
-                    called_symbol.id.clone(),
-                    kind,
-                    &node,
-                    Some(0.9),
-                    None,
-                ));
+                    let kind = if is_type_symbol(called_symbol) {
+                        RelationshipKind::Uses
+                    } else {
+                        RelationshipKind::Calls
+                    };
+                    relationships.push(self.base.create_relationship_at_target(
+                        caller.id.clone(),
+                        called_symbol.id.clone(),
+                        kind,
+                        &target_node,
+                        Some(0.9),
+                        None,
+                    ));
+                }
             }
-            None => {
-                let pending = self.base.create_pending_relationship(
+            LocalTargetResolution::Import(_)
+            | LocalTargetResolution::Ambiguous
+            | LocalTargetResolution::ReceiverQualified
+            | LocalTargetResolution::Missing => {
+                let confidence = if matches!(resolution, LocalTargetResolution::Import(_)) {
+                    0.8
+                } else {
+                    0.7
+                };
+                let pending = self.base.create_pending_relationship_at_target(
                     caller.id.clone(),
                     target,
                     RelationshipKind::Calls,
-                    &node,
+                    &target_node,
                     Some(caller.id.clone()),
-                    Some(0.7),
+                    Some(confidence),
                 );
                 self.add_structured_pending_relationship(pending);
             }
@@ -514,6 +523,16 @@ impl super::GoExtractor {
                 .filter(|symbol| symbol.id != found.id && symbol.file_path == found.file_path),
         )
     }
+}
+
+fn call_target_token(function: Node) -> Node {
+    if function.kind() == "selector_expression" {
+        return function.child_by_field_name("field").unwrap_or(function);
+    }
+    if function.kind() == "qualified_type" {
+        return function.child_by_field_name("name").unwrap_or(function);
+    }
+    function
 }
 
 /// The callee of a call: `F(x)`, `pkg.F(x)`, or the base of an explicit

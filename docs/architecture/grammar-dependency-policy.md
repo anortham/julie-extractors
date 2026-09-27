@@ -3,8 +3,8 @@
 ## Decision
 
 Julie Extractors uses exactly one Rust Tree-sitter runtime, declared and locked
-at `0.26.11`. Parser dependencies are selected independently and must resolve
-from either crates.io or an approved, exact Git commit.
+at `0.26.11`. Parser dependencies resolve from crates.io, an approved exact
+Git commit, or a licensed patch tracked under `vendor/`.
 
 Tree-sitter CLI `0.26.11` is the required generator for future checked-in parser
 artifacts until a reviewed policy change replaces it. Historical plans and
@@ -27,7 +27,7 @@ release. Every Git parser dependency must:
 - resolve the same commit in `Cargo.lock`;
 - avoid branches, tags, local paths, and unpushed commits.
 
-Changes maintained by this project require an `anortham`-owned fork. An
+Changes maintained through Git use an `anortham`-owned fork. An
 unchanged external Git parser may remain on another approved remote when its
 ownership, exact commit, and review rationale are recorded. Depending directly
 on an unreleased upstream branch is not accepted.
@@ -55,12 +55,24 @@ exact commit, license, lockfile source, and extraction evidence are recorded.
 current full commit IDs. Update this inventory when ownership changes or an
 owned fork returns to a suitable published upstream release.
 
+### Vendored grammars
+
+A small parser correction may live under `vendor/` when a published grammar
+lacks required syntax. Track the upstream commit, license, grammar source,
+generation command and generated build inputs. Give the package a distinct
+version and use `vendored` in its capability dependency status. Consumer builds
+must not require a parser generator.
+
+`vendor/tree-sitter-regex` is based on upstream 0.25.0 and adds conditional
+and atomic groups as `0.25.0-julie.1`. Its provenance and extraction fixtures record
+the correction. Reassess the patch when upstream supplies equivalent syntax.
+
 ## Generation Records
 
 New generated parser changes record the grammar source commit, the exact
 generation command, Tree-sitter CLI `0.26.11`, and the reviewed generated-file
-diff. Generator changes and grammar changes stay in the grammar repository;
-Julie Extractors consumes only a published crate or pushed exact commit.
+diff. These records live in the grammar repository for Git dependencies and
+alongside the grammar for vendored dependencies.
 
 ## Semantic Evidence
 
@@ -100,6 +112,10 @@ dependency and package names, declared remote and normalized GitHub repository,
 pinned and locked commits, remote default branch and head, and status. Rows are
 ordered by Cargo dependency name. `current` means the lock matches the latest
 stable registry version or remote default head; `drift` means it does not.
+
+`vendored_grammars` records dependency name, package, manifest-relative path,
+locked version and `vendored` status. These rows make no upstream-freshness
+claim and do not query crates.io for a project-specific package version.
 
 The report command is a networked maintenance check. Its network-free contract
 tests run with:

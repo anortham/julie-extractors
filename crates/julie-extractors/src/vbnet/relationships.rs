@@ -503,6 +503,7 @@ fn extract_call_relationships(
         &target.terminal_name,
         Some(caller),
         target.receiver.as_deref(),
+        node,
     ) {
         LocalTargetResolution::Resolved(called_symbol) => {
             relationships.push(Relationship {

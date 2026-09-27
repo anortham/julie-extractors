@@ -2211,6 +2211,24 @@
       "metadata": null
     },
     {
+      "from_key": "fixtures/extraction/java/basic/source.java:Supervisor:100:4",
+      "to_key": "fixtures/extraction/java/basic/source.java:Worker:7:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "line_number": 101,
+      "span": {
+        "start_line": 101,
+        "start_column": 8,
+        "end_line": 101,
+        "end_column": 18,
+        "start_byte": 2302,
+        "end_byte": 2312
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
       "from_key": "fixtures/extraction/java/basic/source.java:Supervisor:99:0",
       "to_key": "fixtures/extraction/java/basic/source.java:Worker:7:0",
       "kind": "extends",
@@ -2341,6 +2359,24 @@
       "metadata": null
     },
     {
+      "from_key": "fixtures/extraction/java/basic/source.java:run:104:4",
+      "to_key": "fixtures/extraction/java/basic/source.java:run:104:4",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "line_number": 106,
+      "span": {
+        "start_line": 106,
+        "start_column": 15,
+        "end_line": 106,
+        "end_column": 26,
+        "start_byte": 2372,
+        "end_byte": 2383
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
       "from_key": "fixtures/extraction/java/basic/source.java:run:15:4",
       "to_key": "fixtures/extraction/java/basic/source.java:helper:52:4",
       "kind": "calls",
@@ -2384,14 +2420,6 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/java/basic/source.java",
       "line_number": 134,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/basic/source.java:Supervisor:100:4",
-      "callee_name": "Worker",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/basic/source.java",
-      "line_number": 101,
       "confidence": "0.700"
     },
     {
@@ -2497,14 +2525,6 @@
       "file_path": "fixtures/extraction/java/basic/source.java",
       "line_number": 31,
       "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/basic/source.java:run:104:4",
-      "callee_name": "run",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/basic/source.java",
-      "line_number": 106,
-      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
@@ -2532,32 +2552,6 @@
         "end_column": 69,
         "start_byte": 3017,
         "end_byte": 3057
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/basic/source.java:Supervisor:100:4",
-        "callee_name": "Worker",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/basic/source.java",
-        "line_number": 101,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Worker",
-        "terminal_name": "Worker",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/basic/source.java:Supervisor:100:4",
-      "span": {
-        "start_line": 101,
-        "start_column": 8,
-        "end_line": 101,
-        "end_column": 18,
-        "start_byte": 2302,
-        "end_byte": 2312
       }
     },
     {
@@ -2903,33 +2897,6 @@
         "start_byte": 557,
         "end_byte": 571
       }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/basic/source.java:run:104:4",
-        "callee_name": "run",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/basic/source.java",
-        "line_number": 106,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "run",
-        "terminal_name": "run",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/basic/source.java:run:104:4",
-      "span": {
-        "start_line": 106,
-        "start_column": 15,
-        "end_line": 106,
-        "end_column": 26,
-        "start_byte": 2372,
-        "end_byte": 2383
-      },
-      "receiver_type": "Worker"
     }
   ],
   "identifiers": [

@@ -272,11 +272,11 @@
       "caller_scope_key": "fixtures/extraction/lua/frameworks/source.lua:draw:29:0",
       "span": {
         "start_line": 30,
-        "start_column": 2,
+        "start_column": 16,
         "end_line": 30,
-        "end_column": 47,
-        "start_byte": 603,
-        "end_byte": 648
+        "end_column": 21,
+        "start_byte": 617,
+        "end_byte": 622
       }
     },
     {

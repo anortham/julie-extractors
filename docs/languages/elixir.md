@@ -2,6 +2,22 @@
 
 `elixir` handles `.ex` and `.exs` files with `tree-sitter-elixir`.
 
+## Calls and framework facts
+
+Local calls bind only to a definition accepting the actual argument count,
+including default arguments, pipes, captures and delegates. Unresolved calls
+retain their argument count and caller context.
+
+Phoenix Endpoint socket declarations and Socket channel declarations emit
+`phoenix.socket.v1` and `phoenix.channel.v1`. Each retains its static path or
+topic, handler and full declaration span. These are websocket facts.
+
+Tesla clients constructed with a local static BaseUrl middleware join that
+base with relative request paths. Lexical bindings and replacements determine
+which base applies. String and static keyword options work for local clients
+and module plugs. The default policy preserves absolute request URLs;
+`:strict` prefixes them. Dynamic clients retain their written request path.
+
 ## Types
 
 - A definition with a `@spec` for its module, name, and full arity gets an

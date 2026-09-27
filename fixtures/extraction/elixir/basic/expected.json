@@ -1092,7 +1092,8 @@
         "end_column": 17,
         "start_byte": 1083,
         "end_byte": 1092
-      }
+      },
+      "target_arity": 0
     },
     {
       "pending": {
@@ -1120,7 +1121,8 @@
         "end_column": 51,
         "start_byte": 692,
         "end_byte": 704
-      }
+      },
+      "target_arity": 1
     },
     {
       "pending": {
@@ -1146,7 +1148,8 @@
         "end_column": 15,
         "start_byte": 763,
         "end_byte": 772
-      }
+      },
+      "target_arity": 2
     }
   ],
   "identifiers": [

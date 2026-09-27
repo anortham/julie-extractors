@@ -583,22 +583,6 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/kotlin/http_client/source.kt:legacyUser:25:4",
-      "callee_name": "rest.getForObject",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
-      "line_number": 25,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/kotlin/http_client/source.kt:status:26:4",
-      "callee_name": "ktor.get",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
-      "line_number": 26,
-      "confidence": "0.700"
-    },
-    {
       "from_key": "fixtures/extraction/kotlin/http_client/source.kt:status:26:4",
       "callee_name": "ktor.get",
       "kind": "calls",
@@ -653,14 +637,6 @@
       "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
       "line_number": 29,
       "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/kotlin/http_client/source.kt:unrelated:29:4",
-      "callee_name": "other.getForObject",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
-      "line_number": 29,
-      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
@@ -688,58 +664,6 @@
         "end_column": 94,
         "start_byte": 781,
         "end_byte": 852
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/kotlin/http_client/source.kt:legacyUser:25:4",
-        "callee_name": "rest.getForObject",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
-        "line_number": 25,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "rest.getForObject",
-        "terminal_name": "getForObject",
-        "receiver": "rest",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client/source.kt:legacyUser:25:4",
-      "span": {
-        "start_line": 25,
-        "start_column": 23,
-        "end_line": 25,
-        "end_column": 94,
-        "start_byte": 781,
-        "end_byte": 852
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/kotlin/http_client/source.kt:status:26:4",
-        "callee_name": "ktor.get",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
-        "line_number": 26,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "ktor.get",
-        "terminal_name": "get",
-        "receiver": "ktor",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client/source.kt:status:26:4",
-      "span": {
-        "start_line": 26,
-        "start_column": 27,
-        "end_line": 26,
-        "end_column": 69,
-        "start_byte": 880,
-        "end_byte": 922
       }
     },
     {
@@ -896,32 +820,6 @@
         "end_column": 25,
         "start_byte": 334,
         "end_byte": 355
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/kotlin/http_client/source.kt:unrelated:29:4",
-        "callee_name": "other.getForObject",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
-        "line_number": 29,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "other.getForObject",
-        "terminal_name": "getForObject",
-        "receiver": "other",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client/source.kt:unrelated:29:4",
-      "span": {
-        "start_line": 29,
-        "start_column": 22,
-        "end_line": 29,
-        "end_column": 93,
-        "start_byte": 1002,
-        "end_byte": 1073
       }
     },
     {

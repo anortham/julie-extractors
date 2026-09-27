@@ -89,25 +89,17 @@ fn extract_new_expression_relationships(
         let mut target = extract_call_target(extractor, constructor_node);
         let caller = context.owners.find(node);
         if let Some(caller) = caller {
-            let resolution = context.symbol_index.resolve_call_target(
+            let resolution = context.symbol_index.resolve_constructable_target(
                 &target.terminal_name,
                 Some(caller),
-                target.receiver.as_deref(),
+                node,
             );
-            let constructable_symbol = match &resolution {
-                LocalTargetResolution::Resolved(type_symbol)
-                    if matches!(
-                        type_symbol.kind,
-                        SymbolKind::Class | SymbolKind::Type | SymbolKind::Interface
-                    ) =>
-                {
-                    Some(*type_symbol)
-                }
-                _ if target.receiver.is_none() => {
-                    unique_constructable_symbol(context.symbols, &target.terminal_name)
-                }
-                _ => None,
-            };
+            let constructable_symbol = resolution.as_symbol().filter(|symbol| {
+                matches!(
+                    symbol.kind,
+                    SymbolKind::Class | SymbolKind::Type | SymbolKind::Interface
+                )
+            });
             if let Some(type_symbol) = constructable_symbol {
                 relationships.push(Relationship {
                     id: format!(
@@ -153,18 +145,6 @@ fn extract_new_expression_relationships(
     }
 }
 
-fn unique_constructable_symbol<'a>(symbols: &'a [Symbol], name: &str) -> Option<&'a Symbol> {
-    let mut matches = symbols.iter().filter(|symbol| {
-        symbol.name == name
-            && matches!(
-                symbol.kind,
-                SymbolKind::Class | SymbolKind::Type | SymbolKind::Interface
-            )
-    });
-    let symbol = matches.next()?;
-    matches.next().is_none().then_some(symbol)
-}
-
 /// Extract function call relationships
 fn extract_call_relationships(
     extractor: &mut TypeScriptExtractor,
@@ -188,11 +168,9 @@ fn extract_call_relationships(
                 &target.terminal_name,
                 Some(caller_symbol),
                 target.receiver.as_deref(),
+                node,
             ) {
                 LocalTargetResolution::Resolved(symbol) => Some(symbol),
-                _ if target.receiver.is_none() => {
-                    unique_callable_symbol(context.symbols, &target.terminal_name)
-                }
                 _ => None,
             }
             .filter(|symbol| {
@@ -233,19 +211,6 @@ fn extract_call_relationships(
     for child in node.children(&mut cursor) {
         extract_call_relationships(extractor, child, context, relationships, child_depth);
     }
-}
-
-fn unique_callable_symbol<'a>(symbols: &'a [Symbol], name: &str) -> Option<&'a Symbol> {
-    let mut matches = symbols.iter().filter(|symbol| {
-        symbol.name == name
-            && matches!(
-                symbol.kind,
-                SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
-            )
-            && !is_test_call_symbol(symbol)
-    });
-    let symbol = matches.next()?;
-    matches.next().is_none().then_some(symbol)
 }
 
 /// The callee of a call site: the `function` of a call expression, or the

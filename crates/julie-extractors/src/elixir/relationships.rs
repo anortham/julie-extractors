@@ -283,7 +283,6 @@ impl<'a> CallScope<'a> {
         candidates
             .iter()
             .find(|c| (c.min_arity..=c.max_arity).contains(&arity))
-            .or_else(|| candidates.first())
             .map(|c| c.symbol)
     }
 }
@@ -662,7 +661,15 @@ fn extract_delegate_relationship(
         namespace_path: vec![module],
         import_context: None,
     };
-    push_call(extractor, node, delegate, callee, unresolved, relationships);
+    push_call(
+        extractor,
+        node,
+        delegate,
+        callee,
+        arity,
+        unresolved,
+        relationships,
+    );
 }
 
 fn extract_behaviour_relationship(
@@ -861,7 +868,15 @@ fn extract_call_relationship(
         }
         _ => return,
     };
-    push_call(extractor, node, caller, callee, unresolved, relationships);
+    push_call(
+        extractor,
+        node,
+        caller,
+        callee,
+        arity,
+        unresolved,
+        relationships,
+    );
 }
 
 /// Emit a call from the callable around `site` to `name/arity`: a local edge
@@ -880,7 +895,15 @@ fn emit_call(
         return;
     };
     let callee = scope.resolve(scope.enclosing_module(site), name, arity);
-    push_call(extractor, site, caller, callee, unresolved, relationships);
+    push_call(
+        extractor,
+        site,
+        caller,
+        callee,
+        arity,
+        unresolved,
+        relationships,
+    );
 }
 
 fn push_call(
@@ -888,6 +911,7 @@ fn push_call(
     node: &Node,
     caller: &Symbol,
     callee: Option<&Symbol>,
+    arity: usize,
     unresolved: UnresolvedTarget,
     relationships: &mut Vec<Relationship>,
 ) {
@@ -910,14 +934,17 @@ fn push_call(
             metadata: None,
         });
     } else {
-        let pending = extractor.base.create_pending_relationship(
-            caller.id.clone(),
-            unresolved,
-            RelationshipKind::Calls,
-            node,
-            Some(caller.id.clone()),
-            Some(0.7),
-        );
+        let pending = extractor
+            .base
+            .create_pending_relationship(
+                caller.id.clone(),
+                unresolved,
+                RelationshipKind::Calls,
+                node,
+                Some(caller.id.clone()),
+                Some(0.7),
+            )
+            .with_target_arity(u32::try_from(arity).ok());
         extractor.base.add_structured_pending_relationship(pending);
     }
 }

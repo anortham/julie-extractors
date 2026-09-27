@@ -751,8 +751,44 @@
     }
   ],
   "relationships": [],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/typescript/test_roles/source.ts:test:31:2",
+      "callee_name": "callback",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/typescript/test_roles/source.ts",
+      "line_number": 32,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/typescript/test_roles/source.ts:test:31:2",
+        "callee_name": "callback",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/typescript/test_roles/source.ts",
+        "line_number": 32,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "callback",
+        "terminal_name": "callback",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/typescript/test_roles/source.ts:test:31:2",
+      "span": {
+        "start_line": 32,
+        "start_column": 4,
+        "end_line": 32,
+        "end_column": 14,
+        "start_byte": 634,
+        "end_byte": 644
+      }
+    }
+  ],
   "identifiers": [
     {
       "key": "fixtures/extraction/typescript/test_roles/source.ts:beforeEach:call:5:2",

@@ -687,13 +687,16 @@ impl QmlExtractor {
                         .receiver
                         .as_deref()
                         .and_then(|receiver| relationships::alias_import_source(receiver, symbols));
+                    let target_node = function_node
+                        .child_by_field_name("property")
+                        .unwrap_or(function_node);
                     let pending = self
                         .base
-                        .create_pending_relationship(
+                        .create_pending_relationship_at_target(
                             caller_symbol.id.clone(),
                             target,
                             crate::base::RelationshipKind::Calls,
-                            &node,
+                            &target_node,
                             Some(caller_symbol.id.clone()),
                             Some(0.7),
                         )

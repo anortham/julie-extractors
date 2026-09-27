@@ -846,8 +846,44 @@
     }
   ],
   "relationships": [],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:suite:31:2",
+      "callee_name": "run",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js",
+      "line_number": 32,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:suite:31:2",
+        "callee_name": "run",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js",
+        "line_number": 32,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "run",
+        "terminal_name": "run",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:suite:31:2",
+      "span": {
+        "start_line": 32,
+        "start_column": 11,
+        "end_line": 32,
+        "end_column": 20,
+        "start_byte": 677,
+        "end_byte": 686
+      }
+    }
+  ],
   "identifiers": [
     {
       "key": "fixtures/extraction/javascript/mocha_tdd_roles/test/calculator.js:after:call:16:2",

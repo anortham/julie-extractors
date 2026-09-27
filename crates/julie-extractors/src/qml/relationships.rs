@@ -270,6 +270,10 @@ pub(super) fn resolve_scoped_callee<'a>(
         return None;
     }
 
+    if is_shadowed_by_local(call.function_name, symbols, call.caller) {
+        return None;
+    }
+
     let declares_name = |scope_id: &str| {
         symbols.iter().any(|symbol| {
             symbol.name == call.function_name && symbol.parent_id.as_deref() == Some(scope_id)

@@ -1954,6 +1954,14 @@
       "confidence": "0.700"
     },
     {
+      "from_key": "fixtures/extraction/vue/language_gaps/source.vue:persist:38:4",
+      "callee_name": "this.load",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/vue/language_gaps/source.vue",
+      "line_number": 38,
+      "confidence": "0.700"
+    },
+    {
       "from_key": "fixtures/extraction/vue/language_gaps/source.vue:save:58:0",
       "callee_name": "formatRow",
       "kind": "calls",
@@ -2151,6 +2159,32 @@
         "end_column": 38,
         "start_byte": 1090,
         "end_byte": 1103
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/vue/language_gaps/source.vue:persist:38:4",
+        "callee_name": "this.load",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/vue/language_gaps/source.vue",
+        "line_number": 38,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "this.load",
+        "terminal_name": "load",
+        "receiver": "this",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/vue/language_gaps/source.vue:persist:38:4",
+      "span": {
+        "start_line": 38,
+        "start_column": 16,
+        "end_line": 38,
+        "end_column": 38,
+        "start_byte": 1174,
+        "end_byte": 1196
       }
     },
     {

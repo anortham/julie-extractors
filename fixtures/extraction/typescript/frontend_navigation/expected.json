@@ -650,8 +650,44 @@
     }
   ],
   "relationships": [],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/typescript/frontend_navigation/source.ts:useSaveRedirect:30:7",
+      "callee_name": "navigate",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/typescript/frontend_navigation/source.ts",
+      "line_number": 35,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/typescript/frontend_navigation/source.ts:useSaveRedirect:30:7",
+        "callee_name": "navigate",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/typescript/frontend_navigation/source.ts",
+        "line_number": 35,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "navigate",
+        "terminal_name": "navigate",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/typescript/frontend_navigation/source.ts:useSaveRedirect:30:7",
+      "span": {
+        "start_line": 35,
+        "start_column": 6,
+        "end_line": 35,
+        "end_column": 27,
+        "start_byte": 1002,
+        "end_byte": 1023
+      }
+    }
+  ],
   "identifiers": [
     {
       "key": "fixtures/extraction/typescript/frontend_navigation/source.ts:AdminModule:member_access:12:69",

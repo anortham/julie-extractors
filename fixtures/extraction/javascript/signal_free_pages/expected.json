@@ -1,0 +1,133 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/javascript/signal_free_pages/src/pages/Home.js:Home:1:0",
+      "name": "Home",
+      "kind": "export",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/signal_free_pages/src/pages/Home.js",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 47,
+      "start_byte": 0,
+      "end_byte": 47,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 31,
+        "end_line": 1,
+        "end_column": 47,
+        "start_byte": 31,
+        "end_byte": 47
+      },
+      "body_hash": "e070e6c21a3a1a78ba58c0e669a825cd",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "exportedName": "Home",
+        "isDefault": true,
+        "isNamed": false,
+        "localName": "Home"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/javascript/signal_free_pages/src/pages/Home.js:Home:1:15",
+      "name": "Home",
+      "kind": "function",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/signal_free_pages/src/pages/Home.js",
+      "start_line": 1,
+      "start_column": 15,
+      "end_line": 1,
+      "end_column": 47,
+      "start_byte": 15,
+      "end_byte": 47,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 31,
+        "end_line": 1,
+        "end_column": 47,
+        "start_byte": 31,
+        "end_byte": 47
+      },
+      "body_hash": "e070e6c21a3a1a78ba58c0e669a825cd",
+      "signature": "function Home()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "isArrowFunction": false,
+        "isAsync": false,
+        "isExpression": false,
+        "isGenerator": false,
+        "parameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/signal_free_pages/src/pages/Home.js",
+      "covered_lines": 2,
+      "covered_bytes": 48,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 48,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/javascript/signal_free_pages/src/pages/Home.js:Home:1:15",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/signal_free_pages/src/pages/Home.js",
+      "covered_lines": 1,
+      "covered_bytes": 16,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 1,
+      "start_column": 31,
+      "end_line": 1,
+      "end_column": 47,
+      "start_byte": 31,
+      "end_byte": 47,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

@@ -1,0 +1,603 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/qml/reference_targets/source.qml:QtQuick:1:0",
+      "name": "QtQuick",
+      "kind": "import",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 14,
+      "start_byte": 0,
+      "end_byte": 14,
+      "body_span": null,
+      "body_hash": null,
+      "signature": null,
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "import_kind": "module",
+        "source": "QtQuick",
+        "source_kind": "uri"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/qml/reference_targets/source.qml:item:7:32",
+      "name": "item",
+      "kind": "variable",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "start_line": 7,
+      "start_column": 32,
+      "end_line": 7,
+      "end_column": 36,
+      "start_byte": 178,
+      "end_byte": 182,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "item",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/qml/reference_targets/source.qml:unresolvedReceiver:7:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/qml/reference_targets/source.qml:lexicalCaller:5:4",
+      "name": "lexicalCaller",
+      "kind": "function",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "start_line": 5,
+      "start_column": 4,
+      "end_line": 5,
+      "end_column": 42,
+      "start_byte": 56,
+      "end_byte": 94,
+      "body_span": {
+        "start_line": 5,
+        "start_column": 29,
+        "end_line": 5,
+        "end_column": 42,
+        "start_byte": 81,
+        "end_byte": 94
+      },
+      "body_hash": "6362c08a3b18cb76abcbf546f08b332f",
+      "signature": "function lexicalCaller()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/qml/reference_targets/source.qml:source:3:0",
+      "metadata": null,
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/qml/reference_targets/source.qml:parameterShadow:6:4",
+      "name": "parameterShadow",
+      "kind": "function",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "start_line": 6,
+      "start_column": 4,
+      "end_line": 6,
+      "end_column": 50,
+      "start_byte": 99,
+      "end_byte": 145,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 37,
+        "end_line": 6,
+        "end_column": 50,
+        "start_byte": 132,
+        "end_byte": 145
+      },
+      "body_hash": "6362c08a3b18cb76abcbf546f08b332f",
+      "signature": "function parameterShadow(target)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/qml/reference_targets/source.qml:source:3:0",
+      "metadata": null,
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/qml/reference_targets/source.qml:source:3:0",
+      "name": "source",
+      "kind": "class",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 1,
+      "start_byte": 16,
+      "end_byte": 205,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 9,
+        "end_line": 8,
+        "end_column": 1,
+        "start_byte": 25,
+        "end_byte": 205
+      },
+      "body_hash": "dbe207257f42092b3c80b8fd474dee9a",
+      "signature": "extends QtObject",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "base_types": [
+          "QtObject"
+        ]
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/qml/reference_targets/source.qml:target:4:4",
+      "name": "target",
+      "kind": "function",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "start_line": 4,
+      "start_column": 4,
+      "end_line": 4,
+      "end_column": 24,
+      "start_byte": 31,
+      "end_byte": 51,
+      "body_span": {
+        "start_line": 4,
+        "start_column": 22,
+        "end_line": 4,
+        "end_column": 24,
+        "start_byte": 49,
+        "end_byte": 51
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "function target()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/qml/reference_targets/source.qml:source:3:0",
+      "metadata": null,
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/qml/reference_targets/source.qml:target:6:29",
+      "name": "target",
+      "kind": "variable",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "start_line": 6,
+      "start_column": 29,
+      "end_line": 6,
+      "end_column": 35,
+      "start_byte": 124,
+      "end_byte": 130,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "target",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/qml/reference_targets/source.qml:parameterShadow:6:4",
+      "metadata": {
+        "role": "parameter"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/qml/reference_targets/source.qml:unresolvedReceiver:7:4",
+      "name": "unresolvedReceiver",
+      "kind": "function",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "start_line": 7,
+      "start_column": 4,
+      "end_line": 7,
+      "end_column": 57,
+      "start_byte": 150,
+      "end_byte": 203,
+      "body_span": {
+        "start_line": 7,
+        "start_column": 38,
+        "end_line": 7,
+        "end_column": 57,
+        "start_byte": 184,
+        "end_byte": 203
+      },
+      "body_hash": "e5e0c0cf9c7a9f931aee76e7942d5491",
+      "signature": "function unresolvedReceiver(item)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/qml/reference_targets/source.qml:source:3:0",
+      "metadata": null,
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [
+    {
+      "from_key": "fixtures/extraction/qml/reference_targets/source.qml:lexicalCaller:5:4",
+      "to_key": "fixtures/extraction/qml/reference_targets/source.qml:target:4:4",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "line_number": 5,
+      "span": {
+        "start_line": 5,
+        "start_column": 31,
+        "end_line": 5,
+        "end_column": 39,
+        "start_byte": 83,
+        "end_byte": 91
+      },
+      "reference_site_is_exact": false,
+      "confidence": "1.000",
+      "metadata": null
+    }
+  ],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/qml/reference_targets/source.qml:parameterShadow:6:4",
+      "callee_name": "target",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "line_number": 6,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/qml/reference_targets/source.qml:source:3:0",
+      "callee_name": "QtObject",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "line_number": 3,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/qml/reference_targets/source.qml:unresolvedReceiver:7:4",
+      "callee_name": "item.refresh",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "line_number": 7,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/qml/reference_targets/source.qml:parameterShadow:6:4",
+        "callee_name": "target",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+        "line_number": 6,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "target",
+        "terminal_name": "target",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/qml/reference_targets/source.qml:parameterShadow:6:4",
+      "span": {
+        "start_line": 6,
+        "start_column": 39,
+        "end_line": 6,
+        "end_column": 45,
+        "start_byte": 134,
+        "end_byte": 140
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/qml/reference_targets/source.qml:source:3:0",
+        "callee_name": "QtObject",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+        "line_number": 3,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "QtObject",
+        "terminal_name": "QtObject",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/qml/reference_targets/source.qml:source:3:0",
+      "span": {
+        "start_line": 3,
+        "start_column": 0,
+        "end_line": 8,
+        "end_column": 1,
+        "start_byte": 16,
+        "end_byte": 205
+      }
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/qml/reference_targets/source.qml:unresolvedReceiver:7:4",
+        "callee_name": "item.refresh",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+        "line_number": 7,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "item.refresh",
+        "terminal_name": "refresh",
+        "receiver": "item",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/qml/reference_targets/source.qml:unresolvedReceiver:7:4",
+      "span": {
+        "start_line": 7,
+        "start_column": 45,
+        "end_line": 7,
+        "end_column": 52,
+        "start_byte": 191,
+        "end_byte": 198
+      }
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/qml/reference_targets/source.qml:QtObject:type_usage:3:0",
+      "name": "QtObject",
+      "kind": "type_usage",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 8,
+      "start_byte": 16,
+      "end_byte": 24,
+      "containing_key": "fixtures/extraction/qml/reference_targets/source.qml:source:3:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "role": "base_type"
+      }
+    },
+    {
+      "key": "fixtures/extraction/qml/reference_targets/source.qml:refresh:call:7:45",
+      "name": "refresh",
+      "kind": "call",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "start_line": 7,
+      "start_column": 45,
+      "end_line": 7,
+      "end_column": 52,
+      "start_byte": 191,
+      "end_byte": 198,
+      "containing_key": "fixtures/extraction/qml/reference_targets/source.qml:unresolvedReceiver:7:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "receiver": "item"
+      }
+    },
+    {
+      "key": "fixtures/extraction/qml/reference_targets/source.qml:target:call:5:31",
+      "name": "target",
+      "kind": "call",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "start_line": 5,
+      "start_column": 31,
+      "end_line": 5,
+      "end_column": 37,
+      "start_byte": 83,
+      "end_byte": 89,
+      "containing_key": "fixtures/extraction/qml/reference_targets/source.qml:lexicalCaller:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/qml/reference_targets/source.qml:target:call:6:39",
+      "name": "target",
+      "kind": "call",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "start_line": 6,
+      "start_column": 39,
+      "end_line": 6,
+      "end_column": 45,
+      "start_byte": 134,
+      "end_byte": 140,
+      "containing_key": "fixtures/extraction/qml/reference_targets/source.qml:parameterShadow:6:4",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "qml.import_statement.v1",
+      "capture_name": "import_statement",
+      "node_kind": "ui_import",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 14,
+      "start_byte": 0,
+      "end_byte": 14,
+      "confidence": "1.000",
+      "metadata": {
+        "import_kind": "module",
+        "import_module": "QtQuick",
+        "pattern_version": 1,
+        "query_family": "imports",
+        "source": "QtQuick",
+        "source_kind": "uri"
+      }
+    },
+    {
+      "pattern_id": "qml.object_instantiation.v1",
+      "capture_name": "object_instantiation",
+      "node_kind": "ui_object_definition",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "containing_key": "fixtures/extraction/qml/reference_targets/source.qml:source:3:0",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 1,
+      "start_byte": 16,
+      "end_byte": 205,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "objects",
+        "type_name": "QtObject"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "covered_lines": 9,
+      "covered_bytes": 206,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 206,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/qml/reference_targets/source.qml:lexicalCaller:5:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "covered_lines": 1,
+      "covered_bytes": 13,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 5,
+      "start_column": 29,
+      "end_line": 5,
+      "end_column": 42,
+      "start_byte": 81,
+      "end_byte": 94,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/qml/reference_targets/source.qml:parameterShadow:6:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "covered_lines": 1,
+      "covered_bytes": 13,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 6,
+      "start_column": 37,
+      "end_line": 6,
+      "end_column": 50,
+      "start_byte": 132,
+      "end_byte": 145,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/qml/reference_targets/source.qml:target:4:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 4,
+      "start_column": 22,
+      "end_line": 4,
+      "end_column": 24,
+      "start_byte": 49,
+      "end_byte": 51,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/qml/reference_targets/source.qml:unresolvedReceiver:7:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/reference_targets/source.qml",
+      "covered_lines": 1,
+      "covered_bytes": 19,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 7,
+      "start_column": 38,
+      "end_line": 7,
+      "end_column": 57,
+      "start_byte": 184,
+      "end_byte": 203,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

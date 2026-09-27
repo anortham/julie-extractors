@@ -15,6 +15,7 @@ mod helpers;
 mod htmx_templates;
 mod http_clients;
 mod jaxrs;
+mod kotest;
 mod kotlin_spring;
 mod kotlin_spring_functional;
 mod ktor;
@@ -30,6 +31,7 @@ mod rails;
 mod razor;
 mod razor_mvc;
 mod rocket;
+mod rust_benchmarks;
 mod scala_routes;
 mod scan;
 mod sinatra;
@@ -114,6 +116,7 @@ pub(super) const AXUM_ROUTE_PATTERN_ID: &str = "axum.route.v1";
 pub(super) const AXUM_NEST_PATTERN_ID: &str = "axum.nest.v1";
 pub(super) const ACTIX_ATTRIBUTE_ROUTE_PATTERN_ID: &str = "actix.attribute_route.v1";
 pub(super) const ACTIX_SCOPE_ROUTE_PATTERN_ID: &str = "actix.scope_route.v1";
+pub(super) const ACTIX_RESOURCE_ROUTE_PATTERN_ID: &str = "actix.resource_route.v1";
 pub(super) const ACTIX_MOUNT_PATTERN_ID: &str = "actix.mount.v1";
 pub(super) const ROCKET_ROUTE_PATTERN_ID: &str = "rocket.route.v1";
 pub(super) const ROCKET_MOUNT_PATTERN_ID: &str = "rocket.mount.v1";
@@ -145,6 +148,8 @@ pub(super) const MANIFEST_DEPENDENCY_PATTERN_ID: &str = "manifest.dependency.v1"
 pub(super) const PHOENIX_ROUTE_PATTERN_ID: &str = "phoenix.route.v1";
 pub(super) const PHOENIX_RESOURCE_ROUTE_PATTERN_ID: &str = "phoenix.resource_route.v1";
 pub(super) const PHOENIX_FORWARD_PATTERN_ID: &str = "phoenix.forward.v1";
+pub(super) const PHOENIX_SOCKET_PATTERN_ID: &str = "phoenix.socket.v1";
+pub(super) const PHOENIX_CHANNEL_PATTERN_ID: &str = "phoenix.channel.v1";
 pub(super) const LAPIS_ROUTE_PATTERN_ID: &str = "lapis.route.v1";
 pub(super) const NEOVIM_USER_COMMAND_PATTERN_ID: &str = "neovim.user_command.v1";
 pub(super) const NEOVIM_AUTOCMD_PATTERN_ID: &str = "neovim.autocmd.v1";
@@ -272,6 +277,8 @@ const KOTLIN_PATTERN_IDS: &[&str] = &[
     SPRING_REQUEST_MAPPING_PATTERN_ID,
     SPRING_FUNCTIONAL_ROUTE_PATTERN_ID,
     KTOR_ROUTE_PATTERN_ID,
+    "kotest.table_check.v1",
+    "kotest.property_check.v1",
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -285,6 +292,8 @@ const ELIXIR_PATTERN_IDS: &[&str] = &[
     PHOENIX_ROUTE_PATTERN_ID,
     PHOENIX_RESOURCE_ROUTE_PATTERN_ID,
     PHOENIX_FORWARD_PATTERN_ID,
+    PHOENIX_SOCKET_PATTERN_ID,
+    PHOENIX_CHANNEL_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -306,9 +315,11 @@ const RUST_PATTERN_IDS: &[&str] = &[
     AXUM_NEST_PATTERN_ID,
     ACTIX_ATTRIBUTE_ROUTE_PATTERN_ID,
     ACTIX_SCOPE_ROUTE_PATTERN_ID,
+    ACTIX_RESOURCE_ROUTE_PATTERN_ID,
     ACTIX_MOUNT_PATTERN_ID,
     ROCKET_ROUTE_PATTERN_ID,
     ROCKET_MOUNT_PATTERN_ID,
+    "rust.benchmark.v1",
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -462,6 +473,9 @@ pub fn collect_framework_structural_facts(
                 language, tree, file_path, content,
             ));
             kotlin_facts.extend(collect_ktor_routes(language, tree, file_path, content));
+            kotlin_facts.extend(kotest::collect_kotest_testing_facts(
+                language, tree, file_path, content,
+            ));
             kotlin_facts.extend(collect_backend_http_client_requests(
                 language, tree, file_path, content,
             ));
@@ -512,13 +526,13 @@ pub fn collect_framework_structural_facts(
             ));
             erlang_facts
         }
-        // The shared `rust` server dispatch arm. Task 5 runs the axum collector;
-        // Task 6 extends this arm with the actix collectors (both gate on their
-        // own crate import + arg shape, so they never double-emit).
         "rust" => {
             let mut rust_facts = collect_axum_routes(language, tree, file_path, content);
             rust_facts.extend(collect_actix_routes(language, tree, file_path, content));
             rust_facts.extend(collect_rocket_routes(language, tree, file_path, content));
+            rust_facts.extend(rust_benchmarks::collect_rust_benchmark_facts(
+                language, tree, file_path, content, symbols,
+            ));
             rust_facts.extend(collect_backend_http_client_requests(
                 language, tree, file_path, content,
             ));
@@ -609,6 +623,7 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
         "powershell" => &[HTTP_CLIENT_REQUEST_PATTERN_ID],
         "swift" => &[
             VAPOR_ROUTE_PATTERN_ID,
+            "swift_testing.trait.v1",
             HTTP_CLIENT_REQUEST_PATTERN_ID,
             MANIFEST_DEPENDENCY_PATTERN_ID,
             "swiftpm.package.v1",

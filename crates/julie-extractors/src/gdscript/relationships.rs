@@ -355,6 +355,7 @@ fn extract_call_relationship(
             &target.terminal_name,
             Some(caller_symbol),
             target.receiver.as_deref(),
+            node,
         ),
     };
     match resolution {

@@ -2809,11 +2809,11 @@
       "caller_scope_key": "fixtures/extraction/go/test_roles/source_test.go:TestDynamicSubtest:91:0",
       "span": {
         "start_line": 93,
-        "start_column": 1,
+        "start_column": 12,
         "end_line": 93,
-        "end_column": 48,
-        "start_byte": 1816,
-        "end_byte": 1863
+        "end_column": 15,
+        "start_byte": 1827,
+        "end_byte": 1830
       }
     },
     {
@@ -2835,11 +2835,11 @@
       "caller_scope_key": "fixtures/extraction/go/test_roles/source_test.go:TestMain:13:0",
       "span": {
         "start_line": 14,
-        "start_column": 1,
+        "start_column": 3,
         "end_line": 14,
-        "end_column": 8,
-        "start_byte": 285,
-        "end_byte": 292
+        "end_column": 6,
+        "start_byte": 287,
+        "end_byte": 290
       }
     },
     {
@@ -2861,11 +2861,11 @@
       "caller_scope_key": "fixtures/extraction/go/test_roles/source_test.go:TestSubtests:85:0",
       "span": {
         "start_line": 86,
-        "start_column": 1,
-        "end_line": 88,
-        "end_column": 3,
-        "start_byte": 1617,
-        "end_byte": 1737
+        "start_column": 12,
+        "end_line": 86,
+        "end_column": 15,
+        "start_byte": 1628,
+        "end_byte": 1631
       }
     },
     {
@@ -2889,9 +2889,9 @@
         "start_line": 76,
         "start_column": 2,
         "end_line": 76,
-        "end_column": 22,
+        "end_column": 11,
         "start_byte": 1428,
-        "end_byte": 1448
+        "end_byte": 1437
       }
     },
     {
@@ -2915,9 +2915,9 @@
         "start_line": 75,
         "start_column": 2,
         "end_line": 75,
-        "end_column": 23,
+        "end_column": 12,
         "start_byte": 1404,
-        "end_byte": 1425
+        "end_byte": 1414
       }
     },
     {
@@ -2941,9 +2941,9 @@
         "start_line": 77,
         "start_column": 2,
         "end_line": 77,
-        "end_column": 35,
+        "end_column": 4,
         "start_byte": 1451,
-        "end_byte": 1484
+        "end_byte": 1453
       }
     },
     {
@@ -2966,10 +2966,10 @@
       "span": {
         "start_line": 74,
         "start_column": 1,
-        "end_line": 78,
-        "end_column": 3,
+        "end_line": 74,
+        "end_column": 8,
         "start_byte": 1373,
-        "end_byte": 1488
+        "end_byte": 1380
       }
     },
     {
@@ -2991,11 +2991,11 @@
       "caller_scope_key": "fixtures/extraction/go/test_roles/source_test.go:helperUnrelatedRun:100:0",
       "span": {
         "start_line": 101,
-        "start_column": 1,
+        "start_column": 10,
         "end_line": 101,
-        "end_column": 46,
-        "start_byte": 1999,
-        "end_byte": 2044
+        "end_column": 13,
+        "start_byte": 2008,
+        "end_byte": 2011
       }
     },
     {
@@ -3017,11 +3017,11 @@
       "caller_scope_key": "fixtures/extraction/go/test_roles/source_test.go:literal child:86:1",
       "span": {
         "start_line": 87,
-        "start_column": 2,
+        "start_column": 8,
         "end_line": 87,
-        "end_column": 59,
-        "start_byte": 1676,
-        "end_byte": 1733
+        "end_column": 11,
+        "start_byte": 1682,
+        "end_byte": 1685
       }
     },
     {
@@ -3045,9 +3045,9 @@
         "start_line": 82,
         "start_column": 1,
         "end_line": 82,
-        "end_column": 48,
+        "end_column": 3,
         "start_byte": 1522,
-        "end_byte": 1569
+        "end_byte": 1524
       }
     },
     {

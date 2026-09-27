@@ -66,30 +66,17 @@ fn extract_new_expression_relationships(
         let target = extract_call_target(extractor, constructor_node);
         let caller = owners.find(node);
         if let Some(caller) = caller {
-            let resolution = symbol_index.resolve_call_target(
+            let resolution = symbol_index.resolve_constructable_target(
                 &target.terminal_name,
                 Some(caller),
-                target.receiver.as_deref(),
+                node,
             );
-            let constructable_symbol = match &resolution {
-                LocalTargetResolution::Resolved(type_symbol)
-                    if matches!(
-                        type_symbol.kind,
-                        SymbolKind::Class | SymbolKind::Type | SymbolKind::Interface
-                    ) =>
-                {
-                    Some(*type_symbol)
-                }
-                LocalTargetResolution::Resolved(function)
-                    if is_constructor_function(symbols, function) =>
-                {
-                    Some(*function)
-                }
-                _ if target.receiver.is_none() => {
-                    unique_constructable_symbol(symbols, &target.terminal_name)
-                }
-                _ => None,
-            };
+            let constructable_symbol = resolution.as_symbol().filter(|symbol| {
+                matches!(
+                    symbol.kind,
+                    SymbolKind::Class | SymbolKind::Type | SymbolKind::Interface
+                ) || is_constructor_function(symbols, symbol)
+            });
             if let Some(type_symbol) = constructable_symbol {
                 relationships.push(Relationship {
                     id: format!(
@@ -150,18 +137,6 @@ fn is_constructor_function(symbols: &[Symbol], function: &Symbol) -> bool {
         })
 }
 
-fn unique_constructable_symbol<'a>(symbols: &'a [Symbol], name: &str) -> Option<&'a Symbol> {
-    let mut matches = symbols.iter().filter(|symbol| {
-        symbol.name == name
-            && (matches!(
-                symbol.kind,
-                SymbolKind::Class | SymbolKind::Type | SymbolKind::Interface
-            ) || is_constructor_function(symbols, symbol))
-    });
-    let symbol = matches.next()?;
-    matches.next().is_none().then_some(symbol)
-}
-
 /// Extract function call relationships
 fn extract_call_relationships(
     extractor: &mut JavaScriptExtractor,
@@ -188,13 +163,11 @@ fn extract_call_relationships(
                 &target.terminal_name,
                 Some(caller_symbol),
                 target.receiver.as_deref(),
+                node,
             ) {
                 LocalTargetResolution::Resolved(symbol) => Some(symbol),
                 _ if target.receiver.as_deref() == Some("this") => {
                     constructor_function_member(symbols, caller_symbol, &target.terminal_name)
-                }
-                _ if target.receiver.is_none() => {
-                    unique_callable_symbol(symbols, &target.terminal_name)
                 }
                 _ => None,
             }
@@ -260,19 +233,6 @@ fn constructor_function_member<'a>(
         symbol.kind == SymbolKind::Method
             && symbol.name == name
             && symbol.parent_id.as_deref() == Some(caller.id.as_str())
-    });
-    let symbol = matches.next()?;
-    matches.next().is_none().then_some(symbol)
-}
-
-fn unique_callable_symbol<'a>(symbols: &'a [Symbol], name: &str) -> Option<&'a Symbol> {
-    let mut matches = symbols.iter().filter(|symbol| {
-        symbol.name == name
-            && !is_test_call_symbol(symbol)
-            && matches!(
-                symbol.kind,
-                SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
-            )
     });
     let symbol = matches.next()?;
     matches.next().is_none().then_some(symbol)

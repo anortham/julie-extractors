@@ -559,7 +559,8 @@
         "end_column": 27,
         "start_byte": 436,
         "end_byte": 451
-      }
+      },
+      "target_arity": 0
     }
   ],
   "identifiers": [

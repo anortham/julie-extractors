@@ -913,6 +913,14 @@
   "relationships": [],
   "pending_relationships": [
     {
+      "from_key": "fixtures/extraction/typescript/playwright_roles/source.ts:describe:45:2",
+      "callee_name": "run",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/typescript/playwright_roles/source.ts",
+      "line_number": 46,
+      "confidence": "0.700"
+    },
+    {
       "from_key": "fixtures/extraction/typescript/playwright_roles/source.ts:loads the cart:14:2",
       "callee_name": "page.goto",
       "kind": "calls",
@@ -938,6 +946,32 @@
     }
   ],
   "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/typescript/playwright_roles/source.ts:describe:45:2",
+        "callee_name": "run",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/typescript/playwright_roles/source.ts",
+        "line_number": 46,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "run",
+        "terminal_name": "run",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/typescript/playwright_roles/source.ts:describe:45:2",
+      "span": {
+        "start_line": 46,
+        "start_column": 4,
+        "end_line": 46,
+        "end_column": 9,
+        "start_byte": 1079,
+        "end_byte": 1084
+      }
+    },
     {
       "pending": {
         "from_key": "fixtures/extraction/typescript/playwright_roles/source.ts:loads the cart:14:2",

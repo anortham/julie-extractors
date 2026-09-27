@@ -104,6 +104,10 @@ export function parseManifestParserDependencies(manifestText) {
           rev,
         }
       }
+      const path = quotedField(value, "path")
+      if (path) {
+        return { dependency, package: packageName, source: "vendored", path }
+      }
       const requirement = simpleVersion ?? quotedField(value, "version")
       if (!requirement) {
         throw new Error(
@@ -251,6 +255,9 @@ function lockResolution(dependency, lockPackages) {
     if (dependency.source === "registry") {
       return candidate.source?.startsWith("registry+")
     }
+    if (dependency.source === "vendored") {
+      return !candidate.source
+    }
     if (!candidate.source?.startsWith("git+")) {
       return false
     }
@@ -299,9 +306,23 @@ export async function createFreshnessReport({
 
   const registryRows = []
   const gitRows = []
+  const vendoredRows = []
   let runtime
   for (const dependency of dependencies) {
     const locked = lockResolution(dependency, lockPackages)
+    if (dependency.source === "vendored") {
+      if (!locked.version) {
+        throw new Error(`Cargo.lock: ${dependency.package} has no locked version`)
+      }
+      vendoredRows.push({
+        dependency: dependency.dependency,
+        package: dependency.package,
+        path: dependency.path,
+        locked_version: locked.version,
+        status: "vendored",
+      })
+      continue
+    }
     if (dependency.source === "registry") {
       if (!locked.version) {
         throw new Error(`Cargo.lock: ${dependency.package} has no locked version`)
@@ -360,6 +381,7 @@ export async function createFreshnessReport({
     runtime,
     registry_grammars: registryRows,
     git_grammars: gitRows,
+    vendored_grammars: vendoredRows,
   }
 }
 
@@ -383,6 +405,10 @@ export function renderReport(report, format) {
     ...report.git_grammars.map(
       (row) =>
         `  ${row.dependency} [${row.repository}] pinned ${row.pinned_rev}, locked ${row.locked_rev}, ${row.remote_default_branch} ${row.remote_head}: ${row.status}`,
+    ),
+    "Vendored grammars",
+    ...report.vendored_grammars.map(
+      (row) => `  ${row.dependency} [${row.path}] locked ${row.locked_version}: ${row.status}`,
     ),
   ]
   return `${lines.join("\n")}\n`

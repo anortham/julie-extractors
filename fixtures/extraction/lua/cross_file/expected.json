@@ -193,11 +193,11 @@
       "caller_scope_key": "fixtures/extraction/lua/cross_file/source.lua:entry:12:0",
       "span": {
         "start_line": 19,
-        "start_column": 4,
+        "start_column": 10,
         "end_line": 19,
-        "end_column": 14,
-        "start_byte": 522,
-        "end_byte": 532
+        "end_column": 12,
+        "start_byte": 528,
+        "end_byte": 530
       }
     },
     {

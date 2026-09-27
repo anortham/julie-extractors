@@ -6,6 +6,28 @@ use super::{
 
 pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     StructuralFactPatternSpec {
+        pattern_id: "regex.conditional.v1",
+        languages: &["regex"],
+        query_family: "pattern_structure",
+        description: "A regex conditional with its written condition and one or two branches.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "condition",
+                STR,
+                ALWAYS,
+                "Raw capture test or complete lookaround assertion as written.",
+            ),
+            key(
+                "branch_count",
+                NUM,
+                ALWAYS,
+                "One for a yes branch; two when an else branch is present.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
         pattern_id: "regex.capture_group.v1",
         languages: &["regex"],
         query_family: "pattern_structure",

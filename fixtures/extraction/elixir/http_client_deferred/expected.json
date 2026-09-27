@@ -205,7 +205,8 @@
         "end_column": 51,
         "start_byte": 362,
         "end_byte": 409
-      }
+      },
+      "target_arity": 1
     },
     {
       "pending": {
@@ -233,7 +234,8 @@
         "end_column": 55,
         "start_byte": 414,
         "end_byte": 465
-      }
+      },
+      "target_arity": 4
     },
     {
       "pending": {
@@ -261,7 +263,8 @@
         "end_column": 54,
         "start_byte": 307,
         "end_byte": 357
-      }
+      },
+      "target_arity": 2
     },
     {
       "pending": {
@@ -289,7 +292,8 @@
         "end_column": 31,
         "start_byte": 538,
         "end_byte": 565
-      }
+      },
+      "target_arity": 2
     },
     {
       "pending": {
@@ -317,7 +321,8 @@
         "end_column": 37,
         "start_byte": 209,
         "end_byte": 242
-      }
+      },
+      "target_arity": 1
     },
     {
       "pending": {
@@ -345,7 +350,8 @@
         "end_column": 59,
         "start_byte": 247,
         "end_byte": 302
-      }
+      },
+      "target_arity": 5
     },
     {
       "pending": {
@@ -373,7 +379,8 @@
         "end_column": 28,
         "start_byte": 570,
         "end_byte": 594
-      }
+      },
+      "target_arity": 1
     },
     {
       "pending": {
@@ -401,7 +408,8 @@
         "end_column": 47,
         "start_byte": 114,
         "end_byte": 157
-      }
+      },
+      "target_arity": 1
     },
     {
       "pending": {
@@ -429,7 +437,8 @@
         "end_column": 29,
         "start_byte": 508,
         "end_byte": 533
-      }
+      },
+      "target_arity": 1
     },
     {
       "pending": {
@@ -457,7 +466,8 @@
         "end_column": 46,
         "start_byte": 162,
         "end_byte": 204
-      }
+      },
+      "target_arity": 3
     }
   ],
   "identifiers": [

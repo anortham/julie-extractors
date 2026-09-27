@@ -11,6 +11,85 @@ use super::super::{
 
 pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     StructuralFactPatternSpec {
+        pattern_id: "kotest.table_check.v1",
+        languages: &["kotlin"],
+        query_family: "testing",
+        description: "A Kotest table assertion inside a test body; it does not declare another test case.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key("callee", STR, ALWAYS, "Table check function as written."),
+            key(
+                "arguments",
+                ARR,
+                OPT,
+                "Argument expressions as written, in source order.",
+            ),
+            key(
+                "type_arguments",
+                ARR,
+                OPT,
+                "Explicit type arguments in source order.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "kotest.property_check.v1",
+        languages: &["kotlin"],
+        query_family: "testing",
+        description: "A Kotest property assertion inside a test body; it does not declare another test case.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key("callee", STR, ALWAYS, "Property check function as written."),
+            key(
+                "arguments",
+                ARR,
+                OPT,
+                "Argument expressions as written, in source order.",
+            ),
+            key(
+                "type_arguments",
+                ARR,
+                OPT,
+                "Explicit type arguments in source order.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "phoenix.socket.v1",
+        languages: &["elixir"],
+        query_family: "websocket",
+        description: "A Phoenix endpoint socket declaration with a static path and module handler.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key("path", STR, ALWAYS, "Static socket path as declared."),
+            key("handler", STR, ALWAYS, "Socket module alias as written."),
+        ],
+    },
+    StructuralFactPatternSpec {
+        pattern_id: "phoenix.channel.v1",
+        languages: &["elixir"],
+        query_family: "websocket",
+        description: "A Phoenix socket channel declaration with a static topic and module handler.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key(
+                "topic",
+                STR,
+                ALWAYS,
+                "Static channel topic pattern as declared.",
+            ),
+            key("handler", STR, ALWAYS, "Channel module alias as written."),
+        ],
+    },
+    StructuralFactPatternSpec {
         pattern_id: "ktor.route.v1",
         languages: &["kotlin"],
         query_family: "framework",

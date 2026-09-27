@@ -117,22 +117,15 @@ Rust test functions are not scoped to a container. A function in `tests/` or a
 `#[test]` beside production code is a real case with no enclosing test module,
 so the container pass never strips a role a function's own attribute earned.
 
-### Recorded gaps
+### Benchmarks and documentation tests
 
-One named Rust test surface is not classified. It is recorded as
-`open_gaps` on the rust row in `fixtures/extraction/capabilities.json`:
+`rust.benchmark.v1` records nightly `#[bench]`, `#[divan::bench]`,
+and Criterion group/entry-point registrations. Attribute facts name their
+source function and bind to that symbol; Criterion facts retain group
+names and target paths in source order. Bare Criterion macros require
+import evidence. Benchmarks do not receive a test-case role.
 
-- `rust.benchmark_harness_roles` — nightly `#[bench]`, criterion, and divan.
-  `#[bench]` is an attribute macro, so adding it to the list above would report
-  it as `test_case`, which is wrong: a benchmark measures time and reports no
-  pass or fail. Criterion and divan declare their case lists inside
-  `criterion_group!`/`criterion_main!` and `#[divan::bench]`, so the cases live
-  in a macro invocation rather than in a callable symbol the role writer can
-  reach.
-The remaining gap sits under `kind_coverage.structural_facts.open_gaps` rather than
-`test_detection`, because the `test_detection` vocabulary is frozen to
-`test_case`, `test_container`, and `test_lifecycle` and each of those is
-already classified exactly once for rust.
+The `benchmark_harnesses` fixture covers all three harnesses.
 
 Rustdoc executable fences are emitted as `rust.doc_test.v1` structural facts.
 Fence recognition follows rustdoc's own info-string rule. The recognized

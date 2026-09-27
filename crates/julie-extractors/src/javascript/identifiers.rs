@@ -354,11 +354,11 @@ pub(crate) fn ecmascript_enclosing_class_name(
             "class_declaration" | "abstract_class_declaration" | "class" => {
                 return super::types::class_binding_name(base, candidate);
             }
-            "function_expression" | "function" | "generator_function" => {
-                if let Some(owner) = prototype_owner(base, candidate) {
-                    return Some(owner);
-                }
-            }
+            "function_expression"
+            | "function_declaration"
+            | "generator_function"
+            | "generator_function_declaration"
+            | "function" => return prototype_owner(base, candidate),
             _ => {}
         }
         current = candidate.parent();

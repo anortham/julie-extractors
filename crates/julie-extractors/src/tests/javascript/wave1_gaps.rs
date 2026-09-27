@@ -195,10 +195,29 @@ function caller() { helper(); }
     );
     let pending = pending_rows(&results);
     assert!(
-        !pending
-            .iter()
-            .any(|row| row.contains("-> resolve") || row.contains("-> toggle")),
+        !pending.iter().any(|row| row.contains("-> resolve")),
         "{pending:#?}"
+    );
+    let unresolved_toggle: Vec<_> = results
+        .structured_pending_relationships
+        .iter()
+        .filter(|pending| pending.target.terminal_name == "toggle")
+        .collect();
+    assert_eq!(unresolved_toggle.len(), 1, "{pending:#?}");
+    let unresolved_toggle = unresolved_toggle[0];
+    assert_eq!(
+        symbol_name(&results, &unresolved_toggle.pending.from_symbol_id),
+        "useHook"
+    );
+    assert_eq!(
+        unresolved_toggle.caller_scope_symbol_id.as_deref(),
+        Some(unresolved_toggle.pending.from_symbol_id.as_str())
+    );
+    assert_eq!(unresolved_toggle.target.receiver, None);
+    let span = unresolved_toggle.span.as_ref().expect("toggle call span");
+    assert_eq!(
+        &source[span.start_byte as usize..span.end_byte as usize],
+        "toggle()"
     );
 }
 

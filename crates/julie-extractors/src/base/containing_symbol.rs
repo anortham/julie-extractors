@@ -54,9 +54,11 @@ fn is_scope_bearing(symbol: &Symbol) -> bool {
 pub(crate) fn attach_containing_symbols(facts: &mut [StructuralFact], symbols: &[Symbol]) {
     let declarations = narrowest_byte_containers(facts, symbols, is_declaration);
     for (fact, declaration) in facts.iter_mut().zip(declarations) {
-        fact.containing_symbol_id = declaration
-            .or_else(|| containing_symbol_after_declaration_bytes(fact, symbols))
-            .map(|symbol| symbol.id.clone());
+        if fact.containing_symbol_id.is_none() {
+            fact.containing_symbol_id = declaration
+                .or_else(|| containing_symbol_after_declaration_bytes(fact, symbols))
+                .map(|symbol| symbol.id.clone());
+        }
     }
 }
 

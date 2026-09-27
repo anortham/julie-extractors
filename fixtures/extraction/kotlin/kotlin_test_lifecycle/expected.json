@@ -503,43 +503,9 @@
       "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
       "line_number": 17,
       "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:postsAnEntry:15:4",
-      "callee_name": "assertEquals",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
-      "line_number": 17,
-      "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:postsAnEntry:15:4",
-        "callee_name": "assertEquals",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt",
-        "line_number": 17,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "assertEquals",
-        "terminal_name": "assertEquals",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:postsAnEntry:15:4",
-      "span": {
-        "start_line": 17,
-        "start_column": 8,
-        "end_line": 17,
-        "end_column": 26,
-        "start_byte": 279,
-        "end_byte": 297
-      }
-    },
     {
       "pending": {
         "from_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:postsAnEntry:15:4",

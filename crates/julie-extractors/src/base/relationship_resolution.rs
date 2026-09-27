@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use tree_sitter::Node;
 
 use super::span::NormalizedSpan;
 use super::types::{PendingRelationship, RelationshipKind, Symbol, SymbolKind};
@@ -228,18 +229,44 @@ impl<'a> LocalTargetResolution<'a> {
 
 pub struct ScopedSymbolIndex<'a> {
     by_name: HashMap<&'a str, Vec<&'a Symbol>>,
+    by_id: HashMap<&'a str, &'a Symbol>,
+    by_inner_name: HashMap<&'a str, Vec<&'a Symbol>>,
+    prototype_owner_ids: HashSet<&'a str>,
 }
 
 impl<'a> ScopedSymbolIndex<'a> {
     pub fn new(symbols: &'a [Symbol]) -> Self {
         let mut by_name: HashMap<&'a str, Vec<&'a Symbol>> = HashMap::new();
+        let mut by_id = HashMap::new();
+        let mut by_inner_name: HashMap<&'a str, Vec<&'a Symbol>> = HashMap::new();
+        let mut prototype_owner_ids = HashSet::new();
         for symbol in symbols {
             by_name
                 .entry(symbol.name.as_str())
                 .or_default()
                 .push(symbol);
+            by_id.insert(symbol.id.as_str(), symbol);
+            if let Some(name) = metadata_str(symbol, "innerName") {
+                by_inner_name.entry(name).or_default().push(symbol);
+            }
+            if symbol.kind == SymbolKind::Method
+                && symbol
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("isPrototypeMethod"))
+                    .and_then(serde_json::Value::as_bool)
+                    == Some(true)
+                && let Some(parent_id) = symbol.parent_id.as_deref()
+            {
+                prototype_owner_ids.insert(parent_id);
+            }
         }
-        Self { by_name }
+        Self {
+            by_name,
+            by_id,
+            by_inner_name,
+            prototype_owner_ids,
+        }
     }
 
     pub fn unique_symbol_map(symbols: &'a [Symbol]) -> HashMap<String, &'a Symbol> {
@@ -272,50 +299,815 @@ impl<'a> ScopedSymbolIndex<'a> {
         terminal_name: &str,
         caller: Option<&Symbol>,
         receiver: Option<&str>,
+        call_site: Node<'_>,
     ) -> LocalTargetResolution<'a> {
-        let Some(candidates) = self.by_name.get(terminal_name) else {
-            return LocalTargetResolution::Missing;
-        };
-
         if receiver.is_some_and(|receiver| !is_self_receiver(receiver)) {
             return LocalTargetResolution::ReceiverQualified;
         }
 
-        let callable: Vec<&Symbol> = candidates
-            .iter()
-            .copied()
+        if receiver.is_some() {
+            if receiver == Some("super") {
+                return LocalTargetResolution::ReceiverQualified;
+            }
+            if is_ecmascript_language(caller) && ecmascript_this_is_unbound(self, call_site, caller)
+            {
+                return LocalTargetResolution::ReceiverQualified;
+            }
+            return self.resolve_self_receiver_target(terminal_name, caller);
+        }
+
+        let candidates: Vec<&'a Symbol> = self.candidates_by_name(terminal_name).collect();
+        let lua_predeclared_targets: Vec<&'a Symbol> =
+            if caller.is_some_and(|caller| caller.language == "lua") {
+                candidates
+                    .iter()
+                    .copied()
+                    .filter(|target| target.kind == SymbolKind::Function)
+                    .filter(|target| {
+                        candidates.iter().copied().any(|placeholder| {
+                            lua_local_placeholder_precedes_function(placeholder, target, call_site)
+                        })
+                    })
+                    .collect()
+            } else {
+                Vec::new()
+            };
+        let mut visible: Vec<(usize, &'a Symbol)> = candidates
+            .into_iter()
+            .filter_map(|symbol| {
+                let lua_placeholder_superseded = symbol.kind == SymbolKind::Variable
+                    && lua_predeclared_targets.iter().any(|target| {
+                        lua_local_placeholder_precedes_function(symbol, target, call_site)
+                    });
+                self.lexical_distance(symbol, caller)
+                    .filter(|_| is_bare_binding(symbol, caller, &self.by_id))
+                    .filter(|_| !lua_placeholder_superseded)
+                    .filter(|_| {
+                        binding_is_visible(symbol, call_site)
+                            || lua_predeclared_targets
+                                .iter()
+                                .any(|target| target.id == symbol.id)
+                    })
+                    .map(|distance| (distance, symbol))
+            })
+            .collect();
+
+        if is_ecmascript_language(caller) {
+            if let Some(inner) = self
+                .by_inner_name
+                .get(terminal_name)
+                .into_iter()
+                .flatten()
+                .copied()
+                .filter(|symbol| self.ecmascript_inner_name_is_visible(symbol, caller, call_site))
+                .filter_map(|symbol| {
+                    self.lexical_distance_to_symbol(symbol, caller)
+                        .map(|distance| (distance, symbol))
+                })
+                .min_by_key(|(distance, _)| *distance)
+            {
+                visible.push(inner);
+            }
+        }
+
+        resolve_nearest_binding(visible, |symbol| {
+            is_callable_target(symbol, caller) && target_value_available(symbol, call_site)
+        })
+    }
+
+    pub fn resolve_constructable_target(
+        &self,
+        terminal_name: &str,
+        caller: Option<&Symbol>,
+        call_site: Node<'_>,
+    ) -> LocalTargetResolution<'a> {
+        let visible = self
+            .candidates_by_name(terminal_name)
+            .filter_map(|symbol| {
+                (symbol.kind != SymbolKind::Constructor)
+                    .then_some(symbol)
+                    .filter(|symbol| is_bare_binding(symbol, caller, &self.by_id))
+                    .filter(|symbol| binding_is_visible(symbol, call_site))
+                    .and_then(|symbol| {
+                        self.lexical_distance(symbol, caller)
+                            .map(|distance| (distance, symbol))
+                    })
+            })
+            .collect();
+        resolve_nearest_binding(visible, |symbol| {
+            is_constructable_target(symbol, &self.by_id)
+                && target_value_available(symbol, call_site)
+        })
+    }
+
+    pub fn resolve_macro_target(
+        &self,
+        terminal_name: &str,
+        caller: Option<&Symbol>,
+        call_site: Node<'_>,
+    ) -> Option<&'a Symbol> {
+        self.candidates_by_name(terminal_name)
+            .filter(|symbol| metadata_str(symbol, "rustSymbolKind") == Some("macro_rules"))
+            .filter(|symbol| symbol.start_byte <= call_site.start_byte() as u32)
+            .filter(|symbol| generic_block_binding_is_visible(symbol, call_site))
+            .filter_map(|symbol| {
+                self.lexical_distance(symbol, caller)
+                    .map(|distance| (distance, symbol))
+            })
+            .min_by_key(|(distance, symbol)| (*distance, std::cmp::Reverse(symbol.start_byte)))
+            .map(|(_, symbol)| symbol)
+    }
+
+    fn resolve_self_receiver_target(
+        &self,
+        terminal_name: &str,
+        caller: Option<&Symbol>,
+    ) -> LocalTargetResolution<'a> {
+        let Some(owner_id) = self.enclosing_type_id(caller) else {
+            return LocalTargetResolution::Missing;
+        };
+        let candidates: Vec<&Symbol> = self
+            .candidates_by_name(terminal_name)
+            .filter(|symbol| symbol.parent_id.as_deref() == Some(owner_id.as_str()))
             .filter(|symbol| is_callable_or_import(&symbol.kind))
             .collect();
-        if callable.is_empty() {
-            return LocalTargetResolution::Missing;
-        }
+        unique_candidate(&candidates)
+    }
 
-        if receiver.is_some() {
-            return resolve_self_receiver_target(&callable, caller);
+    fn lexical_distance(&self, symbol: &Symbol, caller: Option<&Symbol>) -> Option<usize> {
+        if symbol.parent_id.is_none() {
+            return Some(self.scope_chain(caller).len() + 1);
         }
+        self.scope_chain(caller)
+            .iter()
+            .position(|scope| Some(scope.as_str()) == symbol.parent_id.as_deref())
+    }
 
-        unique_candidate(&callable)
+    fn lexical_distance_to_symbol(
+        &self,
+        symbol: &Symbol,
+        caller: Option<&Symbol>,
+    ) -> Option<usize> {
+        self.scope_chain(caller)
+            .iter()
+            .position(|scope| *scope == symbol.id)
+            .map(|distance| distance + 1)
+    }
+
+    fn scope_chain(&self, caller: Option<&Symbol>) -> Vec<String> {
+        let mut current_id = caller.map(|caller| caller.id.clone());
+        let mut seen = HashMap::<String, ()>::new();
+        let mut chain = Vec::new();
+        while let Some(id) = current_id {
+            if seen.insert(id.clone(), ()).is_some() {
+                break;
+            }
+            current_id = self
+                .by_id
+                .get(id.as_str())
+                .and_then(|symbol| symbol.parent_id.clone());
+            chain.push(id);
+        }
+        chain
+    }
+
+    fn enclosing_type_id(&self, caller: Option<&Symbol>) -> Option<String> {
+        if caller.is_some_and(|caller| is_type_scope(&caller.kind)) {
+            return caller.map(|caller| caller.id.clone());
+        }
+        let mut current_id = caller.map(|caller| caller.id.clone());
+        while let Some(id) = current_id {
+            let symbol = self.by_id.get(id.as_str()).copied()?;
+            if is_type_scope(&symbol.kind) {
+                return Some(symbol.id.clone());
+            }
+            if is_ecmascript_language_name(&symbol.language)
+                && symbol.kind == SymbolKind::Method
+                && symbol
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("isPrototypeMethod"))
+                    .and_then(serde_json::Value::as_bool)
+                    == Some(true)
+            {
+                return symbol.parent_id.clone();
+            }
+            if is_ecmascript_language_name(&symbol.language)
+                && symbol.kind == SymbolKind::Function
+                && self.prototype_owner_ids.contains(symbol.id.as_str())
+            {
+                return Some(symbol.id.clone());
+            }
+            if is_ecmascript_language_name(&symbol.language)
+                && symbol.kind == SymbolKind::Function
+                && symbol
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("isArrowFunction"))
+                    .and_then(serde_json::Value::as_bool)
+                    != Some(true)
+            {
+                return None;
+            }
+            current_id = symbol.parent_id.clone();
+        }
+        None
+    }
+
+    fn ecmascript_inner_name_is_visible(
+        &self,
+        symbol: &Symbol,
+        caller: Option<&Symbol>,
+        call_site: Node<'_>,
+    ) -> bool {
+        let Some(caller) = caller else {
+            return false;
+        };
+        symbol.start_byte <= call_site.start_byte() as u32
+            && call_site.end_byte() as u32 <= symbol.end_byte
+            && self
+                .scope_chain(Some(caller))
+                .iter()
+                .any(|scope| *scope == symbol.id)
     }
 }
 
-fn resolve_self_receiver_target<'a>(
-    candidates: &[&'a Symbol],
-    caller: Option<&Symbol>,
+fn resolve_nearest_binding<'a>(
+    visible: Vec<(usize, &'a Symbol)>,
+    is_target: impl Fn(&Symbol) -> bool,
 ) -> LocalTargetResolution<'a> {
-    let Some(caller_parent_id) = caller.and_then(|caller| caller.parent_id.as_deref()) else {
+    let Some(nearest) = visible.iter().map(|(distance, _)| *distance).min() else {
         return LocalTargetResolution::Missing;
     };
-
-    let same_parent: Vec<&Symbol> = candidates
-        .iter()
-        .copied()
-        .filter(|symbol| symbol.parent_id.as_deref() == Some(caller_parent_id))
+    let bindings: Vec<&Symbol> = visible
+        .into_iter()
+        .filter_map(|(distance, symbol)| (distance == nearest).then_some(symbol))
         .collect();
-    if same_parent.is_empty() {
-        return LocalTargetResolution::Missing;
+    if bindings.iter().any(|symbol| !is_target(symbol)) {
+        return LocalTargetResolution::Ambiguous;
+    }
+    unique_candidate(&bindings)
+}
+
+fn metadata_str<'a>(symbol: &'a Symbol, key: &str) -> Option<&'a str> {
+    symbol.metadata.as_ref()?.get(key)?.as_str()
+}
+
+fn is_bare_binding(
+    symbol: &Symbol,
+    caller: Option<&Symbol>,
+    by_id: &HashMap<&str, &Symbol>,
+) -> bool {
+    let language = caller
+        .map(|caller| caller.language.as_str())
+        .unwrap_or(symbol.language.as_str());
+    if symbol.kind == SymbolKind::Method
+        && (!allows_implicit_methods(language) || matches!(language, "python"))
+    {
+        return false;
+    }
+    if symbol.language == "ruby"
+        && symbol.kind == SymbolKind::Method
+        && ruby_method_is_static(symbol) != caller.is_some_and(ruby_method_is_static)
+    {
+        return false;
+    }
+    if is_ecmascript_language_name(language) && is_class_member(symbol, by_id) {
+        return false;
+    }
+    !matches!(symbol.kind, SymbolKind::Export | SymbolKind::EnumMember)
+}
+
+fn is_callable_target(symbol: &Symbol, caller: Option<&Symbol>) -> bool {
+    if symbol.language == "c"
+        && symbol.kind == SymbolKind::Variable
+        && metadata_str(symbol, "isFunctionPointer") == Some("true")
+    {
+        return true;
+    }
+    if !is_callable_or_import(&symbol.kind) {
+        return false;
+    }
+    match symbol.kind {
+        SymbolKind::Method | SymbolKind::Constructor => allows_implicit_methods(
+            caller
+                .map(|caller| caller.language.as_str())
+                .unwrap_or(symbol.language.as_str()),
+        ),
+        _ => true,
+    }
+}
+
+fn is_constructable_target(symbol: &Symbol, by_id: &HashMap<&str, &Symbol>) -> bool {
+    if matches!(
+        symbol.kind,
+        SymbolKind::Class | SymbolKind::Struct | SymbolKind::Type | SymbolKind::Interface
+    ) {
+        return true;
+    }
+    symbol.kind == SymbolKind::Function
+        && by_id.values().any(|child| {
+            child.parent_id.as_deref() == Some(symbol.id.as_str())
+                && child.kind == SymbolKind::Method
+        })
+}
+
+fn allows_implicit_methods(language: &str) -> bool {
+    matches!(
+        language,
+        "java"
+            | "csharp"
+            | "vbnet"
+            | "cpp"
+            | "dart"
+            | "swift"
+            | "kotlin"
+            | "scala"
+            | "gdscript"
+            | "ruby"
+            | "zig"
+    )
+}
+
+fn ruby_method_is_static(symbol: &Symbol) -> bool {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get("isStatic"))
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false)
+}
+
+fn is_type_scope(kind: &SymbolKind) -> bool {
+    matches!(
+        kind,
+        SymbolKind::Class
+            | SymbolKind::Interface
+            | SymbolKind::Struct
+            | SymbolKind::Trait
+            | SymbolKind::Enum
+            | SymbolKind::Module
+    )
+}
+
+fn is_ecmascript_language(caller: Option<&Symbol>) -> bool {
+    caller.is_some_and(|caller| is_ecmascript_language_name(&caller.language))
+}
+
+fn is_ecmascript_language_name(language: &str) -> bool {
+    matches!(language, "javascript" | "typescript" | "jsx" | "tsx")
+}
+
+fn is_class_member(symbol: &Symbol, by_id: &HashMap<&str, &Symbol>) -> bool {
+    let Some(parent_id) = symbol.parent_id.as_deref() else {
+        return false;
+    };
+    by_id
+        .get(parent_id)
+        .copied()
+        .is_some_and(|parent| matches!(parent.kind, SymbolKind::Class | SymbolKind::Interface))
+}
+
+fn binding_is_visible(symbol: &Symbol, call_site: Node<'_>) -> bool {
+    if !is_ecmascript_language_name(&symbol.language) {
+        return generic_block_binding_is_visible(symbol, call_site);
+    }
+    let Some(declaration) = root_node(call_site)
+        .descendant_for_byte_range(symbol.start_byte as usize, symbol.end_byte as usize)
+    else {
+        return true;
+    };
+    let is_parameter = metadata_str(symbol, "role") == Some("parameter");
+    let (block_scope, function_scope) = ecmascript_binding_scopes(declaration, is_parameter);
+    if node_encloses(block_scope, call_site) {
+        return true;
+    }
+    if node_encloses(function_scope, call_site)
+        && (declaration.kind() == "variable_declaration"
+            || matches!(
+                declaration.kind(),
+                "function_declaration" | "generator_function_declaration"
+            ))
+    {
+        return true;
+    }
+    false
+}
+
+fn lua_local_placeholder_precedes_function(
+    placeholder: &Symbol,
+    function: &Symbol,
+    call_site: Node<'_>,
+) -> bool {
+    if placeholder.language != "lua"
+        || placeholder.kind != SymbolKind::Variable
+        || function.language != "lua"
+        || function.kind != SymbolKind::Function
+        || placeholder.start_byte >= function.start_byte
+        || placeholder.end_byte > call_site.start_byte() as u32
+    {
+        return false;
+    }
+    let root = root_node(call_site);
+    let Some(placeholder_node) = root.descendant_for_byte_range(
+        placeholder.start_byte as usize,
+        placeholder.end_byte as usize,
+    ) else {
+        return false;
+    };
+    let Some(function_node) =
+        root.descendant_for_byte_range(function.start_byte as usize, function.end_byte as usize)
+    else {
+        return false;
+    };
+    let Some(variable_declaration) = ancestor_including(placeholder_node, "variable_declaration")
+    else {
+        return false;
+    };
+    let Some(local_container) = variable_declaration.parent() else {
+        return false;
+    };
+    if !has_child_field(local_container, variable_declaration, "local_declaration") {
+        return false;
+    }
+    let Some(function_declaration) = ancestor_including(function_node, "function_declaration")
+    else {
+        return false;
+    };
+    let Some(name) = function_declaration.child_by_field_name("name") else {
+        return false;
+    };
+    let Some(function_container) = function_declaration.parent() else {
+        return false;
+    };
+    if name.kind() != "identifier"
+        || !node_encloses(function_node, name)
+        || has_child_field(
+            function_container,
+            function_declaration,
+            "local_declaration",
+        )
+    {
+        return false;
+    }
+    let Some(placeholder_block) = ancestor_including(local_container, "block")
+        .or_else(|| ancestor_including(local_container, "chunk"))
+    else {
+        return false;
+    };
+    let Some(function_block) = ancestor_including(function_container, "block")
+        .or_else(|| ancestor_including(function_container, "chunk"))
+    else {
+        return false;
+    };
+    placeholder_block.id() == function_block.id() && node_encloses(placeholder_block, call_site)
+}
+
+fn ancestor_including<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {
+    let mut current = Some(node);
+    while let Some(node) = current {
+        if node.kind() == kind {
+            return Some(node);
+        }
+        current = node.parent();
+    }
+    None
+}
+
+fn has_child_field(parent: Node<'_>, child: Node<'_>, field: &str) -> bool {
+    (0..parent.child_count()).any(|index| {
+        parent.child(index as u32).is_some_and(|candidate| {
+            candidate.id() == child.id() && parent.field_name_for_child(index as u32) == Some(field)
+        })
+    })
+}
+
+fn generic_block_binding_is_visible(symbol: &Symbol, call_site: Node<'_>) -> bool {
+    if !uses_block_scopes(&symbol.language)
+        || !matches!(
+            symbol.kind,
+            SymbolKind::Variable
+                | SymbolKind::Constant
+                | SymbolKind::Import
+                | SymbolKind::Function
+                | SymbolKind::Class
+                | SymbolKind::Interface
+                | SymbolKind::Struct
+                | SymbolKind::Type
+                | SymbolKind::Enum
+                | SymbolKind::Namespace
+                | SymbolKind::Module
+        )
+    {
+        return true;
+    }
+    let Some(mut declaration) = root_node(call_site)
+        .descendant_for_byte_range(symbol.start_byte as usize, symbol.end_byte as usize)
+    else {
+        return true;
+    };
+    if matches!(symbol.language.as_str(), "lua")
+        && symbol.start_byte > call_site.start_byte() as u32
+    {
+        return false;
+    }
+    if matches!(
+        symbol.kind,
+        SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Import
+    ) && symbol.start_byte > call_site.start_byte() as u32
+    {
+        return false;
+    }
+    if metadata_str(symbol, "role") == Some("parameter") {
+        let scope = enclosing_node(declaration, generic_function_scope);
+        return node_encloses(scope, call_site);
+    }
+    if matches!(
+        declaration.kind(),
+        "function_definition"
+            | "function_declaration"
+            | "function_declaration_statement"
+            | "function_item"
+            | "method_declaration"
+            | "class_declaration"
+            | "struct_item"
+            | "enum_item"
+            | "type_declaration"
+            | "interface_declaration"
+    ) {
+        declaration = declaration.parent().unwrap_or(declaration);
+    }
+    let scope = enclosing_node(declaration, is_generic_block_scope);
+    node_encloses(scope, call_site)
+}
+
+fn uses_block_scopes(language: &str) -> bool {
+    matches!(
+        language,
+        "c" | "cpp"
+            | "csharp"
+            | "dart"
+            | "fsharp"
+            | "gdscript"
+            | "go"
+            | "java"
+            | "kotlin"
+            | "lua"
+            | "rust"
+            | "scala"
+            | "swift"
+            | "vbnet"
+            | "zig"
+    )
+}
+
+fn is_generic_block_scope(kind: &str) -> bool {
+    matches!(
+        kind,
+        "block"
+            | "block_statement"
+            | "block_stmt"
+            | "compound_statement"
+            | "statement_block"
+            | "function_body"
+            | "statements"
+            | "switch_body"
+            | "switch_block"
+            | "case_block"
+            | "for_statement"
+            | "for_in_statement"
+            | "for_expression"
+            | "foreach_statement"
+            | "catch_clause"
+            | "catch_block"
+            | "try_statement"
+            | "if_statement"
+            | "source_file"
+            | "translation_unit"
+            | "program"
+            | "compilation_unit"
+    )
+}
+
+fn generic_function_scope(kind: &str) -> bool {
+    is_generic_block_scope(kind)
+        || matches!(
+            kind,
+            "function_definition"
+                | "function_declaration"
+                | "function_declaration_statement"
+                | "function_item"
+                | "method_declaration"
+                | "lambda_expression"
+                | "arrow_function"
+                | "function_expression"
+                | "lambda"
+        )
+}
+
+fn target_value_available(symbol: &Symbol, call_site: Node<'_>) -> bool {
+    let Some(declaration) = root_node(call_site)
+        .descendant_for_byte_range(symbol.start_byte as usize, symbol.end_byte as usize)
+    else {
+        return true;
+    };
+    if !is_ecmascript_language_name(&symbol.language)
+        || matches!(
+            declaration.kind(),
+            "function_declaration" | "generator_function_declaration"
+        )
+    {
+        return true;
+    }
+    symbol.start_byte <= call_site.start_byte() as u32
+}
+
+fn ecmascript_binding_scopes(declaration: Node<'_>, is_parameter: bool) -> (Node<'_>, Node<'_>) {
+    if is_parameter {
+        let function = enclosing_node(declaration, is_ecmascript_function_scope);
+        return (function, function);
+    }
+    let binding = match declaration.kind() {
+        "arrow_function" | "function_expression" | "generator_function" => declaration
+            .parent()
+            .filter(|parent| parent.kind() == "variable_declarator")
+            .unwrap_or(declaration),
+        _ => declaration,
+    };
+    let mut current = Some(binding);
+    while let Some(node) = current {
+        match node.kind() {
+            "variable_declaration" => {
+                let function = enclosing_node(node, is_ecmascript_function_scope);
+                return (function, function);
+            }
+            "lexical_declaration" | "class_declaration" | "import_statement" => {
+                let block = enclosing_node(node, is_ecmascript_block_scope);
+                return (block, block);
+            }
+            "function_declaration" | "generator_function_declaration" => {
+                let block = enclosing_node(node, is_ecmascript_block_scope);
+                let function = enclosing_node(node, is_ecmascript_function_scope);
+                return (block, function);
+            }
+            kind if is_ecmascript_block_scope(kind) => return (node, node),
+            _ => current = node.parent(),
+        }
+    }
+    (binding, binding)
+}
+
+fn is_ecmascript_function_scope(kind: &str) -> bool {
+    matches!(
+        kind,
+        "program"
+            | "function_declaration"
+            | "generator_function_declaration"
+            | "function_expression"
+            | "generator_function"
+            | "arrow_function"
+            | "method_definition"
+            | "class_static_block"
+    )
+}
+
+fn is_ecmascript_block_scope(kind: &str) -> bool {
+    matches!(
+        kind,
+        "statement_block" | "program" | "switch_body" | "for_statement" | "for_in_statement"
+    )
+}
+
+fn enclosing_node<'tree>(node: Node<'tree>, keep: impl Fn(&str) -> bool) -> Node<'tree> {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        if keep(parent.kind()) {
+            return parent;
+        }
+        current = parent;
+    }
+    current
+}
+
+fn node_encloses(scope: Node<'_>, node: Node<'_>) -> bool {
+    scope.start_byte() <= node.start_byte() && node.end_byte() <= scope.end_byte()
+}
+
+fn root_node<'tree>(node: Node<'tree>) -> Node<'tree> {
+    let mut root = node;
+    while let Some(parent) = root.parent() {
+        root = parent;
+    }
+    root
+}
+
+fn ecmascript_this_is_unbound(
+    index: &ScopedSymbolIndex<'_>,
+    call_site: Node<'_>,
+    caller: Option<&Symbol>,
+) -> bool {
+    let nearest_function = {
+        let mut current = call_site.parent();
+        let mut nearest_function = None;
+        while let Some(node) = current {
+            if matches!(
+                node.kind(),
+                "function_declaration"
+                    | "function_expression"
+                    | "generator_function"
+                    | "generator_function_declaration"
+            ) {
+                nearest_function = Some(node);
+                break;
+            }
+            if matches!(node.kind(), "method_definition" | "program") {
+                break;
+            }
+            current = node.parent();
+        }
+        nearest_function
+    };
+
+    let mut current_symbol = caller;
+    let prototype_owner = loop {
+        let Some(symbol) = current_symbol else {
+            break None;
+        };
+        if symbol.kind == SymbolKind::Method
+            && symbol
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("isPrototypeMethod"))
+                .and_then(serde_json::Value::as_bool)
+                == Some(true)
+        {
+            break Some((symbol, true));
+        }
+        if symbol.kind == SymbolKind::Function
+            && index.prototype_owner_ids.contains(symbol.id.as_str())
+        {
+            break Some((symbol, false));
+        }
+        if symbol.kind != SymbolKind::Function
+            || symbol
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("isArrowFunction"))
+                .and_then(serde_json::Value::as_bool)
+                != Some(true)
+        {
+            break None;
+        }
+        current_symbol = symbol
+            .parent_id
+            .as_deref()
+            .and_then(|parent_id| index.by_id.get(parent_id).copied());
+    };
+
+    if let Some((owner, is_prototype_method)) = prototype_owner {
+        if !is_prototype_method {
+            let owner_node = root_node(call_site)
+                .descendant_for_byte_range(owner.start_byte as usize, owner.end_byte as usize);
+            return !owner_node.is_some_and(|node| {
+                matches!(
+                    node.kind(),
+                    "function_declaration"
+                        | "function_expression"
+                        | "generator_function"
+                        | "generator_function_declaration"
+                ) && nearest_function.is_some_and(|nearest| nearest.id() == node.id())
+                    && node
+                        .child_by_field_name("body")
+                        .is_some_and(|body| node_encloses(body, call_site))
+            });
+        }
+
+        let assignment = root_node(call_site)
+            .descendant_for_byte_range(owner.start_byte as usize, owner.end_byte as usize)
+            .and_then(|node| ancestor_including(node, "assignment_expression"));
+        let Some(assignment) = assignment.filter(|assignment| {
+            assignment.start_byte() == owner.start_byte as usize
+                && assignment.end_byte() == owner.end_byte as usize
+        }) else {
+            return true;
+        };
+        let Some(function) = assignment.child_by_field_name("right") else {
+            return true;
+        };
+        if !matches!(
+            function.kind(),
+            "function_expression" | "generator_function" | "function"
+        ) || nearest_function.is_none_or(|nearest| nearest.id() != function.id())
+            || !function
+                .child_by_field_name("body")
+                .is_some_and(|body| node_encloses(body, call_site))
+        {
+            return true;
+        }
+        return false;
     }
 
-    unique_candidate(&same_parent)
+    nearest_function.is_some()
 }
 
 fn unique_candidate<'a>(candidates: &[&'a Symbol]) -> LocalTargetResolution<'a> {

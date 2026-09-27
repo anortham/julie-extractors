@@ -1457,6 +1457,24 @@
       "metadata": null
     },
     {
+      "from_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Point:34:4",
+      "to_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Point:32:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
+      "line_number": 34,
+      "span": {
+        "start_line": 34,
+        "start_column": 14,
+        "end_line": 34,
+        "end_column": 22,
+        "start_byte": 860,
+        "end_byte": 868
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
       "from_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Polygon:9:0",
       "to_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Shape:7:0",
       "kind": "extends",
@@ -1529,6 +1547,24 @@
         "end_column": 51,
         "start_byte": 926,
         "end_byte": 940
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:run:58:4",
+      "to_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:OrderService:41:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
+      "line_number": 61,
+      "span": {
+        "start_line": 61,
+        "start_column": 41,
+        "end_line": 61,
+        "end_column": 58,
+        "start_byte": 1642,
+        "end_byte": 1659
       },
       "reference_site_is_exact": false,
       "confidence": "0.900",
@@ -1616,7 +1652,7 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
       "line_number": 51,
-      "confidence": "0.800"
+      "confidence": "0.700"
     },
     {
       "from_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:OrderService:49:4",
@@ -1640,14 +1676,6 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
       "line_number": 52,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Point:34:4",
-      "callee_name": "Point",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
-      "line_number": 34,
       "confidence": "0.700"
     },
     {
@@ -1712,14 +1740,6 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
       "line_number": 43,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:run:58:4",
-      "callee_name": "OrderService",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
-      "line_number": 61,
       "confidence": "0.700"
     },
     {
@@ -1961,7 +1981,7 @@
         "kind": "calls",
         "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
         "line_number": 51,
-        "confidence": "0.800"
+        "confidence": "0.700"
       },
       "target": {
         "display_name": "ArrayList",
@@ -2058,32 +2078,6 @@
         "end_column": 63,
         "start_byte": 1334,
         "end_byte": 1374
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Point:34:4",
-        "callee_name": "Point",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
-        "line_number": 34,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Point",
-        "terminal_name": "Point",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Point:34:4",
-      "span": {
-        "start_line": 34,
-        "start_column": 14,
-        "end_line": 34,
-        "end_column": 22,
-        "start_byte": 860,
-        "end_byte": 868
       }
     },
     {
@@ -2296,32 +2290,6 @@
         "end_column": 46,
         "start_byte": 1105,
         "end_byte": 1117
-      }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:run:58:4",
-        "callee_name": "OrderService",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
-        "line_number": 61,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "OrderService",
-        "terminal_name": "OrderService",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:run:58:4",
-      "span": {
-        "start_line": 61,
-        "start_column": 41,
-        "end_line": 61,
-        "end_column": 58,
-        "start_byte": 1642,
-        "end_byte": 1659
       }
     },
     {

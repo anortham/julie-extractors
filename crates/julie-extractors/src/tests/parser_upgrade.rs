@@ -41,7 +41,7 @@ fn parser_upgrade_gate_covers_full_language_inventory() {
         assert!(
             matches!(
                 row.dependency_status.as_str(),
-                "current" | "upgrade_available" | "git_pinned" | "held"
+                "current" | "upgrade_available" | "git_pinned" | "held" | "vendored"
             ),
             "{} has invalid dependency status {}",
             row.language,

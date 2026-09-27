@@ -216,6 +216,7 @@ fn extract_call_relationships(
             &called_method_name,
             Some(caller_symbol),
             target.receiver.as_deref(),
+            node,
         )
     } else {
         LocalTargetResolution::Missing

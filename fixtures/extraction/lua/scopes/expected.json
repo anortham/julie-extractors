@@ -1081,11 +1081,11 @@
       "caller_scope_key": "fixtures/extraction/lua/scopes/source.lua:call:36:0",
       "span": {
         "start_line": 37,
-        "start_column": 11,
+        "start_column": 16,
         "end_line": 37,
-        "end_column": 24,
-        "start_byte": 615,
-        "end_byte": 628
+        "end_column": 21,
+        "start_byte": 620,
+        "end_byte": 625
       },
       "receiver_type": "inner"
     },
@@ -1108,11 +1108,11 @@
       "caller_scope_key": "fixtures/extraction/lua/scopes/source.lua:deep:32:0",
       "span": {
         "start_line": 33,
-        "start_column": 11,
+        "start_column": 16,
         "end_line": 33,
-        "end_column": 23,
-        "start_byte": 554,
-        "end_byte": 566
+        "end_column": 20,
+        "start_byte": 559,
+        "end_byte": 563
       }
     },
     {
@@ -1134,11 +1134,11 @@
       "caller_scope_key": "fixtures/extraction/lua/scopes/source.lua:mul:27:0",
       "span": {
         "start_line": 28,
-        "start_column": 14,
+        "start_column": 19,
         "end_line": 28,
-        "end_column": 30,
-        "start_byte": 474,
-        "end_byte": 490
+        "end_column": 24,
+        "start_byte": 479,
+        "end_byte": 484
       }
     },
     {
@@ -1160,11 +1160,11 @@
       "caller_scope_key": "fixtures/extraction/lua/scopes/source.lua:run:24:13",
       "span": {
         "start_line": 24,
-        "start_column": 41,
+        "start_column": 46,
         "end_line": 24,
-        "end_column": 55,
-        "start_byte": 393,
-        "end_byte": 407
+        "end_column": 49,
+        "start_byte": 398,
+        "end_byte": 401
       }
     },
     {
@@ -1188,9 +1188,9 @@
         "start_line": 11,
         "start_column": 13,
         "end_line": 11,
-        "end_column": 31,
+        "end_column": 18,
         "start_byte": 169,
-        "end_byte": 187
+        "end_byte": 174
       }
     },
     {
@@ -1212,11 +1212,11 @@
       "caller_scope_key": "fixtures/extraction/lua/scopes/source.lua:update:10:0",
       "span": {
         "start_line": 12,
-        "start_column": 4,
+        "start_column": 12,
         "end_line": 12,
-        "end_column": 20,
-        "start_byte": 192,
-        "end_byte": 208
+        "end_column": 16,
+        "start_byte": 200,
+        "end_byte": 204
       }
     },
     {
@@ -1240,9 +1240,9 @@
         "start_line": 19,
         "start_column": 13,
         "end_line": 19,
-        "end_column": 31,
+        "end_column": 18,
         "start_byte": 293,
-        "end_byte": 311
+        "end_byte": 298
       }
     },
     {

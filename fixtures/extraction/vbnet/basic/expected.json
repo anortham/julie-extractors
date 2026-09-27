@@ -1105,6 +1105,24 @@
     },
     {
       "from_key": "fixtures/extraction/vbnet/basic/source.vb:ProbeFacts:46:8",
+      "to_key": "fixtures/extraction/vbnet/basic/source.vb:Run:16:8",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
+      "line_number": 51,
+      "span": {
+        "start_line": 51,
+        "start_column": 12,
+        "end_line": 51,
+        "end_column": 20,
+        "start_byte": 1504,
+        "end_byte": 1512
+      },
+      "reference_site_is_exact": false,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/vbnet/basic/source.vb:ProbeFacts:46:8",
       "to_key": "fixtures/extraction/vbnet/basic/source.vb:Worker:6:4",
       "kind": "instantiates",
       "file_path": "fixtures/extraction/vbnet/basic/source.vb",
@@ -1240,14 +1258,6 @@
       "confidence": "0.700"
     },
     {
-      "from_key": "fixtures/extraction/vbnet/basic/source.vb:ProbeFacts:46:8",
-      "callee_name": "Run",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
-      "line_number": 51,
-      "confidence": "0.700"
-    },
-    {
       "from_key": "fixtures/extraction/vbnet/basic/source.vb:Worker:6:4",
       "callee_name": "Dictionary",
       "kind": "uses",
@@ -1282,33 +1292,6 @@
         "start_byte": 1484,
         "end_byte": 1491
       }
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/vbnet/basic/source.vb:ProbeFacts:46:8",
-        "callee_name": "Run",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/vbnet/basic/source.vb",
-        "line_number": 51,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "Run",
-        "terminal_name": "Run",
-        "receiver": null,
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/vbnet/basic/source.vb:ProbeFacts:46:8",
-      "span": {
-        "start_line": 51,
-        "start_column": 12,
-        "end_line": 51,
-        "end_column": 20,
-        "start_byte": 1504,
-        "end_byte": 1512
-      },
-      "receiver_type": "Worker"
     },
     {
       "pending": {
