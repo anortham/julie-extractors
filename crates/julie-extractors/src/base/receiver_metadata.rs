@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use tree_sitter::{Node, Tree};
 
@@ -41,6 +41,7 @@ pub(crate) fn enrich(language: &str, tree: &Tree, source: &str, identifiers: &mu
     }
 
     let mut receivers_by_span = HashMap::new();
+    let mut python_super_call_receiver_spans = HashSet::new();
     let mut stack = vec![tree.root_node()];
     while let Some(node) = stack.pop() {
         if let Some((receiver, member)) = dart_cascade_call_parts(grammar_language, node) {
@@ -70,6 +71,13 @@ pub(crate) fn enrich(language: &str, tree: &Tree, source: &str, identifiers: &mu
             );
         }
         if let Some((receiver, member)) = candidate_parts(grammar_language, node, source) {
+            if grammar_language == "python"
+                && is_python_super_call_receiver(receiver, source)
+                && let Some(member) = terminal_name(member)
+            {
+                python_super_call_receiver_spans
+                    .insert((member.start_byte() as u32, member.end_byte() as u32));
+            }
             record_candidate(
                 named_chain(grammar_language, receiver, source),
                 member,
@@ -91,6 +99,13 @@ pub(crate) fn enrich(language: &str, tree: &Tree, source: &str, identifiers: &mu
         };
         for index in indices {
             let identifier = &mut identifiers[*index];
+            if language == "python"
+                && receiver_name == "super"
+                && identifier.kind == IdentifierKind::Call
+                && python_super_call_receiver_spans.contains(&span)
+            {
+                continue;
+            }
             let metadata = identifier.metadata.get_or_insert_with(HashMap::new);
             metadata.insert("receiver".to_string(), receiver_name.clone().into());
             if parts.len() > 1 {
@@ -101,6 +116,16 @@ pub(crate) fn enrich(language: &str, tree: &Tree, source: &str, identifiers: &mu
             }
         }
     }
+}
+
+fn is_python_super_call_receiver(node: Node<'_>, source: &str) -> bool {
+    if node.kind() != "call" {
+        return false;
+    }
+    node.child_by_field_name("function")
+        .is_some_and(|function| {
+            function.kind() == "identifier" && node_text(function, source) == Some("super")
+        })
 }
 
 fn record_candidate(
@@ -501,6 +526,14 @@ fn named_chain(language: &str, mut node: Node<'_>, source: &str) -> Option<Vec<S
                     return None;
                 }
                 node = target;
+            }
+            "call" if language == "python" => {
+                let function = node.child_by_field_name("function")?;
+                if function.kind() != "identifier" || node_text(function, source)? != "super" {
+                    return None;
+                }
+                reversed.push("super".to_string());
+                break;
             }
             "alias" if language == "elixir" => {
                 reversed.extend(node_text(node, source)?.split('.').rev().map(str::to_owned));

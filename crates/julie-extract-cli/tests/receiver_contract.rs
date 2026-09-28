@@ -203,7 +203,26 @@ const LANGUAGE_CASES: &[LanguageCase] = &[
     LanguageCase {
         language: "python",
         fixture: "fixtures/extraction/python/basic/source.py",
-        expected: &[("self.id = id", "id", "self", None, 1)],
+        expected: &[
+            ("self.id = id", "id", "self", None, 1),
+            ("zero_arg = super().title", "title", "super", None, 1),
+            (
+                "explicit_arg = super(ReceiverChild, self).title",
+                "title",
+                "super",
+                None,
+                1,
+            ),
+            ("ordinary = other.title", "title", "other", None, 1),
+            ("obj.super.send()", "send", "super", Some("obj"), 1),
+            (
+                "def parameter_named_super(super):\n    super.send()",
+                "send",
+                "super",
+                None,
+                1,
+            ),
+        ],
         absences: NO_EXPECTED_ABSENCES,
         not_applicable: None,
         identifier_language: None,
@@ -1134,6 +1153,9 @@ fn prepare_source(case: &LanguageCase, repository: &Path) -> String {
                 "dotnet restore .\n        Get-Process | Select-Object -First 1",
             )
         }
+        "python" => source.push_str(
+            "\nclass ReceiverBase:\n    @property\n    def title(self):\n        return 1\n\nclass ReceiverChild(ReceiverBase):\n    def read_titles(self, other):\n        zero_arg = super().title\n        explicit_arg = super(ReceiverChild, self).title\n        ordinary = other.title\n\n    def named_super_receiver(self, obj):\n        obj.super.send()\n\ndef parameter_named_super(super):\n    super.send()\n",
+        ),
         "fsharp" => source.push_str(
             "\nlet receiverContract x = match x with | Some value -> log value\n",
         ),
