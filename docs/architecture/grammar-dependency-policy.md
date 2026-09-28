@@ -36,7 +36,7 @@ on an unreleased upstream branch is not accepted.
 
 | Dependency | Owned remote | Project-maintained behavior |
 | --- | --- | --- |
-| `tree-sitter-c-sharp` | [`anortham/tree-sitter-c-sharp`](https://github.com/anortham/tree-sitter-c-sharp) | C# 14 and .NET file-based application syntax not available in the published crate. |
+| `tree-sitter-c-sharp` | [`anortham/tree-sitter-c-sharp`](https://github.com/anortham/tree-sitter-c-sharp) | C# 14 and .NET file-based application syntax, plus `@$`/`$@` interpolated-verbatim strings with doubled quotes around interpolations, not available in the published crate. |
 | `tree-sitter-sequel-tsql` | [`anortham/tree-sitter-sql`](https://github.com/anortham/tree-sitter-sql) | Certified T-SQL identifier, DDL, batch, trigger, routine, and `MERGE` syntax. |
 | `tree-sitter-razor` | [`anortham/tree-sitter-razor`](https://github.com/anortham/tree-sitter-razor) | Parser fixes required by the certified Razor and Blazor fixtures. |
 | `tree-sitter-gomod` | [`anortham/tree-sitter-go-mod`](https://github.com/anortham/tree-sitter-go-mod) | Fork of `camdencheek/tree-sitter-go-mod` (MIT). Adds the `godebug` directive, accepts absolute and one-character file paths, and accepts a last line with no final newline. The crates.io release (1.0.1) depends on tree-sitter 0.20 and cannot link with runtime 0.26.11. |

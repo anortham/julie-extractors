@@ -3399,6 +3399,11 @@
           "expected": "fixtures/extraction/csharp/csharp14/expected.json"
         },
         {
+          "name": "interpolated_verbatim",
+          "source": "fixtures/extraction/csharp/interpolated_verbatim/source.cs",
+          "expected": "fixtures/extraction/csharp/interpolated_verbatim/expected.json"
+        },
+        {
           "name": "cross_file",
           "source": "fixtures/extraction/csharp/cross_file/Source.cs",
           "expected": "fixtures/extraction/csharp/cross_file/expected.json"

@@ -548,7 +548,7 @@ fn dependency_policy_locks_tree_sitter_runtime_and_git_parser_commits() {
         .expect("tree-sitter-c-sharp dependency declaration");
     assert_eq!(
         csharp_declaration,
-        "tree-sitter-c-sharp = { git = \"https://github.com/anortham/tree-sitter-c-sharp\", rev = \"688cf95ae4c984638557dab73253bd66719bdd5c\" }",
+        "tree-sitter-c-sharp = { git = \"https://github.com/anortham/tree-sitter-c-sharp\", rev = \"388c0e74f41a3f074f4bbc0f62aaf4e6ca48fffe\" }",
         "tree-sitter-c-sharp must resolve from the reviewed fork commit"
     );
 

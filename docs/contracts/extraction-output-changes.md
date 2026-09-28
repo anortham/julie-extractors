@@ -1214,6 +1214,16 @@ and `pending_resolutions`. JSONL v5 drops the overlay keys. `store resolve` is
 gone. Family stores stay schema v2 and drop leftover resolution objects on
 writer open.
 
+C# `@$` and `$@` interpolated-verbatim strings with doubled quotes around
+interpolation expressions now parse without diagnostics. The golden fixture proves
+method symbols and interpolation-variable reference facts are emitted. The
+previous pinned grammar reported parser diagnostics for this valid syntax.
+`EXTRACTION_CONTRACT_VERSION` adds
+`csharp-interpolated-verbatim-v1`. SQLite schema 7, report schema 3, and
+extraction identity epoch 10 remain unchanged. Existing artifact readers remain
+compatible; consumers must upgrade and re-extract affected files (or run
+`scan --force`) to obtain the new facts.
+
 The compat dump excludes the two overlay tables and `language_capability_gaps`
 so fact-table identity remains the gate against v2.33.7. Their absence is this
 classified break, not an undeclared table drop.
