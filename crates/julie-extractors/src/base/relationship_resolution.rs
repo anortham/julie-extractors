@@ -352,8 +352,8 @@ impl<'a> ScopedSymbolIndex<'a> {
             })
             .collect();
 
-        if is_ecmascript_language(caller) {
-            if let Some(inner) = self
+        if is_ecmascript_language(caller)
+            && let Some(inner) = self
                 .by_inner_name
                 .get(terminal_name)
                 .into_iter()
@@ -365,9 +365,8 @@ impl<'a> ScopedSymbolIndex<'a> {
                         .map(|distance| (distance, symbol))
                 })
                 .min_by_key(|(distance, _)| *distance)
-            {
-                visible.push(inner);
-            }
+        {
+            visible.push(inner);
         }
 
         resolve_nearest_binding(visible, |symbol| {
@@ -525,10 +524,7 @@ impl<'a> ScopedSymbolIndex<'a> {
         };
         symbol.start_byte <= call_site.start_byte() as u32
             && call_site.end_byte() as u32 <= symbol.end_byte
-            && self
-                .scope_chain(Some(caller))
-                .iter()
-                .any(|scope| *scope == symbol.id)
+            && self.scope_chain(Some(caller)).contains(&symbol.id)
     }
 }
 

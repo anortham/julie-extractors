@@ -72,24 +72,23 @@ fn extract_identifier_from_node(
 
             if backref_text.starts_with("\\k<")
                 && let Some(end_pos) = backref_text.find('>')
+                && backref_text.is_char_boundary(3)
+                && backref_text.is_char_boundary(end_pos)
             {
-                if backref_text.is_char_boundary(3) && backref_text.is_char_boundary(end_pos) {
-                    let group_name = backref_text[3..end_pos].to_string();
-                    if !group_name.is_empty() {
-                        let containing_symbol_id =
-                            find_containing_symbol_id(node, containing_symbols);
+                let group_name = backref_text[3..end_pos].to_string();
+                if !group_name.is_empty() {
+                    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
 
-                        if let Some(span) =
-                            base.span_for_byte_range(start_byte + 3, start_byte + end_pos)
-                        {
-                            base.create_identifier_at_span(
-                                span,
-                                group_name,
-                                IdentifierKind::Call,
-                                containing_symbol_id,
-                                None,
-                            );
-                        }
+                    if let Some(span) =
+                        base.span_for_byte_range(start_byte + 3, start_byte + end_pos)
+                    {
+                        base.create_identifier_at_span(
+                            span,
+                            group_name,
+                            IdentifierKind::Call,
+                            containing_symbol_id,
+                            None,
+                        );
                     }
                 }
             }

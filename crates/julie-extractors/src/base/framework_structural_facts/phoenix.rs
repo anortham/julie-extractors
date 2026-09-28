@@ -239,6 +239,7 @@ impl PhoenixModuleContext {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn websocket_declaration_fact(
     node: Node,
     language: &str,

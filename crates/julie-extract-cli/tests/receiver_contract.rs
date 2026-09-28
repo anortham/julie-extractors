@@ -40,6 +40,16 @@ struct ReceiverFact {
     qualifier: Option<String>,
 }
 
+/// Start line, start column, end line, end column, start byte, and end byte of a reference site.
+type SiteSpan = (
+    Option<i64>,
+    Option<i64>,
+    Option<i64>,
+    Option<i64>,
+    Option<i64>,
+    Option<i64>,
+);
+
 struct ArtifactIdentifier {
     path: String,
     language: String,
@@ -55,14 +65,7 @@ struct ArtifactIdentifier {
     qualifier: Option<String>,
     receiver_key_present: bool,
     qualifier_key_present: bool,
-    reference_site_span: (
-        Option<i64>,
-        Option<i64>,
-        Option<i64>,
-        Option<i64>,
-        Option<i64>,
-        Option<i64>,
-    ),
+    reference_site_span: SiteSpan,
     reference_site_exact: bool,
 }
 

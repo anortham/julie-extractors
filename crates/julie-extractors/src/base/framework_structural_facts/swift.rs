@@ -98,9 +98,9 @@ fn walk_testing_traits(
     }
 }
 
-fn testing_trait_expression<'a>(
+fn testing_trait_expression(
     expression: Node,
-    content: &'a str,
+    content: &str,
 ) -> Option<(&'static str, Vec<String>)> {
     let callee = if expression.kind() == "call_expression" {
         expression.named_child(0)?

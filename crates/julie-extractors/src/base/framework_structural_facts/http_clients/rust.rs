@@ -478,21 +478,13 @@ fn self_field_reqwest_key(receiver: Node, call: Node, content: &str) -> Option<R
     {
         return None;
     }
-    let Some(field_name) = receiver
+    let field_name = receiver
         .child_by_field_name("field")
-        .and_then(|field| node_text(content, field))
-    else {
-        return None;
-    };
-    let Some(implementation) = enclosing_impl_item(call) else {
-        return None;
-    };
-    let Some(type_name) = implementation
+        .and_then(|field| node_text(content, field))?;
+    let implementation = enclosing_impl_item(call)?;
+    let type_name = implementation
         .child_by_field_name("type")
-        .and_then(|ty| rust_local_impl_owner_name(ty, content))
-    else {
-        return None;
-    };
+        .and_then(|ty| rust_local_impl_owner_name(ty, content))?;
     Some(ReqwestFieldKey {
         module: rust_module_path(implementation, content),
         declaration_scope: implementation.parent()?.start_byte(),

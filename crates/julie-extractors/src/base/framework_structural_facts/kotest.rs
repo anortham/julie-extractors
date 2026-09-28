@@ -145,6 +145,7 @@ fn check_import_kind(path: &str) -> Option<CheckKind> {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn collect_check_calls(
     node: Node,
     language: &str,
