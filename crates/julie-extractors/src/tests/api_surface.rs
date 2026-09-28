@@ -49,6 +49,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "call-initializer-type-facts-v1",
         "python-instance-attribute-signature-v1",
         "python-return-arrow-v1",
+        "python-inferred-return-type-v1",
         "flask-methods-tuple-v1",
         "python-cls-binding-v1",
         "python-decorator-args-v1",

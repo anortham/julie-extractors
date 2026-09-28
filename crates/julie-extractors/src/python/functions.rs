@@ -28,6 +28,13 @@ pub fn extract_function(extractor: &mut PythonExtractor, node: Node) -> Option<S
         .child_by_field_name("return_type")
         .map(|return_type_node| extractor.base_mut().get_node_text(&return_type_node))
         .unwrap_or_default();
+    let inferred_return_type = if return_type.is_empty() {
+        extractor
+            .return_types
+            .inferred_function_return_type(extractor.base(), node)
+    } else {
+        None
+    };
     let return_arrow = if return_type.is_empty() {
         String::new()
     } else {
@@ -74,6 +81,12 @@ pub fn extract_function(extractor: &mut PythonExtractor, node: Node) -> Option<S
     metadata.insert("decorators".to_string(), serde_json::json!(decorators_list));
     metadata.insert("isAsync".to_string(), serde_json::json!(is_async));
     metadata.insert("returnType".to_string(), serde_json::json!(return_type));
+    if let Some(inferred_return_type) = inferred_return_type {
+        metadata.insert(
+            "inferredReturnType".to_string(),
+            serde_json::json!(inferred_return_type),
+        );
+    }
 
     // pytest and unittest collect only module- and class-level callables.
     if !nested_in_function {

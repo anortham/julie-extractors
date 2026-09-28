@@ -128,7 +128,10 @@ enum Scope {
 enum Binding {
     Functions,
     Classes(Vec<usize>),
-    Import(String),
+    Import {
+        qualified: String,
+        from_import: bool,
+    },
     Parameter,
     Other,
 }
@@ -221,6 +224,40 @@ impl ReturnTypeIndex {
         index
     }
 
+    pub(super) fn inferred_function_return_type(
+        &self,
+        base: &BaseExtractor,
+        function: Node,
+    ) -> Option<String> {
+        infer_constructed_local_return(self, base, function)
+    }
+
+    fn constructor_type_name(&self, base: &BaseExtractor, call: Node) -> Option<String> {
+        let callee = call
+            .child_by_field_name("function")
+            .filter(|function| function.kind() == "identifier")?;
+        let name = base.get_node_text(&callee);
+        if matches!(self.resolve(&name, callee), Some(Resolved::Class(Some(_)))) {
+            return Some(name);
+        }
+        let (
+            _,
+            Binding::Import {
+                qualified,
+                from_import: true,
+            },
+        ) = self.binding(&name, callee)?
+        else {
+            return None;
+        };
+        let imported_name = qualified.rsplit('.').next()?;
+        imported_name
+            .chars()
+            .next()
+            .is_some_and(char::is_uppercase)
+            .then(|| imported_name.to_string())
+    }
+
     /// The callee every same-named function in this scope agrees on.
     fn lookup(&self, name: &str, scope: Scope) -> Option<&Callee> {
         let mut callees = self.returns.get(&(name.to_string(), scope))?.iter();
@@ -283,7 +320,7 @@ impl ReturnTypeIndex {
         let root_text = base.get_node_text(&root);
         match self.binding(&root_text, node) {
             None => Some(text),
-            Some((_, Binding::Import(qualified))) => {
+            Some((_, Binding::Import { qualified, .. })) => {
                 Some(format!("{qualified}{}", &text[root_text.len()..]))
             }
             Some(_) => None,
@@ -514,6 +551,7 @@ fn record_import_bindings(
     let module = node
         .child_by_field_name("module_name")
         .map(|module| base.get_node_text(&module));
+    let from_import = module.is_some();
     for name in node.children_by_field_name("name", &mut node.walk()) {
         let (path, alias) = if name.kind() == "aliased_import" {
             let (Some(path), Some(alias)) = (
@@ -537,7 +575,15 @@ fn record_import_bindings(
                 (root.clone(), root)
             }
         };
-        insert_binding(bindings, scope, bound, Binding::Import(qualified));
+        insert_binding(
+            bindings,
+            scope,
+            bound,
+            Binding::Import {
+                qualified,
+                from_import,
+            },
+        );
     }
 }
 
@@ -559,6 +605,261 @@ fn defining_scope(function: Node) -> DefiningScope {
         }
     }
     DefiningScope::Module
+}
+
+/// Infer a returned type only when a function's top-level final return is
+/// preceded by one unconditional constructor assignment and every return
+/// yields that same local. Imported constructors are limited to explicit
+/// `from module import Class` bindings; uppercase names are a heuristic and
+/// can misidentify imported factories with class-style names.
+fn infer_constructed_local_return(
+    index: &ReturnTypeIndex,
+    base: &BaseExtractor,
+    function: Node,
+) -> Option<String> {
+    if function.has_error()
+        || function.child_by_field_name("return_type").is_some()
+        || signatures::has_async_keyword(&function)
+    {
+        return None;
+    }
+    let body = function.child_by_field_name("body")?;
+    if body.kind() != "block" {
+        return None;
+    }
+
+    let mut cursor = body.walk();
+    let statements: Vec<Node> = body
+        .named_children(&mut cursor)
+        .filter(|statement| statement.kind() != "comment")
+        .collect();
+    let final_return = *statements.last()?;
+    if final_return.kind() != "return_statement" {
+        return None;
+    }
+
+    let mut returned_name: Option<String> = None;
+    let mut returns = Vec::new();
+    let mut stack = vec![(body, 0)];
+    while let Some((node, depth)) = stack.pop() {
+        if !should_visit_tree_depth(depth) {
+            return None;
+        }
+        if node.id() != body.id()
+            && matches!(
+                node.kind(),
+                "function_definition"
+                    | "async_function_definition"
+                    | "class_definition"
+                    | "lambda"
+                    | "list_comprehension"
+                    | "set_comprehension"
+                    | "dictionary_comprehension"
+                    | "generator_expression"
+            )
+        {
+            return None;
+        }
+        if node.kind().starts_with("yield")
+            || matches!(
+                node.kind(),
+                "for_statement"
+                    | "while_statement"
+                    | "match_statement"
+                    | "with_statement"
+                    | "break_statement"
+                    | "continue_statement"
+            )
+        {
+            return None;
+        }
+        if node.kind() == "return_statement" {
+            let returned = bare_return_name(base, node)?;
+            if returned_name
+                .as_ref()
+                .is_some_and(|existing| existing != &returned)
+            {
+                return None;
+            }
+            returned_name = Some(returned);
+            returns.push(node);
+            continue;
+        }
+        let child_depth = child_tree_depth(depth)?;
+        let mut children = node.walk();
+        stack.extend(
+            node.named_children(&mut children)
+                .map(|child| (child, child_depth)),
+        );
+    }
+
+    let returned_name = returned_name?;
+    if bare_return_name(base, final_return).as_deref() != Some(returned_name.as_str()) {
+        return None;
+    }
+    let assignments: Vec<Node> = statements
+        .iter()
+        .filter_map(|statement| {
+            let assignment = if statement.kind() == "assignment" {
+                Some(*statement)
+            } else if statement.kind() == "expression_statement" {
+                statement
+                    .named_child(0)
+                    .filter(|expression| expression.kind() == "assignment")
+            } else {
+                None
+            }?;
+            assignment
+                .child_by_field_name("left")
+                .filter(|left| left.kind() == "identifier")
+                .is_some_and(|left| base.get_node_text(&left) == returned_name)
+                .then_some(assignment)
+        })
+        .collect();
+    let [assignment] = assignments.as_slice() else {
+        return None;
+    };
+    let call = assignment
+        .child_by_field_name("right")
+        .filter(|right| right.kind() == "call")?;
+    if returns
+        .iter()
+        .any(|returned| returned.start_byte() < assignment.end_byte())
+        || count_local_writes(base, body, &returned_name)? != 1
+    {
+        return None;
+    }
+    index.constructor_type_name(base, call)
+}
+
+fn bare_return_name(base: &BaseExtractor, statement: Node) -> Option<String> {
+    if statement.kind() != "return_statement" || statement.named_child_count() != 1 {
+        return None;
+    }
+    let value = statement.named_child(0)?;
+    (value.kind() == "identifier").then(|| base.get_node_text(&value))
+}
+
+fn count_local_writes(base: &BaseExtractor, body: Node, name: &str) -> Option<usize> {
+    let mut writes = 0;
+    let mut stack = vec![(body, 0)];
+    while let Some((node, depth)) = stack.pop() {
+        if !should_visit_tree_depth(depth) {
+            return None;
+        }
+        if node.id() != body.id()
+            && matches!(
+                node.kind(),
+                "function_definition"
+                    | "async_function_definition"
+                    | "class_definition"
+                    | "lambda"
+                    | "list_comprehension"
+                    | "set_comprehension"
+                    | "dictionary_comprehension"
+                    | "generator_expression"
+            )
+        {
+            return None;
+        }
+        match node.kind() {
+            "assignment" | "augmented_assignment" => {
+                if let Some(target) = node.child_by_field_name("left") {
+                    writes += target_write_count(base, target, name)?;
+                }
+            }
+            "named_expression" => {
+                writes += node
+                    .child_by_field_name("name")
+                    .filter(|target| target.kind() == "identifier")
+                    .is_some_and(|target| base.get_node_text(&target) == name)
+                    as usize;
+            }
+            "for_statement" | "while_statement" | "match_statement" | "with_statement"
+            | "break_statement" | "continue_statement" => return None,
+            // tree-sitter-python nests `except E as local` under an
+            // `as_pattern`; its alias field is an `as_pattern_target`.
+            "as_pattern" | "except_clause" => {
+                let mut children = node.walk();
+                let alias = node.child_by_field_name("alias").or_else(|| {
+                    node.named_children(&mut children)
+                        .last()
+                        .filter(|child| child.kind() == "identifier")
+                });
+                if let Some(target) = alias {
+                    writes += target_write_count(base, target, name)?;
+                }
+            }
+            "import_statement" | "import_from_statement" => {
+                writes += import_binding_write_count(base, node, name);
+            }
+            "global_statement" | "nonlocal_statement" => {
+                if node.named_children(&mut node.walk()).any(|target| {
+                    target.kind() == "identifier" && base.get_node_text(&target) == name
+                }) {
+                    return None;
+                }
+            }
+            "delete_statement" => {
+                for target in node.named_children(&mut node.walk()) {
+                    writes += target_write_count(base, target, name)?;
+                }
+            }
+            _ => {}
+        }
+        let child_depth = child_tree_depth(depth)?;
+        let mut children = node.walk();
+        stack.extend(
+            node.named_children(&mut children)
+                .map(|child| (child, child_depth)),
+        );
+    }
+    Some(writes)
+}
+
+fn target_write_count(base: &BaseExtractor, target: Node, name: &str) -> Option<usize> {
+    let mut writes = 0;
+    let mut stack = vec![(target, 0)];
+    while let Some((node, depth)) = stack.pop() {
+        if !should_visit_tree_depth(depth) {
+            return None;
+        }
+        match node.kind() {
+            "identifier" => writes += usize::from(base.get_node_text(&node) == name),
+            "attribute" | "subscript" => continue,
+            _ => {
+                let child_depth = child_tree_depth(depth)?;
+                stack.extend(
+                    node.named_children(&mut node.walk())
+                        .map(|child| (child, child_depth)),
+                );
+            }
+        }
+    }
+    Some(writes)
+}
+
+fn import_binding_write_count(base: &BaseExtractor, statement: Node, name: &str) -> usize {
+    let from_import = statement.child_by_field_name("module_name").is_some();
+    let mut cursor = statement.walk();
+    statement
+        .children_by_field_name("name", &mut cursor)
+        .filter(|import| {
+            let bound_name = if import.kind() == "aliased_import" {
+                import
+                    .child_by_field_name("alias")
+                    .map(|alias| base.get_node_text(&alias))
+            } else {
+                let imported = base.get_node_text(import);
+                Some(if from_import {
+                    imported
+                } else {
+                    imported.split('.').next().unwrap_or(&imported).to_string()
+                })
+            };
+            bound_name.as_deref() == Some(name)
+        })
+        .count()
 }
 
 /// Builtin classes and `typing` names; a type variable cannot have these

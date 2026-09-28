@@ -183,7 +183,14 @@ Imports, variables, constants, attributes, and parameters have no body span.
   not a value of `compute()`'s return type.
 - A function signature writes its return type as Python does:
   `def load(path: str) -> Config`. The `returnType` metadata holds the type
-  alone (`Config`).
+  alone (`Config`), or the empty string when there is no annotation. An
+  unannotated synchronous function may also have `inferredReturnType` metadata
+  when every return yields one bare local whose sole dominating assignment is
+  a same-file class constructor or an explicitly imported class-style name.
+  Ambiguous rebinding, fallthrough, async/generator functions, loops, `match`,
+  and `with` control flow are not inferred. An imported class-style factory can
+  be a false positive because its implementation is outside the extracted
+  file; otherwise the key is omitted rather than guessed.
 - A decorated function or class signature keeps each decorator with its
   arguments, on one line and at most 100 characters each:
   `@bp.route("/create", methods=("GET", "POST")) @login_required def create()`.

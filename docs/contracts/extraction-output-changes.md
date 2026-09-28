@@ -99,6 +99,17 @@ identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` adds
 `flask-route-decorator-span-v1`. Re-extract every existing artifact with
 `julie-extract scan --force`.
 
+Python function symbol metadata now includes optional `inferredReturnType` for
+an unannotated synchronous function whose returns all name the same local and
+whose sole dominating assignment constructs a same-file class or an explicitly
+imported class-style name. The existing `returnType` remains the explicit
+annotation, or the empty string. The import-name heuristic can classify an
+imported factory with a class-style name; ambiguous assignments, fallthrough,
+async/generator functions, and unsupported control flow omit the inferred key.
+SQLite schema 7, report schema 3, and identity epoch 10 are unchanged.
+`EXTRACTION_CONTRACT_VERSION` adds `python-inferred-return-type-v1`; consumers
+must re-extract existing artifacts with `julie-extract scan --force`.
+
 Producer freshness: incremental `scan`, `update`, `delete` and `rebind` now
 also require the artifact's `binary_version` to match the running binary, and
 `capability_snapshot_fingerprint` now includes the semantic contract version.
