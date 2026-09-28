@@ -786,7 +786,9 @@ CREATE TABLE structural_facts (
 ```
 
 `containing_symbol_id` binds each fact to the innermost byte-containing
-scope-bearing symbol. `variable`, `constant`, `enum_member`, and `import`
+scope-bearing symbol. A language collector may explicitly bind an attribute or
+decorator fact to the declaration it annotates even when that syntax precedes
+the declaration span. `variable`, `constant`, `enum_member`, and `import`
 symbols are value holders, not scopes, so they are never containment
 candidates. When no byte-containing candidate exists (for example, a fact whose
 span starts on an `export const` head that sits outside its value symbol), a
@@ -822,7 +824,7 @@ Supported patterns are advertised in
 | `nestjs.route.v1` | `javascript`, `typescript` | `route_decorator` | handler method declaration span | `framework` | A static NestJS HTTP-method decorator (`@Get`…`@All`) joined same-file to its `@Controller` class prefix. `verb` is upper-cased (omitted for `@All`); `class_route_template`/`effective_route_template` carry the joined class prefix; `normalized_route_template` is the `:param` join key. Requires a `@nestjs/common` import; only plain string-literal decorator arguments emit. Metadata payload keys: see the JSON contract linked below. |
 | `fastapi.route.v1` | `python` | `route` | decorated function declaration span | `framework` | A FastAPI path-operation decorator on a traced FastAPI/APIRouter receiver. |
 | `fastapi.include_router.v1` | `python` | `include_router` | parser-covered call span | `framework` | A FastAPI `include_router` mount call. |
-| `flask.route.v1` | `python` | `route` | decorated function declaration span | `framework` | A Flask route decorator on a traced Flask/Blueprint receiver. |
+| `flask.route.v1` | `python` | `route` | `decorator` for decorator routing; `call` for `add_url_rule` | `framework` | A Flask route decorator is anchored at its decorator and remains bound to the decorated view symbol; an `add_url_rule` fact is anchored at the registration call. |
 | `flask.blueprint_registration.v1` | `python` | `blueprint_registration` | parser-covered call span | `framework` | A Flask `register_blueprint` mount call. |
 | `django.url_pattern.v1` | `python` | `url_pattern` | parser-covered call span | `framework` | A Django `path` or `re_path` URL pattern. |
 | `django.url_include.v1` | `python` | `url_include` | parser-covered call span | `framework` | A Django `include` mount inside a `path` URL pattern. |

@@ -412,7 +412,8 @@ pub fn collect_framework_structural_facts(
             fsharp_facts
         }
         "python" => {
-            let mut python_facts = collect_python_web_facts(language, tree, file_path, content);
+            let mut python_facts =
+                collect_python_web_facts(language, tree, file_path, content, symbols);
             python_facts.extend(collect_backend_http_client_requests(
                 language, tree, file_path, content,
             ));

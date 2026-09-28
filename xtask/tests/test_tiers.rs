@@ -310,6 +310,16 @@ fn test_contract_tier_runs_golden_and_capability_gates_with_features() {
                     "-p",
                     "julie-extract-cli",
                     "--test",
+                    "flask_route_contract",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-cli",
+                    "--test",
                     "determinism_contract",
                 ]
             ),

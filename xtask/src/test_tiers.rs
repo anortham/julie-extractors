@@ -400,6 +400,16 @@ fn contract_plan() -> TestPlan {
             "-p",
             "julie-extract-cli",
             "--test",
+            "flask_route_contract",
+        ],
+    ));
+    commands.push(CommandSpec::new(
+        "cargo",
+        [
+            "test",
+            "-p",
+            "julie-extract-cli",
+            "--test",
             "determinism_contract",
         ],
     ));

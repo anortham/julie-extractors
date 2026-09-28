@@ -95,8 +95,9 @@ classification: compatible
 The SQLite schema remains 7, the report schema remains 3, and the extraction
 identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` adds
 `reference-occurrence-identity-v2`, `canonical-receiver-facts-v1`,
-`reference-integrity-v1` and `regex-branch-reset-v1`. Re-extract every existing
-artifact with `julie-extract scan --force`.
+`reference-integrity-v1`, `regex-branch-reset-v1`, and
+`flask-route-decorator-span-v1`. Re-extract every existing artifact with
+`julie-extract scan --force`.
 
 Producer freshness: incremental `scan`, `update`, `delete` and `rebind` now
 also require the artifact's `binary_version` to match the running binary, and
@@ -145,6 +146,13 @@ role. The regex parser is the licensed `0.25.0-julie.1` vendored patch, reflecte
 in parser inventory and capability metadata. The SQLite schema is unchanged.
 Re-extract existing artifacts with the changed binary and `--force` to replace
 old facts; the extraction contract prevents mixing producer semantics.
+
+Python `flask.route.v1` facts from decorators now use the route decorator's
+source span and `decorator` node kind instead of the view's `def` line. They
+remain bound to the decorated view symbol; `add_url_rule` facts remain anchored
+at their registration call. Since structural-fact identity includes location,
+these rows receive new IDs and existing artifacts must be rescanned with
+`--force`.
 
 Regex branch-reset groups `(?|...)` now parse and add
 `regex-branch-reset-v1` to the extraction contract. One new pattern id,
