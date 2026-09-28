@@ -95,20 +95,8 @@ classification: compatible
 The SQLite schema remains 7, the report schema remains 3, and the extraction
 identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` adds
 `reference-occurrence-identity-v2`, `canonical-receiver-facts-v1`,
-`reference-integrity-v1`, `regex-branch-reset-v1`, and
-`flask-route-decorator-span-v1`. Re-extract every existing artifact with
-`julie-extract scan --force`.
-
-Python function symbol metadata now includes optional `inferredReturnType` for
-an unannotated synchronous function whose returns all name the same local and
-whose sole dominating assignment constructs a same-file class or an explicitly
-imported class-style name. The existing `returnType` remains the explicit
-annotation, or the empty string. The import-name heuristic can classify an
-imported factory with a class-style name; ambiguous assignments, fallthrough,
-async/generator functions, and unsupported control flow omit the inferred key.
-SQLite schema 7, report schema 3, and identity epoch 10 are unchanged.
-`EXTRACTION_CONTRACT_VERSION` adds `python-inferred-return-type-v1`; consumers
-must re-extract existing artifacts with `julie-extract scan --force`.
+`reference-integrity-v1` and `regex-branch-reset-v1`. Re-extract every existing
+artifact with `julie-extract scan --force`.
 
 Producer freshness: incremental `scan`, `update`, `delete` and `rebind` now
 also require the artifact's `binary_version` to match the running binary, and
@@ -158,13 +146,6 @@ in parser inventory and capability metadata. The SQLite schema is unchanged.
 Re-extract existing artifacts with the changed binary and `--force` to replace
 old facts; the extraction contract prevents mixing producer semantics.
 
-Python `flask.route.v1` facts from decorators now use the route decorator's
-source span and `decorator` node kind instead of the view's `def` line. They
-remain bound to the decorated view symbol; `add_url_rule` facts remain anchored
-at their registration call. Since structural-fact identity includes location,
-these rows receive new IDs and existing artifacts must be rescanned with
-`--force`.
-
 Regex branch-reset groups `(?|...)` now parse and add
 `regex-branch-reset-v1` to the extraction contract. One new pattern id,
 `regex.branch_reset.v1`, records each group with `branch_count`. Captures
@@ -176,6 +157,51 @@ pattern. A backreference or condition to a shared number or name emits one
 produced parse diagnostics and sequential numbers. Consumer action for
 code-kb: allow repeated capture numbers, and re-extract regex files with
 `--force`.
+
+## 3.7.1
+
+classification: compatible
+
+The SQLite schema remains 7, the report schema remains 3, and the extraction
+identity epoch remains 10. The 3.7.0 markers `reference-occurrence-identity-v2`,
+`canonical-receiver-facts-v1`, `reference-integrity-v1`, and
+`regex-branch-reset-v1` remain present. `EXTRACTION_CONTRACT_VERSION` adds
+`flask-route-decorator-span-v1`, `csharp-interpolated-verbatim-v1`, and
+`python-inferred-return-type-v1`. The additional Python `super` receiver
+recognition is covered by the existing `canonical-receiver-facts-v1` marker.
+Existing artifact readers remain
+compatible, but consumers must re-extract existing artifacts with
+`julie-extract scan --force`; incremental commands against a different binary
+version report `fingerprint_mismatch` (exit code `3`) without changing rows.
+
+C# `@$` and `$@` interpolated-verbatim strings with doubled quotes around
+interpolation expressions now parse without diagnostics. The fixture verifies
+method symbols and interpolation-variable reference facts that the published
+3.7.0 grammar missed. `parser_inventory` records the C# fork revision changing
+from `688cf95ae4c984638557dab73253bd66719bdd5c` to
+`388c0e74f41a3f074f4bbc0f62aaf4e6ca48fffe`; `language_capability_fixtures`
+adds the `csharp`/`interpolated_verbatim` fixture row. Consumers must
+re-extract affected C# source files.
+
+Python `flask.route.v1` facts from decorators now use the route decorator's
+source span and `decorator` node kind instead of the view's `def` line. The
+facts remain bound to the decorated view symbol; `add_url_rule` facts remain
+anchored at their registration call. Structural-fact identity includes
+location, so decorator-anchored rows receive new IDs and affected artifacts
+must be rescanned.
+
+Python member reads through `super().member` and
+`super(Type, self).member` now record `receiver: "super"` in identifier
+metadata. Ordinary receivers and values named `super` are not treated as
+implicit super receivers.
+
+An unannotated synchronous Python function now gains optional
+`inferredReturnType` metadata when all returns name the same local and its sole
+dominating assignment constructs a same-file class or an explicitly imported
+class-style name. The existing `returnType` remains the explicit annotation,
+or the empty string. An imported factory with a class-style name can still be
+classified as a class; ambiguous assignments, fallthrough, async/generator
+functions, and unsupported control flow omit the inferred key.
 
 ## 3.6.3
 
@@ -1232,16 +1258,6 @@ The resolution write path is retired. Schema v7 removes `identifier_resolutions`
 and `pending_resolutions`. JSONL v5 drops the overlay keys. `store resolve` is
 gone. Family stores stay schema v2 and drop leftover resolution objects on
 writer open.
-
-C# `@$` and `$@` interpolated-verbatim strings with doubled quotes around
-interpolation expressions now parse without diagnostics. The golden fixture proves
-method symbols and interpolation-variable reference facts are emitted. The
-previous pinned grammar reported parser diagnostics for this valid syntax.
-`EXTRACTION_CONTRACT_VERSION` adds
-`csharp-interpolated-verbatim-v1`. SQLite schema 7, report schema 3, and
-extraction identity epoch 10 remain unchanged. Existing artifact readers remain
-compatible; consumers must upgrade and re-extract affected files (or run
-`scan --force`) to obtain the new facts.
 
 The compat dump excludes the two overlay tables and `language_capability_gaps`
 so fact-table identity remains the gate against v2.33.7. Their absence is this
