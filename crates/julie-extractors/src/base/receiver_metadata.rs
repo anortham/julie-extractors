@@ -71,11 +71,12 @@ pub(crate) fn enrich(language: &str, tree: &Tree, source: &str, identifiers: &mu
             );
         }
         if let Some((receiver, member)) = candidate_parts(grammar_language, node, source) {
-            if grammar_language == "python" && is_python_super_call_receiver(receiver, source) {
-                if let Some(member) = terminal_name(member) {
-                    python_super_call_receiver_spans
-                        .insert((member.start_byte() as u32, member.end_byte() as u32));
-                }
+            if grammar_language == "python"
+                && is_python_super_call_receiver(receiver, source)
+                && let Some(member) = terminal_name(member)
+            {
+                python_super_call_receiver_spans
+                    .insert((member.start_byte() as u32, member.end_byte() as u32));
             }
             record_candidate(
                 named_chain(grammar_language, receiver, source),
