@@ -205,14 +205,21 @@ app.register_blueprint(bp, url_prefix="/v1")
         .iter()
         .find(|fact| metadata_str(fact, "route_template") == Some("/health"))
         .expect("health route");
+    assert_eq!(
+        &source[health.start_byte as usize..health.end_byte as usize],
+        "@app.route(\"/health\")"
+    );
+    assert_eq!(health.node_kind, "decorator");
+    assert_eq!(binding_symbol_name(&results, health), Some("health"));
     assert_eq!(metadata_str(health, "verb"), Some("GET"));
     assert_eq!(metadata_str(health, "verb_source"), Some("default"));
 
-    let submit_verbs = routes
+    let mut submit_verbs = routes
         .iter()
         .filter(|fact| metadata_str(fact, "route_template") == Some("/submit"))
         .filter_map(|fact| metadata_str(fact, "verb"))
         .collect::<Vec<_>>();
+    submit_verbs.sort_unstable();
     assert_eq!(submit_verbs, vec!["GET", "POST"]);
 
     let user = routes

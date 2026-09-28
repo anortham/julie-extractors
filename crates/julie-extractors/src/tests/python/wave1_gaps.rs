@@ -458,7 +458,7 @@ def user(username):
     return username
 "#,
     );
-    let facts: Vec<(String, String)> = routes
+    let mut facts: Vec<(String, String)> = routes
         .structural_facts
         .iter()
         .filter(|f| f.pattern_id == "flask.route.v1")
@@ -470,6 +470,7 @@ def user(username):
             )
         })
         .collect();
+    facts.sort_unstable();
     assert_eq!(
         facts,
         vec![

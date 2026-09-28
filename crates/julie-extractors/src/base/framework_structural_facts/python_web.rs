@@ -20,7 +20,7 @@ use super::{
 };
 use crate::base::http_boundary::{ParamFlavor, normalize_route_template};
 use crate::base::span::NormalizedSpan;
-use crate::base::types::StructuralFact;
+use crate::base::types::{StructuralFact, Symbol};
 
 struct PythonFactContext<'a> {
     language: &'a str,
@@ -54,6 +54,7 @@ pub(super) fn collect_python_web_facts(
     tree: &Tree,
     file_path: &str,
     content: &str,
+    symbols: &[Symbol],
 ) -> Vec<StructuralFact> {
     let imports = collect_imports(content);
     if imports.is_empty() {
@@ -73,7 +74,7 @@ pub(super) fn collect_python_web_facts(
     let mut facts = Vec::new();
     facts.extend(collect_fastapi_routes(&context, &fastapi));
     facts.extend(collect_fastapi_includes(&context, &fastapi));
-    facts.extend(collect_flask_routes(&context, &flask));
+    facts.extend(collect_flask_routes(&context, &flask, symbols));
     facts.extend(collect_flask_url_rules(&context, &flask));
     facts.extend(collect_flask_blueprint_registrations(&context, &flask));
     if imports.django_path.is_some() || imports.django_re_path.is_some() {
@@ -663,8 +664,8 @@ fn collect_fastapi_routes(
                 context.tree,
                 context.file_path,
                 context.content,
-                decorator.start,
-                decorator.end,
+                decorator.definition_start,
+                decorator.definition_end,
                 RouteFactSpec {
                     framework: "fastapi",
                     pattern_id: FASTAPI_ROUTE_PATTERN_ID,
@@ -717,6 +718,7 @@ fn collect_fastapi_includes(
 fn collect_flask_routes(
     context: &PythonFactContext<'_>,
     receivers: &HashMap<String, FlaskReceiver>,
+    symbols: &[Symbol],
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
     for decorator in collect_decorator_calls(context) {
@@ -752,13 +754,13 @@ fn collect_flask_routes(
             } else {
                 "attested"
             };
-            if let Some(fact) = route_fact(
+            if let Some(mut fact) = route_fact(
                 context.language,
                 context.tree,
                 context.file_path,
                 context.content,
-                decorator.start,
-                decorator.end,
+                decorator.decorator_start,
+                decorator.decorator_end,
                 RouteFactSpec {
                     framework: "flask",
                     pattern_id: FLASK_ROUTE_PATTERN_ID,
@@ -783,6 +785,15 @@ fn collect_flask_routes(
                     }
                 },
             ) {
+                // The route decorator precedes the view symbol, so bind its explicit owner.
+                fact.containing_symbol_id = symbols
+                    .iter()
+                    .filter(|symbol| {
+                        symbol.start_byte as usize <= decorator.definition_start
+                            && symbol.end_byte as usize >= decorator.definition_start
+                    })
+                    .min_by_key(|symbol| symbol.end_byte - symbol.start_byte)
+                    .map(|symbol| symbol.id.clone());
                 facts.push(fact);
             }
         }
@@ -1026,8 +1037,10 @@ fn collect_django_calls(
 }
 
 struct DecoratorCall {
-    start: usize,
-    end: usize,
+    definition_start: usize,
+    definition_end: usize,
+    decorator_start: usize,
+    decorator_end: usize,
     receiver: String,
     method: String,
     args: String,
@@ -1078,8 +1091,10 @@ fn collect_decorator_calls(context: &PythonFactContext<'_>) -> Vec<DecoratorCall
                 })
                 .map(|(value, _)| value);
             decorators.push(DecoratorCall {
-                start: fact_start,
-                end: function_end,
+                definition_start: fact_start,
+                definition_end: function_end,
+                decorator_start: start,
+                decorator_end: close + 1,
                 receiver: receiver.to_string(),
                 method: method.to_string(),
                 args,
