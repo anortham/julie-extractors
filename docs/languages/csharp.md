@@ -262,21 +262,29 @@ directives are not blanked.
 `fixtures/extraction/csharp/language_idioms` is the golden evidence for this
 section and the two before it.
 
+## Interpolated verbatim strings
+
+Both `@$"..."` and `$@"..."` forms accept doubled quotes around interpolation
+expressions. The
+`fixtures/extraction/csharp/interpolated_verbatim` golden fixture covers both
+forms, their method symbols and interpolation-variable reference facts, and
+requires no parser diagnostics.
+
 ## Grammar freshness
 
 The grammar is pinned in `Cargo.lock` to the fork
 `https://github.com/anortham/tree-sitter-c-sharp` at
-`688cf95ae4c984638557dab73253bd66719bdd5c`, package version `0.23.5`.
+`388c0e74f41a3f074f4bbc0f62aaf4e6ca48fffe`, package version `0.23.5`. This exact
+commit is pushed on [`fix/issue-19`](https://github.com/anortham/tree-sitter-c-sharp/pull/1).
+
+The freshness report marks the pin as `drift` because the fork's `master` head
+is still `688cf95ae4c984638557dab73253bd66719bdd5c`. That is expected while the
+feature commit awaits review and merge; the dependency uses the pushed PR commit,
+not an unpushed or local revision.
 
 ```bash
 node scripts/grammar-freshness-report.mjs --format json
 ```
-
-The report could not compare that pin against the remote head during this
-work: GitHub answered `HTTP 403` for `anortham/tree-sitter-c-sharp`, the
-unauthenticated rate-limit response. The pin above comes from `Cargo.lock`, not
-from the report. Re-run the report with a GitHub token to get the drift
-verdict.
 
 ## Real-world evidence
 
