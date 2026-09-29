@@ -237,12 +237,13 @@ impl DiscoveryPolicy {
         target: &FileTarget,
         db_identity: &FileIdentity<'_>,
     ) -> FileSelection {
-        if is_hard_excluded(
+        let (hard_excluded, metadata) = is_hard_excluded(
             &target.absolute_path,
             &target.root_relative_path,
             db_identity,
             &self.exclusions,
-        ) {
+        );
+        if hard_excluded {
             return FileSelection::Unsupported {
                 reason: UnsupportedReason::HardExcluded,
             };
@@ -252,7 +253,7 @@ impl DiscoveryPolicy {
                 reason: UnsupportedReason::Ignored,
             };
         }
-        if is_oversized_source_file(&target.absolute_path) {
+        if is_oversized_source_file(&target.absolute_path, metadata.as_ref()) {
             return FileSelection::Unsupported {
                 reason: UnsupportedReason::Oversized,
             };
@@ -273,7 +274,7 @@ impl DiscoveryPolicy {
     /// journal them rewrites them — so a scan of a root that holds its own
     /// artifact would report a change on every run.
     fn is_artifact_sidecar(&self, path: &Path, identities: &[FileIdentity<'_>]) -> bool {
-        identities.iter().any(|sidecar| sidecar.matches(path))
+        identities.iter().any(|sidecar| sidecar.matches(path).0)
     }
 
     #[cfg(test)]
@@ -369,7 +370,7 @@ impl DiscoveryPolicy {
                 continue;
             }
             if file_type.is_dir() {
-                if is_hard_excluded(&path, &relative, &walk.db_identity, &self.exclusions)
+                if is_hard_excluded(&path, &relative, &walk.db_identity, &self.exclusions).0
                     || self.is_ignored(&relative, true)
                 {
                     continue;
@@ -677,16 +678,16 @@ impl<'a> FileIdentity<'a> {
         }
     }
 
-    fn matches(&self, path: &Path) -> bool {
+    fn matches(&self, path: &Path) -> (bool, Option<fs::Metadata>) {
         if path == self.path {
-            return true;
+            return (true, None);
         }
         if !file_names_match(path, self.path) {
-            return false;
+            return (false, None);
         }
         if self.handle.get().is_none() {
             let Ok(handle) = open_identity_handle(self.path) else {
-                return false;
+                return (false, None);
             };
             let _ = self.handle.set(handle);
         }
@@ -696,16 +697,22 @@ impl<'a> FileIdentity<'a> {
 }
 
 #[cfg(unix)]
-fn identity_matches(path: &Path, handle: &same_file::Handle) -> bool {
+fn identity_matches(path: &Path, handle: &same_file::Handle) -> (bool, Option<fs::Metadata>) {
     use std::os::unix::fs::MetadataExt;
 
-    fs::metadata(path)
-        .is_ok_and(|metadata| metadata.dev() == handle.dev() && metadata.ino() == handle.ino())
+    let Ok(metadata) = candidate_metadata(path) else {
+        return (false, None);
+    };
+    let matches = metadata.dev() == handle.dev() && metadata.ino() == handle.ino();
+    (matches, Some(metadata))
 }
 
 #[cfg(not(unix))]
-fn identity_matches(path: &Path, handle: &same_file::Handle) -> bool {
-    open_identity_handle(path).is_ok_and(|candidate| candidate == *handle)
+fn identity_matches(path: &Path, handle: &same_file::Handle) -> (bool, Option<fs::Metadata>) {
+    (
+        open_identity_handle(path).is_ok_and(|candidate| candidate == *handle),
+        None,
+    )
 }
 
 fn open_identity_handle(path: &Path) -> std::io::Result<same_file::Handle> {
@@ -717,6 +724,13 @@ fn open_identity_handle(path: &Path) -> std::io::Result<same_file::Handle> {
 #[cfg(test)]
 thread_local! {
     static IDENTITY_HANDLE_OPENS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    static CANDIDATE_METADATA_READS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+fn candidate_metadata(path: &Path) -> std::io::Result<fs::Metadata> {
+    #[cfg(test)]
+    CANDIDATE_METADATA_READS.with(|count| count.set(count.get() + 1));
+    fs::metadata(path)
 }
 
 fn file_names_match(path: &Path, candidate: &Path) -> bool {
@@ -731,15 +745,19 @@ fn is_hard_excluded(
     relative_path: &str,
     db_identity: &FileIdentity<'_>,
     exclusions: &DiscoveryExclusions,
-) -> bool {
-    db_identity.matches(path)
-        || exclusions.excludes(path)
-        || relative_path
-            .split('/')
-            .any(|component| HARD_EXCLUDE_DIRS.contains(&component))
-        || HARD_EXCLUDE_SUFFIXES
-            .iter()
-            .any(|suffix| relative_path.ends_with(suffix))
+) -> (bool, Option<fs::Metadata>) {
+    let (same_file, metadata) = db_identity.matches(path);
+    (
+        same_file
+            || exclusions.excludes(path)
+            || relative_path
+                .split('/')
+                .any(|component| HARD_EXCLUDE_DIRS.contains(&component))
+            || HARD_EXCLUDE_SUFFIXES
+                .iter()
+                .any(|suffix| relative_path.ends_with(suffix)),
+        metadata,
+    )
 }
 
 const SQLITE_SIDECAR_SUFFIXES: &[&str] = &["-wal", "-shm", "-journal"];
@@ -801,10 +819,14 @@ pub const HARD_EXCLUDE_SUFFIXES: &[&str] = &[
     ".generated.d.ts",
 ];
 
-fn is_oversized_source_file(path: &Path) -> bool {
-    path.metadata()
+fn is_oversized_source_file(path: &Path, metadata: Option<&fs::Metadata>) -> bool {
+    metadata
         .map(|metadata| metadata.len() > MAX_SOURCE_FILE_BYTES as u64)
-        .unwrap_or(false)
+        .unwrap_or_else(|| {
+            candidate_metadata(path)
+                .map(|metadata| metadata.len() > MAX_SOURCE_FILE_BYTES as u64)
+                .unwrap_or(false)
+        })
 }
 
 #[cfg(test)]
@@ -1679,6 +1701,50 @@ mod tests {
             opens <= limit,
             "identity checks opened {opens} handles for 8 files"
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_basename_collision_reads_candidate_metadata_once_for_identity_and_size() {
+        let fixture = DiscoveryFixture::new();
+        let artifact = fixture.temp.path().join("index.rs");
+        fs::write(&artifact, "artifact").unwrap();
+        let target = fixture.write("src/index.rs", "fn source() {}\n");
+        let policy = DiscoveryPolicy::build(fixture.root(), &artifact, &[]).unwrap();
+        CANDIDATE_METADATA_READS.with(|count| count.set(0));
+
+        assert_eq!(
+            policy.select_file(&target),
+            FileSelection::Supported {
+                language: "rust".to_string()
+            }
+        );
+
+        let reads = CANDIDATE_METADATA_READS.with(|count| count.get());
+        assert_eq!(reads, 1);
+    }
+
+    #[test]
+    fn ignored_and_generated_files_skip_candidate_metadata_reads() {
+        let fixture = DiscoveryFixture::new();
+        fixture.write(".gitignore", "ignored.rs\n");
+        let artifact = fixture.temp.path().join("index.rs");
+        fs::write(&artifact, "artifact").unwrap();
+        let ignored = fixture.write("src/ignored.rs", "fn ignored() {}\n");
+        let generated = fixture.write("src/schema.generated.ts", "export const schema = {};\n");
+        let policy = DiscoveryPolicy::build(fixture.root(), &artifact, &[]).unwrap();
+
+        for (target, reason) in [
+            (&ignored, UnsupportedReason::Ignored),
+            (&generated, UnsupportedReason::HardExcluded),
+        ] {
+            CANDIDATE_METADATA_READS.with(|count| count.set(0));
+            assert_eq!(
+                policy.select_file(target),
+                FileSelection::Unsupported { reason }
+            );
+            assert_eq!(CANDIDATE_METADATA_READS.with(|count| count.get()), 0);
+        }
     }
 
     #[test]

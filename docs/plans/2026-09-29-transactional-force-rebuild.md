@@ -18,6 +18,10 @@ and [CLI contract](../contracts/cli.md) define the behavior.
    commits, and all platform release gates. Workers hand over focused verified
    diffs and do not commit or run broad suites.
 
+Release timing exposed duplicate Unix metadata reads for source filenames that
+match the artifact name. The CLI task also owns their removal in `discovery.rs`,
+preserving alias checks, exclusion priority, and lazy reads for ignored files.
+
 ## Acceptance
 
 - Stale identity before or after writer open rejects every mutation.
@@ -28,6 +32,7 @@ and [CLI contract](../contracts/cli.md) define the behavior.
 - Empty rebuilds create a revision; writer reuse does not reset twice.
 - Staged rebuilds reject non-force mutations and disable live bulk load.
 - Parent exit and source errors during a producer refresh preserve old data.
+- Unix identity and size checks read candidate metadata once per file.
 
 ## Verification
 
