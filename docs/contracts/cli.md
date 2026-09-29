@@ -167,6 +167,12 @@ generation. Schema compatibility and extraction-level checks still apply.
 An unreadable or incompatible artifact is refused and preserved; `--force`
 does not delete it as a recovery step.
 
+Every extraction write also checks the artifact ID inside its transaction. If
+a concurrent rebind changes the ID after the command prepares its write, the
+write rolls back with recoverable `artifact_changed`, exit code `1`. This
+applies to force scans too. Retry against the artifact's current root; a stale
+writer cannot undo a completed rebind.
+
 ### `scan`
 
 Scans the root, extracts supported changed files, deletes artifact rows for
@@ -177,6 +183,13 @@ artifact never serves stale symbols for a file that grew past the limit.
 
 `scan --force` rebuilds the artifact contents in one SQLite transaction. It is
 the explicit path for a moved root or full re-extraction.
+
+For a different root, the transaction first validates the original artifact ID
+and producer, then resets facts, revision history, capabilities, and metadata
+before inserting the new scan. It assigns a new artifact ID and preserves the
+database file identity. A failed rebuild keeps the original artifact, including
+its extraction level and rebind metadata. No database or sidecar is unlinked
+before the write.
 
 `--level <symbols|facts|full>` chooses the extraction level for a NEW artifact.
 `full` (the default) is the complete extraction — every invocation without the

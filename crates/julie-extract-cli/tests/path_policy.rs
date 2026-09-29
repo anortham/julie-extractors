@@ -164,6 +164,8 @@ fn root_mismatch_returns_exit_3_unless_scan_force_rebuilds_metadata() {
     std::fs::write(new_root.join("src/main.rs"), "fn main() {}\n").unwrap();
     let db = temp.path().join("artifact.sqlite");
     create_artifact(&db, &old_root);
+    let artifact_alias = temp.path().join("artifact-alias.sqlite");
+    std::fs::hard_link(&db, &artifact_alias).unwrap();
 
     let mismatch = julie_extract(&[
         "update",
@@ -195,6 +197,7 @@ fn root_mismatch_returns_exit_3_unless_scan_force_rebuilds_metadata() {
     assert_eq!(report["mode"], "force");
     assert_eq!(report["artifact"]["root_path"], canonical(&new_root));
     assert_eq!(artifact_root(&db), canonical(&new_root));
+    assert_eq!(artifact_root(&artifact_alias), canonical(&new_root));
     assert_eq!(file_count_for_path(&db, "src/old.rs"), 0);
 }
 

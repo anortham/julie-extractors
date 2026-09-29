@@ -69,6 +69,13 @@ Every database must expose:
 - capability snapshot fingerprint
 - created/updated timestamps
 
+Writers compare the artifact ID and producer generation inside the transaction
+that changes facts. Rebind changes the ID, invalidating previously prepared
+writes. Different-root force rebuilds clear and replace the artifact in one
+transaction while preserving the database file; failures preserve the previous
+facts and metadata. See
+[the artifact identity decision](../decisions/2026-09-29-artifact-identity-and-force-rebuild.md).
+
 ## Performance Requirements
 
 Performance is a product requirement, not an implementation afterthought.

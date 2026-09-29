@@ -539,14 +539,13 @@ Stable report codes:
 - `internal_error`: unexpected implementation failure.
 - `parent_exited`: `scan --parent-pid` observed that the named process is no
   longer this process's parent, so the scan aborted. The abort point sits before
-  the scan's first destructive step — before the `--force` rebuild unlinks the
-  artifact and its `-wal`/`-shm` sidecars, and therefore before the artifact is
-  opened for writing — so the artifact is untouched on every path that reports
-  this code. The extraction spool was removed. `details` carries
+  the artifact is opened for writing, so the artifact is untouched on every
+  path that reports this code. The extraction spool was removed. `details` carries
   `expected_parent_pid` and `observed_parent_pid`. Exit code `1`.
 - `fingerprint_mismatch`: the artifact's recorded
-  `parser_inventory_fingerprint` or `capability_snapshot_fingerprint` does not
-  match the running binary's. Fatal for `rebind`: the artifact was built by a
+  `binary_version`, `parser_inventory_fingerprint`, or
+  `capability_snapshot_fingerprint` does not match the running binary's. Fatal
+  for `rebind`: the artifact was built by a
   different extractor, so retargeting it would serve rows this binary would not
   produce. The diagnostic is not recoverable by retrying, and its `details`
   carry `artifact_parser_inventory_fingerprint`,
@@ -559,15 +558,16 @@ Stable report codes:
   revision, so it is a metadata-only shell rather than an index. Fatal for
   `rebind`: there is nothing to retarget. The diagnostic is recoverable and its
   `details.action` is `julie-extract scan`. Exit code `3`.
-- `artifact_changed`: the artifact's recorded `root_path` or `artifact_id` no
-  longer matched the values `rebind` validated against when the write
-  transaction re-read them. `rebind`-only, and emitted only when something
-  mutated the artifact between the two phases. Nothing is written: the
-  transaction rolls back, so the artifact's metadata is byte-identical to what
-  it was before. The diagnostic is recoverable — re-run `rebind` against the
-  artifact as it now stands — and its `details` carry `expected_root_path`,
-  `found_root_path`, `expected_artifact_id`, and `found_artifact_id`, each
-  found value `null` when the key is absent. Exit code `1`.
+- `artifact_changed`: a write transaction found that the artifact identity
+  changed after the command prepared its write. For `rebind`, the transaction
+  checks both `root_path` and `artifact_id`; its `details` carry
+  `expected_root_path`, `found_root_path`, `expected_artifact_id`, and
+  `found_artifact_id`. For `scan`, `update`, and `delete`, the transaction checks
+  `artifact_id`; its `details` carry `expected_artifact_id` and
+  `found_artifact_id`. Found values are `null` when the key is absent. Nothing
+  is written: the transaction rolls back, preserving the concurrent change.
+  The diagnostic is recoverable. Retry the command against the artifact's
+  current root. Exit code `1`.
 
 Warnings use the same shape and may use warning-only codes such as
 `metadata_missing`, `capability_gap`, `slow_file_skipped`,

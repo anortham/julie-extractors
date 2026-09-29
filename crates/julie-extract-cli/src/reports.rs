@@ -194,6 +194,7 @@ pub(crate) fn write_error_outcome_with_profile(
     json_report: bool,
     profile: Option<ReportProfile>,
 ) -> CommandOutcome {
+    let recoverable = matches!(&error, ArtifactWriteError::ArtifactIdentityChanged { .. });
     let (code, report_code, message, details) = match error {
         ArtifactWriteError::Sqlite(error) => (
             1,
@@ -287,6 +288,18 @@ pub(crate) fn write_error_outcome_with_profile(
             ),
             json!({"artifact_index_level": recorded, "requested_index_level": staged}),
         ),
+        ArtifactWriteError::FullRebuildRequiresForce => (
+            2,
+            ReportCode::UsageError,
+            "a staged full rebuild requires a force scan".to_owned(),
+            json!({}),
+        ),
+        ArtifactWriteError::ArtifactIdentityChanged { expected, found } => (
+            1,
+            ReportCode::ArtifactChanged,
+            "artifact identity changed while the write was being prepared; retry against the artifact's current root".to_owned(),
+            json!({"expected_artifact_id": expected, "found_artifact_id": found}),
+        ),
         ArtifactWriteError::ProducerGenerationChanged => (
             3,
             ReportCode::FingerprintMismatch,
@@ -300,8 +313,9 @@ pub(crate) fn write_error_outcome_with_profile(
             json!({"path": path, "action": "resolve source errors and retry `julie-extract scan --force`"}),
         ),
     };
-    let mut report = base_report(ReportStatus::Failed, operation, mode, input)
-        .with_error(diagnostic(report_code, message, None, None, false, details));
+    let mut report = base_report(ReportStatus::Failed, operation, mode, input).with_error(
+        diagnostic(report_code, message, None, None, recoverable, details),
+    );
     report.profile = profile;
     outcome(report, code, json_report)
 }
@@ -687,6 +701,39 @@ mod tests {
         assert_eq!(error.code, ReportCode::DbWriteFailed);
         assert!(error.message.contains("committed durably"));
         assert_eq!(error.details["committed"], serde_json::Value::Bool(true));
+    }
+
+    #[test]
+    fn stale_artifact_identity_reports_a_recoverable_artifact_changed_error() {
+        for operation in [
+            ReportOperation::Scan,
+            ReportOperation::Update,
+            ReportOperation::Delete,
+        ] {
+            let outcome = write_error_outcome_with_profile(
+                ArtifactWriteError::ArtifactIdentityChanged {
+                    expected: "artifact-before".to_owned(),
+                    found: Some("artifact-after".to_owned()),
+                },
+                operation,
+                ReportMode::Incremental,
+                ReportInput {
+                    db_path: None,
+                    root_path: None,
+                    file_path: None,
+                    root_relative_path: None,
+                },
+                true,
+                None,
+            );
+
+            assert_eq!(outcome.exit_code, 1);
+            let error = &outcome.report.errors[0];
+            assert_eq!(error.code, ReportCode::ArtifactChanged);
+            assert!(error.recoverable);
+            assert_eq!(error.details["expected_artifact_id"], "artifact-before");
+            assert_eq!(error.details["found_artifact_id"], "artifact-after");
+        }
     }
 
     #[test]

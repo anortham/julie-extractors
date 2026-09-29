@@ -15,9 +15,55 @@ fn canonicalize(path: &Path) -> std::io::Result<PathBuf> {
 /// `julie_extractors::pipeline::strip_verbatim_prefix`; public so integration
 /// tests canonicalize fixture paths exactly as the CLI does.
 pub fn strip_verbatim_prefix(path: PathBuf) -> PathBuf {
-    strip_verbatim_str(&path.to_string_lossy()).map_or(path, PathBuf::from)
+    #[cfg(windows)]
+    let path = {
+        use std::os::windows::ffi::{OsStrExt, OsStringExt};
+
+        const VERBATIM_PREFIX: &[u16] = &[b'\\' as u16, b'\\' as u16, b'?' as u16, b'\\' as u16];
+        const UNC_PREFIX: &[u16] = &[
+            b'\\' as u16,
+            b'\\' as u16,
+            b'?' as u16,
+            b'\\' as u16,
+            b'U' as u16,
+            b'N' as u16,
+            b'C' as u16,
+            b'\\' as u16,
+        ];
+
+        if path
+            .as_os_str()
+            .encode_wide()
+            .take(UNC_PREFIX.len())
+            .eq(UNC_PREFIX.iter().copied())
+        {
+            let mut stripped = vec![b'\\' as u16, b'\\' as u16];
+            stripped.extend(path.as_os_str().encode_wide().skip(UNC_PREFIX.len()));
+            PathBuf::from(std::ffi::OsString::from_wide(&stripped))
+        } else if path
+            .as_os_str()
+            .encode_wide()
+            .take(VERBATIM_PREFIX.len())
+            .eq(VERBATIM_PREFIX.iter().copied())
+        {
+            let stripped = path
+                .as_os_str()
+                .encode_wide()
+                .skip(VERBATIM_PREFIX.len())
+                .collect::<Vec<_>>();
+            PathBuf::from(std::ffi::OsString::from_wide(&stripped))
+        } else {
+            path
+        }
+    };
+
+    #[cfg(not(windows))]
+    let path = strip_verbatim_str(&path.to_string_lossy()).map_or(path, PathBuf::from);
+
+    path
 }
 
+#[cfg(not(windows))]
 fn strip_verbatim_str(path: &str) -> Option<String> {
     if let Some(stripped) = path.strip_prefix(r"\\?\UNC\") {
         Some(format!(r"\\{stripped}"))
@@ -648,6 +694,38 @@ mod verbatim_prefix_tests {
         assert_eq!(
             strip_verbatim_prefix(PathBuf::from("/home/murphy/repo")),
             PathBuf::from("/home/murphy/repo")
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn strip_verbatim_prefix_preserves_unpaired_utf16_for_drive_and_unc_paths() {
+        use std::os::windows::ffi::{OsStrExt, OsStringExt};
+
+        let drive = PathBuf::from(std::ffi::OsString::from_wide(&[
+            92, 92, 63, 92, 67, 58, 92, 0xD800, 92, 114, 101, 112, 111,
+        ]));
+        let unc = PathBuf::from(std::ffi::OsString::from_wide(&[
+            92, 92, 63, 92, 85, 78, 67, 92, 115, 101, 114, 118, 101, 114, 92, 115, 104, 97, 114,
+            101, 92, 0xDFFF, 92, 114, 101, 112, 111,
+        ]));
+
+        assert_eq!(
+            strip_verbatim_prefix(drive)
+                .as_os_str()
+                .encode_wide()
+                .collect::<Vec<_>>(),
+            [67, 58, 92, 0xD800, 92, 114, 101, 112, 111]
+        );
+        assert_eq!(
+            strip_verbatim_prefix(unc)
+                .as_os_str()
+                .encode_wide()
+                .collect::<Vec<_>>(),
+            [
+                92, 92, 115, 101, 114, 118, 101, 114, 92, 115, 104, 97, 114, 101, 92, 0xDFFF, 92,
+                114, 101, 112, 111,
+            ]
         );
     }
 }

@@ -4,7 +4,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use rusqlite::{Connection, OptionalExtension, Transaction, params};
+use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
 
 use crate::metadata::{ArtifactMetadata, initialize_metadata};
 use crate::model::{
@@ -36,6 +36,12 @@ pub type ArtifactWriteResult<T> = Result<T, ArtifactWriteError>;
 
 const SQLITE_STATEMENT_CACHE_CAPACITY: usize = 64;
 type ProducerGeneration = (String, String, String);
+
+#[derive(Clone)]
+struct StagedFullRebuild {
+    expected_artifact_id: String,
+    expected_producer_generation: ProducerGeneration,
+}
 
 #[derive(Debug)]
 pub enum ArtifactWriteError {
@@ -72,6 +78,11 @@ pub enum ArtifactWriteError {
         staged: String,
     },
     ProducerGenerationChanged,
+    ArtifactIdentityChanged {
+        expected: String,
+        found: Option<String>,
+    },
+    FullRebuildRequiresForce,
     IncompleteProducerRefresh {
         path: String,
     },
@@ -146,6 +157,14 @@ impl std::fmt::Display for ArtifactWriteError {
                     "artifact producer generation changed while preparing the write"
                 )
             }
+            ArtifactWriteError::ArtifactIdentityChanged { expected, found } => write!(
+                f,
+                "artifact identity changed while preparing the write: expected {expected}, found {}",
+                found.as_deref().unwrap_or("missing")
+            ),
+            ArtifactWriteError::FullRebuildRequiresForce => {
+                write!(f, "a staged full artifact rebuild requires a Force scan")
+            }
             ArtifactWriteError::IncompleteProducerRefresh { path } => write!(
                 f,
                 "force scan could not complete a producer generation refresh because {path} was not fully indexed"
@@ -199,6 +218,7 @@ pub struct ArtifactWriter {
     connection: Option<Connection>,
     metadata: ArtifactMetadata,
     expected_producer_generation: Option<ProducerGeneration>,
+    staged_full_rebuild: Option<StagedFullRebuild>,
     staged_capability_snapshot: Option<ArtifactCapabilitySnapshot>,
     /// Extraction level recorded into `artifact_metadata.index_level` by scan
     /// writes. Staged by the CLI once per scan; `None` writes nothing, which
@@ -230,6 +250,7 @@ impl ArtifactWriter {
             connection: Some(connection),
             metadata,
             expected_producer_generation: None,
+            staged_full_rebuild: None,
             staged_capability_snapshot: None,
             staged_index_level: None,
             last_capability_rows_written: RowDomainCounts::default(),
@@ -243,22 +264,27 @@ impl ArtifactWriter {
 
     pub fn open_path(path: impl AsRef<Path>, metadata: ArtifactMetadata) -> rusqlite::Result<Self> {
         let path = path.as_ref();
-        let existed = path.exists();
-        let connection = Connection::open(path)?;
+        let mut connection = Connection::open(path)?;
         connection.set_prepared_statement_cache_capacity(SQLITE_STATEMENT_CACHE_CAPACITY);
         connection.pragma_update(None, "journal_mode", "WAL")?;
         connection.pragma_update(None, "synchronous", "NORMAL")?;
         connection.pragma_update(None, "temp_store", "MEMORY")?;
         connection.pragma_update(None, "cache_size", crate::memory::bulk_cache_size_kib())?;
         create_schema(&connection)?;
-        if !existed || metadata_row_count(&connection)? == 0 {
-            initialize_metadata(&connection, &metadata)?;
+        if metadata_row_count(&connection)? == 0 {
+            let transaction =
+                connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+            if metadata_row_count(&transaction)? == 0 {
+                initialize_metadata(&transaction, &metadata)?;
+            }
+            transaction.commit()?;
         }
         let bulk_load_eligible = artifact_is_unwritten(&connection)?;
         Ok(Self {
             connection: Some(connection),
             metadata,
             expected_producer_generation: None,
+            staged_full_rebuild: None,
             staged_capability_snapshot: None,
             staged_index_level: None,
             last_capability_rows_written: RowDomainCounts::default(),
@@ -291,6 +317,14 @@ impl ArtifactWriter {
                 reason: reason.clone(),
             }),
             None => Ok(()),
+        }
+    }
+
+    fn ensure_full_rebuild_requires_force(&self) -> ArtifactWriteResult<()> {
+        if self.staged_full_rebuild.is_some() {
+            Err(ArtifactWriteError::FullRebuildRequiresForce)
+        } else {
+            Ok(())
         }
     }
 
@@ -373,6 +407,16 @@ impl ArtifactWriter {
         self.last_capability_rows_written = RowDomainCounts::default();
     }
 
+    /// Stage the original artifact identity for a transactional different-root replacement.
+    /// The next write must be a Force scan; its transaction clears the old artifact and writes the
+    /// target metadata and scan together.
+    pub fn stage_full_rebuild(&mut self, expected_original: &ArtifactMetadata) {
+        self.staged_full_rebuild = Some(StagedFullRebuild {
+            expected_artifact_id: expected_original.artifact_id.clone(),
+            expected_producer_generation: producer_generation(expected_original),
+        });
+    }
+
     pub fn stage_index_level(&mut self, level: &str) {
         self.staged_index_level = Some(level.to_string());
     }
@@ -391,13 +435,15 @@ impl ArtifactWriter {
         snapshot: &ArtifactCapabilitySnapshot,
     ) -> ArtifactWriteResult<RowDomainCounts> {
         self.ensure_not_poisoned()?;
+        self.ensure_full_rebuild_requires_force()?;
         let (expected, target) = self.producer_generation_precondition();
+        let expected_artifact_id = self.metadata.artifact_id.clone();
         let tx = self
             .connection
             .as_mut()
             .expect("artifact writer is closed")
             .transaction()?;
-        verify_producer_generation(&tx, &expected, &target, false)?;
+        verify_artifact_write_preconditions(&tx, &expected, &target, &expected_artifact_id, false)?;
         let counts = capabilities::sync_capability_snapshot_in_tx(&tx, snapshot)?;
         tx.commit()?;
         self.last_capability_rows_written = counts.clone();
@@ -507,6 +553,7 @@ impl ArtifactWriter {
         change_kind: RevisionChangeKind,
     ) -> ArtifactWriteResult<WriteResult> {
         self.ensure_not_poisoned()?;
+        self.ensure_full_rebuild_requires_force()?;
         // A single-file write never bulk-loads, and it leaves rows behind, so it
         // must also spend the eligibility a later scan through this writer would
         // otherwise inherit.
@@ -514,12 +561,13 @@ impl ArtifactWriter {
         let mut clock = PhaseClock::start();
         let capability_snapshot = self.staged_capability_snapshot();
         let (expected, target) = self.producer_generation_precondition();
+        let expected_artifact_id = self.metadata.artifact_id.clone();
         let tx = self
             .connection
             .as_mut()
             .expect("artifact writer is closed")
             .transaction()?;
-        verify_producer_generation(&tx, &expected, &target, false)?;
+        verify_artifact_write_preconditions(&tx, &expected, &target, &expected_artifact_id, false)?;
         let existing = load_existing_file(&tx, path)?;
         let Some(existing) = existing else {
             clock.lap(|phases| &mut phases.plan);
@@ -579,6 +627,7 @@ impl ArtifactWriter {
         files: &[ArtifactFile],
     ) -> ArtifactWriteResult<WriteResult> {
         self.ensure_not_poisoned()?;
+        self.ensure_full_rebuild_requires_force()?;
         // A single-file write never bulk-loads, and it leaves rows behind, so it
         // must also spend the eligibility a later scan through this writer would
         // otherwise inherit.
@@ -586,12 +635,13 @@ impl ArtifactWriter {
         let mut clock = PhaseClock::start();
         let capability_snapshot = self.staged_capability_snapshot();
         let (expected, target) = self.producer_generation_precondition();
+        let expected_artifact_id = self.metadata.artifact_id.clone();
         let tx = self
             .connection
             .as_mut()
             .expect("artifact writer is closed")
             .transaction()?;
-        verify_producer_generation(&tx, &expected, &target, false)?;
+        verify_artifact_write_preconditions(&tx, &expected, &target, &expected_artifact_id, false)?;
         let capability_rows_written = capabilities::sync_optional_capability_snapshot_in_tx(
             &tx,
             capability_snapshot.as_ref(),
@@ -704,6 +754,7 @@ impl ArtifactWriter {
         revision: RevisionInput,
         files: &[ArtifactFile],
     ) -> ArtifactWriteResult<WriteResult> {
+        self.ensure_full_rebuild_mode(&revision)?;
         self.write_scan_with_bulk_load(|writer, bulk_load| {
             writer.write_scan_snapshot_in_mode(revision, files, bulk_load)
         })
@@ -719,14 +770,38 @@ impl ArtifactWriter {
         let capability_snapshot = self.staged_capability_snapshot();
         let allow_generation_change =
             revision.operation == WriteOperation::Scan && revision.mode == Some(WriteMode::Force);
-        let producer_generation_change = self.is_producer_generation_change();
-        let (expected, target) = self.producer_generation_precondition();
+        let staged_full_rebuild = self.staged_full_rebuild.clone();
+        let target = producer_generation(&self.metadata);
+        let (expected, expected_artifact_id) = match &staged_full_rebuild {
+            Some(staged) => (
+                staged.expected_producer_generation.clone(),
+                staged.expected_artifact_id.clone(),
+            ),
+            None => {
+                let (expected, _) = self.producer_generation_precondition();
+                (expected, self.metadata.artifact_id.clone())
+            }
+        };
+        let producer_generation_change = if staged_full_rebuild.is_some() {
+            expected != target
+        } else {
+            self.is_producer_generation_change()
+        };
         let tx = self
             .connection
             .as_mut()
             .expect("artifact writer is closed")
             .transaction()?;
-        verify_producer_generation(&tx, &expected, &target, allow_generation_change)?;
+        verify_artifact_write_preconditions(
+            &tx,
+            &expected,
+            &target,
+            &expected_artifact_id,
+            allow_generation_change,
+        )?;
+        if staged_full_rebuild.is_some() {
+            clear_artifact_for_full_rebuild(&tx)?;
+        }
         if bulk_load {
             drop_secondary_indexes(&tx)?;
         }
@@ -785,6 +860,7 @@ impl ArtifactWriter {
             && deleted.is_empty()
             && !capability_rows_written.has_rows()
             && !producer_generation_change
+            && staged_full_rebuild.is_none()
         {
             clock.lap(|phases| &mut phases.plan);
             if bulk_load {
@@ -908,6 +984,7 @@ impl ArtifactWriter {
         preserved_missing_paths: &[String],
         spool: &ArtifactFileSpool,
     ) -> ArtifactWriteResult<WriteResult> {
+        self.ensure_full_rebuild_mode(&revision)?;
         self.write_scan_with_bulk_load(|writer, bulk_load| {
             writer.write_scan_spooled_snapshot_in_mode(
                 revision,
@@ -924,7 +1001,7 @@ impl ArtifactWriter {
         operation: impl FnOnce(&mut Self, bool) -> ArtifactWriteResult<WriteResult>,
     ) -> ArtifactWriteResult<WriteResult> {
         self.ensure_not_poisoned()?;
-        let bulk_load = self.take_bulk_load_eligibility();
+        let bulk_load = self.take_bulk_load_eligibility() && self.staged_full_rebuild.is_none();
         let bulk_setup_started = Instant::now();
         if bulk_load {
             begin_bulk_load(self.conn())?;
@@ -932,15 +1009,33 @@ impl ArtifactWriter {
         let bulk_setup = bulk_setup_started.elapsed();
         match operation(self, bulk_load) {
             Ok(mut result) => {
+                self.staged_full_rebuild = None;
                 self.accept_staged_producer_generation();
                 result.phases.plan += bulk_setup;
                 Ok(result)
+            }
+            Err(write_error) if write_error.committed() => {
+                if self.staged_full_rebuild.is_some() {
+                    self.staged_full_rebuild = None;
+                    self.accept_staged_producer_generation();
+                }
+                Err(write_error)
             }
             Err(write_error) if bulk_load && !write_error.committed() => {
                 Err(self.restore_after_failed_bulk_load(write_error))
             }
             Err(write_error) => Err(write_error),
         }
+    }
+
+    fn ensure_full_rebuild_mode(&self, revision: &RevisionInput) -> ArtifactWriteResult<()> {
+        if self.staged_full_rebuild.is_some()
+            && (revision.operation != WriteOperation::Scan
+                || revision.mode != Some(WriteMode::Force))
+        {
+            return Err(ArtifactWriteError::FullRebuildRequiresForce);
+        }
+        Ok(())
     }
 
     fn write_scan_spooled_snapshot_in_mode(
@@ -955,14 +1050,38 @@ impl ArtifactWriter {
         let capability_snapshot = self.staged_capability_snapshot();
         let allow_generation_change =
             revision.operation == WriteOperation::Scan && revision.mode == Some(WriteMode::Force);
-        let producer_generation_change = self.is_producer_generation_change();
-        let (expected, target) = self.producer_generation_precondition();
+        let staged_full_rebuild = self.staged_full_rebuild.clone();
+        let target = producer_generation(&self.metadata);
+        let (expected, expected_artifact_id) = match &staged_full_rebuild {
+            Some(staged) => (
+                staged.expected_producer_generation.clone(),
+                staged.expected_artifact_id.clone(),
+            ),
+            None => {
+                let (expected, _) = self.producer_generation_precondition();
+                (expected, self.metadata.artifact_id.clone())
+            }
+        };
+        let producer_generation_change = if staged_full_rebuild.is_some() {
+            expected != target
+        } else {
+            self.is_producer_generation_change()
+        };
         let tx = self
             .connection
             .as_mut()
             .expect("artifact writer is closed")
             .unchecked_transaction()?;
-        verify_producer_generation(&tx, &expected, &target, allow_generation_change)?;
+        verify_artifact_write_preconditions(
+            &tx,
+            &expected,
+            &target,
+            &expected_artifact_id,
+            allow_generation_change,
+        )?;
+        if staged_full_rebuild.is_some() {
+            clear_artifact_for_full_rebuild(&tx)?;
+        }
         // Symbol parent FKs can point to symbols inserted later in the same spooled transaction.
         // Defer validation until commit while keeping connection-level foreign_keys ON so
         // ON DELETE CASCADE/SET NULL actions still run during rewrites and snapshot deletes.
@@ -1054,6 +1173,7 @@ impl ArtifactWriter {
             && deleted.is_empty()
             && !capability_rows_written.has_rows()
             && !producer_generation_change
+            && staged_full_rebuild.is_none()
         {
             clock.lap(|phases| &mut phases.plan);
             if bulk_load {
@@ -1196,6 +1316,17 @@ fn metadata_row_count(connection: &Connection) -> rusqlite::Result<i64> {
     })
 }
 
+fn clear_artifact_for_full_rebuild(tx: &Transaction<'_>) -> rusqlite::Result<()> {
+    tx.execute_batch(
+        "DELETE FROM revision_file_changes;
+         DELETE FROM files;
+         DELETE FROM extraction_revisions;
+         DELETE FROM artifact_metadata;
+         DELETE FROM parser_inventory;
+         DELETE FROM language_capabilities;",
+    )
+}
+
 fn producer_generation(metadata: &ArtifactMetadata) -> ProducerGeneration {
     (
         metadata.binary_version.clone(),
@@ -1215,12 +1346,29 @@ fn stored_producer_generation(tx: &Transaction<'_>) -> rusqlite::Result<Producer
     )
 }
 
-fn verify_producer_generation(
+fn stored_artifact_id(tx: &Transaction<'_>) -> rusqlite::Result<Option<String>> {
+    tx.query_row(
+        "SELECT value FROM artifact_metadata WHERE key = 'artifact_id'",
+        [],
+        |row| row.get(0),
+    )
+    .optional()
+}
+
+fn verify_artifact_write_preconditions(
     tx: &Transaction<'_>,
     expected: &ProducerGeneration,
     target: &ProducerGeneration,
+    expected_artifact_id: &str,
     allow_generation_change: bool,
 ) -> ArtifactWriteResult<()> {
+    let found = stored_artifact_id(tx)?;
+    if found.as_deref() != Some(expected_artifact_id) {
+        return Err(ArtifactWriteError::ArtifactIdentityChanged {
+            expected: expected_artifact_id.to_string(),
+            found,
+        });
+    }
     if (!allow_generation_change && expected != target)
         || stored_producer_generation(tx)? != *expected
     {

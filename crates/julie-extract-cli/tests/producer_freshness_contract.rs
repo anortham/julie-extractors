@@ -287,3 +287,89 @@ fn failed_force_metadata_write_rolls_back_every_fact_and_producer_value() {
     );
     assert_eq!(snapshot(&db), before);
 }
+
+#[test]
+fn different_root_force_metadata_write_failure_preserves_existing_artifact() {
+    let (temp, _old_root, db) = fixture();
+    let new_root = temp.path().join("replacement-source");
+    std::fs::create_dir(&new_root).unwrap();
+    std::fs::write(new_root.join("replacement.rs"), "pub fn replacement() {}\n").unwrap();
+    Connection::open(&db)
+        .unwrap()
+        .execute_batch(
+            "CREATE TRIGGER reject_force_metadata_insert BEFORE INSERT ON artifact_metadata BEGIN SELECT RAISE(ABORT, 'force metadata insert rejected'); END;
+             CREATE TRIGGER reject_force_metadata_update BEFORE UPDATE ON artifact_metadata BEGIN SELECT RAISE(ABORT, 'force metadata update rejected'); END;",
+        )
+        .unwrap();
+    let before = snapshot(&db);
+
+    let output = run(&[
+        "scan",
+        "--root",
+        path_str(&new_root),
+        "--db",
+        path_str(&db),
+        "--force",
+        "--json",
+    ]);
+
+    assert!(!output.status.success());
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert!(
+        report["errors"][0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("force metadata"),
+        "{report}"
+    );
+    assert_eq!(snapshot(&db), before);
+}
+
+#[test]
+fn different_root_force_with_source_error_after_generation_change_preserves_artifact() {
+    let (temp, _old_root, db) = fixture();
+    stale(&db, "binary_version");
+    let new_root = temp.path().join("replacement-source");
+    std::fs::create_dir(&new_root).unwrap();
+    std::fs::write(new_root.join("broken.rs"), [0xff]).unwrap();
+    let before = snapshot(&db);
+
+    let output = run(&[
+        "scan",
+        "--root",
+        path_str(&new_root),
+        "--db",
+        path_str(&db),
+        "--force",
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(3));
+    assert_eq!(snapshot(&db), before);
+}
+
+#[cfg(unix)]
+#[test]
+fn parent_exit_during_different_root_force_preserves_existing_artifact() {
+    let (temp, _old_root, db) = fixture();
+    let new_root = temp.path().join("replacement-source");
+    std::fs::create_dir(&new_root).unwrap();
+    let before = snapshot(&db);
+
+    let output = run(&[
+        "scan",
+        "--root",
+        path_str(&new_root),
+        "--db",
+        path_str(&db),
+        "--force",
+        "--parent-pid",
+        "4294967295",
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(1));
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["errors"][0]["code"], "parent_exited");
+    assert_eq!(snapshot(&db), before);
+}

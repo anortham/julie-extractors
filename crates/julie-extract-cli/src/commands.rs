@@ -270,13 +270,14 @@ fn scan_collecting_warnings(
     let mut force_existing_level = None;
     let force_existing_metadata = if args.force && db.exists() {
         match open_artifact(&db, args.strict_schema, ArtifactAccess::Force) {
-            Ok(artifact) if recorded_path_matches(&artifact.report.root_path, &root) => {
-                if artifact.has_extraction_history {
+            Ok(artifact) => {
+                if recorded_path_matches(&artifact.report.root_path, &root)
+                    && artifact.has_extraction_history
+                {
                     force_existing_level = Some(artifact.index_level.clone());
                 }
                 Some(artifact.write_metadata)
             }
-            Ok(_) => None,
             Err(error) => {
                 record_profile_phase(
                     &mut profile_phases,
@@ -304,7 +305,10 @@ fn scan_collecting_warnings(
         "force_metadata",
         force_metadata_started.elapsed(),
     );
-    let should_rebuild_db = args.force && db.exists() && force_existing_metadata.is_none();
+    let should_rebuild_db = args.force
+        && force_existing_metadata
+            .as_ref()
+            .is_some_and(|metadata| !recorded_path_matches(&metadata.root_path, &root));
     let recorded_level = force_existing_level.or(existing_scan_level);
     let requested_level = args.level.map(ExtractionLevel::from);
     let recorded_extraction_level = match recorded_level.as_deref() {
@@ -381,29 +385,28 @@ fn scan_collecting_warnings(
             .then(|| spool_lock_unavailable_warning(spool_dir.as_deref())),
     );
 
-    if let Some(aborted) =
-        abort_before_full_rebuild(&db, should_rebuild_db, || match extracted.completion {
-            SpoolCompletion::Complete => controls.parent_exited_outcome(
-                args.parent_pid,
-                mode,
-                &input,
-                args.json,
-                scan_started,
-                &profile_phases,
-            ),
-            SpoolCompletion::ParentExited {
-                observed_parent_pid,
-            } => Some(parent_exited_abort(
-                args.parent_pid,
-                observed_parent_pid,
-                mode,
-                &input,
-                args.json,
-                scan_started,
-                &profile_phases,
-            )),
-        })
-    {
+    let abort = match extracted.completion {
+        SpoolCompletion::Complete => controls.parent_exited_outcome(
+            args.parent_pid,
+            mode,
+            &input,
+            args.json,
+            scan_started,
+            &profile_phases,
+        ),
+        SpoolCompletion::ParentExited {
+            observed_parent_pid,
+        } => Some(parent_exited_abort(
+            args.parent_pid,
+            observed_parent_pid,
+            mode,
+            &input,
+            args.json,
+            scan_started,
+            &profile_phases,
+        )),
+    };
+    if let Some(aborted) = abort {
         return aborted;
     }
     let db_existed_before_write = db.exists();
@@ -461,16 +464,25 @@ fn scan_collecting_warnings(
             );
         }
     }
-    let metadata = force_existing_metadata
-        .or(existing_scan_metadata)
-        .map(|metadata| refreshed_metadata(metadata, &root))
-        .unwrap_or_else(|| new_artifact_metadata(&root, None));
+    let metadata = if should_rebuild_db {
+        new_artifact_metadata(&root, None)
+    } else {
+        force_existing_metadata
+            .or(existing_scan_metadata)
+            .map(|metadata| refreshed_metadata(metadata, &root))
+            .unwrap_or_else(|| new_artifact_metadata(&root, None))
+    };
 
     let writer_open_started = Instant::now();
     controls.enter_phase("writer_open");
     match ArtifactWriter::open_path(&db, metadata) {
         Ok(mut writer) => {
-            if args.force && producer_generation_changed {
+            if should_rebuild_db {
+                let metadata = expected_producer_metadata
+                    .as_ref()
+                    .expect("a full rebuild has an existing artifact");
+                writer.stage_full_rebuild(metadata);
+            } else if args.force && producer_generation_changed {
                 let metadata = expected_producer_metadata
                     .as_ref()
                     .expect("a changed producer generation has an existing artifact");
@@ -2346,38 +2358,6 @@ fn generated_artifact_id() -> String {
     format!("artifact-{nanos}")
 }
 
-/// The scan's last cooperative abort point, ordered ahead of its first
-/// destructive step.
-///
-/// A full rebuild unlinks the live artifact before the writer runs, and past the
-/// writer the spool must stay on disk until it has been read back, so this is the
-/// only place both can be decided. Deciding the abort second would let a scan
-/// delete the artifact and then report `parent_exited` — which
-/// `docs/contracts/reports.md` documents as leaving the artifact untouched.
-fn abort_before_full_rebuild(
-    db: &Path,
-    should_rebuild_db: bool,
-    aborted: impl FnOnce() -> Option<CommandOutcome>,
-) -> Option<CommandOutcome> {
-    let aborted = aborted();
-    if aborted.is_none() && should_rebuild_db {
-        remove_artifact_files(db);
-    }
-    aborted
-}
-
-fn remove_artifact_files(db: &Path) {
-    for path in [
-        db.to_path_buf(),
-        crate::paths::artifact_sidecar(db, "-wal"),
-        crate::paths::artifact_sidecar(db, "-shm"),
-    ] {
-        if path.exists() {
-            let _ = std::fs::remove_file(path);
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::extraction::extract_artifact_file_from_snapshot;
@@ -2866,55 +2846,6 @@ mod tests {
         assert_sha256(&capabilities);
         assert_sha256(&changed_capabilities);
         assert_ne!(capabilities, changed_capabilities);
-    }
-
-    #[test]
-    fn an_aborting_scan_never_unlinks_the_artifact_it_reports_as_untouched() {
-        let temp = TempDir::new().unwrap();
-        let db = temp.path().join("artifact.sqlite");
-        std::fs::write(&db, b"unopenable artifact").unwrap();
-        std::fs::write(temp.path().join("artifact.sqlite-wal"), b"wal").unwrap();
-
-        let aborted = abort_before_full_rebuild(&db, true, || Some(parent_exited_outcome()));
-
-        assert!(aborted.is_some());
-        assert!(
-            db.exists(),
-            "parent_exited is documented as leaving the artifact untouched"
-        );
-        assert!(temp.path().join("artifact.sqlite-wal").exists());
-    }
-
-    #[test]
-    fn a_full_rebuild_that_is_not_aborting_clears_the_artifact_and_its_sidecars() {
-        let temp = TempDir::new().unwrap();
-        let db = temp.path().join("artifact.sqlite");
-        std::fs::write(&db, b"unopenable artifact").unwrap();
-        std::fs::write(temp.path().join("artifact.sqlite-wal"), b"wal").unwrap();
-
-        let aborted = abort_before_full_rebuild(&db, true, || None);
-
-        assert!(aborted.is_none());
-        assert!(!db.exists());
-        assert!(!temp.path().join("artifact.sqlite-wal").exists());
-    }
-
-    fn parent_exited_outcome() -> CommandOutcome {
-        let watchdog = ParentWatchdog::tripped(1);
-        let controls = ScanControls {
-            watchdog: Some(&watchdog),
-            ..ScanControls::default()
-        };
-        controls
-            .parent_exited_outcome(
-                Some(2),
-                ReportMode::Force,
-                &artifact_input(Path::new("artifact.sqlite"), None, None, None),
-                true,
-                Instant::now(),
-                &BTreeMap::new(),
-            )
-            .unwrap()
     }
 
     #[test]

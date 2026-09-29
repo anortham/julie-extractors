@@ -1,4 +1,4 @@
-use julie_extract_artifact::metadata::ArtifactMetadata;
+use julie_extract_artifact::metadata::{ArtifactMetadata, RebindMetadata, apply_rebind};
 use julie_extract_artifact::model::{
     ArtifactCapabilityFlags, ArtifactCapabilitySnapshot, ArtifactComplexityMetric, ArtifactFile,
     ArtifactIdentifier, ArtifactLanguageCapabilityFixtureRow, ArtifactLanguageCapabilityGapRow,
@@ -11,7 +11,7 @@ use julie_extract_artifact::model::{
 use julie_extract_artifact::writer::{ArtifactFileSpool, ArtifactWriteError, ArtifactWriter};
 use rusqlite::{Connection, limits::Limit};
 use serde_json::json;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 #[test]
@@ -2244,6 +2244,472 @@ fn writer_refuses_a_producer_generation_changed_after_open() {
 }
 
 #[test]
+fn writer_refuses_every_mutation_after_artifact_rebind() {
+    let temp_dir = unique_temp_dir("writer-rebind-after-open");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+    let metadata = artifact_metadata();
+    let mut writer = ArtifactWriter::open_path(&db_path, metadata.clone()).unwrap();
+    let original = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            std::slice::from_ref(&original),
+        )
+        .unwrap();
+
+    apply_test_rebind(&db_path, &metadata);
+
+    let changed = file_with_symbols("file-a", "src/a.rs", "hash-a2", ["alpha_v2"]);
+    let update = writer.write_update(revision(WriteOperation::Update, None), &changed);
+    assert_artifact_identity_changed(update);
+    assert_artifact_identity_changed(
+        writer.delete_file(revision(WriteOperation::Delete, None), "src/a.rs"),
+    );
+    assert_artifact_identity_changed(writer.write_scan(
+        revision(WriteOperation::Scan, Some(WriteMode::Force)),
+        std::slice::from_ref(&changed),
+    ));
+
+    let spooled = file_with_symbols("file-b", "src/b.rs", "hash-b", ["beta"]);
+    let snapshot_paths = vec![spooled.path.clone()];
+    let spool_dir = unique_temp_dir("writer-rebind-spool");
+    std::fs::create_dir_all(&spool_dir).unwrap();
+    let mut spool = ArtifactFileSpool::create(spool_dir.join("files.spool")).unwrap();
+    spool.push(&spooled).unwrap();
+    assert_artifact_identity_changed(writer.write_scan_spooled(
+        revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+        &snapshot_paths,
+        &mut spool,
+    ));
+    assert_artifact_identity_changed(
+        writer.sync_capability_snapshot(&one_language_capability_snapshot()),
+    );
+
+    assert_rebound_metadata(writer.connection());
+    assert_eq!(
+        symbols_for_path(writer.connection(), "src/a.rs"),
+        vec!["alpha"]
+    );
+    assert_eq!(
+        file_hash(writer.connection(), "src/a.rs"),
+        Some("hash-a".to_string())
+    );
+    assert_eq!(file_hash(writer.connection(), "src/b.rs"), None);
+    assert_eq!(count(writer.connection(), "files"), 1);
+    assert_eq!(count(writer.connection(), "extraction_revisions"), 1);
+    assert_eq!(count(writer.connection(), "parser_inventory"), 0);
+
+    drop(writer);
+    drop(spool);
+    std::fs::remove_dir_all(spool_dir).unwrap();
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn writer_refuses_stale_metadata_passed_to_open_after_rebind() {
+    let temp_dir = unique_temp_dir("writer-rebind-before-open");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+    let metadata = artifact_metadata();
+    let mut initial_writer = ArtifactWriter::open_path(&db_path, metadata.clone()).unwrap();
+    initial_writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"])],
+        )
+        .unwrap();
+    initial_writer.close().unwrap();
+
+    apply_test_rebind(&db_path, &metadata);
+
+    let mut writer = ArtifactWriter::open_path(&db_path, metadata).unwrap();
+    let result = writer.write_update(
+        revision(WriteOperation::Update, None),
+        &file_with_symbols("file-a", "src/a.rs", "hash-a2", ["alpha_v2"]),
+    );
+    assert_artifact_identity_changed(result);
+    assert_rebound_metadata(writer.connection());
+    assert_eq!(
+        symbols_for_path(writer.connection(), "src/a.rs"),
+        vec!["alpha"]
+    );
+    assert_eq!(
+        file_hash(writer.connection(), "src/a.rs"),
+        Some("hash-a".to_string())
+    );
+    assert_eq!(count(writer.connection(), "extraction_revisions"), 1);
+
+    drop(writer);
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn staged_full_rebuild_rejects_non_force_mutations() {
+    let temp_dir = unique_temp_dir("staged-full-rebuild-guards");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+    let old_metadata = artifact_metadata();
+    let mut initial_writer = ArtifactWriter::open_path(&db_path, old_metadata.clone()).unwrap();
+    initial_writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"])],
+        )
+        .unwrap();
+    initial_writer.close().unwrap();
+
+    let mut target_metadata = old_metadata.clone();
+    target_metadata.artifact_id = "artifact-new-root".to_string();
+    target_metadata.root_path = "/new-root".to_string();
+    let mut writer = ArtifactWriter::open_path(&db_path, target_metadata).unwrap();
+    writer.stage_full_rebuild(&old_metadata);
+
+    let changed = file_with_symbols("file-a", "src/a.rs", "hash-a2", ["alpha_v2"]);
+    assert!(matches!(
+        writer.write_update(revision(WriteOperation::Update, None), &changed),
+        Err(ArtifactWriteError::FullRebuildRequiresForce)
+    ));
+    assert!(matches!(
+        writer.delete_file(revision(WriteOperation::Delete, None), "src/a.rs"),
+        Err(ArtifactWriteError::FullRebuildRequiresForce)
+    ));
+    assert!(matches!(
+        writer.sync_capability_snapshot(&one_language_capability_snapshot()),
+        Err(ArtifactWriteError::FullRebuildRequiresForce)
+    ));
+    assert!(matches!(
+        writer.write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            std::slice::from_ref(&changed),
+        ),
+        Err(ArtifactWriteError::FullRebuildRequiresForce)
+    ));
+    assert_eq!(
+        symbols_for_path(writer.connection(), "src/a.rs"),
+        vec!["alpha"]
+    );
+    assert_eq!(count(writer.connection(), "extraction_revisions"), 1);
+
+    drop(writer);
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn staged_force_rebuild_resets_atomically_and_accepts_writer_reuse() {
+    let temp_dir = unique_temp_dir("staged-full-rebuild");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+    let old_metadata = artifact_metadata();
+    let mut initial_writer = ArtifactWriter::open_path(&db_path, old_metadata.clone()).unwrap();
+    initial_writer
+        .sync_capability_snapshot(&old_language_capability_snapshot())
+        .unwrap();
+    initial_writer.stage_index_level("full");
+    initial_writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_symbols(
+                "old-file",
+                "src/old.rs",
+                "old-hash",
+                ["old_symbol"],
+            )],
+        )
+        .unwrap();
+    initial_writer
+        .connection()
+        .execute(
+            "INSERT INTO artifact_metadata (key, value) VALUES ('rebound_from_root', '/before')",
+            [],
+        )
+        .unwrap();
+    initial_writer
+        .connection()
+        .execute(
+            "CREATE TRIGGER fail_target_root_update BEFORE INSERT ON artifact_metadata \
+             WHEN NEW.key = 'root_path' AND NEW.value = '/new-root' \
+             BEGIN SELECT RAISE(ABORT, 'target metadata rejected'); END",
+            [],
+        )
+        .unwrap();
+    initial_writer.close().unwrap();
+
+    let mut target_metadata = old_metadata.clone();
+    target_metadata.artifact_id = "artifact-new-root".to_string();
+    target_metadata.root_path = "/new-root".to_string();
+    target_metadata.binary_version = "julie-extract 0.2.0".to_string();
+    target_metadata.parser_inventory_fingerprint = "sha256:new-parser".to_string();
+    target_metadata.capability_snapshot_fingerprint = "sha256:new-capability".to_string();
+    target_metadata.updated_at = "2026-06-02T00:00:00Z".to_string();
+    let mut writer = ArtifactWriter::open_path(&db_path, target_metadata.clone()).unwrap();
+    writer.expect_producer_generation(&old_metadata);
+    writer.stage_full_rebuild(&old_metadata);
+    writer.stage_capability_snapshot(one_language_capability_snapshot());
+    writer.stage_index_level("symbols");
+    let fresh_file = file_with_symbols("new-file", "src/new.rs", "new-hash", ["new_symbol"]);
+    let snapshot_paths = vec![fresh_file.path.clone()];
+    let spool_dir = unique_temp_dir("staged-full-rebuild-spool");
+    std::fs::create_dir_all(&spool_dir).unwrap();
+    let mut spool = ArtifactFileSpool::create(spool_dir.join("files.spool")).unwrap();
+    spool.push(&fresh_file).unwrap();
+
+    let failed = writer.write_scan_spooled_preserving_missing_paths(
+        revision(WriteOperation::Scan, Some(WriteMode::Force)),
+        &snapshot_paths,
+        &[],
+        &mut spool,
+    );
+    assert!(matches!(failed, Err(ArtifactWriteError::Sqlite(_))));
+    assert_eq!(
+        writer
+            .connection()
+            .query_row(
+                "SELECT value FROM artifact_metadata WHERE key = 'artifact_id'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        old_metadata.artifact_id
+    );
+    assert_eq!(
+        file_hash(writer.connection(), "src/old.rs"),
+        Some("old-hash".to_string())
+    );
+    assert_eq!(file_hash(writer.connection(), "src/new.rs"), None);
+    assert_eq!(count(writer.connection(), "extraction_revisions"), 1);
+    assert_eq!(count(writer.connection(), "language_capabilities"), 1);
+    assert_eq!(
+        writer
+            .connection()
+            .query_row(
+                "SELECT value FROM artifact_metadata WHERE key = 'index_level'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        "full"
+    );
+    assert_eq!(
+        writer
+            .connection()
+            .query_row(
+                "SELECT value FROM artifact_metadata WHERE key = 'rebound_from_root'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        "/before"
+    );
+
+    writer
+        .connection()
+        .execute("DROP TRIGGER fail_target_root_update", [])
+        .unwrap();
+    writer.stage_capability_snapshot(one_language_capability_snapshot());
+    writer
+        .write_scan_spooled_preserving_missing_paths(
+            revision(WriteOperation::Scan, Some(WriteMode::Force)),
+            &snapshot_paths,
+            &[],
+            &mut spool,
+        )
+        .unwrap();
+
+    assert_eq!(
+        writer
+            .connection()
+            .query_row(
+                "SELECT value FROM artifact_metadata WHERE key = 'artifact_id'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        target_metadata.artifact_id
+    );
+    assert_eq!(
+        writer
+            .connection()
+            .query_row(
+                "SELECT value FROM artifact_metadata WHERE key = 'root_path'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        "/new-root"
+    );
+    assert_eq!(count(writer.connection(), "extraction_revisions"), 1);
+    assert_eq!(count(writer.connection(), "revision_file_changes"), 1);
+    assert_eq!(count(writer.connection(), "files"), 1);
+    assert_eq!(file_hash(writer.connection(), "src/old.rs"), None);
+    assert_eq!(
+        file_hash(writer.connection(), "src/new.rs"),
+        Some("new-hash".to_string())
+    );
+    assert_eq!(count(writer.connection(), "language_capabilities"), 1);
+    assert_eq!(
+        writer
+            .connection()
+            .query_row("SELECT language FROM language_capabilities", [], |row| {
+                row.get::<_, String>(0)
+            },)
+            .unwrap(),
+        "rust"
+    );
+    assert_eq!(
+        writer
+            .connection()
+            .query_row(
+                "SELECT value FROM artifact_metadata WHERE key = 'index_level'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        "symbols"
+    );
+    for key in [
+        "rebound_from_root",
+        "rebound_from_artifact_id",
+        "rebound_at",
+    ] {
+        assert_eq!(
+            writer
+                .connection()
+                .query_row(
+                    "SELECT COUNT(*) FROM artifact_metadata WHERE key = ?1",
+                    [key],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap(),
+            0
+        );
+    }
+
+    writer
+        .write_update(
+            revision(WriteOperation::Update, None),
+            &file_with_symbols("new-file", "src/new.rs", "new-hash-2", ["new_symbol_v2"]),
+        )
+        .unwrap();
+    assert_eq!(count(writer.connection(), "extraction_revisions"), 2);
+    assert_eq!(
+        symbols_for_path(writer.connection(), "src/new.rs"),
+        vec!["new_symbol_v2"]
+    );
+
+    drop(writer);
+    drop(spool);
+    std::fs::remove_dir_all(spool_dir).unwrap();
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn staged_force_rebuild_refuses_stale_original_identity() {
+    let temp_dir = unique_temp_dir("staged-full-rebuild-stale-id");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+    let old_metadata = artifact_metadata();
+    let mut original = ArtifactWriter::open_path(&db_path, old_metadata.clone()).unwrap();
+    original
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"])],
+        )
+        .unwrap();
+    original.close().unwrap();
+
+    let mut target_metadata = old_metadata.clone();
+    target_metadata.artifact_id = "artifact-target".to_string();
+    target_metadata.root_path = "/target".to_string();
+    let mut writer = ArtifactWriter::open_path(&db_path, target_metadata).unwrap();
+    writer.stage_full_rebuild(&old_metadata);
+    apply_test_rebind(&db_path, &old_metadata);
+    let empty_dir = unique_temp_dir("staged-full-rebuild-empty-spool");
+    std::fs::create_dir_all(&empty_dir).unwrap();
+    let mut spool = ArtifactFileSpool::create(empty_dir.join("files.spool")).unwrap();
+
+    let result = writer.write_scan_spooled_preserving_missing_paths(
+        revision(WriteOperation::Scan, Some(WriteMode::Force)),
+        &[],
+        &[],
+        &mut spool,
+    );
+
+    assert_artifact_identity_changed(result);
+    assert_rebound_metadata(writer.connection());
+    assert_eq!(
+        file_hash(writer.connection(), "src/a.rs"),
+        Some("hash-a".to_string())
+    );
+    assert_eq!(count(writer.connection(), "extraction_revisions"), 1);
+
+    drop(writer);
+    drop(spool);
+    std::fs::remove_dir_all(empty_dir).unwrap();
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn staged_force_rebuild_of_empty_snapshot_commits_new_revision() {
+    let temp_dir = unique_temp_dir("staged-full-rebuild-empty");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+    let old_metadata = artifact_metadata();
+    let mut original = ArtifactWriter::open_path(&db_path, old_metadata.clone()).unwrap();
+    original
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_symbols(
+                "old-file",
+                "src/old.rs",
+                "old-hash",
+                ["old_symbol"],
+            )],
+        )
+        .unwrap();
+    original.close().unwrap();
+
+    let mut target_metadata = old_metadata.clone();
+    target_metadata.artifact_id = "artifact-empty-target".to_string();
+    target_metadata.root_path = "/empty-target".to_string();
+    let mut writer = ArtifactWriter::open_path(&db_path, target_metadata.clone()).unwrap();
+    writer.stage_full_rebuild(&old_metadata);
+    let spool_dir = unique_temp_dir("staged-full-rebuild-empty-snapshot");
+    std::fs::create_dir_all(&spool_dir).unwrap();
+    let mut spool = ArtifactFileSpool::create(spool_dir.join("files.spool")).unwrap();
+
+    let result = writer
+        .write_scan_spooled_preserving_missing_paths(
+            revision(WriteOperation::Scan, Some(WriteMode::Force)),
+            &[],
+            &[],
+            &mut spool,
+        )
+        .unwrap();
+
+    assert!(result.revision_id.is_some());
+    assert_eq!(count(writer.connection(), "files"), 0);
+    assert_eq!(count(writer.connection(), "extraction_revisions"), 1);
+    assert_eq!(count(writer.connection(), "language_capabilities"), 0);
+    assert_eq!(
+        writer
+            .connection()
+            .query_row(
+                "SELECT value FROM artifact_metadata WHERE key = 'artifact_id'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        target_metadata.artifact_id
+    );
+
+    drop(writer);
+    drop(spool);
+    std::fs::remove_dir_all(spool_dir).unwrap();
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
 fn force_scan_rejects_new_failed_preserved_files_during_generation_change() {
     let old_metadata = artifact_metadata();
     let mut target_metadata = old_metadata.clone();
@@ -2604,6 +3070,51 @@ fn artifact_metadata() -> ArtifactMetadata {
     }
 }
 
+fn apply_test_rebind(db_path: &Path, metadata: &ArtifactMetadata) {
+    let mut connection = Connection::open(db_path).unwrap();
+    let transaction = connection.transaction().unwrap();
+    apply_rebind(
+        &transaction,
+        &RebindMetadata {
+            previous_root: &metadata.root_path,
+            previous_artifact_id: &metadata.artifact_id,
+            new_root: "/rebound",
+            new_artifact_id: "artifact-after-rebind",
+            rebound_at: "2026-06-01T00:00:00Z",
+        },
+    )
+    .unwrap();
+    transaction.commit().unwrap();
+}
+
+fn assert_rebound_metadata(connection: &Connection) {
+    for (key, expected) in [
+        ("artifact_id", "artifact-after-rebind"),
+        ("root_path", "/rebound"),
+        ("updated_at", "2026-06-01T00:00:00Z"),
+    ] {
+        let actual: String = connection
+            .query_row(
+                "SELECT value FROM artifact_metadata WHERE key = ?1",
+                [key],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(actual, expected);
+    }
+}
+
+fn assert_artifact_identity_changed<T>(result: Result<T, ArtifactWriteError>) {
+    match result {
+        Err(ArtifactWriteError::ArtifactIdentityChanged { expected, found }) => {
+            assert_eq!(expected, "artifact-writer-test");
+            assert_eq!(found.as_deref(), Some("artifact-after-rebind"));
+        }
+        Err(error) => panic!("unexpected writer error: {error}"),
+        Ok(_) => panic!("write succeeded after artifact identity changed"),
+    }
+}
+
 fn unique_temp_dir(name: &str) -> PathBuf {
     let nanos = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -2704,6 +3215,13 @@ fn one_language_capability_snapshot() -> ArtifactCapabilitySnapshot {
             }],
         }],
     }
+}
+
+fn old_language_capability_snapshot() -> ArtifactCapabilitySnapshot {
+    let mut snapshot = one_language_capability_snapshot();
+    snapshot.parser_inventory[0].language = "old-language".to_string();
+    snapshot.languages[0].language = "old-language".to_string();
+    snapshot
 }
 
 fn revision(operation: WriteOperation, mode: Option<WriteMode>) -> RevisionInput {

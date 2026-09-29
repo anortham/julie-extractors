@@ -269,55 +269,79 @@ fn rebind_to_the_recorded_root_changes_nothing() {
 }
 
 #[cfg(unix)]
-fn record_root_through_a_symlink(fixture: &Fixture, root: &Path, db: &Path) -> PathBuf {
+fn record_root_through_another_spelling(fixture: &Fixture, root: &Path, db: &Path) -> String {
     let alias = fixture.temp_path.join("alias");
     std::os::unix::fs::symlink(root, &alias).unwrap();
-    set_metadata(db, "root_path", str(&alias));
-    alias
+    let spelling = str(&alias).to_owned();
+    set_metadata(db, "root_path", &spelling);
+    spelling
 }
 
-#[cfg(unix)]
+#[cfg(windows)]
+fn record_root_through_another_spelling(_fixture: &Fixture, root: &Path, db: &Path) -> String {
+    let spelling = root
+        .canonicalize()
+        .unwrap()
+        .into_os_string()
+        .into_string()
+        .unwrap();
+    assert!(spelling.starts_with(r"\\?\"));
+    set_metadata(db, "root_path", &spelling);
+    spelling
+}
+
+#[cfg(any(unix, windows))]
 #[test]
 fn rebind_rewrites_another_spelling_of_the_recorded_root() {
     let fixture = Fixture::new();
     let root = fixture.tree("checkout-a");
     let db = fixture.db("artifact.sqlite");
     scan(&root, &db);
-    let alias = record_root_through_a_symlink(&fixture, &root, &db);
+    let spelling = record_root_through_another_spelling(&fixture, &root, &db);
+    let previous_artifact_id = metadata(&db)["artifact_id"].clone();
 
     let output = rebind(&db, &root);
 
     assert_eq!(exit_code(&output), Some(0));
     let report = json_report(&output);
     assert_eq!(report["rebind"]["changed"], Value::Bool(true));
-    assert_eq!(report["rebind"]["previous_root"], str(&alias));
+    assert_eq!(report["rebind"]["previous_root"], spelling);
     assert_eq!(report["rebind"]["new_root"], canonical(&root));
+    assert_eq!(
+        report["rebind"]["previous_artifact_id"],
+        previous_artifact_id
+    );
+    assert_ne!(report["rebind"]["new_artifact_id"], previous_artifact_id);
     assert_eq!(metadata(&db)["root_path"], canonical(&root));
 }
 
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 #[test]
 fn a_scan_heals_another_spelling_of_the_recorded_root() {
     let fixture = Fixture::new();
     let root = fixture.tree("checkout-a");
     let db = fixture.db("artifact.sqlite");
     scan(&root, &db);
-    record_root_through_a_symlink(&fixture, &root, &db);
+    record_root_through_another_spelling(&fixture, &root, &db);
+    let artifact_id = metadata(&db)["artifact_id"].clone();
     std::fs::write(root.join("src/b.rs"), "pub fn beta() { let _ = 1; }\n").unwrap();
 
     scan(&root, &db);
 
-    assert_eq!(metadata(&db)["root_path"], canonical(&root));
+    let after = metadata(&db);
+    assert_eq!(after["root_path"], canonical(&root));
+    assert_eq!(after["artifact_id"], artifact_id);
 }
 
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 #[test]
 fn an_update_heals_another_spelling_of_the_recorded_root() {
     let fixture = Fixture::new();
     let root = fixture.tree("checkout-a");
     let db = fixture.db("artifact.sqlite");
     scan(&root, &db);
-    record_root_through_a_symlink(&fixture, &root, &db);
+    record_root_through_another_spelling(&fixture, &root, &db);
+    let artifact_id = metadata(&db)["artifact_id"].clone();
     std::fs::write(root.join("src/b.rs"), "pub fn beta() { let _ = 1; }\n").unwrap();
 
     let output = julie_extract(&[
@@ -332,7 +356,53 @@ fn an_update_heals_another_spelling_of_the_recorded_root() {
     ]);
 
     assert_eq!(exit_code(&output), Some(0), "{}", json_report(&output));
-    assert_eq!(metadata(&db)["root_path"], canonical(&root));
+    let after = metadata(&db);
+    assert_eq!(after["root_path"], canonical(&root));
+    assert_eq!(after["artifact_id"], artifact_id);
+}
+
+#[cfg(windows)]
+#[test]
+fn a_delete_heals_a_verbatim_recorded_root_without_changing_artifact_id() {
+    let fixture = Fixture::new();
+    let root = fixture.tree("checkout-a");
+    let db = fixture.db("artifact.sqlite");
+    scan(&root, &db);
+    record_root_through_another_spelling(&fixture, &root, &db);
+    let artifact_id = metadata(&db)["artifact_id"].clone();
+
+    let output = julie_extract(&[
+        "delete",
+        "--root",
+        str(&root),
+        "--db",
+        str(&db),
+        "--file",
+        "src/a.rs",
+        "--json",
+    ]);
+
+    assert_eq!(exit_code(&output), Some(0), "{}", json_report(&output));
+    let after = metadata(&db);
+    assert_eq!(after["root_path"], canonical(&root));
+    assert_eq!(after["artifact_id"], artifact_id);
+}
+
+#[cfg(windows)]
+#[test]
+fn a_no_change_scan_preserves_verbatim_root_metadata() {
+    let fixture = Fixture::new();
+    let root = fixture.tree("checkout-a");
+    let db = fixture.db("artifact.sqlite");
+    scan(&root, &db);
+    record_root_through_another_spelling(&fixture, &root, &db);
+    let before = metadata(&db);
+
+    let output = julie_extract(&["scan", "--root", str(&root), "--db", str(&db), "--json"]);
+
+    assert_eq!(exit_code(&output), Some(0), "{}", json_report(&output));
+    assert_eq!(json_report(&output)["status"], "no_change");
+    assert_eq!(metadata(&db), before);
 }
 
 #[test]
