@@ -42,3 +42,12 @@ and ignored tests on Linux and native Windows. Release checks include strict
 quality, formatting, clippy, `cargo deny --all-features check`, compatible
 output against 3.7.1, repository dogfood, performance comparisons, preflight,
 and local package staging. Results belong in 3.7.2 release evidence.
+
+## Completion
+
+Implementation and release preparation are complete. The full Linux and native
+Windows gates passed at `f5fe0291`; the final metadata-reuse change at `cb4fd245`
+passed the affected gates on both platforms. Compatibility, performance,
+integrity, and staged package results are recorded in the
+[3.7.2 readiness evidence](../release-evidence/2026-09-29-v3-7-2-readiness.md).
+The Windows guest is shut off. Push, tag, and publication require approval.
