@@ -1,3 +1,4 @@
+use std::cell::OnceCell;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -18,6 +19,8 @@ const DISCOVERY_PROGRESS_TICK: u64 = 256;
 struct DiscoveryWalk<'a> {
     progress: Option<&'a ScanProgress>,
     entries_seen: u64,
+    db_identity: FileIdentity<'a>,
+    sidecar_identities: Vec<FileIdentity<'a>>,
 }
 
 impl DiscoveryWalk<'_> {
@@ -226,10 +229,18 @@ impl DiscoveryPolicy {
     }
 
     pub fn select_file(&self, target: &FileTarget) -> FileSelection {
+        self.select_file_with_identity(target, &FileIdentity::new(&self.db_path))
+    }
+
+    fn select_file_with_identity(
+        &self,
+        target: &FileTarget,
+        db_identity: &FileIdentity<'_>,
+    ) -> FileSelection {
         if is_hard_excluded(
             &target.absolute_path,
             &target.root_relative_path,
-            &self.db_path,
+            db_identity,
             &self.exclusions,
         ) {
             return FileSelection::Unsupported {
@@ -261,10 +272,8 @@ impl DiscoveryPolicy {
     /// `-shm`, and `-journal` companions are not, and the scan that would
     /// journal them rewrites them — so a scan of a root that holds its own
     /// artifact would report a change on every run.
-    fn is_artifact_sidecar(&self, path: &Path) -> bool {
-        self.db_sidecars
-            .iter()
-            .any(|sidecar| same_file_as(path, sidecar))
+    fn is_artifact_sidecar(&self, path: &Path, identities: &[FileIdentity<'_>]) -> bool {
+        identities.iter().any(|sidecar| sidecar.matches(path))
     }
 
     #[cfg(test)]
@@ -284,6 +293,12 @@ impl DiscoveryPolicy {
         let mut walk = DiscoveryWalk {
             progress,
             entries_seen: 0,
+            db_identity: FileIdentity::new(&self.db_path),
+            sidecar_identities: self
+                .db_sidecars
+                .iter()
+                .map(|path| FileIdentity::new(path))
+                .collect(),
         };
         self.discover_dir(&self.root, &mut summary, &mut walk);
         summary
@@ -354,7 +369,7 @@ impl DiscoveryPolicy {
                 continue;
             }
             if file_type.is_dir() {
-                if is_hard_excluded(&path, &relative, &self.db_path, &self.exclusions)
+                if is_hard_excluded(&path, &relative, &walk.db_identity, &self.exclusions)
                     || self.is_ignored(&relative, true)
                 {
                     continue;
@@ -376,7 +391,7 @@ impl DiscoveryPolicy {
                 absolute_path: path,
                 root_relative_path: relative,
             };
-            match self.select_file(&target) {
+            match self.select_file_with_identity(&target, &walk.db_identity) {
                 FileSelection::Supported { language } => {
                     summary
                         .supported_targets
@@ -394,7 +409,10 @@ impl DiscoveryPolicy {
                             });
                         }
                         UnsupportedReason::UnsupportedExtension => {
-                            if !self.is_artifact_sidecar(&target.absolute_path) {
+                            if !self.is_artifact_sidecar(
+                                &target.absolute_path,
+                                &walk.sidecar_identities,
+                            ) {
                                 summary.unsupported_targets.push(target);
                             }
                         }
@@ -644,18 +662,61 @@ fn read_head(path: &Path) -> String {
     String::from_utf8_lossy(&head[..read]).into_owned()
 }
 
-/// Whether `path` names the same file as `candidate`. Path text is not file
-/// identity: a case variant or another spelling of a parent directory can name
-/// the artifact or one of its sidecars without matching its text, and a scan
-/// that read the artifact's bytes as source would rewrite its journal.
-///
-/// Every walked file and directory passes through this check, and an identity
-/// probe opens both files, so the probe runs only when the file names match
-/// ignoring ASCII case. A hard link under a different name is not detected.
-fn same_file_as(path: &Path, candidate: &Path) -> bool {
-    path == candidate
-        || (file_names_match(path, candidate)
-            && same_file::is_same_file(path, candidate).unwrap_or(false))
+/// A lazy identity handle scoped to one discovery pass, so Windows handles
+/// close before artifact writes or replacement.
+struct FileIdentity<'a> {
+    path: &'a Path,
+    handle: OnceCell<same_file::Handle>,
+}
+
+impl<'a> FileIdentity<'a> {
+    fn new(path: &'a Path) -> Self {
+        Self {
+            path,
+            handle: OnceCell::new(),
+        }
+    }
+
+    fn matches(&self, path: &Path) -> bool {
+        if path == self.path {
+            return true;
+        }
+        if !file_names_match(path, self.path) {
+            return false;
+        }
+        if self.handle.get().is_none() {
+            let Ok(handle) = open_identity_handle(self.path) else {
+                return false;
+            };
+            let _ = self.handle.set(handle);
+        }
+        let handle = self.handle.get().unwrap();
+        identity_matches(path, handle)
+    }
+}
+
+#[cfg(unix)]
+fn identity_matches(path: &Path, handle: &same_file::Handle) -> bool {
+    use std::os::unix::fs::MetadataExt;
+
+    fs::metadata(path)
+        .is_ok_and(|metadata| metadata.dev() == handle.dev() && metadata.ino() == handle.ino())
+}
+
+#[cfg(not(unix))]
+fn identity_matches(path: &Path, handle: &same_file::Handle) -> bool {
+    open_identity_handle(path).is_ok_and(|candidate| candidate == *handle)
+}
+
+fn open_identity_handle(path: &Path) -> std::io::Result<same_file::Handle> {
+    #[cfg(test)]
+    IDENTITY_HANDLE_OPENS.with(|count| count.set(count.get() + 1));
+    same_file::Handle::from_path(path)
+}
+
+#[cfg(test)]
+thread_local! {
+    static IDENTITY_HANDLE_OPENS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
 fn file_names_match(path: &Path, candidate: &Path) -> bool {
@@ -668,10 +729,10 @@ fn file_names_match(path: &Path, candidate: &Path) -> bool {
 fn is_hard_excluded(
     path: &Path,
     relative_path: &str,
-    db_path: &Path,
+    db_identity: &FileIdentity<'_>,
     exclusions: &DiscoveryExclusions,
 ) -> bool {
-    same_file_as(path, db_path)
+    db_identity.matches(path)
         || exclusions.excludes(path)
         || relative_path
             .split('/')
@@ -1595,6 +1656,97 @@ mod tests {
             }
         );
         assert!(policy.discover().supported_files.is_empty());
+    }
+
+    #[test]
+    fn discovery_opens_the_artifact_identity_once_for_repeated_basenames() {
+        let fixture = DiscoveryFixture::new();
+        let artifact = fixture.temp.path().join("index.rs");
+        fs::write(&artifact, "artifact").unwrap();
+        for index in 0..8 {
+            fixture.write(&format!("src/{index}/index.rs"), "fn source() {}\n");
+        }
+        let policy = DiscoveryPolicy::build(fixture.root(), &artifact, &[]).unwrap();
+        IDENTITY_HANDLE_OPENS.with(|count| count.set(0));
+
+        let summary = policy.discover();
+
+        assert_eq!(summary.supported_files.len(), 8);
+        let opens = IDENTITY_HANDLE_OPENS.with(|count| count.get());
+        assert!(opens > 0);
+        let limit = if cfg!(unix) { 1 } else { 9 };
+        assert!(
+            opens <= limit,
+            "identity checks opened {opens} handles for 8 files"
+        );
+    }
+
+    #[test]
+    fn discovery_refreshes_artifact_identity_after_replacement() {
+        let fixture = DiscoveryFixture::new();
+        let artifact = fixture.temp.path().join("index.rs");
+        fs::write(&artifact, "artifact").unwrap();
+        let link = fixture.root().join("index.rs");
+        if fs::hard_link(&artifact, &link).is_err() {
+            eprintln!("skipping: filesystem does not support hard links");
+            return;
+        }
+        let policy = DiscoveryPolicy::build(fixture.root(), &artifact, &[]).unwrap();
+
+        assert!(policy.discover().supported_files.is_empty());
+        fs::rename(&artifact, fixture.temp.path().join("previous.rs")).unwrap();
+        fs::write(&artifact, "replacement").unwrap();
+
+        let summary = policy.discover();
+        assert_eq!(summary.supported_files.len(), 1);
+        assert_eq!(summary.supported_files[0].root_relative_path, "index.rs");
+    }
+
+    #[test]
+    fn discovery_opens_each_sidecar_identity_once_for_repeated_basenames() {
+        let fixture = DiscoveryFixture::new();
+        let artifact = fixture.temp.path().join("artifact.sqlite");
+        fs::write(&artifact, "artifact").unwrap();
+        for suffix in SQLITE_SIDECAR_SUFFIXES {
+            fs::write(crate::paths::artifact_sidecar(&artifact, suffix), "sidecar").unwrap();
+            for index in 0..8 {
+                fixture.write(
+                    &format!("data/{index}/artifact.sqlite{suffix}"),
+                    "other file",
+                );
+            }
+        }
+        let policy = DiscoveryPolicy::build(fixture.root(), &artifact, &[]).unwrap();
+        IDENTITY_HANDLE_OPENS.with(|count| count.set(0));
+
+        let summary = policy.discover();
+
+        assert_eq!(summary.unsupported_targets.len(), 24);
+        let opens = IDENTITY_HANDLE_OPENS.with(|count| count.get());
+        let limit = if cfg!(unix) { 3 } else { 27 };
+        assert!(opens >= 3);
+        assert!(
+            opens <= limit,
+            "identity checks opened {opens} handles for 24 files"
+        );
+    }
+
+    #[test]
+    fn discovery_excludes_sidecars_created_after_the_policy() {
+        let fixture = DiscoveryFixture::new();
+        let artifact = fixture.temp.path().join("artifact.sqlite");
+        fs::write(&artifact, "artifact").unwrap();
+        let policy = DiscoveryPolicy::build(fixture.root(), &artifact, &[]).unwrap();
+        assert!(policy.discover().unsupported_targets.is_empty());
+        let sidecar = crate::paths::artifact_sidecar(&artifact, "-wal");
+        fs::write(&sidecar, "sidecar").unwrap();
+        if fs::hard_link(&sidecar, fixture.root().join("artifact.sqlite-wal")).is_err() {
+            eprintln!("skipping: filesystem does not support hard links");
+            return;
+        }
+
+        assert!(policy.discover().unsupported_targets.is_empty());
+        fs::remove_file(&sidecar).unwrap();
     }
 
     #[test]
