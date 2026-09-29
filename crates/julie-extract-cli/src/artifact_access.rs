@@ -13,6 +13,7 @@ use rusqlite::{Connection, OpenFlags, params};
 use serde_json::json;
 
 use crate::capability_snapshot::current_capability_fingerprints;
+use crate::paths::recorded_path_matches;
 use crate::reports::{CommandError, command_error, diagnostic, display_path};
 
 /// Whether the caller opens the artifact to read it or to write into it.
@@ -255,7 +256,7 @@ pub(crate) fn existing_artifact_for_root(
     }
 
     let artifact = open_artifact(db_path, strict_schema, ArtifactAccess::Write)?;
-    if artifact.report.root_path != display_path(root) {
+    if !recorded_path_matches(&artifact.report.root_path, root) {
         return Err(command_error(
             3,
             ReportCode::RootMismatch,
@@ -282,7 +283,7 @@ pub(crate) fn open_artifact_for_root(
     root: &Path,
 ) -> Result<OpenArtifact, CommandError> {
     let artifact = open_artifact(db_path, strict_schema, ArtifactAccess::Write)?;
-    if artifact.report.root_path != display_path(root) {
+    if !recorded_path_matches(&artifact.report.root_path, root) {
         return Err(command_error(
             3,
             ReportCode::RootMismatch,

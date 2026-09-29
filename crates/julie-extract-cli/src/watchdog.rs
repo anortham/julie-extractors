@@ -155,4 +155,15 @@ mod tests {
             Some(std::os::unix::process::parent_id())
         );
     }
+
+    #[cfg(not(unix))]
+    #[test]
+    fn a_platform_without_a_parent_probe_accepts_and_ignores_the_flag() {
+        // `--parent-pid` supervision is Unix-only by contract: elsewhere the
+        // flag is accepted and ignored, so no probe can ever trip.
+        let watchdog = ParentWatchdog::start(4242);
+
+        assert!(!watchdog.parent_exited());
+        assert_eq!(watchdog.observed_parent_pid(), None);
+    }
 }

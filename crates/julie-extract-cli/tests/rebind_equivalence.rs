@@ -725,7 +725,9 @@ fn assert_rebound(report: &Json, previous_root: &Path, new_root: &Path) {
     );
     assert_eq!(
         rebind["new_root"].as_str().expect("new_root is a string"),
-        new_root.canonicalize().unwrap().to_str().unwrap(),
+        julie_extract_cli::strip_verbatim_prefix(new_root.canonicalize().unwrap())
+            .to_str()
+            .unwrap(),
         "rebind report: {report}"
     );
     assert_ne!(

@@ -267,6 +267,10 @@ cargo xtask test contract
 node scripts/language-data-quality-report.mjs --strict
 ```
 
+CI also runs an `extractor-compat` job that downloads the most recent published
+release binary and compares this tree's extraction output against it. It is not
+an xtask tier: it needs network access and fails when no release exists yet.
+
 Specialist gates are manual through `workflow_dispatch`:
 
 ```bash
@@ -288,10 +292,14 @@ cargo xtask performance writer-current-schema --out-dir target/performance/write
 ## Guardrails
 
 - Keep test-tier pass/fail independent of machine-dependent wall-clock time.
-  The default tier prints its wall clock as an informational line
-  (`default tier wall clock: <seconds>s`) at the end of execution; this timing
-  is report-only and never affects the exit code. Treat growth past 3 minutes
-  warm as a defect to fix, not a gate.
+  The default and `changed` tiers print their wall clock as an informational
+  line (`test tier wall clock: <seconds>s`) at the end of execution; a run with
+  any failed command is suffixed
+  `(partial; <failed> of <total> command(s) failed)` so an aborted tier is not
+  mistaken for a full one. This timing is report-only and never affects the
+  exit code. A tier runs every command and reports all failures rather than
+  stopping at the first one. Treat growth past 3 minutes warm as a defect to
+  fix, not a gate.
 - Measure default-tier timing locally on a stable machine, with the same
   toolchain and warmed build cache, using three runs such as:
 

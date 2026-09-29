@@ -342,7 +342,9 @@ fn file_count_for_path(path: &Path, relative_path: &str) -> i64 {
 }
 
 fn canonical(path: impl AsRef<Path>) -> String {
-    path.as_ref().canonicalize().unwrap().display().to_string()
+    julie_extract_cli::strip_verbatim_prefix(path.as_ref().canonicalize().unwrap())
+        .display()
+        .to_string()
 }
 
 fn path_str(path: &Path) -> &str {

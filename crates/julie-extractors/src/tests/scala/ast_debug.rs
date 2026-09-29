@@ -28,7 +28,7 @@ fn debug_print_tree(node: tree_sitter::Node, source: &str, depth: usize) {
 }
 
 #[test]
-#[ignore]
+#[ignore = "manual AST inspection: debug printer, not a gate"]
 fn debug_scala_enum_ast() {
     let code = r#"
 enum Color {
@@ -42,7 +42,7 @@ enum Color {
 }
 
 #[test]
-#[ignore]
+#[ignore = "manual AST inspection: debug printer, not a gate"]
 fn debug_scala_extends_ast() {
     let code = r#"
 sealed trait Animal {
@@ -63,7 +63,7 @@ class Cat extends Animal with Serializable {
 }
 
 #[test]
-#[ignore]
+#[ignore = "manual AST inspection: debug printer, not a gate"]
 fn debug_scala_import_ast() {
     let code = r#"
 import scala.collection.mutable.{ListBuffer => LB, _}
@@ -74,7 +74,7 @@ import scala.collection.mutable.{ListBuffer => LB, _}
 }
 
 #[test]
-#[ignore]
+#[ignore = "manual AST inspection: debug printer, not a gate"]
 fn debug_scala_package_ast() {
     let code = r#"
 package com.example

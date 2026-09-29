@@ -1,5 +1,11 @@
 # SQLite Schema v3
 
+> **Superseded.** This contract is historical. The current contract is
+> [sqlite-schema-v7.md](sqlite-schema-v7.md). Later versions removed
+> `identifiers.target_symbol_id`, its foreign key, and the
+> `idx_identifiers_path` and `idx_identifiers_target` indexes; current
+> artifacts have none of them.
+
 ## Scope
 
 SQLite is the primary durable artifact for `julie-extractors`.

@@ -87,7 +87,9 @@ fn str(path: &Path) -> &str {
 }
 
 fn canonical(path: &Path) -> String {
-    path.canonicalize().unwrap().display().to_string()
+    julie_extract_cli::strip_verbatim_prefix(path.canonicalize().unwrap())
+        .display()
+        .to_string()
 }
 
 fn metadata(db: &Path) -> BTreeMap<String, String> {
@@ -264,6 +266,73 @@ fn rebind_to_the_recorded_root_changes_nothing() {
         report["rebind"]["new_artifact_id"]
     );
     assert_eq!(metadata(&db), before);
+}
+
+#[cfg(unix)]
+fn record_root_through_a_symlink(fixture: &Fixture, root: &Path, db: &Path) -> PathBuf {
+    let alias = fixture.temp_path.join("alias");
+    std::os::unix::fs::symlink(root, &alias).unwrap();
+    set_metadata(db, "root_path", str(&alias));
+    alias
+}
+
+#[cfg(unix)]
+#[test]
+fn rebind_rewrites_another_spelling_of_the_recorded_root() {
+    let fixture = Fixture::new();
+    let root = fixture.tree("checkout-a");
+    let db = fixture.db("artifact.sqlite");
+    scan(&root, &db);
+    let alias = record_root_through_a_symlink(&fixture, &root, &db);
+
+    let output = rebind(&db, &root);
+
+    assert_eq!(exit_code(&output), Some(0));
+    let report = json_report(&output);
+    assert_eq!(report["rebind"]["changed"], Value::Bool(true));
+    assert_eq!(report["rebind"]["previous_root"], str(&alias));
+    assert_eq!(report["rebind"]["new_root"], canonical(&root));
+    assert_eq!(metadata(&db)["root_path"], canonical(&root));
+}
+
+#[cfg(unix)]
+#[test]
+fn a_scan_heals_another_spelling_of_the_recorded_root() {
+    let fixture = Fixture::new();
+    let root = fixture.tree("checkout-a");
+    let db = fixture.db("artifact.sqlite");
+    scan(&root, &db);
+    record_root_through_a_symlink(&fixture, &root, &db);
+    std::fs::write(root.join("src/b.rs"), "pub fn beta() { let _ = 1; }\n").unwrap();
+
+    scan(&root, &db);
+
+    assert_eq!(metadata(&db)["root_path"], canonical(&root));
+}
+
+#[cfg(unix)]
+#[test]
+fn an_update_heals_another_spelling_of_the_recorded_root() {
+    let fixture = Fixture::new();
+    let root = fixture.tree("checkout-a");
+    let db = fixture.db("artifact.sqlite");
+    scan(&root, &db);
+    record_root_through_a_symlink(&fixture, &root, &db);
+    std::fs::write(root.join("src/b.rs"), "pub fn beta() { let _ = 1; }\n").unwrap();
+
+    let output = julie_extract(&[
+        "update",
+        "--root",
+        str(&root),
+        "--db",
+        str(&db),
+        "--file",
+        "src/b.rs",
+        "--json",
+    ]);
+
+    assert_eq!(exit_code(&output), Some(0), "{}", json_report(&output));
+    assert_eq!(metadata(&db)["root_path"], canonical(&root));
 }
 
 #[test]

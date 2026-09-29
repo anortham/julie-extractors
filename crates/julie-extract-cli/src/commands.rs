@@ -52,7 +52,7 @@ use crate::extraction::{
 use crate::limits::{HARD_EXCLUDE_DIRS, HARD_EXCLUDE_SUFFIXES, MAX_SOURCE_FILE_BYTES};
 use crate::paths::{
     FileTarget, canonicalize_db_path, canonicalize_progress_file, canonicalize_root,
-    canonicalize_spool_dir, canonicalize_update_file, normalize_delete_file,
+    canonicalize_spool_dir, canonicalize_update_file, normalize_delete_file, recorded_path_matches,
     reject_progress_file_collision, root_relative_unix,
 };
 use crate::progress::{Counter, ScanProgress};
@@ -270,7 +270,7 @@ fn scan_collecting_warnings(
     let mut force_existing_level = None;
     let force_existing_metadata = if args.force && db.exists() {
         match open_artifact(&db, args.strict_schema, ArtifactAccess::Force) {
-            Ok(artifact) if artifact.report.root_path == display_path(&root) => {
+            Ok(artifact) if recorded_path_matches(&artifact.report.root_path, &root) => {
                 if artifact.has_extraction_history {
                     force_existing_level = Some(artifact.index_level.clone());
                 }
@@ -463,7 +463,7 @@ fn scan_collecting_warnings(
     }
     let metadata = force_existing_metadata
         .or(existing_scan_metadata)
-        .map(refreshed_metadata)
+        .map(|metadata| refreshed_metadata(metadata, &root))
         .unwrap_or_else(|| new_artifact_metadata(&root, None));
 
     let writer_open_started = Instant::now();
@@ -804,7 +804,7 @@ fn update(args: UpdateArgs) -> CommandOutcome {
         .as_ref()
         .map(|artifact| artifact.write_metadata.clone());
     let metadata = existing_artifact
-        .map(|artifact| refreshed_metadata(artifact.write_metadata))
+        .map(|artifact| refreshed_metadata(artifact.write_metadata, &root))
         .unwrap_or_else(|| new_artifact_metadata(&root, None));
 
     match ArtifactWriter::open_path(&db, metadata) {
@@ -2240,7 +2240,7 @@ fn delete_artifact_rows(
         .as_ref()
         .map(|artifact| artifact.write_metadata.clone());
     let metadata = existing_artifact
-        .map(|artifact| refreshed_metadata(artifact.write_metadata))
+        .map(|artifact| refreshed_metadata(artifact.write_metadata, root))
         .unwrap_or_else(|| new_artifact_metadata(root, None));
     let mut writer = ArtifactWriter::open_path(db, metadata)?;
     if let Some(metadata) = expected_producer_metadata.as_ref() {
@@ -2286,9 +2286,14 @@ fn new_artifact_metadata(root: &Path, artifact_id: Option<String>) -> ArtifactMe
     }
 }
 
-fn refreshed_metadata(mut metadata: ArtifactMetadata) -> ArtifactMetadata {
+/// Refresh the producer fields of an artifact that passed the root gate. The
+/// gate matches the recorded root by file identity, so the recorded text can be
+/// an older spelling of `root` (a Windows verbatim `\\?\` path written before
+/// 3.7.2); writing `root`'s canonical spelling heals it.
+fn refreshed_metadata(mut metadata: ArtifactMetadata, root: &Path) -> ArtifactMetadata {
     let (parser_inventory_fingerprint, capability_snapshot_fingerprint) =
         current_capability_fingerprints();
+    metadata.root_path = display_path(root);
     metadata.binary_version = env!("CARGO_PKG_VERSION").to_string();
     metadata.parser_inventory_fingerprint = parser_inventory_fingerprint;
     metadata.capability_snapshot_fingerprint = capability_snapshot_fingerprint;
@@ -2364,8 +2369,8 @@ fn abort_before_full_rebuild(
 fn remove_artifact_files(db: &Path) {
     for path in [
         db.to_path_buf(),
-        Path::new(&format!("{}-wal", db.display())).to_path_buf(),
-        Path::new(&format!("{}-shm", db.display())).to_path_buf(),
+        crate::paths::artifact_sidecar(db, "-wal"),
+        crate::paths::artifact_sidecar(db, "-shm"),
     ] {
         if path.exists() {
             let _ = std::fs::remove_file(path);

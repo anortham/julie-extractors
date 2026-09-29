@@ -35,7 +35,7 @@ fn schema_creates_every_sqlite_v7_public_table_with_contract_columns() {
         assert_eq!(
             table_columns(&conn, table.name),
             table.columns,
-            "{} columns drifted from sqlite-schema-v7.md",
+            "{} columns drifted from sqlite-schema-v7.catalog.sha256",
             table.name
         );
     }
@@ -203,7 +203,7 @@ fn schema_creates_required_indexes_with_contract_columns() {
         assert_eq!(
             index_columns(&conn, index.name),
             index.columns,
-            "{} columns drifted from sqlite-schema-v7.md",
+            "{} columns drifted from sqlite-schema-v7.catalog.sha256",
             index.name
         );
     }
@@ -419,7 +419,7 @@ fn writer_initializes_schema_metadata_and_foreign_key_enforcement() {
 }
 
 #[test]
-fn report_row_domains_cover_every_sqlite_v3_public_table() {
+fn report_row_domains_cover_every_sqlite_v7_public_table() {
     let domains = SQLITE_ROW_DOMAINS.iter().copied().collect::<BTreeSet<_>>();
     assert_eq!(
         domains.len(),

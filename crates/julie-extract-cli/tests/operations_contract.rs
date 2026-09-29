@@ -2603,9 +2603,13 @@ fn a_spool_dir_inside_the_root_does_not_change_the_scan_counts() {
     std::fs::create_dir_all(&spool_dir).unwrap();
     // Held by a "concurrent scan" so the reaper leaves it alone and discovery is
     // the only thing standing between a live spool and being extracted as source.
-    let (survivor, survivor_sentinel) = plant_spool_pair(&spool_dir, 4242, Duration::from_secs(1));
+    let (survivor, survivor_sentinel) = plant_spool_pair(&spool_dir, 4242, Duration::ZERO);
     std::fs::write(&survivor, "{\"root_relative_path\":\"src/a.rs\"}\n").unwrap();
-    let holder = std::fs::File::open(&survivor_sentinel).unwrap();
+    let holder = std::fs::File::options()
+        .read(true)
+        .write(true)
+        .open(&survivor_sentinel)
+        .unwrap();
     holder.lock().unwrap();
 
     let with_spool_dir = json_report(&julie_extract(&[
@@ -2665,10 +2669,11 @@ fn a_spool_dir_inside_the_root_warns_that_its_contents_are_excluded() {
         });
     assert_eq!(warning["root_relative_path"], "src");
     assert!(
-        warning["message"]
-            .as_str()
-            .unwrap()
-            .contains(&spool_dir.canonicalize().unwrap().display().to_string()),
+        warning["message"].as_str().unwrap().contains(
+            &julie_extract_cli::strip_verbatim_prefix(spool_dir.canonicalize().unwrap())
+                .display()
+                .to_string(),
+        ),
         "the warning must name the excluded directory: {warning:#?}"
     );
     assert_eq!(
@@ -2837,7 +2842,11 @@ fn scan_startup_reaps_only_spools_that_no_live_process_owns() {
         .set_modified(SystemTime::now() - Duration::from_secs(3600))
         .unwrap();
 
-    let holder = std::fs::File::open(&owned_sentinel).unwrap();
+    let holder = std::fs::File::options()
+        .read(true)
+        .write(true)
+        .open(&owned_sentinel)
+        .unwrap();
     holder.lock().unwrap();
     assert_success(julie_extract(&[
         "scan",
@@ -3978,7 +3987,9 @@ fn path_str(path: &Path) -> &str {
 }
 
 fn canonical_string(path: &Path) -> String {
-    path.canonicalize().unwrap().display().to_string()
+    julie_extract_cli::strip_verbatim_prefix(path.canonicalize().unwrap())
+        .display()
+        .to_string()
 }
 
 #[derive(Debug)]

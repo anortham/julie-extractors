@@ -1,7 +1,7 @@
 # SQLite Schema v1
 
 > **Superseded.** This contract is historical. The current contract is
-> [sqlite-schema-v3.md](sqlite-schema-v3.md). Artifacts written under this version are
+> [sqlite-schema-v7.md](sqlite-schema-v7.md). Artifacts written under this version are
 > rejected by current binaries (no migration path; rescan to produce a
 > current artifact).
 

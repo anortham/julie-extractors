@@ -52,7 +52,7 @@ fn tree_contains_kind(node: tree_sitter::Node, kind: &str) -> bool {
 // ========================================================================
 
 #[test]
-#[ignore]
+#[ignore = "manual AST inspection: debug printer, not a gate"]
 fn debug_scala_ast() {
     let code = r#"
 package com.example

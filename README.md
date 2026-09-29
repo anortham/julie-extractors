@@ -59,11 +59,12 @@ python3 examples/python/sqlite_consumer.py target/example/artifact.sqlite
 
 | Command | Purpose | Key options |
 | --- | --- | --- |
-| `scan` | Create or refresh an artifact for a source root. | `--root`, `--db`, `--force`, repeated `--ignore-file`, `--strict-schema`, `--json` |
+| `scan` | Create or refresh an artifact for a source root. | `--root`, `--db`, `--force`, `--level`, `--jobs`, repeated `--ignore-file`, `--spool-dir`, `--progress-file`, `--parent-pid`, `--strict-schema`, `--json` |
 | `update` | Re-extract one file in an existing artifact. | `--root`, `--db`, `--file`, repeated `--ignore-file`, `--strict-schema`, `--json` |
 | `delete` | Remove one file and its child rows from an artifact. | `--root`, `--db`, `--file`, `--strict-schema`, `--json` |
 | `info` | Read artifact metadata and totals without mutating the database. | `--db`, `--strict-schema`, `--json` |
 | `languages` | Emit parser inventory and capability snapshot metadata. | `--json` |
+| `rebind` | Retarget an artifact at a new source root without re-extracting. | `--root`, `--db`, `--strict-schema`, `--json` |
 | `check` | Parse source text from stdin and report syntax errors with positions. | `--path`, `--json` |
 
 Every command accepts `--json` for a stable machine-readable report. Human
@@ -140,7 +141,8 @@ than hidden behind `not_applicable`. The strict quality gate is
 `node scripts/language-data-quality-report.mjs --strict`, which requires zero
 silent capability cells and zero quality-bar debts.
 
-The project maintains owned Tree-sitter grammar forks for C#, SQL, and Razor.
+The project maintains owned Tree-sitter grammar forks for C#, SQL, Razor, and
+the Go module manifests (`go.mod` and `go.sum`).
 The [grammar dependency policy](docs/architecture/grammar-dependency-policy.md)
 records why each fork exists and how its exact remote commit is controlled.
 

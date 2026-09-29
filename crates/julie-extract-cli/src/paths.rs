@@ -2,6 +2,30 @@ use std::ffi::OsStr;
 use std::fs::File;
 use std::path::{Component, Path, PathBuf};
 
+/// `std::fs::canonicalize` returns a verbatim path on Windows (`\\?\C:\...`,
+/// `\\?\UNC\server\share\...`). The artifact contract and the CLI reports carry
+/// consumer-readable paths, and the extractor pipeline strips the prefix at its
+/// own boundary, so the CLI normalizes every canonical path here instead of
+/// leaking a spelling downstream consumers must special-case.
+fn canonicalize(path: &Path) -> std::io::Result<PathBuf> {
+    path.canonicalize().map(strip_verbatim_prefix)
+}
+
+/// Strip the Windows verbatim prefix from a path. A no-op elsewhere. Matches
+/// `julie_extractors::pipeline::strip_verbatim_prefix`; public so integration
+/// tests canonicalize fixture paths exactly as the CLI does.
+pub fn strip_verbatim_prefix(path: PathBuf) -> PathBuf {
+    strip_verbatim_str(&path.to_string_lossy()).map_or(path, PathBuf::from)
+}
+
+fn strip_verbatim_str(path: &str) -> Option<String> {
+    if let Some(stripped) = path.strip_prefix(r"\\?\UNC\") {
+        Some(format!(r"\\{stripped}"))
+    } else {
+        path.strip_prefix(r"\\?\").map(str::to_string)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileTarget {
     pub absolute_path: PathBuf,
@@ -25,7 +49,7 @@ pub enum PathPolicyError {
 }
 
 pub fn canonicalize_root(path: &Path) -> Result<PathBuf, PathPolicyError> {
-    let canonical = path.canonicalize().map_err(|error| {
+    let canonical = canonicalize(path).map_err(|error| {
         invalid_path(
             path,
             format!("source root could not be canonicalized: {error}"),
@@ -39,7 +63,7 @@ pub fn canonicalize_root(path: &Path) -> Result<PathBuf, PathPolicyError> {
 
 pub fn canonicalize_db_path(path: &Path) -> Result<PathBuf, PathPolicyError> {
     if path.exists() {
-        return path.canonicalize().map_err(|error| {
+        return canonicalize(path).map_err(|error| {
             invalid_path(
                 path,
                 format!("SQLite artifact could not be canonicalized: {error}"),
@@ -51,7 +75,7 @@ pub fn canonicalize_db_path(path: &Path) -> Result<PathBuf, PathPolicyError> {
         .file_name()
         .ok_or_else(|| invalid_path(path, "SQLite artifact path must include a file name"))?;
     let parent = non_empty_parent(path).unwrap_or_else(|| Path::new("."));
-    let parent = parent.canonicalize().map_err(|error| {
+    let parent = canonicalize(parent).map_err(|error| {
         invalid_path(
             path,
             format!("SQLite artifact parent could not be canonicalized: {error}"),
@@ -71,7 +95,7 @@ pub fn canonicalize_spool_dir(path: &Path) -> Result<PathBuf, PathPolicyError> {
             format!("spool directory could not be created: {error}"),
         ));
     }
-    let canonical = path.canonicalize().map_err(|error| {
+    let canonical = canonicalize(path).map_err(|error| {
         invalid_path(
             path,
             format!("spool directory could not be canonicalized: {error}"),
@@ -155,7 +179,7 @@ fn is_progress_file_name(path: &Path) -> bool {
 
 fn resolve_progress_file(path: &Path) -> Result<PathBuf, PathPolicyError> {
     if path.exists() {
-        return path.canonicalize().map_err(|error| {
+        return canonicalize(path).map_err(|error| {
             invalid_path(
                 path,
                 format!("progress file could not be canonicalized: {error}"),
@@ -167,7 +191,7 @@ fn resolve_progress_file(path: &Path) -> Result<PathBuf, PathPolicyError> {
         .file_name()
         .ok_or_else(|| invalid_path(path, "progress file path must include a file name"))?;
     let parent = non_empty_parent(path).unwrap_or_else(|| Path::new("."));
-    let parent = parent.canonicalize().map_err(|error| {
+    let parent = canonicalize(parent).map_err(|error| {
         invalid_path(
             path,
             format!("progress file parent could not be canonicalized: {error}"),
@@ -262,7 +286,7 @@ fn is_the_open_file(path: &Path, open: &same_file::Handle) -> bool {
     same_file::Handle::from_path(path).is_ok_and(|handle| handle == *open)
 }
 
-fn artifact_sidecar(db_path: &Path, suffix: &str) -> PathBuf {
+pub(crate) fn artifact_sidecar(db_path: &Path, suffix: &str) -> PathBuf {
     let mut sidecar = db_path.as_os_str().to_os_string();
     sidecar.push(suffix);
     PathBuf::from(sidecar)
@@ -295,8 +319,22 @@ fn is_one_file(left: &Path, right: &Path) -> bool {
     left == right || same_file::is_same_file(left, right).unwrap_or(false)
 }
 
+/// Whether two paths name one file, for callers comparing a recorded path
+/// against a live one. Path text is not file identity on Windows, where a
+/// verbatim or case-variant spelling can name the same file.
+pub(crate) fn is_same_path(left: &Path, right: &Path) -> bool {
+    is_one_file(left, right)
+}
+
+/// Whether a recorded path string names the same file or directory as `path`.
+/// The artifact stores `root_path` as text, so a root reached through a
+/// different spelling must still compare equal when it is the same directory.
+pub(crate) fn recorded_path_matches(recorded: &str, path: &Path) -> bool {
+    is_same_path(Path::new(recorded), path)
+}
+
 pub fn canonicalize_ignore_file(path: &Path) -> Result<PathBuf, PathPolicyError> {
-    let canonical = path.canonicalize().map_err(|error| {
+    let canonical = canonicalize(path).map_err(|error| {
         invalid_path(
             path,
             format!("ignore file could not be canonicalized: {error}"),
@@ -311,7 +349,7 @@ pub fn canonicalize_ignore_file(path: &Path) -> Result<PathBuf, PathPolicyError>
 pub fn canonicalize_update_file(root: &Path, file: &Path) -> Result<FileTarget, PathPolicyError> {
     let lexical = lexical_normalize(&candidate_path(root, file));
     if lexical.exists() {
-        let canonical = lexical.canonicalize().map_err(|error| {
+        let canonical = canonicalize(&lexical).map_err(|error| {
             invalid_path(
                 file,
                 format!("update target could not be canonicalized: {error}"),
@@ -347,7 +385,7 @@ pub fn canonicalize_update_file(root: &Path, file: &Path) -> Result<FileTarget, 
 pub fn normalize_delete_file(root: &Path, file: &Path) -> Result<FileTarget, PathPolicyError> {
     let lexical = lexical_normalize(&candidate_path(root, file));
     let accepted = if lexical.exists() {
-        lexical.canonicalize().map_err(|error| {
+        canonicalize(&lexical).map_err(|error| {
             invalid_path(
                 file,
                 format!("delete target could not be canonicalized: {error}"),
@@ -522,7 +560,10 @@ mod tests {
         let db = temp.path().join("artifact.sqlite");
         std::fs::write(&db, b"artifact").unwrap();
         let progress = temp.path().join("scan.progress");
-        std::fs::hard_link(&db, &progress).unwrap();
+        if std::fs::hard_link(&db, &progress).is_err() {
+            eprintln!("skipping: filesystem does not support hard links");
+            return;
+        }
 
         assert!(matches!(
             reject_progress_file_collision(&progress, &db),
@@ -539,7 +580,10 @@ mod tests {
             let sidecar = temp.path().join(format!("artifact.sqlite{suffix}"));
             std::fs::write(&sidecar, b"sidecar").unwrap();
             let progress = temp.path().join("scan.progress");
-            std::fs::hard_link(&sidecar, &progress).unwrap();
+            if std::fs::hard_link(&sidecar, &progress).is_err() {
+                eprintln!("skipping: filesystem does not support hard links");
+                return;
+            }
 
             let Err(PathPolicyError::InvalidPath { message, .. }) =
                 reject_progress_file_collision(&progress, &db)
@@ -584,5 +628,26 @@ mod tests {
         let ignored = dir.join("CASE-PROBE").exists();
         std::fs::remove_file(&probe).unwrap();
         ignored
+    }
+}
+
+#[cfg(test)]
+mod verbatim_prefix_tests {
+    use super::*;
+
+    #[test]
+    fn strip_verbatim_prefix_normalizes_windows_spellings() {
+        assert_eq!(
+            strip_verbatim_prefix(PathBuf::from(r"\\?\C:\repo\artifact.sqlite")),
+            PathBuf::from(r"C:\repo\artifact.sqlite")
+        );
+        assert_eq!(
+            strip_verbatim_prefix(PathBuf::from(r"\\?\UNC\server\share\repo")),
+            PathBuf::from(r"\\server\share\repo")
+        );
+        assert_eq!(
+            strip_verbatim_prefix(PathBuf::from("/home/murphy/repo")),
+            PathBuf::from("/home/murphy/repo")
+        );
     }
 }

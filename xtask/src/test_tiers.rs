@@ -175,34 +175,68 @@ pub fn run_plan(plan: TestPlan) -> ExitCode {
         None
     };
 
-    let mut exit_code = ExitCode::SUCCESS;
-    for command in plan.commands {
+    let total = plan.commands.len();
+    let failures = run_commands(plan.commands);
+
+    if let Some(start) = start {
+        let elapsed = start.elapsed().as_secs();
+        if failures.is_empty() {
+            println!("test tier wall clock: {elapsed}s");
+        } else {
+            println!(
+                "test tier wall clock: {elapsed}s (partial; {} of {total} command(s) failed)",
+                failures.len()
+            );
+        }
+    }
+
+    if failures.is_empty() {
+        return ExitCode::SUCCESS;
+    }
+
+    // Every command ran, so the report names all of them instead of stopping at
+    // the first failure. The exit code is the first failure's, which is the most
+    // specific signal a caller previously received.
+    eprintln!(
+        "{} of {total} command(s) failed; all commands were run:",
+        failures.len()
+    );
+    for (command, code) in &failures {
+        eprintln!("  - `{command}` exited with code {code}");
+    }
+    first_failure_exit_code(&failures)
+}
+
+fn run_commands(commands: Vec<CommandSpec>) -> Vec<(String, i32)> {
+    let mut failures = Vec::new();
+    for command in commands {
         println!("+ {}", command.display());
         let mut process = Command::new(&command.program);
         process.args(&command.args);
         for (key, value) in &command.env {
             process.env(key, value);
         }
-        let status = process.status();
-        match status {
+        match process.status() {
             Ok(status) if status.success() => {}
             Ok(status) => {
-                exit_code = ExitCode::from(status.code().unwrap_or(1) as u8);
-                break;
+                let code = status.code().unwrap_or(1);
+                eprintln!(
+                    "command failed: `{}` exited with code {code}",
+                    command.display()
+                );
+                failures.push((command.display(), code));
             }
             Err(err) => {
                 eprintln!("failed to run `{}`: {err}", command.display());
-                exit_code = ExitCode::from(1);
-                break;
+                failures.push((command.display(), 1));
             }
         }
     }
+    failures
+}
 
-    if let Some(start) = start {
-        println!("default tier wall clock: {}s", start.elapsed().as_secs());
-    }
-
-    exit_code
+fn first_failure_exit_code(failures: &[(String, i32)]) -> ExitCode {
+    ExitCode::from(failures[0].1.clamp(1, 255) as u8)
 }
 
 fn default_plan() -> TestPlan {
@@ -500,17 +534,20 @@ fn changed_plan(args: &[String]) -> Result<TestPlan, CliError> {
         ));
     }
 
-    let mut commands = default_plan().commands;
+    // `changed` embeds the default tier, so it reports the same wall clock
+    // instead of silently dropping the timing line.
+    let mut plan = default_plan();
     if changed_paths.iter().any(|path| is_xtask_path(path)) {
-        commands.push(CommandSpec::new("cargo", ["test", "-p", "xtask"]));
+        plan.commands
+            .push(CommandSpec::new("cargo", ["test", "-p", "xtask"]));
     }
     if changed_paths
         .iter()
         .any(|path| is_parser_dependency_path(path))
     {
-        commands.extend(certification_plan().commands);
+        plan.commands.extend(certification_plan().commands);
     }
-    Ok(TestPlan::new(commands))
+    Ok(plan)
 }
 
 fn is_golden_expected_output_path(path: &str) -> bool {
@@ -657,9 +694,45 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_run_commands_continues_after_a_failure_and_reports_each() {
+        let failures = run_commands(vec![
+            CommandSpec::new("cargo", ["--julie-no-such-flag"]),
+            CommandSpec::new("cargo", ["--version"]),
+            CommandSpec::new("julie-no-such-program", Vec::<String>::new()),
+        ]);
+        assert_eq!(failures.len(), 2);
+        assert!(failures[0].0.contains("--julie-no-such-flag"));
+        assert!(failures[1].0.contains("julie-no-such-program"));
+    }
+
+    #[test]
+    fn test_first_failure_exit_code_uses_first_failure_clamped() {
+        let failures = vec![("a".to_string(), 3), ("b".to_string(), 9)];
+        assert_eq!(
+            format!("{:?}", first_failure_exit_code(&failures)),
+            format!("{:?}", ExitCode::from(3)),
+        );
+        let oversized = vec![("a".to_string(), 1000)];
+        assert_eq!(
+            format!("{:?}", first_failure_exit_code(&oversized)),
+            format!("{:?}", ExitCode::from(255)),
+        );
+    }
+
+    #[test]
     fn test_default_tier_reports_wall_clock() {
         let plan = plan_from_args(["test", "default"]).expect("default plan");
         assert!(plan.report_wall_clock);
+    }
+
+    #[test]
+    fn test_changed_tier_reports_wall_clock() {
+        let plan = plan_from_args(["test", "changed", "crates/julie-extract-cli/src/main.rs"])
+            .expect("changed plan");
+        assert!(
+            plan.report_wall_clock,
+            "changed embeds the default tier, so it must report its wall clock"
+        );
     }
 
     #[test]

@@ -29,10 +29,10 @@ part of this contract.
   "artifact": {
     "db_path": "/tmp/code.sqlite",
     "root_path": "/repo",
-    "artifact_id": "01hz...",
-    "schema_version": 4,
-    "extract_contract_version": 3,
-    "sqlite_schema_version": 4,
+    "artifact_id": "artifact-0123456789abcdef0123456789abcdef",
+    "schema_version": 7,
+    "extract_contract_version": 4,
+    "sqlite_schema_version": 7,
     "hash_algorithm": "blake3",
     "parser_inventory_fingerprint": "sha256:...",
     "capability_snapshot_fingerprint": "sha256:...",
@@ -40,7 +40,7 @@ part of this contract.
   },
   "tool": {
     "binary_name": "julie-extract",
-    "binary_version": "2.0.0"
+    "binary_version": "3.7.1"
   },
   "revision": {
     "latest_revision_id": 7,
@@ -64,6 +64,7 @@ part of this contract.
       "files": 2,
       "symbols": 12,
       "symbol_annotations": 0,
+      "reference_sites": 0,
       "identifiers": 30,
       "relationships": 4,
       "pending_relationships": 2,
@@ -87,6 +88,7 @@ part of this contract.
       "files": 100,
       "symbols": 2400,
       "symbol_annotations": 120,
+      "reference_sites": 0,
       "identifiers": 12000,
       "relationships": 900,
       "pending_relationships": 80,
@@ -117,6 +119,7 @@ part of this contract.
           "files": 1,
           "symbols": 12,
           "symbol_annotations": 0,
+          "reference_sites": 0,
           "identifiers": 30,
           "relationships": 4,
           "pending_relationships": 2,
@@ -214,10 +217,6 @@ Commands that do not use an artifact, such as `languages`, set `artifact` and
 Schema v4 artifacts ran a workspace reference-resolution pass inside the writer
 transaction of every mutating command (see `sqlite-schema-v4.md` § Reference
 Resolution). Those commands reported it under the top-level `languages` key:
-
-Schema v4 artifacts run a workspace reference-resolution pass inside the writer
-transaction of every mutating command (see `sqlite-schema-v4.md` § Reference
-Resolution). Those commands report it under the top-level `languages` key:
 
 ```json
 "languages": {
@@ -337,7 +336,7 @@ fresh aggregates after deltas should read the artifact or run a full scan.
 `status`, `version`, `last_full_revision`, `counts`, `gated_languages`, and
 `failed` are pass-derived and always present.
 
-`counts.rows_written` and `counts.totals` are exhaustive for SQLite schema v4
+`counts.rows_written` and `counts.totals` are exhaustive for SQLite schema v7
 row domains. Commands must emit every key with `0` when that row kind is not
 written or not present.
 
@@ -363,8 +362,9 @@ retarget under the top-level `rebind` key:
 - `new_artifact_id`: the identity it carries now, minted as
   `artifact-<32 lowercase hex>`. Equal to `previous_artifact_id` when nothing
   changed.
-- `changed`: `false` when the requested root already matched the recorded one,
-  which succeeds without mutating a single metadata row; `true` when the
+- `changed`: `false` when the requested root already matched the recorded one
+  as exact canonical text, which succeeds without mutating a single metadata
+  row; `true` when the
   retarget was written.
 
 The section is present on both completing statuses and absent from a `failed`
@@ -425,9 +425,10 @@ Fields:
   files. Use `info --json` for the full persisted breakdown.
 
 File-attributed domains are `files`, `symbols`, `symbol_annotations`,
-`identifiers`, `relationships`, `pending_relationships`, `type_facts`,
-`type_argument_usages`, `type_arguments`, `literals`, `source_regions`,
-`structural_facts`, `complexity_metrics`, and `parse_diagnostics`.
+`reference_sites`, `identifiers`, `relationships`, `pending_relationships`,
+`type_facts`, `type_argument_usages`, `type_arguments`, `literals`,
+`source_regions`, `structural_facts`, `complexity_metrics`, and
+`parse_diagnostics`.
 
 ## Profile Shape
 
@@ -521,11 +522,11 @@ Stable report codes:
 - `file_not_found`: `update` target does not exist.
 - `root_mismatch`: artifact is bound to a different root. `rebind` is the one
   command that does not run the root gate and therefore never emits this code.
-- `schema_migration_required`: artifact schema is older under
-  `--strict-schema`, or single-file `update`/`delete` requires a
-  successful whole-workspace scan because reference evidence is missing, stale,
-  or failed. The diagnostic is recoverable and its `details.action` is
-  `julie-extract scan`.
+- `schema_migration_required`: artifact schema is older than this binary.
+  Commands that write the artifact (`scan`, `update`, `delete`, and `rebind`)
+  always emit it; `info` emits it only under `--strict-schema`. The diagnostic is recoverable and its `details` carry
+  `required_sqlite_schema_version`, `artifact_sqlite_schema_version`, and
+  `artifact_schema_version`.
 - `schema_incompatible`: artifact is newer or otherwise incompatible.
 - `contract_incompatible`: extraction contract version is incompatible.
 - `db_open_failed`: SQLite artifact could not be opened.
@@ -551,8 +552,9 @@ Stable report codes:
   carry `artifact_parser_inventory_fingerprint`,
   `expected_parser_inventory_fingerprint`,
   `artifact_capability_snapshot_fingerprint`,
-  `expected_capability_snapshot_fingerprint`, and `action`
-  (`julie-extract scan`). Exit code `3`.
+  `expected_capability_snapshot_fingerprint`, `artifact_binary_version`,
+  `expected_binary_version`, and `action` (`julie-extract scan --force`).
+  Exit code `3`.
 - `no_committed_revision`: the artifact carries no committed extraction
   revision, so it is a metadata-only shell rather than an index. Fatal for
   `rebind`: there is nothing to retarget. The diagnostic is recoverable and its
@@ -615,10 +617,9 @@ and the total `conflict_count`.
   should include the partial scan profile available at the failure point.
 - Successful reports include a top-N `counts.file_rows` offender summary for
   the persisted artifact.
-- Mutating reports include the `languages.reference_resolution` section when a
-  resolution pass ran or failed (see
-  [Reference Resolution Section](#reference-resolution-section)); `update` and
-  `delete` reports include it under the same rule.
+- Mutating reports do not include a `languages.reference_resolution` section;
+  that pass was retired 2026-08-18 (see
+  [Retired reference-resolution report section](#retired-reference-resolution-report-section)).
 
 ### `update`
 

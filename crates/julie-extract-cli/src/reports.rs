@@ -285,7 +285,7 @@ pub(crate) fn write_error_outcome_with_profile(
                  this scan planned a '{staged}'-level write (a concurrent scan established the \
                  level first); rebuild into a fresh artifact to change level"
             ),
-            json!({"artifact_index_level": recorded, "staged_index_level": staged}),
+            json!({"artifact_index_level": recorded, "requested_index_level": staged}),
         ),
         ArtifactWriteError::ProducerGenerationChanged => (
             3,

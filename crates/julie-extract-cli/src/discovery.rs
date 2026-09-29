@@ -262,7 +262,9 @@ impl DiscoveryPolicy {
     /// journal them rewrites them — so a scan of a root that holds its own
     /// artifact would report a change on every run.
     fn is_artifact_sidecar(&self, path: &Path) -> bool {
-        self.db_sidecars.iter().any(|sidecar| sidecar == path)
+        self.db_sidecars
+            .iter()
+            .any(|sidecar| same_file_as(path, sidecar))
     }
 
     #[cfg(test)]
@@ -642,13 +644,34 @@ fn read_head(path: &Path) -> String {
     String::from_utf8_lossy(&head[..read]).into_owned()
 }
 
+/// Whether `path` names the same file as `candidate`. Path text is not file
+/// identity: a case variant or another spelling of a parent directory can name
+/// the artifact or one of its sidecars without matching its text, and a scan
+/// that read the artifact's bytes as source would rewrite its journal.
+///
+/// Every walked file and directory passes through this check, and an identity
+/// probe opens both files, so the probe runs only when the file names match
+/// ignoring ASCII case. A hard link under a different name is not detected.
+fn same_file_as(path: &Path, candidate: &Path) -> bool {
+    path == candidate
+        || (file_names_match(path, candidate)
+            && same_file::is_same_file(path, candidate).unwrap_or(false))
+}
+
+fn file_names_match(path: &Path, candidate: &Path) -> bool {
+    match (path.file_name(), candidate.file_name()) {
+        (Some(name), Some(candidate_name)) => name.eq_ignore_ascii_case(candidate_name),
+        _ => false,
+    }
+}
+
 fn is_hard_excluded(
     path: &Path,
     relative_path: &str,
     db_path: &Path,
     exclusions: &DiscoveryExclusions,
 ) -> bool {
-    path == db_path
+    same_file_as(path, db_path)
         || exclusions.excludes(path)
         || relative_path
             .split('/')
@@ -1086,6 +1109,31 @@ mod tests {
         }
     }
 
+    /// Whether the filesystem holding `dir` accepts a file or directory name
+    /// that is not valid UTF-8. macOS APFS rejects those names with `EILSEQ`,
+    /// so the property this test covers is only observable where the
+    /// filesystem allows raw bytes. Mirrors `paths::ignores_case`, which skips
+    /// the same way on a filesystem that is case-sensitive.
+    #[cfg(unix)]
+    fn allows_non_utf8_names(dir: &Path) -> bool {
+        const MACOS_EILSEQ: i32 = 92;
+        match fs::create_dir_all(dir) {
+            Ok(()) => true,
+            Err(error)
+                if !cfg!(target_os = "macos") || error.raw_os_error() != Some(MACOS_EILSEQ) =>
+            {
+                panic!("{} could not be created: {error}", dir.display())
+            }
+            Err(error) => {
+                eprintln!(
+                    "skipping invalid-UTF-8 path case: {} does not accept non-UTF-8 names: {error}",
+                    dir.display()
+                );
+                false
+            }
+        }
+    }
+
     #[cfg(unix)]
     #[test]
     fn select_file_handles_supported_files_under_invalid_utf8_parent_components() {
@@ -1096,7 +1144,9 @@ mod tests {
         let parent = fixture
             .root()
             .join(OsString::from_vec(vec![b'm', 0xff, b'd']));
-        fs::create_dir_all(&parent).unwrap();
+        if !allows_non_utf8_names(&parent) {
+            return;
+        }
         let policy = fixture.policy();
         for (name, root_relative_path, expected) in [
             ("Widget.QML", "src/Widget.QML", "qml"),
@@ -1527,6 +1577,40 @@ mod tests {
             2,
             "the exclusion, not the extension, is what keeps the progress file out"
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn the_artifact_reached_through_another_directory_spelling_is_hard_excluded() {
+        let fixture = DiscoveryFixture::new();
+        let artifact = fixture.write("data/index.rs", "not source\n");
+        let alias = fixture.temp.path().join("alias");
+        std::os::unix::fs::symlink(fixture.root().join("data"), &alias).unwrap();
+        let policy = DiscoveryPolicy::build(fixture.root(), &alias.join("index.rs"), &[]).unwrap();
+
+        assert_eq!(
+            policy.select_file(&artifact),
+            FileSelection::Unsupported {
+                reason: UnsupportedReason::HardExcluded
+            }
+        );
+        assert!(policy.discover().supported_files.is_empty());
+    }
+
+    #[test]
+    fn a_hard_link_to_the_artifact_under_another_name_is_not_probed_for_identity() {
+        let fixture = DiscoveryFixture::new();
+        fixture.write("artifact.sqlite", "not source\n");
+        let link = fixture.root().join("linked.rs");
+        if fs::hard_link(fixture.root().join("artifact.sqlite"), &link).is_err() {
+            eprintln!("skipping: filesystem does not support hard links");
+            return;
+        }
+
+        let summary = fixture.policy().discover();
+
+        assert_eq!(summary.supported_files.len(), 1);
+        assert_eq!(summary.supported_files[0].root_relative_path, "linked.rs");
     }
 
     #[test]

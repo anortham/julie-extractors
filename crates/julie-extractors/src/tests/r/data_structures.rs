@@ -9,7 +9,7 @@ mod tests {
     use super::*;
 
     #[test]
-    #[ignore] // Debug test to inspect data structure AST
+    #[ignore = "manual AST inspection: debug printer, not a gate"]
     fn debug_data_structures_ast() {
         let r_code = r#"
 # Vectors

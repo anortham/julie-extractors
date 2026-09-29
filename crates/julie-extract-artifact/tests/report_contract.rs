@@ -16,7 +16,7 @@ fn report_serializes_schema_version_and_success_shape() {
     assert_eq!(value["operation"], "scan");
     assert_eq!(value["mode"], "incremental");
     assert_eq!(value["input"]["db_path"], "/tmp/code.sqlite");
-    assert_eq!(value["artifact"]["schema_version"], 3);
+    assert_eq!(value["artifact"]["schema_version"], 7);
     assert_eq!(value["tool"]["binary_name"], "julie-extract");
     assert_eq!(value["revision"]["latest_revision_id"], 7);
     assert!(value.get("profile").is_none());
@@ -162,7 +162,7 @@ fn single_file_success_reports_include_absolute_and_root_relative_paths() {
 }
 
 #[test]
-fn report_row_count_keys_are_exhaustive_for_sqlite_v3() {
+fn report_row_count_keys_are_exhaustive_for_sqlite_v7() {
     let value = serde_json::to_value(RowDomainCounts::default()).unwrap();
     let actual = value
         .as_object()
@@ -236,9 +236,9 @@ fn sample_report(status: ReportStatus) -> Report {
             db_path: "/tmp/code.sqlite".to_string(),
             root_path: "/repo".to_string(),
             artifact_id: "artifact-test-1".to_string(),
-            schema_version: 3,
-            extract_contract_version: 3,
-            sqlite_schema_version: 3,
+            schema_version: 7,
+            extract_contract_version: 4,
+            sqlite_schema_version: 7,
             hash_algorithm: "blake3".to_string(),
             parser_inventory_fingerprint: "sha256:parser".to_string(),
             capability_snapshot_fingerprint: "sha256:cap".to_string(),

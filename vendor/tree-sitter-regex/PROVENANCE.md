@@ -11,7 +11,7 @@ shared `(?` prefix. `src/parser.c` and `src/node-types.json` are generated from
 that grammar with tree-sitter CLI 0.26.11 using:
 
 ```sh
-CARGO_TARGET_DIR=/home/murphy/source/julie-extractors/target TMPDIR=/home/murphy/source/julie-extractors/target/reference-integrity-tmp /usr/bin/tree-sitter generate
+CARGO_TARGET_DIR=<repo>/target TMPDIR=<repo>/target/reference-integrity-tmp tree-sitter generate
 ```
 
 The command ran with `vendor/tree-sitter-regex` as its working directory. The

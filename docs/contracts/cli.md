@@ -126,7 +126,14 @@ invalid `--ignore-file` is a hard CLI error.
 - Stored file paths are root-relative Unix-style strings.
 - `--file` may be absolute or root-relative.
 - A file outside `--root` is a typed error.
-- One SQLite artifact is bound to one canonical root.
+- One SQLite artifact is bound to one canonical root. The root gate compares
+  the recorded `root_path` with `--root` by directory identity, not by text, so
+  another spelling of the same directory passes (for example a Windows
+  verbatim `\\?\C:\repo` recorded by 3.7.1 and earlier). A `scan`, `update`, or
+  `delete` that commits a revision then rewrites `root_path` to the canonical
+  spelling of `--root` and keeps `artifact_id`: the directory is unchanged, so
+  consumer caches keyed on `artifact_id` stay valid. A write that commits
+  nothing leaves `root_path` as recorded.
 - A root mismatch is a typed error unless `scan --force` rebuilds the artifact
   or `rebind` retargets it. `rebind` is the sanctioned retarget path: it is the
   one command that does not run the root gate, because rewriting the binding is
@@ -423,11 +430,14 @@ The root gate is deliberately not part of that order.
 Outcomes:
 
 - New root: `status: ok`, exit code `0`, and `rebind.changed` is `true`.
-- Requested root already the recorded root: `status: no_change`, exit code `0`,
+- Requested root already the recorded root, compared as exact canonical text:
+  `status: no_change`, exit code `0`,
   and `rebind.changed` is `false`. Not a single metadata row is written — no
   refreshed `updated_at`, no provenance keys. Asking for the root the artifact
   already records succeeds so a caller that cannot cheaply tell whether the
-  copy it just made needs retargeting can ask unconditionally.
+  copy it just made needs retargeting can ask unconditionally. Another spelling
+  of the recorded directory is a new root: `rebind` rewrites `root_path` and
+  mints a new `artifact_id`.
 - Write failure: `status: failed` with `db_open_failed`, `db_write_failed`, or
   `artifact_changed` and exit code `1`. The transaction rolls back, so the
   artifact's metadata is byte-identical to what it was before. A new identity

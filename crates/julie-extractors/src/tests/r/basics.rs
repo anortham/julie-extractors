@@ -9,7 +9,7 @@ mod tests {
     use super::*;
 
     #[test]
-    #[ignore] // Debug test to inspect AST
+    #[ignore = "manual AST inspection: debug printer, not a gate"]
     fn debug_r_ast() {
         let r_code = r#"
 x <- 42

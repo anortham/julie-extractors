@@ -646,7 +646,11 @@ mod tests {
         let foreign = temp.path().join("artifact.sqlite");
         std::fs::write(&foreign, b"not a spool").unwrap();
 
-        let holder = File::open(&held_sentinel).unwrap();
+        let holder = File::options()
+            .read(true)
+            .write(true)
+            .open(&held_sentinel)
+            .unwrap();
         holder.lock().unwrap();
         reap_unowned_spools(temp.path());
         holder.unlock().unwrap();

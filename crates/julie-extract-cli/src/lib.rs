@@ -13,6 +13,7 @@ mod commands;
 mod discovery;
 mod extraction;
 mod paths;
+pub use paths::strip_verbatim_prefix;
 mod progress;
 mod reports;
 mod spool;

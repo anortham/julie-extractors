@@ -517,16 +517,24 @@ fn capability_matrix_evidence_resolves() {
                     }
                 }
                 EvidenceRef::Commit { value, .. } => {
-                    let output = std::process::Command::new("git")
+                    // A checkout without .git (source tarball) cannot resolve commits.
+                    if !root.join(".git").exists() {
+                        continue;
+                    }
+                    match std::process::Command::new("git")
                         .args(["cat-file", "-e", value])
                         .current_dir(&root)
                         .output()
-                        .expect("git binary available");
-                    if !output.status.success() {
-                        errors.push(format!(
+                    {
+                        Ok(output) if output.status.success() => {}
+                        Ok(_) => errors.push(format!(
                             "language {} gap {} commit `{}` does not resolve via git cat-file",
                             row.language, gap.capability, value
-                        ));
+                        )),
+                        Err(err) => errors.push(format!(
+                            "language {} gap {} commit `{}` could not be checked: git unavailable: {err}",
+                            row.language, gap.capability, value
+                        )),
                     }
                 }
                 EvidenceRef::DeadString(s) => errors.push(format!(
