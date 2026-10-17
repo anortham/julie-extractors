@@ -1926,15 +1926,6 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/rust/basic/source.rs:ids:52:25",
-      "resolved_type": "&[i32]",
-      "generic_params": null,
-      "constraints": null,
-      "is_inferred": true,
-      "language": "rust",
-      "metadata": null
-    },
-    {
       "symbol_key": "fixtures/extraction/rust/basic/source.rs:run:11:8",
       "resolved_type": "i32",
       "generic_params": null,

@@ -8,15 +8,10 @@
 /// Implementation of comprehensive Rust extractor
 use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
-    Symbol, SymbolKind,
+    Symbol,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
-use regex::Regex;
-use std::sync::LazyLock;
 use tree_sitter::{Node, Tree};
-
-/// Matches type annotations: `: Type`
-static VAR_TYPE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r":\s*([^=\s{]+)").unwrap());
 
 // Private modules
 mod functions;
@@ -288,28 +283,11 @@ impl RustExtractor {
         identifiers::extract_identifiers(self, tree, symbols)
     }
 
-    /// Infer types from Rust signatures (function return types, variable types, field types)
-    pub fn infer_types(&self, symbols: &[Symbol]) -> std::collections::HashMap<String, String> {
-        let mut type_map = std::collections::HashMap::new();
-
-        for symbol in symbols {
-            // For variables, properties, fields - extract type annotation
-            if matches!(
-                symbol.kind,
-                SymbolKind::Variable | SymbolKind::Property | SymbolKind::Field
-            ) && let Some(ref signature) = symbol.signature
-            {
-                // Extract type from annotations: "name: Type" or "name: Type ="
-                if let Some(captures) = VAR_TYPE_RE.captures(signature) {
-                    let type_str = captures[1].trim().to_string();
-                    if !type_str.is_empty() {
-                        type_map.insert(symbol.id.clone(), type_str);
-                    }
-                }
-            }
-        }
-
-        type_map
+    /// Rust type facts ride `base.type_info`. Cutting the type out of a
+    /// signature would turn a shape the recorders decline (slices, arrays,
+    /// closures) into a truncated or non-base-name fact.
+    pub fn infer_types(&self, _symbols: &[Symbol]) -> std::collections::HashMap<String, String> {
+        std::collections::HashMap::new()
     }
 
     // Accessors for use by submodules and tests

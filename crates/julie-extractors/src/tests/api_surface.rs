@@ -69,6 +69,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "flask-route-decorator-span-v1",
         "reference-integrity-v1",
         "regex-branch-reset-v1",
+        "rust-type-fact-base-names-v1",
     ] {
         assert!(
             version.contains(marker),

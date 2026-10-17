@@ -130,12 +130,22 @@ fn main() {
     );
 
     let symbols = extractor.extract_symbols(&tree);
-    let types = extractor.infer_types(&symbols);
+    assert!(extractor.infer_types(&symbols).is_empty());
 
-    // Should extract types for variables (if extractor captures them as symbols)
-    // Note: May depend on whether variables are extracted as symbols
-    if let Some(count_symbol) = symbols.iter().find(|s| s.name == "count") {
-        assert_eq!(types.get(&count_symbol.id), Some(&"i32".to_string()));
+    for (name, expected) in [("count", "i32"), ("name", "String"), ("items", "Vec")] {
+        let symbol = symbols
+            .iter()
+            .find(|s| s.name == name)
+            .unwrap_or_else(|| panic!("missing symbol {name}"));
+        assert_eq!(
+            extractor
+                .base
+                .type_info
+                .get(&symbol.id)
+                .map(|fact| fact.resolved_type.as_str()),
+            Some(expected),
+            "type fact of `{name}`"
+        );
     }
 }
 
@@ -165,19 +175,22 @@ struct User {
     );
 
     let symbols = extractor.extract_symbols(&tree);
-    let types = extractor.infer_types(&symbols);
+    assert!(extractor.infer_types(&symbols).is_empty());
 
-    // Should extract field types
-    if let Some(id_field) = symbols.iter().find(|s| s.name == "id") {
-        assert_eq!(types.get(&id_field.id), Some(&"u64".to_string()));
-    }
-
-    if let Some(name_field) = symbols.iter().find(|s| s.name == "name") {
-        assert_eq!(types.get(&name_field.id), Some(&"String".to_string()));
-    }
-
-    if let Some(age_field) = symbols.iter().find(|s| s.name == "age") {
-        assert_eq!(types.get(&age_field.id), Some(&"Option<u32>".to_string()));
+    for (name, expected) in [("id", "u64"), ("name", "String"), ("age", "Option")] {
+        let field = symbols
+            .iter()
+            .find(|s| s.name == name)
+            .unwrap_or_else(|| panic!("missing field {name}"));
+        assert_eq!(
+            extractor
+                .base
+                .type_info
+                .get(&field.id)
+                .map(|fact| fact.resolved_type.as_str()),
+            Some(expected),
+            "type fact of `{name}`"
+        );
     }
 }
 

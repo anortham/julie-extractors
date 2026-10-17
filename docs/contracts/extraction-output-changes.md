@@ -88,6 +88,44 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 3.7.3
+
+classification: compatible
+
+The SQLite schema remains 7, the report schema remains 3, and the extraction
+identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` adds
+`rust-type-fact-base-names-v1` because canonical output changes. Re-extract
+every existing artifact with `julie-extract scan --force`; incremental commands
+against an artifact from another binary version report `fingerprint_mismatch`
+(exit code `3`) without changing rows.
+
+`type_facts`: the Rust extractor no longer writes rows cut out of signature
+text. Before, a parameter, local, field, or `static mut` whose type has no base
+name (a slice, array, closure, `impl Trait`, function pointer, or reference to
+one of these) got a row holding the first word of its annotation:
+`items: &[Box<dyn Shape>]` gave `&[Box<dyn`, `rows: &mut [Row]` gave `&mut`,
+`pairs: &'a [(String, String)]` gave `&'a`, `visit: impl FnMut(&str)` gave
+`impl`, and `bytes: [u8; 4]` gave `[u8;`. A slice without spaces, such as
+`&[&str]`, was written whole. Every one of these values breaks the base-name
+rule of the 2026-09-08 corrupt-type gate. Now these symbols have no
+`type_facts` row, which matches the AST recorders: they already decline these
+shapes.
+
+Only rows are removed. No Rust row is added or changed: every row for a type
+with a base name (`u32`, `Traversal`, `Vec`, `Option`) keeps its
+`resolved_type`, `is_inferred`, and metadata. A 3.7.2 scan and a 3.7.3 scan of
+three Rust repositories differ only by these removals:
+
+| Repository | Rust `type_facts` rows, 3.7.2 | 3.7.3 | Corrupt-type gate, 3.7.2 | 3.7.3 |
+| --- | --- | --- | --- | --- |
+| code-kb | 3112 | 3050 | 60 | 0 |
+| julie-extractors | 49419 | 48000 | 1361 | 0 |
+| julie | 16425 | 16098 | 309 | 0 |
+
+Consumer action for code-kb: none beyond the forced rebuild. A removed value
+never equals the name of a type symbol, so no receiver-type join matched it.
+Treat a missing row as "no base type name".
+
 ## 3.7.0
 
 classification: compatible

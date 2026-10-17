@@ -1,5 +1,6 @@
 use crate::base::{Symbol, SymbolKind, TypeInfo};
 use crate::rust::RustExtractor;
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 fn extract(source: &str) -> (Vec<Symbol>, RustExtractor) {
@@ -17,6 +18,23 @@ fn extract(source: &str) -> (Vec<Symbol>, RustExtractor) {
     );
     let symbols = extractor.extract_symbols(&tree);
     (symbols, extractor)
+}
+
+fn output_facts(source: &str) -> (Vec<Symbol>, HashMap<String, TypeInfo>) {
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_rust::LANGUAGE.into())
+        .unwrap();
+    let tree = parser.parse(source, None).unwrap();
+    let results = crate::registry::extract_for_language(
+        "rust",
+        &tree,
+        "type_facts.rs",
+        source,
+        &PathBuf::from("/tmp/test"),
+    )
+    .unwrap();
+    (results.symbols, results.types)
 }
 
 fn symbol<'a>(symbols: &'a [Symbol], name: &str, kind: SymbolKind) -> &'a Symbol {
@@ -382,4 +400,119 @@ fn run(callback: fn(inner: u32) -> u32) {
     let (symbols, _extractor) = extract(source);
     assert!(symbols.iter().all(|s| s.name != "inner"));
     assert!(symbols.iter().any(|s| s.name == "callback"));
+}
+
+#[test]
+fn slice_and_closure_parameters_record_no_fact_in_extraction_output() {
+    let source = r#"
+fn run<'a>(
+    shapes: &[Box<dyn Shape>],
+    names: &[&str],
+    rows: &mut [Row],
+    pairs: &'a [(String, String)],
+    visit: impl FnMut(&str) -> bool,
+) {
+}
+"#;
+    let (symbols, types) = output_facts(source);
+    for name in ["shapes", "names", "rows", "pairs", "visit"] {
+        let parameter = symbol(&symbols, name, SymbolKind::Variable);
+        assert_eq!(
+            types.get(&parameter.id).map(|f| f.resolved_type.as_str()),
+            None,
+            "parameter `{name}` must not carry a fact"
+        );
+    }
+}
+
+#[test]
+fn array_and_unit_typed_symbols_record_no_fact_in_extraction_output() {
+    let source = r#"
+struct Frame {
+    bytes: [u8; 4],
+    done: (),
+}
+
+fn run(frame: Frame, marker: *const [u8; 2]) {
+    let window: [u32; 3] = [0; 3];
+}
+"#;
+    let (symbols, types) = output_facts(source);
+    for (name, kind) in [
+        ("bytes", SymbolKind::Field),
+        ("done", SymbolKind::Field),
+        ("marker", SymbolKind::Variable),
+        ("window", SymbolKind::Variable),
+    ] {
+        let target = symbol(&symbols, name, kind);
+        assert_eq!(
+            types.get(&target.id).map(|f| f.resolved_type.as_str()),
+            None,
+            "`{name}` must not carry a fact"
+        );
+    }
+}
+
+#[test]
+fn well_formed_types_keep_their_facts_in_extraction_output() {
+    let source = r#"
+struct Config {
+    id: u64,
+    limit: Option<u32>,
+}
+
+fn run(count: u32, graph: &mut Traversal, handler: Box<dyn Handler>) {
+    let names: Vec<String> = Vec::new();
+}
+"#;
+    let (symbols, types) = output_facts(source);
+    for (name, kind, expected) in [
+        ("id", SymbolKind::Field, "u64"),
+        ("limit", SymbolKind::Field, "Option"),
+        ("count", SymbolKind::Variable, "u32"),
+        ("graph", SymbolKind::Variable, "Traversal"),
+        ("handler", SymbolKind::Variable, "Box"),
+        ("names", SymbolKind::Variable, "Vec"),
+    ] {
+        let target = symbol(&symbols, name, kind);
+        assert_eq!(
+            types.get(&target.id).map(|f| f.resolved_type.as_str()),
+            Some(expected),
+            "`{name}` fact"
+        );
+    }
+}
+
+#[test]
+fn every_extraction_output_fact_is_a_plain_type_name() {
+    let source = r#"
+struct Holder<'a> {
+    rows: &'a [Row],
+    shapes: Vec<Box<dyn Shape>>,
+    callback: fn(u32) -> u32,
+    pair: (u32, String),
+}
+
+fn run<'a>(
+    items: &[Box<dyn Shape>],
+    mut_rows: &mut [Row],
+    holder: &Holder<'a>,
+    visit: impl FnMut(&str),
+    raw: *mut u8,
+) -> Option<&'a str> {
+    let local: &[u8] = &[];
+    None
+}
+"#;
+    let (_symbols, types) = output_facts(source);
+    assert!(!types.is_empty());
+    for fact in types.values() {
+        assert!(
+            fact.resolved_type
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '_' || c == ':'),
+            "`{}` is not a plain type name",
+            fact.resolved_type
+        );
+    }
 }
