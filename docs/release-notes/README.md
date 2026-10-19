@@ -7,9 +7,16 @@ parser dependency changes, certification evidence, real-world evidence, and
 checksums included in the package manifest when package assets are staged or
 published.
 
-Current notes:
+Recent notes (publication status is recorded in `../release.md`):
 
-- `v3.6.1.md` (current published release)
+- `v3.8.1.md`
+- `v3.8.0.md`
+- `v3.7.2.md`
+- `v3.7.1.md`
+- `v3.7.0.md`
+- `v3.6.3.md`
+- `v3.6.2.md`
+- `v3.6.1.md`
 - `v3.6.0.md`
 - `v3.5.0.md`
 - `v3.4.0.md`

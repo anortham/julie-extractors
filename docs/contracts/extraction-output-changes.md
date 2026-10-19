@@ -112,12 +112,12 @@ rule of the 2026-09-08 corrupt-type gate. Now these symbols have no
 `type_facts` row, which matches the AST recorders: they already decline these
 shapes.
 
-Only rows are removed. No Rust row is added or changed: every row for a type
-with a base name (`u32`, `Traversal`, `Vec`, `Option`) keeps its
-`resolved_type`, `is_inferred`, and metadata. A 3.7.2 scan and a 3.7.3 scan of
-three Rust repositories differ only by these removals:
+Only Rust `type_facts` rows are removed. No row for a type with a base name
+(`u32`, `Traversal`, `Vec`, `Option`) is added or changed; it keeps its
+`resolved_type`, `is_inferred`, and metadata. The Rust `type_facts` counts in
+3.7.2 and 3.8.0 scans of three repositories differ only by these removals:
 
-| Repository | Rust `type_facts` rows, 3.7.2 | 3.7.3 | Corrupt-type gate, 3.7.2 | 3.7.3 |
+| Repository | Rust `type_facts` rows, 3.7.2 | 3.8.0 | Corrupt-type gate, 3.7.2 | 3.8.0 |
 | --- | --- | --- | --- | --- |
 | code-kb | 3112 | 3050 | 60 | 0 |
 | julie-extractors | 49419 | 48000 | 1361 | 0 |
@@ -346,9 +346,10 @@ the `F` identifier has `1`, and `Wrap[string](x).Unwrap()` gives `Wrap` `1` and
 `Unwrap` `0`. A qualified C++ call of any depth, such as
 `boost::asio::ip::tcp::resolver::query(1, 2)`, keeps its count.
 
-Only identifier rows gain a key. No row is added or removed, and no other
-column or metadata key changes: across the golden fixtures, the only
-difference from the 3.7.3 build is these two keys on `call` identifiers.
+For the call-argument change alone, only existing `call` identifier rows gain
+these keys: no identifier row is added or removed, and no other column or
+metadata key changes. Across the golden fixtures, this is the only difference
+from the staged 3.7.3 build.
 Consumer action for code-kb: read `arg_count` and `arg_spread` with `json_extract` on
 `identifiers.metadata_json`, and treat a missing key as "unknown". A reader
 built for 3.7.x ignores the keys and keeps working.
