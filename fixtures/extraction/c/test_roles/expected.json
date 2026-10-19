@@ -462,7 +462,10 @@
       "end_byte": 146,
       "containing_key": "fixtures/extraction/c/test_roles/source.c:math.addition:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/c/test_roles/source.c:cr_assert_eq:call:5:4",
@@ -478,7 +481,10 @@
       "end_byte": 170,
       "containing_key": "fixtures/extraction/c/test_roles/source.c:math.addition:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/c/test_roles/source.c:fini:member_access:1:38",

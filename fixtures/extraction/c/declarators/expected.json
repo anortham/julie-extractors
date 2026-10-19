@@ -1547,7 +1547,10 @@
       "end_byte": 217,
       "containing_key": "fixtures/extraction/c/declarators/source.c:make_list:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/c/declarators/source.c:cmp:call:32:11",
@@ -1563,7 +1566,10 @@
       "end_byte": 923,
       "containing_key": "fixtures/extraction/c/declarators/source.c:use:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/c/declarators/source.c:compare:variable_ref:26:48",
@@ -1691,7 +1697,10 @@
       "end_byte": 899,
       "containing_key": "fixtures/extraction/c/declarators/source.c:use:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/c/declarators/source.c:n:variable_ref:9:18",
@@ -1741,6 +1750,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "drv"
       }
     },
@@ -1774,7 +1784,10 @@
       "end_byte": 957,
       "containing_key": "fixtures/extraction/c/declarators/source.c:use:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/c/declarators/source.c:visit_fn:type_usage:28:28",

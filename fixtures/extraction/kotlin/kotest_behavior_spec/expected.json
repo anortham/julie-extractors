@@ -613,7 +613,10 @@
       "end_byte": 128,
       "containing_key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:an empty cart:8:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:Then:call:10:12",
@@ -629,7 +632,10 @@
       "end_byte": 201,
       "containing_key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:the total grows:10:12",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:Triple:call:22:17",
@@ -645,7 +651,10 @@
       "end_byte": 452,
       "containing_key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:withData:22:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 3
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:Triple:call:22:34",
@@ -661,7 +670,10 @@
       "end_byte": 469,
       "containing_key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:withData:22:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 3
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:beforeSpec:call:4:4",
@@ -677,7 +689,10 @@
       "end_byte": 93,
       "containing_key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:beforeSpec:4:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:check:call:11:16",
@@ -693,7 +708,10 @@
       "end_byte": 244,
       "containing_key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:the total grows:10:12",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:check:call:16:16",
@@ -709,7 +727,10 @@
       "end_byte": 363,
       "containing_key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:never runs:15:12",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:check:call:23:12",
@@ -725,7 +746,10 @@
       "end_byte": 513,
       "containing_key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:withData:22:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:context:call:21:4",
@@ -741,7 +765,10 @@
       "end_byte": 408,
       "containing_key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:pythag triples:21:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:reset:call:5:8",
@@ -757,7 +784,10 @@
       "end_byte": 109,
       "containing_key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:beforeSpec:4:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:then:call:15:12",
@@ -773,7 +803,10 @@
       "end_byte": 325,
       "containing_key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:never runs:15:12",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:when:call:9:8",
@@ -789,7 +822,10 @@
       "end_byte": 162,
       "containing_key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:an item is added:9:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:withData:call:22:8",
@@ -805,7 +841,10 @@
       "end_byte": 445,
       "containing_key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:withData:22:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 3
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:xGiven:call:14:8",
@@ -821,7 +860,10 @@
       "end_byte": 285,
       "containing_key": "fixtures/extraction/kotlin/kotest_behavior_spec/source.kt:a disabled branch:14:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     }
   ],
   "types": [],

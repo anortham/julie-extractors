@@ -1173,7 +1173,10 @@
       "end_byte": 784,
       "containing_key": "fixtures/extraction/html/basic/source.html:saveWorker:24:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/html/basic/source.html:helper:call:32:33",
@@ -1189,7 +1192,10 @@
       "end_byte": 961,
       "containing_key": "fixtures/extraction/html/basic/source.html:render:32:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/html/basic/source.html:loadDashboard:call:32:19",
@@ -1205,7 +1211,10 @@
       "end_byte": 954,
       "containing_key": "fixtures/extraction/html/basic/source.html:render:32:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/html/basic/source.html:notifyReset:call:13:54",
@@ -1221,7 +1230,10 @@
       "end_byte": 398,
       "containing_key": "fixtures/extraction/html/basic/source.html:button:13:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/html/basic/source.html:refresh:call:12:69",
@@ -1259,6 +1271,7 @@
       "confidence": "1.000",
       "receiver_type": "WorkerCard",
       "metadata": {
+        "arg_count": 0,
         "receiver": "this"
       }
     },
@@ -1276,7 +1289,10 @@
       "end_byte": 742,
       "containing_key": "fixtures/extraction/html/basic/source.html:saveWorker:24:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/html/basic/source.html:run:call:11:27",
@@ -1308,7 +1324,10 @@
       "end_byte": 274,
       "containing_key": "fixtures/extraction/html/basic/source.html:button:12:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/html/basic/source.html:toggle:call:13:22",
@@ -1324,7 +1343,10 @@
       "end_byte": 361,
       "containing_key": "fixtures/extraction/html/basic/source.html:button:13:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/html/basic/source.html:value:variable_ref:21:15",

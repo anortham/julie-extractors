@@ -2152,6 +2152,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "HttpResponse"
       }
     },
@@ -2235,6 +2236,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "HttpResponse"
       }
     },
@@ -2254,6 +2256,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "HttpResponse"
       }
     },
@@ -2273,6 +2276,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "HttpResponse"
       }
     },
@@ -2418,7 +2422,10 @@
       "end_byte": 1642,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:configure:call:23:53",
@@ -2434,7 +2441,10 @@
       "end_byte": 1120,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:create:variable_ref:14:44",
@@ -2466,7 +2476,10 @@
       "end_byte": 1736,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:show:39:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:finish:call:43:28",
@@ -2482,7 +2495,10 @@
       "end_byte": 1813,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:create:42:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:finish:call:46:23",
@@ -2498,7 +2514,10 @@
       "end_byte": 1885,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:health:45:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:finish:call:49:23",
@@ -2514,7 +2533,10 @@
       "end_byte": 1963,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:report_index:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:format:call:36:42",
@@ -2548,6 +2570,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "web"
       }
     },
@@ -2567,6 +2590,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "web"
       }
     },
@@ -2586,6 +2610,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "web"
       }
     },
@@ -2621,6 +2646,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "App"
       }
     },
@@ -2640,6 +2666,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "App"
       }
     },
@@ -2659,6 +2686,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "App"
       }
     },
@@ -2678,6 +2706,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "App"
       }
     },
@@ -2697,6 +2726,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "web"
       }
     },
@@ -2746,7 +2776,10 @@
       "end_byte": 651,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:route:call:14:13",
@@ -2762,7 +2795,10 @@
       "end_byte": 706,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:route:call:16:13",
@@ -2778,7 +2814,10 @@
       "end_byte": 826,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:route:call:16:35",
@@ -2796,6 +2835,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "web"
       }
     },
@@ -2813,7 +2853,10 @@
       "end_byte": 1546,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:route:call:36:36",
@@ -2829,7 +2872,10 @@
       "end_byte": 1616,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:scope:call:12:13",
@@ -2847,6 +2893,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "web"
       }
     },
@@ -2866,6 +2913,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "web"
       }
     },
@@ -2885,6 +2933,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "web"
       }
     },
@@ -2904,6 +2953,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "web"
       }
     },
@@ -2923,6 +2973,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "web"
       }
     },
@@ -2940,7 +2991,10 @@
       "end_byte": 604,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:service:call:23:15",
@@ -2956,7 +3010,10 @@
       "end_byte": 1080,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:service:call:28:15",
@@ -2972,7 +3029,10 @@
       "end_byte": 1273,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:service:call:28:46",
@@ -2988,7 +3048,10 @@
       "end_byte": 1304,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:service:call:35:9",
@@ -3004,7 +3067,10 @@
       "end_byte": 1520,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:service:call:36:9",
@@ -3020,7 +3086,10 @@
       "end_byte": 1591,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:show:variable_ref:13:48",
@@ -3084,7 +3153,10 @@
       "end_byte": 680,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:to:call:14:41",
@@ -3100,7 +3172,10 @@
       "end_byte": 731,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:to:call:16:43",
@@ -3116,7 +3191,10 @@
       "end_byte": 853,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:to:call:35:60",
@@ -3132,7 +3210,10 @@
       "end_byte": 1566,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:to:call:36:82",
@@ -3148,7 +3229,10 @@
       "end_byte": 1659,
       "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:web:variable_ref:12:8",

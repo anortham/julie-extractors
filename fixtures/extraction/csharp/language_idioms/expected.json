@@ -3506,6 +3506,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "cart"
       }
     },
@@ -3557,6 +3558,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "items"
       }
     },
@@ -3718,7 +3720,10 @@
       "end_byte": 3090,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:context$lambda:110:24",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:Cart:type_usage:106:16",
@@ -4018,7 +4023,10 @@
       "end_byte": 1230,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:Search:41:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:Entity:call:81:21",
@@ -4036,6 +4044,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "modelBuilder"
       }
     },
@@ -4197,7 +4206,10 @@
       "end_byte": 429,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:fixtures/extraction/csharp/language_idioms/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:HttpClient:type_usage:12:17",
@@ -4295,6 +4307,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "string"
       }
     },
@@ -4410,6 +4423,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "app"
       }
     },
@@ -4429,6 +4443,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "app"
       }
     },
@@ -4448,6 +4463,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "orders"
       }
     },
@@ -4467,6 +4483,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "app"
       }
     },
@@ -4486,6 +4503,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "api"
       }
     },
@@ -4505,6 +4523,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "app"
       }
     },
@@ -4524,6 +4543,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "app"
       }
     },
@@ -4621,7 +4641,10 @@
       "end_byte": 1097,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:Separate:36:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:Ok:call:43:58",
@@ -4637,7 +4660,10 @@
       "end_byte": 1221,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:Search:41:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:Order:type_usage:47:21",
@@ -4767,6 +4793,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "Json"
       }
     },
@@ -4784,7 +4811,10 @@
       "end_byte": 2116,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:Orders:76:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:ShopDbContext:type_usage:74:44",
@@ -4818,6 +4848,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "Count",
         "receiver_qualifier": "cart"
       }
@@ -4838,6 +4869,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "Database"
       }
     },
@@ -4989,7 +5021,10 @@
       "end_byte": 2300,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:OnModelCreating:79:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:ToTable:call:88:74",
@@ -5007,6 +5042,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "builder"
       }
     },
@@ -5024,7 +5060,10 @@
       "end_byte": 970,
       "containing_key": "fixtures/extraction/csharp/language_idioms/source.cs:Current:34:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/csharp/language_idioms/source.cs:Widget:type_usage:34:11",

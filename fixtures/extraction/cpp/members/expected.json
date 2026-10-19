@@ -1880,7 +1880,10 @@
       "end_byte": 1562,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:range_for:52:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 3
+      }
     },
     {
       "key": "fixtures/extraction/cpp/members/source.cpp:Conn:type_usage:18:4",
@@ -2042,6 +2045,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "alloc"
       }
     },
@@ -2059,7 +2063,10 @@
       "end_byte": 430,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:~Conn:17:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/cpp/members/source.cpp:compare:call:11:51",
@@ -2075,7 +2082,10 @@
       "end_byte": 285,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:operator==:11:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/cpp/members/source.cpp:default_retries:call:28:18",
@@ -2091,7 +2101,10 @@
       "end_byte": 928,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:Conn:15:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/cpp/members/source.cpp:exception:type_usage:55:65",
@@ -2430,7 +2443,10 @@
       "end_byte": 492,
       "containing_key": "fixtures/extraction/cpp/members/source.cpp:operator<<:18:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/cpp/members/source.cpp:x:variable_ref:54:27",

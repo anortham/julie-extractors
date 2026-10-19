@@ -1062,7 +1062,10 @@
       "end_byte": 255,
       "containing_key": "fixtures/extraction/jsx/node_test_roles/source.jsx:panel:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/jsx/node_test_roles/source.jsx:afterEach:call:10:2",
@@ -1078,7 +1081,10 @@
       "end_byte": 236,
       "containing_key": "fixtures/extraction/jsx/node_test_roles/source.jsx:panel:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/jsx/node_test_roles/source.jsx:before:call:8:2",
@@ -1094,7 +1100,10 @@
       "end_byte": 189,
       "containing_key": "fixtures/extraction/jsx/node_test_roles/source.jsx:panel:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/jsx/node_test_roles/source.jsx:beforeEach:call:21:10",
@@ -1112,6 +1121,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "t"
       }
     },
@@ -1129,7 +1139,10 @@
       "end_byte": 213,
       "containing_key": "fixtures/extraction/jsx/node_test_roles/source.jsx:panel:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/jsx/node_test_roles/source.jsx:describe:call:7:0",
@@ -1145,7 +1158,10 @@
       "end_byte": 163,
       "containing_key": "fixtures/extraction/jsx/node_test_roles/source.jsx:panel:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/jsx/node_test_roles/source.jsx:diagnostic:call:22:4",
@@ -1163,6 +1179,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "t"
       }
     },
@@ -1180,7 +1197,10 @@
       "end_byte": 272,
       "containing_key": "fixtures/extraction/jsx/node_test_roles/source.jsx:panel:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/jsx/node_test_roles/source.jsx:it:call:35:7",
@@ -1198,6 +1218,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "runner"
       }
     },
@@ -1279,7 +1300,10 @@
       "end_byte": 691,
       "containing_key": "fixtures/extraction/jsx/node_test_roles/source.jsx:it:30:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/jsx/node_test_roles/source.jsx:runner:variable_ref:35:0",
@@ -1375,7 +1399,10 @@
       "end_byte": 351,
       "containing_key": "fixtures/extraction/jsx/node_test_roles/source.jsx:panel lifecycle:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/jsx/node_test_roles/source.jsx:test:call:19:10",
@@ -1393,6 +1420,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "t"
       }
     },
@@ -1412,6 +1440,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "t"
       }
     }

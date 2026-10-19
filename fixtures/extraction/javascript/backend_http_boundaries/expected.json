@@ -262,6 +262,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "express"
       }
     },
@@ -375,7 +376,10 @@
       "end_byte": 111,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:express:variable_ref:6:17",
@@ -407,7 +411,10 @@
       "end_byte": 454,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:get:call:11:6",
@@ -425,6 +432,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "app"
       }
     },
@@ -442,7 +450,10 @@
       "end_byte": 327,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:get:call:15:22",
@@ -458,7 +469,10 @@
       "end_byte": 387,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:get:call:15:55",
@@ -476,6 +490,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "cache"
       }
     },
@@ -495,6 +510,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "router"
       }
     },
@@ -512,7 +528,10 @@
       "end_byte": 244,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:handler:variable_ref:18:60",
@@ -546,6 +565,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "res"
       }
     },
@@ -579,7 +599,10 @@
       "end_byte": 348,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:post:call:9:40",
@@ -595,7 +618,10 @@
       "end_byte": 259,
       "containing_key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/javascript/backend_http_boundaries/source.js:readMulti:variable_ref:13:9",
@@ -645,6 +671,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "app"
       }
     },
@@ -664,6 +691,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "app"
       }
     },
@@ -683,6 +711,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "server"
       }
     },
@@ -702,6 +731,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "app"
       }
     },
@@ -817,6 +847,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "app"
       }
     },

@@ -529,7 +529,10 @@
       "end_byte": 366,
       "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/html/test_roles/source.html:afterEach:call:14:8",
@@ -545,7 +548,10 @@
       "end_byte": 341,
       "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/html/test_roles/source.html:app:variable_ref:23:4",
@@ -577,7 +583,10 @@
       "end_byte": 252,
       "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/html/test_roles/source.html:beforeEach:call:12:8",
@@ -593,7 +602,10 @@
       "end_byte": 282,
       "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/html/test_roles/source.html:context:call:10:6",
@@ -609,7 +621,10 @@
       "end_byte": 213,
       "containing_key": "fixtures/extraction/html/test_roles/source.html:browser suite:9:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/html/test_roles/source.html:describe:call:23:8",
@@ -627,6 +642,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "app"
       }
     },
@@ -644,7 +660,10 @@
       "end_byte": 174,
       "containing_key": "fixtures/extraction/html/test_roles/source.html:browser suite:9:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/html/test_roles/source.html:it:call:13:8",
@@ -660,7 +679,10 @@
       "end_byte": 304,
       "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/html/test_roles/source.html:it:variable_ref:17:8",
@@ -710,6 +732,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "mocha"
       }
     },
@@ -729,6 +752,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "it"
       }
     },
@@ -746,7 +770,10 @@
       "end_byte": 390,
       "containing_key": "fixtures/extraction/html/test_roles/source.html:nested suite:10:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     }
   ],
   "types": [

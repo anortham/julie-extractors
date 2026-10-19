@@ -770,7 +770,10 @@
       "end_byte": 48,
       "containing_key": "fixtures/extraction/tsx/basic/source.tsx:WorkerModel:6:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/tsx/basic/source.tsx:Map:call:10:52",
@@ -786,7 +789,10 @@
       "end_byte": 177,
       "containing_key": "fixtures/extraction/tsx/basic/source.tsx:workerIndex:10:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/tsx/basic/source.tsx:Map:type_usage:10:19",
@@ -898,7 +904,10 @@
       "end_byte": 224,
       "containing_key": "fixtures/extraction/tsx/basic/source.tsx:fetchWorkers:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/tsx/basic/source.tsx:format:call:23:13",
@@ -914,7 +923,10 @@
       "end_byte": 447,
       "containing_key": "fixtures/extraction/tsx/basic/source.tsx:Badge:20:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/tsx/basic/source.tsx:i:variable_ref:39:24",
@@ -997,7 +1009,10 @@
       "end_byte": 411,
       "containing_key": "fixtures/extraction/tsx/basic/source.tsx:Badge:20:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/tsx/basic/source.tsx:props:variable_ref:23:20",
@@ -1063,6 +1078,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "value"
       }
     },

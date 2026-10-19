@@ -129,7 +129,10 @@
       "end_byte": 30,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/javascript/nuxt_file_route/app/pages/dashboard.js:h:call:3:11",
@@ -145,7 +148,10 @@
       "end_byte": 58,
       "containing_key": "fixtures/extraction/javascript/nuxt_file_route/app/pages/dashboard.js:render:2:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     }
   ],
   "types": [],

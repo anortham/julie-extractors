@@ -1460,7 +1460,10 @@
       "end_byte": 588,
       "containing_key": "fixtures/extraction/kotlin/basic/source.kt:Worker:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/basic/source.kt:count:variable_ref:70:26",
@@ -1492,7 +1495,10 @@
       "end_byte": 361,
       "containing_key": "fixtures/extraction/kotlin/basic/source.kt:Worker:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/basic/source.kt:enabled:variable_ref:69:8",
@@ -1524,7 +1530,10 @@
       "end_byte": 1076,
       "containing_key": "fixtures/extraction/kotlin/basic/source.kt:fetchStatus:51:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/basic/source.kt:helper:call:25:15",
@@ -1540,7 +1549,10 @@
       "end_byte": 476,
       "containing_key": "fixtures/extraction/kotlin/basic/source.kt:run:22:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/basic/source.kt:helper:call:29:15",
@@ -1556,7 +1568,10 @@
       "end_byte": 545,
       "containing_key": "fixtures/extraction/kotlin/basic/source.kt:loadRemote:28:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/basic/source.kt:i:variable_ref:71:21",
@@ -1700,7 +1715,10 @@
       "end_byte": 579,
       "containing_key": "fixtures/extraction/kotlin/basic/source.kt:Worker:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/basic/source.kt:length:member_access:63:44",
@@ -1738,6 +1756,7 @@
       "confidence": "1.000",
       "receiver_type": "Worker",
       "metadata": {
+        "arg_count": 0,
         "receiver": "this"
       }
     },
@@ -1755,7 +1774,10 @@
       "end_byte": 834,
       "containing_key": "fixtures/extraction/kotlin/basic/source.kt:recordRun:42:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/basic/source.kt:recordRun:call:24:8",
@@ -1771,7 +1793,10 @@
       "end_byte": 450,
       "containing_key": "fixtures/extraction/kotlin/basic/source.kt:run:22:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/basic/source.kt:recordRun:call:59:13",
@@ -1790,6 +1815,7 @@
       "confidence": "1.000",
       "receiver_type": "Worker",
       "metadata": {
+        "arg_count": 1,
         "receiver": "this"
       }
     },

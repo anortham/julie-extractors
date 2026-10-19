@@ -946,7 +946,10 @@
       "end_byte": 731,
       "containing_key": "fixtures/extraction/python/basic/source.py:fetch_status:34:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/python/basic/source.py:helper:call:12:15",
@@ -962,7 +965,10 @@
       "end_byte": 225,
       "containing_key": "fixtures/extraction/python/basic/source.py:run:10:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/python/basic/source.py:i:variable_ref:47:21",
@@ -1083,7 +1089,10 @@
       "end_byte": 411,
       "containing_key": "fixtures/extraction/python/basic/source.py:record_run:19:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/python/basic/source.py:range:call:46:17",
@@ -1099,7 +1108,10 @@
       "end_byte": 920,
       "containing_key": "fixtures/extraction/python/basic/source.py:evaluate:43:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/python/basic/source.py:record_run:call:11:8",
@@ -1115,7 +1127,10 @@
       "end_byte": 194,
       "containing_key": "fixtures/extraction/python/basic/source.py:run:10:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/python/basic/source.py:staticmethod:variable_ref:14:5",

@@ -763,6 +763,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "rocket"
       }
     },
@@ -844,7 +845,10 @@
       "end_byte": 439,
       "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/rust/rocket_routes/source.rs:mount:call:25:9",
@@ -860,7 +864,10 @@
       "end_byte": 486,
       "containing_key": "fixtures/extraction/rust/rocket_routes/source.rs:rocket:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/rust/rocket_routes/source.rs:name:variable_ref:8:21",

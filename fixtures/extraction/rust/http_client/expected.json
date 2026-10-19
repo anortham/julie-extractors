@@ -644,7 +644,10 @@
       "end_byte": 558,
       "containing_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client/source.rs:Ok:call:19:4",
@@ -660,7 +663,10 @@
       "end_byte": 842,
       "containing_key": "fixtures/extraction/rust/http_client/source.rs:dynamic:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client/source.rs:Result:type_usage:16:33",
@@ -724,7 +730,10 @@
       "end_byte": 531,
       "containing_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/http_client/source.rs:format:call:17:17",
@@ -758,6 +767,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "reqwest"
       }
     },
@@ -777,6 +787,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "reqwest"
       }
     },
@@ -796,6 +807,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "reqwest"
       }
     },
@@ -815,6 +827,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "Client",
         "receiver_qualifier": "reqwest"
       }
@@ -835,6 +848,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "Client"
       }
     },
@@ -854,6 +868,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "client"
       }
     },
@@ -935,7 +950,10 @@
       "end_byte": 817,
       "containing_key": "fixtures/extraction/rust/http_client/source.rs:dynamic:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     }
   ],
   "types": [

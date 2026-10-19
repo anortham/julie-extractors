@@ -430,7 +430,10 @@
       "end_byte": 128,
       "containing_key": "fixtures/extraction/rust/axum_parameter_context/source.rs:routes:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_parameter_context/source.rs:get:call:7:30",
@@ -446,7 +449,10 @@
       "end_byte": 172,
       "containing_key": "fixtures/extraction/rust/axum_parameter_context/source.rs:routes:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_parameter_context/source.rs:get:type_usage:1:20",
@@ -512,6 +518,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "Router"
       }
     },
@@ -529,7 +536,10 @@
       "end_byte": 111,
       "containing_key": "fixtures/extraction/rust/axum_parameter_context/source.rs:routes:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_parameter_context/source.rs:route:call:7:9",
@@ -545,7 +555,10 @@
       "end_byte": 153,
       "containing_key": "fixtures/extraction/rust/axum_parameter_context/source.rs:routes:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/rust/axum_parameter_context/source.rs:without_v07_checks:call:5:9",
@@ -561,7 +574,10 @@
       "end_byte": 94,
       "containing_key": "fixtures/extraction/rust/axum_parameter_context/source.rs:routes:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     }
   ],
   "types": [],

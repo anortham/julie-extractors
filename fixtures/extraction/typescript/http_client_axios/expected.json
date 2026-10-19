@@ -507,7 +507,10 @@
       "end_byte": 278,
       "containing_key": "fixtures/extraction/typescript/http_client_axios/source.ts:createUser:12:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/typescript/http_client_axios/source.ts:axios:variable_ref:17:9",
@@ -576,6 +579,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "axios"
       }
     },

@@ -619,7 +619,10 @@
       "end_byte": 266,
       "containing_key": "fixtures/extraction/java/reference_targets/source.java:overload_caller:18:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/java/reference_targets/source.java:helper:call:7:15",
@@ -635,7 +638,10 @@
       "end_byte": 105,
       "containing_key": "fixtures/extraction/java/reference_targets/source.java:caller:6:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/java/reference_targets/source.java:value:variable_ref:15:15",

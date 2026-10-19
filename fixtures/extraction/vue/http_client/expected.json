@@ -141,7 +141,10 @@
       "end_byte": 222,
       "containing_key": "fixtures/extraction/vue/http_client/source.vue:load:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/vue/http_client/source.vue:axios:variable_ref:10:8",
@@ -173,7 +176,10 @@
       "end_byte": 158,
       "containing_key": "fixtures/extraction/vue/http_client/source.vue:load:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/vue/http_client/source.vue:get:call:10:14",
@@ -191,6 +197,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "axios"
       }
     },

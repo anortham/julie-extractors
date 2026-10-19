@@ -1487,6 +1487,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "http"
       }
     },
@@ -1628,7 +1629,10 @@
       "end_byte": 388,
       "containing_key": "fixtures/extraction/go/basic/source.go:Start:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/go/basic/source.go:NewWorker:call:92:1",
@@ -1644,7 +1648,10 @@
       "end_byte": 1543,
       "containing_key": "fixtures/extraction/go/basic/source.go:Restart:91:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/go/basic/source.go:Run:call:31:3",
@@ -1663,6 +1670,7 @@
       "confidence": "1.000",
       "receiver_type": "Worker",
       "metadata": {
+        "arg_count": 0,
         "receiver": "w"
       }
     },
@@ -1682,6 +1690,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "other"
       }
     },
@@ -1699,7 +1708,10 @@
       "end_byte": 1553,
       "containing_key": "fixtures/extraction/go/basic/source.go:Restart:91:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/go/basic/source.go:Unmarshal:call:83:12",
@@ -1717,6 +1729,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "yaml"
       }
     },
@@ -1974,7 +1987,10 @@
       "end_byte": 334,
       "containing_key": "fixtures/extraction/go/basic/source.go:Run:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/go/basic/source.go:http:variable_ref:54:11",
@@ -2169,7 +2185,10 @@
       "end_byte": 549,
       "containing_key": "fixtures/extraction/go/basic/source.go:recordRun:37:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/go/basic/source.go:other:variable_ref:33:1",
@@ -2201,7 +2220,10 @@
       "end_byte": 313,
       "containing_key": "fixtures/extraction/go/basic/source.go:Run:23:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/go/basic/source.go:s:variable_ref:88:8",

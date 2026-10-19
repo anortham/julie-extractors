@@ -144,7 +144,10 @@
       "end_byte": 80,
       "containing_key": "fixtures/extraction/cpp/structural_facts/source.cpp:readValue:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/cpp/structural_facts/source.cpp:LIMIT:variable_ref:5:18",

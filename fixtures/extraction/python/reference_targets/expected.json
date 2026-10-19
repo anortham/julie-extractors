@@ -843,7 +843,10 @@
       "end_byte": 324,
       "containing_key": "fixtures/extraction/python/reference_targets/source.py:forward_caller:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/python/reference_targets/source.py:module_target:call:41:11",
@@ -859,7 +862,10 @@
       "end_byte": 696,
       "containing_key": "fixtures/extraction/python/reference_targets/source.py:module_caller:40:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/python/reference_targets/source.py:module_target:call:5:11",
@@ -875,7 +881,10 @@
       "end_byte": 96,
       "containing_key": "fixtures/extraction/python/reference_targets/source.py:parameter_shadow:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/python/reference_targets/source.py:module_target:call:9:11",
@@ -891,7 +900,10 @@
       "end_byte": 166,
       "containing_key": "fixtures/extraction/python/reference_targets/source.py:local_shadow:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/python/reference_targets/source.py:nested_caller:call:34:11",
@@ -907,7 +919,10 @@
       "end_byte": 580,
       "containing_key": "fixtures/extraction/python/reference_targets/source.py:sibling_owner:27:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/python/reference_targets/source.py:nested_target:call:32:15",
@@ -923,7 +938,10 @@
       "end_byte": 552,
       "containing_key": "fixtures/extraction/python/reference_targets/source.py:nested_caller:31:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/python/reference_targets/source.py:private_target:call:16:11",
@@ -939,7 +957,10 @@
       "end_byte": 273,
       "containing_key": "fixtures/extraction/python/reference_targets/source.py:owner_two:15:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/python/reference_targets/source.py:recursive:call:25:11",
@@ -955,7 +976,10 @@
       "end_byte": 406,
       "containing_key": "fixtures/extraction/python/reference_targets/source.py:recursive:24:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/python/reference_targets/source.py:value:variable_ref:25:21",

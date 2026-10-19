@@ -713,7 +713,10 @@
       "end_byte": 411,
       "containing_key": "fixtures/extraction/javascript/structural_facts/source.js:router:14:13",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/javascript/structural_facts/source.js:createRouter:call:20:25",
@@ -729,7 +732,10 @@
       "end_byte": 539,
       "containing_key": "fixtures/extraction/javascript/structural_facts/source.js:vueRouter:20:13",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/javascript/structural_facts/source.js:createWebHistory:call:21:13",
@@ -745,7 +751,10 @@
       "end_byte": 571,
       "containing_key": "fixtures/extraction/javascript/structural_facts/source.js:vueRouter:20:13",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/javascript/structural_facts/source.js:fetch:call:6:17",
@@ -761,7 +770,10 @@
       "end_byte": 232,
       "containing_key": "fixtures/extraction/javascript/structural_facts/source.js:load:5:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/javascript/structural_facts/source.js:routes:variable_ref:14:42",

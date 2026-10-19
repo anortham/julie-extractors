@@ -33,12 +33,7 @@ pub(crate) fn blank_directives(content: &str) -> Option<String> {
     for line in content.split_inclusive('\n') {
         let line_end = line_start + line.len();
         let active = branch_active.last().copied().unwrap_or(true);
-        let directive = line.trim_start().strip_prefix('#').map(|rest| {
-            rest.trim_start()
-                .split(|c: char| !c.is_ascii_alphabetic())
-                .next()
-                .unwrap_or_default()
-        });
+        let directive = directive_name(line);
         match directive {
             Some("if") => branch_active.push(active),
             Some("elif" | "else") => {
@@ -51,14 +46,27 @@ pub(crate) fn blank_directives(content: &str) -> Option<String> {
             }
             _ => {}
         }
-        let is_preprocessor_directive = directive.is_some_and(|name| DIRECTIVES.contains(&name));
-        if is_preprocessor_directive || !active {
+        if is_directive_line(line) || !active {
             blank(&mut bytes[line_start..line_end]);
             changed = true;
         }
         line_start = line_end;
     }
     changed.then(|| String::from_utf8(bytes).ok()).flatten()
+}
+
+fn directive_name(line: &str) -> Option<&str> {
+    line.trim_start().strip_prefix('#').map(|rest| {
+        rest.trim_start()
+            .split(|c: char| !c.is_ascii_alphabetic())
+            .next()
+            .unwrap_or_default()
+    })
+}
+
+/// True when `blank_directives` blanks the line as a preprocessor directive.
+pub(crate) fn is_directive_line(line: &str) -> bool {
+    directive_name(line).is_some_and(|name| DIRECTIVES.contains(&name))
 }
 
 fn blank(line: &mut [u8]) {

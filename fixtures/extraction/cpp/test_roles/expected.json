@@ -1932,7 +1932,10 @@
       "end_byte": 83,
       "containing_key": "fixtures/extraction/cpp/test_roles/source.cpp:push grows:2:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/cpp/test_roles/source.cpp:Test:type_usage:41:44",

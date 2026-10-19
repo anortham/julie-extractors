@@ -222,7 +222,10 @@
       "end_byte": 436,
       "containing_key": "fixtures/extraction/javascript/cross_file/source.js:entry:13:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/javascript/cross_file/source.js:local_helper:call:15:11",
@@ -238,7 +241,10 @@
       "end_byte": 463,
       "containing_key": "fixtures/extraction/javascript/cross_file/source.js:entry:13:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     }
   ],
   "types": [],

@@ -1141,6 +1141,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "Request"
       }
     },
@@ -1160,6 +1161,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "Request"
       }
     },
@@ -1179,6 +1181,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "Request"
       }
     },
@@ -1423,7 +1426,10 @@
       "end_byte": 619,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:build:call:20:47",
@@ -1439,7 +1445,10 @@
       "end_byte": 674,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:build:call:27:31",
@@ -1455,7 +1464,10 @@
       "end_byte": 971,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:delete:call:22:8",
@@ -1473,6 +1485,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "web"
       }
     },
@@ -1492,6 +1505,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "web"
       }
     },
@@ -1511,6 +1525,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "web"
       }
     },
@@ -1530,6 +1545,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "rest"
       }
     },
@@ -1549,6 +1565,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "rest"
       }
     },
@@ -1626,7 +1643,10 @@
       "end_byte": 662,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:postForObject:call:24:9",
@@ -1644,6 +1664,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 3,
         "receiver": "rest"
       }
     },
@@ -1709,7 +1730,10 @@
       "end_byte": 717,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:retrieve:call:22:54",
@@ -1725,7 +1749,10 @@
       "end_byte": 782,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:retrieve:call:28:23",
@@ -1741,7 +1768,10 @@
       "end_byte": 1005,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:uri:call:21:14",
@@ -1757,7 +1787,10 @@
       "end_byte": 694,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:uri:call:22:17",
@@ -1773,7 +1806,10 @@
       "end_byte": 740,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:uri:call:28:14",
@@ -1789,7 +1825,10 @@
       "end_byte": 991,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:url:call:19:22",
@@ -1805,7 +1844,10 @@
       "end_byte": 579,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:url:call:20:22",
@@ -1821,7 +1863,10 @@
       "end_byte": 647,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:url:call:27:22",
@@ -1837,7 +1882,10 @@
       "end_byte": 960,
       "containing_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:url:variable_ref:27:26",

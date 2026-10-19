@@ -298,6 +298,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "express"
       }
     },
@@ -347,7 +348,10 @@
       "end_byte": 111,
       "containing_key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:express:variable_ref:6:17",
@@ -379,7 +383,10 @@
       "end_byte": 336,
       "containing_key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:get:call:10:34",
@@ -395,7 +402,10 @@
       "end_byte": 274,
       "containing_key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx:get:call:9:9",
@@ -413,6 +423,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "router"
       }
     },
@@ -464,6 +475,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "app"
       }
     },
@@ -483,6 +495,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "server"
       }
     },
@@ -534,6 +547,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "res"
       }
     },
@@ -553,6 +567,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "res"
       }
     },
@@ -588,6 +603,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "app"
       }
     }

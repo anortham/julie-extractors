@@ -13,6 +13,7 @@
 
 pub mod annotations;
 pub mod body;
+pub(crate) mod call_arguments;
 pub mod code_structural_facts;
 pub mod complexity_metrics;
 pub mod config_literals;

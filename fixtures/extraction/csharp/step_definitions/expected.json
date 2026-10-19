@@ -959,6 +959,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "cart"
       }
     },
@@ -1056,7 +1057,10 @@
       "end_byte": 136,
       "containing_key": "fixtures/extraction/csharp/step_definitions/source.cs:CartSteps:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/csharp/step_definitions/source.cs:Cart:type_usage:9:21",
@@ -1090,6 +1094,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "cart"
       }
     },
@@ -1109,6 +1114,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "cart"
       }
     },
@@ -1166,6 +1172,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "Assert"
       }
     },
@@ -1233,6 +1240,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "cart"
       }
     },
@@ -1252,6 +1260,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "cart"
       }
     },

@@ -70,6 +70,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "reference-integrity-v1",
         "regex-branch-reset-v1",
         "rust-type-fact-base-names-v1",
+        "call-argument-counts-v1",
     ] {
         assert!(
             version.contains(marker),

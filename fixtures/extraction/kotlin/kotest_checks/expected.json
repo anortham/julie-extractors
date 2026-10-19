@@ -1839,7 +1839,10 @@
       "end_byte": 265,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/shadowed_bindings.kt:localScope:10:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/shadowed_bindings.kt:checkAll:call:7:4",
@@ -1855,7 +1858,10 @@
       "end_byte": 152,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/shadowed_bindings.kt:parameterScope:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/shadowed_bindings.kt:checkAll:variable_ref:11:4",
@@ -1887,7 +1893,10 @@
       "end_byte": 363,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/shadowed_bindings.kt:nestedScope:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/shadowed_bindings.kt:forAll:variable_ref:21:4",
@@ -1919,7 +1928,10 @@
       "end_byte": 300,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/shadowed_bindings.kt:nestedScope:16:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/shadowed_import.kt:checkAll:variable_ref:8:4",
@@ -1983,7 +1995,10 @@
       "end_byte": 820,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:forAll:23:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:base:variable_ref:14:59",
@@ -2031,7 +2046,10 @@
       "end_byte": 527,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checkAll:variable_ref:16:8",
@@ -2063,7 +2081,10 @@
       "end_byte": 678,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:forAll:variable_ref:18:8",
@@ -2095,7 +2116,10 @@
       "end_byte": 323,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 3
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:forNone:call:15:8",
@@ -2111,7 +2135,10 @@
       "end_byte": 403,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:isNotEmpty:call:17:68",
@@ -2129,6 +2156,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "label"
       }
     },
@@ -2181,7 +2209,10 @@
       "end_byte": 662,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 3
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:predicate:variable_ref:23:77",
@@ -2213,7 +2244,10 @@
       "end_byte": 327,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:row:call:14:30",
@@ -2229,7 +2263,10 @@
       "end_byte": 338,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:row:call:15:16",
@@ -2245,7 +2282,10 @@
       "end_byte": 407,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:checks:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/source.kt:square:variable_ref:14:74",
@@ -2405,7 +2445,10 @@
       "end_byte": 706,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/source.kt:withData:20:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 3
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/unrelated_calls.kt:block:call:5:59",
@@ -2421,7 +2464,10 @@
       "end_byte": 116,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/unrelated_calls.kt:forAll:5:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/unrelated_calls.kt:checkAll:variable_ref:11:4",
@@ -2453,7 +2499,10 @@
       "end_byte": 210,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/unrelated_calls.kt:unrelated:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/unrelated_calls.kt:row:call:10:11",
@@ -2469,7 +2518,10 @@
       "end_byte": 214,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/unrelated_calls.kt:unrelated:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/unrelated_calls.kt:value:variable_ref:3:27",
@@ -2553,7 +2605,10 @@
       "end_byte": 68,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/wildcard_and_qualified.kt:verify:5:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/wildcard_and_qualified.kt:input:variable_ref:6:43",
@@ -2640,7 +2695,10 @@
       "end_byte": 72,
       "containing_key": "fixtures/extraction/kotlin/kotest_checks/wildcard_and_qualified.kt:verify:5:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_checks/wildcard_and_qualified.kt:value:variable_ref:7:48",

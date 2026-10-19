@@ -1414,7 +1414,10 @@
       "end_byte": 302,
       "containing_key": "fixtures/extraction/html/documents_and_templates/source.html:body:11:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/html/documents_and_templates/source.html:is-active:member_access:24:51",
@@ -1513,7 +1516,10 @@
       "end_byte": 1024,
       "containing_key": "fixtures/extraction/html/documents_and_templates/source.html:app-order-row:25:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/html/documents_and_templates/source.html:order-menu:member_access:27:27",

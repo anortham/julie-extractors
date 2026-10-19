@@ -1761,7 +1761,10 @@
       "end_byte": 758,
       "containing_key": "fixtures/extraction/vue/basic/source.vue:workerIndex:24:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/vue/basic/source.vue:Map:type_usage:24:19",
@@ -1841,7 +1844,10 @@
       "end_byte": 650,
       "containing_key": "fixtures/extraction/vue/basic/source.vue:emit:21:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/vue/basic/source.vue:defineExpose:call:51:0",
@@ -1857,7 +1863,10 @@
       "end_byte": 1316,
       "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/vue/basic/source.vue:defineOptions:call:18:0",
@@ -1873,7 +1882,10 @@
       "end_byte": 555,
       "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/vue/basic/source.vue:defineProps:call:20:14",
@@ -1889,7 +1901,10 @@
       "end_byte": 603,
       "containing_key": "fixtures/extraction/vue/basic/source.vue:props:20:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/vue/basic/source.vue:enabled:variable_ref:41:8",
@@ -1921,7 +1936,10 @@
       "end_byte": 331,
       "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/vue/basic/source.vue:evaluate:variable_ref:51:23",
@@ -1953,7 +1971,10 @@
       "end_byte": 691,
       "containing_key": "fixtures/extraction/vue/basic/source.vue:title:23:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/vue/basic/source.vue:format:variable_ref:51:15",
@@ -2179,6 +2200,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "value"
       }
     },

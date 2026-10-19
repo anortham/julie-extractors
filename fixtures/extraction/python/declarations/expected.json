@@ -1802,7 +1802,11 @@
       "end_byte": 1052,
       "containing_key": "fixtures/extraction/python/declarations/source.py:wrapper:40:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2,
+        "arg_spread": true
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:fn:variable_ref:39:25",
@@ -1852,6 +1856,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "path",
         "receiver_qualifier": "os"
       }
@@ -2103,7 +2108,10 @@
       "end_byte": 872,
       "containing_key": "fixtures/extraction/python/declarations/source.py:ranked:30:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:total:member_access:15:13",
@@ -2176,7 +2184,10 @@
       "end_byte": 905,
       "containing_key": "fixtures/extraction/python/declarations/source.py:lambda_34:34:34",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/python/declarations/source.py:wrapper:variable_ref:43:15",
@@ -2210,6 +2221,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "functools"
       }
     }

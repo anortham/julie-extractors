@@ -1234,6 +1234,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "inner",
         "receiver_qualifier": "self"
       }
@@ -1337,6 +1338,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "FixedJob"
       }
     },
@@ -1356,6 +1358,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "text"
       }
     },
@@ -1443,7 +1446,10 @@
       "end_byte": 901,
       "containing_key": "fixtures/extraction/rust/trait_impl/source.rs:parse_job:46:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/trait_impl/source.rs:write:call:41:8",

@@ -963,6 +963,7 @@
       "confidence": "1.000",
       "receiver_type": "AsyncTests",
       "metadata": {
+        "arg_count": 2,
         "receiver": "self"
       }
     },
@@ -983,6 +984,7 @@
       "confidence": "1.000",
       "receiver_type": "QuestionModelTests",
       "metadata": {
+        "arg_count": 1,
         "receiver": "self"
       }
     },
@@ -1003,6 +1005,7 @@
       "confidence": "1.000",
       "receiver_type": "UserApiTests",
       "metadata": {
+        "arg_count": 1,
         "receiver": "self"
       }
     },
@@ -1090,7 +1093,10 @@
       "end_byte": 638,
       "containing_key": "fixtures/extraction/python/django_tests/tests.py:test_was_published_recently:26:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/python/django_tests/tests.py:unittest:variable_ref:13:17",

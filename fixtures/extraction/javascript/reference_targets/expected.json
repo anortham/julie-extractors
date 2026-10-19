@@ -1230,7 +1230,10 @@
       "end_byte": 212,
       "containing_key": "fixtures/extraction/javascript/reference_targets/source.js:forward_caller:14:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/javascript/reference_targets/source.js:method_target:call:47:11",
@@ -1246,7 +1249,10 @@
       "end_byte": 656,
       "containing_key": "fixtures/extraction/javascript/reference_targets/source.js:method_caller:46:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/javascript/reference_targets/source.js:nested:call:57:11",
@@ -1262,7 +1268,10 @@
       "end_byte": 791,
       "containing_key": "fixtures/extraction/javascript/reference_targets/source.js:arrow_caller:55:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/javascript/reference_targets/source.js:nested:call:63:11",
@@ -1278,7 +1287,10 @@
       "end_byte": 896,
       "containing_key": "fixtures/extraction/javascript/reference_targets/source.js:function_caller:59:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/javascript/reference_targets/source.js:nested_caller:call:39:9",
@@ -1294,7 +1306,10 @@
       "end_byte": 546,
       "containing_key": "fixtures/extraction/javascript/reference_targets/source.js:sibling_owner:32:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/javascript/reference_targets/source.js:nested_target:call:37:11",
@@ -1310,7 +1325,10 @@
       "end_byte": 516,
       "containing_key": "fixtures/extraction/javascript/reference_targets/source.js:nested_caller:36:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/javascript/reference_targets/source.js:privateName:call:68:9",
@@ -1326,7 +1344,10 @@
       "end_byte": 976,
       "containing_key": "fixtures/extraction/javascript/reference_targets/source.js:namedExpression:67:24",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/javascript/reference_targets/source.js:privateName:call:72:9",
@@ -1342,7 +1363,10 @@
       "end_byte": 1040,
       "containing_key": "fixtures/extraction/javascript/reference_targets/source.js:namedExpressionOutside:71:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/javascript/reference_targets/source.js:private_target:call:29:9",
@@ -1358,7 +1382,10 @@
       "end_byte": 382,
       "containing_key": "fixtures/extraction/javascript/reference_targets/source.js:owner_two:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/javascript/reference_targets/source.js:render:call:56:30",
@@ -1377,6 +1404,7 @@
       "confidence": "1.000",
       "receiver_type": "Receiver",
       "metadata": {
+        "arg_count": 0,
         "receiver": "this"
       }
     },
@@ -1396,6 +1424,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "this"
       }
     },
@@ -1413,7 +1442,10 @@
       "end_byte": 154,
       "containing_key": "fixtures/extraction/javascript/reference_targets/source.js:local_shadow:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/javascript/reference_targets/source.js:target:call:6:9",
@@ -1429,7 +1461,10 @@
       "end_byte": 86,
       "containing_key": "fixtures/extraction/javascript/reference_targets/source.js:parameter_shadow:5:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     }
   ],
   "types": [],

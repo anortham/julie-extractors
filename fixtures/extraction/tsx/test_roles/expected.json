@@ -512,7 +512,10 @@
       "end_byte": 96,
       "containing_key": "fixtures/extraction/tsx/test_roles/source.tsx:tsx roles:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/tsx/test_roles/source.tsx:callback:call:17:11",
@@ -528,7 +531,10 @@
       "end_byte": 405,
       "containing_key": "fixtures/extraction/tsx/test_roles/source.tsx:test:16:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/tsx/test_roles/source.tsx:describe:call:3:0",
@@ -544,7 +550,10 @@
       "end_byte": 62,
       "containing_key": "fixtures/extraction/tsx/test_roles/source.tsx:tsx roles:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/tsx/test_roles/source.tsx:ordinary:variable_ref:21:0",
@@ -578,6 +587,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "ordinary"
       }
     },
@@ -595,7 +605,10 @@
       "end_byte": 114,
       "containing_key": "fixtures/extraction/tsx/test_roles/source.tsx:tsx roles:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/tsx/test_roles/source.tsx:view:variable_ref:7:11",

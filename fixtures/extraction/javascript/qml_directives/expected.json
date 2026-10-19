@@ -371,7 +371,10 @@
       "end_byte": 172,
       "containing_key": "fixtures/extraction/javascript/qml_directives/source.js:clamp:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/javascript/qml_directives/source.js:QQ:variable_ref:13:15",
@@ -403,7 +406,10 @@
       "end_byte": 300,
       "containing_key": "fixtures/extraction/javascript/qml_directives/source.js:screenWidth:12:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 3
+      }
     },
     {
       "key": "fixtures/extraction/javascript/qml_directives/source.js:isFinite:call:8:7",
@@ -419,7 +425,10 @@
       "end_byte": 195,
       "containing_key": "fixtures/extraction/javascript/qml_directives/source.js:clamp:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/javascript/qml_directives/source.js:max:call:9:14",
@@ -437,6 +446,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "Math"
       }
     },
@@ -491,6 +501,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "Math"
       }
     },
@@ -606,6 +617,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "QQ"
       }
     }

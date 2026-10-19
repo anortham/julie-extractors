@@ -1298,7 +1298,10 @@
       "end_byte": 107,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/c/members/source.c:MODULE_MARKER:variable_ref:52:4",
@@ -1502,6 +1505,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "srv"
       }
     },
@@ -1610,6 +1614,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "ops",
         "receiver_qualifier": "srv"
       }

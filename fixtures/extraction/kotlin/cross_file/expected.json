@@ -230,7 +230,10 @@
       "end_byte": 363,
       "containing_key": "fixtures/extraction/kotlin/cross_file/source.kt:entry:11:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/cross_file/source.kt:localHelper:call:13:15",
@@ -246,7 +249,10 @@
       "end_byte": 392,
       "containing_key": "fixtures/extraction/kotlin/cross_file/source.kt:entry:11:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     }
   ],
   "types": [

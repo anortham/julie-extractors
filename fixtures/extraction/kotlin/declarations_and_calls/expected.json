@@ -2461,7 +2461,10 @@
       "end_byte": 953,
       "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:createRepo:50:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:ApiResult:type_usage:67:19",
@@ -2714,7 +2717,10 @@
       "end_byte": 1102,
       "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:plusCents:55:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:Money:type_usage:55:38",
@@ -3088,7 +3094,10 @@
       "end_byte": 922,
       "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:get:48:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:c:variable_ref:73:16",
@@ -3155,7 +3164,10 @@
       "end_byte": 825,
       "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:appModule:45:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:embeddedServer:call:70:17",
@@ -3171,7 +3183,10 @@
       "end_byte": 1604,
       "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:render:67:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:filter:call:69:22",
@@ -3189,6 +3204,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "items"
       }
     },
@@ -3254,7 +3270,10 @@
       "end_byte": 858,
       "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:config:46:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:loadConfig:call:46:29",
@@ -3270,7 +3289,10 @@
       "end_byte": 871,
       "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:config:46:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:lowercase:call:59:59",
@@ -3288,6 +3310,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "simpleName"
       }
     },
@@ -3321,7 +3344,10 @@
       "end_byte": 803,
       "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:appModule:45:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:orBlank:call:77:58",
@@ -3339,6 +3365,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "s"
       }
     },
@@ -3388,7 +3415,10 @@
       "end_byte": 1702,
       "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:render:67:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:result:variable_ref:76:17",
@@ -3468,7 +3498,10 @@
       "end_byte": 812,
       "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:appModule:45:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:start:call:70:39",
@@ -3484,7 +3517,10 @@
       "end_byte": 1617,
       "containing_key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:render:67:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/declarations_and_calls/source.kt:toVariableName:call:77:37",
@@ -3502,6 +3538,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "type"
       }
     },

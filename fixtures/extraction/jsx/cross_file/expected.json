@@ -292,7 +292,10 @@
       "end_byte": 378,
       "containing_key": "fixtures/extraction/jsx/cross_file/source.jsx:entry:12:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/jsx/cross_file/source.jsx:Foo:call:14:12",
@@ -324,7 +327,10 @@
       "end_byte": 411,
       "containing_key": "fixtures/extraction/jsx/cross_file/source.jsx:entry:12:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     }
   ],
   "types": [

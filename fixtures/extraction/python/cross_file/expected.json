@@ -173,7 +173,10 @@
       "end_byte": 367,
       "containing_key": "fixtures/extraction/python/cross_file/source.py:entry:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/python/cross_file/source.py:local_helper:call:15:11",
@@ -189,7 +192,10 @@
       "end_byte": 393,
       "containing_key": "fixtures/extraction/python/cross_file/source.py:entry:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     }
   ],
   "types": [],

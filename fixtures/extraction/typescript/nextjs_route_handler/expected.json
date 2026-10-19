@@ -322,7 +322,10 @@
       "end_byte": 291,
       "containing_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:DELETE:10:22",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:Response:type_usage:10:40",
@@ -391,6 +394,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "NextResponse"
       }
     },

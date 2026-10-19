@@ -848,7 +848,10 @@
       "end_byte": 186,
       "containing_key": "fixtures/extraction/go/reference_targets/source.go:methodOnlyCaller:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/go/reference_targets/source.go:shared:call:18:1",
@@ -864,7 +867,10 @@
       "end_byte": 222,
       "containing_key": "fixtures/extraction/go/reference_targets/source.go:packageCaller:17:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/go/reference_targets/source.go:shared:call:30:1",
@@ -880,7 +886,10 @@
       "end_byte": 390,
       "containing_key": "fixtures/extraction/go/reference_targets/source.go:parameterShadow:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/go/reference_targets/source.go:shared:call:35:1",
@@ -896,7 +905,10 @@
       "end_byte": 445,
       "containing_key": "fixtures/extraction/go/reference_targets/source.go:localShadow:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/go/reference_targets/source.go:shared:call:39:8",
@@ -914,6 +926,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "worker"
       }
     },

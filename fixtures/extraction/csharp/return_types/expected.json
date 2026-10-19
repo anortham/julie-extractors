@@ -285,7 +285,10 @@
       "end_byte": 51,
       "containing_key": "fixtures/extraction/csharp/return_types/source.cs:Bare:2:1",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/csharp/return_types/source.cs:Result:type_usage:2:29",

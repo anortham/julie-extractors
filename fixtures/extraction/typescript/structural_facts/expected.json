@@ -482,7 +482,10 @@
       "end_byte": 369,
       "containing_key": "fixtures/extraction/typescript/structural_facts/source.ts:router:13:13",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/typescript/structural_facts/source.ts:createRouter:call:19:25",
@@ -498,7 +501,10 @@
       "end_byte": 497,
       "containing_key": "fixtures/extraction/typescript/structural_facts/source.ts:vueRouter:19:13",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/typescript/structural_facts/source.ts:createWebHistory:call:20:13",
@@ -514,7 +520,10 @@
       "end_byte": 529,
       "containing_key": "fixtures/extraction/typescript/structural_facts/source.ts:vueRouter:19:13",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/typescript/structural_facts/source.ts:fetch:call:5:17",
@@ -530,7 +539,10 @@
       "end_byte": 190,
       "containing_key": "fixtures/extraction/typescript/structural_facts/source.ts:load:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/typescript/structural_facts/source.ts:routes:variable_ref:13:42",

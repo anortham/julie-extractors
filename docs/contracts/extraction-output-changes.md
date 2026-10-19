@@ -88,16 +88,17 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
-## 3.7.3
+## 3.8.0
 
 classification: compatible
 
 The SQLite schema remains 7, the report schema remains 3, and the extraction
 identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` adds
-`rust-type-fact-base-names-v1` because canonical output changes. Re-extract
-every existing artifact with `julie-extract scan --force`; incremental commands
-against an artifact from another binary version report `fingerprint_mismatch`
-(exit code `3`) without changing rows.
+`rust-type-fact-base-names-v1` and `call-argument-counts-v1` because canonical
+output changes. Re-extract every existing artifact with
+`julie-extract scan --force`; incremental commands against an artifact from
+another binary version report `fingerprint_mismatch` (exit code `3`) without
+changing rows.
 
 `type_facts`: the Rust extractor no longer writes rows cut out of signature
 text. Before, a parameter, local, field, or `static mut` whose type has no base
@@ -125,6 +126,232 @@ three Rust repositories differ only by these removals:
 Consumer action for code-kb: none beyond the forced rebuild. A removed value
 never equals the name of a type symbol, so no receiver-type join matched it.
 Treat a missing row as "no base type name".
+
+`identifiers`: every `call` identifier in Python, JavaScript, TypeScript, TSX,
+Java, C#, Go, Rust, Kotlin, C and C++ whose call node has an argument list gets
+two optional `metadata_json` keys at the `full` extraction level. No column,
+table or index changes; the keys merge into the same object that holds
+`receiver` and `receiver_qualifier`.
+
+- `arg_count` is an integer: the number of named children of the argument
+  list, not counting comments. A keyword or named argument counts as one
+  argument. A constructor call such as `new Foo(a)` or Python `Foo(a)` counts
+  like any other call. Each call counts its own list: in `outer(inner(1, 2), 3)`
+  `outer` has `2` and `inner` has `2`.
+- `arg_spread` is `true`, and is absent otherwise, when one argument is a
+  spread or splat: Python `*x` and `**x`, JavaScript and TypeScript `...x`, Go
+  `x...`, Kotlin `*x`, and C++ pack expansion `x...`. When it is present,
+  `arg_count` counts the spread as one argument, so the real count is unknown.
+  Java and C# have no spread syntax.
+
+A call identifier gets the keys only when it is the terminal name of its
+callee: the first call node above it must have an argument list, and only
+whitespace, comments, one optional-call `?.` (JavaScript, TypeScript and TSX:
+`f?.(x)`, `obj.m?.(x)`, `a?.b?.(1, 2)`, `f?.<T>(x)`), and one type-argument
+list may stand between the name and that list. A Python backslash line
+continuation (`f \` then a newline, LF or CRLF, then `(1)`) counts as
+whitespace. The type-argument list is `<...>` in TypeScript, TSX, Rust (written
+`::<...>`), C#, C++, Kotlin and Java, and `[...]` in Go. The check reads the
+tokens of the syntax tree between the name and the list, not the source text,
+and nests round, curly and square brackets. A string, character, regex, raw
+string or template literal and a comment is one leaf or extra of the tree and
+never opens or closes an angle, and the `>` of `->` and `=>` is another token.
+So `useState<() => void>(null, 1)`, `f<'>' | 'x'>(1)`,
+`f<() => void /* > */>(x)`, ``f<`a${`b${string}>`}>`>(x)`` and the C++ raw
+string `f<R"x(>)x">(1)` keep their counts. In C++ `<<` is a shift inside the
+list (`f<1 << 2>(1)`) and `'` after a digit is a digit separator
+(`f<1'000>(1)`). An identifier that sits inside a larger callee
+but is not its last name gets no key and never takes the count of the larger
+call. In `(0 until n step 2).toList()` `toList` has `0` and `step` and `until`
+have no key.
+
+Both keys are absent for these call identifiers:
+
+- A call whose call node holds a syntax error anywhere inside it, in the callee
+  or in the argument list. tree-sitter recovers from an error by guessing, and
+  the guessed argument list has the wrong length: the C and C++ macro call
+  `N4_OP(1, ==, 3, 4)` gave `3`, the jq line
+  `#define BINOP(name) CFUNC(f_ ## name, "_" #name, 3),` gave `64`, and the
+  JavaScript call `f(1, @@@, 3)` gave `2`. The same rule covers the Go
+  conversion form `F[int](x y)`. Calls with no error in their own node keep
+  their keys even when the file has errors elsewhere.
+- A TypeScript, TSX, C#, Kotlin, C or C++ call whose argument list is
+  angle-ambiguous. These grammars read `f(g<A, B>(1) + 2, x)` as comparisons
+  without an error node, so `f` would get `3` instead of `2`; Kotlin
+  `f(HashMap<String, Int>(16))` gave `2` instead of `1`; tree-sitter-c-sharp
+  reads `f(a < b, c > d)` as one declaration of `d`, so `f` would get `1`; and
+  C++ `f(a < b, u<A>(x))` is a template call or two comparisons depending on
+  what `a` means, which the parser cannot know. A C file has the same check,
+  because a `.h` header that the language detector classes as C can hold C++.
+  One rule decides, and it does not depend on what a name means. In a tree
+  without errors a count is wrong only when one reading puts a comma inside
+  `<...>` and the other reading puts it between arguments. In both readings
+  that comma has a `<` token before it and a `>` token after it, at the top
+  level of the argument list. Round, square and curly brackets are not
+  ambiguous, so an angle list never crosses one.
+  The rule walks the leaf tokens of the argument list in source order with a
+  tree cursor and tracks two depths. The bracket depth uses `(`, `)`, `[`, `]`,
+  `{`, `}`, the `${` of a template substitution, and the C# interpolation
+  braces. The angle depth starts at 0 at the top level of the list. A `<` token
+  adds 1. A `>` token subtracts 1, `>>` subtracts 2 and `>>>` subtracts 3, and
+  the depth never goes below 0. TypeScript and TSX also add 2 for `<<`, because
+  `f<<T>(x: T) => void>(y)` holds a type list inside a type list; in the other
+  languages `<<` is a shift and adds nothing. A token with an `=` (`<=`, `<<=`,
+  `>=`, `>>=`, `>>>=`) opens and closes nothing, because a type list cannot
+  start or end with `=`. A comma at the top level of the list is a straddle
+  when the angle depth is above 0 at that comma. A list is angle-ambiguous when
+  it has a straddle and a `>` token (`>`, `>=`, `>>`, `>>=`, `>>>`, `>>>=`)
+  comes after it at the top level. The call then has no key. `=>` and `->` are
+  other tokens and never count. A `<` or `>` inside a string, character,
+  regex, raw string, template text, JSX text or comment is part of a literal
+  leaf of the tree and never counts.
+  Why the depth is exact enough: every comma that the two readings put in
+  different places has its `<` before it and its `>` after it at the top level.
+  Between that `<` and the comma, every `>` closes a type list that opened
+  after the `<`, because a type holds `<` and `>` only as list delimiters. So
+  the closers never exceed the openers in that span, the depth is 1 or more at
+  the comma, and the clamp at 0 drops only a stray `>` that comes before the
+  `<`. A token counted as an opener when it opens nothing, such as a shift,
+  only raises the depth and gives a key less, never a wrong one. The `>` after
+  the comma meets the later `>` test, and `<=` and `>=` count in that test.
+  So an ambiguous comma is never kept. A call whose type lists all close before
+  the next comma, such as `g<A>(x), h<B>(y)`, has depth 0 at its comma and
+  keeps its count in all five languages.
+  C# has one more rule: the type after `new` in an object creation or an array
+  creation is not a list of angle tokens. In `new Dictionary<A, B>()` the
+  grammar reads the type as one node, so the argument list of the outer call
+  has no straddle and keeps its key. A `new a < b, c > (d)` that the grammar
+  reads as comparisons has no such type node and gives no key as before.
+  TypeScript `new Map<A, B>()` keeps counting its angle tokens. Against the
+  TypeScript API, `new a < b, c > + d, e` has 3 arguments, while
+  tree-sitter-typescript reads it as a two-argument binary expression, and the
+  same holds for `-` and `[d]` after the `>`. A skip would give 2 for 3.
+  These have no key: `f(a < b, c > (d))`, `f(a < b, c || d > (e))`,
+  `f(a < b, u<A>(x))`, `f(x < this.Max, y > (z))`, `f(g<A, B>(1), 2)`,
+  `f(x as Map<K, V>, y)`, `f(R"(,)", a < b, c > (d), "x")`,
+  `f(@"C:\dir\", a < b, c > (d))`, `f(a < b, c >= d)`, C#
+  `f(new Dictionary<A, B>(), a < b, c > (d))` and TypeScript
+  `f(a << b, c > d)`. These keep their key: `f(a, b)`, `f(x < y, z)`,
+  `f(a > b, c < d)` (a `>` before a `<` is no straddle), `f(g<A>(x), y)` (no
+  comma inside the angles), `f(g<A>(x), h<B>(y))` (the angles close before the
+  comma), `f(a <= b, c > d)` (`<=` opens nothing), `f((a < b), c > d)` (the `<`
+  sits inside parentheses), `f(x => x < 1, y)`, `f("<", ",", ">")`, the TSX call
+  `f(<p>a</p>, <p>b</p>)`, and the C# and C++ call `f(a << b, c > d)`. In C#,
+  `f(new Dictionary<A, B>(), x)` and
+  `f(new KeyValuePair<string, string>(a, b))` keep their key. The cost is that
+  a call with two or more type arguments inside another call's arguments, when
+  it is not a C# object creation, leaves the outer call without a key:
+  `f(g<A, B>(1), 2)`, a C# `out Dictionary<A, B> d`, TypeScript
+  `f(new Map<string, number>())`, and a generic arrow function `<T, U>(x) => x`.
+  TypeScript inside a Vue `<script lang="ts">` follows the rule. JavaScript has
+  no type arguments and is not checked, so `f(a < b, c > (d))` has `2` in a
+  JavaScript file and in an HTML `<script>` block.
+  A second check covers the same languages. The same tokens give the
+  number of non-empty comma-separated items at the top level of the list; a
+  trailing comma after the last argument does not count. When that number
+  differs from the number of argument nodes in the tree, the call has no key.
+  This catches a comma that no bracket protects and that the tree does not
+  split: the TypeScript `f(class implements B, C {})` and the Kotlin
+  `f(object : A, B { })` hold one argument and one such comma. A Kotlin
+  trailing lambda sits outside the argument list node and never enters the
+  count, so `f(a < b, c) { e }` still has `3` and `f(a < b, c > (d)) { e }`
+  has no key.
+  The walk uses a cursor and no recursion. A group that opens and closes with
+  brackets is one token and is not entered, so a call inside the arguments of
+  another call costs the outer call one token. One call with 20,000
+  comparisons scans in 0.9 to 1.3 s in each of the four languages, at most
+  0.3 s more than the 3.7.2 build.
+- A C# call whose argument list holds a preprocessor directive line (`#if`,
+  `#elif`, `#else`, `#endif`, `#define`, `#undef`, `#region`, `#endregion`,
+  `#pragma`, `#nullable`, `#line`, `#error`, `#warning`). The C# extractor
+  blanks every directive line before it parses and keeps only the first branch
+  of each `#if` group, so the tree has no directive node and the other
+  branches vanish. The call `f(a,` then `#if false`, `c,`, `#endif`, `b)` gave
+  `3` because julie kept the `c` branch, while Roslyn counts 2 with `false`.
+  The branch that the compiler takes depends on build symbols, which the index
+  does not know. The rule reads the original source: a line between the start
+  of the call and the end of its argument list whose first non-space character
+  is `#` and whose word is a directive name removes the key of that call and of
+  every call whose list contains it. The blanking reads such a line as a
+  directive even inside a verbatim or raw string or a comment, and blanking an
+  `#else` branch there can merge two arguments, so the rule counts that line
+  too and the call has no key. The Roslyn check of aspnetcore found one wrong count of this kind, in
+  `AssemblyTestLog.cs`, before this rule.
+- A C or C++ call whose argument is a macro that expands to several arguments.
+  This is a stated limit: julie does not run the preprocessor, so
+  `arg_count` counts the arguments as written. After `#define ARGS a, b`, the
+  call `q3(ARGS)` has `1`, while a compiler sees 2. A macro argument that
+  expands to nothing or to a comma list changes the real count in the same way.
+  Treat `arg_count` on a C or C++ call that passes a macro name as the count of
+  written arguments.
+- A call whose argument list has a comma with no argument before it. JavaScript,
+  TypeScript and TSX parse `f(,a)`, `f(a,, b)` and `f(,)` without an error node
+  and counted only the arguments that were present (`1`, `2` and `0`); Python
+  and Rust parse `f(,)` the same way and gave `0`. A single trailing comma
+  after an argument (`f(a, b,)`) keeps its count.
+- A Kotlin call whose trailing lambda the tree does not attach reliably: the
+  call that wraps the lambda holds a syntax error (`f(a, b)) { c }`,
+  `f(a, b) { @@@ }`), a `{` follows the call but the tree left it out (a stray
+  character inside the braces turns the whole lambda into error text), or the
+  call is a class delegation that took braces (`class A : I by f(1) { }`, where
+  the braces may be the class body).
+- A Rust macro call (`foo!(...)`) and any call inside macro arguments. This is
+  a stated limit: julie does not parse macro token trees as expressions. It is
+  common. In code-kb's own crates 4,321 of 29,430 Rust call identifiers (about
+  15%) sit inside macro arguments, and 4,227 more (about 14%) are the macro
+  invocations themselves; none of them carries a key. A missing key means
+  "unknown", never zero.
+- A JavaScript or TypeScript tagged template, `new Foo` without parentheses, a
+  C# `new Foo { ... }` without parentheses, a Java method reference, and a JSX
+  component.
+- A TypeScript non-null call (`f!(1)`, `obj.m!(x)`): julie emits no call
+  identifier for it. A non-null name that is not the callee (`a!.m(1)`) keeps
+  its count.
+- A call whose callee is the result of another call (`o->get()(1, 2)`,
+  `f(1)(2, 3)`): the outer argument list belongs to no name, so its count is not
+  recorded. The inner call keeps its own count, and the C and C++ identifier
+  that names the whole callee text (`o->get()`) carries no key.
+- An immediately invoked lambda in C++ (`[&]{ ... }()`,
+  `[](int a, int b) { ... }(1, 2)`): the identifier that names the lambda
+  carries no key. A call inside the lambda body keeps its own count.
+- A Kotlin infix call (`a infixop b`), a Kotlin callable reference (`::ref`),
+  and a name that is only part of the callee of a larger call, such as the
+  infix function in `(a infixop b).after(1, 2)` or `(p infix3 q)(1, 2)` and the
+  reference in `(::ref).invoke(1, 2, 3)`.
+- A C name inside a parenthesized callee, because the bytes between the name and
+  the argument list are `)`. In `(*callback)(1, 2)`, `(*(*cb))(1)` and
+  `((a)->b)(7, 8)` julie emits the bare names `callback`, `cb` and `b`, and
+  they carry no key. The name is the callee in meaning but not its terminal
+  name in syntax, so the count stays unknown. C++ differs: julie names the
+  call after the whole callee text, so the identifiers `(*callback)`,
+  `(*(*cb))`, `((fn_t)ptr)` and `((a)->b)` carry the count of the call that
+  follows them, and C gives `((fn_t)ptr)` its count too.
+- Java `new Foo()` and C++ `new Foo()`: julie emits no `call` identifier for
+  them, so there is no row to carry a key.
+
+Embedded code gets keys by the same rules. JavaScript and TypeScript inside Vue
+`<script>` blocks, inside Vue template expressions (`@click="save(1)"`,
+`:title="titled(1, 2)"`, `{{ fmt(x, y) }}`), inside HTML `<script>` blocks and
+inside HTML event-handler attributes (`onclick="save(1)"`) carry `arg_count`. A
+handler attribute that names a function without calling it (`@click="save"`)
+has no argument list, so its call identifier carries no key.
+
+Kotlin counts a trailing lambda as one argument, so `f(1) { ... }` has `2` and
+`f { ... }` has `1`. A lambda after a call that already ends in a lambda
+belongs to the result of that call, so `f { a } { b }` gives `f` `1` and
+`g(1) { a } { b }` gives `g` `2`. A Python call whose only argument is a generator
+expression has `1`. A Go call such as `f(g())` has `1` even when `g` returns
+several values. Go parses `F[T](x)` as a type conversion with one operand, so
+the `F` identifier has `1`, and `Wrap[string](x).Unwrap()` gives `Wrap` `1` and
+`Unwrap` `0`. A qualified C++ call of any depth, such as
+`boost::asio::ip::tcp::resolver::query(1, 2)`, keeps its count.
+
+Only identifier rows gain a key. No row is added or removed, and no other
+column or metadata key changes: across the golden fixtures, the only
+difference from the 3.7.3 build is these two keys on `call` identifiers.
+Consumer action for code-kb: read `arg_count` and `arg_spread` with `json_extract` on
+`identifiers.metadata_json`, and treat a missing key as "unknown". A reader
+built for 3.7.x ignores the keys and keeps working.
 
 ## 3.7.0
 

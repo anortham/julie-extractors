@@ -117,7 +117,10 @@
       "end_byte": 40,
       "containing_key": "fixtures/extraction/kotlin/return_types/source.kt:make:2:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/return_types/source.kt:Result:type_usage:2:12",

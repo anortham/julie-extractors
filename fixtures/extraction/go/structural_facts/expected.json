@@ -173,7 +173,10 @@
       "end_byte": 90,
       "containing_key": "fixtures/extraction/go/structural_facts/source.go:run:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/go/structural_facts/source.go:worker:call:7:4",
@@ -189,7 +192,10 @@
       "end_byte": 73,
       "containing_key": "fixtures/extraction/go/structural_facts/source.go:run:6:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     }
   ],
   "types": [],

@@ -1378,7 +1378,10 @@
       "end_byte": 763,
       "containing_key": "fixtures/extraction/tsx/language_gaps/source.tsx:onClick:41:18",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/tsx/language_gaps/source.tsx:onClick:variable_ref:42:26",
@@ -1410,7 +1413,10 @@
       "end_byte": 727,
       "containing_key": "fixtures/extraction/tsx/language_gaps/source.tsx:SaveButton:39:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     }
   ],
   "types": [

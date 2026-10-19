@@ -247,7 +247,10 @@
       "end_byte": 54,
       "containing_key": "fixtures/extraction/kotlin/test_roles/source.kt:beforeEach:2:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/test_roles/source.kt:describe:call:5:4",
@@ -263,7 +266,10 @@
       "end_byte": 76,
       "containing_key": "fixtures/extraction/kotlin/test_roles/source.kt:kotlin roles:5:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/test_roles/source.kt:it:call:6:8",
@@ -279,7 +285,10 @@
       "end_byte": 105,
       "containing_key": "fixtures/extraction/kotlin/test_roles/source.kt:extracts a Kotlin test case:6:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     }
   ],
   "types": [],

@@ -3861,7 +3861,10 @@
       "end_byte": 3050,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:testAddsLegacy:143:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:create:call:166:8",
@@ -3877,7 +3880,10 @@
       "end_byte": 3477,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:pushThenPop:164:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:first:variable_ref:7:15",
@@ -3909,7 +3915,10 @@
       "end_byte": 3484,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:pushThenPop:164:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:running:variable_ref:42:28",
@@ -3957,7 +3966,10 @@
       "end_byte": 671,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:setUp:30:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:total:call:100:22",
@@ -3975,6 +3987,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -3994,6 +4007,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4013,6 +4027,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4032,6 +4047,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4051,6 +4067,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4070,6 +4087,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4089,6 +4107,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4108,6 +4127,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4127,6 +4147,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4146,6 +4167,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4165,6 +4187,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4184,6 +4207,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4203,6 +4227,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4222,6 +4247,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4241,6 +4267,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4260,6 +4287,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4279,6 +4307,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4298,6 +4327,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4317,6 +4347,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4336,6 +4367,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4355,6 +4387,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4374,6 +4407,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4393,6 +4427,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4412,6 +4447,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     },
@@ -4431,6 +4467,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "LedgerSupport"
       }
     }

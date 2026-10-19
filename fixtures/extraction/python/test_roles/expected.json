@@ -1683,6 +1683,7 @@
       "confidence": "1.000",
       "receiver_type": "ArithmeticTest",
       "metadata": {
+        "arg_count": 2,
         "receiver": "self"
       }
     },
@@ -1703,6 +1704,7 @@
       "confidence": "1.000",
       "receiver_type": "ArithmeticTest",
       "metadata": {
+        "arg_count": 2,
         "receiver": "self"
       }
     },
@@ -1740,7 +1742,10 @@
       "end_byte": 731,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:setup_method:46:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:calculate_total:call:61:21",
@@ -1756,7 +1761,10 @@
       "end_byte": 1015,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:setUp:60:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:contextlib:variable_ref:13:1",
@@ -1874,7 +1882,10 @@
       "end_byte": 497,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_async_total:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:lru_cache:call:23:11",
@@ -1892,6 +1903,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "functools"
       }
     },
@@ -1947,7 +1959,10 @@
       "end_byte": 847,
       "containing_key": "fixtures/extraction/python/test_roles/test_source.py:setup_client:52:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/python/test_roles/test_source.py:parametrize:call:18:13",
@@ -1965,6 +1980,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "mark",
         "receiver_qualifier": "pytest"
       }
@@ -2065,6 +2081,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "unittest"
       }
     },

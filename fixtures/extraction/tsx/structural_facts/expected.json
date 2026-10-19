@@ -687,7 +687,10 @@
       "end_byte": 659,
       "containing_key": "fixtures/extraction/tsx/structural_facts/source.tsx:router:22:13",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/tsx/structural_facts/source.tsx:createRouter:call:28:25",
@@ -703,7 +706,10 @@
       "end_byte": 787,
       "containing_key": "fixtures/extraction/tsx/structural_facts/source.tsx:vueRouter:28:13",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/tsx/structural_facts/source.tsx:createWebHistory:call:29:13",
@@ -719,7 +725,10 @@
       "end_byte": 819,
       "containing_key": "fixtures/extraction/tsx/structural_facts/source.tsx:vueRouter:28:13",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/tsx/structural_facts/source.tsx:data:variable_ref:9:18",
@@ -751,7 +760,10 @@
       "end_byte": 237,
       "containing_key": "fixtures/extraction/tsx/structural_facts/source.tsx:View:5:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/tsx/structural_facts/source.tsx:routes:variable_ref:22:42",

@@ -2220,7 +2220,10 @@
       "end_byte": 834,
       "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/java/backend_http_boundaries/source.java:POST:member_access:16:63",
@@ -2946,7 +2949,10 @@
       "end_byte": 2139,
       "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:fetchOrder:64:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/java/backend_http_boundaries/source.java:body:variable_ref:21:83",
@@ -2978,7 +2984,10 @@
       "end_byte": 2119,
       "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:fetchOrder:64:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/java/backend_http_boundaries/source.java:build:call:20:94",
@@ -2994,7 +3003,10 @@
       "end_byte": 748,
       "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/java/backend_http_boundaries/source.java:build:call:21:89",
@@ -3010,7 +3022,10 @@
       "end_byte": 846,
       "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/java/backend_http_boundaries/source.java:create:call:20:53",
@@ -3028,6 +3043,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "URI"
       }
     },
@@ -3047,6 +3063,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "URI"
       }
     },
@@ -3066,6 +3083,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "WebClient"
       }
     },
@@ -3085,6 +3103,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 5,
         "receiver": "template"
       }
     },
@@ -3104,6 +3123,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "web"
       }
     },
@@ -3123,6 +3143,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 3,
         "receiver": "rest"
       }
     },
@@ -3174,6 +3195,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "HttpRequest"
       }
     },
@@ -3193,6 +3215,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "HttpRequest"
       }
     },
@@ -3274,7 +3297,10 @@
       "end_byte": 2106,
       "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:fetchOrder:64:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/java/backend_http_boundaries/source.java:shipment:variable_ref:76:55",
@@ -3322,7 +3348,10 @@
       "end_byte": 807,
       "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/java/backend_http_boundaries/source.java:uri:call:64:43",
@@ -3338,7 +3367,10 @@
       "end_byte": 2078,
       "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:fetchOrder:64:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/java/backend_http_boundaries/source.java:value:variable_ref:27:16",

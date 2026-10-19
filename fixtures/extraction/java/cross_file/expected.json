@@ -271,7 +271,10 @@
       "end_byte": 475,
       "containing_key": "fixtures/extraction/java/cross_file/Source.java:entry:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     }
   ],
   "types": [

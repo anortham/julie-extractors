@@ -1422,7 +1422,10 @@
       "end_byte": 1226,
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:use_facts:67:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:Item:type_usage:65:13",
@@ -1582,7 +1585,10 @@
       "end_byte": 1176,
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:use_facts:67:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:Vec:type_usage:65:9",
@@ -1649,6 +1655,7 @@
       "confidence": "1.000",
       "receiver_type": "Worker",
       "metadata": {
+        "arg_count": 1,
         "receiver": "this"
       }
     },
@@ -1666,7 +1673,10 @@
       "end_byte": 368,
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:run:15:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:helper_value:call:44:11",
@@ -1682,7 +1692,10 @@
       "end_byte": 721,
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:run_worker:43:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:i:variable_ref:50:24",
@@ -1749,6 +1762,7 @@
       "confidence": "1.000",
       "receiver_type": "Worker",
       "metadata": {
+        "arg_count": 0,
         "receiver": "this"
       }
     },
@@ -1767,7 +1781,10 @@
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:Worker::ping:32:0",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Worker"
+      "receiver_type": "Worker",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:id:variable_ref:12:34",
@@ -1831,7 +1848,10 @@
       "end_byte": 304,
       "containing_key": "fixtures/extraction/cpp/basic/source.cpp:run:15:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/cpp/basic/source.cpp:make_unique:call:68:21",
@@ -1849,6 +1869,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "std"
       }
     },

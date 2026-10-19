@@ -961,7 +961,10 @@
       "end_byte": 320,
       "containing_key": "fixtures/extraction/c/basic/source.c:worker_run:14:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/c/basic/source.c:i:variable_ref:27:24",
@@ -1108,7 +1111,10 @@
       "end_byte": 287,
       "containing_key": "fixtures/extraction/c/basic/source.c:worker_run:14:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/c/basic/source.c:x:variable_ref:41:23",

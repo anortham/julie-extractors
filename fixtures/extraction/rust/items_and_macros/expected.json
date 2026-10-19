@@ -2148,6 +2148,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "self"
       }
     },
@@ -2232,7 +2233,10 @@
       "end_byte": 812,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:outer:35:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:lazy_static:call:69:0",
@@ -2266,6 +2270,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "REGISTRY"
       }
     },
@@ -2337,7 +2342,10 @@
       "end_byte": 1766,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:guarded:93:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:side:member_access:54:13",
@@ -2503,7 +2511,10 @@
       "end_byte": 1759,
       "containing_key": "fixtures/extraction/rust/items_and_macros/source.rs:guarded:93:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/rust/items_and_macros/source.rs:v:member_access:43:23",

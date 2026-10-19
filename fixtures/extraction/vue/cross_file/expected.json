@@ -240,7 +240,10 @@
       "end_byte": 465,
       "containing_key": "fixtures/extraction/vue/cross_file/source.vue:Source:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/vue/cross_file/source.vue:foo:call:14:4",
@@ -256,7 +259,10 @@
       "end_byte": 393,
       "containing_key": "fixtures/extraction/vue/cross_file/source.vue:entry:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/vue/cross_file/source.vue:local_helper:call:15:11",
@@ -272,7 +278,10 @@
       "end_byte": 420,
       "containing_key": "fixtures/extraction/vue/cross_file/source.vue:entry:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     }
   ],
   "types": [],

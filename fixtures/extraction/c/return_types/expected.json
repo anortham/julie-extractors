@@ -294,7 +294,10 @@
       "end_byte": 123,
       "containing_key": "fixtures/extraction/c/return_types/source.c:use:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/c/return_types/source.c:x:variable_ref:2:37",

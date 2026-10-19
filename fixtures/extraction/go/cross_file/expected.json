@@ -186,6 +186,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "other"
       }
     },
@@ -203,7 +204,10 @@
       "end_byte": 394,
       "containing_key": "fixtures/extraction/go/cross_file/source.go:entry:14:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/go/cross_file/source.go:other:variable_ref:15:1",

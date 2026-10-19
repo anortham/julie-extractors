@@ -1419,6 +1419,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "services"
       }
     },
@@ -1468,7 +1469,10 @@
       "end_byte": 630,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Empty:member_access:24:40",
@@ -1551,7 +1555,10 @@
       "end_byte": 819,
       "containing_key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Save:19:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/csharp/base_lists_and_calls/source.cs:Flush:call:48:21",
@@ -1569,6 +1576,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "Inner",
         "receiver_qualifier": "other"
       }
@@ -1688,6 +1696,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "Changed"
       }
     },
@@ -1726,6 +1735,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "logger"
       }
     },
@@ -1857,6 +1867,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "other"
       }
     },
@@ -1877,6 +1888,7 @@
       "confidence": "1.000",
       "receiver_type": "RepositoryBase",
       "metadata": {
+        "arg_count": 1,
         "receiver": "base"
       }
     },

@@ -627,7 +627,10 @@
       "end_byte": 178,
       "containing_key": "fixtures/extraction/jsx/basic/source.jsx:handleClick:9:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/jsx/basic/source.jsx:format:call:11:15",
@@ -643,7 +646,10 @@
       "end_byte": 217,
       "containing_key": "fixtures/extraction/jsx/basic/source.jsx:handleClick:9:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/jsx/basic/source.jsx:format:call:16:13",
@@ -659,7 +665,10 @@
       "end_byte": 322,
       "containing_key": "fixtures/extraction/jsx/basic/source.jsx:Badge:8:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/jsx/basic/source.jsx:handleClick:variable_ref:15:43",
@@ -856,6 +865,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "value"
       }
     },

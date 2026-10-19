@@ -494,7 +494,10 @@
       "end_byte": 118,
       "containing_key": "fixtures/extraction/javascript/basic/source.js:run:7:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/javascript/basic/source.js:i:variable_ref:23:24",

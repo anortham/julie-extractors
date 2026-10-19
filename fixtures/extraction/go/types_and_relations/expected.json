@@ -1542,7 +1542,10 @@
       "end_byte": 1695,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:K:type_usage:41:7",
@@ -1630,6 +1633,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "errors"
       }
     },
@@ -1647,7 +1651,10 @@
       "end_byte": 1251,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:Radius:member_access:77:11",
@@ -1896,7 +1903,10 @@
       "end_byte": 1716,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:fresh:variable_ref:70:5",
@@ -2008,7 +2018,10 @@
       "end_byte": 1734,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:len:call:72:10",
@@ -2024,7 +2037,10 @@
       "end_byte": 1341,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:make:call:73:10",
@@ -2040,7 +2056,10 @@
       "end_byte": 1363,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 3
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:names:variable_ref:74:5",
@@ -2072,7 +2091,10 @@
       "end_byte": 1299,
       "containing_key": "fixtures/extraction/go/types_and_relations/source.go:Shapes:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/go/types_and_relations/source.go:position:variable_ref:76:6",

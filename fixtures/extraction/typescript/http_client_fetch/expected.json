@@ -406,7 +406,10 @@
       "end_byte": 306,
       "containing_key": "fixtures/extraction/typescript/http_client_fetch/source.ts:dynamicFetch:9:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/typescript/http_client_fetch/source.ts:fetch:call:2:9",
@@ -422,7 +425,10 @@
       "end_byte": 69,
       "containing_key": "fixtures/extraction/typescript/http_client_fetch/source.ts:loadUsers:1:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/typescript/http_client_fetch/source.ts:fetch:call:6:9",
@@ -438,7 +444,10 @@
       "end_byte": 175,
       "containing_key": "fixtures/extraction/typescript/http_client_fetch/source.ts:createUser:5:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/typescript/http_client_fetch/source.ts:payload:variable_ref:6:53",

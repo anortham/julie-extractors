@@ -149,7 +149,10 @@
       "end_byte": 77,
       "containing_key": "fixtures/extraction/typescript/reference_targets/source.ts:namedExpression:1:24",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/typescript/reference_targets/source.ts:privateName:call:6:9",
@@ -165,7 +168,10 @@
       "end_byte": 149,
       "containing_key": "fixtures/extraction/typescript/reference_targets/source.ts:namedExpressionOutside:5:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     }
   ],
   "types": [

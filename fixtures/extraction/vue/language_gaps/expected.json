@@ -2399,7 +2399,10 @@
       "end_byte": 858,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:GapPanel:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:fetchUser:call:35:25",
@@ -2415,7 +2418,10 @@
       "end_byte": 1099,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:load:34:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:first:member_access:32:42",
@@ -2450,7 +2456,10 @@
       "end_byte": 207,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:GapPanel:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:formatRow:call:58:25",
@@ -2466,7 +2475,10 @@
       "end_byte": 1752,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:save:58:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:id:member_access:22:10",
@@ -2745,6 +2757,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "this"
       }
     },
@@ -2797,7 +2810,10 @@
       "end_byte": 1485,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:start:50:15",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:push:call:25:74",
@@ -2815,6 +2831,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "rows",
         "receiver_qualifier": "this"
       }
@@ -2916,7 +2933,10 @@
       "end_byte": 337,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:GapPanel:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:select:call:57:20",
@@ -2932,7 +2952,10 @@
       "end_byte": 1705,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:reload:57:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:select:call:7:60",
@@ -2948,7 +2971,10 @@
       "end_byte": 185,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:GapPanel:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:track:call:56:33",
@@ -2966,6 +2992,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "api"
       }
     },
@@ -2983,7 +3010,10 @@
       "end_byte": 1562,
       "containing_key": "fixtures/extraction/vue/language_gaps/source.vue:GapPanel:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/vue/language_gaps/source.vue:user:variable_ref:36:10",

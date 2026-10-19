@@ -121,7 +121,10 @@
       "end_byte": 33,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts:event:variable_ref:2:30",
@@ -153,7 +156,10 @@
       "end_byte": 76,
       "containing_key": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts:id:2:10",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts:id:variable_ref:3:13",

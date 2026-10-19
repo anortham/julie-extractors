@@ -1148,6 +1148,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "test"
       }
     },
@@ -1167,6 +1168,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "test"
       }
     },
@@ -1186,6 +1188,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "test"
       }
     },
@@ -1205,6 +1208,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "test"
       }
     },
@@ -1240,6 +1244,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "runner"
       }
     },
@@ -1259,6 +1264,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "test"
       }
     },
@@ -1314,7 +1320,10 @@
       "end_byte": 408,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:loads the cart:14:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:goto:call:15:15",
@@ -1332,6 +1341,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "page"
       }
     },
@@ -1351,6 +1361,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "page"
       }
     },
@@ -1370,6 +1381,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "test"
       }
     },
@@ -1437,6 +1449,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "describe",
         "receiver_qualifier": "test"
       }
@@ -1455,7 +1468,10 @@
       "end_byte": 1082,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:describe:45:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:runner:variable_ref:50:0",
@@ -1489,6 +1505,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "describe",
         "receiver_qualifier": "test"
       }
@@ -1509,6 +1526,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "test"
       }
     },
@@ -1528,6 +1546,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "test"
       }
     },
@@ -1545,7 +1564,10 @@
       "end_byte": 311,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:test:call:22:2",
@@ -1561,7 +1583,10 @@
       "end_byte": 564,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout:8:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:test:call:30:2",
@@ -1577,7 +1602,10 @@
       "end_byte": 779,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout in order:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:test:call:34:2",
@@ -1593,7 +1621,10 @@
       "end_byte": 867,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:checkout at once:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/typescript/playwright_roles/source.ts:test:variable_ref:10:2",
@@ -1771,6 +1802,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "page"
       }
     },
@@ -1788,7 +1820,10 @@
       "end_byte": 433,
       "containing_key": "fixtures/extraction/typescript/playwright_roles/source.ts:loads the cart:14:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     }
   ],
   "types": [

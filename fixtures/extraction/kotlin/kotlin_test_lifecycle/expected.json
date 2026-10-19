@@ -628,7 +628,10 @@
       "end_byte": 291,
       "containing_key": "fixtures/extraction/kotlin/kotlin_test_lifecycle/source.kt:postsAnEntry:15:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     }
   ],
   "types": [

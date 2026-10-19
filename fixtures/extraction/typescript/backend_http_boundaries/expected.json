@@ -570,7 +570,10 @@
       "end_byte": 582,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:koaAndHapiRoutes:19:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:Router:call:6:25",
@@ -588,6 +591,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "express"
       }
     },
@@ -672,7 +676,10 @@
       "end_byte": 117,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:express:variable_ref:6:17",
@@ -704,7 +711,10 @@
       "end_byte": 342,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:get:call:10:34",
@@ -720,7 +730,10 @@
       "end_byte": 280,
       "containing_key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:routes:4:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/typescript/backend_http_boundaries/source.ts:get:call:9:9",
@@ -738,6 +751,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "router"
       }
     },
@@ -789,6 +803,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "koa"
       }
     },
@@ -840,6 +855,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "app"
       }
     },
@@ -859,6 +875,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "server"
       }
     },
@@ -878,6 +895,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "hapi"
       }
     },
@@ -929,6 +947,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "res"
       }
     },
@@ -948,6 +967,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "res"
       }
     },
@@ -967,6 +987,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "Hapi"
       }
     },
@@ -1002,6 +1023,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "app"
       }
     }

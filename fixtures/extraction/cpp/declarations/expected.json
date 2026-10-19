@@ -2302,7 +2302,10 @@
       "end_byte": 718,
       "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:Repo::~Repo:33:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/cpp/declarations/source.cpp:flush:call:54:11",
@@ -2320,6 +2323,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "writer"
       }
     },
@@ -2497,7 +2501,10 @@
       "end_byte": 1300,
       "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:save:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/cpp/declarations/source.cpp:string:type_usage:27:15",

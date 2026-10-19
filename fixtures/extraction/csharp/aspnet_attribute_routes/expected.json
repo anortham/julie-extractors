@@ -1154,7 +1154,10 @@
       "end_byte": 212,
       "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Get:9:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ok:call:13:37",
@@ -1170,7 +1173,10 @@
       "end_byte": 271,
       "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Create:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ok:call:16:35",
@@ -1186,7 +1192,10 @@
       "end_byte": 339,
       "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:List:15:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ok:call:19:37",
@@ -1202,7 +1211,10 @@
       "end_byte": 405,
       "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Legacy:18:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ok:call:23:35",
@@ -1218,7 +1230,10 @@
       "end_byte": 552,
       "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:22:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ok:call:26:39",
@@ -1234,7 +1249,10 @@
       "end_byte": 636,
       "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Computed:25:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ok:call:33:36",
@@ -1250,7 +1268,10 @@
       "end_byte": 813,
       "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Index:33:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ok:call:36:35",
@@ -1266,7 +1287,10 @@
       "end_byte": 877,
       "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:35:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:member_access:22:20",

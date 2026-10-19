@@ -1294,6 +1294,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "source"
       }
     },
@@ -1311,7 +1312,10 @@
       "end_byte": 1087,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:Message:42:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:ArgumentNullException:type_usage:45:42",
@@ -1423,7 +1427,10 @@
       "end_byte": 314,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:fixtures/extraction/csharp/csharp14/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:FileAppCustomer:type_usage:14:19",
@@ -1487,7 +1494,10 @@
       "end_byte": 351,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:fixtures/extraction/csharp/csharp14/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:IEnumerable:type_usage:27:23",
@@ -1567,7 +1577,10 @@
       "end_byte": 464,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:fixtures/extraction/csharp/csharp14/source.cs:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:MutableCounter:type_usage:18:18",
@@ -1599,7 +1612,10 @@
       "end_byte": 520,
       "containing_key": "fixtures/extraction/csharp/csharp14/source.cs:GetCurrentOrder:21:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/csharp/csharp14/source.cs:Order:member_access:15:10",
@@ -1764,6 +1780,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "int"
       }
     },
@@ -1815,6 +1832,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "Enumerable"
       }
     },
@@ -1834,6 +1852,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "Console"
       }
     },

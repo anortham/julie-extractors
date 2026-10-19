@@ -198,7 +198,10 @@
       "end_byte": 450,
       "containing_key": "fixtures/extraction/c/cross_file/source.c:entry:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/c/cross_file/source.c:other_func:call:14:4",
@@ -214,7 +217,10 @@
       "end_byte": 423,
       "containing_key": "fixtures/extraction/c/cross_file/source.c:entry:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     }
   ],
   "types": [

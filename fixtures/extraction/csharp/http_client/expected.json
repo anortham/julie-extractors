@@ -296,6 +296,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "client"
       }
     },
@@ -377,7 +378,10 @@
       "end_byte": 310,
       "containing_key": "fixtures/extraction/csharp/http_client/source.cs:Load:6:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/csharp/http_client/source.cs:HttpRequestMessage:type_usage:10:22",
@@ -478,6 +482,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "client"
       }
     },

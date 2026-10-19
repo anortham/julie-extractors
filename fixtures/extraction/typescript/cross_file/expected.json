@@ -253,7 +253,10 @@
       "end_byte": 416,
       "containing_key": "fixtures/extraction/typescript/cross_file/source.ts:entry:12:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/typescript/cross_file/source.ts:local_helper:call:14:11",
@@ -269,7 +272,10 @@
       "end_byte": 443,
       "containing_key": "fixtures/extraction/typescript/cross_file/source.ts:entry:12:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     }
   ],
   "types": [

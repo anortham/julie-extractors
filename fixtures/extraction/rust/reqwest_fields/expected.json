@@ -1747,6 +1747,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "client",
         "receiver_qualifier": "self"
       }
@@ -1767,6 +1768,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "client",
         "receiver_qualifier": "self"
       }
@@ -1787,6 +1789,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "client",
         "receiver_qualifier": "self"
       }
@@ -1807,6 +1810,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "client",
         "receiver_qualifier": "self"
       }
@@ -1827,6 +1831,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "client",
         "receiver_qualifier": "other"
       }
@@ -1847,6 +1852,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "client",
         "receiver_qualifier": "self"
       }
@@ -1867,6 +1873,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "client",
         "receiver_qualifier": "self"
       }
@@ -1903,6 +1910,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "bare_client",
         "receiver_qualifier": "self"
       }

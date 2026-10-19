@@ -92,7 +92,10 @@
       "end_byte": 72,
       "containing_key": "fixtures/extraction/typescript/nextjs_file_route/app/settings/page.ts:SettingsPage:1:15",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/typescript/nextjs_file_route/app/settings/page.ts:Response:type_usage:1:40",

@@ -1740,7 +1740,10 @@
       "end_byte": 230,
       "containing_key": "fixtures/extraction/csharp/basic/source.cs:Run:17:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/csharp/basic/source.cs:IReadOnlyList:type_usage:104:11",
@@ -1838,6 +1841,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "Math"
       }
     },
@@ -1873,6 +1877,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "GraphTraversal"
       }
     },

@@ -199,7 +199,10 @@
       "end_byte": 453,
       "containing_key": "fixtures/extraction/rust/cross_file/source.rs:entry:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/rust/cross_file/source.rs:Function:type_usage:7:25",
@@ -231,7 +234,10 @@
       "end_byte": 473,
       "containing_key": "fixtures/extraction/rust/cross_file/source.rs:entry:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/rust/cross_file/source.rs:other_module:type_usage:7:11",

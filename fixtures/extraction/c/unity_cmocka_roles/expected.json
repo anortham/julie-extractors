@@ -944,7 +944,10 @@
       "end_byte": 198,
       "containing_key": "fixtures/extraction/c/unity_cmocka_roles/tests/test_math.c:test_add_works:5:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/c/unity_cmocka_roles/tests/test_math.c:add:call:5:49",
@@ -960,7 +963,10 @@
       "end_byte": 205,
       "containing_key": "fixtures/extraction/c/unity_cmocka_roles/tests/test_math.c:test_add_works:5:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/c/unity_cmocka_roles/tests/test_math.c:cleanup_math:call:2:22",
@@ -976,7 +982,10 @@
       "end_byte": 68,
       "containing_key": "fixtures/extraction/c/unity_cmocka_roles/tests/test_math.c:tearDown:2:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/c/unity_cmocka_roles/tests/test_math.c:cmocka_run_group_tests:call:18:11",
@@ -992,7 +1001,10 @@
       "end_byte": 691,
       "containing_key": "fixtures/extraction/c/unity_cmocka_roles/tests/test_math.c:main:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 3
+      }
     },
     {
       "key": "fixtures/extraction/c/unity_cmocka_roles/tests/test_math.c:cmocka_unit_test:call:15:8",
@@ -1008,7 +1020,10 @@
       "end_byte": 551,
       "containing_key": "fixtures/extraction/c/unity_cmocka_roles/tests/test_math.c:main:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/c/unity_cmocka_roles/tests/test_math.c:cmocka_unit_test_setup_teardown:call:16:8",
@@ -1024,7 +1039,10 @@
       "end_byte": 621,
       "containing_key": "fixtures/extraction/c/unity_cmocka_roles/tests/test_math.c:main:13:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 3
+      }
     },
     {
       "key": "fixtures/extraction/c/unity_cmocka_roles/tests/test_math.c:each_setup:variable_ref:16:50",
@@ -1104,7 +1122,10 @@
       "end_byte": 28,
       "containing_key": "fixtures/extraction/c/unity_cmocka_roles/tests/test_math.c:setUp:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/c/unity_cmocka_roles/tests/test_math.c:list_pop:variable_ref:16:40",

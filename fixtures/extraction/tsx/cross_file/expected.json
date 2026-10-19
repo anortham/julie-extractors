@@ -286,7 +286,10 @@
       "end_byte": 432,
       "containing_key": "fixtures/extraction/tsx/cross_file/source.tsx:entry:12:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/tsx/cross_file/source.tsx:Foo:call:14:12",
@@ -318,7 +321,10 @@
       "end_byte": 465,
       "containing_key": "fixtures/extraction/tsx/cross_file/source.tsx:entry:12:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     }
   ],
   "types": [

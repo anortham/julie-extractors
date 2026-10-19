@@ -1366,7 +1366,10 @@
       "end_byte": 1272,
       "containing_key": "fixtures/extraction/rust/basic/source.rs:count_doubled:52:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/rust/basic/source.rs:count:variable_ref:60:24",
@@ -1398,7 +1401,10 @@
       "end_byte": 1260,
       "containing_key": "fixtures/extraction/rust/basic/source.rs:count_doubled:52:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/basic/source.rs:enabled:variable_ref:59:11",
@@ -1446,7 +1452,10 @@
       "end_byte": 875,
       "containing_key": "fixtures/extraction/rust/basic/source.rs:fetch_status:39:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/basic/source.rs:helper:call:15:12",
@@ -1462,7 +1471,10 @@
       "end_byte": 315,
       "containing_key": "fixtures/extraction/rust/basic/source.rs:run:11:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/basic/source.rs:helper:call:53:19",
@@ -1614,6 +1626,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "ids"
       }
     },
@@ -1631,7 +1644,10 @@
       "end_byte": 1248,
       "containing_key": "fixtures/extraction/rust/basic/source.rs:count_doubled:52:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/basic/source.rs:mark:call:12:17",
@@ -1650,6 +1666,7 @@
       "confidence": "1.000",
       "receiver_type": "Worker",
       "metadata": {
+        "arg_count": 0,
         "receiver": "self"
       }
     },
@@ -1670,6 +1687,7 @@
       "confidence": "1.000",
       "receiver_type": "Worker",
       "metadata": {
+        "arg_count": 0,
         "receiver": "Self"
       }
     },
@@ -1689,6 +1707,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "HashMap"
       }
     },
@@ -1706,7 +1725,10 @@
       "end_byte": 453,
       "containing_key": "fixtures/extraction/rust/basic/source.rs:record_run:20:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/rust/basic/source.rs:record_run:call:14:12",
@@ -1722,7 +1744,10 @@
       "end_byte": 286,
       "containing_key": "fixtures/extraction/rust/basic/source.rs:run:11:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/rust/basic/source.rs:sync:type_usage:2:9",

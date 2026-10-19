@@ -294,7 +294,10 @@
       "end_byte": 231,
       "containing_key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:dynamicFetch:9:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:fetch:call:2:9",
@@ -310,7 +313,10 @@
       "end_byte": 50,
       "containing_key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:loadUsers:1:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:fetch:call:6:9",
@@ -326,7 +332,10 @@
       "end_byte": 127,
       "containing_key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:createUser:5:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/jsx/http_client_fetch/source.jsx:payload:variable_ref:6:53",

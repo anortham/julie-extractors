@@ -354,7 +354,10 @@
       "end_byte": 68,
       "containing_key": "fixtures/extraction/javascript/nestjs_routes/source.js:HealthController:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/javascript/nestjs_routes/source.js:Get:call:10:3",
@@ -370,7 +373,10 @@
       "end_byte": 156,
       "containing_key": "fixtures/extraction/javascript/nestjs_routes/source.js:readiness:10:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/javascript/nestjs_routes/source.js:Get:call:21:3",
@@ -386,7 +392,10 @@
       "end_byte": 324,
       "containing_key": "fixtures/extraction/javascript/nestjs_routes/source.js:dynamic:21:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/javascript/nestjs_routes/source.js:Get:call:5:3",
@@ -402,7 +411,10 @@
       "end_byte": 110,
       "containing_key": "fixtures/extraction/javascript/nestjs_routes/source.js:liveness:5:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/javascript/nestjs_routes/source.js:Post:call:15:3",
@@ -418,7 +430,10 @@
       "end_byte": 212,
       "containing_key": "fixtures/extraction/javascript/nestjs_routes/source.js:reset:15:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/javascript/nestjs_routes/source.js:routePath:variable_ref:21:7",

@@ -4167,7 +4167,10 @@
       "end_byte": 3047,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:constructor:165:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:Input:call:161:3",
@@ -4183,7 +4186,10 @@
       "end_byte": 2942,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:label:161:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:Logger:type_usage:165:47",
@@ -4279,7 +4285,10 @@
       "end_byte": 2360,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:parse:115:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:ParameterDecorator:type_usage:156:19",
@@ -4361,6 +4370,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "express"
       }
     },
@@ -4380,6 +4390,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "express"
       }
     },
@@ -4461,7 +4472,10 @@
       "end_byte": 1442,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:run:76:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:api:variable_ref:79:2",
@@ -4512,6 +4526,7 @@
       "confidence": "1.000",
       "receiver_type": "Shape",
       "metadata": {
+        "arg_count": 0,
         "receiver": "this"
       }
     },
@@ -4545,7 +4560,10 @@
       "end_byte": 1906,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:double:call:82:9",
@@ -4561,7 +4579,10 @@
       "end_byte": 1541,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:run:76:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:express:call:90:19",
@@ -4577,7 +4598,10 @@
       "end_byte": 1649,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:app:90:13",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:express:variable_ref:93:23",
@@ -4625,7 +4649,10 @@
       "end_byte": 1974,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:server:102:13",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:fetchUser:call:79:6",
@@ -4643,6 +4670,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "api"
       }
     },
@@ -4662,6 +4690,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "super"
       }
     },
@@ -4681,6 +4710,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "svc"
       }
     },
@@ -4701,6 +4731,7 @@
       "confidence": "1.000",
       "receiver_type": "UserRepo",
       "metadata": {
+        "arg_count": 1,
         "receiver": "this"
       }
     },
@@ -4720,6 +4751,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "server"
       }
     },
@@ -4739,6 +4771,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "app"
       }
     },
@@ -4758,6 +4791,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "routes"
       }
     },
@@ -4775,7 +4809,10 @@
       "end_byte": 1868,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:helper:variable_ref:180:9",
@@ -4857,6 +4894,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "audit"
       }
     },
@@ -4892,6 +4930,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "res"
       }
     },
@@ -4911,6 +4950,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "res"
       }
     },
@@ -4930,6 +4970,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "res"
       }
     },
@@ -4966,7 +5007,10 @@
       "end_byte": 3216,
       "containing_key": "fixtures/extraction/typescript/language_gaps/source.ts:load:176:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/typescript/language_gaps/source.ts:legacy:variable_ref:162:12",
@@ -5000,6 +5044,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "repo"
       }
     },
@@ -5185,6 +5230,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "items"
       }
     },
@@ -5220,6 +5266,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "res"
       }
     },
@@ -5272,6 +5319,7 @@
       "confidence": "1.000",
       "receiver_type": "Form",
       "metadata": {
+        "arg_count": 0,
         "receiver": "this"
       }
     },
@@ -5307,6 +5355,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "legacy"
       }
     },
@@ -5327,6 +5376,7 @@
       "confidence": "1.000",
       "receiver_type": "UserRepo",
       "metadata": {
+        "arg_count": 0,
         "receiver": "this"
       }
     },
@@ -5378,6 +5428,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "logger",
         "receiver_qualifier": "this"
       }
@@ -5398,6 +5449,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "log"
       }
     }

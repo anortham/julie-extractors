@@ -804,7 +804,10 @@
       "end_byte": 156,
       "containing_key": "fixtures/extraction/typescript/test_roles/source.ts:typescript roles:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/typescript/test_roles/source.ts:callback:call:32:4",
@@ -820,7 +823,10 @@
       "end_byte": 642,
       "containing_key": "fixtures/extraction/typescript/test_roles/source.ts:test:31:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/typescript/test_roles/source.ts:describe:call:4:0",
@@ -836,7 +842,10 @@
       "end_byte": 115,
       "containing_key": "fixtures/extraction/typescript/test_roles/source.ts:typescript roles:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/typescript/test_roles/source.ts:input:variable_ref:20:11",
@@ -868,7 +877,10 @@
       "end_byte": 172,
       "containing_key": "fixtures/extraction/typescript/test_roles/source.ts:typescript roles:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/typescript/test_roles/source.ts:only:member_access:14:8",
@@ -919,7 +931,10 @@
       "end_byte": 339,
       "containing_key": "fixtures/extraction/typescript/test_roles/source.ts:CartSuite:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/typescript/test_roles/source.ts:params:call:18:3",
@@ -935,7 +950,10 @@
       "end_byte": 366,
       "containing_key": "fixtures/extraction/typescript/test_roles/source.ts:CartSuite:9:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/typescript/test_roles/source.ts:quantity:member_access:20:17",
@@ -988,6 +1006,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "ordinary"
       }
     },

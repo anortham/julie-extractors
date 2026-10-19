@@ -808,7 +808,10 @@
       "end_byte": 630,
       "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_fix:29:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:BOOST_CHECK_EQUAL:call:28:33",
@@ -824,7 +827,10 @@
       "end_byte": 556,
       "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_add:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:CHECK:call:21:26",
@@ -840,7 +846,10 @@
       "end_byte": 392,
       "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:zero:21:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:CHECK:call:25:45",
@@ -856,7 +865,10 @@
       "end_byte": 461,
       "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:fixture case:25:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:Fixture:type_usage:29:34",
@@ -888,7 +900,10 @@
       "end_byte": 252,
       "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:tst_QString::append:14:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/cpp/test_frameworks/source.cpp:QObject:type_usage:1:27",
@@ -920,7 +935,10 @@
       "end_byte": 560,
       "containing_key": "fixtures/extraction/cpp/test_frameworks/source.cpp:test_add:28:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     }
   ],
   "types": [

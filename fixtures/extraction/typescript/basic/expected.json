@@ -604,7 +604,10 @@
       "end_byte": 55,
       "containing_key": "fixtures/extraction/typescript/basic/source.ts:Worker:6:7",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/typescript/basic/source.ts:Job:type_usage:6:31",
@@ -668,7 +671,10 @@
       "end_byte": 176,
       "containing_key": "fixtures/extraction/typescript/basic/source.ts:run:9:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/typescript/basic/source.ts:i:variable_ref:26:24",

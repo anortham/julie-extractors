@@ -1276,7 +1276,10 @@
       "end_byte": 648,
       "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:afterTest:30:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:beforeEach:call:8:4",
@@ -1292,7 +1295,10 @@
       "end_byte": 255,
       "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:beforeEach:8:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:beforeTest:call:18:4",
@@ -1308,7 +1314,10 @@
       "end_byte": 424,
       "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:beforeTest:18:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:clearFixtures:call:31:8",
@@ -1324,7 +1333,10 @@
       "end_byte": 672,
       "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:afterTest:30:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:funSpec:call:7:26",
@@ -1340,7 +1352,10 @@
       "end_byte": 238,
       "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:sharedCases:7:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:length:member_access:23:16",
@@ -1420,7 +1435,10 @@
       "end_byte": 447,
       "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:beforeTest:18:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:seedFixtures:call:9:8",
@@ -1436,7 +1454,10 @@
       "end_byte": 278,
       "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:beforeEach:8:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:should:call:36:20",
@@ -1564,7 +1585,10 @@
       "end_byte": 606,
       "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:startsWith matches a prefix:26:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:test:call:12:4",
@@ -1580,7 +1604,10 @@
       "end_byte": 296,
       "containing_key": "fixtures/extraction/kotlin/kotest_string_spec/source.kt:shares a case with every including spec:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     }
   ],
   "types": [

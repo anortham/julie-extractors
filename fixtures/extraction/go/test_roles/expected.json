@@ -3092,7 +3092,10 @@
       "end_byte": 1437,
       "containing_key": "fixtures/extraction/go/test_roles/source_test.go:addition:74:1",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/go/test_roles/source_test.go:B:type_usage:19:30",
@@ -3124,7 +3127,10 @@
       "end_byte": 1414,
       "containing_key": "fixtures/extraction/go/test_roles/source_test.go:addition:74:1",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/go/test_roles/source_test.go:CalculatorSuite:type_usage:38:9",
@@ -3268,7 +3274,10 @@
       "end_byte": 1380,
       "containing_key": "fixtures/extraction/go/test_roles/source_test.go:calculator:73:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/go/test_roles/source_test.go:Describe:call:73:8",
@@ -3284,7 +3293,10 @@
       "end_byte": 1348,
       "containing_key": null,
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/go/test_roles/source_test.go:F:type_usage:21:25",
@@ -3380,7 +3392,10 @@
       "end_byte": 1453,
       "containing_key": "fixtures/extraction/go/test_roles/source_test.go:addition:74:1",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/go/test_roles/source_test.go:It:call:82:1",
@@ -3396,7 +3411,10 @@
       "end_byte": 1524,
       "containing_key": "fixtures/extraction/go/test_roles/source_test.go:orphanGinkgoHelper:81:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/go/test_roles/source_test.go:M:type_usage:13:25",
@@ -3446,6 +3464,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "receiver"
       }
     },
@@ -3465,6 +3484,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
         "receiver": "m"
       }
     },
@@ -3484,6 +3504,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "testHandle"
       }
     },
@@ -3503,6 +3524,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "child"
       }
     },
@@ -3522,6 +3544,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "testHandle"
       }
     },

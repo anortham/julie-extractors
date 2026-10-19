@@ -2457,7 +2457,10 @@
       "end_byte": 723,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:create:29:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:Cache:type_usage:29:22",
@@ -2617,7 +2620,10 @@
       "end_byte": 921,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:combine:41:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:Vec:type_usage:37:29",
@@ -2732,6 +2738,7 @@
       "confidence": "1.000",
       "receiver_type": "Builder",
       "metadata": {
+        "arg_count": 1,
         "receiver": "this"
       }
     },
@@ -2751,6 +2758,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "r"
       }
     },
@@ -2768,7 +2776,10 @@
       "end_byte": 475,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:get:19:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:b:variable_ref:58:49",
@@ -2800,7 +2811,10 @@
       "end_byte": 868,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:plus:37:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:context:call:90:12",
@@ -2816,7 +2830,10 @@
       "end_byte": 1846,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:setup:88:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:create:call:83:22",
@@ -2834,6 +2851,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
         "receiver": "URI"
       }
     },
@@ -2867,7 +2885,10 @@
       "end_byte": 1303,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:outer:64:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:jdbc:variable_ref:82:8",
@@ -2947,7 +2968,10 @@
       "end_byte": 412,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:Cache:15:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:other:variable_ref:38:23",
@@ -2997,6 +3021,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "jdbc"
       }
     },
@@ -3030,7 +3055,10 @@
       "end_byte": 522,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:set:20:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:register:call:91:16",
@@ -3046,7 +3074,10 @@
       "end_byte": 1882,
       "containing_key": "fixtures/extraction/kotlin/members_and_literals/source.kt:setup:88:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/kotlin/members_and_literals/source.kt:uppercase:call:9:34",
@@ -3065,6 +3096,7 @@
       "confidence": "1.000",
       "receiver_type": "String",
       "metadata": {
+        "arg_count": 0,
         "receiver": "this"
       }
     },

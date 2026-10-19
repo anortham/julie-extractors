@@ -250,7 +250,10 @@
       "end_byte": 475,
       "containing_key": "fixtures/extraction/csharp/cross_file/Source.cs:Entry:13:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/csharp/cross_file/Source.cs:OtherClass:call:15:20",
@@ -266,7 +269,10 @@
       "end_byte": 445,
       "containing_key": "fixtures/extraction/csharp/cross_file/Source.cs:Entry:13:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/csharp/cross_file/Source.cs:OtherClass:type_usage:15:20",

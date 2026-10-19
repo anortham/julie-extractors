@@ -439,7 +439,10 @@
       "end_byte": 103,
       "containing_key": "fixtures/extraction/javascript/test_roles/source.js:javascript roles:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1
+      }
     },
     {
       "key": "fixtures/extraction/javascript/test_roles/source.js:callback:call:12:4",
@@ -455,7 +458,10 @@
       "end_byte": 266,
       "containing_key": "fixtures/extraction/javascript/test_roles/source.js:test:11:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0
+      }
     },
     {
       "key": "fixtures/extraction/javascript/test_roles/source.js:describe:call:3:0",
@@ -471,7 +477,10 @@
       "end_byte": 62,
       "containing_key": "fixtures/extraction/javascript/test_roles/source.js:javascript roles:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     },
     {
       "key": "fixtures/extraction/javascript/test_roles/source.js:ordinary:variable_ref:16:0",
@@ -505,6 +514,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "ordinary"
       }
     },
@@ -522,7 +532,10 @@
       "end_byte": 121,
       "containing_key": "fixtures/extraction/javascript/test_roles/source.js:javascript roles:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2
+      }
     }
   ],
   "types": [],
