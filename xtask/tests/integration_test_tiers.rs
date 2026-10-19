@@ -44,6 +44,7 @@ const FAST_INTEGRATION_TESTS: &[&str] = &[
     "crates/julie-extract-cli/tests/sqlite_engine_contract.rs",
     "crates/julie-extract-cli/tests/test_tiers.rs",
     // julie-extractors
+    "crates/julie-extractors/tests/call_argument_counts.rs",
     "crates/julie-extractors/tests/call_site_containers.rs",
     "crates/julie-extractors/tests/ecmascript_receiver_scope.rs",
     "crates/julie-extractors/tests/elixir_call_arity.rs",
