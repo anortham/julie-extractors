@@ -246,6 +246,83 @@ fn facts_level_round_trips_through_its_metadata_value() {
     );
 }
 
+#[test]
+fn references_level_keeps_every_identifier_of_full_and_drops_regions_and_type_arguments() {
+    for fixture in FIXTURES {
+        let full = extract_at(ExtractionLevel::Full, fixture.file_path, fixture.source);
+        let references = extract_at(
+            ExtractionLevel::References,
+            fixture.file_path,
+            fixture.source,
+        );
+        assert_eq!(
+            full.identifiers, references.identifiers,
+            "{}",
+            fixture.language
+        );
+        assert_eq!(
+            full.symbols.len(),
+            references.symbols.len(),
+            "{}",
+            fixture.language
+        );
+        assert_eq!(
+            full.pending_relationships.len(),
+            references.pending_relationships.len(),
+            "{}",
+            fixture.language
+        );
+        assert_eq!(
+            full.structural_facts.len(),
+            references.structural_facts.len(),
+            "{}",
+            fixture.language
+        );
+        assert_eq!(
+            full.literals.len(),
+            references.literals.len(),
+            "{}",
+            fixture.language
+        );
+        assert!(
+            references.type_argument_usages.is_empty(),
+            "{}",
+            fixture.language
+        );
+        assert!(references.source_regions.is_empty(), "{}", fixture.language);
+    }
+}
+
+#[test]
+fn references_level_keeps_call_argument_counts() {
+    let references = extract_at(
+        ExtractionLevel::References,
+        FIXTURES[0].file_path,
+        FIXTURES[0].source,
+    );
+    let helper_call = references
+        .identifiers
+        .iter()
+        .find(|identifier| identifier.name == "helper")
+        .expect("the rust fixture calls helper");
+    assert_eq!(
+        helper_call
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("arg_count")),
+        Some(&serde_json::json!(1))
+    );
+}
+
+#[test]
+fn references_level_round_trips_through_its_metadata_value() {
+    assert_eq!(ExtractionLevel::References.metadata_value(), "references");
+    assert_eq!(
+        ExtractionLevel::from_metadata_value("references"),
+        Some(ExtractionLevel::References)
+    );
+}
+
 fn annotation_count(results: &crate::ExtractionResults) -> usize {
     results
         .symbols
@@ -257,7 +334,11 @@ fn annotation_count(results: &crate::ExtractionResults) -> usize {
 #[test]
 fn only_full_level_carries_complexity_metrics_and_symbol_annotations() {
     for fixture in FIXTURES {
-        for level in [ExtractionLevel::Symbols, ExtractionLevel::Facts] {
+        for level in [
+            ExtractionLevel::Symbols,
+            ExtractionLevel::Facts,
+            ExtractionLevel::References,
+        ] {
             let results = extract_at(level, fixture.file_path, fixture.source);
             assert!(
                 results.complexity_metrics.is_empty(),

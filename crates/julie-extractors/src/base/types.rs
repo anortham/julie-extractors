@@ -539,8 +539,10 @@ pub struct SymbolOptions {
 ///
 /// `Symbols` is the progressive-indexing first-open level: the identifier
 /// walk, its byproducts (literals, type-argument usages), and the text/facts
-/// collectors (source regions, structural facts) never run. `Full` is the
-/// complete extraction — the default everywhere a level is not requested, so
+/// collectors (source regions, structural facts) never run. `References` is
+/// `Facts` plus the call and variable-reference identifiers with their call
+/// metadata; it drops type-argument usages, source regions, complexity
+/// metrics, and annotations. `Full` is the complete extraction — the default everywhere a level is not requested, so
 /// pre-levels callers and artifacts are unaffected.
 ///
 /// The level is uniform across all supported languages by construction: the
@@ -551,22 +553,25 @@ pub struct SymbolOptions {
 pub enum ExtractionLevel {
     Symbols,
     Facts,
+    References,
     Full,
 }
 
 impl ExtractionLevel {
+    /// Whether the call and variable-reference identifiers, and the call
+    /// metadata on them, are kept.
     pub fn includes_references(self) -> bool {
-        matches!(self, ExtractionLevel::Full)
+        matches!(self, ExtractionLevel::References | ExtractionLevel::Full)
     }
 
     pub fn includes_structural_facts(self) -> bool {
-        matches!(self, ExtractionLevel::Facts | ExtractionLevel::Full)
+        !matches!(self, ExtractionLevel::Symbols)
     }
 
     /// Whether the identifier walk runs. `facts` keeps only the type-usage and
     /// member-access identifiers it produces; `full` keeps them all.
     pub fn includes_identifiers(self) -> bool {
-        matches!(self, ExtractionLevel::Facts | ExtractionLevel::Full)
+        !matches!(self, ExtractionLevel::Symbols)
     }
 
     /// Whether complexity metrics and symbol annotations are materialized.
@@ -580,6 +585,7 @@ impl ExtractionLevel {
         match self {
             ExtractionLevel::Symbols => "symbols",
             ExtractionLevel::Facts => "facts",
+            ExtractionLevel::References => "references",
             ExtractionLevel::Full => "full",
         }
     }
@@ -588,6 +594,7 @@ impl ExtractionLevel {
         match value {
             "symbols" => Some(ExtractionLevel::Symbols),
             "facts" => Some(ExtractionLevel::Facts),
+            "references" => Some(ExtractionLevel::References),
             "full" => Some(ExtractionLevel::Full),
             _ => None,
         }

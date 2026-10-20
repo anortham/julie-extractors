@@ -129,7 +129,7 @@ Treat a missing row as "no base type name".
 
 `identifiers`: every `call` identifier in Python, JavaScript, TypeScript, TSX,
 Java, C#, Go, Rust, Kotlin, C and C++ whose call node has an argument list gets
-two optional `metadata_json` keys at the `full` extraction level. No column,
+two optional `metadata_json` keys at the `references` and `full` extraction levels. No column,
 table or index changes; the keys merge into the same object that holds
 `receiver` and `receiver_qualifier`.
 

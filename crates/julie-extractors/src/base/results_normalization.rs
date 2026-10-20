@@ -98,6 +98,10 @@ impl ExtractionResults {
                 self.type_argument_usages.clear();
                 self.source_regions.clear();
             }
+            ExtractionLevel::References => {
+                self.type_argument_usages.clear();
+                self.source_regions.clear();
+            }
             ExtractionLevel::Symbols => {
                 self.identifiers.clear();
                 self.type_argument_usages.clear();

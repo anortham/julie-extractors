@@ -32,7 +32,7 @@ this table drifts.
 ## Commands
 
 ```bash
-julie-extract scan --root <dir> --db <path> [--force] [--level <symbols|facts|full>] [--ignore-file <path>...] [--jobs <n>] [--spool-dir <path>] [--progress-file <path>] [--parent-pid <pid>] [--strict-schema] [--json]
+julie-extract scan --root <dir> --db <path> [--force] [--level <symbols|facts|references|full>] [--ignore-file <path>...] [--jobs <n>] [--spool-dir <path>] [--progress-file <path>] [--parent-pid <pid>] [--strict-schema] [--json]
 julie-extract update --root <dir> --db <path> --file <path> [--ignore-file <path>...] [--strict-schema] [--json]
 julie-extract delete --root <dir> --db <path> --file <path> [--strict-schema] [--json]
 julie-extract info --db <path> [--strict-schema] [--json]
@@ -191,7 +191,7 @@ database file identity. A failed rebuild keeps the original artifact, including
 its extraction level and rebind metadata. No database or sidecar is unlinked
 before the write.
 
-`--level <symbols|facts|full>` chooses the extraction level for a NEW artifact.
+`--level <symbols|facts|references|full>` chooses the extraction level for a NEW artifact.
 `full` (the default) is the complete extraction — every invocation without the
 flag behaves exactly as it did before the flag existed. `symbols` builds the
 progressive-indexing symbol core: the identifier walks and text/facts collectors
@@ -206,8 +206,15 @@ identical to a full extraction's, plus the `identifiers` rows of kinds
 `code-kb` that query framework facts and type or member references but never
 read variable references, call identifiers, or text regions; `call` and
 `variable_ref` identifiers, `type_argument_usages`, `type_arguments`, and
-`source_regions` stay empty. `symbol_annotations` and `complexity_metrics`
-are written only at `full`, and stay empty at `symbols` and `facts`. The chosen level is recorded in the `index_level` artifact-metadata
+`source_regions` stay empty. `references` is `facts` plus every `call` and
+`variable_ref` identifier, identical to a full extraction's, with their call
+metadata (`arg_count`, `arg_spread`). It exists for consumers such as `code-kb`
+that read call and read sites but never text regions or type arguments;
+`type_argument_usages`, `type_arguments`, and `source_regions` stay empty. On
+the hermes-agent tree a `references` artifact is 3181 MB against 3952 MB at
+`full` and 1670 MB at `facts`. `symbol_annotations` and `complexity_metrics`
+are written only at `full`, and stay empty at `symbols`, `facts`, and
+`references`. The chosen level is recorded in the `index_level` artifact-metadata
 key and in `artifact.index_level` on every report.
 
 An artifact's level is fixed when it is first built. A rescan or `update`

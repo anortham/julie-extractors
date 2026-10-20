@@ -176,7 +176,7 @@ pub struct ArtifactReport {
     pub hash_algorithm: String,
     pub parser_inventory_fingerprint: String,
     pub capability_snapshot_fingerprint: String,
-    /// The artifact's extraction level: `"symbols"` or `"full"`. Reports state
+    /// The artifact's extraction level: `"symbols"`, `"facts"`, `"references"`, or `"full"`. Reports state
     /// it explicitly even though the artifact key is absent for full-level
     /// artifacts.
     #[serde(default = "default_index_level")]

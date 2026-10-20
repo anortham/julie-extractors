@@ -924,7 +924,7 @@ pub fn extract_for_language_at(
     })?;
     let mut results = (entry.extract)(tree, file_path, content, workspace_root, level)?;
     crate::base::receiver_metadata::enrich(language, tree, content, &mut results.identifiers);
-    if level == ExtractionLevel::Full {
+    if level.includes_references() {
         crate::base::call_arguments::enrich(language, tree, content, &mut results.identifiers);
     }
     if level.includes_structural_facts() {
