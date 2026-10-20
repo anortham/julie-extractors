@@ -9,6 +9,7 @@ published.
 
 Recent notes (publication status is recorded in `../release.md`):
 
+- `v3.9.0.md`
 - `v3.8.1.md`
 - `v3.8.0.md`
 - `v3.7.2.md`

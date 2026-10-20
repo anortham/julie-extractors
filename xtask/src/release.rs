@@ -185,6 +185,14 @@ pub fn release_package_items() -> Vec<ReleasePackageItem> {
         },
         ReleasePackageItem {
             kind: ReleasePackageKind::Doc,
+            path_template: "docs/contracts/sqlite-schema-v8.md",
+        },
+        ReleasePackageItem {
+            kind: ReleasePackageKind::Doc,
+            path_template: "docs/contracts/sqlite-schema-v8.catalog.sha256",
+        },
+        ReleasePackageItem {
+            kind: ReleasePackageKind::Doc,
             path_template: "docs/contracts/reports.md",
         },
         ReleasePackageItem {

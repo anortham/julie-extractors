@@ -923,9 +923,21 @@ pub fn extract_for_language_at(
         )
     })?;
     let mut results = (entry.extract)(tree, file_path, content, workspace_root, level)?;
+    if language == "csharp" {
+        crate::csharp::preprocessor::mark_conditional_symbols(content, &mut results.symbols);
+    }
     crate::base::receiver_metadata::enrich(language, tree, content, &mut results.identifiers);
     if level.includes_references() {
         crate::base::call_arguments::enrich(language, tree, content, &mut results.identifiers);
+        if language == "csharp" {
+            crate::csharp::argument_types::enrich(
+                tree,
+                content,
+                &results.symbols,
+                &results.types,
+                &mut results.identifiers,
+            );
+        }
     }
     if level.includes_structural_facts() {
         let extractor_structural_facts = std::mem::take(&mut results.structural_facts);

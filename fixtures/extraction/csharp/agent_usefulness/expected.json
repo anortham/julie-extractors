@@ -396,6 +396,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "string"
+        ],
         "receiver": "app"
       }
     },
@@ -416,6 +419,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "string",
+          null
+        ],
         "receiver": "app"
       }
     },
@@ -436,6 +443,11 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 3,
+        "arg_types": [
+          "string",
+          null,
+          null
+        ],
         "receiver": "group"
       }
     },
@@ -456,6 +468,11 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 3,
+        "arg_types": [
+          "string",
+          null,
+          null
+        ],
         "receiver": "app"
       }
     },
@@ -476,6 +493,11 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 3,
+        "arg_types": [
+          "string",
+          null,
+          null
+        ],
         "receiver": "app"
       }
     },
@@ -496,6 +518,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "string",
+          null
+        ],
         "receiver": "app"
       }
     },

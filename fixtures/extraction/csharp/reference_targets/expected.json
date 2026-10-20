@@ -168,7 +168,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     }
   ],

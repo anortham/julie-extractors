@@ -324,7 +324,7 @@ fn strict_schema_rejects_older_v5_artifact_with_migration_required() {
     assert_eq!(report["errors"][0]["code"], "schema_migration_required");
     assert_eq!(
         report["errors"][0]["details"]["required_sqlite_schema_version"],
-        7
+        8
     );
     assert_eq!(
         report["errors"][0]["details"]["artifact_sqlite_schema_version"],
@@ -430,7 +430,7 @@ fn write_verbs_refuse_older_v5_artifact_without_strict_schema() {
             "{verb} refused a v5 artifact for the wrong reason: {report}"
         );
         assert_eq!(
-            report["errors"][0]["details"]["required_sqlite_schema_version"], 7,
+            report["errors"][0]["details"]["required_sqlite_schema_version"], 8,
             "{verb} must name the required schema version"
         );
         assert_eq!(

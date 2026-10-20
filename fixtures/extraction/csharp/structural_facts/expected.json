@@ -672,6 +672,7 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "builder"
       }
     },
@@ -708,6 +709,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          null
+        ],
         "receiver": "WebApplication"
       }
     },
@@ -808,6 +812,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "string",
+          null
+        ],
         "receiver": "app"
       }
     },
@@ -828,6 +836,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          null,
+          null
+        ],
         "receiver": "app"
       }
     },
@@ -848,6 +860,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "string",
+          null
+        ],
         "receiver": "app"
       }
     },
@@ -868,6 +884,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "string",
+          null
+        ],
         "receiver": "app"
       }
     },
@@ -888,6 +908,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "string"
+        ],
         "receiver": "app"
       }
     },
@@ -908,6 +931,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "string",
+          null
+        ],
         "receiver": "admin"
       }
     },
@@ -928,6 +955,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "string",
+          null
+        ],
         "receiver": "app"
       }
     },
@@ -964,6 +995,7 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "Results"
       }
     },
@@ -984,6 +1016,7 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "Results"
       }
     },

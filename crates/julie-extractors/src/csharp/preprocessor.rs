@@ -64,6 +64,85 @@ fn directive_name(line: &str) -> Option<&str> {
     })
 }
 
+/// Marks each symbol in the kept branch of an `#if` group with
+/// `preprocessorIf`: the condition of that branch, joined with ` && ` under an
+/// enclosing kept branch (`!HAVE_X` for a fallback type).
+pub(crate) fn mark_conditional_symbols(content: &str, symbols: &mut [crate::base::Symbol]) {
+    let branches = kept_branches(content);
+    if branches.is_empty() {
+        return;
+    }
+    for symbol in symbols.iter_mut() {
+        let at = symbol.start_byte as usize;
+        let Some((_, _, condition)) = branches
+            .iter()
+            .filter(|(start, end, _)| *start <= at && at < *end)
+            .max_by_key(|(start, _, _)| *start)
+        else {
+            continue;
+        };
+        symbol
+            .metadata
+            .get_or_insert_with(Default::default)
+            .insert("preprocessorIf".to_string(), condition.clone().into());
+    }
+}
+
+/// The byte range and condition of the first branch of each `#if` group that
+/// `blank_directives` keeps.
+fn kept_branches(content: &str) -> Vec<(usize, usize, String)> {
+    struct Group {
+        kept: bool,
+        start: usize,
+        condition: String,
+    }
+    let mut groups: Vec<Group> = Vec::new();
+    let mut branches = Vec::new();
+    let mut line_start = 0;
+    for line in content.split_inclusive('\n') {
+        let line_end = line_start + line.len();
+        match directive_name(line) {
+            Some("if") => {
+                let enclosing = groups.last().filter(|group| group.kept);
+                let own = line
+                    .trim_start()
+                    .trim_start_matches('#')
+                    .trim_start()
+                    .trim_start_matches("if")
+                    .split("//")
+                    .next()
+                    .unwrap_or_default()
+                    .trim()
+                    .to_string();
+                let kept = groups.last().is_none_or(|group| group.kept);
+                let condition = match enclosing {
+                    Some(group) => format!("{} && {own}", group.condition),
+                    None => own,
+                };
+                groups.push(Group {
+                    kept,
+                    start: line_end,
+                    condition,
+                });
+            }
+            Some(name @ ("elif" | "else" | "endif")) => {
+                if let Some(group) = groups.last_mut()
+                    && group.kept
+                {
+                    branches.push((group.start, line_start, group.condition.clone()));
+                    group.kept = false;
+                }
+                if name == "endif" {
+                    groups.pop();
+                }
+            }
+            _ => {}
+        }
+        line_start = line_end;
+    }
+    branches
+}
+
 /// True when `blank_directives` blanks the line as a preprocessor directive.
 pub(crate) fn is_directive_line(line: &str) -> bool {
     directive_name(line).is_some_and(|name| DIRECTIVES.contains(&name))

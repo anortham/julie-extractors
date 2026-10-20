@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-pub const SQLITE_SCHEMA_VERSION: i64 = 7;
+pub const SQLITE_SCHEMA_VERSION: i64 = 8;
 pub const EXTRACT_CONTRACT_VERSION: i64 = 4;
 
 pub fn create_schema(conn: &Connection) -> rusqlite::Result<()> {
@@ -226,7 +226,7 @@ CREATE TABLE IF NOT EXISTS reference_sites (
 
 CREATE TABLE IF NOT EXISTS identifiers (
   identifier_id TEXT PRIMARY KEY,
-  reference_site_id TEXT NOT NULL,
+  reference_site_id TEXT,
   file_id TEXT NOT NULL,
   path TEXT NOT NULL,
   language TEXT NOT NULL,

@@ -724,7 +724,8 @@ impl ArtifactWriter {
         clock.lap(|phases| &mut phases.file_symbol_insert);
 
         let reference_site_conflicts = {
-            let mut child_row_inserters = ChildRowInserters::prepare(&tx)?;
+            let mut child_row_inserters =
+                ChildRowInserters::prepare(&tx, self.staged_index_level.as_deref())?;
             for (file, _, _) in &planned {
                 child_row_inserters.insert_child_rows(file, &mut row_counts)?;
             }
@@ -944,7 +945,8 @@ impl ArtifactWriter {
         clock.lap(|phases| &mut phases.file_symbol_insert);
 
         let reference_site_conflicts = {
-            let mut child_row_inserters = ChildRowInserters::prepare(&tx)?;
+            let mut child_row_inserters =
+                ChildRowInserters::prepare(&tx, self.staged_index_level.as_deref())?;
             for file in &rewritten_files {
                 child_row_inserters.insert_child_rows(file, &mut row_counts)?;
             }
@@ -1253,7 +1255,8 @@ impl ArtifactWriter {
         clock.lap(|phases| &mut phases.file_symbol_insert);
 
         let reference_site_conflicts = {
-            let mut child_row_inserters = ChildRowInserters::prepare(&tx)?;
+            let mut child_row_inserters =
+                ChildRowInserters::prepare(&tx, self.staged_index_level.as_deref())?;
             let mut reader = spool.reader()?;
             while let Some(header) = reader.next_header() {
                 let header = header?;

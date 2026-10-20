@@ -12,6 +12,7 @@
 // - Inheritance and implementation relationships
 // - Modern C# features (nullable types, records, pattern matching)
 
+pub(crate) mod argument_types;
 pub(crate) mod di_relationships;
 pub(crate) mod fields;
 mod helpers;

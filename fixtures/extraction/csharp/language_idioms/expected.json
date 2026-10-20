@@ -1803,6 +1803,7 @@
       "parent_key": "fixtures/extraction/csharp/language_idioms/source.cs:Describe:45:4",
       "metadata": {
         "isInferred": false,
+        "preprocessorIf": "HAVE_LEGACY",
         "role": "pattern",
         "variableType": "Money"
       },
@@ -3507,6 +3508,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "int"
+        ],
         "receiver": "cart"
       }
     },
@@ -3559,6 +3563,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          null
+        ],
         "receiver": "items"
       }
     },
@@ -3722,7 +3729,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -4025,7 +4033,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          "string[]"
+        ]
       }
     },
     {
@@ -4045,6 +4056,7 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "modelBuilder"
       }
     },
@@ -4208,7 +4220,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -4308,6 +4321,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "string"
+        ],
         "receiver": "string"
       }
     },
@@ -4424,6 +4440,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "string",
+          null
+        ],
         "receiver": "app"
       }
     },
@@ -4464,6 +4484,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "string",
+          null
+        ],
         "receiver": "orders"
       }
     },
@@ -4484,6 +4508,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "string"
+        ],
         "receiver": "app"
       }
     },
@@ -4504,6 +4531,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "string"
+        ],
         "receiver": "api"
       }
     },
@@ -4524,6 +4554,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "string"
+        ],
         "receiver": "app"
       }
     },
@@ -4544,6 +4577,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "string"
+        ],
         "receiver": "app"
       }
     },
@@ -4643,7 +4679,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          "int"
+        ]
       }
     },
     {
@@ -4662,7 +4701,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          null
+        ]
       }
     },
     {
@@ -4794,6 +4836,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "object"
+        ],
         "receiver": "Json"
       }
     },
@@ -4813,7 +4858,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -4849,6 +4895,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "int"
+        ],
         "receiver": "Count",
         "receiver_qualifier": "cart"
       }
@@ -4870,6 +4919,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "string"
+        ],
         "receiver": "Database"
       }
     },
@@ -5023,7 +5075,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          "string"
+        ]
       }
     },
     {
@@ -5043,6 +5098,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "string"
+        ],
         "receiver": "builder"
       }
     },

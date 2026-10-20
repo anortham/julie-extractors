@@ -2,7 +2,8 @@
 //! (`Queue.prototype.clear = function () {}`), static members
 //! (`Queue.create = () => {}`), CommonJS exports (`module.exports = function
 //! auth() {}`, named `default` when anonymous; `exports.helper = () => {}`),
-//! and constructor-assigned instance properties (`this.logger = new Logger()`).
+//! constructor-assigned instance properties (`this.logger = new Logger()`), and
+//! values assigned on a named object (`res.locals = {}`).
 
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
 use serde_json::json;
@@ -69,9 +70,6 @@ impl super::JavaScriptExtractor {
             Some(owner) => (owner.to_string(), true),
             None => (object_text.clone(), false),
         };
-        if !is_function_value(right) {
-            return None;
-        }
         let owner = symbols
             .iter()
             .find(|symbol| {
@@ -80,6 +78,18 @@ impl super::JavaScriptExtractor {
                     && matches!(symbol.kind, SymbolKind::Function | SymbolKind::Class)
             })
             .map(|owner| owner.id.clone());
+        if !is_function_value(right) {
+            if is_prototype || object.kind() != "identifier" {
+                return None;
+            }
+            return self.assigned_property(
+                node,
+                property_name,
+                &owner_name,
+                owner.or(parent_id),
+                symbols,
+            );
+        }
         Some(self.member_method(
             node,
             right,
@@ -158,6 +168,57 @@ impl super::JavaScriptExtractor {
                 annotations: Vec::new(),
             },
         )
+    }
+
+    /// A value other than a function assigned on a named object
+    /// (`res.locals = {}`) declares the property; only the first assignment of
+    /// each `object.name` in a file counts.
+    fn assigned_property(
+        &mut self,
+        node: Node,
+        name: String,
+        owner_name: &str,
+        parent_id: Option<String>,
+        symbols: &[Symbol],
+    ) -> Option<Symbol> {
+        let declared = symbols.iter().any(|symbol| {
+            symbol.kind == SymbolKind::Property
+                && symbol.name == name
+                && symbol
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("className"))
+                    .and_then(|class| class.as_str())
+                    == Some(owner_name)
+        });
+        if declared {
+            return None;
+        }
+        let metadata = HashMap::from([
+            ("className".to_string(), json!(owner_name)),
+            ("isAssignedProperty".to_string(), json!(true)),
+        ]);
+        let text = self.base.get_node_text(&node);
+        let signature = text
+            .lines()
+            .next()
+            .unwrap_or_default()
+            .trim_end()
+            .to_string();
+        let doc_comment = self.base.find_doc_comment(&node);
+        Some(self.base.create_symbol(
+            &node,
+            name,
+            SymbolKind::Property,
+            SymbolOptions {
+                signature: Some(signature),
+                visibility: Some(Visibility::Public),
+                parent_id,
+                metadata: Some(metadata),
+                doc_comment,
+                annotations: Vec::new(),
+            },
+        ))
     }
 
     /// `this.name = value` inside a class constructor declares an instance

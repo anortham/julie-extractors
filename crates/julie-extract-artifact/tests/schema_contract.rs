@@ -12,7 +12,7 @@ use rusqlite::Connection;
 use sha2::{Digest, Sha256};
 
 #[test]
-fn schema_creates_every_sqlite_v7_public_table_with_contract_columns() {
+fn schema_creates_every_sqlite_v8_public_table_with_contract_columns() {
     let conn = open_schema();
 
     let table_names: BTreeSet<_> = conn
@@ -35,7 +35,7 @@ fn schema_creates_every_sqlite_v7_public_table_with_contract_columns() {
         assert_eq!(
             table_columns(&conn, table.name),
             table.columns,
-            "{} columns drifted from sqlite-schema-v7.catalog.sha256",
+            "{} columns drifted from sqlite-schema-v8.catalog.sha256",
             table.name
         );
     }
@@ -57,13 +57,13 @@ fn schema_creates_every_sqlite_v7_public_table_with_contract_columns() {
 }
 
 #[test]
-fn schema_and_extract_contract_versions_are_v7_and_v4() {
-    assert_eq!(SQLITE_SCHEMA_VERSION, 7);
+fn schema_and_extract_contract_versions_are_v8_and_v4() {
+    assert_eq!(SQLITE_SCHEMA_VERSION, 8);
     assert_eq!(EXTRACT_CONTRACT_VERSION, 4);
 }
 
 #[test]
-fn sqlite_catalog_matches_checked_in_v7_authority() {
+fn sqlite_catalog_matches_checked_in_v8_authority() {
     let conn = open_schema();
     let mut statement = conn
         .prepare(
@@ -91,7 +91,7 @@ fn sqlite_catalog_matches_checked_in_v7_authority() {
 
     assert_eq!(
         fingerprint,
-        include_str!("../../../docs/contracts/sqlite-schema-v7.catalog.sha256").trim()
+        include_str!("../../../docs/contracts/sqlite-schema-v8.catalog.sha256").trim()
     );
 }
 
@@ -203,7 +203,7 @@ fn schema_creates_required_indexes_with_contract_columns() {
         assert_eq!(
             index_columns(&conn, index.name),
             index.columns,
-            "{} columns drifted from sqlite-schema-v7.catalog.sha256",
+            "{} columns drifted from sqlite-schema-v8.catalog.sha256",
             index.name
         );
     }
@@ -387,7 +387,7 @@ fn metadata_required_keys_are_inserted_and_readable() {
     }
     assert_eq!(rows["artifact_id"], "artifact-test-1");
     assert_eq!(rows["root_path"], "/repo");
-    assert_eq!(rows["schema_version"], "7");
+    assert_eq!(rows["schema_version"], "8");
     assert_eq!(rows["extract_contract_version"], "4");
     assert_eq!(
         rows["sqlite_schema_version"],
@@ -419,7 +419,7 @@ fn writer_initializes_schema_metadata_and_foreign_key_enforcement() {
 }
 
 #[test]
-fn report_row_domains_cover_every_sqlite_v7_public_table() {
+fn report_row_domains_cover_every_sqlite_v8_public_table() {
     let domains = SQLITE_ROW_DOMAINS.iter().copied().collect::<BTreeSet<_>>();
     assert_eq!(
         domains.len(),

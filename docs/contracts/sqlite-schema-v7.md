@@ -1,7 +1,8 @@
 # SQLite Schema v7
 
-Schema version 7 is the current SQLite artifact contract. Extraction contract 4
-is its matching producer contract.
+Schema version 7 was the SQLite artifact contract through 3.8.x;
+[v8](sqlite-schema-v8.md) replaces it. Extraction contract 4 is its matching
+producer contract.
 
 The complete catalog authority is the normalized `sqlite_master` SHA-256 in
 [`sqlite-schema-v7.catalog.sha256`](sqlite-schema-v7.catalog.sha256). The

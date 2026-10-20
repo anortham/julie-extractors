@@ -88,6 +88,50 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 3.9.0
+
+classification: incompatible
+
+The SQLite schema is 8 (`docs/contracts/sqlite-schema-v8.md`). The report schema remains 3, and
+the extraction identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` adds
+`javascript-assigned-properties-v1`, `csharp-argument-types-v1`, and
+`csharp-preprocessor-conditions-v1`. Re-extract every existing artifact with
+`julie-extract scan --force`; a write into a schema 7 artifact reports
+`schema_migration_required` (exit code `3`) without changing rows.
+
+`symbols`, JavaScript: a value other than a function assigned on a named object
+(`res.locals = res.locals || Object.create(null)`) writes a `property` symbol named after the
+member, with `className` (the object) and `isAssignedProperty: true` in `metadata_json`. Only the
+first such assignment of each `object.name` in a file writes a row. The owner is the top-level
+function or class with the object's name when the file has one, else the enclosing symbol. An
+object of `this`, `module`, or `exports`, a member chain (`res.locals.user = …`), and a prototype
+(`Queue.prototype.size = 0`) write no row. The signature is the first line of the assignment.
+
+`symbols`, C#: a symbol in the kept branch of an `#if` group gets `preprocessorIf` in
+`metadata_json`: the condition text after `#if`, without a trailing `//` comment, joined with
+` && ` under an enclosing kept branch (`!HAVE_CONCURRENT && HAVE_BARRIER`). The kept branch is the
+first branch of each group, as before; the other branches stay blanked and write no rows. `using`
+rows count as symbols here, so a reader can pair a fallback type under `#if !X` with a `using`
+under `#if X`.
+
+`identifiers`, C#: a `call` identifier that has `arg_count` also gets `arg_types` at the
+`references` and `full` levels: one entry per argument, the type name its expression states, or
+`null`. A literal gives its keyword type (`string`, `char`, `bool`, `int`, `long`, `uint`,
+`ulong`, `double`, `float`, `decimal`; `null` gives `null`); `new T(…)`, a cast `(T)e`, `e as T`,
+and `default(T)` give `T`; `typeof(…)` gives `Type`; `nameof(…)` gives `string`; `this` gives the
+enclosing type; a name gives the declared type of the nearest local or parameter declared before
+the call, else of a field, property, or constant of the enclosing type. Whitespace inside a type
+name is removed. A call with a named argument or a `ref`, `out`, or `in` argument gets no
+`arg_types`, since those change which parameter an argument fills.
+
+`identifiers` and `reference_sites`, `references` level only: an identifier whose site no written
+relationship or pending relationship shares has a null `reference_site_id`, and no
+`reference_sites` row is written for it. Its position stays in the identifier's own columns. The
+`full` level is unchanged.
+
+Consumer action for code-kb: read `arg_types` for C# overload binding and `preprocessorIf` for
+conditional definitions; read nothing from `reference_sites`.
+
 ## 3.8.0
 
 classification: compatible

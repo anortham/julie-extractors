@@ -78,13 +78,13 @@ layering and precedence contract.
 
 ## Artifact contract
 
-SQLite schema v7 is the source of truth for durable output. It stores artifact
+SQLite schema v8 is the source of truth for durable output. It stores artifact
 metadata, parser inventory and capability snapshots, extraction revisions,
 per-file change records, and the extracted data itself: symbols, annotations,
 identifiers, relationships, type facts, literals, source regions, structural
 facts, complexity metrics, and parse diagnostics. The full table and index
 contract is in
-[docs/contracts/sqlite-schema-v7.md](docs/contracts/sqlite-schema-v7.md).
+[docs/contracts/sqlite-schema-v8.md](docs/contracts/sqlite-schema-v8.md).
 
 Artifacts do not store complete source file contents. Consumers that need full
 text should read the matching source tree directly.
@@ -197,7 +197,8 @@ Public contracts:
 
 - [CLI contract](docs/contracts/cli.md)
 - [Extracted data v4](docs/contracts/extracted-data-v4.md)
-- [SQLite schema v7](docs/contracts/sqlite-schema-v7.md)
+- [SQLite schema v8](docs/contracts/sqlite-schema-v8.md)
+- [SQLite schema v7](docs/contracts/sqlite-schema-v7.md) (superseded)
 - [SQLite schema v6](docs/contracts/sqlite-schema-v6.md) (superseded)
 - [SQLite schema v5](docs/contracts/sqlite-schema-v5.md) (superseded)
 - [JSON reports](docs/contracts/reports.md)

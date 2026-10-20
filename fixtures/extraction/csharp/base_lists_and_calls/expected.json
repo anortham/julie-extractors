@@ -1420,6 +1420,7 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "services"
       }
     },
@@ -1471,7 +1472,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -1557,7 +1559,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          null
+        ]
       }
     },
     {
@@ -1577,6 +1582,7 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "Inner",
         "receiver_qualifier": "other"
       }
@@ -1697,6 +1703,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "OrderRepository",
+          null
+        ],
         "receiver": "Changed"
       }
     },
@@ -1736,6 +1746,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "string"
+        ],
         "receiver": "logger"
       }
     },
@@ -1868,6 +1881,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          null
+        ],
         "receiver": "other"
       }
     },
@@ -1889,6 +1905,9 @@
       "receiver_type": "RepositoryBase",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "Order"
+        ],
         "receiver": "base"
       }
     },

@@ -346,6 +346,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "string"
+        ],
         "receiver": "Navigation"
       }
     },

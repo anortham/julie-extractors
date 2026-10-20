@@ -80,6 +80,67 @@ fn resolved_type(results: &ExtractionResults, symbol: &Symbol) -> Option<String>
 }
 
 #[test]
+fn a_value_assigned_on_a_named_object_declares_one_property_per_file() {
+    let source = r#"function init(req, res, next) {
+  res.locals = res.locals || Object.create(null);
+  res.locals.user = req.user;
+  res.locals = {};
+  req.res = res;
+  this.ignored = 1;
+  res.render = function render() {};
+}
+Queue.prototype.size = 0;
+module.exports.version = 1;
+"#;
+    let results = extract("init.js", source);
+    let properties: Vec<_> = results
+        .symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Property)
+        .map(|symbol| {
+            (
+                symbol.name.as_str(),
+                symbol.start_line,
+                symbol_name(&results, symbol.parent_id.as_deref().unwrap_or_default()),
+            )
+        })
+        .collect();
+    assert_eq!(
+        properties,
+        vec![
+            ("locals", 2, "init".to_string()),
+            ("res", 5, "init".to_string())
+        ],
+        "{:?}",
+        symbol_rows(&results)
+    );
+    let locals = find(&results, "locals", SymbolKind::Property);
+    assert_eq!(
+        locals.signature.as_deref(),
+        Some("res.locals = res.locals || Object.create(null)")
+    );
+    assert_eq!(locals.visibility, Some(Visibility::Public));
+    assert_eq!(
+        locals.metadata.as_ref().unwrap().get("className"),
+        Some(&serde_json::json!("res"))
+    );
+    assert_eq!(find(&results, "render", SymbolKind::Method).name, "render");
+}
+
+#[test]
+fn a_value_assigned_on_a_top_level_function_belongs_to_it() {
+    let results = extract(
+        "app.js",
+        "function createApp() { return {}; }\ncreateApp.defaults = { port: 80 };\n",
+    );
+    let defaults = find(&results, "defaults", SymbolKind::Property);
+    assert_eq!(
+        symbol_name(&results, defaults.parent_id.as_deref().unwrap()),
+        "createApp"
+    );
+}
+
+#[test]
 fn prototype_and_static_members_belong_to_the_constructor_function() {
     let source = r#"function Queue() { this.clear(); }
 Queue.prototype.clear = function clear() { this.jobs = []; };

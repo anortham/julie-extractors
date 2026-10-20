@@ -162,10 +162,22 @@ pub(super) struct ChildRowInserters<'tx> {
     complexity_metric_chunk: usize,
     parse_diagnostics: CachedStatement<'tx>,
     reference_site_conflicts: ReferenceSiteConflicts,
+    identifier_sites: bool,
 }
 
 impl<'tx> ChildRowInserters<'tx> {
-    pub(super) fn prepare(tx: &'tx Transaction<'_>) -> rusqlite::Result<Self> {
+    /// `staged_level` is the level a scan is about to record; without one the
+    /// artifact's recorded level applies. The `references` level gives an
+    /// identifier a `reference_sites` row only when a relationship or a pending
+    /// relationship shares its site.
+    pub(super) fn prepare(
+        tx: &'tx Transaction<'_>,
+        staged_level: Option<&str>,
+    ) -> rusqlite::Result<Self> {
+        let level = match staged_level {
+            Some(level) => Some(level.to_string()),
+            None => crate::metadata::read_index_level(tx)?,
+        };
         let structural_fact_chunk = structural_fact_chunk_size(tx)?;
         let source_region_chunk = source_region_chunk_size(tx)?;
         let complexity_metric_chunk = complexity_metric_chunk_size(tx)?;
@@ -273,6 +285,7 @@ impl<'tx> ChildRowInserters<'tx> {
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
             )?,
             reference_site_conflicts: ReferenceSiteConflicts::default(),
+            identifier_sites: level.as_deref() != Some("references"),
         };
         #[cfg(test)]
         writer_prepare_metrics::record_child_row_inserter_prepare();
@@ -291,13 +304,20 @@ impl<'tx> ChildRowInserters<'tx> {
         let symbol_lookup = &SymbolLookup::from_file(file);
         counts.symbol_annotations +=
             insert_symbol_annotations(&mut self.symbol_annotations, file, symbol_lookup)?;
+        let shared_sites = (!self.identifier_sites).then(|| shared_site_ids(file, symbol_lookup));
         counts.reference_sites += insert_reference_sites(
             &mut self.reference_sites,
             file,
             symbol_lookup,
             &mut self.reference_site_conflicts,
+            shared_sites.as_ref(),
         )?;
-        counts.identifiers += insert_identifiers(&mut self.identifiers, file, symbol_lookup)?;
+        counts.identifiers += insert_identifiers(
+            &mut self.identifiers,
+            file,
+            symbol_lookup,
+            shared_sites.as_ref(),
+        )?;
         let identifier_lookup = IdentifierLookup::from_file(file);
         counts.relationships += insert_relationships(&mut self.relationships, file, symbol_lookup)?;
         counts.pending_relationships +=
@@ -616,16 +636,43 @@ fn record_reference_site_conflict(
     }
 }
 
+/// The sites of the file's relationships and pending relationships that are
+/// written, which an identifier at the same place shares.
+fn shared_site_ids<'f>(
+    file: &'f ArtifactFile,
+    symbol_lookup: &SymbolLookup<'_>,
+) -> HashSet<&'f str> {
+    let relationships = file
+        .relationships
+        .iter()
+        .filter(|relationship| relationship_is_insertable(relationship, symbol_lookup))
+        .map(|relationship| relationship.reference_site_id.as_str());
+    let pending = file
+        .pending_relationships
+        .iter()
+        .filter(|pending| pending_relationship_is_insertable(pending, symbol_lookup))
+        .map(|pending| pending.reference_site_id.as_str());
+    relationships.chain(pending).collect()
+}
+
+/// `shared_sites`, when given, limits the identifier sites to those a
+/// relationship or a pending relationship also writes.
 fn insert_reference_sites(
     stmt: &mut CachedStatement<'_>,
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup<'_>,
     conflicts: &mut ReferenceSiteConflicts,
+    shared_sites: Option<&HashSet<&str>>,
 ) -> rusqlite::Result<i64> {
     let mut inserted = 0;
     let mut seen: HashMap<&str, SitePayload> = HashMap::new();
 
     for identifier in &file.identifiers {
+        if shared_sites
+            .is_some_and(|shared| !shared.contains(identifier.reference_site_id.as_str()))
+        {
+            continue;
+        }
         let span = identifier.site_is_exact.then_some((
             identifier.start_line,
             identifier.start_column,
@@ -789,15 +836,20 @@ fn insert_identifiers(
     stmt: &mut CachedStatement<'_>,
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup<'_>,
+    shared_sites: Option<&HashSet<&str>>,
 ) -> rusqlite::Result<i64> {
     // Every symbol row of this file exists before its child rows are written, so the FK binds
     // inline; the second UPDATE pass older revisions ran cost one extra statement per identifier
     // plus double index maintenance on idx_identifiers_containing.
     for identifier in &file.identifiers {
         let containing = valid_symbol_id(symbol_lookup, identifier.containing_symbol_id.as_deref());
+        let site = identifier.reference_site_id.as_str();
+        let site = shared_sites
+            .is_none_or(|shared| shared.contains(site))
+            .then_some(site);
         stmt.execute(params![
             identifier.identifier_id,
-            identifier.reference_site_id,
+            site,
             file.file_id,
             file.path,
             file.language,
