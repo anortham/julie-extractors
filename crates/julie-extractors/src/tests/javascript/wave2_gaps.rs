@@ -128,6 +128,19 @@ module.exports.version = 1;
 }
 
 #[test]
+fn a_function_assigned_under_its_own_name_declares_no_property() {
+    let source = "function render(x) {\n  return x;\n}\nvar api = {};\napi.render = render;\napi.view = render;\n";
+    let results = extract("util.js", source);
+    let properties: Vec<_> = results
+        .symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Property)
+        .map(|symbol| symbol.name.as_str())
+        .collect();
+    assert_eq!(properties, vec!["view"], "{:?}", symbol_rows(&results));
+}
+
+#[test]
 fn a_value_assigned_on_a_top_level_function_belongs_to_it() {
     let results = extract(
         "app.js",

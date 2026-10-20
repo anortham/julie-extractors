@@ -105,7 +105,8 @@ member, with `className` (the object) and `isAssignedProperty: true` in `metadat
 first such assignment of each `object.name` in a file writes a row. The owner is the top-level
 function or class with the object's name when the file has one, else the enclosing symbol. An
 object of `this`, `module`, or `exports`, a member chain (`res.locals.user = …`), and a prototype
-(`Queue.prototype.size = 0`) write no row. The signature is the first line of the assignment.
+(`Queue.prototype.size = 0`) write no row, and neither does a function of the file assigned under
+its own name (`api.render = render`). The signature is the first line of the assignment.
 
 `symbols`, C#: a symbol in the kept branch of an `#if` group gets `preprocessorIf` in
 `metadata_json`: the condition text after `#if`, without a trailing `//` comment, joined with
