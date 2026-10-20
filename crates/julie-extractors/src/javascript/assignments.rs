@@ -79,12 +79,7 @@ impl super::JavaScriptExtractor {
             })
             .map(|owner| owner.id.clone());
         if !is_function_value(right) {
-            let names_own_function = right.kind() == "identifier"
-                && self.base.get_node_text(&right) == property_name
-                && symbols.iter().any(|symbol| {
-                    symbol.kind == SymbolKind::Function && symbol.name == property_name
-                });
-            if is_prototype || object.kind() != "identifier" || names_own_function {
+            if is_prototype || object.kind() != "identifier" || right.kind() == "identifier" {
                 return None;
             }
             return self.assigned_property(
@@ -177,9 +172,9 @@ impl super::JavaScriptExtractor {
 
     /// A value other than a function assigned on a named object
     /// (`res.locals = {}`) declares the property; only the first assignment of
-    /// each `object.name` in a file counts. A function of the file assigned
-    /// under its own name (`api.render = render`) declares none: the function
-    /// is the definition.
+    /// each `object.name` in a file counts. A bare name as the value
+    /// (`api.render = render`, `app.route = route`) declares none: the binding
+    /// it names is the definition, and a parameter's value is unknown.
     fn assigned_property(
         &mut self,
         node: Node,

@@ -107,10 +107,7 @@ module.exports.version = 1;
         .collect();
     assert_eq!(
         properties,
-        vec![
-            ("locals", 2, "init".to_string()),
-            ("res", 5, "init".to_string())
-        ],
+        vec![("locals", 2, "init".to_string())],
         "{:?}",
         symbol_rows(&results)
     );
@@ -128,8 +125,8 @@ module.exports.version = 1;
 }
 
 #[test]
-fn a_function_assigned_under_its_own_name_declares_no_property() {
-    let source = "function render(x) {\n  return x;\n}\nvar api = {};\napi.render = render;\napi.view = render;\n";
+fn a_bare_name_as_the_value_declares_no_property() {
+    let source = "function render(x) {\n  return x;\n}\nvar api = {};\napi.render = render;\napi.view = render;\napi.title = \"home\";\n";
     let results = extract("util.js", source);
     let properties: Vec<_> = results
         .symbols
@@ -137,7 +134,7 @@ fn a_function_assigned_under_its_own_name_declares_no_property() {
         .filter(|symbol| symbol.kind == SymbolKind::Property)
         .map(|symbol| symbol.name.as_str())
         .collect();
-    assert_eq!(properties, vec!["view"], "{:?}", symbol_rows(&results));
+    assert_eq!(properties, vec!["title"], "{:?}", symbol_rows(&results));
 }
 
 #[test]
