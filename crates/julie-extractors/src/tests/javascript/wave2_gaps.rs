@@ -138,6 +138,57 @@ fn a_bare_name_as_the_value_declares_no_property() {
 }
 
 #[test]
+fn a_chained_assignment_declares_no_property_and_keeps_the_method_top_level() {
+    let source =
+        "var req = {};\nreq.get =\nreq.header = function header(name) {\n  return name;\n};\n";
+    let results = extract("request.js", source);
+    let properties: Vec<_> = results
+        .symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Property)
+        .map(|symbol| symbol.name.as_str())
+        .collect();
+    assert!(properties.is_empty(), "{:?}", symbol_rows(&results));
+    assert_eq!(find(&results, "header", SymbolKind::Method).parent_id, None);
+}
+
+#[test]
+fn the_function_around_an_assigned_property_owns_the_calls_in_its_value() {
+    let source = "function check() { return 1; }\nfunction send(res) {\n  var opts = {};\n  opts.etag = check(res.app.enabled('etag'));\n  return opts;\n}\nres.cached = check();\n";
+    let results = extract("response.js", source);
+    find(&results, "etag", SymbolKind::Property);
+    let owners: Vec<_> = results
+        .identifiers
+        .iter()
+        .filter(|identifier| matches!(identifier.name.as_str(), "enabled" | "check"))
+        .map(|identifier| {
+            (
+                identifier.name.as_str(),
+                identifier.start_line,
+                identifier
+                    .containing_symbol_id
+                    .as_deref()
+                    .map(|id| symbol_name(&results, id))
+                    .unwrap_or_default(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        owners,
+        vec![
+            ("check", 4, "send".to_string()),
+            ("enabled", 4, "send".to_string()),
+            ("check", 7, String::new()),
+        ]
+    );
+    assert!(
+        relationship_rows(&results).contains(&"send Calls check".to_string()),
+        "{:?}",
+        relationship_rows(&results)
+    );
+}
+
+#[test]
 fn a_value_assigned_on_a_top_level_function_belongs_to_it() {
     let results = extract(
         "app.js",

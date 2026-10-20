@@ -95,7 +95,8 @@ fn is_declaration_bound_object(object: tree_sitter::Node) -> bool {
 /// The owner index every ECMAScript pass uses to find the declaration that
 /// owns a call or identifier: the innermost function, method, class field,
 /// test call, or module-level variable around it. Export and import rows name
-/// code without owning it, so they never own a reference.
+/// code without owning it, and so does a value assigned on a named object
+/// (`opts.etag = enabled()`), so none of them owns a reference.
 pub(crate) fn ecmascript_owner_index<'a>(
     base: &BaseExtractor,
     root: tree_sitter::Node<'a>,
@@ -105,7 +106,13 @@ pub(crate) fn ecmascript_owner_index<'a>(
         base,
         root,
         symbols,
-        |symbol| !matches!(symbol.kind, SymbolKind::Export | SymbolKind::Import),
+        |symbol| {
+            !matches!(symbol.kind, SymbolKind::Export | SymbolKind::Import)
+                && !symbol
+                    .metadata
+                    .as_ref()
+                    .is_some_and(|metadata| metadata.contains_key("isAssignedProperty"))
+        },
     ))
 }
 

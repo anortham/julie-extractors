@@ -79,7 +79,10 @@ impl super::JavaScriptExtractor {
             })
             .map(|owner| owner.id.clone());
         if !is_function_value(right) {
-            if is_prototype || object.kind() != "identifier" || right.kind() == "identifier" {
+            if is_prototype
+                || object.kind() != "identifier"
+                || matches!(right.kind(), "identifier" | "assignment_expression")
+            {
                 return None;
             }
             return self.assigned_property(
@@ -174,7 +177,9 @@ impl super::JavaScriptExtractor {
     /// (`res.locals = {}`) declares the property; only the first assignment of
     /// each `object.name` in a file counts. A bare name as the value
     /// (`api.render = render`, `app.route = route`) declares none: the binding
-    /// it names is the definition, and a parameter's value is unknown.
+    /// it names is the definition, and a parameter's value is unknown. A
+    /// chained assignment (`req.get = req.header = function header()`) declares
+    /// none either: the inner assignment declares the definition.
     fn assigned_property(
         &mut self,
         node: Node,

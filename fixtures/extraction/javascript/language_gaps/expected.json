@@ -4175,7 +4175,7 @@
       "end_column": 48,
       "start_byte": 2810,
       "end_byte": 2814,
-      "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:body:117:40",
+      "containing_key": null,
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
@@ -4309,7 +4309,7 @@
       "end_column": 43,
       "start_byte": 2806,
       "end_byte": 2809,
-      "containing_key": "fixtures/extraction/javascript/language_gaps/source.js:body:117:40",
+      "containing_key": null,
       "target_key": null,
       "confidence": "1.000"
     },

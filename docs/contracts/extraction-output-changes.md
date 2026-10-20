@@ -106,7 +106,11 @@ first such assignment of each `object.name` in a file writes a row. The owner is
 function or class with the object's name when the file has one, else the enclosing symbol. An
 object of `this`, `module`, or `exports`, a member chain (`res.locals.user = …`), and a prototype
 (`Queue.prototype.size = 0`) write no row, and neither does a bare name as the value
-(`api.render = render`, `app.route = route`): the binding it names is the definition. The signature is the first line of the assignment.
+(`api.render = render`, `app.route = route`): the binding it names is the definition. A chained
+assignment (`req.get = req.header = function header()`) writes no row for the outer member, so the
+inner method keeps its owner. The signature is the first line of the assignment. Such a property
+owns no reference: the calls and reads in its value keep the function around it, or no owner at
+module level, as before.
 
 `symbols`, C#: a symbol in the kept branch of an `#if` group gets `preprocessorIf` in
 `metadata_json`: the condition text after `#if`, without a trailing `//` comment, joined with
