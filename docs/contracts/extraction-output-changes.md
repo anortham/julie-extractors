@@ -88,6 +88,28 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 3.9.1
+
+classification: compatible
+
+The SQLite schema remains 8, the report schema remains 3, and the extraction
+identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` advances
+`csharp-argument-types-v1` to `csharp-argument-types-v2`. No table or column
+shape changes. A schema 8 artifact written by 3.9.0 has the old capability
+snapshot fingerprint; refresh it with `julie-extract scan --root <project>
+--db <artifact.db> --force` before incremental use with 3.9.1. A schema 7
+artifact still requires extraction into a new database path, as described
+below.
+
+`identifiers`, C#: `arg_types` retains its existing shape, with corrected
+values. `typeof(…)` gives `System.Type`. A name gives the declared type of the
+nearest local or parameter declared before the call and visible at that site,
+including C# block, loop, `catch`, `using`, and `fixed` scopes; an unknown or
+out-of-scope binding stays `null` instead of borrowing an outer type. Integer
+literals use their value, radix, and suffix to choose `int`, `uint`, `long`, or
+`ulong`; values outside those ranges stay `null`. Other C# argument expressions
+keep the rules recorded under 3.9.0.
+
 ## 3.9.0
 
 classification: incompatible
@@ -125,12 +147,10 @@ under `#if X`.
 `references` and `full` levels: one entry per argument, the type name its expression states, or
 `null`. A literal gives its keyword type (`string`, `char`, `bool`, `int`, `long`, `uint`,
 `ulong`, `double`, `float`, `decimal`; `null` gives `null`); `new T(…)`, a cast `(T)e`, `e as T`,
-and `default(T)` give `T`; `typeof(…)` gives `System.Type`; `nameof(…)` gives `string`; `this` gives the
+and `default(T)` give `T`; `typeof(…)` gives `Type`; `nameof(…)` gives `string`; `this` gives the
 enclosing type; a name gives the declared type of the nearest local or parameter declared before
-the call and still visible in its lexical scope, else of a field, property, or constant of the
-enclosing type. An unknown binding stays `null` rather than borrowing an outer type. Integer
-literals use their value, radix and suffix to choose `int`, `uint`, `long`, or `ulong`; unsupported
-values stay `null`. Whitespace inside a type name is removed. A call with a named argument or a `ref`, `out`, or `in` argument gets no
+the call, else of a field, property, or constant of the enclosing type. Whitespace inside a type
+name is removed. A call with a named argument or a `ref`, `out`, or `in` argument gets no
 `arg_types`, since those change which parameter an argument fills.
 
 `identifiers` and `reference_sites`, `references` level only: an identifier whose site no written
