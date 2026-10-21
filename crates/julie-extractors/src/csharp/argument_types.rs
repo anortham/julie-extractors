@@ -48,6 +48,7 @@ pub(crate) fn enrich(
             continue;
         };
         let scope = Scope {
+            root,
             source,
             symbols,
             types,
@@ -68,7 +69,8 @@ fn argument_list(root: Node<'_>, start: u32, end: u32) -> Option<Node<'_>> {
     node.child_by_field_name("arguments")
 }
 
-struct Scope<'a> {
+struct Scope<'a, 'tree> {
+    root: Node<'tree>,
     source: &'a str,
     symbols: &'a [Symbol],
     types: &'a HashMap<String, TypeInfo>,
@@ -76,7 +78,7 @@ struct Scope<'a> {
     container: Option<&'a str>,
 }
 
-impl Scope<'_> {
+impl<'a, 'tree> Scope<'a, 'tree> {
     fn argument_types(&self, list: Node) -> Option<Vec<Option<String>>> {
         let mut found = Vec::new();
         for argument in list.named_children(&mut list.walk()) {
@@ -109,9 +111,9 @@ impl Scope<'_> {
             | "interpolated_string_expression" => Some("string".to_string()),
             "character_literal" => Some("char".to_string()),
             "boolean_literal" => Some("bool".to_string()),
-            "integer_literal" => Some(integer_type(&text(node)?).to_string()),
+            "integer_literal" => Some(integer_type(&text(node)?)?.to_string()),
             "real_literal" => Some(real_type(&text(node)?).to_string()),
-            "typeof_expression" => Some("Type".to_string()),
+            "typeof_expression" => Some("System.Type".to_string()),
             "object_creation_expression" | "cast_expression" | "default_expression" => {
                 text(node.child_by_field_name("type")?)
             }
@@ -151,10 +153,15 @@ impl Scope<'_> {
                     symbol.name == name
                         && VALUE_KINDS.contains(&symbol.kind)
                         && symbol.parent_id.as_deref() == Some(owner.id.as_str())
-                        && (TYPE_KINDS.contains(&owner.kind) || symbol.start_byte < self.at)
+                        && (TYPE_KINDS.contains(&owner.kind)
+                            || (symbol.start_byte < self.at
+                                && self.binding_visible(symbol) != Some(false)))
                 })
                 .max_by_key(|symbol| symbol.start_byte);
             if let Some(symbol) = declared {
+                if !TYPE_KINDS.contains(&owner.kind) && self.binding_visible(symbol) != Some(true) {
+                    return None;
+                }
                 return self
                     .types
                     .get(&symbol.id)
@@ -167,19 +174,139 @@ impl Scope<'_> {
         }
         None
     }
+    fn binding_visible(&self, symbol: &Symbol) -> Option<bool> {
+        let role = symbol.metadata.as_ref()?.get("role")?.as_str()?;
+        let mut declaration = self.node_covering(symbol)?;
+        let at = self.at as usize;
+        if role == "parameter" {
+            while let Some(parent) = declaration.parent() {
+                if is_callable_scope(parent.kind()) {
+                    return Some(parent.start_byte() <= at && at < parent.end_byte());
+                }
+                declaration = parent;
+            }
+            return None;
+        }
+        loop {
+            if is_loop_scope(declaration.kind()) || is_scoped_statement(declaration.kind()) {
+                return Some(declaration.start_byte() <= at && at < declaration.end_byte());
+            }
+            if declaration.kind() == "block" {
+                return Some(declaration.start_byte() <= at && at < declaration.end_byte());
+            }
+            let parent = declaration.parent()?;
+            if parent.kind() == "catch_clause" {
+                return Some(parent.start_byte() <= at && at < parent.end_byte());
+            }
+            if is_scoped_statement(parent.kind()) {
+                return Some(parent.start_byte() <= at && at < parent.end_byte());
+            }
+            if is_loop_scope(parent.kind()) {
+                if let Some(body) = parent.child_by_field_name("body") {
+                    if declaration.start_byte() < body.start_byte() {
+                        return Some(parent.start_byte() <= at && at < parent.end_byte());
+                    }
+                } else {
+                    return Some(parent.start_byte() <= at && at < parent.end_byte());
+                }
+            }
+            if parent.kind() == "block" || is_callable_scope(parent.kind()) {
+                return Some(parent.start_byte() <= at && at < parent.end_byte());
+            }
+            declaration = parent;
+        }
+    }
+
+    fn node_covering(&self, symbol: &Symbol) -> Option<Node<'tree>> {
+        let start = symbol.start_byte as usize;
+        let end = symbol.end_byte as usize;
+        if start > end || start < self.root.start_byte() || end > self.root.end_byte() {
+            return None;
+        }
+        let mut node = self.root;
+        loop {
+            let mut cursor = node.walk();
+            let child = node
+                .children(&mut cursor)
+                .find(|child| child.start_byte() <= start && child.end_byte() >= end);
+            match child {
+                Some(child) => node = child,
+                None => return Some(node),
+            }
+        }
+    }
 }
 
-fn integer_type(text: &str) -> &'static str {
+fn is_loop_scope(kind: &str) -> bool {
+    matches!(
+        kind,
+        "for_statement" | "foreach_statement" | "for_each_statement"
+    )
+}
+
+fn is_scoped_statement(kind: &str) -> bool {
+    matches!(kind, "using_statement" | "fixed_statement")
+}
+
+fn is_callable_scope(kind: &str) -> bool {
+    matches!(
+        kind,
+        "method_declaration"
+            | "constructor_declaration"
+            | "destructor_declaration"
+            | "operator_declaration"
+            | "conversion_operator_declaration"
+            | "local_function_statement"
+            | "lambda_expression"
+            | "anonymous_method_expression"
+            | "property_declaration"
+            | "accessor_declaration"
+    )
+}
+
+fn integer_type(text: &str) -> Option<&'static str> {
     let lower = text.to_ascii_lowercase();
-    if lower.ends_with("ul") || lower.ends_with("lu") {
-        "ulong"
-    } else if lower.ends_with('l') {
-        "long"
+    let (number, suffix) = if lower.ends_with("ul") || lower.ends_with("lu") {
+        (&lower[..lower.len() - 2], "ul")
     } else if lower.ends_with('u') {
-        "uint"
+        (&lower[..lower.len() - 1], "u")
+    } else if lower.ends_with('l') {
+        (&lower[..lower.len() - 1], "l")
     } else {
-        "int"
+        (lower.as_str(), "")
+    };
+    let (radix, digits) = if let Some(digits) = number.strip_prefix("0x") {
+        (16, digits)
+    } else if let Some(digits) = number.strip_prefix("0b") {
+        (2, digits)
+    } else {
+        (10, number)
+    };
+    let digits = if radix != 10 {
+        digits.strip_prefix('_').unwrap_or(digits)
+    } else {
+        digits
+    };
+    if digits.is_empty()
+        || digits.starts_with('_')
+        || digits.ends_with('_')
+        || digits.contains("__")
+    {
+        return None;
     }
+    let value = u64::from_str_radix(&digits.replace('_', ""), radix).ok()?;
+    Some(match suffix {
+        "ul" => "ulong",
+        "u" if value <= u32::MAX as u64 => "uint",
+        "u" => "ulong",
+        "l" if value <= i64::MAX as u64 => "long",
+        "l" => "ulong",
+        "" if value <= i32::MAX as u64 => "int",
+        "" if value <= u32::MAX as u64 => "uint",
+        "" if value <= i64::MAX as u64 => "long",
+        "" => "ulong",
+        _ => return None,
+    })
 }
 
 fn real_type(text: &str) -> &'static str {

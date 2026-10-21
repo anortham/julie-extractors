@@ -95,9 +95,11 @@ classification: incompatible
 The SQLite schema is 8 (`docs/contracts/sqlite-schema-v8.md`). The report schema remains 3, and
 the extraction identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` adds
 `javascript-assigned-properties-v1`, `csharp-argument-types-v1`, and
-`csharp-preprocessor-conditions-v1`. Re-extract every existing artifact with
-`julie-extract scan --force`; a write into a schema 7 artifact reports
-`schema_migration_required` (exit code `3`) without changing rows.
+`csharp-preprocessor-conditions-v1`. Re-extract every existing artifact into a
+new database path with `julie-extract scan --root <project> --db <new-v8.db>`.
+A write into a schema 7 artifact, including `scan --force`, reports
+`schema_migration_required` (exit code `3`) without changing rows. Close readers
+before replacing the old artifact with the completed v8 artifact.
 
 `symbols`, JavaScript: a value other than a function assigned on a named object
 (`res.locals = res.locals || Object.create(null)`) writes a `property` symbol named after the
@@ -123,10 +125,12 @@ under `#if X`.
 `references` and `full` levels: one entry per argument, the type name its expression states, or
 `null`. A literal gives its keyword type (`string`, `char`, `bool`, `int`, `long`, `uint`,
 `ulong`, `double`, `float`, `decimal`; `null` gives `null`); `new T(…)`, a cast `(T)e`, `e as T`,
-and `default(T)` give `T`; `typeof(…)` gives `Type`; `nameof(…)` gives `string`; `this` gives the
+and `default(T)` give `T`; `typeof(…)` gives `System.Type`; `nameof(…)` gives `string`; `this` gives the
 enclosing type; a name gives the declared type of the nearest local or parameter declared before
-the call, else of a field, property, or constant of the enclosing type. Whitespace inside a type
-name is removed. A call with a named argument or a `ref`, `out`, or `in` argument gets no
+the call and still visible in its lexical scope, else of a field, property, or constant of the
+enclosing type. An unknown binding stays `null` rather than borrowing an outer type. Integer
+literals use their value, radix and suffix to choose `int`, `uint`, `long`, or `ulong`; unsupported
+values stay `null`. Whitespace inside a type name is removed. A call with a named argument or a `ref`, `out`, or `in` argument gets no
 `arg_types`, since those change which parameter an argument fills.
 
 `identifiers` and `reference_sites`, `references` level only: an identifier whose site no written
