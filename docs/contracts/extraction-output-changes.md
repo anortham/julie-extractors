@@ -88,6 +88,28 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 3.9.1
+
+classification: compatible
+
+The SQLite schema remains 8, the report schema remains 3, and the extraction
+identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` advances
+`csharp-argument-types-v1` to `csharp-argument-types-v2`. No table or column
+shape changes. A schema 8 artifact written by 3.9.0 has the old capability
+snapshot fingerprint; refresh it with `julie-extract scan --root <project>
+--db <artifact.db> --force` before incremental use with 3.9.1. A schema 7
+artifact still requires extraction into a new database path, as described
+below.
+
+`identifiers`, C#: `arg_types` retains its existing shape, with corrected
+values. `typeof(…)` gives `System.Type`. A name gives the declared type of the
+nearest local or parameter declared before the call and visible at that site,
+including C# block, loop, `catch`, `using`, and `fixed` scopes; an unknown or
+out-of-scope binding stays `null` instead of borrowing an outer type. Integer
+literals use their value, radix, and suffix to choose `int`, `uint`, `long`, or
+`ulong`; values outside those ranges stay `null`. Other C# argument expressions
+keep the rules recorded under 3.9.0.
+
 ## 3.9.0
 
 classification: incompatible
@@ -95,9 +117,11 @@ classification: incompatible
 The SQLite schema is 8 (`docs/contracts/sqlite-schema-v8.md`). The report schema remains 3, and
 the extraction identity epoch remains 10. `EXTRACTION_CONTRACT_VERSION` adds
 `javascript-assigned-properties-v1`, `csharp-argument-types-v1`, and
-`csharp-preprocessor-conditions-v1`. Re-extract every existing artifact with
-`julie-extract scan --force`; a write into a schema 7 artifact reports
-`schema_migration_required` (exit code `3`) without changing rows.
+`csharp-preprocessor-conditions-v1`. Re-extract every existing artifact into a
+new database path with `julie-extract scan --root <project> --db <new-v8.db>`.
+A write into a schema 7 artifact, including `scan --force`, reports
+`schema_migration_required` (exit code `3`) without changing rows. Close readers
+before replacing the old artifact with the completed v8 artifact.
 
 `symbols`, JavaScript: a value other than a function assigned on a named object
 (`res.locals = res.locals || Object.create(null)`) writes a `property` symbol named after the

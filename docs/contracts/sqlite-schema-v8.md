@@ -31,5 +31,7 @@ A reader that joins `identifiers` to `reference_sites` must use a left join, or
 read the span from `identifiers`.
 
 A v7 artifact opens for read unless `--strict-schema` is set. Write access and
-`--strict-schema` refuse it with `schema_migration_required`. Recovery is a
-whole-workspace `julie-extract scan --force`.
+`--strict-schema` refuse it with `schema_migration_required`, including
+`scan --force`. Re-extract into a new database path with
+`julie-extract scan --root <project> --db <new-v8.db>`. Close readers before
+replacing the old artifact with the completed v8 artifact.
