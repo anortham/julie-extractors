@@ -80,14 +80,16 @@ scripts/check-release-state.sh
 
 Required closeout checks:
 
+Use `^{commit}` to peel an annotated tag before comparing it with `origin/main`.
+
 ```bash
 scripts/check-release-state.sh
 git fetch origin --tags
 test "$(git branch --show-current)" = "main"
 git status --short --branch
-git rev-parse HEAD origin/main "v<version>"
+git rev-parse HEAD origin/main "v<version>^{commit}"
 test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
-test "$(git rev-parse "v<version>")" = "$(git rev-parse origin/main)"
+test "$(git rev-parse "v<version>^{commit}")" = "$(git rev-parse origin/main)"
 git diff --quiet "v<version>"..origin/main
 ```
 
@@ -190,9 +192,13 @@ Historical v0.1.0 dogfood evidence: `docs/release-evidence/v0.1.0-dogfood.md`.
 Historical v0.1.0 release-candidate audit evidence:
 `docs/release-evidence/2026-06-01-v0-1-0-release-candidate-audit.md`.
 
-Current published release: `v3.9.0`.
+Current published release: `v3.9.1`.
 
 Current release notes and published evidence:
+
+- `docs/release-notes/v3.9.1.md`
+- `docs/release-evidence/2026-10-21-v3-9-1-readiness.md`
+- `docs/release-evidence/2026-10-21-v3-9-1-release.md`
 
 - `docs/release-notes/v3.9.0.md`
 - `docs/release-evidence/2026-10-20-v3-9-0-readiness.md`
