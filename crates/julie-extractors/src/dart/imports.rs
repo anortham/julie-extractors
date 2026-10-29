@@ -138,13 +138,17 @@ pub(super) fn extract_part_directive(
     ))
 }
 
-/// `library app.models;` names the library.
+/// `library app.models;` names the library. An unnamed `library;` names
+/// nothing, so it writes no symbol.
 pub(super) fn extract_library_name(
     base: &mut BaseExtractor,
     node: &Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let name = get_node_text(&find_child_by_type(node, "dotted_identifier_list")?);
+    let name = match node.kind() {
+        "library_name" => get_node_text(&find_child_by_type(node, "dotted_identifier_list")?),
+        _ => misparsed_library_name(node)?,
+    };
     Some(base.create_symbol(
         node,
         name,
@@ -161,6 +165,28 @@ pub(super) fn extract_library_name(
             annotations: Vec::new(),
         },
     ))
+}
+
+/// tree-sitter-dart reads a one-segment `library blog;` that a declaration
+/// follows as a `top_level_variable_declaration` of the variable `blog` with
+/// the type `library`. Dart forbids a built-in identifier as a type, so that
+/// shape is always the library directive. Returns the library name.
+pub(super) fn misparsed_library_name(node: &Node) -> Option<String> {
+    if node.kind() != "top_level_variable_declaration"
+        || get_node_text(&find_child_by_type(node, "type")?) != "library"
+    {
+        return None;
+    }
+    let list = find_child_by_type(node, "initialized_identifier_list")?;
+    let mut cursor = list.walk();
+    let declarators: Vec<Node> = list.named_children(&mut cursor).collect();
+    let [declarator] = declarators.as_slice() else {
+        return None;
+    };
+    if declarator.kind() != "initialized_identifier" || declarator.named_child_count() != 1 {
+        return None;
+    }
+    Some(get_node_text(&declarator.child_by_field_name("name")?))
 }
 
 /// Extract from a `library_export` node.

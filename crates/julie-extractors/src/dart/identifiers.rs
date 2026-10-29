@@ -120,7 +120,7 @@ fn extract_identifier_from_node(
         // mixin/extension declarations use `identifier` for their name (not type_identifier),
         // so the only declaration context where type_identifier IS the name is `type_alias`.
         "type_identifier" => {
-            if is_type_declaration_name(&node) {
+            if is_type_declaration_name(&node) || is_misparsed_library_keyword(&node) {
                 return;
             }
 
@@ -510,6 +510,15 @@ fn is_type_declaration_name(node: &Node) -> bool {
         }
     }
     false
+}
+
+/// The `library` keyword of a `library blog;` directive that the grammar read
+/// as a variable type (see `imports::misparsed_library_name`).
+fn is_misparsed_library_keyword(node: &Node) -> bool {
+    node.parent()
+        .filter(|parent| parent.kind() == "type")
+        .and_then(|type_node| type_node.parent())
+        .is_some_and(|declaration| super::imports::misparsed_library_name(&declaration).is_some())
 }
 
 /// The called name of a call and the byte range of its receiver.

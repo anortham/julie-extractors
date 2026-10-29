@@ -563,6 +563,15 @@ impl DartExtractor {
                     current_parent_id.as_deref(),
                 ));
             }
+            "top_level_variable_declaration"
+                if imports::misparsed_library_name(&node).is_some() =>
+            {
+                symbol = imports::extract_library_name(
+                    &mut self.base,
+                    &node,
+                    current_parent_id.as_deref(),
+                );
+            }
             "top_level_variable_declaration" => {
                 symbols.extend(members::extract_top_level_variables(
                     &mut self.base,

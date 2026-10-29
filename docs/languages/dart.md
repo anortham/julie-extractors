@@ -62,3 +62,18 @@ These cases record no fact, because the type would be a guess:
   and the on-type is usually declared in another file or the SDK.
 - A chain that ends in any other method (`Type.create().load()`, `then()`),
   a `?.` call, or a property access.
+
+## Library directives
+
+`library blog;` and `library app.models;` write one `namespace` row with the
+library name, the metadata `type: library`, and the doc comment above the
+directive. An annotation before the directive does not change the row.
+
+`tree-sitter-dart` reads a one-segment `library blog;` that a declaration
+follows as a variable `blog` of the type `library`. Dart does not allow a
+built-in identifier such as `library` as a type, so the extractor reads that
+shape as the directive. It writes the same `namespace` row, and no variable
+row, type fact, or `library` type identifier.
+
+An unnamed `library;` (Dart 2.19 and later) writes no row, because it has no
+name to look up.
