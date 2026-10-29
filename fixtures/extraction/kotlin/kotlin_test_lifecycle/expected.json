@@ -630,7 +630,11 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 2
+        "arg_count": 2,
+        "arg_types": [
+          "Int",
+          "Int"
+        ]
       }
     }
   ],

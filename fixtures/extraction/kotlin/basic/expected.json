@@ -1462,7 +1462,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          null
+        ]
       }
     },
     {
@@ -1497,7 +1500,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -1532,7 +1536,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          "String"
+        ]
       }
     },
     {
@@ -1551,7 +1558,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          "Int"
+        ]
       }
     },
     {
@@ -1570,7 +1580,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          "Int"
+        ]
       }
     },
     {
@@ -1757,6 +1770,7 @@
       "receiver_type": "Worker",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "this"
       }
     },
@@ -1776,7 +1790,11 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 2
+        "arg_count": 2,
+        "arg_types": [
+          "String",
+          "Int"
+        ]
       }
     },
     {
@@ -1795,7 +1813,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          "Int"
+        ]
       }
     },
     {
@@ -1816,6 +1837,9 @@
       "receiver_type": "Worker",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "Int"
+        ],
         "receiver": "this"
       }
     },

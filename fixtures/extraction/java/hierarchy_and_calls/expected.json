@@ -2462,9 +2462,9 @@
   ],
   "identifiers": [
     {
-      "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:ArrayList:type_usage:51:33",
+      "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:ArrayList:call:51:33",
       "name": "ArrayList",
-      "kind": "type_usage",
+      "kind": "call",
       "language": "java",
       "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
       "start_line": 51,
@@ -2475,7 +2475,11 @@
       "end_byte": 1299,
       "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:OrderService:49:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Base:type_usage:15:19",
@@ -2510,6 +2514,28 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Box:call:38:41",
+      "name": "Box",
+      "kind": "call",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
+      "start_line": 38,
+      "start_column": 41,
+      "end_line": 38,
+      "end_column": 44,
+      "start_byte": 930,
+      "end_byte": 933,
+      "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:of:38:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "String"
+        ]
+      }
+    },
+    {
       "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Box:type_usage:38:11",
       "name": "Box",
       "kind": "type_usage",
@@ -2521,22 +2547,6 @@
       "end_column": 14,
       "start_byte": 900,
       "end_byte": 903,
-      "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:of:38:4",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Box:type_usage:38:41",
-      "name": "Box",
-      "kind": "type_usage",
-      "language": "java",
-      "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
-      "start_line": 38,
-      "start_column": 41,
-      "end_line": 38,
-      "end_column": 44,
-      "start_byte": 930,
-      "end_byte": 933,
       "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:of:38:4",
       "target_key": null,
       "confidence": "1.000"
@@ -2590,9 +2600,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:HashMap:type_usage:52:37",
+      "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:HashMap:call:52:37",
       "name": "HashMap",
-      "kind": "type_usage",
+      "kind": "call",
       "language": "java",
       "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
       "start_line": 52,
@@ -2603,7 +2613,31 @@
       "end_byte": 1355,
       "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:OrderService:49:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
+    },
+    {
+      "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Helper:call:43:38",
+      "name": "Helper",
+      "kind": "call",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
+      "start_line": 43,
+      "start_column": 38,
+      "end_line": 43,
+      "end_column": 44,
+      "start_byte": 1109,
+      "end_byte": 1115,
+      "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:OrderService:41:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Helper:type_usage:43:18",
@@ -2622,20 +2656,24 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Helper:type_usage:43:38",
-      "name": "Helper",
-      "kind": "type_usage",
+      "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Inner:call:53:38",
+      "name": "Inner",
+      "kind": "call",
       "language": "java",
       "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
-      "start_line": 43,
+      "start_line": 53,
       "start_column": 38,
-      "end_line": 43,
-      "end_column": 44,
-      "start_byte": 1109,
-      "end_byte": 1115,
-      "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:OrderService:41:0",
+      "end_line": 53,
+      "end_column": 43,
+      "start_byte": 1414,
+      "end_byte": 1419,
+      "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:OrderService:49:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Inner:type_usage:53:14",
@@ -2649,22 +2687,6 @@
       "end_column": 19,
       "start_byte": 1390,
       "end_byte": 1395,
-      "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:OrderService:49:4",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/java/hierarchy_and_calls/source.java:Inner:type_usage:53:38",
-      "name": "Inner",
-      "kind": "type_usage",
-      "language": "java",
-      "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
-      "start_line": 53,
-      "start_column": 38,
-      "end_line": 53,
-      "end_column": 43,
-      "start_byte": 1414,
-      "end_byte": 1419,
       "containing_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:OrderService:49:4",
       "target_key": null,
       "confidence": "1.000"
@@ -3358,6 +3380,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          null
+        ],
         "receiver": "users"
       }
     },
@@ -3377,7 +3402,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          null
+        ]
       }
     },
     {
@@ -3397,6 +3425,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "java.lang.Class"
+        ],
         "receiver": "LoggerFactory"
       }
     },
@@ -3471,7 +3502,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          null
+        ]
       }
     },
     {
@@ -3491,6 +3525,7 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "Ops"
       }
     },
@@ -3530,6 +3565,7 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "Ops"
       }
     },
@@ -3550,6 +3586,7 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "helper"
       }
     },
@@ -3590,6 +3627,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "Registry"
       }
     },
@@ -3626,6 +3666,7 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "users"
       }
     },
@@ -3677,7 +3718,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     }
   ],
@@ -4262,7 +4304,7 @@
   ],
   "type_argument_usages": [
     {
-      "identifier_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:ArrayList:type_usage:51:33",
+      "identifier_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:ArrayList:call:51:33",
       "language": "java",
       "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
       "arguments": [
@@ -4327,7 +4369,7 @@
       ]
     },
     {
-      "identifier_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:HashMap:type_usage:52:37",
+      "identifier_key": "fixtures/extraction/java/hierarchy_and_calls/source.java:HashMap:call:52:37",
       "language": "java",
       "file_path": "fixtures/extraction/java/hierarchy_and_calls/source.java",
       "arguments": [

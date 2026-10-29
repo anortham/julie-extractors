@@ -1123,6 +1123,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "client"
       }
     },
@@ -1143,6 +1146,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "client"
       }
     },
@@ -1163,6 +1169,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "client"
       }
     },
@@ -1183,6 +1192,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "ktor"
       }
     },
@@ -1203,6 +1215,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "client"
       }
     },
@@ -1223,6 +1238,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "String",
+          null
+        ],
         "receiver": "rest"
       }
     },
@@ -1243,6 +1262,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "String",
+          null
+        ],
         "receiver": "other"
       }
     },
@@ -1351,6 +1374,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "client"
       }
     },

@@ -1205,6 +1205,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "client"
       }
     },
@@ -1225,6 +1228,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "map"
       }
     },
@@ -1334,6 +1340,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "call"
       }
     },
@@ -1354,6 +1363,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "call"
       }
     },
@@ -1374,6 +1386,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "call"
       }
     },
@@ -1394,6 +1409,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "call"
       }
     },
@@ -1414,6 +1432,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "call"
       }
     },
@@ -1434,6 +1455,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "call"
       }
     },
@@ -1454,6 +1478,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "call"
       }
     },
@@ -1474,6 +1501,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "call"
       }
     },
@@ -1494,6 +1524,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "call"
       }
     },

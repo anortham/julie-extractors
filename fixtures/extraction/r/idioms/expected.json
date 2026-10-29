@@ -4108,6 +4108,25 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/r/idioms/source.R:balance:variable_ref:70:4",
+      "name": "balance",
+      "kind": "variable_ref",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/idioms/source.R",
+      "start_line": 70,
+      "start_column": 4,
+      "end_line": 70,
+      "end_column": 11,
+      "start_byte": 2091,
+      "end_byte": 2098,
+      "containing_key": "fixtures/extraction/r/idioms/source.R:withdraw:69:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "assignment": "<<-"
+      }
+    },
+    {
       "key": "fixtures/extraction/r/idioms/source.R:balance:variable_ref:72:26",
       "name": "balance",
       "kind": "variable_ref",
@@ -4749,6 +4768,25 @@
       "containing_key": "fixtures/extraction/r/idioms/source.R:push:28:17",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/r/idioms/source.R:items:variable_ref:30:4",
+      "name": "items",
+      "kind": "variable_ref",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/idioms/source.R",
+      "start_line": 30,
+      "start_column": 4,
+      "end_line": 30,
+      "end_column": 9,
+      "start_byte": 953,
+      "end_byte": 958,
+      "containing_key": "fixtures/extraction/r/idioms/source.R:push:28:17",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "assignment": "<<-"
+      }
     },
     {
       "key": "fixtures/extraction/r/idioms/source.R:label:member_access:83:55",

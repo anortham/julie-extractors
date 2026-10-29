@@ -2901,9 +2901,9 @@
   ],
   "identifiers": [
     {
-      "key": "fixtures/extraction/java/basic/source.java:ArrayList:type_usage:149:34",
+      "key": "fixtures/extraction/java/basic/source.java:ArrayList:call:149:34",
       "name": "ArrayList",
-      "kind": "type_usage",
+      "kind": "call",
       "language": "java",
       "file_path": "fixtures/extraction/java/basic/source.java",
       "start_line": 149,
@@ -2914,7 +2914,11 @@
       "end_byte": 3448,
       "containing_key": "fixtures/extraction/java/basic/source.java:area:148:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:AtomicInteger:type_usage:142:40",
@@ -3125,9 +3129,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/java/basic/source.java:IllegalArgumentException:type_usage:134:33",
+      "key": "fixtures/extraction/java/basic/source.java:IllegalArgumentException:call:134:33",
       "name": "IllegalArgumentException",
-      "kind": "type_usage",
+      "kind": "call",
       "language": "java",
       "file_path": "fixtures/extraction/java/basic/source.java",
       "start_line": 134,
@@ -3138,7 +3142,13 @@
       "end_byte": 3045,
       "containing_key": "fixtures/extraction/java/basic/source.java:Money:133:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "String"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/java/basic/source.java:Integer:type_usage:109:32",
@@ -3397,6 +3407,26 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/java/basic/source.java:Object:call:21:43",
+      "name": "Object",
+      "kind": "call",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "start_line": 21,
+      "start_column": 43,
+      "end_line": 21,
+      "end_column": 49,
+      "start_byte": 344,
+      "end_byte": 350,
+      "containing_key": "fixtures/extraction/java/basic/source.java:Worker:7:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
+    },
+    {
       "key": "fixtures/extraction/java/basic/source.java:Object:type_usage:148:16",
       "name": "Object",
       "kind": "type_usage",
@@ -3424,22 +3454,6 @@
       "end_column": 31,
       "start_byte": 326,
       "end_byte": 332,
-      "containing_key": "fixtures/extraction/java/basic/source.java:Worker:7:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/java/basic/source.java:Object:type_usage:21:43",
-      "name": "Object",
-      "kind": "type_usage",
-      "language": "java",
-      "file_path": "fixtures/extraction/java/basic/source.java",
-      "start_line": 21,
-      "start_column": 43,
-      "end_line": 21,
-      "end_column": 49,
-      "start_byte": 344,
-      "end_byte": 350,
       "containing_key": "fixtures/extraction/java/basic/source.java:Worker:7:0",
       "target_key": null,
       "confidence": "1.000"
@@ -3882,6 +3896,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "sum"
       }
     },
@@ -3982,6 +4000,7 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "stream"
       }
     },
@@ -4018,6 +4037,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "em"
       }
     },
@@ -4070,6 +4092,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "boolean"
+        ],
         "receiver": "Worker",
         "receiver_qualifier": "fixture"
       }
@@ -4090,7 +4116,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -4109,7 +4136,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          "String"
+        ]
       }
     },
     {
@@ -4160,7 +4190,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -4195,7 +4226,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          "int"
+        ]
       }
     },
     {
@@ -4508,7 +4542,11 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 2
+        "arg_count": 2,
+        "arg_types": [
+          "String",
+          "int"
+        ]
       }
     },
     {
@@ -4528,6 +4566,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "String",
+          "int"
+        ],
         "receiver": "Worker",
         "receiver_qualifier": "fixture"
       }
@@ -4548,7 +4590,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -4568,6 +4611,7 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "c"
       }
     },
@@ -4588,6 +4632,7 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "c"
       }
     },
@@ -4607,7 +4652,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          "int"
+        ]
       }
     },
     {
@@ -4628,6 +4676,9 @@
       "receiver_type": "Worker",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "int"
+        ],
         "receiver": "this"
       }
     },
@@ -4665,6 +4716,7 @@
       "receiver_type": "Worker",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "super"
       }
     },
@@ -4685,6 +4737,7 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "task"
       }
     },
@@ -4705,6 +4758,7 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "wrapped"
       }
     },
@@ -4725,6 +4779,7 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "bound"
       }
     },
@@ -4856,7 +4911,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          "long"
+        ]
       }
     },
     {
@@ -6558,7 +6616,7 @@
   ],
   "type_argument_usages": [
     {
-      "identifier_key": "fixtures/extraction/java/basic/source.java:ArrayList:type_usage:149:34",
+      "identifier_key": "fixtures/extraction/java/basic/source.java:ArrayList:call:149:34",
       "language": "java",
       "file_path": "fixtures/extraction/java/basic/source.java",
       "arguments": [

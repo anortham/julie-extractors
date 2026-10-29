@@ -2248,7 +2248,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          null
+        ]
       }
     },
     {
@@ -2562,6 +2565,26 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:RestTemplate:call:59:42",
+      "name": "RestTemplate",
+      "kind": "call",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 59,
+      "start_column": 42,
+      "end_line": 59,
+      "end_column": 54,
+      "start_byte": 1827,
+      "end_byte": 1839,
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:OutboundClients:58:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
+    },
+    {
       "key": "fixtures/extraction/java/backend_http_boundaries/source.java:RestTemplate:type_usage:59:18",
       "name": "RestTemplate",
       "kind": "type_usage",
@@ -2573,22 +2596,6 @@
       "end_column": 30,
       "start_byte": 1803,
       "end_byte": 1815,
-      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:OutboundClients:58:0",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:RestTemplate:type_usage:59:42",
-      "name": "RestTemplate",
-      "kind": "type_usage",
-      "language": "java",
-      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
-      "start_line": 59,
-      "start_column": 42,
-      "end_line": 59,
-      "end_column": 54,
-      "start_byte": 1827,
-      "end_byte": 1839,
       "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:OutboundClients:58:0",
       "target_key": null,
       "confidence": "1.000"
@@ -2977,7 +2984,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -3012,7 +3020,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          "java.lang.Class"
+        ]
       }
     },
     {
@@ -3031,7 +3042,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -3050,7 +3062,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -3070,6 +3083,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "URI"
       }
     },
@@ -3090,6 +3106,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "URI"
       }
     },
@@ -3110,6 +3129,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "WebClient"
       }
     },
@@ -3130,6 +3152,13 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 5,
+        "arg_types": [
+          "String",
+          null,
+          null,
+          "java.lang.Class",
+          "int"
+        ],
         "receiver": "template"
       }
     },
@@ -3150,6 +3179,7 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "web"
       }
     },
@@ -3170,6 +3200,11 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 3,
+        "arg_types": [
+          "String",
+          "java.lang.Class",
+          "int"
+        ],
         "receiver": "rest"
       }
     },
@@ -3222,6 +3257,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          null
+        ],
         "receiver": "HttpRequest"
       }
     },
@@ -3242,6 +3280,7 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "HttpRequest"
       }
     },
@@ -3325,7 +3364,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -3376,7 +3416,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          null
+        ]
       }
     },
     {
@@ -3395,7 +3438,11 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 2
+        "arg_count": 2,
+        "arg_types": [
+          "String",
+          "int"
+        ]
       }
     },
     {

@@ -542,9 +542,9 @@
   ],
   "identifiers": [
     {
-      "key": "fixtures/extraction/java/reference_targets/source.java:Hidden:type_usage:34:19",
+      "key": "fixtures/extraction/java/reference_targets/source.java:Hidden:call:34:19",
       "name": "Hidden",
-      "kind": "type_usage",
+      "kind": "call",
       "language": "java",
       "file_path": "fixtures/extraction/java/reference_targets/source.java",
       "start_line": 34,
@@ -555,12 +555,16 @@
       "end_byte": 446,
       "containing_key": "fixtures/extraction/java/reference_targets/source.java:local:33:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
-      "key": "fixtures/extraction/java/reference_targets/source.java:Hidden:type_usage:40:19",
+      "key": "fixtures/extraction/java/reference_targets/source.java:Hidden:call:40:19",
       "name": "Hidden",
-      "kind": "type_usage",
+      "kind": "call",
       "language": "java",
       "file_path": "fixtures/extraction/java/reference_targets/source.java",
       "start_line": 40,
@@ -571,7 +575,11 @@
       "end_byte": 524,
       "containing_key": "fixtures/extraction/java/reference_targets/source.java:foreign:39:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/java/reference_targets/source.java:Object:type_usage:33:4",
@@ -621,7 +629,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -640,7 +649,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {

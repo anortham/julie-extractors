@@ -96,7 +96,10 @@ fn anonymous_class_records_superclass_mixins_and_leaves_arguments_outside() {
             .as_deref(),
         Some("new Base(seed())")
     );
-    assert_eq!(call_owners(&result), ["seed in start", "log in go"]);
+    assert_eq!(
+        call_owners(&result),
+        ["seed in start", "log in go", "Concrete in plain"]
+    );
     assert_eq!(
         owner_rows(&result),
         [

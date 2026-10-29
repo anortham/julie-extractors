@@ -229,9 +229,9 @@
   ],
   "identifiers": [
     {
-      "key": "fixtures/extraction/java/cross_file/Source.java:Other:type_usage:13:22",
+      "key": "fixtures/extraction/java/cross_file/Source.java:Other:call:13:22",
       "name": "Other",
-      "kind": "type_usage",
+      "kind": "call",
       "language": "java",
       "file_path": "fixtures/extraction/java/cross_file/Source.java",
       "start_line": 13,
@@ -242,7 +242,11 @@
       "end_byte": 445,
       "containing_key": "fixtures/extraction/java/cross_file/Source.java:entry:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/java/cross_file/Source.java:Other:type_usage:13:8",
@@ -276,7 +280,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     }
   ],

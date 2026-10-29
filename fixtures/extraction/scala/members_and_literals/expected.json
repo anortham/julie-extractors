@@ -2416,7 +2416,14 @@
       "end_byte": 921,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:run:36:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2,
+        "arg_types": [
+          "Int",
+          "Int"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:List:type_usage:32:58",
@@ -2770,6 +2777,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
+        "arg_types": [],
         "receiver": "System"
       }
     },
@@ -2853,6 +2862,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "requests"
       }
     },
@@ -2870,7 +2883,11 @@
       "end_byte": 1759,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:load:68:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:i:variable_ref:45:28",
@@ -2950,7 +2967,13 @@
       "end_byte": 1043,
       "containing_key": "fixtures/extraction/scala/members_and_literals/source.scala:loop:42:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          null
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/scala/members_and_literals/source.scala:m:variable_ref:25:54",
@@ -3284,6 +3307,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "ws"
       }
     },

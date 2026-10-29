@@ -328,6 +328,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
+        "arg_types": [],
         "receiver": "Thing"
       }
     },
@@ -361,7 +363,11 @@
       "end_byte": 384,
       "containing_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/scala/cross_file/source.scala:localHelper:call:17:12",
@@ -377,7 +383,11 @@
       "end_byte": 479,
       "containing_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/scala/cross_file/source.scala:total:variable_ref:14:27",

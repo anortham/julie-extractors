@@ -1973,6 +1973,26 @@
   ],
   "identifiers": [
     {
+      "key": "fixtures/extraction/scala/basic/source.scala:Foo:call:74:26",
+      "name": "Foo",
+      "kind": "call",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 74,
+      "start_column": 26,
+      "end_line": 74,
+      "end_column": 29,
+      "start_byte": 1525,
+      "end_byte": 1528,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
+    },
+    {
       "key": "fixtures/extraction/scala/basic/source.scala:Foo:call:75:19",
       "name": "Foo",
       "kind": "call",
@@ -1986,7 +2006,11 @@
       "end_byte": 1553,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/scala/basic/source.scala:Foo:type_usage:67:22",
@@ -2048,22 +2072,6 @@
       "end_column": 18,
       "start_byte": 1488,
       "end_byte": 1491,
-      "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/scala/basic/source.scala:Foo:type_usage:74:26",
-      "name": "Foo",
-      "kind": "type_usage",
-      "language": "scala",
-      "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "start_line": 74,
-      "start_column": 26,
-      "end_line": 74,
-      "end_column": 29,
-      "start_byte": 1525,
-      "end_byte": 1528,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
       "target_key": null,
       "confidence": "1.000"
@@ -2199,6 +2207,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
+        "arg_types": [],
         "receiver": "mutable",
         "receiver_qualifier": "scala.collection"
       }
@@ -2249,7 +2259,11 @@
       "end_byte": 1581,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/scala/basic/source.scala:build:call:78:16",
@@ -2265,7 +2279,11 @@
       "end_byte": 1662,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:ping:72:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/scala/basic/source.scala:collection:member_access:77:25",
@@ -2412,7 +2430,13 @@
       "end_byte": 645,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:fetchStatus:26:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "String"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/scala/basic/source.scala:helper:call:12:4",
@@ -2428,7 +2452,13 @@
       "end_byte": 228,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:run:9:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "Int"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/scala/basic/source.scala:i:variable_ref:35:40",
@@ -2575,6 +2605,8 @@
       "confidence": "1.000",
       "receiver_type": "Widget",
       "metadata": {
+        "arg_count": 0,
+        "arg_types": [],
         "receiver": "this"
       }
     },
@@ -2594,6 +2626,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
+        "arg_types": [],
         "receiver": "other"
       }
     },
@@ -2614,6 +2648,8 @@
       "confidence": "1.000",
       "receiver_type": "Widget",
       "metadata": {
+        "arg_count": 0,
+        "arg_types": [],
         "receiver": "this"
       }
     },
@@ -2651,7 +2687,14 @@
       "end_byte": 406,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:recordRun:18:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2,
+        "arg_types": [
+          "String",
+          "Int"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/scala/basic/source.scala:opaque:type_usage:56:1",
@@ -2699,7 +2742,13 @@
       "end_byte": 213,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:run:9:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "Int"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/scala/basic/source.scala:scala:variable_ref:77:19",
@@ -2747,7 +2796,11 @@
       "end_byte": 1447,
       "containing_key": "fixtures/extraction/scala/basic/source.scala:Widget:71:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/scala/basic/source.scala:this:variable_ref:79:4",

@@ -653,7 +653,12 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 3
+        "arg_count": 3,
+        "arg_types": [
+          "Int",
+          "Int",
+          "Int"
+        ]
       }
     },
     {
@@ -672,7 +677,12 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 3
+        "arg_count": 3,
+        "arg_types": [
+          "Int",
+          "Int",
+          "Int"
+        ]
       }
     },
     {
@@ -710,7 +720,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -729,7 +740,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -748,7 +760,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -786,7 +799,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {

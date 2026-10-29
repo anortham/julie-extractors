@@ -3019,9 +3019,9 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/java/test_roles/test_source.java:ArrayStack:type_usage:172:19",
+      "key": "fixtures/extraction/java/test_roles/test_source.java:ArrayStack:call:172:19",
       "name": "ArrayStack",
-      "kind": "type_usage",
+      "kind": "call",
       "language": "java",
       "file_path": "fixtures/extraction/java/test_roles/test_source.java",
       "start_line": 172,
@@ -3032,7 +3032,11 @@
       "end_byte": 3603,
       "containing_key": "fixtures/extraction/java/test_roles/test_source.java:create:171:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/java/test_roles/test_source.java:ArrayStackTest:type_usage:177:45",
@@ -3866,7 +3870,11 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 2
+        "arg_count": 2,
+        "arg_types": [
+          "int",
+          null
+        ]
       }
     },
     {
@@ -3885,7 +3893,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -3920,7 +3929,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          "int"
+        ]
       }
     },
     {
@@ -3971,7 +3983,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -3991,6 +4004,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4011,6 +4028,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4031,6 +4052,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4051,6 +4076,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4071,6 +4100,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4091,6 +4124,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4111,6 +4148,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4131,6 +4172,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4151,6 +4196,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4171,6 +4220,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4191,6 +4244,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4211,6 +4268,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4231,6 +4292,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4251,6 +4316,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4271,6 +4340,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4291,6 +4364,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          null,
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4311,6 +4388,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4331,6 +4412,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4351,6 +4436,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4371,6 +4460,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4391,6 +4484,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4411,6 +4508,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4431,6 +4532,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4451,6 +4556,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     },
@@ -4471,6 +4580,10 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 2,
+        "arg_types": [
+          "int",
+          "int"
+        ],
         "receiver": "LedgerSupport"
       }
     }

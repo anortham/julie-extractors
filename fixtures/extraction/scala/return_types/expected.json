@@ -121,6 +121,22 @@
   "structured_pending_relationships": [],
   "identifiers": [
     {
+      "key": "fixtures/extraction/scala/return_types/source.scala:Result:call:2:42",
+      "name": "Result",
+      "kind": "call",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/return_types/source.scala",
+      "start_line": 2,
+      "start_column": 42,
+      "end_line": 2,
+      "end_column": 48,
+      "start_byte": 55,
+      "end_byte": 61,
+      "containing_key": "fixtures/extraction/scala/return_types/source.scala:make:2:17",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/scala/return_types/source.scala:Result:type_usage:2:29",
       "name": "Result",
       "kind": "type_usage",
@@ -132,22 +148,6 @@
       "end_column": 35,
       "start_byte": 42,
       "end_byte": 48,
-      "containing_key": "fixtures/extraction/scala/return_types/source.scala:make:2:17",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/scala/return_types/source.scala:Result:type_usage:2:42",
-      "name": "Result",
-      "kind": "type_usage",
-      "language": "scala",
-      "file_path": "fixtures/extraction/scala/return_types/source.scala",
-      "start_line": 2,
-      "start_column": 42,
-      "end_line": 2,
-      "end_column": 48,
-      "start_byte": 55,
-      "end_byte": 61,
       "containing_key": "fixtures/extraction/scala/return_types/source.scala:make:2:17",
       "target_key": null,
       "confidence": "1.000"

@@ -2018,7 +2018,13 @@
       "end_byte": 220,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:adds items:11:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "Boolean"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:assert:call:17:32",
@@ -2034,7 +2040,13 @@
       "end_byte": 343,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:push then pop:17:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "Boolean"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:assert:call:22:27",
@@ -2050,7 +2062,13 @@
       "end_byte": 433,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:skipped:22:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "Boolean"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:assert:call:23:27",
@@ -2066,7 +2084,13 @@
       "end_byte": 475,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:slow:23:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "Boolean"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:assert:call:4:25",
@@ -2082,7 +2106,13 @@
       "end_byte": 113,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:have size 0:4:6",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "Boolean"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:assert:call:51:22",
@@ -2098,7 +2128,13 @@
       "end_byte": 1104,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:find users:51:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          null
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:assertEquals:call:24:34",
@@ -2114,7 +2150,14 @@
       "end_byte": 530,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:with fixture:24:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2,
+        "arg_types": [
+          null,
+          "String"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:assertTrue:call:40:19",
@@ -2130,7 +2173,13 @@
       "end_byte": 829,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:adds:40:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          null
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:describe:call:29:2",
@@ -2162,7 +2211,11 @@
       "end_byte": 670,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:not yet:30:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:forAll:call:45:27",
@@ -2178,7 +2231,13 @@
       "end_byte": 934,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          null
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:ignore:call:30:4",
@@ -2274,7 +2333,13 @@
       "end_byte": 911,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:startsWith:45:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "String"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:repo:variable_ref:51:29",
@@ -2356,6 +2421,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "a"
       }
     },
@@ -2389,7 +2458,13 @@
       "end_byte": 459,
       "containing_key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:slow:23:2",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          null
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/scala/test_suites/src/test/scala/StackSpec.scala:test:call:22:2",
