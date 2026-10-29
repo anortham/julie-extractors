@@ -8,6 +8,7 @@ mod current_syntax;
 mod identifiers;
 mod initializer_types;
 mod literals;
+mod package_module_facts;
 mod structural_facts;
 mod task14;
 mod test_detection; // base_types + Swift Testing annotations

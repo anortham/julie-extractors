@@ -41,7 +41,13 @@ pub(super) fn collect_swift_framework_facts(
         walk_testing_traits(root, language, file_path, content, 0, &mut facts);
     }
     if is_package_manifest(file_path) {
-        walk_manifest(root, language, file_path, content, 0, &mut facts);
+        let manifest = Manifest {
+            language,
+            file_path,
+            content,
+            package_name: package_name(root, content, 0),
+        };
+        walk_manifest(root, &manifest, 0, &mut facts);
     }
     facts
 }
@@ -451,19 +457,19 @@ fn lambda_binds(lambda: Node, name: &str, content: &str) -> bool {
     })
 }
 
-fn walk_manifest(
-    node: Node,
-    language: &str,
-    file_path: &str,
-    content: &str,
-    depth: u32,
-    facts: &mut Vec<StructuralFact>,
-) {
+struct Manifest<'a> {
+    language: &'a str,
+    file_path: &'a str,
+    content: &'a str,
+    package_name: Option<&'a str>,
+}
+
+fn walk_manifest(node: Node, manifest: &Manifest, depth: u32, facts: &mut Vec<StructuralFact>) {
     if !should_visit_tree_depth(depth) {
         return;
     }
     if node.kind() == "call_expression"
-        && let Some(fact) = manifest_fact(node, language, file_path, content)
+        && let Some(fact) = manifest_fact(node, manifest)
     {
         facts.push(fact);
     }
@@ -472,18 +478,50 @@ fn walk_manifest(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_manifest(child, language, file_path, content, child_depth, facts);
+        walk_manifest(child, manifest, child_depth, facts);
     }
 }
 
-fn manifest_fact(
-    call: Node,
-    language: &str,
-    file_path: &str,
-    content: &str,
-) -> Option<StructuralFact> {
+/// The static `name:` of the file's first `Package(...)` call.
+fn package_name<'a>(node: Node, content: &'a str, depth: u32) -> Option<&'a str> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+    if is_package_call(node, content) {
+        return swift_call_arguments(node, content)
+            .into_iter()
+            .find(|(label, _)| label.as_deref() == Some("name"))
+            .and_then(|(_, value)| swift_static_string(value, content));
+    }
+    let child_depth = child_tree_depth(depth)?;
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .find_map(|child| package_name(child, content, child_depth))
+}
+
+fn is_package_call(call: Node, content: &str) -> bool {
+    call.kind() == "call_expression"
+        && call
+            .named_child(0)
+            .and_then(|callee| content.get(callee.start_byte()..callee.end_byte()))
+            == Some("Package")
+}
+
+/// SwiftPM's conventional folder for a target without `path:`, relative to
+/// the folder of `Package.swift`. A binary target has none.
+fn default_target_path(kind: &str, name: &str) -> Option<String> {
+    let root = match kind {
+        "testTarget" => "Tests",
+        "plugin" => "Plugins",
+        "binaryTarget" => return None,
+        _ => "Sources",
+    };
+    Some(format!("{root}/{name}"))
+}
+
+fn manifest_fact(call: Node, manifest: &Manifest) -> Option<StructuralFact> {
+    let content = manifest.content;
     let callee = call.named_child(0)?;
-    let callee_text = content.get(callee.start_byte()..callee.end_byte())?;
     let arguments = swift_call_arguments(call, content);
     let labeled = |label: &str| {
         arguments
@@ -493,25 +531,28 @@ fn manifest_fact(
     };
     let labeled_string =
         |label: &str| labeled(label).and_then(|value| swift_static_string(value, content));
-    if callee_text == "Package" {
+    if is_package_call(call, content) {
         let mut metadata = manifest_metadata();
         insert_string(&mut metadata, "name", labeled_string("name")?);
         return Some(fact_for_node(
-            file_path,
-            language,
+            manifest.file_path,
+            manifest.language,
             SWIFTPM_PACKAGE_PATTERN_ID,
             "package",
             call,
             metadata,
         ));
     }
-    if callee.kind() != "prefix_expression" || !is_manifest_member(call, content) {
+    if callee.kind() != "prefix_expression" {
         return None;
     }
-    let factory = callee_text.strip_prefix('.')?;
+    let list = manifest_list(call, content)?;
+    let factory = content
+        .get(callee.start_byte()..callee.end_byte())?
+        .strip_prefix('.')?;
     let mut metadata = manifest_metadata();
-    let (pattern_id, capture) = match factory {
-        "library" | "executable" | "plugin" if in_argument(call, "products", content) => {
+    let (pattern_id, capture) = match (factory, list) {
+        ("library" | "executable" | "plugin", ManifestList::Products) => {
             insert_string(&mut metadata, "product_kind", factory);
             insert_string(&mut metadata, "name", labeled_string("name")?);
             let targets = labeled("targets")
@@ -520,16 +561,28 @@ fn manifest_fact(
             if !targets.is_empty() {
                 insert_string_array(&mut metadata, "targets", targets);
             }
+            if let Some(package) = manifest.package_name {
+                insert_string(&mut metadata, "package_name", package);
+            }
             (SWIFTPM_PRODUCT_PATTERN_ID, "product")
         }
-        "target" | "testTarget" | "executableTarget" | "macro" | "plugin" | "systemLibrary"
-        | "binaryTarget"
-            if in_argument(call, "targets", content) =>
-        {
+        (
+            "target" | "testTarget" | "executableTarget" | "macro" | "plugin" | "systemLibrary"
+            | "binaryTarget",
+            ManifestList::Targets,
+        ) => {
+            let name = labeled_string("name")?;
             insert_string(&mut metadata, "target_kind", factory);
-            insert_string(&mut metadata, "name", labeled_string("name")?);
+            insert_string(&mut metadata, "name", name);
             if let Some(path) = labeled_string("path") {
                 insert_string(&mut metadata, "path", path);
+                insert_string(&mut metadata, "effective_path", path);
+                insert_string(&mut metadata, "path_origin", "written");
+            } else if labeled("path").is_none()
+                && let Some(path) = default_target_path(factory, name)
+            {
+                insert_string(&mut metadata, "effective_path", &path);
+                insert_string(&mut metadata, "path_origin", "default");
             }
             let dependencies = labeled("dependencies")
                 .map(|list| target_dependency_names(list, content))
@@ -537,9 +590,12 @@ fn manifest_fact(
             if !dependencies.is_empty() {
                 insert_string_array(&mut metadata, "dependencies", dependencies);
             }
+            if let Some(package) = manifest.package_name {
+                insert_string(&mut metadata, "package_name", package);
+            }
             (SWIFTPM_TARGET_PATTERN_ID, "target")
         }
-        "package" if in_argument(call, "dependencies", content) => {
+        ("package", ManifestList::Dependencies) => {
             let location = labeled_string("url").or_else(|| labeled_string("path"))?;
             let name = labeled_string("name")
                 .map(str::to_string)
@@ -574,48 +630,111 @@ fn manifest_fact(
         _ => return None,
     };
     Some(fact_for_node(
-        file_path, language, pattern_id, capture, call, metadata,
+        manifest.file_path,
+        manifest.language,
+        pattern_id,
+        capture,
+        call,
+        metadata,
     ))
 }
 
-/// The call sits in the `<label>:` array argument of `Package(...)`.
-fn in_argument(call: Node, label: &str, content: &str) -> bool {
-    let Some(array) = call
-        .parent()
-        .filter(|parent| parent.kind() == "array_literal")
-    else {
-        return false;
-    };
-    let Some(argument) = array
-        .parent()
-        .filter(|parent| parent.kind() == "value_argument")
-    else {
-        return false;
-    };
-    argument
-        .child_by_field_name("name")
-        .and_then(|name| content.get(name.start_byte()..name.end_byte()))
-        == Some(label)
-        && package_call_of(argument).is_some()
+#[derive(Clone, Copy)]
+enum ManifestList {
+    Products,
+    Targets,
+    Dependencies,
 }
 
-fn package_call_of(argument: Node) -> Option<Node> {
+impl ManifestList {
+    fn from_label(label: &str) -> Option<Self> {
+        match label {
+            "products" => Some(Self::Products),
+            "targets" => Some(Self::Targets),
+            "dependencies" => Some(Self::Dependencies),
+            _ => None,
+        }
+    }
+
+    fn from_element_type(text: &str) -> Option<Self> {
+        let text: String = text.split_whitespace().collect();
+        match text.strip_prefix("PackageDescription.").unwrap_or(&text) {
+            "Product" => Some(Self::Products),
+            "Target" => Some(Self::Targets),
+            "Package.Dependency" => Some(Self::Dependencies),
+            _ => None,
+        }
+    }
+}
+
+/// The manifest list a call is an element of: the `products:`, `targets:`, or
+/// `dependencies:` array of `Package(...)`; an array assigned to or added to
+/// `package.<list>`; an `append(...)` or `append(contentsOf: [...])` on
+/// `package.<list>`; or an array bound as `[Product]`, `[Target]`, or
+/// `[Package.Dependency]`. A call nested in another call's argument, such as
+/// the target dependency `.target(name:)`, is in none.
+fn manifest_list(call: Node, content: &str) -> Option<ManifestList> {
+    let parent = call.parent()?;
+    if parent.kind() == "value_argument" {
+        if parent.child_by_field_name("name").is_some() {
+            return None;
+        }
+        return appended_list(parent, content);
+    }
+    if parent.kind() != "array_literal" {
+        return None;
+    }
+    let holder = parent.parent()?;
+    match holder.kind() {
+        "value_argument" => {
+            let label = holder.child_by_field_name("name")?;
+            let label = content.get(label.start_byte()..label.end_byte())?;
+            if label == "contentsOf" {
+                return appended_list(holder, content);
+            }
+            is_package_call(argument_call(holder)?, content)
+                .then(|| ManifestList::from_label(label))
+                .flatten()
+        }
+        "assignment" => list_member(holder.child_by_field_name("target")?, content),
+        "property_declaration" => {
+            let array_type = named_child_of_kind(holder, "type_annotation")?
+                .child_by_field_name("name")
+                .filter(|annotation| annotation.kind() == "array_type")?;
+            let element = array_type.child_by_field_name("name")?;
+            ManifestList::from_element_type(content.get(element.start_byte()..element.end_byte())?)
+        }
+        _ => None,
+    }
+}
+
+fn argument_call(argument: Node) -> Option<Node> {
     let call = argument.parent()?.parent()?.parent()?;
     (call.kind() == "call_expression").then_some(call)
 }
 
-fn is_manifest_member(call: Node, content: &str) -> bool {
-    let Some(argument) = call
-        .parent()
-        .and_then(|array| array.parent())
-        .filter(|parent| parent.kind() == "value_argument")
-    else {
-        return false;
+/// `package.<list>.append(argument)`.
+fn appended_list(argument: Node, content: &str) -> Option<ManifestList> {
+    let (receiver, method) = swift_method_call(argument_call(argument)?, content)?;
+    (method == "append")
+        .then(|| list_member(receiver, content))
+        .flatten()
+}
+
+/// `<receiver>.products`, `.targets`, or `.dependencies`.
+fn list_member(node: Node, content: &str) -> Option<ManifestList> {
+    let node = if node.kind() == "directly_assignable_expression" {
+        node.named_child(0)?
+    } else {
+        node
     };
-    package_call_of(argument)
-        .and_then(|package| package.named_child(0))
-        .and_then(|callee| content.get(callee.start_byte()..callee.end_byte()))
-        == Some("Package")
+    if node.kind() != "navigation_expression" {
+        return None;
+    }
+    let name = node
+        .child_by_field_name("suffix")?
+        .child_by_field_name("suffix")?;
+    ManifestList::from_label(content.get(name.start_byte()..name.end_byte())?)
 }
 
 fn static_string_elements(list: Node, content: &str) -> Vec<String> {

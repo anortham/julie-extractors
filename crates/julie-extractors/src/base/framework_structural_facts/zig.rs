@@ -5,7 +5,9 @@
 //! package dependencies (`b.dependency("httpz", ..)`), modules
 //! (`b.addModule("name", ..)`, `x.addImport("name", ..)`), and named steps
 //! (`b.step("run", "..")`) are calls with static string or anonymous-struct
-//! arguments, read only in a file named `build.zig`.
+//! arguments, read only in a file named `build.zig`. The Zig 0.10 positional
+//! artifact forms and the Zig 0.11 `.{ .path = ".." }` and `.source_file`
+//! options count too.
 //!
 //! http.zig (`@import("httpz")`) registers routes with
 //! `router.get("/users/:id", handler, .{})` on a router from
@@ -94,17 +96,24 @@ fn build_fact(call: Node, method: &str, context: &Context, facts: &mut Vec<Struc
     let (pattern_id, capture, metadata) = match method {
         "addExecutable" | "addLibrary" | "addStaticLibrary" | "addSharedLibrary" | "addObject"
         | "addTest" => {
-            let Some(options) = args.first().filter(|arg| is_struct_literal(**arg)) else {
-                return;
+            let (name, root) = match args.first() {
+                Some(options) if is_struct_literal(*options) => (
+                    struct_field(*options, "name", content)
+                        .and_then(|name| string_value(name, content)),
+                    root_source_file(*options, content),
+                ),
+                Some(first) => match positional_artifact(method, *first, args.get(1), content) {
+                    (None, None) => return,
+                    found => found,
+                },
+                None => return,
             };
             let mut metadata = base_metadata("build", "zig.build");
             insert_string(&mut metadata, "artifact_kind", artifact_kind(method));
-            if let Some(name) =
-                struct_field(*options, "name", content).and_then(|name| string_value(name, content))
-            {
+            if let Some(name) = name {
                 insert_string(&mut metadata, "artifact_name", name);
             }
-            if let Some(root) = root_source_file(*options, content) {
+            if let Some(root) = root {
                 insert_string(&mut metadata, "root_source_file", root);
             }
             (ZIG_BUILD_ARTIFACT_PATTERN_ID, "artifact", metadata)
@@ -194,11 +203,30 @@ fn artifact_kind(method: &str) -> &'static str {
     }
 }
 
-/// `.root_source_file = b.path("src/main.zig")` (or a plain string), directly
-/// or inside `.root_module = b.createModule(.{ .. })`.
+/// Zig 0.10 artifact calls take the name and root source positionally:
+/// `b.addExecutable("app", "src/main.zig")`, or `b.addTest("src/main.zig")`
+/// with no name.
+fn positional_artifact<'a>(
+    method: &str,
+    first: Node,
+    second: Option<&Node>,
+    content: &'a str,
+) -> (Option<&'a str>, Option<&'a str>) {
+    if method == "addTest" {
+        return (None, path_value(first, content));
+    }
+    (
+        string_value(first, content),
+        second.and_then(|root| path_value(*root, content)),
+    )
+}
+
+/// `.root_source_file = b.path("src/main.zig")` (or a plain string, or the
+/// Zig 0.11 `.{ .path = "src/main.zig" }`), Zig 0.11's `.source_file` of
+/// `addModule`, or either inside `.root_module = b.createModule(.{ .. })`.
 fn root_source_file<'a>(options: Node, content: &'a str) -> Option<&'a str> {
-    if let Some(root) = struct_field(options, "root_source_file", content) {
-        return path_value(root, content);
+    if let Some(root) = own_root_source_file(options, content) {
+        return Some(root);
     }
     let module = struct_field(options, "root_module", content)?;
     let (_, method) = method_call(module, content)?;
@@ -206,15 +234,21 @@ fn root_source_file<'a>(options: Node, content: &'a str) -> Option<&'a str> {
         return None;
     }
     let module_options = arguments(module).into_iter().next()?;
-    path_value(
-        struct_field(module_options, "root_source_file", content)?,
-        content,
-    )
+    own_root_source_file(module_options, content)
+}
+
+fn own_root_source_file<'a>(options: Node, content: &'a str) -> Option<&'a str> {
+    let root = struct_field(options, "root_source_file", content)
+        .or_else(|| struct_field(options, "source_file", content))?;
+    path_value(root, content)
 }
 
 fn path_value<'a>(node: Node, content: &'a str) -> Option<&'a str> {
     if let Some(value) = string_value(node, content) {
         return Some(value);
+    }
+    if is_struct_literal(node) {
+        return string_value(struct_field(node, "path", content)?, content);
     }
     let (_, method) = method_call(node, content)?;
     if method != "path" {

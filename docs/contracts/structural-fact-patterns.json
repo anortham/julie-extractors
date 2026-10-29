@@ -13690,7 +13690,7 @@
     "query_family": "dependencies"
   },
   {
-    "description": "A product (`.library`, `.executable`, or `.plugin`) declared in a SwiftPM `Package.swift` manifest.",
+    "description": "A product (`.library`, `.executable`, or `.plugin`) declared in a SwiftPM `Package.swift` manifest: in `Package(products: [..])`, in an array assigned or added to `package.products`, in `package.products.append(..)`, or in an array bound as `[Product]`.",
     "languages": [
       "swift"
     ],
@@ -13724,13 +13724,19 @@
         "key": "targets",
         "presence": "optional",
         "value_type": "string_array"
+      },
+      {
+        "description": "Static `name:` of the file's `Package(...)` call.",
+        "key": "package_name",
+        "presence": "optional",
+        "value_type": "string"
       }
     ],
     "pattern_id": "swiftpm.product.v1",
     "query_family": "dependencies"
   },
   {
-    "description": "A target (`.target`, `.testTarget`, `.executableTarget`, `.macro`, `.plugin`, `.systemLibrary`, or `.binaryTarget`) declared in a SwiftPM `Package.swift` manifest.",
+    "description": "A target (`.target`, `.testTarget`, `.executableTarget`, `.macro`, `.plugin`, `.systemLibrary`, or `.binaryTarget`) declared in a SwiftPM `Package.swift` manifest: in `Package(targets: [..])`, in an array assigned or added to `package.targets`, in `package.targets.append(..)`, or in an array bound as `[Target]`.",
     "languages": [
       "swift"
     ],
@@ -13766,10 +13772,28 @@
         "value_type": "string"
       },
       {
+        "description": "The target's source folder relative to the folder of `Package.swift`: the static `path:`, or with no `path:` SwiftPM's conventional `Sources/<name>`, `Tests/<name>` for a test target, or `Plugins/<name>` for a plugin. SwiftPM also accepts `Source`, `src`, or `srcs` in place of `Sources` (and of `Tests` for a test target). Absent for a binary target without `path:` and for a computed `path:`.",
+        "key": "effective_path",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "\"written\" when `effective_path` is the static `path:` argument, \"default\" when it is the SwiftPM convention.",
+        "key": "path_origin",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
         "description": "Static dependency names: a bare string, `.target(name:)`, `.byName(name:)`, or `.product(name:)`.",
         "key": "dependencies",
         "presence": "optional",
         "value_type": "string_array"
+      },
+      {
+        "description": "Static `name:` of the file's `Package(...)` call.",
+        "key": "package_name",
+        "presence": "optional",
+        "value_type": "string"
       }
     ],
     "pattern_id": "swiftpm.target.v1",
@@ -16074,13 +16098,13 @@
         "value_type": "string"
       },
       {
-        "description": "The static `.name` option.",
+        "description": "The static `.name` option, or the first string argument of the Zig 0.10 positional form (`b.addExecutable(\"app\", \"src/main.zig\")`).",
         "key": "artifact_name",
         "presence": "optional",
         "value_type": "string"
       },
       {
-        "description": "The static root source path, direct or through `.root_module = b.createModule(..)`.",
+        "description": "The static root source path: `b.path(\"..\")`, a plain string, or Zig 0.11 `.{ .path = \"..\" }` in `.root_source_file`, directly or through `.root_module = b.createModule(..)`; or the root source argument of the Zig 0.10 positional form.",
         "key": "root_source_file",
         "presence": "optional",
         "value_type": "string"
@@ -16124,7 +16148,7 @@
     "query_family": "build"
   },
   {
-    "description": "A `build.zig` module definition (`b.addModule(\"name\", .{ .root_source_file = .. })` or `b.createModule(..)`).",
+    "description": "A `build.zig` module definition (`b.addModule(\"name\", .{ .root_source_file = .. })` or `b.createModule(..)`, also with the Zig 0.11 `.source_file` option).",
     "languages": [
       "zig"
     ],
@@ -16154,7 +16178,7 @@
         "value_type": "string"
       },
       {
-        "description": "The static root source path.",
+        "description": "The static root source path from `.root_source_file` or Zig 0.11 `.source_file`: `b.path(\"..\")`, a plain string, or `.{ .path = \"..\" }`.",
         "key": "root_source_file",
         "presence": "always",
         "value_type": "string"

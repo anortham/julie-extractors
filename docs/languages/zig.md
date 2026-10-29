@@ -112,6 +112,18 @@ never a test case, even under a test directory.
   `zig.build_module.v1` (`addModule`, `createModule`),
   `zig.build_module_import.v1` (`addImport`), and `zig.build_step.v1`
   (`b.step("name", "description")`).
+- A module fact has the static `module_name` of `addModule` and the
+  `root_source_file`. An artifact fact has the static `artifact_name` and the
+  `root_source_file` when they are written. The root source can be
+  `b.path("src/root.zig")`, a plain string, or the Zig 0.11
+  `.{ .path = "src/root.zig" }`, in `.root_source_file`, in the Zig 0.11
+  `.source_file` of `addModule` and `createModule`, or inside
+  `.root_module = b.createModule(..)`. The Zig 0.10 positional artifact forms
+  count too: `b.addExecutable("app", "src/main.zig")`,
+  `addStaticLibrary("name", "src/lib.zig")`, and `b.addTest("src/main.zig")`.
+  Only string literals count. A computed name or path, a `.cwd_relative` path,
+  and a module passed through a variable are left out. The path is relative
+  to the folder of `build.zig`.
 - `httpz.route.v1`: http.zig verb routes (`get`, `post`, `put`, `delete`,
   `patch`, `head`, `options`, `all`) with a static path and a handler, on a
   router from `server.router(..)` or a `group("/prefix", ..)` of one, in a

@@ -425,6 +425,7 @@
       "confidence": "1.000",
       "metadata": {
         "name": "Alamofire",
+        "package_name": "Alamofire",
         "pattern_version": 1,
         "product_kind": "library",
         "query_family": "dependencies",
@@ -451,8 +452,11 @@
         "dependencies": [
           "Logging"
         ],
+        "effective_path": "Source",
         "name": "Alamofire",
+        "package_name": "Alamofire",
         "path": "Source",
+        "path_origin": "written",
         "pattern_version": 1,
         "query_family": "dependencies",
         "target_kind": "target"
@@ -476,8 +480,11 @@
         "dependencies": [
           "Alamofire"
         ],
+        "effective_path": "Tests",
         "name": "AlamofireTests",
+        "package_name": "Alamofire",
         "path": "Tests",
+        "path_origin": "written",
         "pattern_version": 1,
         "query_family": "dependencies",
         "target_kind": "testTarget"
