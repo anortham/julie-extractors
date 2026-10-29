@@ -4,7 +4,7 @@
 //! spelling of a written type.
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use serde_json::Value;
@@ -228,6 +228,45 @@ pub(crate) fn compact_type_text(text: &str) -> String {
 
 fn is_word_character(character: char) -> bool {
     character.is_alphanumeric() || character == '_' || character == '$'
+}
+
+/// The names that the nodes of a member give, such as the names its pattern
+/// variables bind or its type checks narrow. It reads the nodes of a member
+/// once, so the calls of one long member read each node once, not once per
+/// name.
+pub(crate) struct MemberNames {
+    names: HashMap<usize, HashSet<String>>,
+}
+
+impl MemberNames {
+    pub(crate) fn new() -> Self {
+        Self {
+            names: HashMap::new(),
+        }
+    }
+
+    /// Whether a node at or below `member` gives `name`. `names_of` reads one
+    /// node and adds the names that node gives.
+    pub(crate) fn holds<'tree>(
+        &mut self,
+        member: Node<'tree>,
+        name: &str,
+        mut names_of: impl FnMut(Node<'tree>, &mut HashSet<String>),
+    ) -> bool {
+        self.names
+            .entry(member.id())
+            .or_insert_with(|| {
+                let mut names = HashSet::new();
+                let mut stack = vec![member];
+                while let Some(current) = stack.pop() {
+                    names_of(current, &mut names);
+                    let mut cursor = current.walk();
+                    stack.extend(current.named_children(&mut cursor));
+                }
+                names
+            })
+            .contains(name)
+    }
 }
 
 /// Finds the child of a scope that binds a name. A child binds a name only

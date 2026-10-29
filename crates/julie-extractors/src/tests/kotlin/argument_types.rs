@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
 
@@ -174,5 +175,25 @@ object Single {
             json!([null, null]),
             json!(["Single"]),
         ]
+    );
+}
+
+#[test]
+fn kotlin_argument_types_of_many_names_in_one_member_stay_fast() {
+    let calls: String = (0..5_000)
+        .map(|index| format!("    observe(a)\n    observe(b{index})\n"))
+        .collect();
+    let source = format!(
+        "fun run(value: Any) {{\n    val a = 1\n    if (value is String) {{}}\n{calls}}}\n"
+    );
+    let started = Instant::now();
+    let types = arg_types(&source, "observe");
+    let elapsed = started.elapsed();
+    assert_eq!(types.len(), 10_000);
+    assert_eq!(types[9_998], json!(["Int"]));
+    assert_eq!(types[9_999], json!([null]));
+    assert!(
+        elapsed < Duration::from_secs(10),
+        "{elapsed:?} for 10000 calls"
     );
 }

@@ -2,14 +2,14 @@
 //! which overload the call binds: `run(1)` binds `run(a: Int)`, not
 //! `run(a: String)`. A named argument also gets its name in `arg_names`.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use tree_sitter::{Node, Tree};
 
 use crate::base::argument_types::{
-    self, CallArguments, Declarations, Found, ScopeBindings, enclosing, nearest_binding, node_text,
-    suffixed_float_type,
+    self, CallArguments, Declarations, Found, MemberNames, ScopeBindings, enclosing,
+    nearest_binding, node_text, suffixed_float_type,
 };
 use crate::base::types::strip_type_decorations;
 use crate::base::{BaseExtractor, Identifier, Symbol, TypeInfo};
@@ -52,7 +52,7 @@ pub(crate) fn enrich(
         declarations: Declarations::new(symbols, types),
         index: None,
         root: tree.root_node(),
-        casts: HashMap::new(),
+        casts: MemberNames::new(),
         bindings: ScopeBindings::new(false),
     };
     argument_types::annotate_calls("kotlin", tree, identifiers, |node, _| {
@@ -94,9 +94,8 @@ struct Reader<'a, 'tree> {
     declarations: Declarations<'a>,
     index: Option<InitializerIndex>,
     root: Node<'tree>,
-    /// Whether a member tests or casts a name's type, by the member's node
-    /// id and the name.
-    casts: HashMap<(usize, String), bool>,
+    /// The names whose type each member tests or casts.
+    casts: MemberNames,
     bindings: ScopeBindings<'tree, Found<'tree>>,
 }
 
@@ -252,52 +251,38 @@ impl<'tree> Reader<'_, 'tree> {
                 })
             })
             .unwrap_or(node);
-        let key = (member.id(), name.to_string());
-        if let Some(casts) = self.casts.get(&key) {
-            return *casts;
-        }
-        let names = |node: Option<Node<'tree>>| {
-            node.is_some_and(|node| match node.kind() {
-                "this_expression" => name == "this" && node.named_child_count() == 0,
-                "identifier" => strip_backticks(node_text(self.source, node)) == name,
-                _ => false,
-            })
+        let source = self.source;
+        let add = |node: Option<Node<'tree>>, names: &mut HashSet<String>| match node {
+            Some(node) if node.kind() == "this_expression" && node.named_child_count() == 0 => {
+                names.insert("this".to_string());
+            }
+            Some(node) if node.kind() == "identifier" => {
+                names.insert(strip_backticks(node_text(source, node)).to_string());
+            }
+            _ => {}
         };
-        let mut stack = vec![member];
-        let mut casts = false;
-        while let Some(current) = stack.pop() {
-            casts = match current.kind() {
-                "is_expression" => names(current.child_by_field_name("left")),
+        self.casts
+            .holds(member, name, |current, names| match current.kind() {
+                "is_expression" => add(current.child_by_field_name("left"), names),
                 "as_expression" => {
                     let mut cursor = current.walk();
-                    names(current.child_by_field_name("left"))
-                        && current
-                            .children(&mut cursor)
-                            .any(|child| child.kind() == "as")
+                    if current
+                        .children(&mut cursor)
+                        .any(|child| child.kind() == "as")
+                    {
+                        add(current.child_by_field_name("left"), names);
+                    }
                 }
                 "when_subject" => {
                     let mut inner = vec![current];
-                    let mut found = false;
                     while let Some(node) = inner.pop() {
-                        if names(Some(node)) {
-                            found = true;
-                            break;
-                        }
+                        add(Some(node), names);
                         let mut cursor = node.walk();
                         inner.extend(node.named_children(&mut cursor));
                     }
-                    found
                 }
-                _ => false,
-            };
-            if casts {
-                break;
-            }
-            let mut cursor = current.walk();
-            stack.extend(current.named_children(&mut cursor));
-        }
-        self.casts.insert(key, casts);
-        casts
+                _ => {}
+            })
     }
 }
 

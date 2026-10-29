@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
 
@@ -242,5 +243,25 @@ class Store extends Base {
             json!(["Color", "Color"]),
             json!(["int", "Point"]),
         ]
+    );
+}
+
+#[test]
+fn java_argument_types_of_many_names_in_one_member_stay_fast() {
+    let calls: String = (0..5_000)
+        .map(|index| format!("        observe(a);\n        observe(b{index});\n"))
+        .collect();
+    let source = format!(
+        "class Run {{\n    void run(Object value) {{\n        int a = 1;\n        if (value instanceof String text) {{}}\n{calls}    }}\n}}\n"
+    );
+    let started = Instant::now();
+    let types = arg_types(&source, "observe");
+    let elapsed = started.elapsed();
+    assert_eq!(types.len(), 10_000);
+    assert_eq!(types[9_998], json!(["int"]));
+    assert_eq!(types[9_999], json!([null]));
+    assert!(
+        elapsed < Duration::from_secs(10),
+        "{elapsed:?} for 10000 calls"
     );
 }

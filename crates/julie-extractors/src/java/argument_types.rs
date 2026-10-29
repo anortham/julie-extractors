@@ -7,8 +7,8 @@ use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 use crate::base::argument_types::{
-    self, CallArguments, Declarations, Found, ScopeBindings, enclosing, nearest_binding, node_text,
-    suffixed_float_type, suffixed_integer_type,
+    self, CallArguments, Declarations, Found, MemberNames, ScopeBindings, enclosing,
+    nearest_binding, node_text, suffixed_float_type, suffixed_integer_type,
 };
 use crate::base::types::strip_type_decorations;
 use crate::base::{Identifier, Symbol, TypeInfo};
@@ -38,7 +38,7 @@ pub(crate) fn enrich(
     let mut reader = Reader {
         source,
         declarations: Declarations::new(symbols, types),
-        patterns: HashMap::new(),
+        patterns: MemberNames::new(),
         bindings: ScopeBindings::new(false),
     };
     argument_types::annotate_calls("java", tree, identifiers, |node, _| {
@@ -62,9 +62,8 @@ pub(crate) fn enrich(
 struct Reader<'a, 'tree> {
     source: &'a str,
     declarations: Declarations<'a>,
-    /// Whether a member declares a pattern variable of a name, by the
-    /// member's node id and the name.
-    patterns: HashMap<(usize, String), bool>,
+    /// The names of the pattern variables of each member.
+    patterns: MemberNames,
     bindings: ScopeBindings<'tree, Found<'tree>>,
 }
 
@@ -200,13 +199,8 @@ impl<'tree> Reader<'_, 'tree> {
                     .is_none_or(|parent| TYPE_BODIES.contains(&parent.kind()))
             })
             .unwrap_or(node);
-        let key = (member.id(), name.to_string());
-        if let Some(found) = self.patterns.get(&key) {
-            return *found;
-        }
-        let mut stack = vec![member];
-        let mut found = false;
-        while let Some(current) = stack.pop() {
+        let source = self.source;
+        self.patterns.holds(member, name, |current, names| {
             let binder = match current.kind() {
                 "instanceof_expression" => current.child_by_field_name("name"),
                 kind if PATTERN_KINDS.contains(&kind) => {
@@ -217,15 +211,10 @@ impl<'tree> Reader<'_, 'tree> {
                 }
                 _ => None,
             };
-            if binder.is_some_and(|binder| node_text(self.source, binder) == name) {
-                found = true;
-                break;
+            if let Some(binder) = binder {
+                names.insert(node_text(source, binder).to_string());
             }
-            let mut cursor = current.walk();
-            stack.extend(current.named_children(&mut cursor));
-        }
-        self.patterns.insert(key, found);
-        found
+        })
     }
 }
 

@@ -1592,6 +1592,44 @@ fn test_find_containing_symbol_single_line_column_checks() {
 }
 
 #[test]
+fn member_names_read_each_node_of_a_member_once() {
+    let statements = 5_000;
+    let body: String = (0..statements)
+        .map(|index| format!("observe(b{index});\n"))
+        .collect();
+    let code = format!("fn run() {{\n{body}}}\n");
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_rust::LANGUAGE.into())
+        .expect("Error loading Rust grammar");
+    let tree = parser.parse(&code, None).expect("Error parsing Rust code");
+    let member = tree.root_node().named_child(0).expect("function");
+    let mut nodes = 0;
+    let mut stack = vec![member];
+    while let Some(node) = stack.pop() {
+        nodes += 1;
+        let mut cursor = node.walk();
+        stack.extend(node.named_children(&mut cursor));
+    }
+    let reads = std::cell::Cell::new(0);
+    let arguments = |node: Node, names: &mut std::collections::HashSet<String>| {
+        reads.set(reads.get() + 1);
+        if node.kind() == "identifier"
+            && node.parent().map(|parent| parent.kind()) == Some("arguments")
+        {
+            names.insert(code[node.byte_range()].to_string());
+        }
+    };
+    let mut member_names = argument_types::MemberNames::new();
+    for index in 0..statements {
+        assert!(member_names.holds(member, &format!("b{index}"), arguments));
+        assert!(!member_names.holds(member, &format!("c{index}"), arguments));
+        assert!(!member_names.holds(member, "observe", arguments));
+    }
+    assert_eq!(reads.get(), nodes);
+}
+
+#[test]
 fn scope_bindings_read_each_child_at_most_once_per_name() {
     let statements = 5_000;
     let body: String = (0..statements)
