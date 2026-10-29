@@ -66,7 +66,7 @@ pub(super) fn extract_function(
         } else {
             (name, SymbolKind::Function, "function")
         }
-    } else if parent_id.is_some() {
+    } else if parent_id.is_some() && !helpers::is_in_local_scope(node) {
         (name, SymbolKind::Method, "method")
     } else {
         (name, SymbolKind::Function, "function")

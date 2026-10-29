@@ -3,7 +3,10 @@
 //! Handles classes, traits, objects, enums, and enum cases.
 
 use super::helpers;
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
+use crate::base::{
+    ANONYMOUS_CLASS_TYPE, BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility,
+    anonymous_class_head, anonymous_class_name,
+};
 use serde_json::Value;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -70,6 +73,37 @@ pub(super) fn extract_class(
             annotations,
         },
     ))
+}
+
+/// Extract the class an anonymous class instance (`new Task { … }`) declares.
+/// The row spans the template body, so the instantiated types and the
+/// constructor arguments keep their enclosing owner.
+pub(super) fn extract_anonymous_class(
+    base: &mut BaseExtractor,
+    node: &Node,
+    body: &Node,
+    parent_id: Option<&str>,
+) -> Symbol {
+    let mut metadata = HashMap::from([(
+        "type".to_string(),
+        Value::String(ANONYMOUS_CLASS_TYPE.to_string()),
+    )]);
+    let base_types = helpers::instance_type_names(base, node);
+    if !base_types.is_empty() {
+        metadata.insert("base_types".to_string(), serde_json::json!(base_types));
+    }
+    base.create_symbol(
+        body,
+        anonymous_class_name(body),
+        SymbolKind::Class,
+        SymbolOptions {
+            signature: Some(anonymous_class_head(base, node, body)),
+            visibility: Some(Visibility::Private),
+            parent_id: parent_id.map(|s| s.to_string()),
+            metadata: Some(metadata),
+            ..Default::default()
+        },
+    )
 }
 
 /// Extract a Scala trait definition

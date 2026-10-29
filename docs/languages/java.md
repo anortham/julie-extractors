@@ -156,6 +156,15 @@ emits:
   caller;
 - switch type patterns (`case Circle c`) and record pattern components
   (`case Rect(double w, double h)`) as typed `variable` symbols;
+- an anonymous class (`new Task() { … }`) as a `class` symbol named
+  `anonymous_class_L<line>`, with metadata `type: anonymous_class`. Its parent
+  is the enclosing method, constructor, field, or variable, and its members
+  belong to it. The row spans the class body, so the created type and the
+  constructor arguments keep their enclosing owner. Its signature is the
+  creation head (`new Task()`), `base_types` holds the created type, and it
+  `implements` a same-file interface or `extends` any other type (a pending
+  `extends` when the type is not in the file). An anonymous class is never a
+  test container by itself, so test roles are the same as before it had a row;
 - a `module-info.java` module as a `namespace` symbol, with one
   `java.module_directive.v1` fact per `requires`, `exports`, `opens`, `uses`
   and `provides` directive and a `type_usage` for each service and provider

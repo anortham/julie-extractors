@@ -516,7 +516,10 @@ class Outer { make() { return class extends Local {}; } }
         symbol_name(&results, find_method.parent_id.as_deref().unwrap()),
         "Repo"
     );
-    assert_eq!(relationship_rows(&results), vec!["Widget Extends Local"]);
+    assert_eq!(
+        relationship_rows(&results),
+        vec!["Widget Extends Local", "anonymous_class_L4 Extends Local"]
+    );
     assert!(pending_rows(&results).contains(&"Repo Extends Base".to_string()));
 
     let anonymous = extract("anon.mjs", "export default class extends Base {}\n");

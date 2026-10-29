@@ -117,16 +117,21 @@ impl KotlinExtractor {
             return;
         }
 
-        let new_parent_id = self
-            .extract_node_symbol(node, symbols, parent_id.as_deref())
-            .or(parent_id);
+        let symbol_id = self.extract_node_symbol(node, symbols, parent_id.as_deref());
+        let owns_only_its_body = node.kind() == "object_literal";
+        let new_parent_id = symbol_id.or_else(|| parent_id.clone());
 
         let Some(child_depth) = child_tree_depth(depth) else {
             return;
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.visit_node(child, symbols, new_parent_id.clone(), child_depth);
+            let child_parent_id = if owns_only_its_body && child.kind() != "class_body" {
+                parent_id.clone()
+            } else {
+                new_parent_id.clone()
+            };
+            self.visit_node(child, symbols, child_parent_id, child_depth);
         }
     }
 
@@ -149,6 +154,11 @@ impl KotlinExtractor {
             }
             "interface_declaration" => types::extract_interface(&mut self.base, &node, parent_id),
             "object_declaration" => types::extract_object(&mut self.base, &node, parent_id),
+            "object_literal" => Some(types::extract_object_literal(
+                &mut self.base,
+                &node,
+                parent_id,
+            )),
             "companion_object" => Some(types::extract_companion_object(
                 &mut self.base,
                 &node,
@@ -317,6 +327,14 @@ impl KotlinExtractor {
                     symbols,
                     relationships,
                     depth,
+                );
+            }
+            "object_literal" => {
+                relationships::extract_inheritance_relationships(
+                    self,
+                    &node,
+                    symbols,
+                    relationships,
                 );
             }
             "property_declaration"

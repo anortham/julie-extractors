@@ -221,6 +221,17 @@ one `type_usage` for its last segment, with the leading segments in the
   kind `enum`. Members declared in an enum entry body belong to that entry.
 - A function declared inside a callable is kind `function` with no visibility.
   Locals have no visibility either.
+- An object expression (`object : Task { … }`) is a `class` symbol named
+  `anonymous_class_L<line>`, with metadata `type: anonymous_class`. Its parent
+  is the enclosing function, property, or local, and its members are kind
+  `method` under it. The row spans the class body, so the supertype list and
+  its constructor arguments keep their enclosing owner. It records
+  `base_types` and supertype edges like a named `object`: `implements` a
+  same-file interface, `extends` a constructor invocation (`MouseAdapter()`).
+  `this` inside it is the object, not the outer class, so `this.m()` resolves
+  to its own member and `super.m()` names its first supertype. An object
+  expression is never a test container by itself. `object` declarations and
+  companion objects keep their names.
 - `internal` maps to visibility `internal`, on classes, properties,
   constructor properties, and companions.
 - An `operator fun` is kind `operator` and owns the calls in its body.

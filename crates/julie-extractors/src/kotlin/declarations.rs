@@ -153,6 +153,7 @@ pub(super) fn apply_declaration_body_span(base: &BaseExtractor, node: &Node, sym
     let body = match node.kind() {
         "class_declaration"
         | "object_declaration"
+        | "object_literal"
         | "companion_object"
         | "interface_declaration" => {
             child(&["class_body", "enum_class_body"]).or_else(|| spec_constructor_lambda(node))

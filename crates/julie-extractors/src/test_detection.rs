@@ -4,7 +4,7 @@
 //! a symbol is a test based on its language, name, file path, kind, annotation keys,
 //! and doc comment. No tree-sitter, no file I/O.
 
-use crate::base::{Symbol, SymbolKind, TestRole, Visibility};
+use crate::base::{Symbol, SymbolKind, TestRole, Visibility, is_anonymous_class};
 use std::collections::{HashMap, HashSet};
 
 /// Which side of a fixture a test lifecycle hook runs on.
@@ -698,6 +698,7 @@ pub(crate) fn mark_base_type_test_containers(symbols: &mut [Symbol], base_type: 
         .iter()
         .filter(|symbol| {
             (symbol.kind == SymbolKind::Class
+                && !is_anonymous_class(symbol)
                 && metadata_string_list_contains(symbol, "base_types", base_type))
                 || is_qml_object_of_type(symbol, base_type)
         })
@@ -908,10 +909,9 @@ pub(crate) fn mark_dotnet_test_containers(symbols: &mut [Symbol]) {
 
     let mut test_container_ids: HashSet<String> = HashSet::new();
     let mut binding_ids: HashSet<String> = HashSet::new();
-    for symbol in symbols
-        .iter_mut()
-        .filter(|symbol| matches!(symbol.kind, SymbolKind::Class | SymbolKind::Struct))
-    {
+    for symbol in symbols.iter_mut().filter(|symbol| {
+        matches!(symbol.kind, SymbolKind::Class | SymbolKind::Struct) && !is_anonymous_class(symbol)
+    }) {
         let has_container_attribute = symbol
             .annotations
             .iter()
@@ -1017,10 +1017,10 @@ pub(crate) fn mark_java_test_containers(symbols: &mut [Symbol]) {
         .collect();
 
     let mut testng_class_ids: HashSet<String> = HashSet::new();
-    for symbol in symbols
-        .iter_mut()
-        .filter(|symbol| matches!(symbol.kind, SymbolKind::Class | SymbolKind::Interface))
-    {
+    for symbol in symbols.iter_mut().filter(|symbol| {
+        matches!(symbol.kind, SymbolKind::Class | SymbolKind::Interface)
+            && !is_anonymous_class(symbol)
+    }) {
         if containers_with_test_members.contains(&symbol.id) {
             mark_class_test_container(symbol);
         }
@@ -1060,7 +1060,7 @@ fn mark_test_interface_implementers(symbols: &mut [Symbol]) {
     }
     for symbol in symbols
         .iter_mut()
-        .filter(|symbol| symbol.kind == SymbolKind::Class)
+        .filter(|symbol| symbol.kind == SymbolKind::Class && !is_anonymous_class(symbol))
     {
         let implements_test_interface = symbol
             .metadata
@@ -1127,10 +1127,10 @@ pub(crate) fn mark_kotlin_test_containers(symbols: &mut [Symbol]) {
         .filter_map(|symbol| symbol.parent_id.clone())
         .collect();
 
-    for symbol in symbols
-        .iter_mut()
-        .filter(|symbol| matches!(symbol.kind, SymbolKind::Class | SymbolKind::Property))
-    {
+    for symbol in symbols.iter_mut().filter(|symbol| {
+        matches!(symbol.kind, SymbolKind::Class | SymbolKind::Property)
+            && !is_anonymous_class(symbol)
+    }) {
         let extends_spec_base = symbol.kind == SymbolKind::Class
             && KOTLIN_SPEC_BASE_TYPES
                 .iter()
@@ -1196,10 +1196,9 @@ pub(crate) fn mark_scala_test_containers(symbols: &mut [Symbol]) {
         .filter_map(|symbol| symbol.parent_id.clone())
         .collect();
 
-    for symbol in symbols
-        .iter_mut()
-        .filter(|symbol| matches!(symbol.kind, SymbolKind::Class | SymbolKind::Trait))
-    {
+    for symbol in symbols.iter_mut().filter(|symbol| {
+        matches!(symbol.kind, SymbolKind::Class | SymbolKind::Trait) && !is_anonymous_class(symbol)
+    }) {
         let extends_suite = SCALA_SUITE_BASE_TYPES
             .iter()
             .any(|base_type| metadata_string_list_contains(symbol, "base_types", base_type));
@@ -1326,7 +1325,7 @@ fn mark_ancestor_test_containers(symbols: &mut [Symbol]) {
                 break;
             };
             let ancestor = &symbols[index];
-            if ancestor.kind == SymbolKind::Class {
+            if ancestor.kind == SymbolKind::Class && !is_anonymous_class(ancestor) {
                 ancestors_to_mark.insert(index);
             }
             parent = ancestor.parent_id.as_deref();
@@ -2074,7 +2073,7 @@ pub(crate) fn mark_ruby_test_containers(symbols: &mut [Symbol]) {
     }
     for symbol in symbols
         .iter_mut()
-        .filter(|symbol| has_ruby_application_test_base(symbol))
+        .filter(|symbol| has_ruby_application_test_base(symbol) && !is_anonymous_class(symbol))
     {
         mark_class_test_container(symbol);
     }

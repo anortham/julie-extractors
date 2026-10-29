@@ -167,6 +167,12 @@ The JavaScript extractor follows the TypeScript contract in
   when anonymous). `exports.x = fn` and `module.exports.x = fn` are the
   function `x`. None of them is a method of a fake `module` or `exports`
   class.
+- A class expression with no name and no binding (`new (class { … })()`,
+  `register(class extends Base { … })`) is a `class` symbol named
+  `anonymous_class_L<line>`, with metadata `type: anonymous_class`. Its parent
+  is the enclosing function, and its methods belong to it. Its heritage gives
+  the same `extends` edge as a named class. JSX files and Vue script blocks
+  use the same rule.
 - Class expressions are classes named by their own name, their binding, or
   `default` for `export default class {}`. Heritage belongs to the nearest
   class, so a class expression inside a method adds no edge to the outer

@@ -187,6 +187,10 @@ control.
   calls inside the argument add no relationship.
 - A function inside a braced namespace or a closure is a `function`, not a
   `method`. An abstract or interface method has no body span or body hash.
+- An anonymous class (`new class { … }`) is a `class` symbol named
+  `anonymous_class_L<line>` with metadata `type: anonymous_class`. Java,
+  Kotlin, Scala, JavaScript, TypeScript, F#, and Ruby use the same name and
+  metadata for their anonymous classes.
 - Enums and anonymous classes give `extends` and `implements` edges. A trait
   `use` gives a `php.trait_use_declaration.v1` fact for each trait name.
 - `self`, `static`, and the class name resolve `Foo::m()`, `new self`, and

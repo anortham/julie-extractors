@@ -1,7 +1,8 @@
 use super::FSharpExtractor;
 use crate::base::{
-    AnnotationMarker, BaseExtractor, BodySpan, NormalizedSpan, Symbol, SymbolKind, SymbolOptions,
-    Visibility, normalize_annotations,
+    ANONYMOUS_CLASS_TYPE, AnnotationMarker, BaseExtractor, BodySpan, NormalizedSpan, Symbol,
+    SymbolKind, SymbolOptions, Visibility, anonymous_class_head, anonymous_class_name,
+    normalize_annotations,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
@@ -155,6 +156,7 @@ fn extract_symbol(
         "union_type_case" => extract_union_case(extractor, node, parent_id),
         "enum_type_case" => extract_enum_case(extractor, node, parent_id),
         "member_defn" => extract_member(extractor, node, parent_id),
+        "object_expression" => extract_object_expression(extractor, node, parent_id),
         "extern_binding" => extract_extern(extractor, node, parent_id),
         "import_decl" => extract_import(extractor, node, parent_id),
         "fsi_directive_decl" => extract_script_directive(extractor, node, parent_id),
@@ -469,6 +471,76 @@ fn extract_member(
     let name = direct_child_of_kind(node, "identifier")
         .map(|name| base.get_node_text(&name).trim().to_string())?;
     create_symbol(base, node, name, SymbolKind::Field, parent_id)
+}
+
+/// The `with` that opens the members of an object expression
+/// (`{ new ITask with member … }`).
+pub(super) fn object_expression_members_start(node: Node) -> Option<Node> {
+    if node.kind() != "object_expression" {
+        return None;
+    }
+    node.children(&mut node.walk())
+        .find(|child| child.kind() == "with")
+}
+
+/// The written supertypes of an object expression: the type after `new`, then
+/// each `interface … with` type.
+pub(super) fn object_expression_supertypes(node: Node) -> Vec<Node> {
+    let mut cursor = node.walk();
+    let mut supertypes = Vec::new();
+    for child in node.named_children(&mut cursor) {
+        match child.kind() {
+            "application_expression" => supertypes.extend(child.named_child(0)),
+            "interface_implementation" => {
+                supertypes.extend(
+                    child
+                        .named_children(&mut child.walk())
+                        .find(|part| part.kind() != "member_defn"),
+                );
+            }
+            "member_defn" => {}
+            _ if supertypes.is_empty() => supertypes.push(child),
+            _ => {}
+        }
+    }
+    supertypes
+}
+
+/// An object expression declares an anonymous class. Its row starts at the
+/// `with` that opens the members, so the constructed type and its arguments
+/// keep their enclosing owner.
+fn extract_object_expression(
+    base: &mut BaseExtractor,
+    node: Node,
+    parent_id: Option<String>,
+) -> Option<Symbol> {
+    let members_start = object_expression_members_start(node)?;
+    let span = base.span_for_byte_range(members_start.start_byte(), node.end_byte())?;
+    let mut metadata = std::collections::HashMap::from([(
+        "type".to_string(),
+        serde_json::Value::String(ANONYMOUS_CLASS_TYPE.to_string()),
+    )]);
+    let base_types: Vec<String> = object_expression_supertypes(node)
+        .iter()
+        .map(|type_node| base.get_node_text(type_node).trim().to_string())
+        .collect();
+    if !base_types.is_empty() {
+        metadata.insert("base_types".to_string(), serde_json::json!(base_types));
+    }
+    Some(base.create_symbol_from_span(
+        &node,
+        span,
+        anonymous_class_name(&members_start),
+        SymbolKind::Class,
+        SymbolOptions {
+            signature: Some(anonymous_class_head(base, &node, &members_start)),
+            visibility: Some(Visibility::Private),
+            parent_id,
+            metadata: Some(metadata),
+            doc_comment: None,
+            annotations: Vec::new(),
+        },
+    ))
 }
 
 fn extract_member_signature(

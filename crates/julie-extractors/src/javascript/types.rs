@@ -3,7 +3,9 @@
 //! Handles extraction of class declarations, property definitions,
 //! and export statements.
 
-use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::base::{
+    ANONYMOUS_CLASS_TYPE, Symbol, SymbolKind, SymbolOptions, Visibility, anonymous_class_name,
+};
 use serde_json::json;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -51,7 +53,12 @@ impl super::JavaScriptExtractor {
         node: Node,
         parent_id: Option<String>,
     ) -> Option<Symbol> {
-        let name = class_binding_name(&self.base, node)?;
+        let binding_name = class_binding_name(&self.base, node);
+        if binding_name.is_none() && !(node.kind() == "class" && node.is_named()) {
+            return None;
+        }
+        let is_anonymous = binding_name.is_none();
+        let name = binding_name.unwrap_or_else(|| anonymous_class_name(&node));
 
         // Extract extends clause (reference logic)
         let heritage = node.child_by_field_name("heritage").or_else(|| {
@@ -76,6 +83,9 @@ impl super::JavaScriptExtractor {
             "hasPrivateFields".to_string(),
             json!(self.has_private_fields(&node)),
         );
+        if is_anonymous {
+            metadata.insert("type".to_string(), json!(ANONYMOUS_CLASS_TYPE));
+        }
 
         // Extract JSDoc comment
         let doc_comment = self.base.find_doc_comment(&node);

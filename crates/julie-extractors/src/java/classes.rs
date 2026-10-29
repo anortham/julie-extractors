@@ -1,5 +1,8 @@
 /// Class, interface, enum, and record extraction
-use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::base::{
+    ANONYMOUS_CLASS_TYPE, Symbol, SymbolKind, SymbolOptions, Visibility, anonymous_class_head,
+    anonymous_class_name,
+};
 use crate::java::JavaExtractor;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -92,6 +95,50 @@ pub(super) fn extract_class(
         extractor
             .base_mut()
             .create_symbol(&node, name, SymbolKind::Class, options),
+    )
+}
+
+/// The body of an anonymous class creation (`new Task() { … }`).
+pub(super) fn anonymous_class_body(node: Node) -> Option<Node> {
+    if node.kind() != "object_creation_expression" {
+        return None;
+    }
+    node.named_children(&mut node.walk())
+        .find(|child| child.kind() == "class_body")
+}
+
+/// Extract the class an anonymous class creation declares. The row spans the
+/// class body, so the created type and the constructor arguments keep their
+/// enclosing owner. Its base type is the created type, which may be a class or
+/// an interface.
+pub(super) fn extract_anonymous_class(
+    extractor: &mut JavaExtractor,
+    node: Node,
+    body: Node,
+    parent_id: Option<&str>,
+) -> Symbol {
+    let mut metadata = HashMap::from([(
+        "type".to_string(),
+        serde_json::Value::String(ANONYMOUS_CLASS_TYPE.to_string()),
+    )]);
+    if let Some(type_node) = node.child_by_field_name("type") {
+        metadata.insert(
+            "base_types".to_string(),
+            serde_json::json!([extractor.base().get_node_text(&type_node)]),
+        );
+    }
+    let options = SymbolOptions {
+        signature: Some(anonymous_class_head(extractor.base(), &node, &body)),
+        visibility: Some(Visibility::Private),
+        parent_id: parent_id.map(|s| s.to_string()),
+        metadata: Some(metadata),
+        ..Default::default()
+    };
+    extractor.base_mut().create_symbol(
+        &body,
+        anonymous_class_name(&body),
+        SymbolKind::Class,
+        options,
     )
 }
 

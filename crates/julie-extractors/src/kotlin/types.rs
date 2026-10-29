@@ -4,7 +4,10 @@
 //! properties, and other type declarations.
 
 use super::helpers;
-use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::base::{
+    ANONYMOUS_CLASS_TYPE, BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility,
+    anonymous_class_name,
+};
 use serde_json::Value;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -248,6 +251,46 @@ pub(super) fn extract_object(
             annotations,
         },
     ))
+}
+
+/// Extract a Kotlin object expression (`object : Task { … }`), which declares
+/// an anonymous class. The row spans the class body, so the supertype list
+/// and its constructor arguments keep their enclosing owner.
+pub(super) fn extract_object_literal(
+    base: &mut BaseExtractor,
+    node: &Node,
+    parent_id: Option<&str>,
+) -> Symbol {
+    let mut signature = "object".to_string();
+    if let Some(super_types) = helpers::extract_super_types(base, node) {
+        signature.push_str(&format!(" : {}", super_types));
+    }
+
+    let mut metadata = HashMap::from([(
+        "type".to_string(),
+        Value::String(ANONYMOUS_CLASS_TYPE.to_string()),
+    )]);
+    record_base_types(base, node, &mut metadata);
+
+    let body = object_literal_body(node).unwrap_or(*node);
+    base.create_symbol(
+        &body,
+        anonymous_class_name(&body),
+        SymbolKind::Class,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(Visibility::Private),
+            parent_id: parent_id.map(|s| s.to_string()),
+            metadata: Some(metadata),
+            ..Default::default()
+        },
+    )
+}
+
+/// The class body of an object expression.
+pub(super) fn object_literal_body<'tree>(node: &Node<'tree>) -> Option<Node<'tree>> {
+    node.children(&mut node.walk())
+        .find(|child| child.kind() == "class_body")
 }
 
 /// Extract a Kotlin companion object

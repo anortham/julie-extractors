@@ -3,6 +3,7 @@
 // Direct Implementation of TypeScript extractor tests (TDD RED phase)
 
 // Submodule declarations
+pub mod anonymous_classes;
 pub mod cross_file_pending;
 pub mod cross_file_relationships;
 pub mod extractor;

@@ -33,6 +33,20 @@ Scala uses `tree-sitter-scala`. The extractor reads `.scala`, `.sc`, and
   `given Show[List[Int]]` is `given_Show_List`. A given with a template body
   (`given Show[Int] with ...`) `implements` its type. The
   `scala.given_definition.v1` fact carries `given_type` on every given.
+- An anonymous class (`new Task { … }`, `new Logging with Closeable { … }`)
+  is a `class` symbol named `anonymous_class_L<line>`, with metadata
+  `type: anonymous_class`. Its parent is the enclosing `def` or `val`, and its
+  members are `method` symbols under it. The row spans the template body, so
+  the instantiated types and the constructor arguments keep their enclosing
+  owner. `base_types` lists the instantiated types; the first `extends`, the
+  rest `implements`. `this` inside it names no outer type, and `super.m()`
+  names its first type. `new T(..)` without a body writes no row. The grammar
+  reads `new Base(x) with Mixin { … }` as an infix expression, so that form
+  writes no row.
+- A `def` inside a `def`, or inside the block of a `val` or `var` initializer,
+  is kind `function` (metadata `type: function`), as Kotlin and Swift write
+  local functions. A `def` in a class, object, trait, or anonymous class body
+  stays a `method`.
 - An `extension (s: Shape)` block is a `module` symbol named by the extended
   type (`Shape`) with `extendedType` metadata, as Swift names
   `extension Shape`. Its methods are its members.

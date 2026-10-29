@@ -20,7 +20,8 @@ pub(super) fn extract_inheritance_relationships(
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
 ) {
-    let Some(type_symbol) = find_type_symbol(extractor, node, symbols) else {
+    let declaring_node = super::classes::anonymous_class_body(node).unwrap_or(node);
+    let Some(type_symbol) = find_type_symbol(extractor, declaring_node, symbols) else {
         return;
     };
 
@@ -33,6 +34,21 @@ pub(super) fn extract_inheritance_relationships(
     }
     for interface in helpers::type_list_nodes(node, "extends_interfaces") {
         supertypes.push((RelationshipKind::Extends, interface));
+    }
+    if super::classes::anonymous_class_body(node).is_some()
+        && let Some(created) = node.child_by_field_name("type")
+    {
+        let target = helpers::type_reference_target(extractor.base(), created);
+        let names_local_interface = target.receiver.is_none()
+            && symbols.iter().any(|symbol| {
+                symbol.kind == SymbolKind::Interface && symbol.name == target.terminal_name
+            });
+        let kind = if names_local_interface {
+            RelationshipKind::Implements
+        } else {
+            RelationshipKind::Extends
+        };
+        supertypes.push((kind, created));
     }
 
     extract_suite_selection_relationships(extractor, node, type_symbol, symbols, relationships);

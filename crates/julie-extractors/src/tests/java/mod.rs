@@ -1,4 +1,5 @@
 mod annotation_tests;
+mod anonymous_classes;
 
 mod class_tests;
 mod complexity;

@@ -78,6 +78,7 @@ fn extract_relationships_from_node(
                 record_call(extractor, argument.node, target, context, relationships);
             }
             record_shared_example_reference(extractor, node, symbols, context, relationships);
+            extract_anonymous_class_new_inheritance(extractor, node, symbols, relationships);
         }
         "assignment" => {
             extract_class_new_inheritance(extractor, node, symbols, relationships);
@@ -169,6 +170,38 @@ fn extract_class_new_inheritance(
         .iter()
         .find(|symbol| symbol.kind == SymbolKind::Class && symbol.start_byte == start_byte)
     else {
+        return;
+    };
+    record_extends(
+        extractor,
+        node,
+        from_symbol,
+        superclass_name,
+        symbols,
+        relationships,
+    );
+}
+
+/// `Class.new(StandardError) do ... end` that no constant names extends
+/// `StandardError` through its anonymous class row.
+fn extract_anonymous_class_new_inheritance(
+    extractor: &mut super::RubyExtractor,
+    node: Node,
+    symbols: &[Symbol],
+    relationships: &mut Vec<Relationship>,
+) {
+    let base = extractor.base();
+    if !super::calls::is_class_new(base, node) {
+        return;
+    }
+    let Some(superclass_name) = super::calls::class_new_superclass(base, node) else {
+        return;
+    };
+    let Some(from_symbol) = symbols.iter().find(|symbol| {
+        crate::base::is_anonymous_class(symbol)
+            && symbol.start_byte == node.start_byte() as u32
+            && symbol.end_byte == node.end_byte() as u32
+    }) else {
         return;
     };
     record_extends(

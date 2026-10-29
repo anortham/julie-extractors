@@ -21,7 +21,8 @@ pub(super) fn extract_inheritance_relationships(
     relationships: &mut Vec<Relationship>,
 ) {
     let base = extractor.base();
-    let Some(class_symbol) = find_type_symbol(base, node, symbols) else {
+    let declaring_node = super::helpers::anonymous_template_body(node).unwrap_or(*node);
+    let Some(class_symbol) = find_type_symbol(base, &declaring_node, symbols) else {
         return;
     };
 
@@ -119,6 +120,26 @@ fn collect_extends_types(
             .filter(|_| implements)
             .map(|given_type| vec![(target(given_type), RelationshipKind::Implements)])
             .unwrap_or_default();
+    }
+
+    if node.kind() == "instance_expression" {
+        let mut kind = RelationshipKind::Extends;
+        let mut types = Vec::new();
+        for type_node in super::helpers::instance_type_nodes(node) {
+            let parts = if type_node.kind() == "compound_type" {
+                type_node
+                    .named_children(&mut type_node.walk())
+                    .filter(|part| part.kind() != "refinement")
+                    .collect()
+            } else {
+                vec![type_node]
+            };
+            for part in parts {
+                types.push((target(part), kind.clone()));
+                kind = RelationshipKind::Implements;
+            }
+        }
+        return types;
     }
 
     let mut types = Vec::new();

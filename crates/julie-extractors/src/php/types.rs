@@ -4,7 +4,9 @@ use super::{
     PhpExtractor, determine_visibility, extract_modifiers, find_child, find_child_text,
     functions::extract_attribute_markers,
 };
-use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::base::{
+    ANONYMOUS_CLASS_TYPE, Symbol, SymbolKind, SymbolOptions, Visibility, anonymous_class_name,
+};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -335,10 +337,7 @@ pub(super) fn extract_anonymous_class(
     node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    // Anonymous classes don't have a name node.
-    // Generate a name based on line number for uniqueness.
-    let line = node.start_position().row + 1;
-    let name = format!("anonymous_class_L{}", line);
+    let name = anonymous_class_name(&node);
     let annotations = extract_attribute_markers(extractor, &node);
 
     let extends_node = find_child(extractor, &node, "base_clause");
@@ -369,7 +368,7 @@ pub(super) fn extract_anonymous_class(
     let mut metadata = HashMap::new();
     metadata.insert(
         "type".to_string(),
-        serde_json::Value::String("anonymous_class".to_string()),
+        serde_json::Value::String(ANONYMOUS_CLASS_TYPE.to_string()),
     );
 
     if let Some(extends_node) = extends_node {

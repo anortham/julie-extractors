@@ -95,16 +95,21 @@ impl ScalaExtractor {
             return;
         }
 
-        let new_parent_id = self
-            .extract_node_symbols(node, symbols, parent_id.as_deref())
-            .or(parent_id);
+        let symbol_id = self.extract_node_symbols(node, symbols, parent_id.as_deref());
+        let owns_only_its_body = node.kind() == "instance_expression";
+        let new_parent_id = symbol_id.or_else(|| parent_id.clone());
 
         let Some(child_depth) = child_tree_depth(depth) else {
             return;
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.visit_node(child, symbols, new_parent_id.clone(), child_depth);
+            let child_parent_id = if owns_only_its_body && child.kind() != "template_body" {
+                parent_id.clone()
+            } else {
+                new_parent_id.clone()
+            };
+            self.visit_node(child, symbols, child_parent_id, child_depth);
         }
     }
 
@@ -124,6 +129,8 @@ impl ScalaExtractor {
             "trait_definition" => types::extract_trait(base, &node, parent_id),
             "object_definition" => types::extract_object(base, &node, symbols, parent_id),
             "enum_definition" => types::extract_enum(base, &node, parent_id),
+            "instance_expression" => helpers::anonymous_template_body(&node)
+                .map(|body| types::extract_anonymous_class(base, &node, &body, parent_id)),
             "simple_enum_case" | "full_enum_case" => {
                 types::extract_enum_case(base, &node, parent_id)
             }
@@ -228,7 +235,8 @@ impl ScalaExtractor {
                 | "simple_enum_case"
                 | "full_enum_case"
                 | "given_definition"
-        ) {
+        ) || helpers::anonymous_template_body(&node).is_some()
+        {
             relationships::extract_inheritance_relationships(self, &node, symbols, relationships);
         }
 

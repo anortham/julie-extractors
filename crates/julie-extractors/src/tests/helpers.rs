@@ -3,7 +3,7 @@
 //! Common helpers used across language extractor test suites.
 
 use crate::ExtractionResults;
-use crate::base::StructuralFact;
+use crate::base::{IdentifierKind, RelationshipKind, StructuralFact, Symbol, SymbolKind};
 use crate::language::get_tree_sitter_language;
 
 /// Initialize a tree-sitter parser for the given language and parse the code.
@@ -69,6 +69,141 @@ pub fn facts_with_pattern<'a>(
         .iter()
         .filter(|fact| fact.pattern_id == pattern_id)
         .collect()
+}
+
+fn symbol_name_by_id(results: &ExtractionResults, id: &str) -> String {
+    results
+        .symbols
+        .iter()
+        .find(|symbol| symbol.id == id)
+        .map(|symbol| symbol.name.clone())
+        .unwrap_or_else(|| "-".to_string())
+}
+
+/// Each symbol as `kind name < parent` in source order, leaving out
+/// variables (parameters among them), imports, and export rows.
+pub fn owner_rows(results: &ExtractionResults) -> Vec<String> {
+    let mut symbols: Vec<&Symbol> = results
+        .symbols
+        .iter()
+        .filter(|symbol| {
+            !matches!(
+                symbol.kind,
+                SymbolKind::Variable | SymbolKind::Import | SymbolKind::Export
+            )
+        })
+        .collect();
+    symbols.sort_by_key(|symbol| (symbol.start_byte, std::cmp::Reverse(symbol.end_byte)));
+    symbols
+        .into_iter()
+        .map(|symbol| {
+            let parent = symbol
+                .parent_id
+                .as_deref()
+                .map(|id| symbol_name_by_id(results, id))
+                .unwrap_or_else(|| "-".to_string());
+            format!("{:?} {} < {}", symbol.kind, symbol.name, parent).to_lowercase()
+        })
+        .collect()
+}
+
+/// The symbol with this name, panicking with every row when it is missing.
+pub fn symbol_named<'a>(results: &'a ExtractionResults, name: &str) -> &'a Symbol {
+    results
+        .symbols
+        .iter()
+        .find(|symbol| symbol.name == name)
+        .unwrap_or_else(|| panic!("no symbol {name}: {:?}", owner_rows(results)))
+}
+
+/// A string value from a symbol's metadata.
+pub fn symbol_metadata<'a>(symbol: &'a Symbol, key: &str) -> Option<&'a str> {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get(key))
+        .and_then(|value| value.as_str())
+}
+
+/// The supertype edges of a file, sorted: `kind from -> to` for a resolved
+/// relationship and `kind from -> ?name` for a pending one.
+pub fn supertype_edges(results: &ExtractionResults) -> Vec<String> {
+    let is_supertype = |kind: &RelationshipKind| {
+        matches!(
+            kind,
+            RelationshipKind::Extends | RelationshipKind::Implements
+        )
+    };
+    let resolved = results
+        .relationships
+        .iter()
+        .filter(|relationship| is_supertype(&relationship.kind))
+        .map(|relationship| {
+            format!(
+                "{:?} {} -> {}",
+                relationship.kind,
+                symbol_name_by_id(results, &relationship.from_symbol_id),
+                symbol_name_by_id(results, &relationship.to_symbol_id)
+            )
+        });
+    let pending = results
+        .structured_pending_relationships
+        .iter()
+        .filter(|pending| is_supertype(&pending.pending.kind))
+        .map(|pending| {
+            format!(
+                "{:?} {} -> ?{}",
+                pending.pending.kind,
+                symbol_name_by_id(results, &pending.pending.from_symbol_id),
+                pending.target.terminal_name
+            )
+        });
+    let mut edges: Vec<String> = resolved
+        .chain(pending)
+        .map(|edge| edge.to_lowercase())
+        .collect();
+    edges.sort();
+    edges
+}
+
+/// Each call identifier in source order as `callee in containing symbol`.
+pub fn call_owners(results: &ExtractionResults) -> Vec<String> {
+    let mut calls: Vec<_> = results
+        .identifiers
+        .iter()
+        .filter(|identifier| identifier.kind == IdentifierKind::Call)
+        .collect();
+    calls.sort_by_key(|identifier| identifier.start_byte);
+    calls
+        .into_iter()
+        .map(|identifier| {
+            let owner = identifier
+                .containing_symbol_id
+                .as_deref()
+                .map(|id| symbol_name_by_id(results, id))
+                .unwrap_or_else(|| "-".to_string());
+            format!("{} in {}", identifier.name, owner)
+        })
+        .collect()
+}
+
+/// Each symbol with a test flag as `name: flags`, sorted, where the flags are
+/// the `is_test`, `test_container`, `test_lifecycle`, and `test_role` keys it has.
+pub fn test_flags(results: &ExtractionResults) -> Vec<String> {
+    let mut rows: Vec<String> = results
+        .symbols
+        .iter()
+        .filter_map(|symbol| {
+            let metadata = symbol.metadata.as_ref()?;
+            let flags: Vec<&str> = ["is_test", "test_container", "test_lifecycle", "test_role"]
+                .into_iter()
+                .filter(|key| metadata.contains_key(*key))
+                .collect();
+            (!flags.is_empty()).then(|| format!("{}: {}", symbol.name, flags.join(",")))
+        })
+        .collect();
+    rows.sort();
+    rows
 }
 
 #[cfg(test)]

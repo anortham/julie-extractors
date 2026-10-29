@@ -140,6 +140,22 @@ impl JavaExtractor {
             ));
         }
 
+        if let Some(body) = classes::anonymous_class_body(node) {
+            let class_id = self.push_anonymous_class(node, body, parent_id, symbols);
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
+            for child in node.children(&mut node.walk()) {
+                let child_parent = if child.id() == body.id() {
+                    Some(class_id.as_str())
+                } else {
+                    parent_id
+                };
+                self.walk_tree(child, symbols, child_parent, child_depth);
+            }
+            return;
+        }
+
         if let Some(symbol_id) = self.push_symbol(node, parent_id, symbols) {
             // Walk children with this symbol as parent
             let Some(child_depth) = child_tree_depth(depth) else {
@@ -187,6 +203,21 @@ impl JavaExtractor {
             symbols.extend(components);
         }
         Some(symbol_id)
+    }
+
+    /// Push the class an anonymous class creation declares and return its id.
+    #[inline(never)]
+    fn push_anonymous_class(
+        &mut self,
+        node: Node,
+        body: Node,
+        parent_id: Option<&str>,
+        symbols: &mut Vec<Symbol>,
+    ) -> String {
+        let symbol = classes::extract_anonymous_class(self, node, body, parent_id);
+        let symbol_id = symbol.id.clone();
+        symbols.push(symbol);
+        symbol_id
     }
 
     fn extract_symbol(&mut self, node: Node, parent_id: Option<&str>) -> Option<Symbol> {
@@ -242,7 +273,8 @@ impl JavaExtractor {
             "class_declaration"
             | "interface_declaration"
             | "enum_declaration"
-            | "record_declaration" => {
+            | "record_declaration"
+            | "object_creation_expression" => {
                 relationships::extract_inheritance_relationships(
                     self,
                     node,

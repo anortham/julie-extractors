@@ -2,6 +2,7 @@
 //
 // Direct Implementation of Kotlin extractor tests (TDD RED phase)
 
+mod anonymous_classes;
 mod complexity;
 mod cross_file_pending;
 mod task14;

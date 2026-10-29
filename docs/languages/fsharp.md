@@ -46,7 +46,16 @@ properties, abstract properties, `val` fields, operator members such as
 `(+)`, active patterns such as `(|Even|Odd|)`, and every name bound by a
 tuple or record pattern are symbols. Members of a type extension
 (`type Shape with ...`) belong to the extended type when it is in the file;
-otherwise they carry `extendedType` metadata that names it. Locals
+otherwise they carry `extendedType` metadata that names it. An object
+expression (`{ new ITask with member … }`) is a `class` symbol named
+`anonymous_class_L<line>`, with metadata `type: anonymous_class`, under the
+enclosing function or value. Its members, including those of each
+`interface … with` section, belong to it. The row starts at the `with` that
+opens the members, so the constructed type and its arguments keep their
+enclosing owner. `base_types` lists the constructed type and each interface
+type. The constructed type gives an `extends` edge when `new` passes
+constructor arguments (`new Base(1)`), else an `implements` edge, and each
+`interface` section gives an `implements` edge. Locals
 (`let`, `use`) belong to their enclosing function and are private. Identifier rows are usage-only:
 `call`, `member_access`, `type_usage`, and `variable_ref`. A declaration is
 never represented by an identifier kind.

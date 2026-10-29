@@ -96,7 +96,12 @@ Express/Fastify routes on exported and type-annotated receivers.
 - Generator declarations, function expressions, `export default` anonymous
   functions and classes, and class expressions are symbols. An anonymous
   default export is named `default`; a class or function expression bound
-  to a variable takes the variable name.
+  to a variable takes the variable name. A class expression with neither
+  (`new (class implements Task { … })()`) is a `class` symbol named
+  `anonymous_class_L<line>`, with metadata `type: anonymous_class`, under the
+  enclosing function. Its methods belong to it, and its `extends` and
+  `implements` clauses give the same edges as a named class. TSX files and
+  Vue script blocks use the same rule.
 - Overload signatures fold into the implementation, which carries
   `overloads`. A `declare function` without an implementation is a
   function with `isDefinition: false`.

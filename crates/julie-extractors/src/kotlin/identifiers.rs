@@ -761,7 +761,9 @@ fn self_receiver_type_at(base: &BaseExtractor, node: Node) -> Option<String> {
 }
 
 /// The type `this` names at `node`: the receiver type of the nearest enclosing
-/// extension function or property, else the nearest enclosing type.
+/// extension function or property, else the nearest enclosing type. An object
+/// expression reached first has no written name, so it ends the walk with
+/// `None` instead of leaking the outer class.
 fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
     let mut current = node.parent();
     while let Some(candidate) = current {
@@ -781,6 +783,7 @@ fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
             "class_declaration" | "object_declaration" | "companion_object" => {
                 return super::helpers::declared_name(base, &candidate).map(|(name, _)| name);
             }
+            "object_literal" => return None,
             _ => {}
         }
         current = candidate.parent();
@@ -791,7 +794,10 @@ fn enclosing_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
 fn declared_superclass_name(base: &BaseExtractor, node: Node) -> Option<String> {
     let mut current = node.parent();
     while let Some(candidate) = current {
-        if matches!(candidate.kind(), "class_declaration" | "object_declaration") {
+        if matches!(
+            candidate.kind(),
+            "class_declaration" | "object_declaration" | "object_literal"
+        ) {
             let name = super::helpers::collect_base_type_names(base, &candidate)
                 .into_iter()
                 .next()?;

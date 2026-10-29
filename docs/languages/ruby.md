@@ -113,6 +113,14 @@ before they count as a mixin on the enclosing class, which keeps
   only as `$g = ...`.
 - `obj.attr = x` and `h[k] = x` call writer methods. They define no symbol;
   `self.mode = x` gives a pending call to `mode=`.
+- `Class.new(Base) do … end`, `Struct.new(:a) do … end`, and
+  `Data.define(:a) do … end` with a block and no constant on the left are a
+  `class` symbol named `anonymous_class_L<line>`, with metadata
+  `type: anonymous_class`. The block's methods and the member properties
+  belong to it, and `Class.new(Base)` gives an `extends` edge and
+  `base_types`. A constant assignment (`Worker = Class.new(Base) do … end`)
+  keeps the constant's name, and a call with no block writes no row. Such a
+  class is never a test container by itself.
 - A compact declaration `class Api::V1::Base` is named `Base`. Its signature
   keeps the written name, and `metadata.qualifiedName` holds
   `Api::V1::Base`. A same-file superclass resolves by name or qualified name.

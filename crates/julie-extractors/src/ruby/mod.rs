@@ -176,8 +176,17 @@ impl RubyExtractor {
                 {
                     self.visibility_calls.push(visibility_call);
                 }
-                let call_symbols =
-                    calls::extract_call(&mut self.base, node, parent_id.clone(), &scope);
+                let call_symbols = if let Some((anonymous_class, field_props)) =
+                    calls::try_extract_anonymous_class(&mut self.base, node, parent_id.clone())
+                {
+                    for s in &field_props {
+                        self.symbol_map.insert(s.id.clone(), s.clone());
+                    }
+                    symbols.extend(field_props);
+                    vec![anonymous_class]
+                } else {
+                    calls::extract_call(&mut self.base, node, parent_id.clone(), &scope)
+                };
                 if call_symbols.len() == 1 {
                     symbol_opt = call_symbols.into_iter().next();
                 } else {

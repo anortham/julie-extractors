@@ -173,6 +173,15 @@ fn find_class_symbol<'a>(
     node: &Node,
     symbols: &'a [Symbol],
 ) -> Option<&'a Symbol> {
+    if node.kind() == "object_literal" {
+        let body = super::types::object_literal_body(node)?;
+        return symbols.iter().find(|s| {
+            s.start_byte as usize == body.start_byte()
+                && s.end_byte as usize == body.end_byte()
+                && s.kind == SymbolKind::Class
+                && s.file_path == base.file_path
+        });
+    }
     let (class_name, _) = super::helpers::declared_name(base, node)?;
 
     symbols.iter().find(|s| {

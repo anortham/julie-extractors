@@ -4,7 +4,8 @@ use super::symbols::MemberScope;
 /// Handles require, attr_accessor, define_method, def_delegator, module_function, Struct.new
 /// and the RSpec, Rails, and ActiveSupport test-block vocabularies
 use crate::base::{
-    AnnotationMarker, BaseExtractor, Symbol, SymbolKind, SymbolOptions, TestRole, Visibility,
+    ANONYMOUS_CLASS_TYPE, AnnotationMarker, BaseExtractor, Symbol, SymbolKind, SymbolOptions,
+    TestRole, Visibility, anonymous_class_name,
 };
 use crate::test_detection::{apply_test_role, is_test_path, ruby_block_test_role};
 use std::collections::HashMap;
@@ -328,25 +329,9 @@ pub(super) fn try_extract_struct_new(
     let constructor = class_constructor(base, right_side)?;
 
     let name = base.get_node_text(&left_side);
-    let receiver = base.get_node_text(&right_side.child_by_field_name("receiver")?);
-    let method = base.get_node_text(&right_side.child_by_field_name("method")?);
-    let arguments = right_side
-        .child_by_field_name("arguments")
-        .map(|arg_list| base.get_node_text(&arg_list))
-        .unwrap_or_default();
-    let signature = format!("{name} = {receiver}.{method}{arguments}");
-
+    let signature = format!("{name} = {}", constructor_call_text(base, right_side)?);
     let doc_comment = super::doc_comments::find_ruby_doc_comment(base, assignment_node);
-    let metadata = match constructor {
-        ClassConstructor::Class => class_new_superclass(base, right_side).map(|superclass| {
-            HashMap::from([(
-                "base_types".to_string(),
-                serde_json::Value::Array(vec![serde_json::Value::String(superclass)]),
-            )])
-        }),
-        ClassConstructor::Fields => None,
-    };
-
+    let metadata = constructor_base_types(base, right_side, constructor).unwrap_or_default();
     let class_symbol = base.create_symbol(
         &assignment_node,
         name,
@@ -355,15 +340,94 @@ pub(super) fn try_extract_struct_new(
             signature: Some(signature),
             visibility: Some(Visibility::Public),
             parent_id,
-            metadata,
+            metadata: (!metadata.is_empty()).then_some(metadata),
             doc_comment,
             annotations: Vec::new(),
         },
     );
+    let field_properties = constructor_fields(base, right_side, constructor, &class_symbol.id);
+    Some((class_symbol, field_properties))
+}
 
+/// `Class.new(Base) do … end`, `Struct.new(:a) do … end`, or
+/// `Data.define(:a) do … end` that no constant names: an anonymous class that
+/// owns the methods of its block.
+pub(super) fn try_extract_anonymous_class(
+    base: &mut BaseExtractor,
+    call: Node,
+    parent_id: Option<String>,
+) -> Option<(Symbol, Vec<Symbol>)> {
+    let constructor = class_constructor(base, call)?;
+    call.child_by_field_name("block")?;
+    let named_by_constant = call.parent().is_some_and(|parent| {
+        parent.kind() == "assignment"
+            && parent.child_by_field_name("right").map(|right| right.id()) == Some(call.id())
+            && parent
+                .child_by_field_name("left")
+                .is_some_and(|left| left.kind() == "constant")
+    });
+    if named_by_constant {
+        return None;
+    }
+    let mut metadata = constructor_base_types(base, call, constructor).unwrap_or_default();
+    metadata.insert(
+        "type".to_string(),
+        serde_json::Value::String(ANONYMOUS_CLASS_TYPE.to_string()),
+    );
+    let class_symbol = base.create_symbol(
+        &call,
+        anonymous_class_name(&call),
+        SymbolKind::Class,
+        SymbolOptions {
+            signature: Some(constructor_call_text(base, call)?),
+            visibility: Some(Visibility::Private),
+            parent_id,
+            metadata: Some(metadata),
+            ..Default::default()
+        },
+    );
+    let field_properties = constructor_fields(base, call, constructor, &class_symbol.id);
+    Some((class_symbol, field_properties))
+}
+
+/// `Struct.new(:a, :b)` as written, without its block.
+fn constructor_call_text(base: &BaseExtractor, call: Node) -> Option<String> {
+    let receiver = base.get_node_text(&call.child_by_field_name("receiver")?);
+    let method = base.get_node_text(&call.child_by_field_name("method")?);
+    let arguments = call
+        .child_by_field_name("arguments")
+        .map(|arg_list| base.get_node_text(&arg_list))
+        .unwrap_or_default();
+    Some(format!("{receiver}.{method}{arguments}"))
+}
+
+/// The `base_types` metadata of `Class.new(Base)`.
+fn constructor_base_types(
+    base: &BaseExtractor,
+    call: Node,
+    constructor: ClassConstructor,
+) -> Option<HashMap<String, serde_json::Value>> {
+    match constructor {
+        ClassConstructor::Class => class_new_superclass(base, call).map(|superclass| {
+            HashMap::from([(
+                "base_types".to_string(),
+                serde_json::Value::Array(vec![serde_json::Value::String(superclass)]),
+            )])
+        }),
+        ClassConstructor::Fields => None,
+    }
+}
+
+/// The member properties `Struct.new(:a)` and `Data.define(:a)` declare.
+fn constructor_fields(
+    base: &mut BaseExtractor,
+    call: Node,
+    constructor: ClassConstructor,
+    class_id: &str,
+) -> Vec<Symbol> {
     let mut field_properties = Vec::new();
     if matches!(constructor, ClassConstructor::Fields)
-        && let Some(arg_list) = right_side.child_by_field_name("arguments")
+        && let Some(arg_list) = call.child_by_field_name("arguments")
     {
         let mut arg_cursor = arg_list.walk();
         for arg_child in arg_list.children(&mut arg_cursor) {
@@ -377,7 +441,7 @@ pub(super) fn try_extract_struct_new(
                     SymbolOptions {
                         signature: Some(field_text),
                         visibility: Some(Visibility::Public),
-                        parent_id: Some(class_symbol.id.clone()),
+                        parent_id: Some(class_id.to_string()),
                         metadata: None,
                         doc_comment: None,
                         annotations: Vec::new(),
@@ -387,8 +451,7 @@ pub(super) fn try_extract_struct_new(
             }
         }
     }
-
-    Some((class_symbol, field_properties))
+    field_properties
 }
 
 #[derive(Clone, Copy)]

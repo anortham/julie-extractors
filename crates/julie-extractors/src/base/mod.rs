@@ -12,6 +12,7 @@
 // - tree_methods.rs: Tree navigation and traversal methods
 
 pub mod annotations;
+pub(crate) mod anonymous_class;
 pub mod body;
 pub(crate) mod call_arguments;
 pub mod code_structural_facts;
@@ -50,6 +51,9 @@ pub mod web_structural_facts;
 
 // Re-export key types for external use
 pub use annotations::normalize_annotations;
+pub(crate) use anonymous_class::{
+    ANONYMOUS_CLASS_TYPE, anonymous_class_head, anonymous_class_name, is_anonymous_class,
+};
 #[allow(unused_imports)]
 pub use body::BodySpan;
 pub use code_structural_facts::collect_code_structural_facts;

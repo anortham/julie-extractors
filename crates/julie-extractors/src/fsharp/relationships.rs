@@ -72,6 +72,9 @@ fn walk(
             RelationshipKind::Implements,
             relationships,
         ),
+        "object_expression" => {
+            extract_object_expression_base(extractor, node, symbols, symbol_index, relationships)
+        }
         "record_field" | "union_type_field" => {
             extract_field_type_relationship(extractor, node, symbols, symbol_index, relationships)
         }
@@ -270,9 +273,77 @@ fn extract_type_relationship(
     let Some(target_node) = first_type_child(node) else {
         return;
     };
-    let Some(caller) = containing_type_symbol(extractor, node, symbols) else {
+    let caller = node
+        .parent()
+        .and_then(|parent| object_expression_symbol(parent, symbols))
+        .or_else(|| containing_type_symbol(extractor, node, symbols));
+    let Some(caller) = caller else {
         return;
     };
+    record_type_relationship(
+        extractor,
+        caller,
+        target_node,
+        symbol_index,
+        kind,
+        relationships,
+    );
+}
+
+/// The type an object expression constructs: a class when `new` passes
+/// constructor arguments (`new Base(1)`), else an interface.
+fn extract_object_expression_base(
+    extractor: &mut FSharpExtractor,
+    node: Node,
+    symbols: &[Symbol],
+    symbol_index: &ScopedSymbolIndex<'_>,
+    relationships: &mut Vec<Relationship>,
+) {
+    let Some(caller) = object_expression_symbol(node, symbols) else {
+        return;
+    };
+    let Some(constructed) = node
+        .named_children(&mut node.walk())
+        .find(|child| child.kind() != "identifier")
+    else {
+        return;
+    };
+    let (target_node, kind) = if constructed.kind() == "application_expression" {
+        let Some(type_node) = constructed.named_child(0) else {
+            return;
+        };
+        (type_node, RelationshipKind::Extends)
+    } else {
+        (constructed, RelationshipKind::Implements)
+    };
+    record_type_relationship(
+        extractor,
+        caller,
+        target_node,
+        symbol_index,
+        kind,
+        relationships,
+    );
+}
+
+/// The anonymous class row of an object expression.
+fn object_expression_symbol<'a>(node: Node, symbols: &'a [Symbol]) -> Option<&'a Symbol> {
+    let members_start = super::declarations::object_expression_members_start(node)?;
+    symbols.iter().find(|symbol| {
+        crate::base::is_anonymous_class(symbol)
+            && symbol.start_byte == members_start.start_byte() as u32
+            && symbol.end_byte == node.end_byte() as u32
+    })
+}
+
+fn record_type_relationship(
+    extractor: &mut FSharpExtractor,
+    caller: &Symbol,
+    target_node: Node,
+    symbol_index: &ScopedSymbolIndex<'_>,
+    kind: RelationshipKind,
+    relationships: &mut Vec<Relationship>,
+) {
     let display_name = extractor
         .base()
         .get_node_text(&target_node)

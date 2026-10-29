@@ -4,7 +4,10 @@
 //! modifiers, and abstract classes.
 
 use super::helpers;
-use crate::base::{Symbol, SymbolKind, SymbolOptions, normalize_annotations};
+use crate::base::{
+    ANONYMOUS_CLASS_TYPE, Symbol, SymbolKind, SymbolOptions, anonymous_class_name,
+    normalize_annotations,
+};
 use crate::typescript::TypeScriptExtractor;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -15,10 +18,18 @@ pub(super) fn extract_class(
     node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let name = class_name(extractor, node)?;
+    let binding_name = class_name(extractor, node);
+    if binding_name.is_none() && !(node.kind() == "class" && node.is_named()) {
+        return None;
+    }
+    let is_anonymous = binding_name.is_none();
+    let name = binding_name.unwrap_or_else(|| anonymous_class_name(&node));
 
     let visibility = helpers::extract_ts_visibility(node);
     let mut metadata = HashMap::new();
+    if is_anonymous {
+        metadata.insert("type".to_string(), serde_json::json!(ANONYMOUS_CLASS_TYPE));
+    }
 
     // Check for inheritance (extends clause)
     let mut extends_name = if let Some(heritage) = node.child_by_field_name("superclass") {
@@ -88,7 +99,11 @@ pub(super) fn extract_class(
     if is_abstract {
         signature.push_str("abstract ");
     }
-    signature.push_str(&format!("class {}", name));
+    if is_anonymous {
+        signature.push_str("class");
+    } else {
+        signature.push_str(&format!("class {}", name));
+    }
     if let Some(ref ext) = extends_name {
         signature.push_str(&format!(" extends {}", ext));
     }

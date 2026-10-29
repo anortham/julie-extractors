@@ -178,23 +178,41 @@ pub(super) fn get_name(base: &Base, node: &Node) -> Option<String> {
         })
 }
 
+/// The name of the type whose body holds `node`; `None` inside the body of an
+/// anonymous class, which has no written name.
 pub(super) fn enclosing_type_name(base: &Base, node: &Node) -> Option<String> {
-    get_name(base, &enclosing_type_definition(node)?)
+    let definition = enclosing_type_definition(node)?;
+    if definition.kind() == "instance_expression" {
+        return None;
+    }
+    get_name(base, &definition)
 }
 
+/// The nearest named type definition around `node`, or the instance
+/// expression whose anonymous class body holds it.
 fn enclosing_type_definition<'tree>(node: &Node<'tree>) -> Option<Node<'tree>> {
-    std::iter::successors(node.parent(), |candidate| candidate.parent()).find(|candidate| {
-        matches!(
+    let mut child = *node;
+    while let Some(candidate) = child.parent() {
+        if matches!(
             candidate.kind(),
             "class_definition" | "object_definition" | "trait_definition" | "enum_definition"
-        )
-    })
+        ) || (candidate.kind() == "instance_expression" && child.kind() == "template_body")
+        {
+            return Some(candidate);
+        }
+        child = candidate;
+    }
+    None
 }
 
-/// The first type in the enclosing definition's `extends` clause, without
-/// type arguments: the type a `super.m()` call dispatches to.
+/// The first type in the enclosing definition's `extends` clause, or the
+/// first type an anonymous class instantiates, without type arguments: the
+/// type a `super.m()` call dispatches to.
 pub(super) fn enclosing_supertype_name(base: &Base, node: &Node) -> Option<String> {
     let definition = enclosing_type_definition(node)?;
+    if definition.kind() == "instance_expression" {
+        return instance_type_names(base, &definition).into_iter().next();
+    }
     let extends = definition
         .children(&mut definition.walk())
         .find(|child| child.kind() == "extends_clause")?;
@@ -214,26 +232,6 @@ pub(super) fn is_access_modifier(modifier: &str) -> bool {
 /// arguments: `extends munit.FunSuite with Matchers[Int]` gives
 /// `munit.FunSuite` and `Matchers`.
 pub(super) fn extends_type_names(base: &Base, node: &Node) -> Vec<String> {
-    fn collect(base: &Base, node: Node, names: &mut Vec<String>, depth: u32) {
-        let Some(child_depth) = crate::tree_traversal::child_tree_depth(depth) else {
-            return;
-        };
-        match node.kind() {
-            "type_identifier" | "stable_type_identifier" => names.push(base.get_node_text(&node)),
-            "generic_type" => {
-                if let Some(inner) = node.child_by_field_name("type") {
-                    collect(base, inner, names, child_depth);
-                }
-            }
-            "compound_type" | "annotated_type" => {
-                let mut cursor = node.walk();
-                for child in node.named_children(&mut cursor) {
-                    collect(base, child, names, child_depth);
-                }
-            }
-            _ => {}
-        }
-    }
     let mut names = Vec::new();
     if let Some(extends) = node
         .children(&mut node.walk())
@@ -241,8 +239,75 @@ pub(super) fn extends_type_names(base: &Base, node: &Node) -> Vec<String> {
     {
         let mut cursor = extends.walk();
         for child in extends.named_children(&mut cursor) {
-            collect(base, child, &mut names, 0);
+            collect_type_names(base, child, &mut names, 0);
         }
     }
     names
+}
+
+/// The types an anonymous class instance (`new Task with Named { … }`)
+/// extends, without type arguments.
+pub(super) fn instance_type_names(base: &Base, node: &Node) -> Vec<String> {
+    let mut names = Vec::new();
+    for type_node in instance_type_nodes(node) {
+        collect_type_names(base, type_node, &mut names, 0);
+    }
+    names
+}
+
+/// The type nodes written between `new` and the body of an instance
+/// expression; constructor arguments are left out.
+pub(super) fn instance_type_nodes<'tree>(node: &Node<'tree>) -> Vec<Node<'tree>> {
+    node.named_children(&mut node.walk())
+        .filter(|child| !matches!(child.kind(), "arguments" | "template_body"))
+        .filter(|child| !child.kind().contains("comment"))
+        .collect()
+}
+
+/// The body of an instance expression that declares an anonymous class:
+/// `new Task { … }` and `new { … }`, not `new Task(1)`.
+pub(super) fn anonymous_template_body<'tree>(node: &Node<'tree>) -> Option<Node<'tree>> {
+    if node.kind() != "instance_expression" {
+        return None;
+    }
+    node.named_children(&mut node.walk())
+        .find(|child| child.kind() == "template_body")
+}
+
+/// True when the nearest scope around `node` is a function or a `val`/`var`
+/// initializer rather than a template body or the top level.
+pub(super) fn is_in_local_scope(node: &Node) -> bool {
+    for ancestor in std::iter::successors(node.parent(), Node::parent) {
+        match ancestor.kind() {
+            "function_definition" | "val_definition" | "var_definition" => return true,
+            "template_body"
+            | "with_template_body"
+            | "enum_body"
+            | "extension_definition"
+            | "compilation_unit" => return false,
+            _ => {}
+        }
+    }
+    false
+}
+
+fn collect_type_names(base: &Base, node: Node, names: &mut Vec<String>, depth: u32) {
+    let Some(child_depth) = crate::tree_traversal::child_tree_depth(depth) else {
+        return;
+    };
+    match node.kind() {
+        "type_identifier" | "stable_type_identifier" => names.push(base.get_node_text(&node)),
+        "generic_type" => {
+            if let Some(inner) = node.child_by_field_name("type") {
+                collect_type_names(base, inner, names, child_depth);
+            }
+        }
+        "compound_type" | "annotated_type" => {
+            let mut cursor = node.walk();
+            for child in node.named_children(&mut cursor) {
+                collect_type_names(base, child, names, child_depth);
+            }
+        }
+        _ => {}
+    }
 }
