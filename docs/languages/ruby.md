@@ -331,3 +331,14 @@ and 11 `test_lifecycle` rows for ruby.
 
 No real-world corpus scan was run for this contract. The evidence above is
 golden-fixture evidence only.
+
+## Test labels
+
+A test or a test container named by a string literal takes the text that the
+literal writes: RSpec `it "adds \"three\""`, `describe`, `context`, and the
+Rails and test-unit `test "label"` macro. The label in `"adds \"three\""` is
+`adds "three"`. An escape of a quote, a backslash, or another punctuation
+character becomes that character, and so does a Unicode or hex escape of a
+printable character. `\n`, `\t`, and other control escapes stay as written, so a
+name stays on one line. In a single-quoted label only `\'` and `\\` are escapes.
+An interpolation is `{}`.

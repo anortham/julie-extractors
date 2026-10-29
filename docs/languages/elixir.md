@@ -75,3 +75,13 @@ and module plugs. The default policy preserves absolute request URLs;
   accepts, and a callee in another file. Other files are out of scope because
   each file is extracted alone. `with {:ok, x} <- load()` and `case` clause
   patterns are not locals and record nothing.
+
+## Test labels
+
+A test or a test container named by a string literal takes the text that the
+literal writes: ExUnit `test "adds \"three\""` and `describe`. The label in
+`"adds \"three\""` is `adds "three"`. An escape of a quote, a backslash, or
+another punctuation character becomes that character, and so does a Unicode or
+hex escape of a printable character. `\n`, `\t`, and other control escapes stay
+as written, so a name stays on one line. An interpolation (`#{…}`) stays as
+written.

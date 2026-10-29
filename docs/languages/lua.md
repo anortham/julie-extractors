@@ -85,3 +85,13 @@ The closure tasks are in
   `Foo` even when a local `Foo` at the call is not the class. Reason: this
   rule is older than the scope check. Closure: apply the same binding match
   to the class name (task 3).
+
+## Test labels
+
+A test or a test container named by a string literal takes the text that the
+literal writes: busted `it("adds \"three\"")` and `describe`. The label in
+`"adds \"three\""` is `adds "three"`. An escape of a quote, a backslash, or
+another punctuation character becomes that character, and so does a Unicode or
+hex escape of a printable character. `\n`, `\t`, and other control escapes stay
+as written, so a name stays on one line. A long bracket label (`[[…]]`) keeps
+its text as written.

@@ -20,7 +20,7 @@
 //! - Callee: first `simple_identifier` child (e.g. `"describe"`, `"it"`)
 //! - Description string: `call_suffix` → `value_arguments` → first named child
 //!   (`value_argument`) → `value` field → `line_string_literal`. Decoded via
-//!   `base.decode_string_literal`.
+//!   `base.decode_string_value`.
 //! - Lifecycle calls (`beforeEach`, `afterEach`, `beforeAll`, `afterAll`,
 //!   `justBeforeEach`) carry no description arg — only a trailing closure in
 //!   `call_suffix`. The callee name is used as the symbol name.
@@ -126,7 +126,7 @@ pub(super) fn extract_quick_test_call(
             } else {
                 first_arg
             };
-            base.decode_string_literal(&value_node)?
+            base.decode_string_value(&value_node)?
         }
     };
 

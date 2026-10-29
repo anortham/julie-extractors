@@ -123,7 +123,7 @@ pub(super) fn extract_lua_test_call(
             let first_string = args_node
                 .children(&mut cursor)
                 .find(|c| c.kind() == "string")?;
-            base.decode_string_literal(&first_string)?
+            base.decode_string_value(&first_string)?
         }
     };
 

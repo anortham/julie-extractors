@@ -103,16 +103,11 @@ pub(super) fn extract_test(
     // inside the block.
     let (test_name, signature) = if let Some(string_node) = base.find_child_by_type(&node, "string")
     {
+        let written = base.get_node_text(&string_node);
         let name = base
-            .find_child_by_type(&string_node, "string_content")
-            .map(|content_node| base.get_node_text(&content_node))
-            .unwrap_or_else(|| {
-                // Fallback to the full string text, removing quotes
-                base.get_node_text(&string_node)
-                    .trim_matches('"')
-                    .to_string()
-            });
-        let signature = format!("test \"{name}\"");
+            .decode_string_value(&string_node)
+            .unwrap_or_else(|| written.trim_matches('"').to_string());
+        let signature = format!("test {written}");
         (name, signature)
     } else if let Some(ident_node) = base.find_child_by_type(&node, "identifier") {
         let name = base.get_node_text(&ident_node);

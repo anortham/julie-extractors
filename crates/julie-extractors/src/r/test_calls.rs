@@ -86,7 +86,7 @@ pub(super) fn extract_r_test_call(
                         .children(&mut inner)
                         .find(|c| c.kind().contains("string"))
                 })?;
-            base.decode_string_literal(&string_node)?
+            base.decode_string_value(&string_node)?
         }
     };
 

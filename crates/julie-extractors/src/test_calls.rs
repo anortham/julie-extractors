@@ -181,7 +181,7 @@ fn test_call_options(
 ) -> SymbolOptions {
     let signature = match category {
         TestCallCategory::Lifecycle => format!("{}()", full_callee),
-        _ => format!("{}(\"{}\")", full_callee, name),
+        _ => format!("{}(\"{}\")", full_callee, name.replace('"', "\\\"")),
     };
 
     let mut metadata = HashMap::new();
@@ -291,9 +291,7 @@ pub fn extract_test_call(
             let first_string = args_node
                 .children(&mut cursor)
                 .find(|c| c.kind() == "string" || c.kind() == "template_string")?;
-            let raw = base.get_node_text(&first_string);
-            raw.trim_matches(|c| c == '"' || c == '\'' || c == '`')
-                .to_string()
+            base.decode_string_value_keeping_holes(&first_string)?
         }
     };
 

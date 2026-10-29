@@ -98,7 +98,7 @@ pub(super) fn extract_scala_test_call(
     // such as `"n".ignore` and `"n".tag(Slow)`.
     let inner_args = inner.child_by_field_name("arguments")?;
     let string_node = description_string(inner_args.named_child(0)?)?;
-    let name = base.decode_string_literal(&string_node)?;
+    let name = base.decode_string_value(&string_node)?;
 
     Some(build_test_call_symbol(
         base, node, &callee, name, category, parent_id,
@@ -142,7 +142,7 @@ pub(super) fn extract_scala_flatspec_test(
     let left = node.child_by_field_name("left")?;
 
     if left.kind() == "string" {
-        let subject = base.decode_string_literal(&left)?;
+        let subject = base.decode_string_value(&left)?;
         let (callee, name, category) = match operator.as_str() {
             "in" => ("in".to_string(), subject, TestCallCategory::Test),
             "-" => ("minus".to_string(), subject, TestCallCategory::Container),
@@ -169,10 +169,10 @@ pub(super) fn extract_scala_flatspec_test(
     let subject_node = left.child_by_field_name("left")?;
     let behaviour_node = left.child_by_field_name("right")?;
     let subject = base
-        .decode_string_literal(&subject_node)
+        .decode_string_value(&subject_node)
         .unwrap_or_else(|| base.get_node_text(&subject_node));
     let behaviour = base
-        .decode_string_literal(&behaviour_node)
+        .decode_string_value(&behaviour_node)
         .unwrap_or_else(|| base.get_node_text(&behaviour_node));
     let name = format!("{subject} {verb} {behaviour}");
 
@@ -205,7 +205,7 @@ pub(super) fn extract_scalacheck_property(
     let string_node = arguments
         .named_child(0)
         .filter(|argument| argument.kind() == "string")?;
-    let name = base.decode_string_literal(&string_node)?;
+    let name = base.decode_string_value(&string_node)?;
     Some(build_test_call_symbol(
         base,
         node,

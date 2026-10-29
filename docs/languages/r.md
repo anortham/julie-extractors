@@ -89,3 +89,12 @@ quotes) and `form` (the call name with `()`): `source()`, `library()`,
   (`source(file.path(dir, "x.R"))`, `source(paste0(root, "/y.R"))`) writes no
   row.
 - `box::use(app/logic/utils, pkg[f])` gives `app/logic/utils` and `pkg`.
+
+## Test labels
+
+A test or a test container named by a string literal takes the text that the
+literal writes: testthat `test_that("adds \"three\"")` and `describe`. The label
+in `"adds \"three\""` is `adds "three"`. An escape of a quote, a backslash, or
+another punctuation character becomes that character, and so does a Unicode or
+hex escape of a printable character. `\n`, `\t`, and other control escapes stay
+as written, so a name stays on one line.

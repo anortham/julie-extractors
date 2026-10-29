@@ -449,7 +449,7 @@ fn call_description(base: &BaseExtractor, node: &Node) -> Option<String> {
     let first_string = arguments
         .children(&mut cursor)
         .find(|child| child.kind() == "string" || child.kind() == "template_string")?;
-    Some(unquote(&base.get_node_text(&first_string)))
+    base.decode_string_value_keeping_holes(&first_string)
 }
 
 /// Write the test role of a declared function or method.

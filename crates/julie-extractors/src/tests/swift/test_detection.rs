@@ -440,3 +440,30 @@ describe("calculator") {
     assert_eq!(role(named(&syms, "calculator")), Some("test_container"));
     assert_eq!(role(named(&syms, "adds")), Some("test_case"));
 }
+
+#[test]
+fn swift_test_labels_decode_escaped_quotes() {
+    let tests = crate::tests::helpers::test_names(
+        "swift",
+        "Tests/CalcSpec.swift",
+        r##"class CalcSpec: QuickSpec {
+    override class func spec() {
+        describe("calc \"suite\"") {
+            it("adds \"three\" \u{41} \(x)") { }
+            it("plain label") { }
+        }
+    }
+}
+"##,
+    );
+    let names: Vec<&str> = tests.iter().map(|(name, _)| name.as_str()).collect();
+    assert_eq!(
+        names,
+        [
+            "CalcSpec",
+            "calc \"suite\"",
+            "adds \"three\" A {}",
+            "plain label"
+        ]
+    );
+}

@@ -132,3 +132,13 @@ without quotes; `$PSScriptRoot` and other variables stay in the text) and
   `Import-Module $PSScriptRoot\Mods\X.psm1` (a bare path that starts with a
   variable). Neither line writes a row, and the parse error of the first form
   can also hide the import rows after it.
+
+## Test labels
+
+A test or a test container named by a string literal takes the text that the
+literal writes: Pester `It`, `Describe`, and `Context`. The label in
+``It "adds `"three`""`` is `adds "three"`. In a double-quoted label, a backtick
+before a punctuation character writes that character, and `""` writes `"`. A
+backtick before a letter (`` `n ``, `` `t ``) stays as written, so a name stays
+on one line. In a single-quoted label, `''` writes `'`. A variable stays as
+written.

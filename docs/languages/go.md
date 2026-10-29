@@ -278,3 +278,13 @@ Representative rows prove each framework arm:
 
 The temporary checkouts and SQLite artifacts were removed after recording this
 evidence.
+
+## Test labels
+
+A test or a test container named by a string literal takes the text that the
+literal writes: `t.Run("adds \"three\"", …)` and the Ginkgo forms. The label in
+`"adds \"three\""` is `adds "three"`. An escape of a quote, a backslash, or
+another punctuation character becomes that character, and so does a Unicode or
+hex escape of a printable character. `\n`, `\t`, and other control escapes stay
+as written, so a name stays on one line. A raw string label (`` `…` ``) keeps
+its text as written.

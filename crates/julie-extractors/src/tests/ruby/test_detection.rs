@@ -431,3 +431,30 @@ end
         assert!(!flag(find(&symbols, "test_named_case"), "is_test"));
     }
 }
+
+#[test]
+fn ruby_test_labels_decode_escaped_quotes() {
+    let tests = crate::tests::helpers::test_names(
+        "ruby",
+        "spec/calc_spec.rb",
+        r##"RSpec.describe "calc \"suite\"" do
+  it "adds \"three\" #{x}" do
+  end
+  context 'single \'q\' \n' do
+    it "plain label" do
+    end
+  end
+end
+"##,
+    );
+    let names: Vec<&str> = tests.iter().map(|(name, _)| name.as_str()).collect();
+    assert_eq!(
+        names,
+        [
+            "calc \"suite\"",
+            "adds \"three\" {}",
+            "single 'q' \\n",
+            "plain label"
+        ]
+    );
+}

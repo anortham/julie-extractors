@@ -92,3 +92,23 @@ library(testthat)
         "expect_equal / library must not carry test-role metadata: {syms:?}"
     );
 }
+
+#[test]
+fn r_test_labels_decode_escaped_quotes() {
+    let tests = crate::tests::helpers::test_names(
+        "r",
+        "tests/testthat/test-calc.R",
+        r##"test_that("adds \"three\"", {
+  expect_equal(1, 1)
+})
+test_that('single \'q\'', {
+  expect_equal(1, 1)
+})
+test_that("plain label", {
+  expect_equal(1, 1)
+})
+"##,
+    );
+    let names: Vec<&str> = tests.iter().map(|(name, _)| name.as_str()).collect();
+    assert_eq!(names, ["adds \"three\"", "single 'q'", "plain label"]);
+}

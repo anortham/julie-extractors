@@ -86,7 +86,7 @@ pub(super) fn extract_php_pest_test_call(
             let string_node = first_arg
                 .children(&mut inner)
                 .find(|c| c.kind().contains("string"))?;
-            base.decode_string_literal(&string_node)?
+            base.decode_string_value(&string_node)?
         }
     };
 

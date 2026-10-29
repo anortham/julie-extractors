@@ -722,3 +722,34 @@ fn a_case_named_after_a_function_does_not_capture_calls_to_it() {
         "a case named after the function it exercises must not answer that call; got {relationships:?}"
     );
 }
+
+#[test]
+fn kotlin_test_labels_decode_escaped_quotes() {
+    let tests = crate::tests::helpers::test_names(
+        "kotlin",
+        "src/test/kotlin/CalcTest.kt",
+        r##"class CalcTest : FunSpec({
+    context("ctx \"q\"") {
+        test("adds \"three\" \$x") { }
+        test("plain label") { }
+        test("hole ${x}") { }
+    }
+})
+"##,
+    );
+    let names: Vec<&str> = tests.iter().map(|(name, _)| name.as_str()).collect();
+    assert_eq!(
+        names,
+        [
+            "CalcTest",
+            "ctx \"q\"",
+            "adds \"three\" $x",
+            "plain label",
+            "hole {}"
+        ]
+    );
+    assert!(tests.contains(&(
+        "adds \"three\" $x".to_string(),
+        "test(\"adds \\\"three\\\" $x\")".to_string()
+    )));
+}

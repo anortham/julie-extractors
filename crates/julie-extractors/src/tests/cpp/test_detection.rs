@@ -497,3 +497,16 @@ void UnrelatedFixture::SetUp() {}
         );
     }
 }
+
+#[test]
+fn cpp_test_labels_decode_escaped_quotes() {
+    let tests = crate::tests::helpers::test_names(
+        "cpp",
+        "tests/calc_test.cpp",
+        r##"TEST_CASE("adds \"three\"") { REQUIRE(1 == 1); }
+TEST_CASE("plain label") { REQUIRE(1 == 1); }
+"##,
+    );
+    let names: Vec<&str> = tests.iter().map(|(name, _)| name.as_str()).collect();
+    assert_eq!(names, ["adds \"three\"", "plain label"]);
+}

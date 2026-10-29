@@ -21,7 +21,7 @@
 //! - Description arg: first non-separator child of `command_elements` →
 //!   `array_literal_expression → unary_expression → string_literal →
 //!   expandable_string_literal | verbatim_string_characters`.
-//!   Decoded via `base.decode_string_literal`.
+//!   Decoded via `base.decode_string_value`.
 //! - Block body: second non-separator child is a `script_block_expression`;
 //!   its nested `command` nodes become child symbols in the normal tree walk.
 //!
@@ -119,7 +119,7 @@ fn extract_first_string(base: &mut BaseExtractor, elements: Node) -> Option<Stri
         }
         // Recursively find the first "string"-kinded node in this subtree.
         if let Some(string_node) = find_string_node(child) {
-            return base.decode_string_literal(&string_node);
+            return base.decode_string_value(&string_node);
         }
     }
     None

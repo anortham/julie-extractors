@@ -276,3 +276,13 @@ symbols, or 99.93 percent, and all three failures share one cause.
 
 The temporary checkout and SQLite artifact were removed after recording this
 evidence.
+
+## Test labels
+
+A test or a test container named by a string literal takes the text that the
+literal writes: `it("adds \"three\"")`, `test`, and `describe`. The label in
+`"adds \"three\""` is `adds "three"`. An escape of a quote, a backslash, or
+another punctuation character becomes that character, and so does a Unicode or
+hex escape of a printable character. `\n`, `\t`, and other control escapes stay
+as written, so a name stays on one line. A template literal keeps its `${…}`
+interpolations as written.

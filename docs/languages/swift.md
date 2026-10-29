@@ -319,3 +319,12 @@ and 11 `test_lifecycle` rows for swift.
 
 No real-world corpus scan was run for this contract. The evidence above is
 golden-fixture evidence only.
+
+## Test labels
+
+A Quick test or test container named by a string literal takes the text that
+the literal writes: `it("adds \"three\"")`, `describe`, and `context`. The label
+in `"adds \"three\""` is `adds "three"`. An escape of a quote, a backslash, or
+another punctuation character becomes that character, and so does a `\u{…}`
+escape of a printable character. `\n`, `\t`, and other control escapes stay as
+written, so a name stays on one line. An interpolation `\(…)` is `{}`.

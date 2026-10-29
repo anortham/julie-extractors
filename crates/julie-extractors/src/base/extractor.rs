@@ -218,6 +218,20 @@ impl BaseExtractor {
         string_literals::decode_string_literal(self, node)
     }
 
+    /// Decode the text a string-literal node writes, for a name such as a
+    /// test label: escapes of quotes and other punctuation become the
+    /// character they write, and an interpolation hole is `{}`. See
+    /// [`string_literals::decode_string_value`].
+    pub fn decode_string_value(&self, node: &Node) -> Option<String> {
+        string_literals::decode_string_value(self, node, string_literals::Holes::Braces)
+    }
+
+    /// [`Self::decode_string_value`], with each interpolation hole as the
+    /// source writes it (`${name}`).
+    pub fn decode_string_value_keeping_holes(&self, node: &Node) -> Option<String> {
+        string_literals::decode_string_value(self, node, string_literals::Holes::AsWritten)
+    }
+
     pub fn add_pending_relationship(&mut self, pending: PendingRelationship) {
         self.pending_relationships.push(pending);
     }

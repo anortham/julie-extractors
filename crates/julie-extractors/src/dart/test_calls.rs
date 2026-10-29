@@ -16,7 +16,7 @@
 //! field (the callee `identifier`) and an `arguments` field — but the string
 //! name node is `string_literal` (not JS's `string`/`template_string`) and the
 //! vocabulary differs (`group`, `setUp`/`tearDown[All]`, `testWidgets`). Only the
-//! grammar walking (string-literal kind, `decode_string_literal`) is Dart-local;
+//! grammar walking (string-literal kind, `decode_string_value`) is Dart-local;
 //! classification and symbol construction delegate to the shared
 //! `crate::test_calls` core so the captured `is_test` / `test_container` /
 //! `test_lifecycle` metadata is byte-identical to the JS/TS path and the
@@ -100,7 +100,7 @@ pub fn extract_dart_test_call(
             let first_string = args_node
                 .children(&mut cursor)
                 .find(|c| c.kind() == "string_literal")?;
-            base.decode_string_literal(&first_string)?
+            base.decode_string_value(&first_string)?
         }
     };
 

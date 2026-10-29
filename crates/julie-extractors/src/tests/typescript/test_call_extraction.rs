@@ -377,3 +377,18 @@ test.beforeEach(async () => {
     assert_eq!(seed_call.kind, RelationshipKind::Calls);
     assert_eq!(seed_call.from_symbol_id, hook.id);
 }
+
+#[test]
+fn typescript_test_labels_decode_escaped_quotes() {
+    let tests = crate::tests::helpers::test_names(
+        "typescript",
+        "test/calc.test.ts",
+        r##"describe("calc \"suite\"", () => {
+  it("adds \"three\"", () => {});
+  it("plain label", () => {});
+});
+"##,
+    );
+    let names: Vec<&str> = tests.iter().map(|(name, _)| name.as_str()).collect();
+    assert_eq!(names, ["calc \"suite\"", "adds \"three\"", "plain label"]);
+}

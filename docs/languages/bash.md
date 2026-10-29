@@ -15,3 +15,12 @@
   argument with only its outer quotes removed.
 - `alias ll='ls -l'` is an import row named `ll` with `aliasTarget`, `command`,
   and `form: alias`. It loads no file, so it has no `source`.
+
+## Test labels
+
+A test or a test container named by a string literal takes the text that the
+literal writes: bats `@test "adds \"three\""` and the ShellSpec `Describe` and
+`It` forms. The label in `"adds \"three\""` is `adds "three"`. In a
+double-quoted label, `\` before `$`, `` ` ``, `"`, or `\` writes that character,
+and every other `\` stays as written. A single-quoted label keeps its text as
+written. An expansion is `{}`.

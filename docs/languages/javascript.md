@@ -329,3 +329,13 @@ A rescan at commit `bed501c695a61886399ee622875f3be933c716d8` gives 3
 
 The temporary checkout and SQLite artifact were removed after recording this
 evidence.
+
+## Test labels
+
+A test or a test container named by a string literal takes the text that the
+literal writes: `it("adds \"three\"")`, `test`, and `describe`. The label in
+`"adds \"three\""` is `adds "three"`. An escape of a quote, a backslash, or
+another punctuation character becomes that character, and so does a Unicode or
+hex escape of a printable character. `\n`, `\t`, and other control escapes stay
+as written, so a name stays on one line. A template literal keeps its `${…}`
+interpolations as written.

@@ -120,3 +120,22 @@ end
         "no is_test metadata should come from non-DSL calls: {syms:?}"
     );
 }
+
+#[test]
+fn lua_test_labels_decode_escaped_quotes() {
+    let tests = crate::tests::helpers::test_names(
+        "lua",
+        "spec/calc_spec.lua",
+        r##"describe("calc \"suite\"", function()
+  it('single \'q\'', function() end)
+  it([[long "q"]], function() end)
+  it("plain label", function() end)
+end)
+"##,
+    );
+    let names: Vec<&str> = tests.iter().map(|(name, _)| name.as_str()).collect();
+    assert_eq!(
+        names,
+        ["calc \"suite\"", "single 'q'", "long \"q\"", "plain label"]
+    );
+}

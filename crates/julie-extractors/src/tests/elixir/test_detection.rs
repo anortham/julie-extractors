@@ -168,3 +168,37 @@ end
         .unwrap_or_else(|| panic!("expected helper, got {syms:?}"));
     assert!(!meta_bool(helper, "is_test"));
 }
+
+#[test]
+fn elixir_test_labels_decode_escaped_quotes() {
+    let tests = crate::tests::helpers::test_names(
+        "elixir",
+        "test/calc_test.exs",
+        r##"defmodule CalcTest do
+  use ExUnit.Case
+  describe "calc \"suite\"" do
+    test "adds \"three\" #{x}" do
+      assert true
+    end
+    test "plain label" do
+      assert true
+    end
+  end
+end
+"##,
+    );
+    let names: Vec<&str> = tests.iter().map(|(name, _)| name.as_str()).collect();
+    assert_eq!(
+        names,
+        [
+            "CalcTest",
+            "calc \"suite\"",
+            "adds \"three\" #{x}",
+            "plain label"
+        ]
+    );
+    assert!(tests.contains(&(
+        "adds \"three\" #{x}".to_string(),
+        "test \"adds \\\"three\\\" #{x}\"".to_string()
+    )));
+}

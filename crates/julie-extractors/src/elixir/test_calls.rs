@@ -15,7 +15,7 @@ pub(super) fn extract_test(
     parent_id: Option<&str>,
 ) -> Option<(Symbol, bool)> {
     let description = helpers::extract_first_string_arg(&extractor.base, node)?;
-    let signature = format!("{keyword} \"{description}\"");
+    let signature = format!("{keyword} \"{}\"", description.replace('"', "\\\""));
 
     let mut metadata = HashMap::new();
     apply_test_role(&mut metadata, TestRole::TestCase);
@@ -47,7 +47,7 @@ pub(super) fn extract_describe(
     depth: u32,
 ) -> Option<(Symbol, bool)> {
     let description = helpers::extract_first_string_arg(&extractor.base, node)?;
-    let signature = format!("describe \"{}\"", description);
+    let signature = format!("describe \"{}\"", description.replace('"', "\\\""));
 
     let mut metadata = HashMap::new();
     apply_test_role(&mut metadata, TestRole::TestContainer);

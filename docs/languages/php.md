@@ -246,3 +246,13 @@ Focused unit tests live in `crates/julie-extractors/src/tests/php/wave2_gaps.rs`
 
 No real-world corpus scan was run for this contract. The evidence above is
 golden-fixture evidence only.
+
+## Test labels
+
+A test or a test container named by a string literal takes the text that the
+literal writes: Pest `it('adds \'three\'')`, `test`, and `describe`. The label
+in `'adds \'three\''` is `adds 'three'`. An escape of a quote, a backslash, or
+another punctuation character becomes that character, and so does a Unicode or
+hex escape of a printable character. `\n`, `\t`, and other control escapes stay
+as written, so a name stays on one line. In a single-quoted label only `\'` and
+`\\` are escapes.

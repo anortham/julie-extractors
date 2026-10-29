@@ -19,7 +19,7 @@
 //! - Node kind: `call_expression`
 //! - Callee: `function` **field** → `identifier` node (text = `"Describe"`, `"It"`, …)
 //! - Description string: `arguments` **field** → `argument_list` → first named child
-//!   whose kind is `interpreted_string_literal` → decoded via `base.decode_string_literal`.
+//!   whose kind is `interpreted_string_literal` → decoded via `base.decode_string_value`.
 //! - Lifecycle calls (`BeforeEach`, `AfterEach`, `BeforeSuite`, `AfterSuite`,
 //!   `JustBeforeEach`, `JustAfterEach`, `DeferCleanup`) take only a closure — no
 //!   description string. The callee name is used as the symbol name.
@@ -280,7 +280,7 @@ pub(super) fn extract_ginkgo_test_call(
             let str_arg = args_node
                 .named_children(&mut cursor)
                 .find(|c| c.kind().contains("string_literal"))?;
-            base.decode_string_literal(&str_arg)?
+            base.decode_string_value(&str_arg)?
         }
     };
 
@@ -330,7 +330,7 @@ pub(super) fn extract_standard_subtest_call(
         return None;
     }
 
-    let name = base.decode_string_literal(&name_node)?;
+    let name = base.decode_string_value(&name_node)?;
     Some(build_test_call_symbol(
         base,
         &node,

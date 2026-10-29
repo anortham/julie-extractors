@@ -648,3 +648,26 @@ func TestAdds(t *testing.T) {
 
     assert!(!syms.iter().any(|s| s.name == "select receive shadow"));
 }
+
+#[test]
+fn go_test_labels_decode_escaped_quotes() {
+    let tests = crate::tests::helpers::test_names(
+        "go",
+        "calc_test.go",
+        r##"package calc
+
+import "testing"
+
+func TestCalc(t *testing.T) {
+	t.Run("adds \"three\"", func(t *testing.T) {})
+	t.Run(`raw \"q\"`, func(t *testing.T) {})
+	t.Run("plain label", func(t *testing.T) {})
+}
+"##,
+    );
+    let names: Vec<&str> = tests.iter().map(|(name, _)| name.as_str()).collect();
+    assert_eq!(
+        names,
+        ["TestCalc", "adds \"three\"", "raw \\\"q\\\"", "plain label"]
+    );
+}

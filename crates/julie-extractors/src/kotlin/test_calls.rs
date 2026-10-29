@@ -226,7 +226,7 @@ pub(super) fn extract_kotlin_test_call(
         // as `"name" { }`. Kotest declares that form with
         // `operator fun String.invoke(test: suspend TestScope.() -> Unit)`, so
         // the callee is `invoke` and the case name is the receiver string.
-        let name = base.decode_string_literal(&first_named)?;
+        let name = base.decode_string_value(&first_named)?;
         return Some(build_test_call_symbol(
             base,
             node,
@@ -296,7 +296,7 @@ pub(super) fn extract_kotlin_test_call(
         // test / container: first string_literal from value_arguments.
         _ => {
             let snode = string_node?;
-            base.decode_string_literal(&snode)?
+            base.decode_string_value(&snode)?
         }
     };
 
@@ -366,7 +366,7 @@ pub(super) fn extract_kotlin_wordspec_group(
     if !WORDSPEC_VERBS.contains(&verb.as_str()) {
         return None;
     }
-    let subject_text = base.decode_string_literal(subject)?;
+    let subject_text = base.decode_string_value(subject)?;
 
     Some(build_test_call_symbol(
         base,
@@ -411,7 +411,7 @@ pub(super) fn extract_kotlin_freespec_group(
     if !operator_is_minus {
         return None;
     }
-    let subject_text = base.decode_string_literal(subject)?;
+    let subject_text = base.decode_string_value(subject)?;
 
     Some(build_test_call_symbol(
         base,

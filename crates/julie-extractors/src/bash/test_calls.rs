@@ -28,7 +28,7 @@
 //! - Description arg: first `argument` **field** child whose kind contains
 //!   `"string"` — `raw_string` for shellspec single-quoted args
 //!   (`'math module'`), `string` for bats double-quoted args
-//!   (`"adds two numbers"`). Decoded via `base.decode_string_literal`.
+//!   (`"adds two numbers"`). Decoded via `base.decode_string_value`.
 //!
 //! Notes on `@test`: bats `@test "name" { }` parses as a `command` node. The
 //! `{` is a trailing `word` argument; we stop at the first string argument.
@@ -106,7 +106,7 @@ pub(super) fn extract_bash_test_call(
             let first_str = node
                 .children_by_field_name("argument", &mut cursor)
                 .find(|c| c.kind().contains("string"))?;
-            base.decode_string_literal(&first_str)?
+            base.decode_string_value(&first_str)?
         }
     };
 

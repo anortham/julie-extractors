@@ -134,3 +134,13 @@ never a test case, even under a test directory.
   must be a same-file `std.http.Client{..}` binding or a parameter typed as
   `http.Client`. `fetch` without `.method` records the std default: POST with a
   `.payload`, GET without.
+
+## Test labels
+
+A test or a test container named by a string literal takes the text that the
+literal writes: `test "adds \"three\"" {}`. The label in `"adds \"three\""` is
+`adds "three"`. An escape of a quote, a backslash, or another punctuation
+character becomes that character, and so does a Unicode or hex escape of a
+printable character. `\n`, `\t`, and other control escapes stay as written, so a
+name stays on one line. The signature keeps the label as written (`test "adds
+\"three\""`).

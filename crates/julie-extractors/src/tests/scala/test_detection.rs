@@ -232,3 +232,40 @@ fn ordinary_method_in_test_path_is_not_test() {
         .unwrap_or_else(|| panic!("expected helper, got {syms:?}"));
     assert!(!meta_bool(helper, "is_test"));
 }
+
+#[test]
+fn scala_test_labels_decode_escaped_quotes() {
+    let tests = crate::tests::helpers::test_names(
+        "scala",
+        "src/test/scala/CalcSuite.scala",
+        r##"class CalcSuite extends AnyFunSuite {
+  test("adds \"three\"") { }
+  test("back \\ slash A") { }
+  test("tab\there") { }
+  test("plain label") { }
+  test("""raw "quoted" \n""") { }
+}
+class SpecSuite extends AnyFlatSpec {
+  "A \"stack\"" should "pop \"values\"" in { }
+}
+"##,
+    );
+    let names: Vec<&str> = tests.iter().map(|(name, _)| name.as_str()).collect();
+    assert_eq!(
+        names,
+        [
+            "CalcSuite",
+            "adds \"three\"",
+            "back \\ slash A",
+            "tab\\there",
+            "plain label",
+            "raw \"quoted\" \\n",
+            "SpecSuite",
+            "A \"stack\" should pop \"values\""
+        ]
+    );
+    assert!(tests.contains(&(
+        "adds \"three\"".to_string(),
+        "test(\"adds \\\"three\\\"\")".to_string()
+    )));
+}

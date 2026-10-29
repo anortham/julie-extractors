@@ -340,3 +340,18 @@ class FeatureContext implements Context
     }
     assert_eq!(role(&symbols, "FeatureContext"), Some("test_container"));
 }
+
+#[test]
+fn php_test_labels_decode_escaped_quotes() {
+    let tests = crate::tests::helpers::test_names(
+        "php",
+        "tests/CalcTest.php",
+        r##"<?php
+it('adds \'three\' \n', function () {});
+test("dbl \"q\"", function () {});
+it('plain label', function () {});
+"##,
+    );
+    let names: Vec<&str> = tests.iter().map(|(name, _)| name.as_str()).collect();
+    assert_eq!(names, ["adds 'three' \\n", "dbl \"q\"", "plain label"]);
+}

@@ -204,3 +204,14 @@ A companion `apply` call (`Box(1)`) gives `null`.
 Evidence: `fixtures/extraction/scala/members_and_literals/`,
 `fixtures/extraction/scala/web_routes/`, and
 `fixtures/extraction/scala/sbt_build/`.
+
+## Test labels
+
+A test or a test container named by a string literal takes the text that the
+literal writes: `test("adds \"three\"")` (FunSuite, MUnit), `it`, `describe`,
+the FlatSpec and FreeSpec string forms, and ScalaCheck `property`. The label in
+`"adds \"three\""` is `adds "three"`. An escape of a quote, a backslash, or
+another punctuation character becomes that character, and so does a Unicode or
+hex escape of a printable character. `\n`, `\t`, and other control escapes stay
+as written, so a name stays on one line. A triple-quoted label keeps its text as
+written. An interpolation is `{}`.

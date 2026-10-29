@@ -107,7 +107,7 @@ pub fn extract_cpp_test_call(
     let first_string = args_node
         .children(&mut cursor)
         .find(|c| c.kind() == "string_literal")?;
-    let name = base.decode_string_literal(&first_string)?;
+    let name = base.decode_string_value(&first_string)?;
 
     Some(match detached_macro_block(node) {
         Some(block) => build_test_call_symbol_with_block(

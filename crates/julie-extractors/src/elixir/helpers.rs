@@ -328,18 +328,15 @@ fn collect_field<'a>(base: &BaseExtractor, node: &Node<'a>, fields: &mut Vec<(St
 ///
 /// Used for ExUnit constructs like `test "description" do ... end` and
 /// `describe "context" do ... end`, where the first argument is a string literal.
-/// Returns the string content with surrounding quotes stripped.
+/// Returns the text the string writes, with its escapes decoded and its
+/// interpolations as written.
 pub(super) fn extract_first_string_arg(base: &BaseExtractor, node: &Node) -> Option<String> {
     let args = find_child_by_type(node, "arguments")?;
     let mut cursor = args.walk();
-    for child in args.children(&mut cursor) {
-        if child.kind() == "string" {
-            let text = base.get_node_text(&child);
-            // Strip surrounding double quotes
-            return Some(text.trim_matches('"').to_string());
-        }
-    }
-    None
+    let string = args
+        .children(&mut cursor)
+        .find(|child| child.kind() == "string")?;
+    base.decode_string_value_keeping_holes(&string)
 }
 
 /// Modules named by an import/use/alias/require directive. The multi-alias

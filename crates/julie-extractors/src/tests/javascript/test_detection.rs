@@ -374,3 +374,33 @@ fn a_named_function_matching_the_dsl_vocabulary_is_not_a_test() {
     let code = "function testNamedButOrdinary() {}\n";
     assert_no_roles_in_every_dialect("src/helpers", code);
 }
+
+#[test]
+fn javascript_test_labels_decode_escaped_quotes() {
+    let tests = crate::tests::helpers::test_names(
+        "javascript",
+        "test/calc.test.js",
+        r##"describe("calc \"suite\"", () => {
+  it("adds \"three\"", () => {});
+  test('single \'q\'', () => {});
+  it(`hole ${name} \`q\``, () => {});
+  it("plain label", () => {});
+});
+"##,
+    );
+    let names: Vec<&str> = tests.iter().map(|(name, _)| name.as_str()).collect();
+    assert_eq!(
+        names,
+        [
+            "calc \"suite\"",
+            "adds \"three\"",
+            "single 'q'",
+            "hole ${name} `q`",
+            "plain label"
+        ]
+    );
+    assert!(tests.contains(&(
+        "adds \"three\"".to_string(),
+        "it(\"adds \\\"three\\\"\")".to_string()
+    )));
+}

@@ -178,3 +178,27 @@ Get-Date -Format "yyyy-MM-dd"
         "plain PowerShell commands must not carry test-role metadata: {syms:?}"
     );
 }
+
+#[test]
+fn powershell_test_labels_decode_escaped_quotes() {
+    let tests = crate::tests::helpers::test_names(
+        "powershell",
+        "tests/Calc.Tests.ps1",
+        r##"Describe "calc `"suite`"" {
+    It "adds ""three"" `$x" { }
+    It 'single ''q''' { }
+    It "plain label" { }
+}
+"##,
+    );
+    let names: Vec<&str> = tests.iter().map(|(name, _)| name.as_str()).collect();
+    assert_eq!(
+        names,
+        [
+            "calc \"suite\"",
+            "adds \"three\" $x",
+            "single 'q'",
+            "plain label"
+        ]
+    );
+}

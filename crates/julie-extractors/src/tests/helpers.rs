@@ -206,6 +206,32 @@ pub fn test_flags(results: &ExtractionResults) -> Vec<String> {
     rows
 }
 
+/// The name and signature of each test and test container that extraction of
+/// `code` at `path` writes, in source order.
+pub fn test_names(language: &str, path: &str, code: &str) -> Vec<(String, String)> {
+    let mut symbols: Vec<Symbol> = crate::extract_canonical_for_language_at(
+        language,
+        path,
+        code,
+        std::path::Path::new("."),
+        crate::ExtractionLevel::Facts,
+    )
+    .expect("extraction")
+    .symbols
+    .into_iter()
+    .filter(|symbol| {
+        symbol.metadata.as_ref().is_some_and(|metadata| {
+            metadata.contains_key("is_test") || metadata.contains_key("test_container")
+        })
+    })
+    .collect();
+    symbols.sort_by_key(|symbol| symbol.start_byte);
+    symbols
+        .into_iter()
+        .map(|symbol| (symbol.name, symbol.signature.unwrap_or_default()))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::init_parser;

@@ -224,3 +224,23 @@ End
     assert!(!meta_bool(helper, "is_test"));
     assert!(!meta_bool(helper, "test_lifecycle"));
 }
+
+#[test]
+fn bash_test_labels_decode_escaped_quotes() {
+    let tests = crate::tests::helpers::test_names(
+        "bash",
+        "test/calc.bats",
+        r##"@test "adds \"three\" \$HOME" {
+  run true
+}
+@test 'single \q' {
+  run true
+}
+@test "plain label" {
+  run true
+}
+"##,
+    );
+    let names: Vec<&str> = tests.iter().map(|(name, _)| name.as_str()).collect();
+    assert_eq!(names, ["adds \"three\" $HOME", "single \\q", "plain label"]);
+}

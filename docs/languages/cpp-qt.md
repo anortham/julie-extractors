@@ -440,3 +440,13 @@ row per declared constructor and destructor** (3 of each). It has 3 `class` rows
 all definitions, and no forward-declaration row. `qt_slot` and `qt_invokable` are
 set on the expected members, and its method signatures read `ColumnView *view()`
 and `QQuickItem *originalParent() const`.
+
+## Test labels
+
+A test or a test container named by a string literal takes the text that the
+literal writes: Catch2 `TEST_CASE("adds \"three\"")` and `TEST_CASE_METHOD`. The
+label in `"adds \"three\""` is `adds "three"`. An escape of a quote, a
+backslash, or another punctuation character becomes that character, and so does
+a Unicode or hex escape of a printable character. `\n`, `\t`, and other control
+escapes stay as written, so a name stays on one line. A raw string label keeps
+its text as written.

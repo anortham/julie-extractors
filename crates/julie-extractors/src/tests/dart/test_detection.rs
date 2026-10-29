@@ -207,3 +207,31 @@ void verifyBehavior() {
         "@isTest function must be flagged is_test"
     );
 }
+
+#[test]
+fn dart_test_labels_decode_escaped_quotes() {
+    let tests = crate::tests::helpers::test_names(
+        "dart",
+        "test/calc_test.dart",
+        r##"void main() {
+  group("calc \"suite\"", () {
+    test("adds \"three\" \$x", () {});
+    test('single \'q\'', () {});
+    test(r'raw \"q\"', () {});
+    test("plain label", () {});
+  });
+}
+"##,
+    );
+    let names: Vec<&str> = tests.iter().map(|(name, _)| name.as_str()).collect();
+    assert_eq!(
+        names,
+        [
+            "calc \"suite\"",
+            "adds \"three\" $x",
+            "single 'q'",
+            "raw \\\"q\\\"",
+            "plain label"
+        ]
+    );
+}

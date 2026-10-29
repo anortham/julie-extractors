@@ -846,7 +846,7 @@ fn extract_first_rspec_argument(base: &BaseExtractor, node: Node) -> Option<Stri
     let raw = base.get_node_text(&first_arg);
 
     Some(match first_arg.kind() {
-        "string" => base.decode_string_literal(&first_arg).unwrap_or(raw),
+        "string" => base.decode_string_value(&first_arg).unwrap_or(raw),
         "simple_symbol" | "symbol" => raw.trim_start_matches(':').to_string(),
         _ => raw,
     })
@@ -864,7 +864,7 @@ fn extract_first_string_argument(base: &BaseExtractor, node: Node) -> Option<Str
     if first_arg.kind() != "string" {
         return None;
     }
-    base.decode_string_literal(&first_arg)
+    base.decode_string_value(&first_arg)
 }
 
 /// Extract attr_reader/attr_writer/attr_accessor calls.

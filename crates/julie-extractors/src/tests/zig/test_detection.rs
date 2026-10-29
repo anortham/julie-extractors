@@ -90,3 +90,20 @@ test {
         "anonymous test uses the 'test' placeholder name"
     );
 }
+
+#[test]
+fn zig_test_labels_decode_escaped_quotes() {
+    let tests = crate::tests::helpers::test_names(
+        "zig",
+        "src/calc.zig",
+        r##"test "adds \"three\"" {}
+test "plain label" {}
+"##,
+    );
+    let names: Vec<&str> = tests.iter().map(|(name, _)| name.as_str()).collect();
+    assert_eq!(names, ["adds \"three\"", "plain label"]);
+    assert!(tests.contains(&(
+        "adds \"three\"".to_string(),
+        "test \"adds \\\"three\\\"\"".to_string()
+    )));
+}
