@@ -401,6 +401,8 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "form": "import",
+        "source": "package:dio/dio.dart",
         "type": "import"
       },
       "annotations": [],
@@ -427,6 +429,8 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "form": "import",
+        "source": "package:go_router/go_router.dart",
         "type": "import"
       },
       "annotations": [],
@@ -454,6 +458,8 @@
       "parent_key": null,
       "metadata": {
         "alias": "http",
+        "form": "import",
+        "source": "package:http/http.dart",
         "type": "import"
       },
       "annotations": [],
@@ -480,6 +486,8 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "form": "import",
+        "source": "package:shelf_router/shelf_router.dart",
         "type": "import"
       },
       "annotations": [],

@@ -178,6 +178,7 @@ impl GDScriptExtractor {
         }
         let parent_id = scope.parent_id.as_ref();
 
+        let mut resource_import = None;
         let symbol = match node.kind() {
             "class_definition" => classes::extract_inner_class(&mut self.base, node, parent_id),
             "function_definition" => functions::extract_function_definition(
@@ -196,7 +197,17 @@ impl GDScriptExtractor {
             | "export_variable_statement"
             | "onready_variable_statement"
             | "const_statement" => {
-                variables::extract_variable(&mut self.base, node, parent_id, &self.same_file_types)
+                let variable = variables::extract_variable(
+                    &mut self.base,
+                    node,
+                    parent_id,
+                    &self.same_file_types,
+                );
+                if variable.is_some() {
+                    resource_import =
+                        variables::extract_resource_import(&mut self.base, node, parent_id);
+                }
+                variable
             }
             "enum_definition" => {
                 symbols.extend(enums::extract_enum(&mut self.base, node, parent_id));
@@ -221,6 +232,7 @@ impl GDScriptExtractor {
         let symbol_id = symbol.id.clone();
         let is_class = symbol.kind == SymbolKind::Class;
         symbols.push(symbol);
+        symbols.extend(resource_import);
         if matches!(
             node.kind(),
             "function_definition" | "constructor_definition" | "lambda"

@@ -204,6 +204,8 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "form": "import",
+        "source": "package:bloc_test/bloc_test.dart",
         "type": "import"
       },
       "annotations": [],
@@ -230,6 +232,8 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "form": "import",
+        "source": "package:test/test.dart",
         "type": "import"
       },
       "annotations": [],

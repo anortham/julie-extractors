@@ -5,6 +5,7 @@ mod call_relationships;
 mod functions;
 mod helpers;
 mod identifiers;
+mod includes;
 mod locals;
 mod members;
 mod namespaces;
@@ -147,6 +148,13 @@ impl PhpExtractor {
                 let use_symbols = extract_use(self, node, parent_id.as_deref());
                 symbols.extend(use_symbols);
                 None // Already added to symbols; imports have no children
+            }
+            "require_expression"
+            | "require_once_expression"
+            | "include_expression"
+            | "include_once_expression" => {
+                symbols.extend(includes::extract_include(self, node, parent_id.as_deref()));
+                None
             }
             "enum_case" => extract_enum_case(self, node, parent_id.as_deref()),
             "anonymous_class" => extract_anonymous_class(self, node, parent_id.as_deref()),

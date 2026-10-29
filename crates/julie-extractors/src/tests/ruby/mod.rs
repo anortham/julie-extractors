@@ -10,6 +10,7 @@ pub mod cross_file_relationships;
 pub mod doc_comments;
 pub mod extractor;
 pub mod identifiers;
+mod import_source;
 pub mod initializer_types;
 pub mod literals;
 pub mod properties;

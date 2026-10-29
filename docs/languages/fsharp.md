@@ -52,9 +52,12 @@ otherwise they carry `extendedType` metadata that names it. Locals
 never represented by an identifier kind.
 
 Relationships include exact local calls and inheritance, plus structured
-pending calls and imports. `open A.B` is an import symbol named `B`;
-`#load "file.fsx"` and `#r "nuget: Package, 1.0"` are import symbols named by
-the file or package, with `directive`, `source`, and `version` metadata. Each
+pending calls and imports. `open A.B` is an import symbol named `B`, with
+`source` `A.B` and `form` `open`. `#load "file.fsx"`, `#r "lib.dll"`, and
+`#r "nuget: Package, 1.0"` are import symbols named by the file or package,
+with `directive` (`load`, `r`) and `form` (`#load`, `#r`) metadata. `source`
+holds the file path as written, or `nuget` for a package reference, which
+also has `version`. Each
 import symbol is the caller of its pending `imports` row. A chained call keeps
 its receiver expression (`s.Trim()`), never a namespace path; `xs[0]`,
 `xs[1..]`, and `struct (1, 2)` are not calls. Explicit

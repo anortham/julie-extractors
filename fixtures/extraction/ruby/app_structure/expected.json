@@ -295,7 +295,10 @@
       "doc_comment": "# JSON encoding for API payloads.",
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "require",
+        "source": "json"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,

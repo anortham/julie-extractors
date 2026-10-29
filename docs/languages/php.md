@@ -177,6 +177,14 @@ control.
   `php.include_call.v1` with `include_kind`, a static `included_path`, and a
   `path_base` of `__DIR__` when the path starts from `__DIR__` or
   `dirname(__FILE__)`.
+- Each of these also gives an `import` symbol named by the included path, as
+  C names an `#include`. Metadata `form` is `require`, `require_once`,
+  `include`, or `include_once`. A string argument sets `source` to the
+  string. `__DIR__ . '/lib/x.php'` and `dirname(__FILE__) . '/lib/x.php'` set
+  `source` to `./lib/x.php`, and `dirname(__DIR__) . '/x.php'` to `../x.php`,
+  each with `relative_to: "file"`. Any other argument keeps the row, named by
+  the argument's text, without `source`. The import is never a caller, so
+  calls inside the argument add no relationship.
 - A function inside a braced namespace or a closure is a `function`, not a
   `method`. An abstract or interface method has no body span or body hash.
 - Enums and anonymous classes give `extends` and `implements` edges. A trait

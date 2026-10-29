@@ -18,7 +18,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "import",
+        "source": "org.springframework.cloud.openfeign"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -79,7 +82,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "import",
+        "source": "org.springframework.http"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -103,7 +109,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "import",
+        "source": "java.net.http"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -268,7 +277,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "import",
+        "source": "org.springframework.web.client"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -329,7 +341,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "import",
+        "source": "java.net"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -395,7 +410,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "import",
+        "source": "org.springframework.web.reactive.function.client"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -461,7 +479,11 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "import",
+        "source": "org.springframework.web.bind.annotation",
+        "wildcard": true
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -1152,7 +1174,11 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "import",
+        "source": "jakarta.ws.rs",
+        "wildcard": true
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,

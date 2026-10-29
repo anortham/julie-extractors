@@ -4,6 +4,16 @@
 the type-fact rules for variables. Receiver facts are in
 `docs/decisions/2026-09-08-receiver-type-facts-wave-2.md`.
 
+## Resource imports
+
+A `const` or `var` outside a function whose value is `preload("…")` or
+`load("…")` with one string argument keeps its `constant` or `field` symbol
+and also gives an `import` symbol with the same name and parent. The import
+spans only the path string and follows the binding in symbol order. Metadata
+`source` holds the path (`res://scripts/helper.gd`) and `form` holds `preload`
+or `load`. A computed path, a second argument, and a load inside a function
+give no import.
+
 ## Variable type facts
 
 A `var`, `const`, `@export var`, or `@onready var` gets at most one type fact.

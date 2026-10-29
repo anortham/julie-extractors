@@ -137,6 +137,15 @@ class.
 
 ## Declarations and types
 
+Each import declaration gives an `import` symbol named by the imported type
+or member (`List`, `assertEquals`), or for a wildcard import by the last
+segment before the `*` (`util` for `import java.util.*;`, `Assert` for
+`import static org.junit.Assert.*;`). Metadata `form` is `import` or
+`import static`, and `source` is the package or type the name comes from
+(`java.util`, `org.junit.Assert`). A wildcard import also has
+`wildcard: true`. The signature keeps the written form, with `.*` for a
+wildcard.
+
 Beyond classes, interfaces, enums, records and their members, the extractor
 emits:
 

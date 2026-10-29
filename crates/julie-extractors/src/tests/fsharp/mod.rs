@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::path::Path;
 
 mod gap_closure;
+mod import_source;
 mod initializer_types;
 mod semantic_facts;
 mod test_detection;

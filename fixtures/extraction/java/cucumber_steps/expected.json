@@ -18,7 +18,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "import",
+        "source": "io.cucumber.java.en"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -42,7 +45,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "import",
+        "source": "io.cucumber.java.en"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -100,7 +106,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "import",
+        "source": "io.cucumber.java.en"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -158,7 +167,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "import",
+        "source": "io.cucumber.java.en"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -182,7 +194,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "import",
+        "source": "io.cucumber.java.en"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -529,7 +544,11 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "import",
+        "source": "io.cucumber.java.en",
+        "wildcard": true
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,

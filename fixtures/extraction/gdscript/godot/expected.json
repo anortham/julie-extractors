@@ -27,6 +27,33 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/gdscript/godot/source.gd:Bullet:11:23",
+      "name": "Bullet",
+      "kind": "import",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/godot/source.gd",
+      "start_line": 11,
+      "start_column": 23,
+      "end_line": 11,
+      "end_column": 49,
+      "start_byte": 186,
+      "end_byte": 212,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "preload(\"res://player/bullet.tscn\")",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/gdscript/godot/source.gd:Player:3:0",
+      "metadata": {
+        "form": "preload",
+        "source": "res://player/bullet.tscn"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/gdscript/godot/source.gd:IDLE:9:13",
       "name": "IDLE",
       "kind": "enum_member",
@@ -3721,7 +3748,7 @@
       "kind": "string_literal",
       "language": "gdscript",
       "file_path": "fixtures/extraction/gdscript/godot/source.gd",
-      "containing_key": "fixtures/extraction/gdscript/godot/source.gd:Bullet:11:0",
+      "containing_key": "fixtures/extraction/gdscript/godot/source.gd:Bullet:11:23",
       "start_line": 11,
       "start_column": 23,
       "end_line": 11,

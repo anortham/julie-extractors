@@ -45,10 +45,7 @@ fn extract_library_import(
 ) -> Option<Symbol> {
     let uri = extract_uri_from_subtree(node)?;
     let full_text = get_node_text(node);
-    let mut metadata = HashMap::from([(
-        "type".to_string(),
-        serde_json::Value::String("import".to_string()),
-    )]);
+    let mut metadata = import_metadata("import", "import", &uri);
     if let Some(specification) = find_child_by_type(node, "import_specification") {
         if find_child_by_type(&specification, "deferred").is_some() {
             metadata.insert("deferred".to_string(), serde_json::Value::Bool(true));
@@ -107,19 +104,21 @@ pub(super) fn extract_part_directive(
     node: &Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let (name, directive) = if node.kind() == "part_of_directive" {
+    let (name, directive, form) = if node.kind() == "part_of_directive" {
         let name = find_child_by_type(node, "uri")
             .and_then(|uri| string_literal_text(&uri))
             .or_else(|| {
                 find_child_by_type(node, "dotted_identifier_list").map(|list| get_node_text(&list))
             })?;
-        (name, "part_of")
+        (name, "part_of", "part of")
     } else {
         (
             string_literal_text(&node.child_by_field_name("uri")?)?,
             "part",
+            "part",
         )
     };
+    let metadata = import_metadata(directive, form, &name);
     Some(base.create_symbol(
         node,
         name,
@@ -128,10 +127,7 @@ pub(super) fn extract_part_directive(
             signature: Some(get_node_text(node)),
             visibility: Some(Visibility::Public),
             parent_id: parent_id.map(|s| s.to_string()),
-            metadata: Some(HashMap::from([(
-                "type".to_string(),
-                serde_json::Value::String(directive.to_string()),
-            )])),
+            metadata: Some(metadata),
             doc_comment: None,
             annotations: Vec::new(),
         },
@@ -197,6 +193,7 @@ fn extract_library_export(
 ) -> Option<Symbol> {
     let uri = extract_uri_from_subtree(node)?;
     let full_text = get_node_text(node);
+    let metadata = import_metadata("export", "export", &uri);
 
     Some(base.create_symbol(
         node,
@@ -206,14 +203,34 @@ fn extract_library_export(
             signature: Some(full_text),
             visibility: Some(Visibility::Public),
             parent_id: parent_id.map(|s| s.to_string()),
-            metadata: Some(HashMap::from([(
-                "type".to_string(),
-                serde_json::Value::String("export".to_string()),
-            )])),
+            metadata: Some(metadata),
             doc_comment: None,
             annotations: Vec::new(),
         },
     ))
+}
+
+/// Metadata shared by every directive: its `type`, the directive
+/// keyword as `form`, and the URI or library name as `source`.
+fn import_metadata(
+    directive_type: &str,
+    form: &str,
+    source: &str,
+) -> HashMap<String, serde_json::Value> {
+    HashMap::from([
+        (
+            "type".to_string(),
+            serde_json::Value::String(directive_type.to_string()),
+        ),
+        (
+            "form".to_string(),
+            serde_json::Value::String(form.to_string()),
+        ),
+        (
+            "source".to_string(),
+            serde_json::Value::String(source.to_string()),
+        ),
+    ])
 }
 
 /// The URI string of an import or export, without quotes. An import keeps it

@@ -320,7 +320,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "require_relative",
+        "source": "./helper"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -432,7 +435,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "require",
+        "source": "json"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,

@@ -402,7 +402,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/fsharp/test_roles/source.fs:DomainTests:1:0",
-      "metadata": {},
+      "metadata": {
+        "form": "open",
+        "source": "Xunit"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,

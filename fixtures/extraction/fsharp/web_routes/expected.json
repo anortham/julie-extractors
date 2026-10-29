@@ -49,7 +49,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/fsharp/web_routes/source.fs:Shop.Web:1:0",
-      "metadata": {},
+      "metadata": {
+        "form": "open",
+        "source": "Microsoft.AspNetCore.Builder"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -147,7 +150,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/fsharp/web_routes/source.fs:Shop.Web:1:0",
-      "metadata": {},
+      "metadata": {
+        "form": "open",
+        "source": "Giraffe"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -171,7 +177,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/fsharp/web_routes/source.fs:Shop.Web:1:0",
-      "metadata": {},
+      "metadata": {
+        "form": "open",
+        "source": "System.Net.Http"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -195,7 +204,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/fsharp/web_routes/source.fs:Shop.Web:1:0",
-      "metadata": {},
+      "metadata": {
+        "form": "open",
+        "source": "Microsoft.AspNetCore.Mvc"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -250,7 +262,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/fsharp/web_routes/source.fs:Shop.Web:1:0",
-      "metadata": {},
+      "metadata": {
+        "form": "open",
+        "source": "System"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,

@@ -8,6 +8,7 @@ mod cross_file_relationships;
 mod extractor;
 mod generic_tests;
 mod identifier_extraction;
+mod import_source;
 mod initializer_types;
 mod interface_tests;
 mod literals;

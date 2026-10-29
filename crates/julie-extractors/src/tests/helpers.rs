@@ -37,6 +37,28 @@ pub fn metadata_str<'a>(fact: &'a StructuralFact, key: &str) -> Option<&'a str> 
         .and_then(|value| value.as_str())
 }
 
+/// Each import and export symbol as its name and its metadata as a JSON
+/// object, in extraction order.
+pub fn import_rows_with_metadata(results: &ExtractionResults) -> Vec<(String, serde_json::Value)> {
+    results
+        .symbols
+        .iter()
+        .filter(|symbol| {
+            matches!(
+                symbol.kind,
+                crate::base::SymbolKind::Import | crate::base::SymbolKind::Export
+            )
+        })
+        .map(|symbol| {
+            let metadata = symbol.metadata.clone().unwrap_or_default();
+            (
+                symbol.name.clone(),
+                serde_json::Value::Object(metadata.into_iter().collect()),
+            )
+        })
+        .collect()
+}
+
 /// Filter extraction results for structural facts matching a given pattern ID.
 pub fn facts_with_pattern<'a>(
     results: &'a ExtractionResults,

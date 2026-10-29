@@ -79,3 +79,65 @@ pub(super) fn extract_variable(
     type_facts::record_statement_type_facts(base, &symbol.id, statement, same_file_types);
     Some(symbol)
 }
+
+/// `const Helper = preload("res://scripts/helper.gd")` or
+/// `var Scene = load("res://scenes/main.tscn")` outside a function also
+/// imports the resource: an import named by the constant or field, over the
+/// path string, with the path as `source` and the loader as `form`.
+pub(super) fn extract_resource_import(
+    base: &mut BaseExtractor,
+    statement: Node,
+    parent_id: Option<&String>,
+) -> Option<Symbol> {
+    if inside_callable(statement) {
+        return None;
+    }
+    let name = base.get_node_text(&statement.child_by_field_name("name")?);
+    let call = statement
+        .child_by_field_name("value")
+        .filter(|value| value.kind() == "call")?;
+    let mut cursor = call.walk();
+    let loader = call
+        .named_children(&mut cursor)
+        .next()
+        .filter(|callee| callee.kind() == "identifier")
+        .map(|callee| base.get_node_text(&callee))?;
+    let form = match loader.as_str() {
+        "preload" => "preload",
+        "load" => "load",
+        _ => return None,
+    };
+    let arguments = call.child_by_field_name("arguments")?;
+    if arguments.named_child_count() != 1 {
+        return None;
+    }
+    let path_node = arguments
+        .named_child(0)
+        .filter(|path| path.kind() == "string")?;
+    let source = base
+        .decode_string_literal(&path_node)
+        .filter(|source| !source.is_empty())?;
+
+    let metadata = HashMap::from([
+        ("source".to_string(), Value::String(source)),
+        ("form".to_string(), Value::String(form.to_string())),
+    ]);
+    let visibility = member_visibility(&name);
+    let signature = base.get_node_text(&call);
+    let mut symbol = base.create_symbol(
+        &path_node,
+        name,
+        SymbolKind::Import,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(visibility),
+            parent_id: parent_id.cloned(),
+            metadata: Some(metadata),
+            doc_comment: None,
+            annotations: Vec::new(),
+        },
+    );
+    symbol.body_span = None;
+    symbol.body_hash = None;
+    Some(symbol)
+}

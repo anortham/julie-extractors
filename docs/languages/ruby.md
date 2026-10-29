@@ -100,6 +100,13 @@ before they count as a mixin on the enclosing class, which keeps
 
 ## Symbols and calls
 
+- `require`, `require_relative`, and `load` with a string argument give an
+  `import` symbol named by the last segment of the path (`helper` for
+  `require_relative "lib/helper"`, `setup.rb` for `load "tasks/setup.rb"`).
+  `autoload :Parser, "app/parser"` gives an `import` symbol named `Parser`
+  with the enclosing class or module as its parent. Metadata `form` holds the
+  method name, and `source` holds the path as written. An interpolated path
+  keeps the row without `source`.
 - A constant defines a symbol only as an assignment target (`FOO = 1`) or a
   class or module name. A constant read in `when`, `rescue`, or a value
   position is a `type_usage` identifier. A global variable defines a symbol

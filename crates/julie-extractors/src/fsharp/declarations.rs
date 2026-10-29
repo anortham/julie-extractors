@@ -328,7 +328,8 @@ fn extract_extern(
     create_symbol(base, node, name, SymbolKind::Function, parent_id)
 }
 
-/// `open A.B` is an import named by its last segment, as in C#.
+/// `open A.B` is an import named by its last segment, as in C#. Metadata
+/// `source` holds the whole path and `form` the directive keyword.
 fn extract_import(
     base: &mut BaseExtractor,
     node: Node,
@@ -338,11 +339,24 @@ fn extract_import(
     let target = node.named_children(&mut cursor).next()?;
     let path = base.get_node_text(&target).trim().to_string();
     let name = path.rsplit('.').next().unwrap_or(&path).trim().to_string();
-    create_symbol(base, node, name, SymbolKind::Import, parent_id)
+    let mut symbol = create_symbol(base, node, name, SymbolKind::Import, parent_id)?;
+    symbol
+        .metadata
+        .get_or_insert_with(Default::default)
+        .extend([
+            ("source".to_string(), serde_json::Value::String(path)),
+            (
+                "form".to_string(),
+                serde_json::Value::String("open".to_string()),
+            ),
+        ]);
+    Some(symbol)
 }
 
 /// `#load "file.fsx"` and `#r "nuget: Package, 1.0"` / `#r "lib.dll"` are
-/// script imports named by the loaded file or referenced package.
+/// script imports named by the loaded file or referenced package. Metadata
+/// `form` holds the directive; `source` holds the file path, or `nuget` for
+/// a package reference.
 fn extract_script_directive(
     base: &mut BaseExtractor,
     node: Node,
@@ -363,10 +377,16 @@ fn extract_script_directive(
         .trim()
         .trim_matches('"')
         .to_string();
-    let mut metadata = std::collections::HashMap::from([(
-        "directive".to_string(),
-        serde_json::Value::String(directive.to_string()),
-    )]);
+    let mut metadata = std::collections::HashMap::from([
+        (
+            "directive".to_string(),
+            serde_json::Value::String(directive.to_string()),
+        ),
+        (
+            "form".to_string(),
+            serde_json::Value::String(format!("#{directive}")),
+        ),
+    ]);
     let name = match argument.strip_prefix("nuget:") {
         Some(package) => {
             let mut parts = package.split(',').map(str::trim);
@@ -383,7 +403,13 @@ fn extract_script_directive(
             );
             package_name
         }
-        None => argument,
+        None => {
+            metadata.insert(
+                "source".to_string(),
+                serde_json::Value::String(argument.clone()),
+            );
+            argument
+        }
     };
     let span = base.span_for_byte_range(node.start_byte(), string.end_byte())?;
     let mut symbol =

@@ -2,9 +2,18 @@
 
 `dart` handles `.dart` files with `tree-sitter-dart` `0.2.0`.
 
-This page records the type-fact contract for local variables. Other Dart
-behavior is covered by the golden fixtures and
+This page records the directive rows and the type-fact contract for local
+variables. Other Dart behavior is covered by the golden fixtures and
 `fixtures/extraction/capabilities.json`.
+
+## Directives
+
+`import`, `part`, and `part of` give `import` symbols, and `export` gives an
+`export` symbol. Each is named by its URI without quotes, or by the library
+name for `part of blog.lib;`. Metadata `type` is `import`, `export`, `part`,
+or `part_of`; `form` is the directive keyword (`import`, `export`, `part`,
+`part of`); and `source` is the URI or library name. An import also keeps
+`alias`, `deferred`, `show`, and `hide`.
 
 ## Local variable type facts
 

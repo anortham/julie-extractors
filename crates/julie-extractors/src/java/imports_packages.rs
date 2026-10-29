@@ -1,6 +1,7 @@
 /// Import and package declaration extraction
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
 use crate::java::JavaExtractor;
+use std::collections::HashMap;
 use tree_sitter::Node;
 
 /// Extract package declaration from a node
@@ -30,63 +31,62 @@ pub(super) fn extract_package(
     )
 }
 
-/// Extract import declaration from a node
+/// Extract an import declaration, named by the imported type or member, or
+/// by the last package segment of a wildcard import. Metadata `source` holds
+/// the package or type the name comes from, `form` holds `import` or
+/// `import static`, and a wildcard import has `wildcard: true`.
 pub(super) fn extract_import(
     extractor: &mut JavaExtractor,
     node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    let scoped_id = node
+    let path_node = node
         .children(&mut node.walk())
-        .find(|c| c.kind() == "scoped_identifier")?;
+        .find(|c| matches!(c.kind(), "scoped_identifier" | "identifier"))?;
+    let path = extractor.base().get_node_text(&path_node);
 
-    let mut full_import_path = extractor.base().get_node_text(&scoped_id);
-
-    // Check if it's a static import
     let is_static = node
         .children(&mut node.walk())
         .any(|c| c.kind() == "static");
-
-    // Check for wildcard imports (asterisk node)
-    let has_asterisk = node
+    let is_wildcard = node
         .children(&mut node.walk())
         .any(|c| c.kind() == "asterisk");
-    if has_asterisk {
-        full_import_path.push_str(".*");
-    }
 
-    // Extract the class/member name (last part after the last dot)
-    let parts: Vec<&str> = full_import_path.split('.').collect();
-    let name = parts.last()?;
-    if name.is_empty() {
+    let form = if is_static { "import static" } else { "import" };
+    let (symbol_name, source, signature) = if is_wildcard {
+        let package_name = path.rsplit('.').next()?;
+        (
+            package_name.to_string(),
+            Some(path.clone()),
+            format!("{form} {path}.*"),
+        )
+    } else {
+        let (container, name) = match path.rsplit_once('.') {
+            Some((container, name)) => (Some(container.to_string()), name),
+            None => (None, path.as_str()),
+        };
+        (name.to_string(), container, format!("{form} {path}"))
+    };
+    if symbol_name.is_empty() {
         return None;
     }
 
-    // Handle wildcard imports
-    let (symbol_name, signature) = if *name == "*" {
-        let package_name = parts.get(parts.len().saturating_sub(2))?;
-        if package_name.is_empty() {
-            return None;
-        }
-        let sig = if is_static {
-            format!("import static {}", full_import_path)
-        } else {
-            format!("import {}", full_import_path)
-        };
-        (package_name.to_string(), sig)
-    } else {
-        let sig = if is_static {
-            format!("import static {}", full_import_path)
-        } else {
-            format!("import {}", full_import_path)
-        };
-        (name.to_string(), sig)
-    };
+    let mut metadata = HashMap::from([(
+        "form".to_string(),
+        serde_json::Value::String(form.to_string()),
+    )]);
+    if let Some(source) = source {
+        metadata.insert("source".to_string(), serde_json::Value::String(source));
+    }
+    if is_wildcard {
+        metadata.insert("wildcard".to_string(), serde_json::Value::Bool(true));
+    }
 
     let options = SymbolOptions {
         signature: Some(signature),
         visibility: Some(Visibility::Public),
         parent_id: parent_id.map(|s| s.to_string()),
+        metadata: Some(metadata),
         ..Default::default()
     };
 

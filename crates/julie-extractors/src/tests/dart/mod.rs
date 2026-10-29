@@ -8,6 +8,7 @@ pub mod cross_file_pending;
 pub mod cross_file_relationships;
 pub mod extractor;
 pub mod identifiers;
+mod import_source;
 mod initializer_types;
 mod library_directive;
 mod literals;

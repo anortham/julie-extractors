@@ -787,9 +787,11 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "form": "import",
         "hide": [
           "Codec"
         ],
+        "source": "dart:convert",
         "type": "import"
       },
       "annotations": [],
@@ -1032,6 +1034,8 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "form": "part",
+        "source": "models.g.dart",
         "type": "part"
       },
       "annotations": [],
@@ -1168,9 +1172,11 @@
       "parent_key": null,
       "metadata": {
         "alias": "coll",
+        "form": "import",
         "show": [
           "ListEquality"
         ],
+        "source": "package:collection/collection.dart",
         "type": "import"
       },
       "annotations": [],
@@ -1346,6 +1352,8 @@
       "metadata": {
         "alias": "heavy",
         "deferred": true,
+        "form": "import",
+        "source": "src/heavy.dart",
         "type": "import"
       },
       "annotations": [],

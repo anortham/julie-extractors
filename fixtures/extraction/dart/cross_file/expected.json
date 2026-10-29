@@ -81,6 +81,8 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "form": "import",
+        "source": "other.dart",
         "type": "import"
       },
       "annotations": [],

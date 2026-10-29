@@ -45,7 +45,12 @@ pub(super) fn extract_call(
                 .into_iter()
                 .collect()
         }
-        "require" | "require_relative" => extract_require(base, node).into_iter().collect(),
+        "require" | "require_relative" | "load" => {
+            extract_require(base, node).into_iter().collect()
+        }
+        "autoload" => extract_autoload(base, node, parent_id)
+            .into_iter()
+            .collect(),
         "attr_reader" | "attr_writer" | "attr_accessor" => {
             extract_attr_accessor(base, node, &method_name, parent_id, visibility)
         }
@@ -422,7 +427,9 @@ pub(super) fn is_class_new(base: &BaseExtractor, call: Node) -> bool {
     matches!(class_constructor(base, call), Some(ClassConstructor::Class))
 }
 
-/// Extract require/require_relative calls
+/// Extract a `require`, `require_relative`, or `load` call as an import named
+/// by the last segment of its path. Metadata `source` holds the path as
+/// written when it is a plain string, and `form` holds the method name.
 fn extract_require(base: &mut BaseExtractor, node: Node) -> Option<Symbol> {
     let arg_node = node.child_by_field_name("arguments")?;
     let string_node = arg_node
@@ -436,24 +443,83 @@ fn extract_require(base: &mut BaseExtractor, node: Node) -> Option<Symbol> {
         .unwrap_or(&require_path)
         .to_string();
     let method_name = extract_method_name_from_call(node, |n| base.get_node_text(n))?;
+    let signature = format!("{} {}", method_name, base.get_node_text(&string_node));
+    let metadata = import_metadata(base, string_node, &method_name);
 
     Some(base.create_symbol(
         &node,
         module_name,
         SymbolKind::Import,
         SymbolOptions {
-            signature: Some(format!(
-                "{} {}",
-                method_name,
-                base.get_node_text(&string_node)
-            )),
+            signature: Some(signature),
             visibility: Some(Visibility::Public),
             parent_id: None,
-            metadata: None,
+            metadata: Some(metadata),
             doc_comment: None,
             annotations: Vec::new(),
         },
     ))
+}
+
+/// `autoload :Parser, "app/parser"` binds the constant `Parser` to a file
+/// that Ruby loads on first use, so it is an import named by the constant.
+fn extract_autoload(
+    base: &mut BaseExtractor,
+    node: Node,
+    parent_id: Option<String>,
+) -> Option<Symbol> {
+    let arguments = node.child_by_field_name("arguments")?;
+    let mut cursor = arguments.walk();
+    let mut named = arguments.named_children(&mut cursor);
+    let constant = named
+        .next()
+        .filter(|first| first.kind() == "simple_symbol")?;
+    let string_node = named.next().filter(|second| second.kind() == "string")?;
+    let name = symbol_name(base, constant)?;
+    let signature = base.get_node_text(&node);
+    let metadata = import_metadata(base, string_node, "autoload");
+
+    Some(base.create_symbol(
+        &node,
+        name,
+        SymbolKind::Import,
+        SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(Visibility::Public),
+            parent_id,
+            metadata: Some(metadata),
+            doc_comment: None,
+            annotations: Vec::new(),
+        },
+    ))
+}
+
+fn import_metadata(
+    base: &BaseExtractor,
+    string_node: Node,
+    form: &str,
+) -> HashMap<String, serde_json::Value> {
+    let mut metadata = HashMap::from([(
+        "form".to_string(),
+        serde_json::Value::String(form.to_string()),
+    )]);
+    if let Some(source) = plain_string(base, string_node) {
+        metadata.insert("source".to_string(), serde_json::Value::String(source));
+    }
+    metadata
+}
+
+/// The text of a string with no interpolation, such as `"lib/helper"`.
+fn plain_string(base: &BaseExtractor, string_node: Node) -> Option<String> {
+    let mut cursor = string_node.walk();
+    let interpolated = string_node
+        .named_children(&mut cursor)
+        .any(|child| child.kind() == "interpolation");
+    if interpolated {
+        return None;
+    }
+    base.decode_string_literal(&string_node)
+        .filter(|source| !source.is_empty())
 }
 
 /// The shape a recognised test-block call takes in the source.
