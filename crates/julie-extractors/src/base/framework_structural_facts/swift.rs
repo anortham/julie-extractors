@@ -1,5 +1,6 @@
 //! Swift framework facts: Vapor routes (`vapor.route.v1`) and the SwiftPM
-//! `Package.swift` manifest (`swiftpm.*.v1`, `manifest.dependency.v1`).
+//! manifest, `Package.swift` or `Package@swift-<version>.swift` (`swiftpm.*.v1`,
+//! `manifest.dependency.v1`).
 //!
 //! Vapor gate: the file imports Vapor, the call is `<builder>.<verb>(...)` or
 //! `<builder>.on(.VERB, ...)`, every positional argument is a static string
@@ -40,12 +41,13 @@ pub(super) fn collect_swift_framework_facts(
     if imports_module(root, content, "Testing") {
         walk_testing_traits(root, language, file_path, content, 0, &mut facts);
     }
-    if is_package_manifest(file_path) {
+    if let Some(swift_version) = package_manifest(file_path) {
         let manifest = Manifest {
             language,
             file_path,
             content,
             package_name: package_name(root, content, 0),
+            swift_version,
         };
         walk_manifest(root, &manifest, 0, &mut facts);
     }
@@ -164,8 +166,22 @@ fn imports_module(root: Node, content: &str, module: &str) -> bool {
     })
 }
 
-fn is_package_manifest(file_path: &str) -> bool {
-    file_path.rsplit(['/', '\\']).next() == Some("Package.swift")
+/// `Some(None)` for `Package.swift`; `Some(Some("5.9"))` for the
+/// version-specific `Package@swift-5.9.swift`, which SwiftPM reads in place of
+/// `Package.swift` for that tools version.
+fn package_manifest(file_path: &str) -> Option<Option<&str>> {
+    let name = file_path.rsplit(['/', '\\']).next()?;
+    if name == "Package.swift" {
+        return Some(None);
+    }
+    let version = name
+        .strip_prefix("Package@swift-")?
+        .strip_suffix(".swift")?;
+    let parts: Vec<&str> = version.split('.').collect();
+    let numeric = parts
+        .iter()
+        .all(|part| !part.is_empty() && part.bytes().all(|byte| byte.is_ascii_digit()));
+    (parts.len() <= 3 && numeric).then_some(Some(version))
 }
 
 /// The text of a string literal with no interpolation.
@@ -462,6 +478,22 @@ struct Manifest<'a> {
     file_path: &'a str,
     content: &'a str,
     package_name: Option<&'a str>,
+    swift_version: Option<&'a str>,
+}
+
+impl Manifest<'_> {
+    fn insert_swift_version(&self, metadata: &mut HashMap<String, Value>) {
+        if let Some(version) = self.swift_version {
+            insert_string(metadata, "manifest_swift_version", version);
+        }
+    }
+
+    fn insert_member_keys(&self, metadata: &mut HashMap<String, Value>) {
+        if let Some(package) = self.package_name {
+            insert_string(metadata, "package_name", package);
+        }
+        self.insert_swift_version(metadata);
+    }
 }
 
 fn walk_manifest(node: Node, manifest: &Manifest, depth: u32, facts: &mut Vec<StructuralFact>) {
@@ -508,7 +540,7 @@ fn is_package_call(call: Node, content: &str) -> bool {
 }
 
 /// SwiftPM's conventional folder for a target without `path:`, relative to
-/// the folder of `Package.swift`. A binary target has none.
+/// the folder of the manifest. A binary target has none.
 fn default_target_path(kind: &str, name: &str) -> Option<String> {
     let root = match kind {
         "testTarget" => "Tests",
@@ -534,6 +566,7 @@ fn manifest_fact(call: Node, manifest: &Manifest) -> Option<StructuralFact> {
     if is_package_call(call, content) {
         let mut metadata = manifest_metadata();
         insert_string(&mut metadata, "name", labeled_string("name")?);
+        manifest.insert_swift_version(&mut metadata);
         return Some(fact_for_node(
             manifest.file_path,
             manifest.language,
@@ -561,9 +594,7 @@ fn manifest_fact(call: Node, manifest: &Manifest) -> Option<StructuralFact> {
             if !targets.is_empty() {
                 insert_string_array(&mut metadata, "targets", targets);
             }
-            if let Some(package) = manifest.package_name {
-                insert_string(&mut metadata, "package_name", package);
-            }
+            manifest.insert_member_keys(&mut metadata);
             (SWIFTPM_PRODUCT_PATTERN_ID, "product")
         }
         (
@@ -590,9 +621,7 @@ fn manifest_fact(call: Node, manifest: &Manifest) -> Option<StructuralFact> {
             if !dependencies.is_empty() {
                 insert_string_array(&mut metadata, "dependencies", dependencies);
             }
-            if let Some(package) = manifest.package_name {
-                insert_string(&mut metadata, "package_name", package);
-            }
+            manifest.insert_member_keys(&mut metadata);
             (SWIFTPM_TARGET_PATTERN_ID, "target")
         }
         ("package", ManifestList::Dependencies) => {

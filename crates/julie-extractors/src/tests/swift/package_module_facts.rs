@@ -164,4 +164,77 @@ fn swiftpm_facts_need_a_file_named_package_swift() {
     }
     let nested = extract("Packages/Kit/Package.swift", MANIFEST);
     assert_eq!(rows(&nested, "swiftpm.target.v1", &["name"]).len(), 8);
+    assert_eq!(
+        rows(
+            &nested,
+            "swiftpm.package.v1",
+            &["name", "manifest_swift_version"]
+        ),
+        vec!["App -"]
+    );
+}
+
+#[test]
+fn version_specific_manifests_give_the_same_facts_with_their_tools_version() {
+    for (path, version) in [
+        ("Package@swift-5.9.swift", "5.9"),
+        ("Packages/Kit/Package@swift-6.swift", "6"),
+        ("Package@swift-5.10.1.swift", "5.10.1"),
+    ] {
+        let result = extract(path, MANIFEST);
+        let targets = rows(
+            &result,
+            "swiftpm.target.v1",
+            &["name", "manifest_swift_version"],
+        );
+        assert_eq!(targets.len(), 8, "{path}");
+        assert_eq!(targets[0], format!("AppCore {version}"), "{path}");
+        assert_eq!(
+            rows(
+                &result,
+                "swiftpm.product.v1",
+                &["name", "manifest_swift_version"]
+            ),
+            vec![format!("AppLib {version}"), format!("app {version}")],
+            "{path}"
+        );
+        assert_eq!(
+            rows(
+                &result,
+                "swiftpm.package.v1",
+                &["name", "manifest_swift_version"]
+            ),
+            vec![format!("App {version}")],
+            "{path}"
+        );
+    }
+}
+
+#[test]
+fn names_that_only_resemble_a_manifest_give_no_facts() {
+    for path in [
+        "MyPackage.swift",
+        "Package@swift-.swift",
+        "Package@swift-5.x.swift",
+        "Package@swift-5.9.1.2.swift",
+        "Package@5.9.swift",
+        "Package@swift-5.9.swift.swift",
+    ] {
+        let result = extract(path, MANIFEST);
+        assert!(
+            result
+                .structural_facts
+                .iter()
+                .all(|fact| !fact.pattern_id.starts_with("swiftpm.")),
+            "{path}"
+        );
+    }
+    let backup = extract_canonical("Package.swift.bak", MANIFEST, Path::new("/tmp/test"))
+        .map(|result| result.structural_facts)
+        .unwrap_or_default();
+    assert!(
+        backup
+            .iter()
+            .all(|fact| !fact.pattern_id.starts_with("swiftpm."))
+    );
 }

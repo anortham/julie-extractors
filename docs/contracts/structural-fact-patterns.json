@@ -13662,7 +13662,7 @@
     "query_family": "testing"
   },
   {
-    "description": "The `Package(name:)` declaration of a SwiftPM `Package.swift` manifest.",
+    "description": "The `Package(name:)` declaration of a SwiftPM manifest: a file named `Package.swift` or a version-specific `Package@swift-<version>.swift`.",
     "languages": [
       "swift"
     ],
@@ -13684,13 +13684,19 @@
         "key": "name",
         "presence": "always",
         "value_type": "string"
+      },
+      {
+        "description": "The Swift tools version in the name of a version-specific manifest (\"5.9\" for `Package@swift-5.9.swift`); absent for `Package.swift`.",
+        "key": "manifest_swift_version",
+        "presence": "optional",
+        "value_type": "string"
       }
     ],
     "pattern_id": "swiftpm.package.v1",
     "query_family": "dependencies"
   },
   {
-    "description": "A product (`.library`, `.executable`, or `.plugin`) declared in a SwiftPM `Package.swift` manifest: in `Package(products: [..])`, in an array assigned or added to `package.products`, in `package.products.append(..)`, or in an array bound as `[Product]`.",
+    "description": "A product (`.library`, `.executable`, or `.plugin`) declared in a SwiftPM manifest (`Package.swift` or `Package@swift-<version>.swift`): in `Package(products: [..])`, in an array assigned or added to `package.products`, in `package.products.append(..)`, or in an array bound as `[Product]`.",
     "languages": [
       "swift"
     ],
@@ -13730,13 +13736,19 @@
         "key": "package_name",
         "presence": "optional",
         "value_type": "string"
+      },
+      {
+        "description": "The Swift tools version in the name of a version-specific manifest (\"5.9\" for `Package@swift-5.9.swift`); absent for `Package.swift`.",
+        "key": "manifest_swift_version",
+        "presence": "optional",
+        "value_type": "string"
       }
     ],
     "pattern_id": "swiftpm.product.v1",
     "query_family": "dependencies"
   },
   {
-    "description": "A target (`.target`, `.testTarget`, `.executableTarget`, `.macro`, `.plugin`, `.systemLibrary`, or `.binaryTarget`) declared in a SwiftPM `Package.swift` manifest: in `Package(targets: [..])`, in an array assigned or added to `package.targets`, in `package.targets.append(..)`, or in an array bound as `[Target]`.",
+    "description": "A target (`.target`, `.testTarget`, `.executableTarget`, `.macro`, `.plugin`, `.systemLibrary`, or `.binaryTarget`) declared in a SwiftPM manifest (`Package.swift` or `Package@swift-<version>.swift`): in `Package(targets: [..])`, in an array assigned or added to `package.targets`, in `package.targets.append(..)`, or in an array bound as `[Target]`.",
     "languages": [
       "swift"
     ],
@@ -13772,7 +13784,7 @@
         "value_type": "string"
       },
       {
-        "description": "The target's source folder relative to the folder of `Package.swift`: the static `path:`, or with no `path:` SwiftPM's conventional `Sources/<name>`, `Tests/<name>` for a test target, or `Plugins/<name>` for a plugin. SwiftPM also accepts `Source`, `src`, or `srcs` in place of `Sources` (and of `Tests` for a test target). Absent for a binary target without `path:` and for a computed `path:`.",
+        "description": "The target's source folder relative to the folder of the manifest: the static `path:`, or with no `path:` SwiftPM's conventional `Sources/<name>`, `Tests/<name>` for a test target, or `Plugins/<name>` for a plugin. SwiftPM also accepts `Source`, `src`, or `srcs` in place of `Sources` (and of `Tests` for a test target). Absent for a binary target without `path:` and for a computed `path:`.",
         "key": "effective_path",
         "presence": "optional",
         "value_type": "string"
@@ -13792,6 +13804,12 @@
       {
         "description": "Static `name:` of the file's `Package(...)` call.",
         "key": "package_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "The Swift tools version in the name of a version-specific manifest (\"5.9\" for `Package@swift-5.9.swift`); absent for `Package.swift`.",
+        "key": "manifest_swift_version",
         "presence": "optional",
         "value_type": "string"
       }

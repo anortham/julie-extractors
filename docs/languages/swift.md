@@ -123,11 +123,11 @@ The golden fixture `swift:declarations` holds the evidence for these rules.
 | --- | --- | --- |
 | `vapor.route.v1` | `swift:vapor_http` | In a file that imports Vapor, a `get`/`post`/`put`/`patch`/`delete`/`on(.VERB, ...)` call with static path components and a `use:` handler or trailing closure. Same-file `grouped(...)` bindings and `group(...) { builder in }` closures supply the prefix. |
 | `http.client_request.v1` | `swift:vapor_http` | `AF.request("url", method: .verb)` (client `alamofire`) and a URLSession task whose first argument is `URL(string: "url")` or `URLRequest(url: URL(string: "url"))` (client `urlsession`, default `GET`). |
-| `swiftpm.package.v1`, `swiftpm.product.v1`, `swiftpm.target.v1`, `manifest.dependency.v1` | `swift:package_manifest` | A file named exactly `Package.swift`: the `Package(name:)` call, each product, each target with its static dependencies, and each `.package(url:)` or `.package(path:)` dependency. A product, target, or dependency counts in the `Package(...)` argument array, in an array assigned or added to `package.targets` (or `products`, `dependencies`), in `package.targets.append(..)` or `append(contentsOf: [..])`, and in an array bound as `[Target]`, `[Product]`, or `[Package.Dependency]`. A `.target(name:)` or `.plugin(name:package:)` inside another call's argument is a reference, not a target. |
+| `swiftpm.package.v1`, `swiftpm.product.v1`, `swiftpm.target.v1`, `manifest.dependency.v1` | `swift:package_manifest` | A file named `Package.swift` or `Package@swift-<version>.swift`: the `Package(name:)` call, each product, each target with its static dependencies, and each `.package(url:)` or `.package(path:)` dependency. A product, target, or dependency counts in the `Package(...)` argument array, in an array assigned or added to `package.targets` (or `products`, `dependencies`), in `package.targets.append(..)` or `append(contentsOf: [..])`, and in an array bound as `[Target]`, `[Product]`, or `[Package.Dependency]`. A `.target(name:)` or `.plugin(name:package:)` inside another call's argument is a reference, not a target. |
 
 Target and product facts carry `package_name`, the static `name:` of the
 file's `Package(...)` call. A target fact also carries `effective_path`, the
-target's source folder relative to the folder of `Package.swift`, and
+target's source folder relative to the folder of the manifest, and
 `path_origin`. With a static `path:`, `effective_path` is that path and
 `path_origin` is `written`. Without `path:`, it is SwiftPM's convention and
 `path_origin` is `default`: `Tests/<name>` for a test target, `Plugins/<name>`
@@ -135,8 +135,16 @@ for a plugin, and `Sources/<name>` for the other kinds. SwiftPM also accepts
 `Source`, `src`, or `srcs` in place of `Sources` (and of `Tests` for a test
 target); julie does not look at the disk, so a reader checks those folders.
 A binary target without `path:` and a computed `path:` get no
-`effective_path`. A version-specific manifest such as
-`Package@swift-5.9.swift` gets no facts.
+`effective_path`.
+
+A version-specific manifest, `Package@swift-<version>.swift` in any folder
+(`Package@swift-5.9.swift`, `Package@swift-6.swift`), gets the same facts.
+SwiftPM reads it in place of `Package.swift` for that tools version. Its
+package, product, and target facts also carry `manifest_swift_version`, the
+version from the file name (`5.9`). The version is one to three numbers
+joined by dots; any other name, such as `MyPackage.swift` or
+`Package.swift.bak`, gets no SwiftPM facts. A reader that wants one manifest
+per folder chooses among them.
 
 ## Test-role contract
 

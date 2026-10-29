@@ -5,9 +5,23 @@
 //! [`super::super::structural_fact_pattern_specs`].
 
 use super::super::{
-    ALWAYS, ARR, K_FRAMEWORK, K_PATTERN_VERSION, K_QUERY_FAMILY, OPT, STR,
+    ALWAYS, ARR, K_FRAMEWORK, K_PATTERN_VERSION, K_QUERY_FAMILY, MetadataKeySpec, OPT, STR,
     StructuralFactPatternSpec, key,
 };
+
+const K_PACKAGE_NAME: MetadataKeySpec = key(
+    "package_name",
+    STR,
+    OPT,
+    "Static `name:` of the file's `Package(...)` call.",
+);
+
+const K_MANIFEST_SWIFT_VERSION: MetadataKeySpec = key(
+    "manifest_swift_version",
+    STR,
+    OPT,
+    "The Swift tools version in the name of a version-specific manifest (\"5.9\" for `Package@swift-5.9.swift`); absent for `Package.swift`.",
+);
 
 pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
     StructuralFactPatternSpec {
@@ -91,18 +105,19 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
         pattern_id: "swiftpm.package.v1",
         languages: &["swift"],
         query_family: "dependencies",
-        description: "The `Package(name:)` declaration of a SwiftPM `Package.swift` manifest.",
+        description: "The `Package(name:)` declaration of a SwiftPM manifest: a file named `Package.swift` or a version-specific `Package@swift-<version>.swift`.",
         metadata_keys: &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
             key("name", STR, ALWAYS, "Package name."),
+            K_MANIFEST_SWIFT_VERSION,
         ],
     },
     StructuralFactPatternSpec {
         pattern_id: "swiftpm.product.v1",
         languages: &["swift"],
         query_family: "dependencies",
-        description: "A product (`.library`, `.executable`, or `.plugin`) declared in a SwiftPM `Package.swift` manifest: in `Package(products: [..])`, in an array assigned or added to `package.products`, in `package.products.append(..)`, or in an array bound as `[Product]`.",
+        description: "A product (`.library`, `.executable`, or `.plugin`) declared in a SwiftPM manifest (`Package.swift` or `Package@swift-<version>.swift`): in `Package(products: [..])`, in an array assigned or added to `package.products`, in `package.products.append(..)`, or in an array bound as `[Product]`.",
         metadata_keys: &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
@@ -119,19 +134,15 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 OPT,
                 "Static target names the product exports.",
             ),
-            key(
-                "package_name",
-                STR,
-                OPT,
-                "Static `name:` of the file's `Package(...)` call.",
-            ),
+            K_PACKAGE_NAME,
+            K_MANIFEST_SWIFT_VERSION,
         ],
     },
     StructuralFactPatternSpec {
         pattern_id: "swiftpm.target.v1",
         languages: &["swift"],
         query_family: "dependencies",
-        description: "A target (`.target`, `.testTarget`, `.executableTarget`, `.macro`, `.plugin`, `.systemLibrary`, or `.binaryTarget`) declared in a SwiftPM `Package.swift` manifest: in `Package(targets: [..])`, in an array assigned or added to `package.targets`, in `package.targets.append(..)`, or in an array bound as `[Target]`.",
+        description: "A target (`.target`, `.testTarget`, `.executableTarget`, `.macro`, `.plugin`, `.systemLibrary`, or `.binaryTarget`) declared in a SwiftPM manifest (`Package.swift` or `Package@swift-<version>.swift`): in `Package(targets: [..])`, in an array assigned or added to `package.targets`, in `package.targets.append(..)`, or in an array bound as `[Target]`.",
         metadata_keys: &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
@@ -147,7 +158,7 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 "effective_path",
                 STR,
                 OPT,
-                "The target's source folder relative to the folder of `Package.swift`: the static `path:`, or with no `path:` SwiftPM's conventional `Sources/<name>`, `Tests/<name>` for a test target, or `Plugins/<name>` for a plugin. SwiftPM also accepts `Source`, `src`, or `srcs` in place of `Sources` (and of `Tests` for a test target). Absent for a binary target without `path:` and for a computed `path:`.",
+                "The target's source folder relative to the folder of the manifest: the static `path:`, or with no `path:` SwiftPM's conventional `Sources/<name>`, `Tests/<name>` for a test target, or `Plugins/<name>` for a plugin. SwiftPM also accepts `Source`, `src`, or `srcs` in place of `Sources` (and of `Tests` for a test target). Absent for a binary target without `path:` and for a computed `path:`.",
             ),
             key(
                 "path_origin",
@@ -161,12 +172,8 @@ pub(super) const SPECS: &[StructuralFactPatternSpec] = &[
                 OPT,
                 "Static dependency names: a bare string, `.target(name:)`, `.byName(name:)`, or `.product(name:)`.",
             ),
-            key(
-                "package_name",
-                STR,
-                OPT,
-                "Static `name:` of the file's `Package(...)` call.",
-            ),
+            K_PACKAGE_NAME,
+            K_MANIFEST_SWIFT_VERSION,
         ],
     },
 ];
