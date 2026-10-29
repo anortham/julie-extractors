@@ -82,6 +82,8 @@ fn test_public_contract_version_marks_current_fact_families() {
         "r-superassignment-v1",
         "package-module-facts-v1",
         "css-custom-function-calls-v1",
+        "test-label-decoding-v1",
+        "ruby-sub-test-case-v1",
     ] {
         assert!(
             version.contains(marker),

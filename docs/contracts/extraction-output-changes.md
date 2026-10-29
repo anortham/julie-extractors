@@ -100,7 +100,8 @@ follow the consumer actions below. `EXTRACTION_CONTRACT_VERSION` adds
 `c-cpp-subscript-callee-v1`, `import-source-v1`, `java-star-import-v1`,
 `anonymous-class-owner-v1`, `call-argument-types-v1`,
 `dart-library-directive-v1`, `c-unity-tests-v1`, `r-superassignment-v1`,
-`package-module-facts-v1`, and `css-custom-function-calls-v1`. A 3.9.1 artifact
+`package-module-facts-v1`, `css-custom-function-calls-v1`,
+`test-label-decoding-v1`, and `ruby-sub-test-case-v1`. A 3.9.1 artifact
 has another capability snapshot fingerprint; refresh it with `julie-extract scan
 --root <project> --db <artifact.db> --force` before incremental use.
 
@@ -205,6 +206,23 @@ relationship to each same-file `@function` of its name, or else a pending
 3.9.1 output renamed `namespace` rows and recovered call names from source
 spans; on 3.10.0 output it compares decoded names, does neither step, and
 resolves CSS pending calls against `function` rows of other CSS files.
+
+`test-label-decoding-v1`: `symbols.name` and `symbols.signature` of
+label-named tests and test containers change value; tables, columns, and roles
+do not. Scala, Kotlin, JavaScript, TypeScript, Ruby, Dart, Lua, R, PowerShell,
+Elixir, Bash, Go, PHP, C++, Swift Quick, and Zig name a test by the text its
+label writes: an escaped quote, backslash, or punctuation character becomes
+that character, and so does a Unicode or hex escape of a printable character.
+Control escapes such as `\n` stay as written. Interpolation keeps its old form
+(`{}`, or as written in JavaScript, TypeScript, and Elixir). A PHP
+double-quoted label keeps a `$var` it used to drop. A reader that matches test
+names against labels re-extracts or unescapes names itself.
+
+`ruby-sub-test-case-v1`: in a Ruby test path, a bare `sub_test_case "name" do`
+block writes a `namespace` row with `test_container` set and `test_role:
+test_container`, and the `test` blocks, `def test_x` methods, and hooks inside
+it take it as `parent_symbol_id` instead of the test class. A reader that
+expects test-unit cases directly under the class follows the parent chain.
 
 ## 3.9.1
 
