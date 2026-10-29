@@ -73,6 +73,15 @@ fn test_public_contract_version_marks_current_fact_families() {
         "rust-type-fact-base-names-v1",
         "call-argument-counts-v1",
         "c-cpp-subscript-callee-v1",
+        "import-source-v1",
+        "java-star-import-v1",
+        "anonymous-class-owner-v1",
+        "call-argument-types-v1",
+        "dart-library-directive-v1",
+        "c-unity-tests-v1",
+        "r-superassignment-v1",
+        "package-module-facts-v1",
+        "css-custom-function-calls-v1",
     ] {
         assert!(
             version.contains(marker),

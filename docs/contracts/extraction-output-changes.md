@@ -88,6 +88,124 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 Every release before 2.30.0 byte-matches its predecessor on the fixture.
 
+## 3.10.0
+
+classification: incompatible
+
+The SQLite schema remains 8, the report schema remains 3, and the extraction
+identity epoch remains 10. No table or column shape changes. The CSS custom
+function rows change kind and name, and Java, Scala, C++, and VB.NET
+construction sites change identifier kind, so a reader built for 3.9.1 must
+follow the consumer actions below. `EXTRACTION_CONTRACT_VERSION` adds
+`c-cpp-subscript-callee-v1`, `import-source-v1`, `java-star-import-v1`,
+`anonymous-class-owner-v1`, `call-argument-types-v1`,
+`dart-library-directive-v1`, `c-unity-tests-v1`, `r-superassignment-v1`,
+`package-module-facts-v1`, and `css-custom-function-calls-v1`. A 3.9.1 artifact
+has another capability snapshot fingerprint; refresh it with `julie-extract scan
+--root <project> --db <artifact.db> --force` before incremental use.
+
+`c-cpp-subscript-callee-v1`: a C or C++ call through a subscript (`fns[i](1)`,
+`(*fns[i])(2)`) writes no `calls` relationship and no pending call. The call
+identifier still records the site.
+
+`import-source-v1`: `symbols.metadata_json` of import rows gains `source` (the
+module, namespace, or path as written, without quotes; variables and
+interpolation stay in the text) and `form` (the directive) for C, C++, CSS,
+Bash, PowerShell, R, Ruby, F#, Dart, PHP, GDScript, and Java. New import rows:
+Ruby `load` and `autoload`; PHP `require`, `include`, and their `_once` forms
+(named by the path; `__DIR__ . '/x'` and `dirname(__FILE__) . '/x'` give
+`source: ./x` with `relative_to: file`); GDScript class-level `preload` and
+`load` with a string argument (beside the existing constant or field row).
+Alias rows (Bash `alias`, PowerShell `Set-Alias`/`New-Alias`) get `form` only.
+C/C++ `path` and `isSystemHeader` now come from the include's path node, so a
+trailing comment no longer changes them. PowerShell `using module` keeps the
+whole name (`My-Module` was `My`) and writes rows for quoted paths and module
+hashtables. On a top-level PHP include, identifiers and literals inside the
+argument have the import row as their containing symbol. A reader of 3.9.1
+output reads the older keys (`path`, `url`, `sourcePath`) or the row name, and
+treats a missing `source` as unknown.
+
+`java-star-import-v1`: Java wildcard imports carry `wildcard: true`, and
+`import x.*;` with a one-segment path now writes a row.
+
+`anonymous-class-owner-v1`: Java `new T() { … }`, Kotlin `object : T { … }`
+expressions, Scala `new T { … }`, JavaScript, TypeScript, TSX, JSX, and Vue
+class expressions with no name and no binding, F# object expressions, and Ruby
+`Class.new`, `Struct.new`, and `Data.define` blocks not assigned to a constant
+write a `class` row named `anonymous_class_L<line>` with `type:
+anonymous_class`, as PHP already did. Its members move under it
+(`parent_symbol_id` changes); Kotlin members of such an object change kind from
+`function` to `method`. Supertypes give `extends`/`implements` relationships or
+pending relationships and `base_types`. In Java, Kotlin, Scala, and F# the row
+spans only the class body. Kotlin and Scala `this` inside the body resolves to
+the anonymous class. A Scala `def` inside a `def` or a `val`/`var` initializer
+changes kind from `method` to `function`. A reader that treated a member's
+parent as the enclosing function walks up through the anonymous class.
+
+`call-argument-types-v1`: at the `references` and `full` levels, call
+identifiers with `arg_count` and no `arg_spread` gain `arg_types` in the C#
+shape (one entry per argument: the type its expression states, or `null`) for
+Java, Kotlin, Scala, C++, VB.NET, and Swift, spelled as the language's
+`type_facts.resolved_type`. Kotlin and Scala calls with a named argument gain
+`arg_names`; Swift calls gain `arg_labels` (the label or `null`; a trailing
+closure counts as an argument with a `null` label). Scala, VB.NET, and Swift
+calls gain `arg_count` (and Scala `arg_spread`). Java `new T(…)` (not an
+anonymous class), Scala `new T(…)` (no template body and no `with`), C++
+constructions (`new T(…)`, `T{…}`, `T x(…)`), and VB.NET `New T(…)` write a
+`call` identifier named after the type; Java and Scala write it instead of the
+former `type_usage` identifier, C++ and VB.NET in addition to it. A Kotlin call
+with a trailing lambda, a Scala call whose result is applied again, a Scala
+infix call, a VB.NET call with a named argument or an empty slot, and any call
+whose argument mapping is unclear get no `arg_types`. A reader compares
+`arg_types`, `arg_names`, and `arg_labels` with the parameters of each overload,
+and reads Java and Scala construction sites from `call` rows.
+
+`dart-library-directive-v1`: a Dart one-segment `library x;` that a declaration
+follows is a `namespace` row with `type: library` and its doc comment, not a
+`variable` row; the `library` `type_usage` identifier is gone.
+
+`c-unity-tests-v1`: C functions gain `is_test`, `test_role`, and
+`test_lifecycle` from a `unity.h` include (non-`static` `void` functions named
+`test*`, `spec*`, or `should*`; `setUp`, `tearDown`, `suiteSetUp`,
+`suiteTearDown`), Unity `RUN_TEST`, Check `tcase_add_*` and fixtures, and
+CMocka registrations, outside test paths too. Check `START_TEST(name) { … }
+END_TEST` writes a private `function` row `name`. The `returnType` of a
+function after `END_TEST` is the real type, and the `START_TEST`/`END_TEST`
+identifiers and `uses` relationships are gone.
+
+`r-superassignment-v1`: each R `<<-` or `->>` target inside a function writes a
+`variable_ref` identifier with `assignment: "<<-"` or `"->>"`, which is a write,
+not a read. A global that a function creates (no enclosing function, top-level
+assignment, or earlier superassignment binds the name) writes a top-level
+`variable` or `function` row with `assignment` metadata, also for
+`assign("x", v, envir = .GlobalEnv)` (`assignment: "assign"`). A `->>` inside a
+function no longer writes a local `variable` row.
+
+`package-module-facts-v1`: `structural_facts.metadata_json` only.
+`swiftpm.target.v1` adds `effective_path`, `path_origin` (`written` or
+`default`), and `package_name`; `swiftpm.product.v1` adds `package_name`.
+Targets, products, and dependencies also come from `package.<list>`
+assignments and appends and from `[Target]`, `[Product]`, and
+`[Package.Dependency]` arrays. `Package@swift-<version>.swift` manifests give
+the same facts with `manifest_swift_version`, so a folder can have more than
+one manifest. `zig.build_module.v1` and `zig.build_artifact.v1` also come from
+the Zig 0.11 `.{ .path = … }` and `.source_file` forms and the Zig 0.10
+positional artifact forms. No pattern ids change.
+
+`css-custom-function-calls-v1`: an `@function --name(...)` rule is a `function`
+row named by its dashed name with CSS escapes decoded (was a `namespace` row
+named `@function --name()`); signature and metadata keys are unchanged.
+At-rule `prelude` and `ruleName` collapse only CSS whitespace, so a non-ASCII
+space such as U+2000 is kept. Every dashed function call outside comments,
+strings, and unquoted `url()` is a `call` identifier named by its decoded name,
+spanning the raw name, with `arg_count`; a call in a `result:` descriptor is
+recorded, and the malformed fragment rows are gone. A call gets a `calls`
+relationship to each same-file `@function` of its name, or else a pending
+`calls` row from the innermost symbol around it (confidence 0.7). A reader of
+3.9.1 output renamed `namespace` rows and recovered call names from source
+spans; on 3.10.0 output it compares decoded names, does neither step, and
+resolves CSS pending calls against `function` rows of other CSS files.
+
 ## 3.9.1
 
 classification: compatible
