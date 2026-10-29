@@ -1,6 +1,7 @@
 //! Tests for Scala extractor
 
 mod anonymous_classes;
+mod argument_types;
 mod ast_debug;
 mod complexity;
 mod cross_file_pending;

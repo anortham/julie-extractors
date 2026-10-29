@@ -126,6 +126,57 @@ Scala uses `tree-sitter-scala`. The extractor reads `.scala`, `.sc`, and
 - Package segments of a qualified type (`java.io.Serializable`), declared
   names of `val a, b`, enum case names, and package object names are not
   `variable_ref` rows. A qualified generic type records its type arguments.
+- `new Box(1)` writes a `call` identifier named `Box` (the last segment of
+  `new a.Box[T](1)`), not a `type_usage`. An anonymous class
+  (`new Box { … }`) and a compound type (`new Box with T`) stay
+  `type_usage` rows.
+
+## Call argument counts, types, and names
+
+At the `references` and `full` levels, a call and a `new` expression with
+an argument list carry `arg_count`. A block or a case block in place of the
+list (`run { … }`, `xs.foreach { case x => … }`) counts as one argument. A
+spread (`xs: _*`, `xs*`) adds `arg_spread: true`. These carry no argument
+keys, since their arguments do not all fill one parameter list:
+
+- a call whose result is applied again: `f(a)(b)` fills a second parameter
+  list, and `f(a) { b }` passes a block to it;
+- an infix call (`a run b`), which has no argument list;
+- `new Box` with no argument list.
+
+A call with `arg_count` and no `arg_spread` also carries `arg_types`: one
+entry per argument in order, the type its expression states, or `null`.
+`run(1)` and `run("x")` give `["Int"]` and `["String"]`. When one argument is
+named, the call also carries `arg_names`, one entry per argument: the name,
+or `null` for a positional argument. `run(b = 1, 2)` gives
+`arg_names: ["b", null]` and `arg_types: ["Int", "Int"]`. A call with no
+named argument has no `arg_names`.
+
+An entry names a type the way type facts do: the last segment of the
+written type, without type arguments. These expressions give a type:
+
+- A literal: an integer gives `Int`, `1L` gives `Long`, `1.0f` gives `Float`,
+  `1.0` and `1e3` give `Double`, a character gives `Char`, a string gives
+  `String`, and `true` gives `Boolean`. `null` gives `null`. An `s`, `f`, or
+  `raw` interpolated string gives `String`; a custom interpolator gives
+  `null`. A `-` or `+` sign keeps the literal's type.
+- `new T(…)` gives `T`; an anonymous class gives `null`.
+- `x.asInstanceOf[T]` and an ascription `(x: T)` give `T`.
+- `classOf[T]` gives `java.lang.Class`.
+- `this` gives the enclosing class, object, trait, or enum; inside an
+  anonymous class it gives `null`.
+- A `+` whose left operand is a `String` gives `String`.
+- A name gives the type fact of the nearest declaration visible at the call:
+  a `val` or `var` of an enclosing block, a parameter of the method, a typed
+  lambda parameter (its written type), or a member or constructor parameter
+  of the enclosing class. A `val` or `var` with no type fact takes the type
+  of a literal initializer. `this.name` reads a member of the class.
+
+Every other expression gives `null`, and so does a name that a pattern
+(`case x =>`, a `for` generator, `val (a, b) = …`), an untyped lambda
+parameter, a repeated parameter (`xs: Int*`), a local `def`, `object`, or
+`given`, or a supertype binds. A block or case block argument gives `null`.
+A companion `apply` call (`Box(1)`) gives `null`.
 
 ## Literals
 

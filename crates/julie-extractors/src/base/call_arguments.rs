@@ -53,7 +53,7 @@ fn call_kinds(language: &str) -> &'static [&'static str] {
     match language {
         "python" => &["call"],
         "javascript" | "typescript" => &["call_expression", "new_expression"],
-        "java" => &["method_invocation"],
+        "java" => &["method_invocation", "object_creation_expression"],
         "csharp" => &[
             "invocation_expression",
             "object_creation_expression",
@@ -61,6 +61,7 @@ fn call_kinds(language: &str) -> &'static [&'static str] {
         ],
         "go" => &["call_expression", "type_conversion_expression"],
         "rust" | "kotlin" | "c" | "cpp" => &["call_expression"],
+        "scala" => &["call_expression", "instance_expression"],
         _ => &[],
     }
 }
@@ -113,7 +114,7 @@ fn terminal_callee_arguments(
     span: (usize, usize),
     source: &[u8],
 ) -> Option<ArgumentSummary> {
-    if call.has_error() {
+    if call.has_error() || (language == "scala" && applies_its_result(call)) {
         return None;
     }
     if call.kind() == "type_conversion_expression" {
@@ -213,7 +214,7 @@ fn is_terminal_name(
 fn type_argument_delimiters(language: &str) -> Option<(&'static str, &'static str)> {
     match language {
         "typescript" | "rust" | "csharp" | "cpp" | "kotlin" | "java" => Some(("<", ">")),
-        "go" => Some(("[", "]")),
+        "go" | "scala" => Some(("[", "]")),
         _ => None,
     }
 }
@@ -279,6 +280,11 @@ fn summarize(
 ) -> Option<ArgumentSummary> {
     let mut summary = match list.kind() {
         "template_string" => return None,
+        "block" | "case_block" if language == "scala" => ArgumentSummary {
+            count: 1,
+            spread: false,
+        },
+        kind if language == "scala" && kind != "arguments" => return None,
         "generator_expression" => ArgumentSummary {
             count: 1,
             spread: false,
@@ -305,7 +311,9 @@ fn summarize(
             }
             ArgumentSummary {
                 count: arguments.len(),
-                spread: arguments.iter().any(|argument| is_spread(*argument)),
+                spread: arguments
+                    .iter()
+                    .any(|argument| is_spread(*argument, source)),
             }
         }
     };
@@ -572,7 +580,7 @@ impl<'tree> Iterator for Tokens<'tree, '_> {
     }
 }
 
-fn is_spread(argument: Node<'_>) -> bool {
+fn is_spread(argument: Node<'_>, source: &[u8]) -> bool {
     match argument.kind() {
         "list_splat"
         | "dictionary_splat"
@@ -580,8 +588,26 @@ fn is_spread(argument: Node<'_>) -> bool {
         | "variadic_argument"
         | "parameter_pack_expansion" => true,
         "value_argument" => first_child_of_kind(argument, &["spread_expression"]).is_some(),
+        "ascription_expression" => {
+            first_child_of_kind(argument, &["repeated_parameter_type"]).is_some()
+        }
+        "postfix_expression" => {
+            argument
+                .named_child(1)
+                .and_then(|operator| source.get(operator.byte_range()))
+                == Some(b"*".as_slice())
+        }
         _ => false,
     }
+}
+
+/// True when a Scala call is the callee of another application: `f(a)(b)`
+/// fills a second parameter list and `f(a) { b }` passes a block to it, so
+/// the first list does not hold every argument of the call.
+fn applies_its_result(call: Node<'_>) -> bool {
+    call.parent().is_some_and(|parent| {
+        parent.kind() == "call_expression" && parent.child_by_field_name("function") == Some(call)
+    })
 }
 
 fn count_children_of_kind(node: Node<'_>, kind: &str) -> usize {

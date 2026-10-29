@@ -323,6 +323,82 @@ fn java_calls_count_arguments() {
 }
 
 #[test]
+fn java_constructor_calls_count_arguments() {
+    let source = "class A {
+  void run(Outer outer) {
+    new Empty();
+    new Pair<String, Integer>(\"a\", 1);
+    new java.util.ArrayList<>(new Sized(4));
+    outer.new Inner(1, 2);
+  }
+}
+";
+    assert_calls(
+        "java",
+        "A.java",
+        source,
+        &[
+            ("Empty", Some(0), false),
+            ("Pair", Some(2), false),
+            ("ArrayList", Some(1), false),
+            ("Sized", Some(1), false),
+            ("Inner", Some(2), false),
+        ],
+    );
+}
+
+#[test]
+fn scala_calls_count_arguments() {
+    let source = "object A {
+  def run(items: List[Int]): Unit = {
+    zero()
+    one(1)
+    three(1, 2, 3)
+    named(1, key = 2)
+    outer(inner(1, 2), 3)
+    obj.method(1, 2)
+    generic[Int](1)
+    obj.typed[Int, String](1, 2)
+    splat(items: _*)
+    splat3(items*)
+    block { 1 }
+    cases { case x => x }
+    curried(1)(2)
+    withBlock(1) { 2 }
+    new Widget(1, 2)
+    new Plain
+    obj infix 1
+  }
+}
+";
+    assert_calls(
+        "scala",
+        "A.scala",
+        source,
+        &[
+            ("zero", Some(0), false),
+            ("one", Some(1), false),
+            ("three", Some(3), false),
+            ("named", Some(2), false),
+            ("outer", Some(2), false),
+            ("inner", Some(2), false),
+            ("method", Some(2), false),
+            ("generic", Some(1), false),
+            ("typed", Some(2), false),
+            ("splat", Some(1), true),
+            ("splat3", Some(1), true),
+            ("block", Some(1), false),
+            ("cases", Some(1), false),
+            ("curried", None, false),
+            ("withBlock", None, false),
+            ("Widget", Some(2), false),
+            ("Plain", None, false),
+            ("infix", None, false),
+        ],
+    );
+}
+
+#[test]
 fn csharp_calls_count_arguments() {
     let source = "class A {
   void Run() {
@@ -645,11 +721,6 @@ fn languages_outside_the_argument_count_set_carry_no_argument_keys() {
             "swift",
             "sample.swift",
             "func run() { helper(1, 2); o.method(1, 2) }\n",
-        ),
-        (
-            "scala",
-            "sample.scala",
-            "object A { def run() = { helper(1, 2); o.method(1, 2) } }\n",
         ),
         (
             "dart",

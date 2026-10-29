@@ -215,6 +215,60 @@ A qualified type reference (`ApiResult.Success`, `java.io.IOException`) emits
 one `type_usage` for its last segment, with the leading segments in the
 `receiver` and `receiver_qualifier` metadata.
 
+### Call argument types and names
+
+At the `references` and `full` levels, a call with `arg_count` and no
+`arg_spread` also carries `arg_types`: one entry per argument in order, the
+type its expression states, or `null`. `run(1)` and `run("x")` give `["Int"]`
+and `["String"]`. When one argument is named, the call also carries
+`arg_names`, one entry per argument: the name, or `null` for a positional
+argument. `run(b = 1, 2)` gives `arg_names: ["b", null]` and
+`arg_types: ["Int", "Int"]`. A call with no named argument has no `arg_names`.
+
+A call with a trailing lambda (`run(1) { … }`, `run { … }`) carries neither
+key, since the lambda fills the last parameter, not the next one; its
+`arg_count` still counts the lambda. A call with a spread (`run(*items)`)
+carries neither key either.
+
+An entry names a type the way type facts do: the base name as written,
+without type arguments or `?`. These expressions give a type:
+
+- A literal: an integer gives `Int`, or `Long` when its value does not fit
+  `Int`; `1L` gives `Long`; `1u` gives `UInt` (`ULong` past its range); `1uL`
+  gives `ULong`; `1.0f` gives `Float`; `1.0` gives `Double`; a character
+  gives `Char`; a string, a raw string, or a template gives `String`; `true`
+  gives `Boolean`. `null` gives `null`. A `-` or `+` sign keeps the literal's
+  type.
+- A constructor call `Box(…)` of a same-file class gives `Box`, under the
+  same rule that infers the type fact of `val x = Box()`. Any other call gives
+  `null`.
+- `x as T` and `x as? T` give `T`.
+- `this` gives the enclosing class or named object, and `this@Name` gives
+  `Name` when a class or object of that name encloses the call. `this` gives
+  `null` inside a lambda, an extension function, a companion, or an anonymous
+  object, where it can name another receiver.
+- `Box::class` gives `kotlin.reflect.KClass`.
+- A `+` whose left operand is a `String` gives `String`.
+- A name gives the type fact of the nearest declaration visible at the call:
+  a local of an enclosing block or lambda, a parameter of the function,
+  constructor, setter, or lambda, a `for` or `catch` variable, or a property
+  of the enclosing class, including a `val` or `var` constructor parameter.
+  A typed lambda parameter or `for` variable gives its written type. A plain
+  constructor parameter counts only outside the class's functions. A local
+  with no type fact takes the type of a literal initializer
+  (`val count = 3` gives `Int`). `this.name` reads a property of the class.
+
+Every other expression gives `null`. A name gives `null` when:
+
+- the member tests or casts it anywhere (`x is Box`, `x !is Box`,
+  `x as Box`) or names it in a `when` subject, since a smart cast can change
+  its type;
+- a destructuring declaration, a `vararg` parameter, or the implicit `it`
+  binds it;
+- the class does not declare it, since a supertype or a companion can;
+- the walk to the class crosses a lambda or an extension function, since
+  that receiver's members come before the class's.
+
 ## Declarations and members
 
 - An enum class with modifiers or annotations (`private enum class Mode`) is

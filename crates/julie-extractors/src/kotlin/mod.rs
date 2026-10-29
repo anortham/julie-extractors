@@ -12,6 +12,7 @@
 //! - Constructor parameters
 
 mod annotation_repair;
+pub(crate) mod argument_types;
 mod declarations;
 mod helpers;
 mod identifiers;

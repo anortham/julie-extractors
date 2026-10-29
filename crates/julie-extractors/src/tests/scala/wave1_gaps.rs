@@ -208,7 +208,7 @@ class Worker(helper: Helper) {
         result
             .identifiers
             .iter()
-            .any(|i| i.name == "UserRepo" && i.kind == crate::base::IdentifierKind::TypeUsage)
+            .any(|i| i.name == "UserRepo" && i.kind == crate::base::IdentifierKind::Call)
     );
 }
 

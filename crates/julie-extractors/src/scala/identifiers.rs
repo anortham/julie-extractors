@@ -152,8 +152,12 @@ fn extract_identifier_from_node(
             }
 
             let containing = find_containing_symbol_id(node, containing_symbols);
-            let identifier =
-                base.create_identifier(&node, name, IdentifierKind::TypeUsage, containing);
+            let kind = if names_constructed_type(node) {
+                IdentifierKind::Call
+            } else {
+                IdentifierKind::TypeUsage
+            };
+            let identifier = base.create_identifier(&node, name, kind, containing);
             record_outermost_scala_type_arguments(base, node, &identifier);
         }
 
@@ -476,6 +480,40 @@ fn is_type_declaration_name(node: &Node) -> bool {
         && name_node.id() == node.id()
     {
         return parent.kind() == "type_definition";
+    }
+    false
+}
+
+/// True for the last segment of the type that `new` constructs (`Box` in
+/// `new Box(1)`, `new a.Box[T]`). An anonymous class (`new Box { … }`) and a
+/// compound type (`new Box with T`) stay type usages.
+fn names_constructed_type(node: Node) -> bool {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        match parent.kind() {
+            "stable_type_identifier"
+                if parent
+                    .named_children(&mut parent.walk())
+                    .last()
+                    .is_some_and(|last| last.id() == current.id()) =>
+            {
+                current = parent;
+            }
+            "generic_type"
+                if parent
+                    .child_by_field_name("type")
+                    .is_some_and(|base| base.id() == current.id()) =>
+            {
+                current = parent;
+            }
+            "instance_expression" => {
+                let mut cursor = parent.walk();
+                return parent.named_children(&mut cursor).all(|child| {
+                    child.id() == current.id() || child.kind() == "arguments" || child.is_extra()
+                });
+            }
+            _ => return false,
+        }
     }
     false
 }

@@ -13,6 +13,7 @@
 
 pub mod annotations;
 pub(crate) mod anonymous_class;
+pub(crate) mod argument_types;
 pub mod body;
 pub(crate) mod call_arguments;
 pub mod code_structural_facts;

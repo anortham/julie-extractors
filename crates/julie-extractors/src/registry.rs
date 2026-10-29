@@ -22,6 +22,13 @@ use tree_sitter::Tree;
 
 type ExtractFn =
     fn(&Tree, &str, &str, &Path, ExtractionLevel) -> Result<ExtractionResults, anyhow::Error>;
+type ArgumentTypes = fn(
+    &Tree,
+    &str,
+    &[crate::base::Symbol],
+    &HashMap<String, crate::base::TypeInfo>,
+    &mut [crate::base::Identifier],
+);
 
 #[derive(Debug, Clone, Copy)]
 pub struct LanguageRegistryEntry {
@@ -929,8 +936,15 @@ pub fn extract_for_language_at(
     crate::base::receiver_metadata::enrich(language, tree, content, &mut results.identifiers);
     if level.includes_references() {
         crate::base::call_arguments::enrich(language, tree, content, &mut results.identifiers);
-        if language == "csharp" {
-            crate::csharp::argument_types::enrich(
+        let argument_types = match language {
+            "csharp" => Some(crate::csharp::argument_types::enrich as ArgumentTypes),
+            "java" => Some(crate::java::argument_types::enrich as ArgumentTypes),
+            "kotlin" => Some(crate::kotlin::argument_types::enrich as ArgumentTypes),
+            "scala" => Some(crate::scala::argument_types::enrich as ArgumentTypes),
+            _ => None,
+        };
+        if let Some(enrich) = argument_types {
+            enrich(
                 tree,
                 content,
                 &results.symbols,

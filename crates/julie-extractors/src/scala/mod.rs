@@ -8,6 +8,7 @@
 //! - Given instances, extension methods
 //! - Imports, packages
 
+pub(crate) mod argument_types;
 mod braceless;
 mod declarations;
 mod helpers;

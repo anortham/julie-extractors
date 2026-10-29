@@ -135,6 +135,49 @@ call outside any callable belongs to the field, constant, or enum constant
 whose initializer holds it, and a call in an initializer block belongs to the
 class.
 
+## Call argument types
+
+At the `references` and `full` levels, a method call and a `new` expression
+carry `arg_count`, and also `arg_types`: one entry per argument in order, the
+type its expression states, or `null`. A reader compares the entries with
+the parameter type facts of each overload: `run(1)` and `run("x")` give
+`["int"]` and `["String"]`, so they bind `run(int a)` and `run(String a)`.
+
+`new Box(1)` writes a `call` identifier named `Box` (the last segment of
+`new a.Box<T>()` and of `outer.new Box()`), not a `type_usage`. An anonymous
+class (`new Task() { … }`) stays a `type_usage` with no argument keys.
+
+An entry names a type the way type facts do: a primitive keyword (`int`,
+`long`, `float`, `double`, `char`, `boolean`), a class name as written
+without type arguments, with its qualifier (`Outer.Inner`), and `Foo[]` for
+an array. These expressions give a type:
+
+- A literal: `1` and `0x1F` give `int`, `1L` gives `long`, `1.0f` gives
+  `float`, `1.0` and `1.0d` give `double`, a character gives `char`, a string
+  or text block gives `String`, and `true` gives `boolean`. `null` gives
+  `null`. A `-` or `+` sign keeps the literal's type.
+- `new T(…)` and a cast `(T) x` give `T`. A generic type over a qualified
+  name (`new java.util.ArrayList<String>()`) gives `null`, as it has no type
+  fact either.
+- `this` gives the enclosing class, `Outer.this` gives `Outer`, and
+  `Foo.class` gives `java.lang.Class`.
+- A `+` with a `String` operand gives `String`.
+- A name gives the type fact of the nearest declaration that is visible at
+  the call: a local of the enclosing block (also in a `for` header, a
+  `switch` group, a resource, or a `catch`), a parameter of the method,
+  constructor, or lambda, or a field, constant, or record component of the
+  enclosing class. An enum constant gives its enum. A `var` with no type fact
+  takes the type of a literal initializer. `this.name` reads a field of the
+  enclosing class.
+
+Every other expression gives `null`: a method call, arithmetic, a lambda, a
+method reference, an array creation, and a name with no declaration in the
+class, which a supertype can declare. A name that a pattern variable
+(`x instanceof Box b`, `case Box b`) declares anywhere in the member gives
+`null`, since a pattern's scope follows the flow of the code. A `...`
+parameter has no type fact, so its name gives `null`. `this(…)` and
+`super(…)` write no call identifier, so they carry no argument keys.
+
 ## Declarations and types
 
 Each import declaration gives an `import` symbol named by the imported type

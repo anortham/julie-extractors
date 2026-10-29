@@ -168,13 +168,16 @@ fn extract_identifier_from_node(
             }
 
             let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+            let kind = if names_constructed_type(node) {
+                IdentifierKind::Call
+            } else {
+                IdentifierKind::TypeUsage
+            };
 
-            let identifier = extractor.base_mut().create_identifier(
-                &node,
-                name,
-                IdentifierKind::TypeUsage,
-                containing_symbol_id,
-            );
+            let identifier =
+                extractor
+                    .base_mut()
+                    .create_identifier(&node, name, kind, containing_symbol_id);
             // If this type_identifier is the name of a `generic_type` use site
             // (e.g. `List` in `List<String>`), record the ordered type arguments.
             // Nested generics are skipped here — they ride along as `children`.
@@ -389,6 +392,44 @@ fn is_type_declaration_name(node: &Node) -> bool {
                     | "annotation_type_declaration"
                     | "type_parameter"
             );
+        }
+    }
+    false
+}
+
+/// True for the last segment of the type that `new` constructs (`Box` in
+/// `new Box(1)`, `new a.Box<T>()`, and `outer.new Box()`): the expression
+/// calls a constructor of that type. An anonymous class (`new Task() { … }`)
+/// stays a type usage, since it calls the constructor of its own body.
+fn names_constructed_type(node: Node) -> bool {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        match parent.kind() {
+            "scoped_type_identifier"
+                if parent
+                    .named_children(&mut parent.walk())
+                    .last()
+                    .is_some_and(|last| last.id() == current.id()) =>
+            {
+                current = parent;
+            }
+            "generic_type"
+                if parent
+                    .named_child(0)
+                    .is_some_and(|first| first.id() == current.id()) =>
+            {
+                current = parent;
+            }
+            "object_creation_expression" => {
+                let mut cursor = parent.walk();
+                return parent
+                    .child_by_field_name("type")
+                    .is_some_and(|type_node| type_node.id() == current.id())
+                    && !parent
+                        .named_children(&mut cursor)
+                        .any(|child| child.kind() == "class_body");
+            }
+            _ => return false,
         }
     }
     false

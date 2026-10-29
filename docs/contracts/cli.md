@@ -208,8 +208,9 @@ read variable references, call identifiers, or text regions; `call` and
 `variable_ref` identifiers, `type_argument_usages`, `type_arguments`, and
 `source_regions` stay empty. `references` is `facts` plus every `call` and
 `variable_ref` identifier, identical to a full extraction's, with their call
-metadata (`arg_count`, `arg_spread`). It exists for consumers such as `code-kb`
-that read call and read sites but never text regions or type arguments;
+metadata (`arg_count`, `arg_spread`, `arg_types`, `arg_names`). It exists for
+consumers such as `code-kb` that read call and read sites but never text
+regions or type arguments;
 `type_argument_usages`, `type_arguments`, and `source_regions` stay empty. On
 the hermes-agent tree a `references` artifact is 3181 MB against 3952 MB at
 `full` and 1670 MB at `facts`. `symbol_annotations` and `complexity_metrics`

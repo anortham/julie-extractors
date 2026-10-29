@@ -14,6 +14,7 @@
 /// - type_facts: Declared and initializer-inferred type fact recording
 /// - identifiers: LSP identifier tracking for references
 mod annotations;
+pub(crate) mod argument_types;
 mod classes;
 mod fields;
 mod helpers;

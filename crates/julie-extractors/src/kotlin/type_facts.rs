@@ -291,6 +291,18 @@ impl InitializerIndex {
         }
     }
 
+    /// The class that a constructor call `Name(args)` builds, as
+    /// [`Self::shape_of`] reads it; never the return type of a function.
+    pub(super) fn constructed_type(&self, base: &BaseExtractor, call: Node) -> Option<String> {
+        let (callee, _) = callee_and_arg_count(call)?;
+        if callee.kind() != "identifier"
+            || !self.classes.contains_key(&identifier_text(base, callee))
+        {
+            return None;
+        }
+        self.call_shape(base, call).map(|shape| shape.name)
+    }
+
     fn call_shape(&self, base: &BaseExtractor, call: Node) -> Option<TypeShape> {
         let (callee, arg_count) = callee_and_arg_count(call)?;
         match callee.kind() {
@@ -894,7 +906,7 @@ fn record_type_node(base: &mut BaseExtractor, symbol_id: &str, type_node: Node, 
     );
 }
 
-fn base_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
+pub(super) fn base_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
     let core = unwrap_type_wrappers(node)?;
     match core.kind() {
         "user_type" => user_type_base_name(base, core),

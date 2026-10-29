@@ -674,7 +674,7 @@ fn record_type_node(base: &mut BaseExtractor, symbol_id: &str, type_node: Node, 
 /// True for type nodes whose text reduces to one base type name. Generics
 /// over dotted bases, wildcards, `void`, and annotated types do not, so they
 /// record nothing. Array types record their full `Foo[]` text unstripped.
-fn names_single_base_type(node: Node) -> bool {
+pub(super) fn names_single_base_type(node: Node) -> bool {
     match node.kind() {
         "type_identifier"
         | "scoped_type_identifier"
