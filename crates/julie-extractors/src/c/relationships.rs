@@ -67,7 +67,7 @@ fn walk_relationships(
         "preproc_include" => {
             relationships.extend(include_relationship(&extractor.base, node));
         }
-        "type_identifier" => {
+        "type_identifier" if !super::test_calls::is_check_macro_token(&extractor.base, node) => {
             extract_type_use_relationship(extractor, node, symbols, scoped_index, relationships);
         }
         _ => {}

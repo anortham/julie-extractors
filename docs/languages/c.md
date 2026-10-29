@@ -56,3 +56,35 @@
   callee: it writes no `calls` relationship and no pending call. The element
   that the subscript reads has no name, so the array or parameter name is not
   the callee. The call identifier still records the site.
+
+## Test frameworks
+
+A function is a test (`is_test`, `test_role: test_case`) in any of these cases:
+
+- Its name starts with `test_` and its file is in a test path.
+- The file includes `unity.h` (with quotes or angle brackets, in any folder),
+  and the function is a non-`static` `void` definition whose name starts with
+  `test`, `spec`, or `should`. These are the functions that Unity's
+  `generate_test_runner.rb` collects.
+- A call in the file registers it: Unity `RUN_TEST(name)` or
+  `RUN_TEST(name, line)`, CMocka `cmocka_unit_test*(name, ...)`, or Check
+  `tcase_add_test`, `tcase_add_loop_test`, `tcase_add_test_raise_signal`, and
+  `tcase_add_exit_test`. A registration needs no include and no test path.
+- It is a Check `START_TEST(name) { ... } END_TEST` block. The row is a
+  private `function` named `name` with the signature `START_TEST(name)`.
+
+`setUp` and `suiteSetUp` are `fixture_setup`, and `tearDown` and
+`suiteTearDown` are `fixture_teardown`, in a test path or in a file that
+includes `unity.h`. Check `tcase_add_checked_fixture` and
+`tcase_add_unchecked_fixture` give their second argument `fixture_setup` and
+their third `fixture_teardown`.
+
+tree-sitter-c reads Check's `END_TEST` as the return type of the next
+function. The extractor drops it, so `END_TEST Suite *make_suite(void)` has
+the return type `Suite*`. The row of that function still starts on the
+`END_TEST` line. The `START_TEST(name)` header and that `END_TEST` write no
+identifier and no `uses` relationship.
+
+A function named `test_mode` in a file with no test framework include, no
+registration, and no test path is not a test. C++ files do not use these
+rules, because Unity, CMocka, and Check are C frameworks.

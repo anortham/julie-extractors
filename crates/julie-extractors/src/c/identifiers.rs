@@ -38,6 +38,7 @@ fn walk_tree_for_identifiers(
 
     if !super::test_calls::is_criterion_macro_call(&extractor.base, &node)
         && !is_criterion_name_argument(extractor, node)
+        && !super::test_calls::is_check_macro_token(&extractor.base, node)
     {
         extract_identifier_from_node(extractor, node, containing_symbols);
     }

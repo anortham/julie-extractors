@@ -12,6 +12,18 @@ pub(super) fn extract_return_type(base: &BaseExtractor, node: tree_sitter::Node)
     return_type_with_pointer_depth(base, node, pointer_depth)
 }
 
+/// Check's `END_TEST` expands to nothing, but the grammar reads it as the type
+/// of the function after it and the real type as an `ERROR` node:
+/// `END_TEST Suite *calc_suite(void)`. True for that `ERROR` node.
+fn follows_check_end_test(base: &BaseExtractor, node: Option<tree_sitter::Node>) -> bool {
+    node.is_some_and(|node| {
+        node.kind() == "ERROR"
+            && node
+                .prev_sibling()
+                .is_some_and(|type_node| base.get_node_text(&type_node) == "END_TEST")
+    })
+}
+
 /// The declaration's base type followed by one `*` per pointer level of the declarator
 pub(super) fn return_type_with_pointer_depth(
     base: &BaseExtractor,
@@ -21,18 +33,19 @@ pub(super) fn return_type_with_pointer_depth(
     let mut cursor = node.walk();
     let base_types: Vec<String> = node
         .children(&mut cursor)
-        .filter(|child| {
-            matches!(
-                child.kind(),
-                "primitive_type"
-                    | "type_identifier"
-                    | "sized_type_specifier"
-                    | "struct_specifier"
-                    | "union_specifier"
-                    | "enum_specifier"
-            )
+        .filter_map(|child| match child.kind() {
+            "type_identifier" if follows_check_end_test(base, child.next_sibling()) => None,
+            "ERROR" if follows_check_end_test(base, Some(child)) => {
+                Some(base.get_node_text(&child))
+            }
+            "primitive_type"
+            | "type_identifier"
+            | "sized_type_specifier"
+            | "struct_specifier"
+            | "union_specifier"
+            | "enum_specifier" => Some(base.get_node_text(&child)),
+            _ => None,
         })
-        .map(|child| base.get_node_text(&child))
         .collect();
     let base_type = if base_types.is_empty() {
         "void".to_string()

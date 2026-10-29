@@ -143,6 +143,10 @@ pub(super) fn extract_function_definition(
     node: tree_sitter::Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
+    if let Some(test) = super::test_calls::extract_check_test(&mut extractor.base, &node, parent_id)
+    {
+        return Some(test);
+    }
     let function_name = helpers::extract_function_name(&extractor.base, node)?;
     let signature = signatures::build_function_signature(&extractor.base, node);
     let visibility = if helpers::is_static_function(&extractor.base, node) {

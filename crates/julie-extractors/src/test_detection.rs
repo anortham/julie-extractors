@@ -419,6 +419,11 @@ fn c_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
     }
 }
 
+/// The fixture role of a Unity hook name, for a file a test framework marks.
+pub(crate) fn c_lifecycle_role(name: &str) -> Option<TestRole> {
+    c_test_lifecycle_direction(name).fixture_role()
+}
+
 fn cpp_test_lifecycle_direction(name: &str) -> TestLifecycleDirection {
     match name.rsplit("::").next().unwrap_or(name) {
         "SetUp" | "SetUpTestSuite" | "SetUpTestCase" => TestLifecycleDirection::Setup,
