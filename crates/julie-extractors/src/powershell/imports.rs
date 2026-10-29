@@ -10,9 +10,6 @@ use tree_sitter::Node;
 
 use super::helpers::{argument_words, command_arguments, module_stem};
 
-static USING_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"using\s+(?:namespace|module)\s+([A-Za-z0-9.-_]+)").unwrap());
-
 static REQUIRES_MODULES_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?i)^#requires\s+-modules?\s+(.+)$").unwrap());
 
@@ -63,12 +60,19 @@ pub(super) fn extract_import_command(
             } else {
                 "modulename"
             };
+            let form = if command == "import-module" {
+                "Import-Module"
+            } else {
+                "Import-DscResource"
+            };
             let mut words = words_bound_to(base, Some(name_parameter));
             words.extend(words_bound_to(base, None));
             words
                 .iter()
-                .filter_map(|word| module_stem(word))
-                .map(|name| (name, SymbolKind::Import, None))
+                .filter_map(|word| {
+                    let name = module_stem(word)?;
+                    Some((name, SymbolKind::Import, Some(import_metadata(word, form))))
+                })
                 .collect()
         }
         "export-modulemember" => ["function", "cmdlet", "variable", "alias"]
@@ -100,22 +104,29 @@ pub(super) fn extract_import_command(
                 .or_else(|| positional.next());
             match (alias, target) {
                 (Some(alias), Some(target)) => {
+                    let form = if command == "set-alias" {
+                        "Set-Alias"
+                    } else {
+                        "New-Alias"
+                    };
                     let metadata = HashMap::from([
                         ("aliasTarget".to_string(), Value::String(target)),
                         (
                             "command".to_string(),
                             Value::String(command_name.to_string()),
                         ),
+                        ("form".to_string(), Value::String(form.to_string())),
                     ]);
                     vec![(alias, SymbolKind::Import, Some(metadata))]
                 }
                 _ => Vec::new(),
             }
         }
-        _ => USING_RE
-            .captures(&signature)
-            .and_then(|captures| captures.get(1))
-            .map(|name| vec![(name.as_str().to_string(), SymbolKind::Import, None)])
+        _ => using_target(base, &arguments)
+            .map(|(form, name)| {
+                let metadata = import_metadata(&name, form);
+                vec![(name, SymbolKind::Import, Some(metadata))]
+            })
             .unwrap_or_default(),
     };
 
@@ -138,6 +149,48 @@ pub(super) fn extract_import_command(
             )
         })
         .collect()
+}
+
+/// The `source` (the module, namespace, or path as written) and `form` (the
+/// directive) of an import row.
+pub(super) fn import_metadata(source: &str, form: &str) -> HashMap<String, Value> {
+    HashMap::from([
+        ("source".to_string(), Value::String(source.to_string())),
+        ("form".to_string(), Value::String(form.to_string())),
+    ])
+}
+
+/// The form and target of a `using module` or `using namespace` statement: a
+/// bare or quoted name or path, or the `ModuleName` of a module
+/// specification hashtable.
+fn using_target(
+    base: &BaseExtractor,
+    arguments: &[(Option<String>, Node)],
+) -> Option<(&'static str, String)> {
+    let mut positional = arguments
+        .iter()
+        .filter(|(parameter, _)| parameter.is_none())
+        .map(|(_, value)| *value);
+    let form = match base
+        .get_node_text(&positional.next()?)
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "module" => "using module",
+        "namespace" => "using namespace",
+        _ => return None,
+    };
+    let target = positional.next()?;
+    let name = argument_words(base, target)
+        .into_iter()
+        .next()
+        .or_else(|| {
+            MODULE_NAME_KEY_RE
+                .captures(&base.get_node_text(&target))
+                .and_then(|captures| captures.get(1))
+                .map(|name| name.as_str().to_string())
+        })?;
+    Some((form, name))
 }
 
 /// Import rows for the modules a `#Requires -Modules` directive names, in
@@ -177,6 +230,7 @@ pub(super) fn extract_requires_modules(
         .into_iter()
         .filter(|name| !name.is_empty())
         .map(|name| {
+            let metadata = import_metadata(&name, "#Requires");
             base.create_symbol(
                 &node,
                 name,
@@ -185,7 +239,7 @@ pub(super) fn extract_requires_modules(
                     signature: Some(signature.clone()),
                     visibility: Some(Visibility::Public),
                     parent_id: parent_id.map(|s| s.to_string()),
-                    metadata: None,
+                    metadata: Some(metadata),
                     doc_comment: None,
                     annotations: Vec::new(),
                 },
@@ -236,7 +290,7 @@ pub(super) fn extract_dot_sourcing(
             signature: Some(signature),
             visibility: Some(Visibility::Public),
             parent_id: parent_id.map(|s| s.to_string()),
-            metadata: None,
+            metadata: Some(import_metadata(&script_path, ".")),
             doc_comment: super::documentation::extract_powershell_doc_comment(base, &node),
             annotations: Vec::new(),
         },

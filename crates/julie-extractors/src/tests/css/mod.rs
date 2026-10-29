@@ -320,6 +320,7 @@ pub mod custom_functions;
 pub mod doc_comments;
 pub mod gap_closure;
 pub mod identifier_extraction;
+pub mod import_source;
 pub mod media_queries;
 pub mod modern;
 pub mod pseudo_elements;

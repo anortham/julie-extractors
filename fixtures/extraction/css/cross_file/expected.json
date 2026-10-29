@@ -55,7 +55,9 @@
       "parent_key": null,
       "metadata": {
         "atRuleType": "import",
+        "form": "@import",
         "ruleName": "@import",
+        "source": "./other.css",
         "type": "at-rule",
         "url": "./other.css"
       },

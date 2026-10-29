@@ -164,6 +164,31 @@ pub(super) fn extract_source_target(
     })
 }
 
+/// The path a `source`/`.` command loads, as written after quote removal:
+/// `"$DIR"/common.sh` is `$DIR/common.sh`, and a command substitution keeps
+/// its text.
+fn source_argument(base: &BaseExtractor, command: Node) -> Option<String> {
+    let mut cursor = command.walk();
+    let argument = command
+        .children_by_field_name("argument", &mut cursor)
+        .next()?;
+    if argument.kind() != "concatenation" {
+        return Some(strip_shell_quotes(&base.get_node_text(&argument)).to_string());
+    }
+    let mut cursor = argument.walk();
+    Some(
+        argument
+            .children(&mut cursor)
+            .map(|part| match part.kind() {
+                "string" | "raw_string" => {
+                    strip_shell_quotes(&base.get_node_text(&part)).to_string()
+                }
+                _ => base.get_node_text(&part),
+            })
+            .collect(),
+    )
+}
+
 fn collect_static_tail(base: &BaseExtractor, node: Node, tail: &mut String) {
     collect_static_tail_at(base, node, tail, 0);
 }
@@ -212,6 +237,7 @@ fn extract_alias_symbol(
     let mut metadata = HashMap::new();
     metadata.insert("aliasTarget".to_string(), json!(alias_target));
     metadata.insert("command".to_string(), json!("alias"));
+    metadata.insert("form".to_string(), json!("alias"));
 
     Some(extractor.base.create_symbol(
         node,
@@ -246,6 +272,10 @@ fn extract_source_symbol(
     let mut metadata = HashMap::new();
     metadata.insert("sourcePath".to_string(), json!(source_path));
     metadata.insert("sourceCommand".to_string(), json!(command_name));
+    if let Some(source) = source_argument(&extractor.base, *node) {
+        metadata.insert("source".to_string(), json!(source));
+    }
+    metadata.insert("form".to_string(), json!(command_name));
 
     Some(extractor.base.create_symbol(
         node,

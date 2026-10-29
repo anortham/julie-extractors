@@ -105,6 +105,8 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "form": "source",
+        "source": "./other.sh",
         "sourceCommand": "source",
         "sourcePath": "./other.sh"
       },

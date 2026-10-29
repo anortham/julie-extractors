@@ -25,7 +25,10 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "import()",
+        "source": "R6"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -56,7 +59,10 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "importFrom()",
+        "source": "dplyr"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,

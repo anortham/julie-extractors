@@ -422,7 +422,10 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
-      "metadata": {},
+      "metadata": {
+        "form": "source()",
+        "source": "R/helpers.R"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -709,7 +712,10 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
-      "metadata": {},
+      "metadata": {
+        "form": "box::use()",
+        "source": "app/logic/utils"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -1256,7 +1262,10 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
-      "metadata": {},
+      "metadata": {
+        "form": "box::use()",
+        "source": "dplyr"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -1408,7 +1417,10 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
-      "metadata": {},
+      "metadata": {
+        "form": "requireNamespace()",
+        "source": "jsonlite"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -2377,7 +2389,10 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/r/idioms/source.R:loaders:88:0",
-      "metadata": {},
+      "metadata": {
+        "form": "pacman::p_load()",
+        "source": "tidyr"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,

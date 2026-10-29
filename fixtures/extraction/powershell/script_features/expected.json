@@ -344,7 +344,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/powershell/script_features/source.ps1:InvoiceServer:59:0",
-      "metadata": {},
+      "metadata": {
+        "form": "Import-DscResource",
+        "source": "PSDesiredStateConfiguration"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,

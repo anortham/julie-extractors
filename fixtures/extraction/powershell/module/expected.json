@@ -25,7 +25,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "#Requires",
+        "source": "Az.Accounts"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -49,7 +52,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "Import-Module",
+        "source": "Az.Storage"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -73,7 +79,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": ".",
+        "source": "Common.ps1"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -185,7 +194,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "Import-Module",
+        "source": "$PSScriptRoot\\Helpers.psm1"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -216,7 +228,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "#Requires",
+        "source": "Pester"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -240,7 +255,10 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "using namespace",
+        "source": "System.Text"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -297,7 +315,8 @@
       "parent_key": null,
       "metadata": {
         "aliasTarget": "Get-Public",
-        "command": "New-Alias"
+        "command": "New-Alias",
+        "form": "New-Alias"
       },
       "annotations": [],
       "semantic_group": null,

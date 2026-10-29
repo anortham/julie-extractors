@@ -247,7 +247,7 @@ pub(crate) fn include_relationship(
     base: &BaseExtractor,
     node: tree_sitter::Node,
 ) -> Option<Relationship> {
-    let include_path = helpers::extract_include_path(&base.get_node_text(&node))?;
+    let include_path = helpers::include_target(base, node)?.path;
     let from_id = format!("file:{}", base.file_path);
     let to_id = format!("header:{}", include_path);
     Some(Relationship {

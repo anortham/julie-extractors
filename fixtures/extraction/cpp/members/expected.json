@@ -448,8 +448,10 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "form": "#include",
         "isSystemHeader": "false",
         "path": "engine/renderer.h",
+        "source": "engine/renderer.h",
         "type": "include"
       },
       "annotations": [],
@@ -1176,8 +1178,10 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "form": "#include",
         "isSystemHeader": "true",
         "path": "vector",
+        "source": "vector",
         "type": "include"
       },
       "annotations": [],

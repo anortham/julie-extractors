@@ -75,3 +75,17 @@ environment. The function that runs the assignment does not count.
   terms, and no write identifier.
 - A superassignment at the top level reads like `<-`: a plain row and no
   write identifier.
+
+## Imports
+
+Each load call is an import row with `source` (the package or path, without
+quotes) and `form` (the call name with `()`): `source()`, `library()`,
+`require()`, `requireNamespace()`, `pacman::p_load()`, `box::use()`,
+`import::from()`, and, in a `NAMESPACE` file, `import()`, `importFrom()`,
+`importClassesFrom()`, and `importMethodsFrom()`.
+
+- `source(file.path("R", "x.R"))` gives `R/x.R`: the string parts joined with
+  `/`. A `source()` whose path is not built only from string literals
+  (`source(file.path(dir, "x.R"))`, `source(paste0(root, "/y.R"))`) writes no
+  row.
+- `box::use(app/logic/utils, pkg[f])` gives `app/logic/utils` and `pkg`.

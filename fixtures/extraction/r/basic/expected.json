@@ -84,7 +84,10 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "library()",
+        "source": "dplyr"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,

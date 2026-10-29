@@ -343,6 +343,8 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "form": "source",
+        "source": "./lib/log.sh",
         "sourceCommand": "source",
         "sourcePath": "./lib/log.sh"
       },

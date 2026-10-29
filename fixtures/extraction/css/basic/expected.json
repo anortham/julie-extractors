@@ -1815,7 +1815,9 @@
       "parent_key": null,
       "metadata": {
         "atRuleType": "import",
+        "form": "@import",
         "ruleName": "@import",
+        "source": "reset.css",
         "type": "at-rule",
         "url": "reset.css"
       },
@@ -1844,8 +1846,10 @@
       "parent_key": null,
       "metadata": {
         "atRuleType": "import",
+        "form": "@import",
         "media": "screen and (prefers-color-scheme: dark)",
         "ruleName": "@import",
+        "source": "theme/dark.css",
         "type": "at-rule",
         "url": "theme/dark.css"
       },

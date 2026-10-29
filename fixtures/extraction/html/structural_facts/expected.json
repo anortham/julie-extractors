@@ -1241,8 +1241,10 @@
       "parent_key": null,
       "metadata": {
         "atRuleType": "import",
+        "form": "@import",
         "media": "screen",
         "ruleName": "@import",
+        "source": "theme.css",
         "type": "at-rule",
         "url": "theme.css"
       },

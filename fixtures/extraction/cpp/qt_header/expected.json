@@ -191,8 +191,10 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "form": "#include",
         "isSystemHeader": "true",
         "path": "QObject",
+        "source": "QObject",
         "type": "include"
       },
       "annotations": [],
@@ -219,8 +221,10 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "form": "#include",
         "isSystemHeader": "true",
         "path": "QPointF",
+        "source": "QPointF",
         "type": "include"
       },
       "annotations": [],

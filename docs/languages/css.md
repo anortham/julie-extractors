@@ -63,3 +63,13 @@ comment, a string, or an unquoted `url()` is a custom function call:
   no symbol. Its calls are still identifiers.
 - Literal arguments of a custom function call are recorded only when
   tree-sitter parses the call as a call expression.
+
+## Imports
+
+- `@import "base/reset.css";`, `@import url("theme.css");`, and
+  `@import url(plain.css);` are import rows named by the target path.
+- Each row has `source` (the path without quotes or `url()`) and
+  `form: @import`. The older keys stay: `url` is the same path, and
+  `ruleName`, `atRuleType`, and `type` describe the at-rule.
+- Text after the target, such as media queries, `layer(base)`, or
+  `supports(...)`, is in `media`.

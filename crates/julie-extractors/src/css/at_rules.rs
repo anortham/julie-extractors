@@ -98,6 +98,8 @@ impl AtRuleExtractor {
             ("ruleName", "@import"),
             ("atRuleType", "import"),
             ("url", url.as_str()),
+            ("source", url.as_str()),
+            ("form", "@import"),
         ] {
             metadata.insert(
                 key.to_string(),

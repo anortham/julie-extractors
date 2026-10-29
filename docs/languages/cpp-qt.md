@@ -305,6 +305,19 @@ never parsed before, and they apply to every C++ file.
   `calls` relationship and no pending call, because the element that the
   subscript reads has no name. The container's name is not the callee.
 
+## Imports
+
+- `#include` rows are the C rows (`docs/languages/c.md`): `source` is the
+  header path without quotes or angle brackets, and `form` is `#include`.
+- `using namespace std;` is the import `std` with `form: using namespace`.
+  `using std::vector;` is the import `vector` with `source: std::vector` and
+  `form: using`. `namespace fs = std::filesystem;` is the import `fs` with
+  `source: std::filesystem` and `form: namespace`.
+- Known limit: tree-sitter-cpp 0.23.4 has no rule for C++20 modules.
+  `import std;`, `import <iostream>;`, and `export import m;` write no import
+  row. The grammar reads `import std;` as a declaration, so it is a variable
+  row named `std`.
+
 ## Continuous testing
 
 Unit tests:

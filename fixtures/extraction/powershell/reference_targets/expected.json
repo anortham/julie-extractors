@@ -299,7 +299,8 @@
       "parent_key": "fixtures/extraction/powershell/reference_targets/source.ps1:AliasInner:24:4",
       "metadata": {
         "aliasTarget": "Invoke-Remote",
-        "command": "Set-Alias"
+        "command": "Set-Alias",
+        "form": "Set-Alias"
       },
       "annotations": [],
       "semantic_group": null,

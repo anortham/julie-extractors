@@ -81,6 +81,8 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "form": "bats_load_library",
+        "source": "bats-file",
         "sourceCommand": "bats_load_library",
         "sourcePath": "bats-file"
       },
@@ -200,6 +202,8 @@
       "visibility": "Private",
       "parent_key": "fixtures/extraction/bash/bats/test_source.bats:deploy rejects a missing config:24:0",
       "metadata": {
+        "form": "load",
+        "source": "helpers",
         "sourceCommand": "load",
         "sourcePath": "helpers"
       },
@@ -227,6 +231,8 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "form": "load",
+        "source": "test_helper/bats-support/load",
         "sourceCommand": "load",
         "sourcePath": "test_helper/bats-support/load"
       },

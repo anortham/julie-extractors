@@ -112,6 +112,8 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "form": "source",
+        "source": "$(dirname \"$0\")/base-test.sh",
         "sourceCommand": "source",
         "sourcePath": "$(dirname \"$0\")/base-test.sh"
       },
@@ -163,6 +165,8 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "form": "source",
+        "source": "$DIR/common.sh",
         "sourceCommand": "source",
         "sourcePath": "\"$DIR\"/common.sh"
       },

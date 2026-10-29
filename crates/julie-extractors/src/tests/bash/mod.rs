@@ -1656,6 +1656,7 @@ mod control_flow_verification;
 mod cross_file_pending;
 mod cross_file_relationships;
 mod doc_comments;
+mod import_source;
 mod literals; // String-literal command-argument capture
 mod structural_facts;
 mod test_detection; // shellspec/bats call-style test detection

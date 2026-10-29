@@ -1804,6 +1804,7 @@ mod complexity;
 mod cross_file_pending;
 mod cross_file_relationships;
 mod identifier_extraction; // variable_ref emission (locked contract in csharp/identifiers.rs)
+mod import_source;
 mod literals; // String-literal command-argument capture
 mod structural_facts;
 mod test_detection; // Pester call-style test detection

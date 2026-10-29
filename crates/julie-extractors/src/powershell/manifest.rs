@@ -52,15 +52,20 @@ pub(super) fn extract_manifest_symbols(base: &mut BaseExtractor, root: Node) -> 
             let name = if kind == SymbolKind::Import {
                 module_stem(&text)
             } else {
-                Some(text)
+                Some(text.clone())
             };
             let Some(name) = name.filter(|name| !name.is_empty()) else {
                 continue;
             };
-            let metadata = HashMap::from([(
+            let mut metadata = if kind == SymbolKind::Import {
+                super::imports::import_metadata(&text, metadata_value)
+            } else {
+                HashMap::new()
+            };
+            metadata.insert(
                 metadata_key.to_string(),
                 Value::String(metadata_value.to_string()),
-            )]);
+            );
             symbols.push(base.create_symbol(
                 &name_node,
                 name,

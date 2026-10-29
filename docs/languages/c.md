@@ -88,3 +88,13 @@ identifier and no `uses` relationship.
 A function named `test_mode` in a file with no test framework include, no
 registration, and no test path is not a test. C++ files do not use these
 rules, because Unity, CMocka, and Check are C frameworks.
+
+## Includes
+
+- Each `#include` is an import row named by the header path. Its metadata has
+  `path`, `isSystemHeader`, `type: include`, `source` (the path without quotes
+  or angle brackets), and `form: #include`. C++ shares this row.
+- The path and `isSystemHeader` come from the directive's path node, so a
+  trailing comment (`#include "a.h" // see <b>`) does not change them.
+  `isSystemHeader` is `true` only for `<...>`.
+- `#include MACRO` writes no row, because the header name is not in the source.

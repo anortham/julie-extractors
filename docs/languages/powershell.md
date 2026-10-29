@@ -103,3 +103,32 @@ The command runs `tests::powershell::` and the golden extraction test with
   The extractor checks the shape of the body (how many outputs, and how each
   value is built) but not the type of each output value.
 - A written type always wins over inference.
+
+## Imports
+
+Every import row has `source` (the module, namespace, or path as written,
+without quotes; `$PSScriptRoot` and other variables stay in the text) and
+`form` (the directive):
+
+| Source | Row name | `form` |
+| --- | --- | --- |
+| `. ./lib/Common.ps1` | `Common` | `.` |
+| `Import-Module ./Modules/Tools.psm1` | `Tools` | `Import-Module` |
+| `Import-Module Az.Accounts` | `Az.Accounts` | `Import-Module` |
+| `Import-DscResource -ModuleName X` | `X` | `Import-DscResource` |
+| `using module ./Modules/Other.psm1` | `./Modules/Other.psm1` | `using module` |
+| `using namespace System.IO` | `System.IO` | `using namespace` |
+| `#Requires -Modules Az.Accounts` | `Az.Accounts` | `#Requires` |
+| `RootModule = 'Man.psm1'` in a `.psd1` | `Man` | `RootModule` |
+
+- A manifest row's `form` is its key: `RootModule`, `NestedModules`, or
+  `RequiredModules`.
+- `using module` accepts a quoted path, a name with `-` (`My-Module`), and a
+  module specification hashtable (`@{ ModuleName = 'X' }` gives `X`).
+- `Set-Alias` and `New-Alias` rows are aliases, not loads. They have `form`
+  and no `source`.
+- Known limit: tree-sitter-powershell does not parse
+  `Import-Module -Name A, B` (a comma and a space) or
+  `Import-Module $PSScriptRoot\Mods\X.psm1` (a bare path that starts with a
+  variable). Neither line writes a row, and the parse error of the first form
+  can also hide the import rows after it.

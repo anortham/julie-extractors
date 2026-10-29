@@ -415,8 +415,49 @@ pub(super) fn extract_macro_name(base: &BaseExtractor, node: tree_sitter::Node) 
     None
 }
 
+/// The header an include directive names: its path without quotes or angle
+/// brackets, and whether it uses angle brackets.
+pub(super) struct IncludeTarget {
+    pub path: String,
+    pub is_system_header: bool,
+}
+
+/// Read the include target from the directive's `path` node, so a trailing
+/// comment cannot change it; a directive without a string or `<...>` path
+/// falls back to its text.
+pub(super) fn include_target(
+    base: &BaseExtractor,
+    node: tree_sitter::Node,
+) -> Option<IncludeTarget> {
+    if let Some(path_node) = node.child_by_field_name("path") {
+        let text = base.get_node_text(&path_node);
+        let (inner, is_system_header) = match path_node.kind() {
+            "string_literal" => (
+                text.strip_prefix('"').and_then(|t| t.strip_suffix('"')),
+                false,
+            ),
+            "system_lib_string" => (
+                text.strip_prefix('<').and_then(|t| t.strip_suffix('>')),
+                true,
+            ),
+            _ => (None, false),
+        };
+        if let Some(inner) = inner {
+            return Some(IncludeTarget {
+                path: inner.to_string(),
+                is_system_header,
+            });
+        }
+    }
+    let signature = base.get_node_text(&node);
+    Some(IncludeTarget {
+        path: extract_include_path(&signature)?,
+        is_system_header: is_system_header(&signature),
+    })
+}
+
 /// Extract include path from an include directive signature
-pub(super) fn extract_include_path(signature: &str) -> Option<String> {
+fn extract_include_path(signature: &str) -> Option<String> {
     // Extract include path from #include statement
     if let Some(start) = signature.find('"')
         && let Some(end) = signature.rfind('"')
@@ -434,7 +475,7 @@ pub(super) fn extract_include_path(signature: &str) -> Option<String> {
 }
 
 /// Check if an include is a system header (uses < > instead of " ")
-pub(super) fn is_system_header(signature: &str) -> bool {
+fn is_system_header(signature: &str) -> bool {
     signature.contains('<') && signature.contains('>')
 }
 

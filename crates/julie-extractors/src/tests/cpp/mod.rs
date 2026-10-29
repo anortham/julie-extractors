@@ -43,6 +43,7 @@ pub mod exceptions;
 pub mod functions;
 pub mod gap_closure;
 pub mod identifier_extraction;
+pub mod import_source;
 pub mod initializer_types;
 pub mod literals;
 pub mod modern;

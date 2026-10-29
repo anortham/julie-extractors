@@ -68,7 +68,10 @@
       "doc_comment": "# Shared helper module.",
       "visibility": "Public",
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "form": "Import-Module",
+        "source": "Contoso.Helpers"
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,

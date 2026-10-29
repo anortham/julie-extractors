@@ -95,8 +95,10 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "form": "#include",
         "isSystemHeader": "false",
         "path": "other.h",
+        "source": "other.h",
         "type": "include"
       },
       "annotations": [],

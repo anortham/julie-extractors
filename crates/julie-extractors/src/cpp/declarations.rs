@@ -2,6 +2,8 @@
 //! Handles extraction of declarations, friend declarations, and using declarations
 
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use serde_json::Value;
+use std::collections::HashMap;
 use tree_sitter::Node;
 
 use super::declarators;
@@ -59,6 +61,8 @@ pub(super) fn extract_using(
 ) -> Option<Symbol> {
     let mut name = String::new();
     let mut signature = String::new();
+    let mut source = String::new();
+    let mut form = "";
 
     if node.kind() == "using_declaration" {
         let mut cursor = node.walk();
@@ -76,12 +80,15 @@ pub(super) fn extract_using(
         if is_namespace {
             name = full_path.clone();
             signature = format!("using namespace {}", full_path);
+            form = "using namespace";
         } else {
             // Extract the last part for the symbol name
             let parts: Vec<&str> = full_path.split("::").collect();
             name = (*parts.last().unwrap_or(&full_path.as_str())).to_string();
             signature = format!("using {}", full_path);
+            form = "using";
         }
+        source = full_path;
     } else if node.kind() == "namespace_alias_definition" {
         let mut cursor = node.walk();
         let children: Vec<Node> = node.children(&mut cursor).collect();
@@ -96,6 +103,8 @@ pub(super) fn extract_using(
         name = base.get_node_text(alias_node);
         let target = base.get_node_text(target_node);
         signature = format!("namespace {} = {}", name, target);
+        source = target;
+        form = "namespace";
     }
 
     if name.is_empty() {
@@ -103,6 +112,10 @@ pub(super) fn extract_using(
     }
 
     let doc_comment = base.find_doc_comment(&node);
+    let metadata = HashMap::from([
+        ("source".to_string(), Value::String(source)),
+        ("form".to_string(), Value::String(form.to_string())),
+    ]);
 
     Some(base.create_symbol(
         &node,
@@ -112,7 +125,7 @@ pub(super) fn extract_using(
             signature: Some(signature),
             visibility: Some(Visibility::Public),
             parent_id: parent_id.map(String::from),
-            metadata: None,
+            metadata: Some(metadata),
             doc_comment,
             annotations: Vec::new(),
         },

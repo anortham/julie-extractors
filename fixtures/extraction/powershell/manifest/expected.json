@@ -19,7 +19,9 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "manifest_key": "RequiredModules"
+        "form": "RequiredModules",
+        "manifest_key": "RequiredModules",
+        "source": "Az.Accounts"
       },
       "annotations": [],
       "semantic_group": null,
@@ -71,7 +73,9 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "manifest_key": "RequiredModules"
+        "form": "RequiredModules",
+        "manifest_key": "RequiredModules",
+        "source": "Pester"
       },
       "annotations": [],
       "semantic_group": null,
@@ -97,7 +101,9 @@
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "manifest_key": "RootModule"
+        "form": "RootModule",
+        "manifest_key": "RootModule",
+        "source": "Tools.psm1"
       },
       "annotations": [],
       "semantic_group": null,

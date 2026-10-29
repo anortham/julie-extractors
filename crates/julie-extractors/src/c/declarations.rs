@@ -25,15 +25,18 @@ pub(crate) fn extract_include(
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
     let signature = base.get_node_text(&node);
-    let include_path = helpers::extract_include_path(&signature)?;
+    let target = helpers::include_target(base, node)?;
+    let include_path = target.path;
 
     let metadata = create_metadata_map(HashMap::from([
         ("type".to_string(), "include".to_string()),
         ("path".to_string(), include_path.clone()),
         (
             "isSystemHeader".to_string(),
-            helpers::is_system_header(&signature).to_string(),
+            target.is_system_header.to_string(),
         ),
+        ("source".to_string(), include_path.clone()),
+        ("form".to_string(), "#include".to_string()),
     ]));
 
     let doc_comment = base.find_doc_comment(&node);

@@ -673,6 +673,16 @@ pub(super) fn extract_import_call(
         } else {
             format!("{form}({module})")
         };
+        let metadata = HashMap::from([
+            (
+                "source".to_string(),
+                serde_json::Value::String(module.clone()),
+            ),
+            (
+                "form".to_string(),
+                serde_json::Value::String(format!("{form}()")),
+            ),
+        ]);
         let symbol = extractor.base.create_symbol(
             &node,
             module,
@@ -680,6 +690,7 @@ pub(super) fn extract_import_call(
             SymbolOptions {
                 parent_id: parent_id.clone(),
                 signature: Some(signature),
+                metadata: Some(metadata),
                 doc_comment: extractor.base.find_doc_comment(&node),
                 ..Default::default()
             },
