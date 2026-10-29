@@ -143,6 +143,26 @@ fn extract_identifier_from_node(
                     "parameter" => {}
                     // Check if this is the left side of an assignment
                     "binary_operator" => {
+                        if let Some((target, operator)) =
+                            super::superassignment::target(extractor, parent)
+                            && target == node
+                        {
+                            let name = extractor.base.get_node_text(&node);
+                            let containing_symbol_id = containing_symbols
+                                .find_enclosing(node)
+                                .map(|symbol| symbol.id.clone());
+                            extractor.base.create_identifier_with_metadata(
+                                &node,
+                                name,
+                                IdentifierKind::VariableRef,
+                                containing_symbol_id,
+                                std::collections::HashMap::from([(
+                                    "assignment".to_string(),
+                                    serde_json::Value::String(operator),
+                                )]),
+                            );
+                            return;
+                        }
                         if let Some(operator) = parent.child(1) {
                             let op_text = extractor.base.get_node_text(&operator);
                             // Skip if this is the target of an assignment

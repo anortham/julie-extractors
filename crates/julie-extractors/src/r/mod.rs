@@ -8,6 +8,7 @@ mod non_s3;
 mod parameters;
 pub(crate) mod plumber;
 mod relationships;
+mod superassignment;
 pub(crate) mod test_calls;
 mod text_args;
 mod type_facts;
@@ -29,6 +30,10 @@ pub struct RExtractor {
     value_owners: HashMap<usize, String>,
     /// Class inheritance declarations waiting for relationship resolution.
     pub(crate) extends_requests: Vec<idioms::ExtendsRequest>,
+    /// Names the file assigns at the top level, outside any function.
+    top_level_names: std::collections::HashSet<String>,
+    /// Globals a superassignment already created, so a later one only writes.
+    superassigned_globals: std::collections::HashSet<String>,
 }
 
 impl RExtractor {
@@ -46,6 +51,8 @@ impl RExtractor {
             name_bindings: type_facts::NameBindings::default(),
             value_owners: HashMap::new(),
             extends_requests: Vec::new(),
+            top_level_names: std::collections::HashSet::new(),
+            superassigned_globals: std::collections::HashSet::new(),
         }
     }
 
@@ -56,6 +63,8 @@ impl RExtractor {
         self.same_file_generics = idioms::collect_same_file_generics(self, root_node);
         self.name_bindings = type_facts::collect_name_bindings(self, root_node);
         self.value_owners.clear();
+        self.top_level_names = superassignment::top_level_names(self, root_node);
+        self.superassigned_globals.clear();
         self.extends_requests.clear();
 
         // Build exclusion set once for S3 checking
@@ -116,13 +125,13 @@ impl RExtractor {
     ) -> Option<Symbol> {
         let operator = node.child(1)?;
         let op_text = self.base.get_node_text(&operator);
+        if let Some((target, operator)) = superassignment::target(self, node) {
+            return self.extract_superassignment(node, target, &operator, parent_id, non_s3);
+        }
 
         match op_text.as_str() {
             // Left-to-right assignment: x <- value, x = value, x <<- value
             "<-" | "=" | "<<-" => {
-                if op_text == "<<-" && idioms::inside_function(node) {
-                    return None;
-                }
                 let left = node.child(0)?;
                 let right = node.child(2)?;
                 if right.kind() == "function_definition"
@@ -208,6 +217,98 @@ impl RExtractor {
             }
             _ => None,
         }
+    }
+
+    /// A superassignment inside a function creates a global only when no
+    /// enclosing function and no top-level assignment in the file binds the
+    /// name, and no earlier superassignment created it. A class method's
+    /// superassignment writes a field of its object, so it creates nothing.
+    fn extract_superassignment(
+        &mut self,
+        node: Node,
+        target: Node,
+        operator: &str,
+        parent_id: &Option<String>,
+        non_s3: &std::collections::HashSet<&str>,
+    ) -> Option<Symbol> {
+        let name = self.base.get_node_text(&target);
+        if self.top_level_names.contains(&name)
+            || self.superassigned_globals.contains(&name)
+            || self.inside_method(parent_id)
+            || superassignment::enclosing_function_binds(self, node, &name)
+        {
+            return None;
+        }
+        let value = if operator == "<<-" {
+            node.child_by_field_name("rhs")?
+        } else {
+            node.child_by_field_name("lhs")?
+        };
+        self.superassigned_globals.insert(name.clone());
+        let assignment = (
+            "assignment".to_string(),
+            serde_json::Value::String(operator.to_string()),
+        );
+        if value.kind() == "function_definition" {
+            let mut symbol = self.extract_function_assignment(node, name, value, &None, non_s3);
+            symbol
+                .metadata
+                .get_or_insert_with(HashMap::new)
+                .insert(assignment.0.clone(), assignment.1.clone());
+            if let Some(pushed) = self.symbols.iter_mut().rev().find(|s| s.id == symbol.id) {
+                *pushed = symbol.clone();
+            }
+            return Some(symbol);
+        }
+        let options = SymbolOptions {
+            metadata: Some(HashMap::from([assignment])),
+            ..Default::default()
+        };
+        let symbol = self
+            .base
+            .create_symbol(&node, name, SymbolKind::Variable, options);
+        self.symbols.push(symbol.clone());
+        if let Some(class_name) = type_facts::initializer_class(self, value) {
+            type_facts::record_inferred_fact(&mut self.base, &symbol.id, &class_name);
+        }
+        Some(symbol)
+    }
+
+    /// `assign("name", value, envir = .GlobalEnv)` creates the global `name`
+    /// unless a top-level assignment or an earlier global write created it.
+    fn extract_global_assign(&mut self, node: Node, name: String) -> Option<Symbol> {
+        if self.top_level_names.contains(&name) || !self.superassigned_globals.insert(name.clone())
+        {
+            return None;
+        }
+        let options = SymbolOptions {
+            metadata: Some(HashMap::from([(
+                "assignment".to_string(),
+                serde_json::Value::String("assign".to_string()),
+            )])),
+            ..Default::default()
+        };
+        let symbol = self
+            .base
+            .create_symbol(&node, name, SymbolKind::Variable, options);
+        self.symbols.push(symbol.clone());
+        Some(symbol)
+    }
+
+    /// Whether the nearest callable that holds the current node is a method.
+    fn inside_method(&self, parent_id: &Option<String>) -> bool {
+        let mut current = parent_id.clone();
+        while let Some(id) = current {
+            let Some(symbol) = self.symbols.iter().rev().find(|s| s.id == id) else {
+                return false;
+            };
+            match symbol.kind {
+                SymbolKind::Method => return true,
+                SymbolKind::Function => return false,
+                _ => current = symbol.parent_id.clone(),
+            }
+        }
+        false
     }
 
     /// Extract a function assignment with proper signature, S3 detection, and UseMethod detection
@@ -446,6 +547,9 @@ impl RExtractor {
         }
         if idioms::extract_refclass_methods(self, node) {
             return None;
+        }
+        if let Some(name) = superassignment::global_assign_name(self, node) {
+            return self.extract_global_assign(node, name);
         }
         idioms::extract_s4_call(self, node, parent_id)
             .or_else(|| idioms::extract_import_call(self, node, parent_id))

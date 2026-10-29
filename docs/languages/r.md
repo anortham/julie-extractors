@@ -52,3 +52,26 @@ body is typed even when the function sits before the `setGeneric`, because
 package code defines all generics before any function runs. A script that
 calls that function at top level before the declaration gets a wrong type. Each file is extracted alone, so a
 generic or class in another file gives no type.
+
+## Superassignment
+
+`name <<- value` and `value ->> name` inside a function assign `name` in the
+nearest enclosing function that binds it, and else in the global
+environment. The function that runs the assignment does not count.
+
+- Each one writes a `variable_ref` identifier for `name` with the metadata
+  `assignment: "<<-"` or `assignment: "->>"`. Its containing symbol is the
+  function that runs the assignment.
+- When no enclosing function binds `name` (as a parameter, a `<-`, `=`, or
+  `->` assignment, or a `for` variable), no top-level assignment in the file
+  binds it, and no earlier superassignment created it, the first one also
+  writes a top-level row for the global: a `function` for a function value,
+  else a `variable`. The row has the metadata `assignment: "<<-"` or
+  `assignment: "->>"` and spans the assignment.
+- A superassignment in a Reference Class or other class method writes a
+  field of its object, so it writes no row.
+- `assign("name", value, envir = .GlobalEnv)` or `envir = globalenv()`
+  writes a top-level `variable` row with `assignment: "assign"` on the same
+  terms, and no write identifier.
+- A superassignment at the top level reads like `<-`: a plain row and no
+  write identifier.

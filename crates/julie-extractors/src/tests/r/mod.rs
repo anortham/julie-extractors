@@ -91,6 +91,7 @@ pub mod packages; // library(), require(), package::function syntax
 pub mod real_world; // Real-world validation (ggplot2, dplyr)
 pub mod relationships; // Relationship extraction (calls, pipes, library usage)
 pub mod structural_facts;
+mod superassignment;
 pub mod test_detection; // testthat call-style test detection
 pub mod tidyverse; // %>% pipes, dplyr verbs, ggplot2 patterns
 pub mod type_facts;

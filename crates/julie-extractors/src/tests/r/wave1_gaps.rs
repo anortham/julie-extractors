@@ -280,7 +280,13 @@ env$handler <- function(req) respond(req)
         "{:#?}",
         result.symbols
     );
-    assert!(result.symbols.iter().all(|s| s.name != "counter"));
+    let counter = symbol(&result, "counter");
+    assert_eq!(counter.kind, SymbolKind::Variable);
+    assert_eq!(counter.parent_id, None);
+    assert_eq!(
+        counter.metadata.as_ref().and_then(|m| m.get("assignment")),
+        Some(&serde_json::json!("<<-"))
+    );
     let handler = symbol(&result, "handler");
     assert_eq!(handler.kind, SymbolKind::Function);
 }
