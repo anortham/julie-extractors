@@ -99,3 +99,55 @@ with `JULIE_GOLDEN_LANGUAGE=vbnet`.
   - A namespace in another file or assembly, or a project-level `Imports`
     alias, can have the qualifier name. The extractor cannot see it.
 - A written `As` type always wins over inference.
+
+## Call arguments
+
+A reader uses these keys to tell which `Overloads` member a call binds:
+`Run(1)` binds `Run(a As Integer)`, and `Run("x")` binds `Run(a As String)`.
+The keys come at the `references` and `full` levels only.
+
+- **`arg_count`.** A call with parentheses (`Run(1, 2)`, `Call Run(2)`,
+  `obj.Run(1)`) gets the number of its arguments. A named argument counts as
+  one. A call that leaves an optional argument out (`Run(1, , 3)`) gets none,
+  because the grammar keeps no node for the empty place; julie counts the
+  commas in the source instead, so a comma in a comment between two
+  arguments also removes the key. A call without parentheses (`Run`) gets
+  none.
+- **Constructions are calls.** `New Point(1)`, `Dim p As New Point(1)`, and
+  `Dim p = New Point(1)` write a `call` identifier named `Point` (the last
+  segment of the type, without `(Of ...)`). It spans the parentheses of the
+  arguments, because the type name keeps its `type_usage` row, and it gets
+  `arg_count` and `arg_types` like any other call. `New Integer(2) {}` is an
+  array and writes none, and so does `New Point` without parentheses.
+- **`arg_types`.** One entry per argument, the type the argument expression
+  states, or `null`. A call with a named argument (`Run(a:=1)`) gets none,
+  since the name decides which parameter an argument fills.
+  - An integer literal gives its suffix type (`S` `Short`, `US` `UShort`,
+    `I` or `%` `Integer`, `UI` `UInteger`, `L` or `&` `Long`, `UL` `ULong`).
+    Without a suffix, a decimal literal gives `Integer` when it fits and
+    `Long` after that; a hex, octal, or binary literal gives `Integer` up to
+    32 bits and `Long` after that. A floating literal gives `Single` (`F`,
+    `!`), `Double` (`R`, `#`, or none), or `Decimal` (`D`, `@`). A leading
+    `-` or `+` keeps the literal's type.
+  - A string or interpolated string gives `String`, `"x"c` `Char`, `True`
+    and `False` `Boolean`, a date literal `Date`, and `Nothing` `null`.
+  - `CType(x, T)`, `DirectCast(x, T)`, and `TryCast(x, T)` give `T`. `CInt`,
+    `CStr`, and the other conversion functions give their type (`Integer`,
+    `String`, ...). `New T(...)` gives `T`. `GetType(T)` gives
+    `System.Type`, and `NameOf(x)` gives `String`. `Me` and `MyClass` give
+    the enclosing type, and `MyBase` gives `null`. Parentheses are
+    transparent. Any other expression gives `null`.
+  - A name gives the written type of a parameter, a `Dim`, `Static`, or
+    `Const` local, a `For` or `For Each` variable, a `Using` resource, a
+    `Catch` variable, a lambda parameter, or a field, property, or constant
+    of the enclosing type. Names match without regard to case or brackets.
+    `Dim a, b As Long` gives both names `Long`. A local without `As` takes
+    the type of a literal, cast, conversion, or construction initializer. A
+    local counts only before the call and inside its block: a local of the
+    `Then` part is not in scope in the `Else` part, and one of the `Try`
+    part is not in scope in a `Catch`. An array local (`Dim a(3) As
+    Integer`), a parameter or loop variable without `As`, an indexed
+    property, and a method name give `null`. A name that the enclosing type
+    does not declare gives `null`: a base type or a module can declare it.
+  - The spelling is the type as written, with whitespace removed except one
+    space between two words: `List(Of  Integer)` gives `List(Of Integer)`.

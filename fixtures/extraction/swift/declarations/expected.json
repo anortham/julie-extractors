@@ -1841,7 +1841,16 @@
       "end_byte": 336,
       "containing_key": "fixtures/extraction/swift/declarations/source.swift:-:12:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          "cents"
+        ],
+        "arg_types": [
+          null
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/declarations/source.swift:Money:type_usage:10:25",
@@ -2129,7 +2138,12 @@
       "end_byte": 1518,
       "containing_key": "fixtures/extraction/swift/declarations/source.swift:make:65:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_labels": [],
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/swift/declarations/source.swift:Tool:type_usage:65:26",
@@ -2320,7 +2334,16 @@
       "end_byte": 1275,
       "containing_key": "fixtures/extraction/swift/declarations/source.swift:compute:48:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          null
+        ],
+        "arg_types": [
+          "Int"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/declarations/source.swift:filter:call:35:57",
@@ -2336,7 +2359,16 @@
       "end_byte": 953,
       "containing_key": "fixtures/extraction/swift/declarations/source.swift:matching:35:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          null
+        ],
+        "arg_types": [
+          "(Element)->Bool"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/declarations/source.swift:init:call:69:28",
@@ -2353,7 +2385,16 @@
       "containing_key": "fixtures/extraction/swift/declarations/source.swift:build:67:4",
       "target_key": null,
       "confidence": "1.000",
-      "receiver_type": "Money"
+      "receiver_type": "Money",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          "cents"
+        ],
+        "arg_types": [
+          "Int"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/declarations/source.swift:lhs:variable_ref:10:54",
@@ -2420,6 +2461,9 @@
       "confidence": "1.000",
       "receiver_type": "Tool",
       "metadata": {
+        "arg_count": 0,
+        "arg_labels": [],
+        "arg_types": [],
         "receiver": "Self"
       }
     },
@@ -2455,6 +2499,15 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
+        "arg_labels": [
+          null,
+          "interceptor"
+        ],
+        "arg_types": [
+          "String",
+          null
+        ],
         "receiver": "session"
       }
     },
@@ -2472,7 +2525,16 @@
       "end_byte": 1613,
       "containing_key": "fixtures/extraction/swift/declarations/source.swift:build:67:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          "retryLimit"
+        ],
+        "arg_types": [
+          "Int"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/declarations/source.swift:rhs:variable_ref:10:67",

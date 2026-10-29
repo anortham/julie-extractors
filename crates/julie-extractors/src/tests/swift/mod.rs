@@ -1,6 +1,7 @@
 // Implementation of comprehensive Swift extractor tests
 // Following TDD pattern: RED phase - tests should compile but fail
 
+mod argument_types;
 mod complexity;
 mod cross_file_pending;
 mod cross_file_relationships;

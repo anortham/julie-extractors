@@ -8,7 +8,7 @@ use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
 use super::CppExtractor;
-use super::{function_declarators, helpers};
+use super::{argument_types, function_declarators, helpers};
 
 impl CppExtractor {
     /// Walk the tree and extract identifiers
@@ -204,6 +204,26 @@ impl CppExtractor {
                         containing_symbol_id,
                     );
                 }
+            }
+
+            // A construction (`new Point(1)`, `Point{1}`, `Point p(1)`) calls
+            // a constructor of the type it names. The call identifier spans
+            // the argument list, since the type name keeps its type usage.
+            "argument_list" | "initializer_list" | "parameter_list" => {
+                let Some(type_name) = argument_types::construction_list(node)
+                    .and_then(argument_types::construction_type)
+                    .and_then(argument_types::constructed_type_name)
+                else {
+                    return;
+                };
+                let name = self.base.get_node_text(&type_name);
+                let containing_symbol_id = self.find_containing_symbol_id(node, containing_symbols);
+                self.base.create_identifier(
+                    &node,
+                    name,
+                    IdentifierKind::Call,
+                    containing_symbol_id,
+                );
             }
 
             _ => {}

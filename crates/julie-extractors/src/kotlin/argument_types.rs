@@ -8,7 +8,7 @@ use std::path::Path;
 use tree_sitter::{Node, Tree};
 
 use crate::base::argument_types::{
-    self, CallArguments, Declarations, Found, before, enclosing, nearest_binding, node_text,
+    self, CallArguments, Declarations, Found, ScopeBindings, enclosing, nearest_binding, node_text,
     suffixed_float_type,
 };
 use crate::base::types::strip_type_decorations;
@@ -53,8 +53,9 @@ pub(crate) fn enrich(
         index: None,
         root: tree.root_node(),
         casts: HashMap::new(),
+        bindings: ScopeBindings::new(false),
     };
-    argument_types::annotate_calls("kotlin", tree, identifiers, |node| {
+    argument_types::annotate_calls("kotlin", tree, identifiers, |node, _| {
         let call = enclosing(node, &["call_expression"])?;
         let mut cursor = call.walk();
         let list = call
@@ -96,10 +97,11 @@ struct Reader<'a, 'tree> {
     /// Whether a member tests or casts a name's type, by the member's node
     /// id and the name.
     casts: HashMap<(usize, String), bool>,
+    bindings: ScopeBindings<'tree, Found<'tree>>,
 }
 
-impl Reader<'_, '_> {
-    fn type_of(&mut self, node: Node, depth: u32) -> Option<String> {
+impl<'tree> Reader<'_, 'tree> {
+    fn type_of(&mut self, node: Node<'tree>, depth: u32) -> Option<String> {
         if !should_visit_tree_depth(depth) {
             return None;
         }
@@ -190,26 +192,27 @@ impl Reader<'_, '_> {
     /// The type of the local, parameter, or property that the identifier
     /// names here. A name whose type a check or cast in the member narrows
     /// (`x is Box`, `x as Box`, `when (x)`) has no known type.
-    fn value_type(&mut self, node: Node) -> Option<String> {
+    fn value_type(&mut self, node: Node<'tree>) -> Option<String> {
         let name = strip_backticks(self.source.get(node.byte_range())?).to_string();
         if self.member_casts(node, &name) {
             return None;
         }
         let base = self.base;
+        let bindings = &self.bindings;
         let mut crossed = Crossed::default();
         let found = nearest_binding(node, |scope, child| {
-            binding(base, scope, child, &name, &mut crossed)
+            binding(base, bindings, scope, child, &name, &mut crossed)
         });
         self.type_of_found(&name, found)
     }
 
     /// The property `name` of the class that `this` names at `node`.
-    fn member_of_this<'tree>(&self, node: Node<'tree>, name: &str) -> Option<Found<'tree>> {
+    fn member_of_this(&self, node: Node<'tree>, name: &str) -> Option<Found<'tree>> {
         let body = this_body(node)?;
-        Some(member(self.source, body, name, false))
+        Some(member(self.source, &self.bindings, body, name, false))
     }
 
-    fn this_type(&mut self, node: Node) -> Option<String> {
+    fn this_type(&mut self, node: Node<'tree>) -> Option<String> {
         if self.member_casts(node, "this") {
             return None;
         }
@@ -241,7 +244,7 @@ impl Reader<'_, '_> {
         }
     }
 
-    fn member_casts(&mut self, node: Node, name: &str) -> bool {
+    fn member_casts(&mut self, node: Node<'tree>, name: &str) -> bool {
         let member = std::iter::successors(Some(node), Node::parent)
             .find(|ancestor| {
                 ancestor.parent().is_none_or(|parent| {
@@ -253,7 +256,7 @@ impl Reader<'_, '_> {
         if let Some(casts) = self.casts.get(&key) {
             return *casts;
         }
-        let names = |node: Option<Node>| {
+        let names = |node: Option<Node<'tree>>| {
             node.is_some_and(|node| match node.kind() {
                 "this_expression" => name == "this" && node.named_child_count() == 0,
                 "identifier" => strip_backticks(node_text(self.source, node)) == name,
@@ -311,6 +314,7 @@ struct Crossed {
 /// What `scope` binds for `name` used inside `child`.
 fn binding<'tree>(
     base: &BaseExtractor,
+    bindings: &ScopeBindings<'tree, Found<'tree>>,
     scope: Node<'tree>,
     child: Node<'tree>,
     name: &str,
@@ -321,15 +325,21 @@ fn binding<'tree>(
         name: node,
         initializer: None,
     };
+    let local = || {
+        bindings.last_binding(source, scope, Some(child.start_byte()), name, |statement| {
+            (statement.kind() == "property_declaration")
+                .then(|| property(source, statement, name))
+                .flatten()
+        })
+    };
     let found = match scope.kind() {
-        "block" => local_property(source, before(scope, child), name),
+        "block" => local(),
         "lambda_literal" => {
             let mut cursor = scope.walk();
             let parameters = scope
                 .named_children(&mut cursor)
                 .find(|node| node.kind() == "lambda_parameters");
-            let local = local_property(source, before(scope, child), name);
-            local.or_else(|| match parameters {
+            local().or_else(|| match parameters {
                 Some(parameters) if parameters.id() != child.id() => {
                     variable_names(base, parameters, name)
                 }
@@ -385,7 +395,7 @@ fn binding<'tree>(
             return Some(if crossed.receiver {
                 Found::Unknown
             } else {
-                member(source, scope, name, crossed.function)
+                member(source, bindings, scope, name, crossed.function)
             });
         }
         "source_file" | "class_declaration" | "object_literal" => return Some(Found::Unknown),
@@ -396,19 +406,6 @@ fn binding<'tree>(
         crossed.receiver |= scope.kind() == "lambda_literal" || has_receiver(scope);
     }
     found
-}
-
-/// The last local property named `name` among the statements.
-fn local_property<'tree>(
-    source: &str,
-    statements: Vec<Node<'tree>>,
-    name: &str,
-) -> Option<Found<'tree>> {
-    statements
-        .into_iter()
-        .filter(|statement| statement.kind() == "property_declaration")
-        .filter_map(|statement| property(source, statement, name))
-        .next_back()
 }
 
 /// What a property declaration says about `name`: its variable and
@@ -534,23 +531,24 @@ fn has_receiver(function: Node) -> bool {
 /// its class: a `val` or `var` parameter is a property, and a plain one is
 /// visible only outside the class's functions. Any other name may be
 /// inherited or come from a companion, so it has no known type.
-fn member<'tree>(source: &str, body: Node<'tree>, name: &str, in_function: bool) -> Found<'tree> {
-    let mut cursor = body.walk();
-    let members: Vec<Node> = body.named_children(&mut cursor).collect();
-    if let Some(found) = members
-        .iter()
-        .filter(|member| member.kind() == "property_declaration")
-        .find_map(|member| property(source, *member, name))
-    {
-        return found;
-    }
-    if members.iter().any(|member| {
-        member.kind() == "enum_entry"
-            && member
+fn member<'tree>(
+    source: &str,
+    bindings: &ScopeBindings<'tree, Found<'tree>>,
+    body: Node<'tree>,
+    name: &str,
+    in_function: bool,
+) -> Found<'tree> {
+    let declared =
+        bindings.first_binding_except(source, body, body, name, |member| match member.kind() {
+            "property_declaration" => property(source, member, name),
+            "enum_entry" => member
                 .named_child(0)
                 .is_some_and(|node| strip_backticks(node_text(source, node)) == name)
-    }) {
-        return Found::Unknown;
+                .then_some(Found::Unknown),
+            _ => None,
+        });
+    if let Some(found) = declared {
+        return found;
     }
     let parameter = body
         .parent()

@@ -1590,3 +1590,52 @@ fn test_find_containing_symbol_single_line_column_checks() {
         "Should return b (narrower) not a, since both are on line 1 but b has smaller byte range"
     );
 }
+
+#[test]
+fn scope_bindings_read_each_child_at_most_once_per_name() {
+    let statements = 5_000;
+    let body: String = (0..statements)
+        .map(|index| format!("let v{index} = a + b{index};\n"))
+        .collect();
+    let code = format!("fn run() {{\nlet a = 1;\n{body}}}\n");
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_rust::LANGUAGE.into())
+        .expect("Error loading Rust grammar");
+    let tree = parser.parse(&code, None).expect("Error parsing Rust code");
+    let block = tree
+        .root_node()
+        .named_child(0)
+        .and_then(|function| function.child_by_field_name("body"))
+        .expect("function body");
+    let mut cursor = block.walk();
+    let children: Vec<Node> = block.named_children(&mut cursor).collect();
+    let declaration = children[0].start_byte();
+    let reads = std::cell::Cell::new(0);
+    let binds_a = |child: Node| {
+        reads.set(reads.get() + 1);
+        (child.start_byte() == declaration).then_some(declaration)
+    };
+    let bindings = argument_types::ScopeBindings::new(false);
+    for (position, child) in children.iter().enumerate().skip(1) {
+        let before = Some(child.start_byte());
+        let other = format!("b{}", position - 1);
+        assert_eq!(
+            bindings.last_binding(&code, block, before, "a", binds_a),
+            Some(declaration)
+        );
+        assert_eq!(
+            bindings.last_binding(&code, block, before, &other, binds_a),
+            None
+        );
+        assert_eq!(
+            bindings.first_binding_except(&code, block, *child, "a", binds_a),
+            Some(declaration)
+        );
+    }
+    assert!(
+        reads.get() <= 3 * statements,
+        "{} reads for {statements} statements",
+        reads.get()
+    );
+}

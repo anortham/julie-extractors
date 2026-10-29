@@ -847,6 +847,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
+        "arg_types": [],
         "receiver": "Loader"
       }
     },
@@ -864,7 +866,11 @@
       "end_byte": 725,
       "containing_key": "fixtures/extraction/vbnet/call_initializers/source.vb:Run:32:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/call_initializers/source.vb:Load:call:34:21",
@@ -883,6 +889,8 @@
       "confidence": "1.000",
       "receiver_type": "Loader",
       "metadata": {
+        "arg_count": 0,
+        "arg_types": [],
         "receiver": "Me"
       }
     },
@@ -900,7 +908,11 @@
       "end_byte": 937,
       "containing_key": "fixtures/extraction/vbnet/call_initializers/source.vb:Run:32:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/call_initializers/source.vb:LoadAsync:call:35:28",
@@ -916,7 +928,31 @@
       "end_byte": 793,
       "containing_key": "fixtures/extraction/vbnet/call_initializers/source.vb:Run:32:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
+    },
+    {
+      "key": "fixtures/extraction/vbnet/call_initializers/source.vb:Loader:call:25:25",
+      "name": "Loader",
+      "kind": "call",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/call_initializers/source.vb",
+      "start_line": 25,
+      "start_column": 25,
+      "end_line": 25,
+      "end_column": 27,
+      "start_byte": 560,
+      "end_byte": 562,
+      "containing_key": "fixtures/extraction/vbnet/call_initializers/source.vb:Create:24:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/call_initializers/source.vb:Loader:type_usage:24:39",
@@ -980,7 +1016,11 @@
       "end_byte": 944,
       "containing_key": "fixtures/extraction/vbnet/call_initializers/source.vb:Run:32:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/call_initializers/source.vb:Name:call:40:15",
@@ -998,6 +1038,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
+        "arg_types": [],
         "receiver": "loaded"
       }
     },
@@ -1017,6 +1059,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
+        "arg_types": [],
         "receiver": "awaited"
       }
     },
@@ -1050,7 +1094,11 @@
       "end_byte": 868,
       "containing_key": "fixtures/extraction/vbnet/call_initializers/source.vb:Run:32:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/call_initializers/source.vb:Pick:call:38:21",
@@ -1115,6 +1163,66 @@
       "containing_key": "fixtures/extraction/vbnet/call_initializers/source.vb:Run:32:4",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vbnet/call_initializers/source.vb:Workspace:call:11:28",
+      "name": "Workspace",
+      "kind": "call",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/call_initializers/source.vb",
+      "start_line": 11,
+      "start_column": 28,
+      "end_line": 11,
+      "end_column": 30,
+      "start_byte": 239,
+      "end_byte": 241,
+      "containing_key": "fixtures/extraction/vbnet/call_initializers/source.vb:OpenDefault:10:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
+    },
+    {
+      "key": "fixtures/extraction/vbnet/call_initializers/source.vb:Workspace:call:17:28",
+      "name": "Workspace",
+      "kind": "call",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/call_initializers/source.vb",
+      "start_line": 17,
+      "start_column": 28,
+      "end_line": 17,
+      "end_column": 30,
+      "start_byte": 359,
+      "end_byte": 361,
+      "containing_key": "fixtures/extraction/vbnet/call_initializers/source.vb:Load:16:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
+    },
+    {
+      "key": "fixtures/extraction/vbnet/call_initializers/source.vb:Workspace:call:21:28",
+      "name": "Workspace",
+      "kind": "call",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/call_initializers/source.vb",
+      "start_line": 21,
+      "start_column": 28,
+      "end_line": 21,
+      "end_column": 30,
+      "start_byte": 468,
+      "end_byte": 470,
+      "containing_key": "fixtures/extraction/vbnet/call_initializers/source.vb:LoadAsync:20:4",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/call_initializers/source.vb:Workspace:type_usage:10:37",

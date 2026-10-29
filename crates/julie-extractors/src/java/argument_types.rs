@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 use crate::base::argument_types::{
-    self, CallArguments, Declarations, Found, before, enclosing, nearest_binding, node_text,
+    self, CallArguments, Declarations, Found, ScopeBindings, enclosing, nearest_binding, node_text,
     suffixed_float_type, suffixed_integer_type,
 };
 use crate::base::types::strip_type_decorations;
@@ -39,8 +39,9 @@ pub(crate) fn enrich(
         source,
         declarations: Declarations::new(symbols, types),
         patterns: HashMap::new(),
+        bindings: ScopeBindings::new(false),
     };
-    argument_types::annotate_calls("java", tree, identifiers, |node| {
+    argument_types::annotate_calls("java", tree, identifiers, |node, _| {
         let call = enclosing(node, &CALL_KINDS)?;
         let list = call.child_by_field_name("arguments")?;
         let mut cursor = list.walk();
@@ -58,16 +59,17 @@ pub(crate) fn enrich(
     });
 }
 
-struct Reader<'a> {
+struct Reader<'a, 'tree> {
     source: &'a str,
     declarations: Declarations<'a>,
     /// Whether a member declares a pattern variable of a name, by the
     /// member's node id and the name.
     patterns: HashMap<(usize, String), bool>,
+    bindings: ScopeBindings<'tree, Found<'tree>>,
 }
 
-impl Reader<'_> {
-    fn type_of(&mut self, node: Node, depth: u32) -> Option<String> {
+impl<'tree> Reader<'_, 'tree> {
+    fn type_of(&mut self, node: Node<'tree>, depth: u32) -> Option<String> {
         if !should_visit_tree_depth(depth) {
             return None;
         }
@@ -116,7 +118,7 @@ impl Reader<'_> {
                     ("this", "identifier") => {
                         let body = enclosing(node, &TYPE_BODIES)?;
                         let name = self.source.get(field.byte_range())?;
-                        let found = member(self.source, body, name);
+                        let found = member(self.source, &self.bindings, body, name);
                         self.type_of_found(name, found)
                     }
                     ("identifier", "this") => {
@@ -136,7 +138,7 @@ impl Reader<'_> {
 
     /// True for a `+` whose left spine of `+` operands holds a `String`
     /// operand: Java joins strings once either operand is a string.
-    fn is_string_concatenation(&mut self, node: Node, depth: u32) -> bool {
+    fn is_string_concatenation(&mut self, node: Node<'tree>, depth: u32) -> bool {
         let mut current = node;
         loop {
             if current.kind() != "binary_expression" {
@@ -158,7 +160,7 @@ impl Reader<'_> {
         }
     }
 
-    fn type_name(&self, type_node: Node) -> Option<String> {
+    fn type_name(&self, type_node: Node<'tree>) -> Option<String> {
         if !names_single_base_type(type_node) {
             return None;
         }
@@ -171,13 +173,16 @@ impl Reader<'_> {
     /// The type of the local, parameter, or field that the identifier names
     /// here, or `None` when a pattern variable of that name is declared in
     /// the member, since a pattern's scope follows the flow of the code.
-    fn value_type(&mut self, node: Node) -> Option<String> {
+    fn value_type(&mut self, node: Node<'tree>) -> Option<String> {
         let name = self.source.get(node.byte_range())?.to_string();
         if self.member_has_pattern(node, &name) {
             return None;
         }
         let source = self.source;
-        let found = nearest_binding(node, |scope, child| binding(source, scope, child, &name));
+        let bindings = &self.bindings;
+        let found = nearest_binding(node, |scope, child| {
+            binding(source, bindings, scope, child, &name)
+        });
         self.type_of_found(&name, found)
     }
 
@@ -187,7 +192,7 @@ impl Reader<'_> {
         })
     }
 
-    fn member_has_pattern(&mut self, node: Node, name: &str) -> bool {
+    fn member_has_pattern(&mut self, node: Node<'tree>, name: &str) -> bool {
         let member = std::iter::successors(Some(node), Node::parent)
             .find(|ancestor| {
                 ancestor
@@ -251,6 +256,7 @@ fn literal_type(source: &str, node: Node) -> Option<String> {
 /// What `scope` binds for `name` used inside `child`.
 fn binding<'tree>(
     source: &str,
+    bindings: &ScopeBindings<'tree, Found<'tree>>,
     scope: Node<'tree>,
     child: Node<'tree>,
     name: &str,
@@ -258,20 +264,19 @@ fn binding<'tree>(
     let named = |node: Option<Node<'tree>>| node.filter(|node| node_text(source, *node) == name);
     match scope.kind() {
         "block" | "constructor_body" | "switch_block_statement_group" => {
-            local_declaration(source, before(scope, child), name)
+            bindings.last_binding(source, scope, Some(child.start_byte()), name, |statement| {
+                local_declaration(source, vec![statement], name)
+            })
         }
-        "switch_block" => local_declaration(
-            source,
-            before(scope, child)
-                .into_iter()
-                .filter(|group| group.kind() == "switch_block_statement_group")
-                .flat_map(|group| {
-                    let mut cursor = group.walk();
-                    group.named_children(&mut cursor).collect::<Vec<_>>()
-                })
-                .collect(),
-            name,
-        ),
+        "switch_block" => {
+            bindings.last_binding(source, scope, Some(child.start_byte()), name, |group| {
+                if group.kind() != "switch_block_statement_group" {
+                    return None;
+                }
+                let mut cursor = group.walk();
+                local_declaration(source, group.named_children(&mut cursor).collect(), name)
+            })
+        }
         "for_statement" => {
             let init = scope.child_by_field_name("init")?;
             (init.id() != child.id())
@@ -301,7 +306,14 @@ fn binding<'tree>(
                     initializer: None,
                 })
         }
-        "resource_specification" => resource(source, before(scope, child), name),
+        "resource_specification" => {
+            let mut cursor = scope.walk();
+            let resources = scope
+                .named_children(&mut cursor)
+                .filter(|resource| resource.end_byte() <= child.start_byte())
+                .collect();
+            resource(source, resources, name)
+        }
         "try_with_resources_statement" => {
             let resources = scope.child_by_field_name("resources")?;
             if resources.id() == child.id() {
@@ -345,7 +357,7 @@ fn binding<'tree>(
                     initializer: None,
                 })
         }
-        kind if TYPE_BODIES.contains(&kind) => Some(member(source, scope, name)),
+        kind if TYPE_BODIES.contains(&kind) => Some(member(source, bindings, scope, name)),
         "program" => Some(Found::Unknown),
         _ => None,
     }
@@ -414,7 +426,12 @@ fn resource<'tree>(source: &str, resources: Vec<Node<'tree>>, name: &str) -> Opt
 /// A field, constant, record component, or enum constant named `name` that
 /// the type body declares. Any other name may be inherited, so it has no
 /// known type.
-fn member<'tree>(source: &str, body: Node<'tree>, name: &str) -> Found<'tree> {
+fn member<'tree>(
+    source: &str,
+    bindings: &ScopeBindings<'tree, Found<'tree>>,
+    body: Node<'tree>,
+    name: &str,
+) -> Found<'tree> {
     let (body, enum_body) = match body.kind() {
         "enum_body_declarations" => (body, body.parent()),
         "enum_body" => {
@@ -441,12 +458,13 @@ fn member<'tree>(source: &str, body: Node<'tree>, name: &str) -> Found<'tree> {
                 .map_or(Found::Unknown, |declared| Found::Type(declared.to_string()));
         }
     }
-    let mut cursor = body.walk();
-    let fields: Vec<Node> = body
-        .named_children(&mut cursor)
-        .filter(|child| matches!(child.kind(), "field_declaration" | "constant_declaration"))
-        .collect();
-    if let Some(found) = local_declaration_in_fields(source, fields, name) {
+    let field = bindings.last_binding(source, body, None, name, |child| {
+        if !matches!(child.kind(), "field_declaration" | "constant_declaration") {
+            return None;
+        }
+        local_declaration_in_fields(source, vec![child], name)
+    });
+    if let Some(found) = field {
         return found;
     }
     let record_component = body

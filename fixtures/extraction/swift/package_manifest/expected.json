@@ -279,7 +279,22 @@
       "end_byte": 75,
       "containing_key": "fixtures/extraction/swift/package_manifest/Package.swift:package:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 4,
+        "arg_labels": [
+          "name",
+          "products",
+          "dependencies",
+          "targets"
+        ],
+        "arg_types": [
+          "String",
+          null,
+          null,
+          null
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/package_manifest/Package.swift:library:call:7:9",
@@ -295,7 +310,18 @@
       "end_byte": 132,
       "containing_key": "fixtures/extraction/swift/package_manifest/Package.swift:package:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2,
+        "arg_labels": [
+          "name",
+          "targets"
+        ],
+        "arg_types": [
+          "String",
+          null
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/package_manifest/Package.swift:package:call:10:9",
@@ -311,7 +337,18 @@
       "end_byte": 220,
       "containing_key": "fixtures/extraction/swift/package_manifest/Package.swift:package:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2,
+        "arg_labels": [
+          "url",
+          "from"
+        ],
+        "arg_types": [
+          "String",
+          "String"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/package_manifest/Package.swift:product:call:13:51",
@@ -327,7 +364,18 @@
       "end_byte": 364,
       "containing_key": "fixtures/extraction/swift/package_manifest/Package.swift:package:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2,
+        "arg_labels": [
+          "name",
+          "package"
+        ],
+        "arg_types": [
+          "String",
+          "String"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/package_manifest/Package.swift:target:call:13:9",
@@ -343,7 +391,20 @@
       "end_byte": 321,
       "containing_key": "fixtures/extraction/swift/package_manifest/Package.swift:package:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 3,
+        "arg_labels": [
+          "name",
+          "dependencies",
+          "path"
+        ],
+        "arg_types": [
+          "String",
+          null,
+          "String"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/package_manifest/Package.swift:testTarget:call:14:9",
@@ -359,7 +420,20 @@
       "end_byte": 442,
       "containing_key": "fixtures/extraction/swift/package_manifest/Package.swift:package:4:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 3,
+        "arg_labels": [
+          "name",
+          "dependencies",
+          "path"
+        ],
+        "arg_types": [
+          "String",
+          null,
+          "String"
+        ]
+      }
     }
   ],
   "types": [],

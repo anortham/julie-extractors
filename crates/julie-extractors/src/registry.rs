@@ -952,6 +952,31 @@ pub fn extract_for_language_at(
                 &mut results.identifiers,
             );
         }
+        if matches!(language, "cpp" | "vbnet" | "swift") {
+            let base = crate::base::BaseExtractor::new(
+                language.to_string(),
+                file_path.to_string(),
+                content.to_string(),
+                workspace_root,
+            );
+            match language {
+                "cpp" => crate::cpp::argument_types::enrich(
+                    &base,
+                    tree,
+                    &results.symbols,
+                    &mut results.identifiers,
+                ),
+                "vbnet" => {
+                    crate::vbnet::argument_types::enrich(&base, tree, &mut results.identifiers)
+                }
+                _ => crate::swift::argument_types::enrich(
+                    &base,
+                    tree,
+                    &results.symbols,
+                    &mut results.identifiers,
+                ),
+            }
+        }
     }
     if level.includes_structural_facts() {
         let extractor_structural_facts = std::mem::take(&mut results.structural_facts);

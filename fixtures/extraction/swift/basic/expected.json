@@ -2002,7 +2002,12 @@
       "end_byte": 1956,
       "containing_key": "fixtures/extraction/swift/basic/source.swift:makeFoo:101:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_labels": [],
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/swift/basic/source.swift:Foo:call:81:26",
@@ -2018,7 +2023,12 @@
       "end_byte": 1539,
       "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_labels": [],
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/swift/basic/source.swift:Foo:type_usage:101:18",
@@ -2212,6 +2222,9 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
+        "arg_labels": [],
+        "arg_types": [],
         "receiver": "UIKit"
       }
     },
@@ -2229,7 +2242,12 @@
       "end_byte": 1571,
       "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_labels": [],
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/swift/basic/source.swift:Worker:type_usage:28:10",
@@ -2261,7 +2279,12 @@
       "end_byte": 299,
       "containing_key": "fixtures/extraction/swift/basic/source.swift:increment:17:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_labels": [],
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/swift/basic/source.swift:constructed:variable_ref:89:12",
@@ -2325,7 +2348,16 @@
       "end_byte": 1077,
       "containing_key": "fixtures/extraction/swift/basic/source.swift:fetchStatus:56:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          null
+        ],
+        "arg_types": [
+          "String"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/basic/source.swift:helper:call:12:15",
@@ -2341,7 +2373,16 @@
       "end_byte": 204,
       "containing_key": "fixtures/extraction/swift/basic/source.swift:run:10:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          null
+        ],
+        "arg_types": [
+          "Int"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/basic/source.swift:helpered:variable_ref:92:12",
@@ -2469,7 +2510,12 @@
       "end_byte": 1642,
       "containing_key": "fixtures/extraction/swift/basic/source.swift:use:79:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_labels": [],
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/swift/basic/source.swift:next:variable_ref:19:12",
@@ -2501,7 +2547,18 @@
       "end_byte": 845,
       "containing_key": "fixtures/extraction/swift/basic/source.swift:recordRun:47:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2,
+        "arg_labels": [
+          null,
+          "id"
+        ],
+        "arg_types": [
+          "String",
+          "Int"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/basic/source.swift:optional:variable_ref:88:12",
@@ -2536,6 +2593,9 @@
       "confidence": "1.000",
       "receiver_type": "ReceiverBox",
       "metadata": {
+        "arg_count": 0,
+        "arg_labels": [],
+        "arg_types": [],
         "receiver": "self"
       }
     },
@@ -2556,6 +2616,9 @@
       "confidence": "1.000",
       "receiver_type": "ReceiverBox",
       "metadata": {
+        "arg_count": 0,
+        "arg_labels": [],
+        "arg_types": [],
         "receiver": "self"
       }
     },
@@ -2573,7 +2636,16 @@
       "end_byte": 178,
       "containing_key": "fixtures/extraction/swift/basic/source.swift:run:10:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          null
+        ],
+        "arg_types": [
+          "Int"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/basic/source.swift:restore:call:87:14",
@@ -2592,6 +2664,9 @@
       "confidence": "1.000",
       "receiver_type": "ServiceBase",
       "metadata": {
+        "arg_count": 0,
+        "arg_labels": [],
+        "arg_types": [],
         "receiver": "super"
       }
     },

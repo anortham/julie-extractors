@@ -670,7 +670,16 @@
       "end_byte": 15,
       "containing_key": "fixtures/extraction/swift/testing_traits/custom_test_identifier.swift:customTest:1:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          null
+        ],
+        "arg_types": [
+          "String"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/testing_traits/source.swift:Suite:type_usage:3:1",
@@ -782,7 +791,16 @@
       "end_byte": 148,
       "containing_key": "fixtures/extraction/swift/testing_traits/source.swift:disabledWithDisplayName:5:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          null
+        ],
+        "arg_types": [
+          "String"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/testing_traits/source.swift:disabled:call:8:11",
@@ -798,7 +816,16 @@
       "end_byte": 236,
       "containing_key": "fixtures/extraction/swift/testing_traits/source.swift:disabledConditionally:8:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          "if"
+        ],
+        "arg_types": [
+          null
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/testing_traits/source.swift:enabled:call:11:11",
@@ -814,7 +841,16 @@
       "end_byte": 303,
       "containing_key": "fixtures/extraction/swift/testing_traits/source.swift:enabledConditionally:11:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          "if"
+        ],
+        "arg_types": [
+          null
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/testing_traits/source.swift:featureIsReady:variable_ref:11:23",
@@ -862,7 +898,16 @@
       "end_byte": 439,
       "containing_key": "fixtures/extraction/swift/testing_traits/source.swift:limited:17:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          null
+        ],
+        "arg_types": [
+          "Int"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/testing_traits/source.swift:minutes:call:3:66",
@@ -878,7 +923,16 @@
       "end_byte": 89,
       "containing_key": "fixtures/extraction/swift/testing_traits/source.swift:SwiftTraitSuite:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          null
+        ],
+        "arg_types": [
+          "Int"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/testing_traits/source.swift:network:variable_ref:3:31",
@@ -958,7 +1012,18 @@
       "end_byte": 38,
       "containing_key": "fixtures/extraction/swift/testing_traits/source.swift:SwiftTraitSuite:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2,
+        "arg_labels": [
+          null,
+          null
+        ],
+        "arg_types": [
+          null,
+          null
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/testing_traits/source.swift:timeLimit:call:17:11",
@@ -974,7 +1039,16 @@
       "end_byte": 430,
       "containing_key": "fixtures/extraction/swift/testing_traits/source.swift:limited:17:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          null
+        ],
+        "arg_types": [
+          null
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/testing_traits/source.swift:timeLimit:call:3:55",
@@ -990,7 +1064,16 @@
       "end_byte": 80,
       "containing_key": "fixtures/extraction/swift/testing_traits/source.swift:SwiftTraitSuite:3:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          null
+        ],
+        "arg_types": [
+          null
+        ]
+      }
     }
   ],
   "types": [],

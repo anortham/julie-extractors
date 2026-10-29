@@ -117,6 +117,46 @@ The golden fixture `swift:declarations` holds the evidence for these rules.
 - **Comments.** `/* */` blocks are comment regions and `/** */` blocks are
   doc-comment regions, so a `TODO` inside a block comment is a marker fact.
 
+## Call arguments
+
+A reader uses these keys to tell which overload a call binds. Swift picks by
+argument labels first (`run(a: 1)` binds `run(a:)`, `run(b: 1)` binds
+`run(b:)`), then by type (`run("x")` binds `run(_: String)`). Each call
+identifier whose call has parentheses or a trailing closure gets three keys
+at the `references` and `full` levels. A subscript and a macro expansion
+(`#stringify(x)`) get none.
+
+- **`arg_count`.** The arguments in the parentheses plus each trailing
+  closure. `run(1) { $0 }` has `2`, `run { $0 }` has `1`, and
+  `run(1) { $0 } other: { $0 }` has `3`.
+- **`arg_labels`.** One entry per argument, in the same order: the label
+  written at the call, or `null` for an unlabeled argument. The first
+  trailing closure has `null`, since Swift matches it by position and type,
+  and each later trailing closure has the label written before it.
+- **`arg_types`.** One entry per argument: the type the argument expression
+  states, or `null`. An integer literal gives `Int`, a floating literal
+  `Double`, a string literal `String`, and `true` or `false` `Bool`, which
+  are the literal default types; `nil` gives `null`. A leading `-` or `+`
+  keeps the literal's type. `x as T` and `x as! T` give `T`, and `x as? T`
+  gives `T?`. `T(...)` gives `T` when the file declares the class, struct,
+  enum, or actor `T`, no function of the file shares the name, and `T` has
+  no failable `init?` or `init!` in the file. `self` gives the enclosing type
+  or the type an extension extends, and `null` in a `static` or `class`
+  member. A closure and any other expression give `null`.
+- **Names.** A name gives the written type of a parameter, a closure
+  parameter, a `let` or `var`, a property, or a global. `var a, b: Int` gives
+  both names `Int`. A `let` or `var` without a written type takes the type of
+  a literal or construction initializer. The search walks out from the call,
+  and the first scope that declares the name decides: a local counts only
+  before the call, a member or a global anywhere in its body or file. A name
+  that an optional binding (`if let`, `guard let`, `while let`), a `for` or
+  `case` pattern, a `catch` (including the implicit `error`), a capture list,
+  a tuple pattern, or a variadic or `inout` parameter declares gives `null`, and so does a name that a type body or extension
+  does not declare, because an extension, a base class, or a protocol can
+  declare it.
+- **Spelling.** The type as written, with whitespace removed except one space
+  between two words: `[String: Int]` gives `[String:Int]`.
+
 ## Framework facts
 
 | Pattern | Evidence | Rule |

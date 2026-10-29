@@ -2287,6 +2287,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
+        "arg_types": [],
         "receiver": "WebApplication"
       }
     },
@@ -2392,6 +2394,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          null
+        ],
         "receiver": "_repo"
       }
     },
@@ -2427,6 +2433,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "_client"
       }
     },
@@ -2446,6 +2456,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
+        "arg_types": [],
         "receiver": "ex"
       }
     },
@@ -2496,6 +2508,29 @@
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Create:15:8",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:HttpRequestMessage:call:19:48",
+      "name": "HttpRequestMessage",
+      "kind": "call",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 19,
+      "start_column": 48,
+      "end_line": 19,
+      "end_column": 102,
+      "start_byte": 718,
+      "end_byte": 772,
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Create:15:8",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2,
+        "arg_types": [
+          null,
+          "String"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:HttpRequestMessage:type_usage:19:30",
@@ -2625,6 +2660,7 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
         "receiver": "app"
       }
     },
@@ -2644,6 +2680,11 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
+        "arg_types": [
+          "String",
+          null
+        ],
         "receiver": "app"
       }
     },
@@ -2663,6 +2704,11 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
+        "arg_types": [
+          "String",
+          null
+        ],
         "receiver": "api"
       }
     },
@@ -2682,6 +2728,11 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
+        "arg_types": [
+          "String",
+          null
+        ],
         "receiver": "v1"
       }
     },
@@ -2701,6 +2752,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "app"
       }
     },
@@ -2720,6 +2775,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "api"
       }
     },
@@ -2739,6 +2798,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "String"
+        ],
         "receiver": "app"
       }
     },
@@ -2823,7 +2886,11 @@
       "end_byte": 854,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Create:15:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Of:variable_ref:91:19",
@@ -2855,7 +2922,11 @@
       "end_byte": 842,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Create:15:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Open:call:59:21",
@@ -2873,6 +2944,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
+        "arg_types": [],
         "receiver": "conn"
       }
     },
@@ -2972,7 +3045,32 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
+        "arg_types": [
+          "String",
+          "OrderDto"
+        ],
         "receiver": "_client"
+      }
+    },
+    {
+      "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Receipt:call:66:34",
+      "name": "Receipt",
+      "kind": "call",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 66,
+      "start_column": 34,
+      "end_line": 66,
+      "end_column": 36,
+      "start_byte": 2115,
+      "end_byte": 2117,
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ShipAll:54:8",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -3008,6 +3106,8 @@
       "confidence": "1.000",
       "receiver_type": "ShipperBase",
       "metadata": {
+        "arg_count": 0,
+        "arg_types": [],
         "receiver": "MyBase"
       }
     },
@@ -3041,7 +3141,13 @@
       "end_byte": 1964,
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ShipAll:54:8",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "List(Of OrderDto)"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Serializable:type_usage:29:5",
@@ -3075,6 +3181,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
+        "arg_types": [],
         "receiver": "order"
       }
     },
@@ -3093,6 +3201,28 @@
       "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:Shipper:46:4",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:SqlConnection:call:58:43",
+      "name": "SqlConnection",
+      "kind": "call",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/framework_and_scopes/source.vb",
+      "start_line": 58,
+      "start_column": 43,
+      "end_line": 58,
+      "end_column": 55,
+      "start_byte": 1831,
+      "end_byte": 1843,
+      "containing_key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:ShipAll:54:8",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "String"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/vbnet/framework_and_scopes/source.vb:SqlConnection:type_usage:58:30",

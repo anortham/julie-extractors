@@ -688,6 +688,37 @@ void qualified() {
 }
 
 #[test]
+fn swift_calls_count_arguments_and_trailing_closures() {
+    assert_calls(
+        "swift",
+        "sample.swift",
+        "func run() {\n  helper(1, 2)\n  o.method(1, 2)\n  go { 1 }\n  take(x: 1) { 2 } other: { 3 }\n  none()\n}\n",
+        &[
+            ("helper", Some(2), false),
+            ("method", Some(2), false),
+            ("go", Some(1), false),
+            ("take", Some(3), false),
+            ("none", Some(0), false),
+        ],
+    );
+}
+
+#[test]
+fn vbnet_calls_count_arguments_except_with_an_omitted_argument() {
+    assert_calls(
+        "vbnet",
+        "Sample.vb",
+        "Module M\n  Sub Run()\n    Helper(1, 2)\n    o.Method(1, 2)\n    Skip(1, , 3)\n    Empty()\n  End Sub\nEnd Module\n",
+        &[
+            ("Helper", Some(2), false),
+            ("Method", Some(2), false),
+            ("Skip", None, false),
+            ("Empty", Some(0), false),
+        ],
+    );
+}
+
+#[test]
 fn argument_counts_keep_receiver_metadata() {
     let results = extract_canonical_for_language_at(
         "python",
@@ -716,11 +747,6 @@ fn languages_outside_the_argument_count_set_carry_no_argument_keys() {
             "php",
             "sample.php",
             "<?php\nfunction run() { helper(1, 2); $o->method(1, 2); new Thing(1); }\n",
-        ),
-        (
-            "swift",
-            "sample.swift",
-            "func run() { helper(1, 2); o.method(1, 2) }\n",
         ),
         (
             "dart",

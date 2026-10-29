@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 use crate::base::argument_types::{
-    self, CallArguments, Declarations, Found, enclosing, nearest_binding, node_text,
+    self, CallArguments, Declarations, Found, ScopeBindings, enclosing, nearest_binding, node_text,
     suffixed_float_type, suffixed_integer_type,
 };
 use crate::base::types::strip_type_decorations;
@@ -38,8 +38,9 @@ pub(crate) fn enrich(
     let reader = Reader {
         source,
         declarations: Declarations::new(symbols, types),
+        bindings: ScopeBindings::new(false),
     };
-    argument_types::annotate_calls("scala", tree, identifiers, |node| {
+    argument_types::annotate_calls("scala", tree, identifiers, |node, _| {
         let call = enclosing(node, &CALL_KINDS)?;
         let list = call.child_by_field_name("arguments")?;
         if list.kind() != "arguments" {
@@ -74,13 +75,14 @@ pub(crate) fn enrich(
     });
 }
 
-struct Reader<'a> {
+struct Reader<'a, 'tree> {
     source: &'a str,
     declarations: Declarations<'a>,
+    bindings: ScopeBindings<'tree, Found<'tree>>,
 }
 
-impl Reader<'_> {
-    fn type_of(&self, node: Node, depth: u32) -> Option<String> {
+impl<'tree> Reader<'_, 'tree> {
+    fn type_of(&self, node: Node<'tree>, depth: u32) -> Option<String> {
         if !should_visit_tree_depth(depth) {
             return None;
         }
@@ -166,7 +168,7 @@ impl Reader<'_> {
                 }
                 let body = this_body(value)?;
                 let name = strip_backticks(node_text(self.source, field));
-                self.type_of_found(name, member(self.source, body, name))
+                self.type_of_found(name, member(self.source, &self.bindings, body, name))
             }
             "identifier" if text == "this" => {
                 let body = this_body(node)?;
@@ -175,8 +177,10 @@ impl Reader<'_> {
             "identifier" => {
                 let name = strip_backticks(text);
                 let source = self.source;
-                let found =
-                    nearest_binding(node, |scope, child| binding(source, scope, child, name));
+                let bindings = &self.bindings;
+                let found = nearest_binding(node, |scope, child| {
+                    binding(source, bindings, scope, child, name)
+                });
                 self.type_of_found(name, found)
             }
             _ => None,
@@ -189,7 +193,7 @@ impl Reader<'_> {
             .type_of_found(name, found, |initializer| literal_type(source, initializer))
     }
 
-    fn type_name(&self, type_node: Node) -> Option<String> {
+    fn type_name(&self, type_node: Node<'tree>) -> Option<String> {
         written_type_name(self.source, type_node)
     }
 }
@@ -213,6 +217,7 @@ fn strip_backticks(name: &str) -> &str {
 /// What `scope` binds for `name` used inside `child`.
 fn binding<'tree>(
     source: &str,
+    bindings: &ScopeBindings<'tree, Found<'tree>>,
     scope: Node<'tree>,
     child: Node<'tree>,
     name: &str,
@@ -220,12 +225,9 @@ fn binding<'tree>(
     let names = |node: Node| names_identifier(source, node, name);
     match scope.kind() {
         "block" | "indented_block" => {
-            let mut cursor = scope.walk();
-            let definitions: Vec<Node> = scope.named_children(&mut cursor).collect();
-            definitions
-                .into_iter()
-                .filter(|definition| definition.id() != child.id())
-                .find_map(|definition| definition_binding(source, definition, name))
+            bindings.first_binding_except(source, scope, child, name, |definition| {
+                definition_binding(source, definition, name)
+            })
         }
         "function_definition" | "given_definition" => {
             let mut cursor = scope.walk();
@@ -295,7 +297,7 @@ fn binding<'tree>(
                 })
                 .then_some(Found::Unknown)
         }
-        "template_body" => Some(member(source, scope, name)),
+        "template_body" => Some(member(source, bindings, scope, name)),
         "compilation_unit" | "class_definition" | "object_definition" | "trait_definition" => {
             Some(Found::Unknown)
         }
@@ -339,13 +341,16 @@ fn definition_binding<'tree>(
 
 /// A member named `name` of the template body, or a constructor parameter
 /// of its class. Any other name may be inherited, so it has no known type.
-fn member<'tree>(source: &str, body: Node<'tree>, name: &str) -> Found<'tree> {
-    let mut cursor = body.walk();
-    let members: Vec<Node> = body.named_children(&mut cursor).collect();
-    if let Some(found) = members
-        .into_iter()
-        .find_map(|definition| definition_binding(source, definition, name))
-    {
+fn member<'tree>(
+    source: &str,
+    bindings: &ScopeBindings<'tree, Found<'tree>>,
+    body: Node<'tree>,
+    name: &str,
+) -> Found<'tree> {
+    let declared = bindings.first_binding_except(source, body, body, name, |definition| {
+        definition_binding(source, definition, name)
+    });
+    if let Some(found) = declared {
         return found;
     }
     let Some(owner) = body.parent() else {

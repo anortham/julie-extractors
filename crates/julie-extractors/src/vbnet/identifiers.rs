@@ -1,3 +1,4 @@
+use crate::base::span::NormalizedSpan;
 use crate::base::{
     BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol, SymbolKind,
     extract_type_arguments,
@@ -46,6 +47,7 @@ fn extract_identifier_from_node(
 ) {
     if matches!(node.kind(), "new_expression" | "element_access") {
         record_vbnet_constructor_arg_literals(base, node, containing_symbols);
+        record_construction_call(base, node, containing_symbols);
     }
     match node.kind() {
         "invocation_expression" | "invocation" | "element_access" | "call_statement" => {
@@ -532,6 +534,27 @@ fn record_vbnet_call_arg_literals(
 
 /// Capture string-literal arguments of `New T(args)` with the constructed type
 /// as the carrier (`New SqlCommand("SELECT ...")`, `New HttpRequestMessage(..)`).
+/// `New T(...)` calls a constructor of `T`. The call identifier spans the
+/// argument list, since the type name keeps its type usage.
+fn record_construction_call(base: &mut BaseExtractor, node: Node, containing_symbols: &Scope<'_>) {
+    let Some(construction) = super::argument_types::construction(node, &base.content) else {
+        return;
+    };
+    let Some(span) =
+        NormalizedSpan::from_content_range(&base.content, construction.start, construction.end)
+    else {
+        return;
+    };
+    let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+    base.create_identifier_at_span(
+        span,
+        construction.type_name,
+        IdentifierKind::Call,
+        containing_symbol_id,
+        None,
+    );
+}
+
 fn record_vbnet_constructor_arg_literals(
     base: &mut BaseExtractor,
     node: Node,

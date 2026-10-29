@@ -62,6 +62,7 @@ fn call_kinds(language: &str) -> &'static [&'static str] {
         "go" => &["call_expression", "type_conversion_expression"],
         "rust" | "kotlin" | "c" | "cpp" => &["call_expression"],
         "scala" => &["call_expression", "instance_expression"],
+        "vbnet" => &["invocation"],
         _ => &[],
     }
 }
@@ -272,6 +273,20 @@ fn first_child_of_kind<'tree>(node: Node<'tree>, kinds: &[&str]) -> Option<Node<
         .find(|child| kinds.contains(&child.kind()))
 }
 
+/// The argument count of `list`, and whether one argument is a spread, by
+/// the rules of `arg_count`.
+pub(crate) fn list_summary(
+    language: &str,
+    call: Node<'_>,
+    list: Node<'_>,
+    source: &[u8],
+) -> Option<(usize, bool)> {
+    if call.has_error() {
+        return None;
+    }
+    summarize(language, call, list, source).map(|summary| (summary.count, summary.spread))
+}
+
 fn summarize(
     language: &str,
     call: Node<'_>,
@@ -295,6 +310,7 @@ fn summarize(
         },
         _ => {
             if has_empty_argument_slot(list)
+                || (language == "vbnet" && has_omitted_vbnet_argument(list, source))
                 || (language == "csharp" && holds_preprocessor_directive(call, list, source))
             {
                 return None;
@@ -340,6 +356,52 @@ fn has_empty_argument_slot(list: Node<'_>) -> bool {
         }
     }
     false
+}
+
+/// True when a VB.NET argument list leaves an optional argument out
+/// (`F(a, , c)`, `F(, b)`, `F(a, )`). The grammar keeps no node for an
+/// argument separator, so the commas are counted in the source between the
+/// arguments: exactly one must separate two arguments, and none may stand
+/// before the first or after the last.
+fn has_omitted_vbnet_argument(list: Node<'_>, source: &[u8]) -> bool {
+    let mut cursor = list.walk();
+    let arguments: Vec<Node<'_>> = list
+        .named_children(&mut cursor)
+        .filter(|child| !child.is_extra())
+        .collect();
+    vbnet_omits_argument(
+        list.start_byte() + 1,
+        list.end_byte().saturating_sub(1),
+        &arguments,
+        source,
+    )
+}
+
+/// True when the VB.NET arguments between the bytes `open` and `close` leave
+/// an argument out, by the comma rule of `has_omitted_vbnet_argument`.
+pub(crate) fn vbnet_omits_argument(
+    open: usize,
+    close: usize,
+    arguments: &[Node<'_>],
+    source: &[u8],
+) -> bool {
+    let commas = |start: usize, end: usize| {
+        source
+            .get(start..end)
+            .map_or(0, |gap| gap.iter().filter(|byte| **byte == b',').count())
+    };
+    let mut previous_end = open;
+    for (index, argument) in arguments.iter().enumerate() {
+        let expected = usize::from(index > 0);
+        if commas(previous_end, argument.start_byte()) != expected {
+            return true;
+        }
+        previous_end = argument.end_byte();
+    }
+    if arguments.is_empty() {
+        return commas(open, close) != 0;
+    }
+    commas(previous_end, close) != 0
 }
 
 /// True when a C# directive line starts between the start of the call and the

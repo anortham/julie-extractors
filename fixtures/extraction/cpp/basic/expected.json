@@ -1424,7 +1424,28 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
+      }
+    },
+    {
+      "key": "fixtures/extraction/cpp/basic/source.cpp:Item:call:72:29",
+      "name": "Item",
+      "kind": "call",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/basic/source.cpp",
+      "start_line": 72,
+      "start_column": 29,
+      "end_line": 72,
+      "end_column": 31,
+      "start_byte": 1259,
+      "end_byte": 1261,
+      "containing_key": "fixtures/extraction/cpp/basic/source.cpp:use_facts:67:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -1587,7 +1608,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -1656,6 +1678,9 @@
       "receiver_type": "Worker",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "int"
+        ],
         "receiver": "this"
       }
     },
@@ -1675,7 +1700,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          "int"
+        ]
       }
     },
     {
@@ -1694,7 +1722,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          "int"
+        ]
       }
     },
     {
@@ -1763,6 +1794,7 @@
       "receiver_type": "Worker",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "this"
       }
     },
@@ -1783,7 +1815,8 @@
       "confidence": "1.000",
       "receiver_type": "Worker",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -1850,7 +1883,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          "const char*"
+        ]
       }
     },
     {
@@ -1870,6 +1906,7 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "std"
       }
     },

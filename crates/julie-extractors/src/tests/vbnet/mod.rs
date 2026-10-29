@@ -43,6 +43,7 @@ pub(crate) fn get_vb_visibility(symbol: &Symbol) -> String {
         .map_or("private".to_string(), VisibilityExt::to_string)
 }
 
+mod argument_types;
 pub mod complexity;
 pub mod core;
 pub mod cross_file_pending;

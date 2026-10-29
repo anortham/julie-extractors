@@ -7,6 +7,7 @@
 //! - relationships: Inheritance and identifier usage tracking
 //! - type_inference: Return type and variable type inference
 
+pub(crate) mod argument_types;
 mod concepts;
 mod declarations;
 mod declarators;

@@ -1075,7 +1075,16 @@
       "end_byte": 740,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:fetchRemote:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          "string"
+        ],
+        "arg_types": [
+          "String"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:URL:call:26:74",
@@ -1091,7 +1100,16 @@
       "end_byte": 894,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:fetchRemote:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          "string"
+        ],
+        "arg_types": [
+          "String"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:URLRequest:call:26:58",
@@ -1107,7 +1125,16 @@
       "end_byte": 885,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:fetchRemote:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          "url"
+        ],
+        "arg_types": [
+          null
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:URLSession:variable_ref:24:15",
@@ -1269,6 +1296,13 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          "for"
+        ],
+        "arg_types": [
+          null
+        ],
         "receiver": "shared",
         "receiver_qualifier": "URLSession"
       }
@@ -1321,6 +1355,13 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          "with"
+        ],
+        "arg_types": [
+          null
+        ],
         "receiver": "shared",
         "receiver_qualifier": "URLSession"
       }
@@ -1341,6 +1382,15 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
+        "arg_labels": [
+          null,
+          "use"
+        ],
+        "arg_types": [
+          "String",
+          null
+        ],
         "receiver": "todos"
       }
     },
@@ -1360,6 +1410,17 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 3,
+        "arg_labels": [
+          null,
+          null,
+          "use"
+        ],
+        "arg_types": [
+          "String",
+          "String",
+          null
+        ],
         "receiver": "admin"
       }
     },
@@ -1395,6 +1456,13 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          "use"
+        ],
+        "arg_types": [
+          null
+        ],
         "receiver": "todos"
       }
     },
@@ -1414,6 +1482,15 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
+        "arg_labels": [
+          null,
+          null
+        ],
+        "arg_types": [
+          "String",
+          null
+        ],
         "receiver": "app"
       }
     },
@@ -1433,6 +1510,15 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
+        "arg_labels": [
+          null,
+          null
+        ],
+        "arg_types": [
+          "String",
+          null
+        ],
         "receiver": "app"
       }
     },
@@ -1452,6 +1538,13 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          null
+        ],
+        "arg_types": [
+          "String"
+        ],
         "receiver": "routes"
       }
     },
@@ -1471,6 +1564,15 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
+        "arg_labels": [
+          null,
+          null
+        ],
+        "arg_types": [
+          "String",
+          "String"
+        ],
         "receiver": "app"
       }
     },
@@ -1506,6 +1608,17 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 3,
+        "arg_labels": [
+          null,
+          null,
+          "use"
+        ],
+        "arg_types": [
+          null,
+          "String",
+          null
+        ],
         "receiver": "app"
       }
     },
@@ -1525,6 +1638,15 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
+        "arg_labels": [
+          null,
+          "use"
+        ],
+        "arg_types": [
+          "String",
+          null
+        ],
         "receiver": "api"
       }
     },
@@ -1576,6 +1698,15 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 2,
+        "arg_labels": [
+          null,
+          "method"
+        ],
+        "arg_types": [
+          "String",
+          null
+        ],
         "receiver": "AF"
       }
     },
@@ -1593,7 +1724,16 @@
       "end_byte": 679,
       "containing_key": "fixtures/extraction/swift/vapor_http/source.swift:fetchRemote:22:0",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          null
+        ],
+        "arg_types": [
+          null
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/vapor_http/source.swift:resume:call:25:9",
@@ -1611,6 +1751,9 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
+        "arg_labels": [],
+        "arg_types": [],
         "receiver": "task"
       }
     },

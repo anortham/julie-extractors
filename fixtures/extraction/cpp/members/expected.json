@@ -1886,7 +1886,12 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 3
+        "arg_count": 3,
+        "arg_types": [
+          "int",
+          "int",
+          "int"
+        ]
       }
     },
     {
@@ -2050,6 +2055,9 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 1,
+        "arg_types": [
+          "int"
+        ],
         "receiver": "alloc"
       }
     },
@@ -2069,7 +2077,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          "int"
+        ]
       }
     },
     {
@@ -2088,7 +2099,11 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 2
+        "arg_count": 2,
+        "arg_types": [
+          "std::string",
+          null
+        ]
       }
     },
     {
@@ -2107,7 +2122,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -2449,7 +2465,11 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 2
+        "arg_count": 2,
+        "arg_types": [
+          "int",
+          "const std::string"
+        ]
       }
     },
     {

@@ -222,7 +222,12 @@
       "end_byte": 386,
       "containing_key": "fixtures/extraction/swift/cross_file/source.swift:entry:9:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_labels": [],
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/swift/cross_file/source.swift:thing:call:10:14",
@@ -240,6 +245,9 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
+        "arg_labels": [],
+        "arg_types": [],
         "receiver": "Other"
       }
     }

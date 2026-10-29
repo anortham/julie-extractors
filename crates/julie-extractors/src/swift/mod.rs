@@ -1,6 +1,7 @@
 // Swift language extractor - comprehensive symbol and relationship extraction
 // Organized into focused modules for maintainability and clarity
 
+pub(crate) mod argument_types;
 pub(super) mod callables;
 pub(super) mod enum_cases;
 pub(super) mod extensions;

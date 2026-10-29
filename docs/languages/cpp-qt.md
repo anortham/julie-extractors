@@ -318,6 +318,66 @@ never parsed before, and they apply to every C++ file.
   row. The grammar reads `import std;` as a declaration, so it is a variable
   row named `std`.
 
+## Call argument types
+
+A reader uses these keys to tell which overload a call binds: `run(1)` binds
+`run(int)`, and `run("x")` binds `run(const char*)`. The keys come at the
+`references` and `full` levels only.
+
+- **Constructions are calls.** `new Point(1)`, `new Point{1}`, `Point{1}`,
+  `Point p(1)`, `Point p{1}`, and `Point p = {1}` write a `call` identifier
+  named `Point` (the class name, without its scope or template arguments).
+  It spans the argument list, because the type name keeps its `type_usage`
+  row. It carries `arg_count` like any other call. A declaration with two
+  declarators (`Point a(1), b(2);`), a built-in type (`int n(5)`), `auto`, and
+  `Point p;` write none. `Writer w(out, log);`, which the grammar reads as a
+  function declaration, is a construction when it is in a block and every
+  parameter is a bare type name.
+- **`arg_types`.** A call identifier with `arg_count` also gets `arg_types`:
+  one entry per argument, the type the argument expression states, or
+  `null`. A call with a pack expansion (`arg_spread`) or a designated
+  initializer (`Point{.x = 1}`) gets none. Julie states the type of each
+  expression; templates, default arguments, and conversions are the
+  reader's job.
+- **Literals.** An integer literal gives `int`, `unsigned int`, `long`,
+  `unsigned long`, `long long`, or `unsigned long long`, by its value, radix,
+  and suffix, only when every common data model agrees. `long` has 32 bits on
+  Windows and 64 bits elsewhere, so `2147483648`, `4294967296u`, and
+  `2147483648l` give `null`. `z` and `uz` give `null`. A floating literal
+  gives `double`, `float`, or `long double`; `f16` and the other fixed-width
+  suffixes give `null`. A character literal gives `char`, `wchar_t`,
+  `char8_t`, `char16_t`, or `char32_t`, and a multi-character literal gives
+  `null`. A string literal gives the pointer it decays to: `const char*`,
+  `const wchar_t*`, `const char8_t*`, `const char16_t*`, or
+  `const char32_t*`, raw or not. `true` and `false` give `bool`, `nullptr`
+  gives `std::nullptr_t`, and `NULL` gives `null`. A leading `-` or `+` keeps
+  the literal's type.
+- **Expressions.** `static_cast<T>`, `dynamic_cast<T>`, `const_cast<T>`,
+  `reinterpret_cast<T>`, and `(T)e` give `T`. `new T(...)` gives `T*`.
+  `T{...}` gives `T`. `T(...)` gives `T` when `T` is a built-in type or a
+  class, struct, union, enum, or alias that the file declares and no
+  function of the file shares the name. `this` gives `X*`, or `const X*` in a
+  `const` member function. Parentheses are transparent. Any other expression,
+  such as `n + 1` or `make()`, gives `null`.
+- **Names.** A name gives the type of its declaration: a local, a parameter,
+  a member, or a global. The search walks out from the call through blocks,
+  `for`, range-`for`, `if`, `while`, and `switch` conditions, `catch`
+  parameters, lambda parameters, template parameters, the function
+  parameters, and the class body, and the first scope that declares the name
+  decides. A declaration counts only when it comes before the call; a class
+  member counts wherever it is in the class. A member function defined
+  outside its class finds the members when the file holds the class body.
+  A name that a scope declares in a way with no type (a function, a type, an
+  enumerator, a structured binding, an init-capture, an array, a function
+  pointer, or a class with a base class that may inherit the name) gives
+  `null`, and the search stops. `auto` takes the type of a literal, cast, or
+  construction initializer and gives `null` otherwise.
+- **Spelling.** The written type with its `const` and `volatile` first
+  (`constexpr` reads as `const`), the pointers of the declarator, and no
+  top-level reference: `const Point& p` gives `const Point`. Whitespace is
+  removed except one space between two words: `const char *` gives
+  `const char*`, and `std::map<int, int>` gives `std::map<int,int>`.
+
 ## Continuous testing
 
 Unit tests:

@@ -2275,6 +2275,29 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/cpp/declarations/source.cpp:Writer:call:53:17",
+      "name": "Writer",
+      "kind": "call",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
+      "start_line": 53,
+      "start_column": 17,
+      "end_line": 53,
+      "end_column": 29,
+      "start_byte": 1400,
+      "end_byte": 1412,
+      "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:save:48:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 2,
+        "arg_types": [
+          "std::ofstream",
+          "Repo"
+        ]
+      }
+    },
+    {
       "key": "fixtures/extraction/cpp/declarations/source.cpp:Writer:type_usage:53:4",
       "name": "Writer",
       "kind": "type_usage",
@@ -2306,7 +2329,8 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 0
+        "arg_count": 0,
+        "arg_types": []
       }
     },
     {
@@ -2326,6 +2350,7 @@
       "confidence": "1.000",
       "metadata": {
         "arg_count": 0,
+        "arg_types": [],
         "receiver": "writer"
       }
     },
@@ -2394,6 +2419,28 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/cpp/declarations/source.cpp:lock_guard:call:51:36",
+      "name": "lock_guard",
+      "kind": "call",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
+      "start_line": 51,
+      "start_column": 36,
+      "end_line": 51,
+      "end_column": 44,
+      "start_byte": 1344,
+      "end_byte": 1352,
+      "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:save:48:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          null
+        ]
+      }
+    },
+    {
       "key": "fixtures/extraction/cpp/declarations/source.cpp:lock_guard:type_usage:51:9",
       "name": "lock_guard",
       "kind": "type_usage",
@@ -2424,6 +2471,28 @@
       "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:save:48:0",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/cpp/declarations/source.cpp:ofstream:call:52:21",
+      "name": "ofstream",
+      "kind": "call",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/declarations/source.cpp",
+      "start_line": 52,
+      "start_column": 21,
+      "end_line": 52,
+      "end_column": 27,
+      "start_byte": 1375,
+      "end_byte": 1381,
+      "containing_key": "fixtures/extraction/cpp/declarations/source.cpp:save:48:0",
+      "target_key": null,
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_types": [
+          "const std::string"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/cpp/declarations/source.cpp:ofstream:type_usage:52:9",
@@ -2505,7 +2574,10 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
-        "arg_count": 1
+        "arg_count": 1,
+        "arg_types": [
+          "const std::string"
+        ]
       }
     },
     {

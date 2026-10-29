@@ -1986,7 +1986,16 @@
       "end_byte": 1616,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:makeSession:74:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          "timeout"
+        ],
+        "arg_types": [
+          "Int"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:Session:type_usage:41:22",
@@ -2229,7 +2238,12 @@
       "end_byte": 913,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:session:41:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_labels": [],
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:name:variable_ref:57:16",
@@ -2263,6 +2277,9 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 0,
+        "arg_labels": [],
+        "arg_types": [],
         "receiver": "headers"
       }
     },
@@ -2280,7 +2297,16 @@
       "end_byte": 794,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:sent:33:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          null
+        ],
+        "arg_types": [
+          "Int"
+        ]
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:sent:variable_ref:34:24",
@@ -2330,6 +2356,13 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          null
+        ],
+        "arg_types": [
+          null
+        ],
         "receiver": "keys",
         "receiver_qualifier": "headers"
       }
@@ -2380,7 +2413,12 @@
       "end_byte": 1068,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:deinit:52:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_labels": [],
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:upload:call:64:37",
@@ -2398,6 +2436,13 @@
       "target_key": null,
       "confidence": "1.000",
       "metadata": {
+        "arg_count": 1,
+        "arg_labels": [
+          null
+        ],
+        "arg_types": [
+          "Request"
+        ],
         "receiver": "session"
       }
     },
@@ -2415,7 +2460,12 @@
       "end_byte": 850,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:isValid:37:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_labels": [],
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:validate:call:64:50",
@@ -2431,7 +2481,12 @@
       "end_byte": 1348,
       "containing_key": "fixtures/extraction/swift/structure/source.swift:encode:60:4",
       "target_key": null,
-      "confidence": "1.000"
+      "confidence": "1.000",
+      "metadata": {
+        "arg_count": 0,
+        "arg_labels": [],
+        "arg_types": []
+      }
     },
     {
       "key": "fixtures/extraction/swift/structure/source.swift:width:variable_ref:62:28",
