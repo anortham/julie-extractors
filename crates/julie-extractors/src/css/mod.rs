@@ -179,6 +179,6 @@ impl CSSExtractor {
     }
 
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
-        relationships::extract_relationships(&self.base, tree, symbols)
+        relationships::extract_relationships(&mut self.base, tree, symbols)
     }
 }

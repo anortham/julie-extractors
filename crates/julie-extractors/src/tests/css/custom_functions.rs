@@ -48,6 +48,26 @@ fn arg_count(identifier: &Identifier) -> Option<u64> {
     identifier.metadata.as_ref()?.get("arg_count")?.as_u64()
 }
 
+fn pending_calls(result: &ExtractionResults) -> Vec<(&str, &str, u32)> {
+    result
+        .structured_pending_relationships
+        .iter()
+        .filter(|pending| pending.pending.kind == RelationshipKind::Calls)
+        .map(|pending| {
+            let from = result
+                .symbols
+                .iter()
+                .find(|symbol| symbol.id == pending.pending.from_symbol_id)
+                .map_or("?", |symbol| symbol.name.as_str());
+            (
+                pending.target.terminal_name.as_str(),
+                from,
+                pending.pending.line_number,
+            )
+        })
+        .collect()
+}
+
 fn call_edges(result: &ExtractionResults) -> Vec<(&str, &str)> {
     let name_of = |id: &str| {
         result
@@ -158,6 +178,11 @@ fn custom_function_calls_carry_the_declared_name_and_link_to_the_declaration() {
     let metadata = first_edge.metadata.as_ref().unwrap();
     assert_eq!(metadata["referenceName"], "--anchor_css");
     assert_eq!(metadata["referenceType"], "custom-function");
+    assert!(
+        result.structured_pending_relationships.is_empty(),
+        "{:#?}",
+        result.structured_pending_relationships
+    );
 }
 
 #[test]
@@ -256,13 +281,66 @@ fn dashed_names_outside_calls_are_not_calls() {
 }
 
 #[test]
-fn a_call_with_no_same_file_declaration_has_no_edge() {
-    let source = ".a { width: --elsewhere(1px); }\n";
+fn a_call_with_no_same_file_declaration_is_a_pending_call_from_its_rule() {
+    let source =
+        ".a { width: --elsewhere(1px); }\n@function --local() { result: --other\\31 (); }\n";
     let result = extract(source);
 
-    assert_eq!(call_names(&result), ["--elsewhere"]);
+    assert_eq!(call_names(&result), ["--elsewhere", "--other1"]);
     assert_eq!(arg_count(call(&result, "--elsewhere")), Some(1));
     assert!(call_edges(&result).is_empty());
+    assert_eq!(
+        pending_calls(&result),
+        [("--elsewhere", ".a", 1), ("--other1", "--local", 2),]
+    );
+    for pending in &result.structured_pending_relationships {
+        let identifier = call(&result, &pending.target.terminal_name);
+        let span = pending.span.expect("pending call span");
+        assert_eq!(
+            (span.start_byte, span.end_byte),
+            (identifier.start_byte, identifier.end_byte)
+        );
+        assert!(
+            ["--elsewhere", "--other\\31 "]
+                .contains(&&source[span.start_byte as usize..span.end_byte as usize])
+        );
+        assert!(pending.reference_site_is_exact);
+        assert_eq!(pending.target.display_name, pending.target.terminal_name);
+        assert_eq!(
+            pending.caller_scope_symbol_id.as_deref(),
+            Some(pending.pending.from_symbol_id.as_str())
+        );
+        assert_eq!(
+            identifier.containing_symbol_id.as_deref(),
+            Some(pending.pending.from_symbol_id.as_str())
+        );
+    }
+    assert_eq!(result.pending_relationships.len(), 2);
+}
+
+#[test]
+fn a_declared_call_has_an_edge_and_an_undeclared_call_a_pending_row() {
+    let source =
+        "@function --here() { result: 1px; }\n.a { width: --here(); height: --there(2px, 3px); }\n";
+    let result = extract(source);
+
+    assert_eq!(call_edges(&result), [(".a", "--here")]);
+    assert_eq!(pending_calls(&result), [("--there", ".a", 2)]);
+}
+
+#[test]
+fn a_call_with_no_enclosing_symbol_has_no_pending_row() {
+    let source = "width: --stray(1px);\n";
+    let result = extract(source);
+
+    let identifier = call(&result, "--stray");
+    assert_eq!(identifier.containing_symbol_id, None);
+    assert!(call_edges(&result).is_empty());
+    assert!(
+        result.structured_pending_relationships.is_empty(),
+        "{:#?}",
+        result.structured_pending_relationships
+    );
 }
 
 #[test]
@@ -285,7 +363,7 @@ fn other_at_rules_keep_their_names() {
 
 #[test]
 fn a_style_block_call_keeps_file_coordinates() {
-    let source = "<html><head><style>\n@function --pad() { result: 1px; }\n.x { padding: --pad(); }\n</style></head></html>\n";
+    let source = "<html><head><style>\n@function --pad() { result: 1px; }\n.x { padding: --pad(); margin: --shared(); }\n</style></head></html>\n";
     let result = extract_canonical("page.html", source, Path::new("/tmp/test"))
         .expect("canonical HTML extraction must succeed");
 
@@ -294,4 +372,13 @@ fn a_style_block_call_keeps_file_coordinates() {
     assert_eq!(identifier.start_line, 3);
     assert_eq!(symbol(&result, "--pad").kind, SymbolKind::Function);
     assert_eq!(call_edges(&result), [(".x", "--pad")]);
+    let pending = &result.structured_pending_relationships;
+    assert_eq!(pending.len(), 1, "{pending:#?}");
+    assert_eq!(pending[0].target.terminal_name, "--shared");
+    let span = pending[0].span.expect("pending call span");
+    assert_eq!(
+        &source[span.start_byte as usize..span.end_byte as usize],
+        "--shared"
+    );
+    assert_eq!(span.start_line, 3);
 }

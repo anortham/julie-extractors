@@ -43,8 +43,18 @@ comment, a string, or an unquoted `url()` is a custom function call:
 - A `calls` relationship goes from the innermost symbol around the call to
   each `@function` declaration with the same name in the file, with the
   metadata `referenceType: custom-function` and `referenceName` (the decoded
-  name). A call of a function declared in another file has no relationship
-  and no pending relationship.
+  name).
+- Custom functions are global across the loaded stylesheets. So a call with
+  no `@function` of that name in the file is a pending `calls` relationship:
+  the target name is the decoded name, the from-symbol and the caller scope
+  are the innermost symbol around the call (the rule `.card`, or the
+  `@function` whose `result:` holds it), the span is the raw name, and the
+  confidence is 0.7. A call with a same-file declaration has its `calls`
+  relationship and no pending row.
+- A call with no symbol around it (a declaration outside every rule, such as
+  `width: --f();` at the top of a file) keeps its identifier with no
+  containing symbol, and has no relationship and no pending row, the same as
+  a top-level call in Python, JavaScript, or Lua.
 
 ### Known limits
 

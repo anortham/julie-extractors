@@ -1,7 +1,8 @@
 use super::custom_functions::dashed_functions;
 use super::identifiers::composed_class_nodes;
 use crate::base::{
-    BaseExtractor, NormalizedSpan, Relationship, RelationshipKind, Symbol, SymbolKind,
+    BaseExtractor, NormalizedSpan, Relationship, RelationshipKind, StructuredPendingRelationship,
+    Symbol, SymbolKind, UnresolvedTarget,
 };
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
@@ -16,9 +17,10 @@ struct Targets<'a> {
 
 /// One `references` edge per `var(--x)` or animation name node, and one
 /// `calls` edge per custom function call, from the innermost symbol whose byte
-/// range holds the site to every same-name declaration in the file.
+/// range holds the site to every same-name declaration in the file. A custom
+/// function call with no declaration in the file is a pending `calls` row.
 pub(super) fn extract_relationships(
-    base: &BaseExtractor,
+    base: &mut BaseExtractor,
     tree: &Tree,
     symbols: &[Symbol],
 ) -> Vec<Relationship> {
@@ -47,9 +49,11 @@ pub(super) fn extract_relationships(
 }
 
 /// One `calls` edge per custom function call (`--name(...)`) to each
-/// `@function` declaration of that name in the file.
+/// `@function` declaration of that name in the file. Custom functions are
+/// global across the loaded stylesheets, so a call with no declaration in the
+/// file is a pending `calls` relationship from the innermost symbol around it.
 fn push_custom_function_calls(
-    base: &BaseExtractor,
+    base: &mut BaseExtractor,
     symbols: &[Symbol],
     seen: &mut HashSet<(String, String, u32, String)>,
     relationships: &mut Vec<Relationship>,
@@ -61,16 +65,10 @@ fn push_custom_function_calls(
             .or_default()
             .push(symbol);
     }
-    if declarations.is_empty() {
-        return;
-    }
     for call in dashed_functions(&base.content) {
-        let Some(targets) = declarations
-            .get(call.name.as_str())
-            .filter(|_| !call.is_declaration)
-        else {
+        if call.is_declaration {
             continue;
-        };
+        }
         let Some(span) = NormalizedSpan::from_content_range_with_line_starts(
             &base.content,
             base.line_starts(),
@@ -79,8 +77,25 @@ fn push_custom_function_calls(
         ) else {
             continue;
         };
+        let Some(targets) = declarations.get(call.name.as_str()) else {
+            if let Some(caller) = innermost_symbol_containing(symbols, span) {
+                base.add_structured_pending_relationship(
+                    StructuredPendingRelationship::new(
+                        caller.id.clone(),
+                        UnresolvedTarget::simple(call.name),
+                        Some(caller.id.clone()),
+                        RelationshipKind::Calls,
+                        base.file_path.clone(),
+                        span.start_line,
+                        0.7,
+                    )
+                    .with_target_span(span),
+                );
+            }
+            continue;
+        };
         let site = ReferenceSite {
-            name: call.name.clone(),
+            name: call.name,
             span,
             kind: RelationshipKind::Calls,
             reference_type: "custom-function",
