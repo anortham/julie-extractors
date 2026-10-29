@@ -1,5 +1,6 @@
 // CSS Extractor At-Rules - Extract @media, @import, @keyframes, etc.
 
+use super::custom_functions::{collapse_css_whitespace, declared_function_name};
 use crate::base::{
     BaseExtractor, RelationshipKind, StructuredPendingRelationship, Symbol, SymbolKind,
     SymbolOptions, UnresolvedTarget, Visibility,
@@ -30,7 +31,13 @@ impl AtRuleExtractor {
         };
         let signature = base.get_node_text(&node);
         let is_registration = keyword.eq_ignore_ascii_case("@property");
-        let symbol_kind = if is_registration {
+        let function_name = keyword
+            .eq_ignore_ascii_case("@function")
+            .then(|| declared_function_name(&base.content, keyword_end(base, node)?))
+            .flatten();
+        let symbol_kind = if function_name.is_some() {
+            SymbolKind::Function
+        } else if is_registration {
             SymbolKind::Property
         } else if node.kind() == "charset_statement" {
             SymbolKind::Variable
@@ -63,7 +70,7 @@ impl AtRuleExtractor {
 
         Some(base.create_symbol(
             &node,
-            rule_name,
+            function_name.unwrap_or(rule_name),
             symbol_kind,
             SymbolOptions {
                 signature: Some(signature),
@@ -141,6 +148,14 @@ pub(super) fn at_rule_keyword(base: &BaseExtractor, node: Node) -> Option<String
         .find(|text| text.starts_with('@'))
 }
 
+/// The byte offset just past the at-keyword of an at-rule node.
+fn keyword_end(base: &BaseExtractor, node: Node) -> Option<usize> {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .find(|child| base.get_node_text(child).starts_with('@'))
+        .map(|keyword| keyword.end_byte())
+}
+
 /// The whitespace-collapsed text between the at-keyword and the block or `;`.
 pub(super) fn at_rule_prelude(content: &str, node: Node) -> Option<String> {
     let mut cursor = node.walk();
@@ -156,7 +171,7 @@ pub(super) fn at_rule_prelude(content: &str, node: Node) -> Option<String> {
         .collect();
     let (first, last) = (rest.first()?, rest.last()?);
     let text = content.get(first.start_byte()..last.end_byte())?;
-    let collapsed = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    let collapsed = collapse_css_whitespace(text);
     (!collapsed.is_empty()).then_some(collapsed)
 }
 

@@ -8,6 +8,7 @@
 
 mod animations;
 mod at_rules;
+mod custom_functions;
 mod helpers;
 mod identifiers;
 mod media;

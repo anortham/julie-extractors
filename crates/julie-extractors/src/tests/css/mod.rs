@@ -316,6 +316,7 @@ pub mod at_rules;
 pub mod basic;
 pub mod cross_file_pending;
 pub mod custom;
+pub mod custom_functions;
 pub mod doc_comments;
 pub mod gap_closure;
 pub mod identifier_extraction;

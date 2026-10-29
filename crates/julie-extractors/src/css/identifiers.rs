@@ -1,7 +1,11 @@
 // CSS Extractor Identifiers - Extract identifier usages (function calls, classes, IDs)
 
-use crate::base::{BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, Symbol};
+use super::custom_functions::{DashedFunction, dashed_functions, decode_css_escapes, overlapping};
+use crate::base::{
+    BaseExtractor, ContainingSymbolIndex, Identifier, IdentifierKind, NormalizedSpan, Symbol,
+};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
+use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 pub(super) struct IdentifierExtractor;
@@ -20,8 +24,9 @@ impl IdentifierExtractor {
                 .filter(|symbol| symbol.file_path == file_path),
         );
 
-        // Walk the tree and extract identifiers
-        Self::walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, 0);
+        let dashed = dashed_functions(&base.content);
+        Self::walk_tree_for_identifiers(base, tree.root_node(), &containing_symbols, &dashed, 0);
+        Self::create_dashed_call_identifiers(base, &dashed, &containing_symbols);
 
         // Return the collected identifiers
         base.identifiers.clone()
@@ -32,14 +37,14 @@ impl IdentifierExtractor {
         base: &mut BaseExtractor,
         node: Node,
         containing_symbols: &ContainingSymbolIndex<'_>,
+        dashed: &[DashedFunction],
         depth: u32,
     ) {
         if !should_visit_tree_depth(depth) {
             return;
         }
 
-        // Extract identifier from this node if applicable
-        Self::extract_identifier_from_node(base, node, containing_symbols);
+        Self::extract_identifier_from_node(base, node, containing_symbols, dashed);
 
         // Recursively walk children
         let Some(child_depth) = child_tree_depth(depth) else {
@@ -47,7 +52,7 @@ impl IdentifierExtractor {
         };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            Self::walk_tree_for_identifiers(base, child, containing_symbols, child_depth);
+            Self::walk_tree_for_identifiers(base, child, containing_symbols, dashed, child_depth);
         }
     }
 
@@ -56,6 +61,7 @@ impl IdentifierExtractor {
         base: &mut BaseExtractor,
         node: Node,
         containing_symbols: &ContainingSymbolIndex<'_>,
+        dashed: &[DashedFunction],
     ) {
         match node.kind() {
             // CSS function calls: calc(), var(), rgb(), etc.
@@ -68,13 +74,19 @@ impl IdentifierExtractor {
                 for child in node.children(&mut cursor) {
                     match child.kind() {
                         "function_name" => {
-                            function_name = Some(base.get_node_text(&child));
-                            base.create_identifier(
-                                &child,
-                                function_name.clone().unwrap_or_default(),
-                                IdentifierKind::Call,
-                                containing_symbol_id.clone(),
-                            );
+                            if let Some(dashed_call) =
+                                overlapping(dashed, child.start_byte(), child.end_byte())
+                            {
+                                function_name = Some(dashed_call.name.clone());
+                            } else {
+                                function_name = Some(base.get_node_text(&child));
+                                base.create_identifier(
+                                    &child,
+                                    function_name.clone().unwrap_or_default(),
+                                    IdentifierKind::Call,
+                                    containing_symbol_id.clone(),
+                                );
+                            }
                         }
                         "arguments" => {
                             let mut arg_cursor = child.walk();
@@ -153,6 +165,9 @@ impl IdentifierExtractor {
                     .iter()
                     .find(|child| child.kind() == "class_name")
                     .filter(|_| is_functional)
+                    .filter(|name| {
+                        overlapping(dashed, name.start_byte(), name.end_byte()).is_none()
+                    })
                 {
                     let containing_symbol_id =
                         Self::find_containing_symbol_id(node, containing_symbols);
@@ -180,6 +195,38 @@ impl IdentifierExtractor {
             }
 
             _ => {}
+        }
+    }
+
+    /// One call identifier per custom function call (`--name(...)`), named
+    /// with its escapes decoded and carrying its argument count.
+    fn create_dashed_call_identifiers(
+        base: &mut BaseExtractor,
+        dashed: &[DashedFunction],
+        containing_symbols: &ContainingSymbolIndex<'_>,
+    ) {
+        for call in dashed.iter().filter(|function| !function.is_declaration) {
+            let Some(span) = NormalizedSpan::from_content_range_with_line_starts(
+                &base.content,
+                base.line_starts(),
+                call.start_byte,
+                call.end_byte,
+            ) else {
+                continue;
+            };
+            let containing_symbol_id = containing_symbols
+                .find_for_span(span)
+                .map(|symbol| symbol.id.clone());
+            let metadata = call.arg_count.map(|count| {
+                HashMap::from([("arg_count".to_string(), serde_json::Value::from(count))])
+            });
+            base.create_identifier_at_span(
+                span,
+                call.name.clone(),
+                IdentifierKind::Call,
+                containing_symbol_id,
+                metadata,
+            );
         }
     }
 
@@ -255,31 +302,4 @@ pub(super) fn composes_module_source<'t>(
     let source = from.next_named_sibling()?;
     let text = base.decode_string_literal(&source)?;
     Some((source, text))
-}
-
-/// Decodes CSS escapes: `\:` is `:`, and `\31 ` (1 to 6 hex digits plus
-/// one optional space) is the code point.
-fn decode_css_escapes(text: &str) -> String {
-    let mut decoded = String::with_capacity(text.len());
-    let mut chars = text.chars().peekable();
-    while let Some(ch) = chars.next() {
-        if ch != '\\' {
-            decoded.push(ch);
-            continue;
-        }
-        let mut hex = String::new();
-        while hex.len() < 6 && chars.peek().is_some_and(char::is_ascii_hexdigit) {
-            hex.extend(chars.next());
-        }
-        if hex.is_empty() {
-            decoded.extend(chars.next());
-            continue;
-        }
-        if chars.peek().is_some_and(|next| next.is_ascii_whitespace()) {
-            chars.next();
-        }
-        let code_point = u32::from_str_radix(&hex, 16).unwrap_or(0xFFFD);
-        decoded.push(char::from_u32(code_point).unwrap_or('\u{FFFD}'));
-    }
-    decoded
 }

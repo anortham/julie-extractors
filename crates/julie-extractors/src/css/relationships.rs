@@ -1,5 +1,8 @@
+use super::custom_functions::dashed_functions;
 use super::identifiers::composed_class_nodes;
-use crate::base::{BaseExtractor, NormalizedSpan, Relationship, RelationshipKind, Symbol};
+use crate::base::{
+    BaseExtractor, NormalizedSpan, Relationship, RelationshipKind, Symbol, SymbolKind,
+};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
@@ -11,9 +14,9 @@ struct Targets<'a> {
     class_rules: HashMap<String, Vec<&'a Symbol>>,
 }
 
-/// One `references` edge per `var(--x)` or animation name node, from the
-/// innermost symbol whose byte range holds the node to every same-name
-/// declaration in the file.
+/// One `references` edge per `var(--x)` or animation name node, and one
+/// `calls` edge per custom function call, from the innermost symbol whose byte
+/// range holds the site to every same-name declaration in the file.
 pub(super) fn extract_relationships(
     base: &BaseExtractor,
     tree: &Tree,
@@ -29,19 +32,80 @@ pub(super) fn extract_relationships(
     let mut references = Vec::new();
     collect_references(base, tree.root_node(), &targets, &mut references, 0);
     for (node, candidates, reference_type) in references {
+        let site = ReferenceSite {
+            name: base.get_node_text(&node),
+            span: NormalizedSpan::from_node(&node),
+            kind: RelationshipKind::References,
+            reference_type,
+        };
         for target in candidates {
-            push_relationship(
-                base,
-                symbols,
-                target,
-                node,
-                reference_type,
-                &mut seen,
-                &mut relationships,
-            );
+            push_relationship(base, symbols, target, &site, &mut seen, &mut relationships);
         }
     }
+    push_custom_function_calls(base, symbols, &mut seen, &mut relationships);
     relationships
+}
+
+/// One `calls` edge per custom function call (`--name(...)`) to each
+/// `@function` declaration of that name in the file.
+fn push_custom_function_calls(
+    base: &BaseExtractor,
+    symbols: &[Symbol],
+    seen: &mut HashSet<(String, String, u32, String)>,
+    relationships: &mut Vec<Relationship>,
+) {
+    let mut declarations: HashMap<&str, Vec<&Symbol>> = HashMap::new();
+    for symbol in symbols.iter().filter(|symbol| is_custom_function(symbol)) {
+        declarations
+            .entry(symbol.name.as_str())
+            .or_default()
+            .push(symbol);
+    }
+    if declarations.is_empty() {
+        return;
+    }
+    for call in dashed_functions(&base.content) {
+        let Some(targets) = declarations
+            .get(call.name.as_str())
+            .filter(|_| !call.is_declaration)
+        else {
+            continue;
+        };
+        let Some(span) = NormalizedSpan::from_content_range_with_line_starts(
+            &base.content,
+            base.line_starts(),
+            call.start_byte,
+            call.end_byte,
+        ) else {
+            continue;
+        };
+        let site = ReferenceSite {
+            name: call.name.clone(),
+            span,
+            kind: RelationshipKind::Calls,
+            reference_type: "custom-function",
+        };
+        for target in targets {
+            push_relationship(base, symbols, target, &site, seen, relationships);
+        }
+    }
+}
+
+fn is_custom_function(symbol: &Symbol) -> bool {
+    symbol.kind == SymbolKind::Function
+        && symbol
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("atRuleType"))
+            .and_then(Value::as_str)
+            == Some("function")
+}
+
+struct ReferenceSite {
+    name: String,
+    span: NormalizedSpan,
+    kind: RelationshipKind,
+    reference_type: &'static str,
 }
 
 fn collect_references<'t, 's>(
@@ -124,8 +188,8 @@ fn is_animation_declaration(base: &BaseExtractor, declaration: Node<'_>) -> bool
         })
 }
 
-fn innermost_symbol_containing<'a>(symbols: &'a [Symbol], node: Node<'_>) -> Option<&'a Symbol> {
-    let (start, end) = (node.start_byte() as u32, node.end_byte() as u32);
+fn innermost_symbol_containing(symbols: &[Symbol], span: NormalizedSpan) -> Option<&Symbol> {
+    let (start, end) = (span.start_byte, span.end_byte);
     symbols
         .iter()
         .filter(|symbol| symbol.start_byte <= start && end <= symbol.end_byte)
@@ -166,18 +230,17 @@ fn push_relationship(
     base: &BaseExtractor,
     symbols: &[Symbol],
     target: &Symbol,
-    node: Node<'_>,
-    reference_type: &str,
+    site: &ReferenceSite,
     seen: &mut HashSet<(String, String, u32, String)>,
     relationships: &mut Vec<Relationship>,
 ) {
     let Some(source) =
-        innermost_symbol_containing(symbols, node).filter(|source| source.id != target.id)
+        innermost_symbol_containing(symbols, site.span).filter(|source| source.id != target.id)
     else {
         return;
     };
-    let reference_name = base.get_node_text(&node);
-    let span = NormalizedSpan::from_node(&node);
+    let reference_name = site.name.clone();
+    let span = site.span;
     let line_number = span.start_line;
     let key = (
         source.id.clone(),
@@ -196,21 +259,17 @@ fn push_relationship(
     );
     metadata.insert(
         "referenceType".to_string(),
-        Value::String(reference_type.to_string()),
+        Value::String(site.reference_type.to_string()),
     );
 
     relationships.push(Relationship {
         id: format!(
             "{}_{}_{:?}_{}_{}",
-            source.id,
-            target.id,
-            RelationshipKind::References,
-            line_number,
-            reference_name
+            source.id, target.id, site.kind, line_number, reference_name
         ),
         from_symbol_id: source.id.clone(),
         to_symbol_id: target.id.clone(),
-        kind: RelationshipKind::References,
+        kind: site.kind.clone(),
         file_path: base.file_path.clone(),
         line_number,
         span: Some(span),
