@@ -430,6 +430,100 @@ end
         assert_eq!(role(find(&symbols, "test_named_case")), None);
         assert!(!flag(find(&symbols, "test_named_case"), "is_test"));
     }
+
+    #[test]
+    fn test_unit_sub_test_case_is_a_container_of_its_tests() {
+        let symbols = extract(
+            "test/test_calc.rb",
+            r#"
+require "test/unit"
+
+class CalcTest < Test::Unit::TestCase
+  sub_test_case "addition \"basic\"" do
+    setup do
+      @x = 2
+    end
+
+    test "adds two" do
+      assert_equal(3, 1 + 2)
+    end
+
+    def test_adds_three
+      assert_equal(3, 1 + 2)
+    end
+
+    sub_test_case "nested" do
+      test "deep" do
+        assert true
+      end
+    end
+  end
+
+  test "top level" do
+    assert true
+  end
+
+  def test_plain
+    assert true
+  end
+end
+"#,
+        );
+
+        let class = find(&symbols, "CalcTest");
+        let group = find(&symbols, "addition \"basic\"");
+        assert_eq!(group.kind, SymbolKind::Namespace);
+        assert_eq!(role(group), Some("test_container"));
+        assert!(flag(group, "test_container"));
+        assert_eq!(
+            group.signature.as_deref(),
+            Some("sub_test_case \"addition \\\"basic\\\"\"")
+        );
+        assert_eq!(group.parent_id.as_ref(), Some(&class.id));
+        let nested = find(&symbols, "nested");
+        assert_eq!(role(nested), Some("test_container"));
+        assert_eq!(nested.parent_id.as_ref(), Some(&group.id));
+
+        let parent_of = |name: &str| {
+            let symbol = find(&symbols, name);
+            assert_eq!(role(symbol), Some("test_case"), "{name}");
+            symbol.parent_id.clone()
+        };
+        assert_eq!(parent_of("adds two"), Some(group.id.clone()));
+        assert_eq!(parent_of("test_adds_three"), Some(group.id.clone()));
+        assert_eq!(parent_of("deep"), Some(nested.id.clone()));
+        assert_eq!(parent_of("top level"), Some(class.id.clone()));
+        assert_eq!(parent_of("test_plain"), Some(class.id.clone()));
+
+        let setup = symbols
+            .iter()
+            .find(|symbol| symbol.name == "setup")
+            .expect("setup hook");
+        assert_eq!(role(setup), Some("fixture_setup"));
+        assert_eq!(setup.parent_id.as_ref(), Some(&group.id));
+    }
+
+    #[test]
+    fn sub_test_case_outside_a_test_path_or_sent_to_an_object_is_not_a_container() {
+        let library = extract(
+            "lib/calc.rb",
+            r#"
+sub_test_case "outside tests" do
+end
+"#,
+        );
+        assert!(!library.iter().any(|symbol| symbol.name == "outside tests"));
+
+        let member = extract(
+            "test/helper.rb",
+            r#"
+runner = Runner.new
+runner.sub_test_case "member call" do
+end
+"#,
+        );
+        assert!(!member.iter().any(|symbol| symbol.name == "member call"));
+    }
 }
 
 #[test]

@@ -4062,6 +4062,7 @@
             "fixtures/extraction/ruby/test_roles/test_source.rb",
             "fixtures/extraction/ruby/test_roles/minitest_class_test.rb",
             "fixtures/extraction/ruby/test_roles/rails_macro_test.rb",
+            "fixtures/extraction/ruby/test_roles/test_unit_sub_test_case_test.rb",
             "fixtures/extraction/ruby/test_roles/production_roles.rb"
           ]
         },

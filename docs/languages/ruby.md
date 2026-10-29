@@ -38,7 +38,8 @@ frameworks and guards each rule three ways.
 | `after` block | `fixture_teardown` | RSpec hook |
 | `around` block | `fixture_setup` | RSpec wrapping hook |
 | `let`, `let!`, `subject`, `subject!` block | `fixture_setup` | RSpec helper method |
-| `test "name" do` | `test_case` | Rails `ActiveSupport::TestCase` macro |
+| `sub_test_case "name" do` block | `test_container` | Test::Unit nested test case; its `test` blocks, `def test_x` methods, and hooks are its children |
+| `test "name" do` | `test_case` | Rails `ActiveSupport::TestCase` and Test::Unit macro |
 | `setup do`, `teardown do` | `fixture_setup`, `fixture_teardown` | Rails block-form callbacks |
 | `def setup`, `def teardown` | `fixture_setup`, `fixture_teardown` | Minitest and Test::Unit hooks |
 | `def test_x` | `test_case` | Minitest and Test::Unit collection prefix |

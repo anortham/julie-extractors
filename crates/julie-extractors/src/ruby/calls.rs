@@ -591,7 +591,8 @@ fn plain_string(base: &BaseExtractor, string_node: Node) -> Option<String> {
 /// it becomes; [`TestBlockKind::role`] decides the test role.
 #[derive(Clone, Copy)]
 enum TestBlockKind {
-    /// `describe`/`context`/`shared_examples` — named by the first argument.
+    /// `describe`/`context`/`shared_examples`, and test-unit `sub_test_case` —
+    /// named by the first argument.
     Container,
     /// `it`/`specify`/`xit` — named by the first argument.
     Example,
@@ -660,7 +661,8 @@ fn test_block_kind(method_name: &str) -> Option<TestBlockKind> {
         | "fcontext"
         | "shared_examples"
         | "shared_examples_for"
-        | "shared_context" => Some(TestBlockKind::Container),
+        | "shared_context"
+        | "sub_test_case" => Some(TestBlockKind::Container),
         "it" | "specify" | "example" | "scenario" | "xit" | "fit" | "xspecify" | "fspecify"
         | "xexample" | "fexample" => Some(TestBlockKind::Example),
         "before" | "after" | "around" | "setup" | "teardown" => Some(TestBlockKind::Lifecycle),

@@ -25,3 +25,6 @@ test "not a rails case" do
 end
 
 let(:not_a_fixture) { 1 }
+
+sub_test_case "not a test-unit group" do
+end
