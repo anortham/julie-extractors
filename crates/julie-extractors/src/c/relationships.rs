@@ -183,6 +183,7 @@ fn call_target_from_function_node(
                 });
             Some((target, true))
         }
+        "subscript_expression" => None,
         _ => {
             let identifier = helpers::find_deepest_identifier(function_node)?;
             let function_name = extractor.get_base_mut().get_node_text(&identifier);

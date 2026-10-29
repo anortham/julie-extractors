@@ -301,6 +301,9 @@ never parsed before, and they apply to every C++ file.
   no role, and a slot with a `name_data` partner is a parameterized test.
 - `BOOST_AUTO_TEST_CASE(name)` and `BOOST_FIXTURE_TEST_CASE(name, Fixture)` are
   test rows named `name`. `BOOST_AUTO_TEST_SUITE(name)` is a container row.
+- A call through a subscript (`table[k](x)`) names no callee: it writes no
+  `calls` relationship and no pending call, because the element that the
+  subscript reads has no name. The container's name is not the callee.
 
 ## Continuous testing
 

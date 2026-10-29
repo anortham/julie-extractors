@@ -249,6 +249,7 @@ fn extract_call_relationships(
                 }
                 UnresolvedTarget::simple(name)
             }
+            "subscript_expression" => return,
             // For other cases, try to extract any identifier in the function node
             _ => {
                 // Try to find an identifier child

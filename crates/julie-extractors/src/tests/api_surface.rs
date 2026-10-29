@@ -72,6 +72,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "regex-branch-reset-v1",
         "rust-type-fact-base-names-v1",
         "call-argument-counts-v1",
+        "c-cpp-subscript-callee-v1",
     ] {
         assert!(
             version.contains(marker),

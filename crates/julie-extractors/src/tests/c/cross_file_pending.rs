@@ -106,3 +106,49 @@ void run(struct Out outer, struct Out *p) {
     assert!(two_part.namespace_path.is_empty());
     assert_eq!(two_part.display_name, "outer.solo");
 }
+
+#[test]
+fn test_c_call_through_subscript_names_no_callee() {
+    let source = r#"
+void fns(int n) {}
+void dispatch(void (*fns[])(int), int i) {
+    fns[i](1);
+    (*fns[i])(2);
+    helper();
+}
+"#;
+    let workspace_root = Path::new("/tmp/test");
+    let result = extract_canonical("dispatch.c", source, workspace_root)
+        .expect("canonical C extraction must succeed");
+    let fns_id = result
+        .symbols
+        .iter()
+        .find(|s| s.name == "fns" && s.kind == SymbolKind::Function)
+        .map(|s| s.id.clone())
+        .expect("fns function symbol must exist");
+
+    assert!(
+        result
+            .relationships
+            .iter()
+            .all(|r| r.to_symbol_id != fns_id),
+        "a call through `fns[i]` must not reach the function `fns`: {:#?}",
+        result.relationships
+    );
+    assert!(
+        result
+            .structured_pending_relationships
+            .iter()
+            .all(|p| p.target.terminal_name != "fns"),
+        "a call through `fns[i]` must not name `fns` as its callee: {:#?}",
+        result.structured_pending_relationships
+    );
+    assert!(
+        result
+            .structured_pending_relationships
+            .iter()
+            .any(|p| p.target.terminal_name == "helper"),
+        "the plain call `helper()` must stay pending: {:#?}",
+        result.structured_pending_relationships
+    );
+}

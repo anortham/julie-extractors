@@ -101,3 +101,50 @@ void run() {
     assert!(two_part.target.namespace_path.is_empty());
     assert_eq!(two_part.target.display_name, "Two.part");
 }
+
+#[test]
+fn test_cpp_call_through_subscript_names_no_callee() {
+    let source = r#"
+#include <map>
+#include <string>
+void table(int n) {}
+void run(std::map<std::string, void (*)(int)> table, std::string k) {
+    table[k](1);
+    helper();
+}
+"#;
+    let workspace_root = Path::new("/tmp/test");
+    let result = extract_canonical("run.cpp", source, workspace_root)
+        .expect("canonical C++ extraction must succeed");
+    let table_id = result
+        .symbols
+        .iter()
+        .find(|s| s.name == "table" && s.kind == SymbolKind::Function)
+        .map(|s| s.id.clone())
+        .expect("table function symbol must exist");
+
+    assert!(
+        result
+            .relationships
+            .iter()
+            .all(|r| r.to_symbol_id != table_id),
+        "a call through `table[k]` must not reach the function `table`: {:#?}",
+        result.relationships
+    );
+    assert!(
+        result
+            .structured_pending_relationships
+            .iter()
+            .all(|p| p.target.terminal_name != "table"),
+        "a call through `table[k]` must not name `table` as its callee: {:#?}",
+        result.structured_pending_relationships
+    );
+    assert!(
+        result
+            .structured_pending_relationships
+            .iter()
+            .any(|p| p.target.terminal_name == "helper"),
+        "the plain call `helper()` must stay pending: {:#?}",
+        result.structured_pending_relationships
+    );
+}

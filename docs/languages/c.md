@@ -49,3 +49,10 @@
   extractor reads it back as the variable `w`, a call to `make`, and a
   variable reference to `x`. The misread `w` and the `__auto_type` keyword are
   not type usages and make no `uses` relationships.
+
+## Calls
+
+- A call through a subscript (`handlers[i](x)`, `(*handlers[i])(x)`) names no
+  callee: it writes no `calls` relationship and no pending call. The element
+  that the subscript reads has no name, so the array or parameter name is not
+  the callee. The call identifier still records the site.
