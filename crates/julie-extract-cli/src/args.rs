@@ -71,9 +71,9 @@ pub struct ScanArgs {
     /// literals, and type-usage and member-access identifiers; no call or
     /// variable-reference identifiers, type-argument usages, or source
     /// regions), `references` (`facts` plus the call and variable-reference
-    /// identifiers with their call metadata; no type-argument usages, source
-    /// regions, complexity metrics, or annotations), or
-    /// `full` (everything; the default). An existing
+    /// identifiers with their call metadata and symbol annotations; no
+    /// type-argument usages, source regions, or complexity metrics), or
+    /// `full` (everything, including complexity metrics; the default). An existing
     /// artifact always keeps the level it was built with; passing a different
     /// level for it is a usage error — rebuild into a fresh artifact instead.
     #[arg(long, value_enum)]

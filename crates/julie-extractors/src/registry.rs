@@ -1052,7 +1052,7 @@ pub fn extract_for_language_at(
                 .sort_by_key(|region| (region.start_byte, region.end_byte));
         }
     }
-    if level.includes_complexity_and_annotations() {
+    if level.includes_complexity_metrics() {
         results.complexity_metrics = match language {
             "vue" | "html" => std::mem::take(&mut results.complexity_metrics),
             "sql" => crate::sql::complexity_metrics::collect_complexity_metrics(

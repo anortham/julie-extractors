@@ -541,13 +541,14 @@ pub struct SymbolOptions {
 /// walk, its byproducts (literals, type-argument usages), and the text/facts
 /// collectors (source regions, structural facts) never run. `References` is
 /// `Facts` plus the call and variable-reference identifiers with their call
-/// metadata; it drops type-argument usages, source regions, complexity
-/// metrics, and annotations. `Full` is the complete extraction — the default everywhere a level is not requested, so
-/// pre-levels callers and artifacts are unaffected.
+/// metadata and symbol annotations; it drops type-argument usages, source
+/// regions, and complexity metrics. `Full` is the complete extraction — the
+/// default everywhere a level is not requested, so pre-levels callers and
+/// artifacts are unaffected.
 ///
 /// The level is uniform across all supported languages by construction: the
 /// gate lives in the shared registry dispatch, and
-/// [`ExtractionResults::strip_to_symbols_level`] is the single authority on
+/// [`ExtractionResults::strip_to_level`] is the single authority on
 /// which result families a `Symbols` extraction may carry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExtractionLevel {
@@ -574,9 +575,13 @@ impl ExtractionLevel {
         !matches!(self, ExtractionLevel::Symbols)
     }
 
-    /// Whether complexity metrics and symbol annotations are materialized.
-    /// Only `full` carries them.
-    pub fn includes_complexity_and_annotations(self) -> bool {
+    /// Whether symbol annotations are retained.
+    pub fn includes_annotations(self) -> bool {
+        matches!(self, ExtractionLevel::References | ExtractionLevel::Full)
+    }
+
+    /// Whether complexity metrics are materialized.
+    pub fn includes_complexity_metrics(self) -> bool {
         matches!(self, ExtractionLevel::Full)
     }
 

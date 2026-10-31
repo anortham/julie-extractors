@@ -180,6 +180,14 @@ fn contract_subcommands_parse_their_documented_flags() {
 }
 
 #[test]
+fn scan_help_describes_annotations_at_references_and_full_only_complexity() {
+    let output = julie_extract(&["scan", "--help"]);
+    let help = String::from_utf8(output.stdout).unwrap();
+    assert!(help.contains("symbol annotations; no type-argument usages"));
+    assert!(help.contains("`full` (everything, including complexity metrics; the default)"));
+}
+
+#[test]
 fn fleet_safety_flags_are_scan_only() {
     for command in ["update", "delete", "info", "languages", "rebind"] {
         let output = julie_extract(&[command, "--help"]);

@@ -80,8 +80,10 @@ impl ExtractionResults {
     /// across every language instead of leaving a silent three-language subset
     /// in the artifact.
     pub fn strip_to_level(&mut self, level: ExtractionLevel) {
-        if !level.includes_complexity_and_annotations() {
+        if !level.includes_complexity_metrics() {
             self.complexity_metrics.clear();
+        }
+        if !level.includes_annotations() {
             for symbol in &mut self.symbols {
                 symbol.annotations.clear();
             }

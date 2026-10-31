@@ -332,7 +332,7 @@ fn annotation_count(results: &crate::ExtractionResults) -> usize {
 }
 
 #[test]
-fn only_full_level_carries_complexity_metrics_and_symbol_annotations() {
+fn only_full_level_carries_complexity_metrics() {
     for fixture in FIXTURES {
         for level in [
             ExtractionLevel::Symbols,
@@ -345,13 +345,21 @@ fn only_full_level_carries_complexity_metrics_and_symbol_annotations() {
                 "{}: complexity metrics must be empty below full level",
                 fixture.language
             );
-            assert_eq!(
-                annotation_count(&results),
-                0,
-                "{}: symbol annotations must be empty below full level",
-                fixture.language
-            );
         }
+    }
+}
+
+#[test]
+fn symbol_annotations_are_preserved_at_references_and_full_levels() {
+    let fixture = &FIXTURES[0];
+    for (level, expected) in [
+        (ExtractionLevel::Symbols, 0),
+        (ExtractionLevel::Facts, 0),
+        (ExtractionLevel::References, 1),
+        (ExtractionLevel::Full, 1),
+    ] {
+        let results = extract_at(level, fixture.file_path, fixture.source);
+        assert_eq!(annotation_count(&results), expected, "{level:?}");
     }
 }
 

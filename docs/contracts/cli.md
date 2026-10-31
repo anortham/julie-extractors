@@ -209,15 +209,15 @@ read variable references, call identifiers, or text regions; `call` and
 `source_regions` stay empty. `references` is `facts` plus every `call` and
 `variable_ref` identifier, identical to a full extraction's, with their call
 metadata (`arg_count`, `arg_spread`, `arg_types`, `arg_names`, `arg_labels`;
-each language page says which of these its calls carry). It exists for
-consumers such as `code-kb` that read call and read sites but never text
-regions or type arguments;
-`type_argument_usages`, `type_arguments`, and `source_regions` stay empty. On
-the hermes-agent tree a `references` artifact is 3181 MB against 3952 MB at
-`full` and 1670 MB at `facts`. `symbol_annotations` and `complexity_metrics`
-are written only at `full`, and stay empty at `symbols`, `facts`, and
-`references`. The chosen level is recorded in the `index_level` artifact-metadata
-key and in `artifact.index_level` on every report.
+each language page says which of these its calls carry), plus
+`symbol_annotations`. It exists for consumers such as `code-kb` that read call
+and variable-reference sites but never text regions or type arguments;
+`type_argument_usages`, `type_arguments`, and `source_regions` stay empty.
+Complexity metrics remain exclusive to `full`; symbol annotations are empty
+at `symbols` and `facts`. The 3.10.0 hermes-agent size figures predate
+annotations at `references`; measure a fresh artifact for the 3.11.0 size. The
+chosen level is recorded in the `index_level` artifact-metadata key and in
+`artifact.index_level` on every report.
 
 An artifact's level is fixed when it is first built. A rescan or `update`
 without `--level` inherits the recorded level; passing a conflicting `--level`

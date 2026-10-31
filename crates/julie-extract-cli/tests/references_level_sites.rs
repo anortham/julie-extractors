@@ -4,6 +4,7 @@ use rusqlite::Connection;
 use tempfile::TempDir;
 
 const SOURCE: &str = r#"
+@tracked
 def helper(value):
     return value
 
@@ -55,6 +56,9 @@ fn the_references_level_writes_a_site_only_for_an_identifier_a_relationship_shar
     let (_references_dir, references) = scan_at("references");
     let identifiers = "SELECT COUNT(*) FROM identifiers";
     assert_eq!(count(&full, identifiers), count(&references, identifiers));
+    let annotations = "SELECT COUNT(*) FROM symbol_annotations";
+    assert!(count(&references, annotations) > 0);
+    assert_eq!(count(&full, annotations), count(&references, annotations));
     assert_eq!(
         count(
             &full,
